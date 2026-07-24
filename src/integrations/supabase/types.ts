@@ -81,10 +81,62 @@ export type Database = {
           },
         ]
       }
+      account_payments: {
+        Row: {
+          account_number: string | null
+          amount: number
+          created_at: string
+          crm_customer_id: number | null
+          currency: string
+          gateway_fail_rc: string | null
+          gateway_oid: string | null
+          gateway_response_code: string | null
+          id: string
+          provider: string
+          statement_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          amount: number
+          created_at?: string
+          crm_customer_id?: number | null
+          currency?: string
+          gateway_fail_rc?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
+          id?: string
+          provider?: string
+          statement_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          created_at?: string
+          crm_customer_id?: number | null
+          currency?: string
+          gateway_fail_rc?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
+          id?: string
+          provider?: string
+          statement_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       activities: {
         Row: {
           activity_type: string | null
-          contact_id: string
+          completed_at: string | null
+          contact_id: string | null
           content: string | null
           created_at: string | null
           created_by: string | null
@@ -96,7 +148,8 @@ export type Database = {
         }
         Insert: {
           activity_type?: string | null
-          contact_id: string
+          completed_at?: string | null
+          contact_id?: string | null
           content?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -104,11 +157,12 @@ export type Database = {
           id?: string
           opportunity_id?: string | null
           status?: string | null
-          type: string
+          type?: string
         }
         Update: {
           activity_type?: string | null
-          contact_id?: string
+          completed_at?: string | null
+          contact_id?: string | null
           content?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -2025,6 +2079,7 @@ export type Database = {
           pay_by_eft: boolean | null
           phone: string | null
           pipeline_stage: string | null
+          portal_orders_use_bill_to_account: boolean
           type: string | null
           updated_at: string | null
         }
@@ -2047,6 +2102,7 @@ export type Database = {
           pay_by_eft?: boolean | null
           phone?: string | null
           pipeline_stage?: string | null
+          portal_orders_use_bill_to_account?: boolean
           type?: string | null
           updated_at?: string | null
         }
@@ -2069,6 +2125,7 @@ export type Database = {
           pay_by_eft?: boolean | null
           phone?: string | null
           pipeline_stage?: string | null
+          portal_orders_use_bill_to_account?: boolean
           type?: string | null
           updated_at?: string | null
         }
@@ -5024,6 +5081,10 @@ export type Database = {
           card_brand: string | null
           card_last4: string | null
           created_at: string
+          gateway_fail_rc: string | null
+          gateway_hosteddataid: string | null
+          gateway_oid: string | null
+          gateway_response_code: string | null
           id: string
           metadata: Json
           order_id: string
@@ -5039,6 +5100,10 @@ export type Database = {
           card_brand?: string | null
           card_last4?: string | null
           created_at?: string
+          gateway_fail_rc?: string | null
+          gateway_hosteddataid?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
           id?: string
           metadata?: Json
           order_id: string
@@ -5054,6 +5119,10 @@ export type Database = {
           card_brand?: string | null
           card_last4?: string | null
           created_at?: string
+          gateway_fail_rc?: string | null
+          gateway_hosteddataid?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
           id?: string
           metadata?: Json
           order_id?: string
@@ -5239,6 +5308,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_gateway_secrets: {
+        Row: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          encrypted_secret?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "payment_gateway_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_gateway_settings: {
+        Row: {
+          created_at: string
+          currency: string
+          enabled: boolean
+          environment: string
+          has_secret: boolean
+          id: string
+          last_tested_at: string | null
+          provider: string
+          status: string
+          store_id: string | null
+          tenant_key: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          enabled?: boolean
+          environment?: string
+          has_secret?: boolean
+          id?: string
+          last_tested_at?: string | null
+          provider?: string
+          status?: string
+          store_id?: string | null
+          tenant_key?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          enabled?: boolean
+          environment?: string
+          has_secret?: boolean
+          id?: string
+          last_tested_at?: string | null
+          provider?: string
+          status?: string
+          store_id?: string | null
+          tenant_key?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       price_catalog: {
         Row: {
@@ -5764,6 +5907,7 @@ export type Database = {
           fx_rates: Json
           fx_risk_buffer: number
           id: string
+          import_costing_fx_rates: Json
           insurance_percent: number
           inventory_holding: number
           is_active: boolean
@@ -5796,6 +5940,7 @@ export type Database = {
           fx_rates?: Json
           fx_risk_buffer?: number
           id?: string
+          import_costing_fx_rates?: Json
           insurance_percent?: number
           inventory_holding?: number
           is_active?: boolean
@@ -5828,6 +5973,7 @@ export type Database = {
           fx_rates?: Json
           fx_risk_buffer?: number
           id?: string
+          import_costing_fx_rates?: Json
           insurance_percent?: number
           inventory_holding?: number
           is_active?: boolean
@@ -5986,9 +6132,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           avatar_url: string | null
           billing_address: Json | null
           bio: string | null
+          claimed_account_number: string | null
           created_at: string
           crm_contact_id: string | null
           crm_customer_id: number | null
@@ -6011,9 +6160,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
+          claimed_account_number?: string | null
           created_at?: string
           crm_contact_id?: string | null
           crm_customer_id?: number | null
@@ -6036,9 +6188,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
+          claimed_account_number?: string | null
           created_at?: string
           crm_contact_id?: string | null
           crm_customer_id?: number | null
@@ -6989,6 +7144,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      staff_public_cards: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          is_published: boolean
+          linkedin_url: string | null
+          organization_name: string | null
+          phone: string | null
+          skills: string[]
+          slug: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          website_url: string | null
+          whatsapp_phone: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          is_published?: boolean
+          linkedin_url?: string | null
+          organization_name?: string | null
+          phone?: string | null
+          skills?: string[]
+          slug: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          website_url?: string | null
+          whatsapp_phone?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          is_published?: boolean
+          linkedin_url?: string | null
+          organization_name?: string | null
+          phone?: string | null
+          skills?: string[]
+          slug?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          website_url?: string | null
+          whatsapp_phone?: string | null
+        }
+        Relationships: []
       }
       statement_lines: {
         Row: {
@@ -8571,12 +8783,20 @@ export type Database = {
         Args: { p_feature_key?: string; p_user_id?: string }
         Returns: boolean
       }
+      can_access_customer_pricing: {
+        Args: { p_user_id?: string }
+        Returns: boolean
+      }
       can_access_customer_statement: {
         Args: { p_user_id?: string }
         Returns: boolean
       }
       cancel_integration_sync_job: {
         Args: { p_sync_job_id: string }
+        Returns: undefined
+      }
+      cancel_order: {
+        Args: { p_order_id: string; p_reason: string }
         Returns: undefined
       }
       claim_live_data_gateway_request: {
@@ -8597,6 +8817,16 @@ export type Database = {
       create_api_key: {
         Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
         Returns: Json
+      }
+      create_pending_statement_payment: {
+        Args: {
+          p_account_number?: string
+          p_actor_user_id?: string
+          p_amount: number
+          p_crm_customer_id?: number
+          p_statement_id?: string
+        }
+        Returns: string
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -8708,6 +8938,13 @@ export type Database = {
         }[]
       }
       get_portal_erp_account_number: { Args: never; Returns: string }
+      get_portal_erp_order_lookup: {
+        Args: never
+        Returns: {
+          account_number: string
+          portal_orders_use_bill_to_account: boolean
+        }[]
+      }
       get_quote_lines_safe: {
         Args: { p_quote_id: string }
         Returns: {
@@ -8735,6 +8972,17 @@ export type Database = {
           unit_cost_landed_bbd: number
           unit_sell_price_bbd: number
           updated_at: string
+        }[]
+      }
+      get_scotia_credentials: {
+        Args: never
+        Returns: {
+          currency: string
+          enabled: boolean
+          environment: string
+          shared_secret: string
+          store_id: string
+          timezone: string
         }[]
       }
       get_supplies_safe: {
@@ -8790,6 +9038,13 @@ export type Database = {
           updated_at: string
         }[]
       }
+      list_staff_names: {
+        Args: never
+        Returns: {
+          name: string
+          user_id: string
+        }[]
+      }
       log_integration_event: {
         Args: {
           p_event_name: string
@@ -8818,6 +9073,7 @@ export type Database = {
         Args: { p_account_number: string }
         Returns: string
       }
+      payment_secret_encryption_key: { Args: never; Returns: string }
       place_customer_order: {
         Args: {
           p_actor_user_id?: string
@@ -8835,6 +9091,43 @@ export type Database = {
           p_target_user_id: string
         }
         Returns: string
+      }
+      place_customer_order_with_shipping: {
+        Args: {
+          p_actor_user_id?: string
+          p_checkout?: Json
+          p_items: Json
+          p_shipping_amount?: number
+          p_target_user_id: string
+        }
+        Returns: string
+      }
+      portal_assigned_pricelist_addons: {
+        Args: never
+        Returns: {
+          bbd_price: number
+          display_description: string
+          row_type: string
+          section: string
+          sort_order: number
+        }[]
+      }
+      portal_assigned_pricelist_catalog: {
+        Args: { p_catalog_type: string }
+        Returns: {
+          bbd_price: number
+          display_description: string
+          row_type: string
+          section: string
+          sort_order: number
+        }[]
+      }
+      portal_assigned_pricelist_details: {
+        Args: { p_customer_id?: number }
+        Returns: {
+          name: string
+          updated_at: string
+        }[]
       }
       portal_assigned_pricelist_matrix: {
         Args: never
@@ -8867,6 +9160,10 @@ export type Database = {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
       }
+      record_payment_gateway_test: {
+        Args: { p_actor_user_id?: string; p_success: boolean }
+        Returns: undefined
+      }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
       revert_account_to_master: {
@@ -8876,6 +9173,10 @@ export type Database = {
       revert_line_to_master: {
         Args: { p_customer_id: number; p_item_ref: string }
         Returns: undefined
+      }
+      revert_on_account_order_to_draft: {
+        Args: { p_order_id: string }
+        Returns: string
       }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
       set_custom_price: {
@@ -8891,6 +9192,14 @@ export type Database = {
       set_master_price: {
         Args: { p_item_ref: string; p_price: number }
         Returns: undefined
+      }
+      settle_scotia_payment: {
+        Args: { p_actor_user_id?: string; p_gateway?: Json; p_order_id: string }
+        Returns: string
+      }
+      settle_statement_payment: {
+        Args: { p_gateway?: Json; p_payment_id: string }
+        Returns: string
       }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }
@@ -9000,6 +9309,18 @@ export type Database = {
           p_tenant_key?: string
         }
         Returns: undefined
+      }
+      upsert_payment_gateway_settings: {
+        Args: {
+          p_actor_user_id?: string
+          p_currency?: string
+          p_enabled?: boolean
+          p_environment?: string
+          p_shared_secret?: string
+          p_store_id: string
+          p_timezone?: string
+        }
+        Returns: string
       }
       upsert_presence_heartbeat: {
         Args: { p_role_scope?: string; p_status?: string }

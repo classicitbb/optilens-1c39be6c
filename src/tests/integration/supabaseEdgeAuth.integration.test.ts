@@ -10,6 +10,7 @@ const read = (relativePath: string) =>
 describe("supabase edge-function auth hardening", () => {
   const privilegedFunctions = [
     "customer-onboarding",
+    "crm-draft-outreach",
     "lead-intelligence",
     "lens-assistant",
     "order-confirmation",
@@ -89,6 +90,12 @@ describe("supabase edge-function auth hardening", () => {
     const lensAssistant = read("supabase/functions/lens-assistant/index.ts");
     expect(lensAssistant).toContain("requireAuthenticatedUser");
     expect(lensAssistant).toContain("if (authContext instanceof Response)");
+
+    const crmDraftOutreach = read("supabase/functions/crm-draft-outreach/index.ts");
+    expect(crmDraftOutreach).toContain("requirePrivilegedAccess");
+    expect(crmDraftOutreach).toMatch(/allowedRoles:\s*\[["']admin["'],\s*["']operator["']\]/);
+    expect(crmDraftOutreach).toContain('sourceFunction: "crm-draft-outreach"');
+    expect(crmDraftOutreach).toContain("auth.supabaseAdminClient");
   });
 
   it("removes wildcard CORS origin headers from non-scaffolded edge functions", () => {
@@ -115,5 +122,10 @@ describe("supabase edge-function auth hardening", () => {
     const unsubscribe = read("supabase/functions/handle-email-unsubscribe/index.ts");
     // Scaffolded unsubscribe validates token presence
     expect(unsubscribe).toContain("Token is required");
+
+    const lensAssistant = read("supabase/functions/lens-assistant/index.ts");
+    expect(lensAssistant).toContain("getClientIp");
+    expect(lensAssistant).toContain("checkRateLimit(ip, corsHeaders, 6, 60_000)");
+    expect(lensAssistant).toContain("checkRateLimit(`hour:${ip}`, corsHeaders, 60, 60 * 60_000)");
   });
 });

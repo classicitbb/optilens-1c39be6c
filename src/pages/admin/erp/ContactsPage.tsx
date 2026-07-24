@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSaveContact, useDeleteContact, useSetContactTags, type Contact } from "@/hooks/useContacts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToastAction } from "@/components/ui/toast";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink, BookOpenCheck, UserPlus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { AccessDeploymentAssistantDialog } from "@/components/admin/AccessDeploymentAssistantDialog";
+import { AccessDeploymentTrainingDialog, hasCompletedAccessDeploymentTraining } from "@/components/admin/AccessDeploymentTrainingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +75,17 @@ type ImportedCustomer = {
   innovations_customer_id: number | null;
   contact_id: string | null;
   updated_at: string | null;
+};
+
+type CustomerAccountRecord = {
+  id: number;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  account_number: string | null;
+  innovations_customer_id: number | null;
+  contact_id: string | null;
+  portal_orders_use_bill_to_account: boolean;
 };
 
 type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
@@ -313,6 +326,175 @@ type ContactsPageProps = {
   onEmbeddedClose?: () => void;
 };
 
+type ImportedCustomerRowProps = {
+  customer: ImportedCustomer;
+  linkedContact: Contact | null;
+  onOpenLinked: (customer: ImportedCustomer) => void;
+  onCreateContact: (customer: ImportedCustomer) => void;
+};
+
+// Memoized so a row only re-renders when its own data changes, not on every
+// keystroke or dialog-state change elsewhere in this page.
+const ImportedCustomerRow = memo(function ImportedCustomerRow({ customer, linkedContact, onOpenLinked, onCreateContact }: ImportedCustomerRowProps) {
+  return (
+    <TableRow>
+      <TableCell className="font-medium text-xs">
+        <div className="flex flex-col gap-1">
+          <span>{customer.name}</span>
+          <span className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Customer #{customer.id}</span>
+        </div>
+      </TableCell>
+      <TableCell className="text-xs">
+        <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}>
+          {customer.account_number || "No account #"}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-xs">{customer.email || "—"}</TableCell>
+      <TableCell className="text-xs">{customer.phone || "—"}</TableCell>
+      <TableCell className="text-xs">{customer.country_code || "—"}</TableCell>
+      <TableCell className="text-xs">
+        {customer.contact_id ? (
+          <span>
+            {linkedContact?.name ?? "Linked contact"}
+            {linkedContact?.is_archived && <span style={{ color: "hsl(215 15% 55%)" }}> (archived)</span>}
+          </span>
+        ) : (
+          <span style={{ color: "hsl(215 15% 55%)" }}>Not visible in Contacts yet</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {customer.contact_id ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => onOpenLinked(customer)}
+          >
+            Open contact
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => onCreateContact(customer)}
+          >
+            Create contact
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+});
+
+type ContactRowProps = {
+  contact: Contact;
+  isSelected: boolean;
+  isDuplicate: boolean;
+  linkedCustomer: { id: number; name: string; account_number: string | null } | undefined;
+  opportunityCount: number;
+  hasPriceProfile: boolean;
+  onToggleSelect: (contactId: string, checked: boolean) => void;
+  onOpen: (contact: Contact) => void;
+  onOpenCrm: (contact: Contact, event: React.MouseEvent) => void;
+  onOpenPricing: (contact: Contact, event: React.MouseEvent) => void;
+};
+
+// Memoized so a row only re-renders when its own data changes, not on every
+// keystroke or dialog-state change elsewhere in this page.
+const ContactRow = memo(function ContactRow({
+  contact: c,
+  isSelected,
+  isDuplicate,
+  linkedCustomer,
+  opportunityCount,
+  hasPriceProfile,
+  onToggleSelect,
+  onOpen,
+  onOpenCrm,
+  onOpenPricing,
+}: ContactRowProps) {
+  return (
+    <TableRow className="cursor-pointer" onClick={() => onOpen(c)}>
+      <TableCell className="w-10" onClick={(event) => event.stopPropagation()}>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => onToggleSelect(c.id, checked === true)}
+          aria-label={`Select ${c.name}`}
+        />
+      </TableCell>
+      <TableCell className="font-medium text-xs">
+        <div className="flex items-center gap-1.5">
+          <span>{c.name}</span>
+          {isDuplicate && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">Duplicate</Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1">
+          <Badge
+            className="text-[10px] px-1.5 py-0 h-5 border-0"
+            style={{
+              background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
+              color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
+            }}
+          >
+            {c.is_company ? "Company" : "Person"}
+          </Badge>
+          {c.is_customer && (
+            <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
+              Customer
+            </Badge>
+          )}
+          {linkedCustomer && (
+            <Badge
+              className="text-[10px] px-1.5 py-0 h-5 border-0"
+              style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}
+              title={`Linked to Innovations account: ${linkedCustomer.name}`}
+            >
+              ERP: {linkedCustomer.account_number || linkedCustomer.name}
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-xs">{c.email}</TableCell>
+      <TableCell className="text-xs">{c.phone}</TableCell>
+      <TableCell className="text-xs">{c.salesperson}</TableCell>
+      <TableCell className="text-xs">{c.city}</TableCell>
+      <TableCell className="text-xs">{c.country_code}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-1">
+          {opportunityCount > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={(e) => onOpenCrm(c, e)}
+            >
+              <Kanban className="h-3 w-3 mr-1" /> CRM ({opportunityCount})
+            </Button>
+          )}
+          {hasPriceProfile && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[10px]"
+              onClick={(e) => onOpenPricing(c, e)}
+            >
+              <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
+            </Button>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+
 const ContactsPage = ({
   embeddedContactId = null,
   embeddedInitialTab = "details",
@@ -358,6 +540,13 @@ const ContactsPage = ({
   const [groupBy, setGroupBy] = useState<GroupByMode>("none");
   const [countryFilter, setCountryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  // Debounced so typing doesn't re-filter and re-render the full contacts
+  // table (hundreds of rows) on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedSearch(search), 200);
+    return () => window.clearTimeout(handle);
+  }, [search]);
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
   const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes">("details");
   // The portals page clears its account query parameter as the embedded dialog
@@ -385,6 +574,15 @@ const ContactsPage = ({
   const [isImportPreviewOpen, setIsImportPreviewOpen] = useState(false);
   const [importPreviewRows, setImportPreviewRows] = useState<ImportPreviewRow[]>([]);
   const [isImporting, setIsImporting] = useState(false);
+  const [isAccessDeploymentOpen, setIsAccessDeploymentOpen] = useState(false);
+  // When set, Deploy Access opens locked to this customer for adding a person.
+  const [accessDeploymentLockedCustomerId, setAccessDeploymentLockedCustomerId] = useState<number | null>(null);
+  const [isAccessTrainingOpen, setIsAccessTrainingOpen] = useState(false);
+  const [showAccessTrainingNudge, setShowAccessTrainingNudge] = useState(false);
+
+  useEffect(() => {
+    setShowAccessTrainingNudge(!hasCompletedAccessDeploymentTraining());
+  }, []);
 
   const { data: importedCustomers = [], isLoading: isLoadingImportedCustomers } = useQuery({
     queryKey: ["erp-imported-customers"],
@@ -423,11 +621,11 @@ const ContactsPage = ({
     queryFn: async () => {
       if (!editContact?.id) return null;
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id,portal_orders_use_bill_to_account")
         .eq("contact_id", editContact.id as any)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+      return data as CustomerAccountRecord | null;
     },
     enabled: !!editContact?.id,
   });
@@ -436,23 +634,41 @@ const ContactsPage = ({
     queryFn: async () => {
       if (typeof editContact?.linked_customer_id !== "number") return null;
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id,portal_orders_use_bill_to_account")
         .eq("id", editContact.linked_customer_id as any)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: number; name: string | null; email: string | null; phone: string | null; account_number: string | null; innovations_customer_id: number | null; contact_id: string | null } | null;
+      return data as CustomerAccountRecord | null;
     },
     enabled: typeof editContact?.linked_customer_id === "number",
   });
-  const accountSettingsCustomer = linkedCustomerRecord ?? linkedErpAccount ?? null;
-  const accountSettingsIsInherited = !linkedCustomerRecord && !!linkedErpAccount;
+  const { data: parentCompanyCustomerRecord } = useQuery({
+    queryKey: ["contact-parent-company-customer-record", editContact?.parent_id],
+    queryFn: async () => {
+      if (!editContact?.parent_id) return null;
+      const { data, error } = await (supabase.from("customers") as any)
+        .select("id,name,email,phone,account_number,innovations_customer_id,contact_id,portal_orders_use_bill_to_account")
+        .eq("contact_id", editContact.parent_id as any)
+        .maybeSingle();
+      if (error) throw error;
+      return data as CustomerAccountRecord | null;
+    },
+    enabled: !!editContact?.parent_id,
+  });
+  const inheritedAccountSettingsCustomer = linkedErpAccount ?? parentCompanyCustomerRecord ?? null;
+  const accountSettingsCustomer = editContact?.is_company
+    ? linkedCustomerRecord ?? inheritedAccountSettingsCustomer
+    : inheritedAccountSettingsCustomer ?? linkedCustomerRecord;
+  const accountSettingsUsesLinkedCompany = !editContact?.is_company && !!inheritedAccountSettingsCustomer;
+  const canEditAccountSettingsNumber = !!editContact && (editContact.is_company ? !!editContact.is_customer : !!editContact.id);
   const { data: linkedPortalProfile } = useQuery({
     queryKey: ["contact-linked-portal-profile", editContact?.id, accountSettingsCustomer?.id],
     queryFn: async () => {
       const query = (supabase.from("profiles") as any)
         .select("id,user_id,full_name,organization_name,portal_access_status,crm_contact_id,crm_customer_id")
         .limit(1);
-      if (editContact?.id) query.eq("crm_contact_id", editContact.id);
+      if (editContact?.is_company && accountSettingsCustomer?.id) query.eq("crm_customer_id", accountSettingsCustomer.id);
+      else if (editContact?.id) query.eq("crm_contact_id", editContact.id);
       else if (accountSettingsCustomer?.id) query.eq("crm_customer_id", accountSettingsCustomer.id);
       else return null;
       const { data, error } = await query.maybeSingle();
@@ -462,9 +678,11 @@ const ContactsPage = ({
     enabled: !!editContact?.id || !!accountSettingsCustomer?.id,
   });
   const [accountNumber, setAccountNumber] = useState("");
+  const [ordersUseBillToAccount, setOrdersUseBillToAccount] = useState(false);
   useEffect(() => {
     setAccountNumber(accountSettingsCustomer?.account_number ?? "");
-  }, [accountSettingsCustomer?.id, accountSettingsCustomer?.account_number, editContact?.id]);
+    setOrdersUseBillToAccount(linkedCustomerRecord?.portal_orders_use_bill_to_account ?? false);
+  }, [accountSettingsCustomer?.id, accountSettingsCustomer?.account_number, editContact?.id, linkedCustomerRecord?.portal_orders_use_bill_to_account]);
 
   useEffect(() => {
     const erpCustomerId = searchParams.get("erpCustomer");
@@ -586,8 +804,8 @@ const ContactsPage = ({
     if (filter === "persons") list = list.filter((c) => !c.is_company);
     if (filter === "customers") list = list.filter((c) => c.is_customer);
     if (countryFilter !== "all") list = list.filter((c) => c.country_code === countryFilter);
-    if (search) {
-      const s = search.toLowerCase();
+    if (debouncedSearch) {
+      const s = debouncedSearch.toLowerCase();
       list = list.filter(
         (c) =>
           c.name.toLowerCase().includes(s) ||
@@ -597,10 +815,10 @@ const ContactsPage = ({
       );
     }
     return list;
-  }, [contacts, countryFilter, filter, search, showArchived]);
+  }, [contacts, countryFilter, filter, debouncedSearch, showArchived]);
 
   const filteredImportedCustomers = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     return importedCustomers.filter((customer) => {
       if (countryFilter !== "all" && customer.country_code !== countryFilter) return false;
       if (!q) return true;
@@ -618,7 +836,7 @@ const ContactsPage = ({
         .toLowerCase()
         .includes(q);
     });
-  }, [countryFilter, importedCustomers, search]);
+  }, [countryFilter, importedCustomers, debouncedSearch]);
 
   const groupedByCountry = useMemo(() => {
     if (groupBy !== "country") return [] as { countryCode: string; contacts: Contact[] }[];
@@ -898,12 +1116,12 @@ const ContactsPage = ({
     return pricingProfileByName.get(key) ?? null;
   };
 
-  const openCrmForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+  const openCrmForContact = useCallback((contact: Partial<Contact>, event?: React.MouseEvent) => {
     event?.stopPropagation();
     navigate("/admin/crm/pipeline", { state: { contactId: contact.id, contactName: contact.name } });
-  };
+  }, [navigate]);
 
-  const openPricingForContact = (contact: Partial<Contact>, event?: React.MouseEvent) => {
+  const openPricingForContact = useCallback((contact: Partial<Contact>, event?: React.MouseEvent) => {
     event?.stopPropagation();
     const pricingSheetId = getAssignedPriceProfileId(contact);
     if (!pricingSheetId) {
@@ -911,7 +1129,7 @@ const ContactsPage = ({
       return;
     }
     navigate("/admin/pricing/catalog", { state: { pricingSheetId, contactName: contact.name } });
-  };
+  }, [pricingProfileByName, navigate, toast]);
 
   const getStoragePathFromPublicUrl = (url?: string | null) => {
     if (!url) return null;
@@ -1045,9 +1263,9 @@ const ContactsPage = ({
 
   const isAllVisibleSelected = filtered.length > 0 && filtered.every((contact) => selectedContactIds.includes(contact.id));
 
-  const toggleContactSelection = (contactId: string, checked: boolean) => {
+  const toggleContactSelection = useCallback((contactId: string, checked: boolean) => {
     setSelectedContactIds((prev) => checked ? [...prev, contactId] : prev.filter((id) => id !== contactId));
-  };
+  }, []);
 
   const toggleSelectAllVisible = (checked: boolean) => {
     if (!checked) {
@@ -1061,138 +1279,20 @@ const ContactsPage = ({
     });
   };
 
-  const renderImportedCustomerRow = (customer: ImportedCustomer) => {
-    const linkedContact = customer.contact_id ? contacts.find((entry) => entry.id === customer.contact_id) : null;
-    return (
-      <TableRow key={customer.id}>
-        <TableCell className="font-medium text-xs">
-          <div className="flex flex-col gap-1">
-            <span>{customer.name}</span>
-            <span className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>Customer #{customer.id}</span>
-          </div>
-        </TableCell>
-        <TableCell className="text-xs">
-          <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}>
-            {customer.account_number || "No account #"}
-          </Badge>
-        </TableCell>
-        <TableCell className="text-xs">{customer.innovations_customer_id ?? "—"}</TableCell>
-        <TableCell className="text-xs">{customer.email || "—"}</TableCell>
-        <TableCell className="text-xs">{customer.phone || "—"}</TableCell>
-        <TableCell className="text-xs">{customer.country_code || "—"}</TableCell>
-        <TableCell className="text-xs">
-          {customer.contact_id ? (
-            <span>
-              {linkedContact?.name ?? "Linked contact"}
-              {linkedContact?.is_archived && <span style={{ color: "hsl(215 15% 55%)" }}> (archived)</span>}
-            </span>
-          ) : (
-            <span style={{ color: "hsl(215 15% 55%)" }}>Not visible in Contacts yet</span>
-          )}
-        </TableCell>
-        <TableCell className="text-right">
-          {customer.contact_id ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={() => openLinkedImportedCustomerContact(customer)}
-            >
-              Open contact
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={() => createContactFromImportedCustomer(customer)}
-            >
-              Create contact
-            </Button>
-          )}
-        </TableCell>
-      </TableRow>
-    );
-  };
-
   const renderContactRow = (c: Contact) => (
-    <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
-      <TableCell className="w-10" onClick={(event) => event.stopPropagation()}>
-        <Checkbox
-          checked={selectedContactIds.includes(c.id)}
-          onCheckedChange={(checked) => toggleContactSelection(c.id, checked === true)}
-          aria-label={`Select ${c.name}`}
-        />
-      </TableCell>
-      <TableCell className="font-medium text-xs">
-        <div className="flex items-center gap-1.5">
-          <span>{c.name}</span>
-          {(duplicateKeyCounts.get(getDuplicateKey(c)) ?? 0) > 1 && (
-            <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-5">Duplicate</Badge>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-1">
-          <Badge
-            className="text-[10px] px-1.5 py-0 h-5 border-0"
-            style={{
-              background: c.is_company ? "hsl(215 65% 50% / 0.12)" : "hsl(168 76% 42% / 0.12)",
-              color: c.is_company ? "hsl(215 65% 50%)" : "hsl(168 76% 42%)",
-            }}
-          >
-            {c.is_company ? "Company" : "Person"}
-          </Badge>
-          {c.is_customer && (
-            <Badge className="text-[10px] px-1.5 py-0 h-5 border-0" style={{ background: "hsl(38 92% 50% / 0.12)", color: "hsl(38 92% 40%)" }}>
-              Customer
-            </Badge>
-          )}
-          {c.linked_customer_id && linkedCustomersById[c.linked_customer_id] && (
-            <Badge
-              className="text-[10px] px-1.5 py-0 h-5 border-0"
-              style={{ background: "hsl(168 76% 42% / 0.12)", color: "hsl(168 76% 42%)" }}
-              title={`Linked to Innovations account: ${linkedCustomersById[c.linked_customer_id].name}`}
-            >
-              ERP: {linkedCustomersById[c.linked_customer_id].account_number || linkedCustomersById[c.linked_customer_id].name}
-            </Badge>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-xs">{c.email}</TableCell>
-      <TableCell className="text-xs">{c.phone}</TableCell>
-      <TableCell className="text-xs">{c.salesperson}</TableCell>
-      <TableCell className="text-xs">{c.city}</TableCell>
-      <TableCell className="text-xs">{c.country_code}</TableCell>
-      <TableCell className="text-right">
-        <div className="flex justify-end gap-1">
-          {getOpportunityCount(c.id) > 0 && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={(e) => openCrmForContact(c, e)}
-            >
-              <Kanban className="h-3 w-3 mr-1" /> CRM ({getOpportunityCount(c.id)})
-            </Button>
-          )}
-          {getAssignedPriceProfileId(c) && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[10px]"
-              onClick={(e) => openPricingForContact(c, e)}
-            >
-              <BadgeDollarSign className="h-3 w-3 mr-1" /> Pricelist
-            </Button>
-          )}
-        </div>
-      </TableCell>
-    </TableRow>
+    <ContactRow
+      key={c.id}
+      contact={c}
+      isSelected={selectedContactIds.includes(c.id)}
+      isDuplicate={(duplicateKeyCounts.get(getDuplicateKey(c)) ?? 0) > 1}
+      linkedCustomer={c.linked_customer_id ? linkedCustomersById[c.linked_customer_id] : undefined}
+      opportunityCount={getOpportunityCount(c.id)}
+      hasPriceProfile={!!getAssignedPriceProfileId(c)}
+      onToggleSelect={toggleContactSelection}
+      onOpen={openEdit}
+      onOpenCrm={openCrmForContact}
+      onOpenPricing={openPricingForContact}
+    />
   );
 
   const normalizeImportedCountry = (value: string) => {
@@ -1503,7 +1603,7 @@ const ContactsPage = ({
       return;
     }
 
-    const nextParentId = editContact.parent_id ?? null;
+    let nextParentId = editContact.parent_id ?? null;
     try {
       // If new contact, insert and get id back
       let contactId = editContact.id;
@@ -1553,7 +1653,7 @@ const ContactsPage = ({
       // Auto-create/sync customer record when is_customer is true. Also keeps
       // account_number in sync — this is the sole key that links a website
       // customer's account to their Innovations ERP account and statements.
-      if (editContact.is_customer && contactId) {
+      if (editContact.is_customer && editContact.is_company && contactId) {
         const normalizedAccountNumber = normalizeAccountNumberInput(accountNumber) || null;
         // Check if customer already linked
         const { data: existing } = await (supabase.from("customers") as any)
@@ -1578,6 +1678,55 @@ const ContactsPage = ({
         }
         if (customerId && normalizedAccountNumber !== (linkedCustomerRecord?.account_number ?? null)) {
           await assignCustomerAccountNumber(customerId, normalizedAccountNumber);
+        }
+        if (customerId && ordersUseBillToAccount !== (linkedCustomerRecord?.portal_orders_use_bill_to_account ?? false)) {
+          const { error: orderLookupError } = await (supabase.from("customers") as any)
+            .update({ portal_orders_use_bill_to_account: ordersUseBillToAccount })
+            .eq("id", customerId);
+          if (orderLookupError) throw orderLookupError;
+        }
+      }
+
+      if (!editContact.is_company && contactId) {
+        const normalizedAccountNumber = normalizeAccountNumberInput(accountNumber);
+        const currentAccountNumber = normalizeAccountNumberInput(accountSettingsCustomer?.account_number);
+        if (normalizedAccountNumber && normalizedAccountNumber !== currentAccountNumber) {
+          const { data: matches, error: matchError } = await (supabase.from("customers") as any)
+            .select("id,name,email,phone,account_number,innovations_customer_id,contact_id")
+            .eq("account_number", normalizedAccountNumber as any)
+            .limit(2);
+          if (matchError) throw matchError;
+
+          const targetCustomer = (matches?.[0] ?? null) as CustomerAccountRecord | null;
+          if (!targetCustomer) {
+            throw new Error(`${normalizedAccountNumber} is not an existing Innovations account number.`);
+          }
+
+          const targetContact = targetCustomer.contact_id
+            ? contacts.find((contact) => contact.id === targetCustomer.contact_id)
+            : null;
+          if (targetContact && !targetContact.is_company) {
+            throw new Error(`${normalizedAccountNumber} is linked to a person contact. Choose a company customer account.`);
+          }
+
+          const updatePayload: Record<string, unknown> = {
+            linked_customer_id: targetCustomer.id,
+            innovations_parent_customer_id: targetCustomer.innovations_customer_id ?? editContact.innovations_parent_customer_id ?? null,
+          };
+
+          if (targetContact && targetContact.id !== contactId) {
+            const targetParentValidation = canAssignParent(editContact, targetContact.id);
+            if (!targetParentValidation.ok) {
+              throw new Error(targetParentValidation.message ?? "This company link cannot be assigned.");
+            }
+            updatePayload.parent_id = targetContact.id;
+            nextParentId = targetContact.id;
+          }
+
+          const { error: linkError } = await (supabase.from("contacts") as any)
+            .update(updatePayload)
+            .eq("id", contactId as any);
+          if (linkError) throw linkError;
         }
       }
 
@@ -1667,7 +1816,7 @@ const ContactsPage = ({
     }
   };
 
-  const openEdit = (contact: Contact) => {
+  const openEdit = useCallback((contact: Contact) => {
     stopDictation();
     setEditContact(contact);
     setEditTab("details");
@@ -1677,7 +1826,7 @@ const ContactsPage = ({
     if (businessCardInputRef.current) {
       businessCardInputRef.current.value = "";
     }
-  };
+  }, [stopDictation]);
 
   const openNew = (isCompany: boolean) => {
     stopDictation();
@@ -1691,7 +1840,7 @@ const ContactsPage = ({
     }
   };
 
-  const openLinkedImportedCustomerContact = (customer: ImportedCustomer) => {
+  const openLinkedImportedCustomerContact = useCallback((customer: ImportedCustomer) => {
     if (!customer.contact_id) return;
     const contact = contacts.find((entry) => entry.id === customer.contact_id);
     if (!contact) {
@@ -1703,9 +1852,9 @@ const ContactsPage = ({
       return;
     }
     openEdit(contact);
-  };
+  }, [contacts, toast, openEdit]);
 
-  const createContactFromImportedCustomer = async (customer: ImportedCustomer) => {
+  const createContactFromImportedCustomer = useCallback(async (customer: ImportedCustomer) => {
     if (customer.contact_id) {
       openLinkedImportedCustomerContact(customer);
       return;
@@ -1723,7 +1872,6 @@ const ContactsPage = ({
           notes: [
             "Created from imported Innovations customer.",
             customer.account_number ? `Account: ${customer.account_number}` : "",
-            customer.innovations_customer_id ? `Innovations Customer ID: ${customer.innovations_customer_id}` : "",
             customer.address ? `Address: ${customer.address}` : "",
           ].filter(Boolean).join("\n"),
           is_customer: true,
@@ -1749,7 +1897,7 @@ const ContactsPage = ({
     } catch (error: any) {
       toast({ title: "Could not create contact", description: error.message ?? "Please try again.", variant: "destructive" });
     }
-  };
+  }, [openLinkedImportedCustomerContact, qc, toast, openEdit]);
 
   useEffect(() => {
     if (!editContact?.id) return;
@@ -1780,6 +1928,12 @@ const ContactsPage = ({
           <AdminPageHeader icon={Building2} title="Contacts" />
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => setIsAccessTrainingOpen(true)}>
+            <BookOpenCheck className="h-3.5 w-3.5" /> Access training
+          </Button>
+          <Button size="sm" className="h-8 text-xs gap-1" style={{ background: "hsl(215 65% 27%)", color: "white" }} onClick={() => setIsAccessDeploymentOpen(true)}>
+            <UserPlus className="h-3.5 w-3.5" /> Deploy access
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Import CSV" onClick={importCsv} disabled={isImporting}>
               <Upload className="h-4 w-4" />
             </Button>
@@ -1821,6 +1975,13 @@ const ContactsPage = ({
           </DropdownMenu>
         </div>
       </div>
+
+      {showAccessTrainingNudge ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+          <div><span className="font-medium">New to access deployment?</span> Practise safe scenarios first, then use the assistant to deploy a real contact.</div>
+          <div className="flex items-center gap-2"><Button size="sm" variant="outline" className="border-sky-300 bg-white" onClick={() => setIsAccessTrainingOpen(true)}>Start training</Button><Button size="sm" variant="ghost" className="text-sky-900" onClick={() => setShowAccessTrainingNudge(false)}>Dismiss</Button></div>
+        </div>
+      ) : null}
 
       {/* Filter bar */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -1903,7 +2064,6 @@ const ContactsPage = ({
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Account #</TableHead>
-                <TableHead>Innovations ID</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Country</TableHead>
@@ -1934,18 +2094,26 @@ const ContactsPage = ({
             {isErpAccountsMode ? (
               isLoadingImportedCustomers ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell colSpan={7} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                     Loading imported ERP accounts...
                   </TableCell>
                 </TableRow>
               ) : filteredImportedCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+                  <TableCell colSpan={7} className="text-center py-8 text-xs" style={{ color: "hsl(215 15% 50%)" }}>
                     No imported ERP accounts match the current search.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredImportedCustomers.map((customer) => renderImportedCustomerRow(customer))
+                filteredImportedCustomers.map((customer) => (
+                  <ImportedCustomerRow
+                    key={customer.id}
+                    customer={customer}
+                    linkedContact={customer.contact_id ? contacts.find((entry) => entry.id === customer.contact_id) ?? null : null}
+                    onOpenLinked={openLinkedImportedCustomerContact}
+                    onCreateContact={createContactFromImportedCustomer}
+                  />
+                ))
               )
             ) : isLoading ? (
               <TableRow>
@@ -2372,7 +2540,7 @@ const ContactsPage = ({
                               )}
                             </p>
                             <p className="text-[10px]" style={{ color: "hsl(215 15% 55%)" }}>
-                              Auto-linked from Innovations sync. Read-only.
+                              Resolved from the company link or Innovations sync.
                             </p>
                           </div>
                         )}
@@ -2455,9 +2623,15 @@ const ContactsPage = ({
                             <div className="mt-4 space-y-3">
                               <div className="grid gap-3 sm:grid-cols-2">
                                 <div className="rounded-lg bg-muted/40 p-3">
-                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Innovations account</p>
+                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                    {accountSettingsUsesLinkedCompany ? "Linked company account" : "Innovations account"}
+                                  </p>
                                   <p className="mt-1 text-sm font-medium">{accountSettingsCustomer.name || editContact.name || "Unnamed account"}</p>
-                                  <p className="mt-0.5 text-xs text-muted-foreground">ID {accountSettingsCustomer.innovations_customer_id ?? "Pending sync"}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">
+                                    {accountSettingsCustomer.account_number
+                                      ? `Account ${accountSettingsCustomer.account_number}`
+                                      : "No account number assigned yet"}
+                                  </p>
                                 </div>
                                 <div className="rounded-lg bg-muted/40 p-3">
                                   <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website portal</p>
@@ -2466,23 +2640,40 @@ const ContactsPage = ({
                                 </div>
                               </div>
                               <div className="space-y-1.5">
-                                <Label htmlFor="account-settings-account-number" className="text-xs">Account number</Label>
-                                <Input
-                                  id="account-settings-account-number"
-                                  name="account_number"
-                                  autoComplete="off"
-                                  className="h-8 text-xs"
-                                  placeholder="e.g. RETAIL"
-                                  value={accountNumber}
-                                  onChange={(event) => setAccountNumber(event.target.value)}
-                                  disabled={accountSettingsIsInherited || !editContact.is_company || !editContact.is_customer}
-                                />
+                                <Label htmlFor="account-settings-account-number" className="text-xs">Innovations account number</Label>
+                                <div className="flex flex-wrap items-center gap-3">
+                                  <Input
+                                    id="account-settings-account-number"
+                                    name="account_number"
+                                    autoComplete="off"
+                                    className="h-8 min-w-0 flex-1 text-xs"
+                                    placeholder="e.g. RETAIL"
+                                    value={accountNumber}
+                                    onChange={(event) => setAccountNumber(event.target.value)}
+                                    disabled={!canEditAccountSettingsNumber}
+                                  />
+                                  {editContact.is_company && linkedCustomerRecord ? (
+                                    <div className="flex h-8 items-center gap-2 rounded-md border px-2.5" style={{ borderColor: "hsl(var(--border))" }}>
+                                      <Switch
+                                        id="account-settings-bill-to-orders"
+                                        checked={ordersUseBillToAccount}
+                                        onCheckedChange={setOrdersUseBillToAccount}
+                                        disabled={!canEditAccountSettingsNumber}
+                                      />
+                                      <Label htmlFor="account-settings-bill-to-orders" className="cursor-pointer text-xs font-medium">Bill To account</Label>
+                                    </div>
+                                  ) : null}
+                                </div>
                                 <p className="text-[11px] text-muted-foreground">
-                                  {accountSettingsIsInherited
-                                    ? "Inherited from the linked company. Edit the company account to change it."
+                                  {!canEditAccountSettingsNumber
+                                    ? "Save the contact before linking an Innovations account."
+                                    : editContact.is_company && linkedCustomerRecord && ordersUseBillToAccount
+                                      ? "Portal order status includes every order billed to this account, including orders shipped to its branches. Statements remain separately permission-gated."
+                                    : accountSettingsUsesLinkedCompany
+                                      ? "This person inherits company access from the linked company. Type another account number to link them to a different company."
                                     : editContact.is_company && editContact.is_customer
                                       ? "The only field that links this contact to Innovations and online statements."
-                                      : "Enable Customer and Company on Details to create or edit an ERP account link."}
+                                      : "Enable Customer on Details to create or edit a company ERP account link."}
                                 </p>
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -2497,6 +2688,18 @@ const ContactsPage = ({
                                   <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                                   View Account
                                 </Button>
+                                {editContact.is_company && accountSettingsCustomer ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs"
+                                    onClick={() => { setAccessDeploymentLockedCustomerId(accountSettingsCustomer.id); setIsAccessDeploymentOpen(true); }}
+                                  >
+                                    <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                                    Add another person here
+                                  </Button>
+                                ) : null}
                                 {linkedCompany ? (
                                   <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => openEdit(linkedCompany)}>
                                     Edit Linked Company
@@ -2505,15 +2708,37 @@ const ContactsPage = ({
                               </div>
                             </div>
                           ) : (
-                            <div className="mt-4 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-                              Save this contact as a customer to create the Innovations account link. A website login can be added later or invited from Website Portals.
+                            <div className="mt-4 space-y-3">
+                              {!editContact.is_company ? (
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="account-settings-account-number-empty" className="text-xs">Innovations account number</Label>
+                                  <Input
+                                    id="account-settings-account-number-empty"
+                                    name="account_number"
+                                    autoComplete="off"
+                                    className="h-8 text-xs"
+                                    placeholder="e.g. RETAIL"
+                                    value={accountNumber}
+                                    onChange={(event) => setAccountNumber(event.target.value)}
+                                    disabled={!canEditAccountSettingsNumber}
+                                  />
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Type a company account number to link this person to that company account.
+                                  </p>
+                                </div>
+                              ) : null}
+                              <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                                {editContact.is_company
+                                  ? "Save this contact as a customer to create the Innovations account link. A website login can be added later or invited from Website Portals."
+                                  : "No company account is linked yet. A website login can be added later or invited from Website Portals."}
+                              </div>
                             </div>
                           )}
                         </div>
                         <div className="rounded-xl border p-4" style={{ borderColor: "hsl(var(--border))" }}>
                           <h3 className="text-sm font-semibold">Connectivity</h3>
                           <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-                            <div><span className="text-muted-foreground">Innovations</span><p className="font-medium">{accountSettingsCustomer?.innovations_customer_id ? "Synced" : "Pending"}</p></div>
+                            <div><span className="text-muted-foreground">Account #</span><p className="font-medium">{accountSettingsCustomer?.account_number ? "Linked" : "Not linked"}</p></div>
                             <div><span className="text-muted-foreground">CRM contact</span><p className="font-medium">{editContact.id ? "Linked" : "Unsaved"}</p></div>
                             <div><span className="text-muted-foreground">Website</span><p className="font-medium">{linkedPortalProfile ? "Linked" : "Not linked"}</p></div>
                           </div>
@@ -2654,6 +2879,23 @@ const ContactsPage = ({
           })()}
         </DialogContent>
       </Dialog>
+      <AccessDeploymentAssistantDialog
+        contacts={contacts}
+        open={isAccessDeploymentOpen}
+        onOpenChange={(open) => { setIsAccessDeploymentOpen(open); if (!open) setAccessDeploymentLockedCustomerId(null); }}
+        lockedCustomerId={accessDeploymentLockedCustomerId}
+        onEditContact={openEdit}
+        onOpenTraining={() => setIsAccessTrainingOpen(true)}
+        onCreateContact={({ name, email }) => {
+          openNew(false);
+          setEditContact((current) => current ? { ...current, name, email } : current);
+        }}
+      />
+      <AccessDeploymentTrainingDialog
+        open={isAccessTrainingOpen}
+        onOpenChange={setIsAccessTrainingOpen}
+        onTrainingComplete={() => setShowAccessTrainingNudge(false)}
+      />
       <AlertDialog open={bulkAction !== null} onOpenChange={(open) => !open && setBulkAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

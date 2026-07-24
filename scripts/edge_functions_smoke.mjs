@@ -90,6 +90,35 @@ const HEALTH_PROBES = [
       return null;
     },
   },
+  {
+    // Requires a scoped `docstudio:health` API key (see docstudio-api/index.ts)
+    // AND a valid signed JWT — docstudio-api doesn't override verify_jwt in
+    // config.toml, so the Supabase gateway rejects the request before our
+    // in-code x-api-key check ever runs unless Authorization carries *some*
+    // valid project JWT. The anon/publishable key satisfies that (the gateway
+    // only checks signature validity, not role) and is safe to use here — it's
+    // the same key already shipped to every browser. Skipped, not failed, when
+    // either prerequisite is missing — e.g. local runs, or before the key has
+    // been provisioned via the api_keys table.
+    name: "docstudio-api/email/health",
+    path: "/docstudio-api/email/health",
+    method: "GET",
+    skip: () => !process.env.DOCSTUDIO_HEALTH_API_KEY || !process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    headers: () => ({
+      "x-api-key": process.env.DOCSTUDIO_HEALTH_API_KEY,
+      Authorization: `Bearer ${process.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    }),
+    check: async (res) => {
+      if (res.status !== 200) return `expected 200, got ${res.status}`;
+      const body = await res.json().catch(() => null);
+      const validStatuses = new Set(["healthy", "degraded", "blocked", "no_data"]);
+      if (!body || !validStatuses.has(body.status)) {
+        return `unexpected body: ${JSON.stringify(body)}`;
+      }
+      return null;
+    },
+  },
 ];
 
 const TIMEOUT_MS = 15_000;
@@ -141,7 +170,7 @@ async function runHealthProbe(probe) {
       fetch(`${BASE}${probe.path}`, {
         method: probe.method,
         signal,
-        headers: { Origin: ORIGIN },
+        headers: { Origin: ORIGIN, ...(probe.headers?.() ?? {}) },
       }),
     TIMEOUT_MS,
     probe.name,
@@ -204,6 +233,10 @@ async function main() {
 
   console.log("\nHealth probes:");
   for (const probe of HEALTH_PROBES) {
+    if (probe.skip?.()) {
+      console.log(`  ⊘ ${probe.name}  skipped (prerequisite not configured)`);
+      continue;
+    }
     try {
       const err = await runHealthProbe(probe);
       if (err) {
@@ -244,7 +277,15 @@ async function main() {
 
   if (failures.length) {
     console.error(`\n${failures.length} smoke check(s) failed:`);
-    for (const f of failures) console.error(`  - ${f}`);
+    for (const f of failures) {
+      console.error(`  - ${f}`);
+      // GitHub Actions error annotation: makes each failure show up individually
+      // in the run summary/Checks UI (and therefore in the failure-notification
+      // email), instead of only being visible by opening the raw log.
+      if (process.env.GITHUB_ACTIONS) {
+        console.log(`::error title=Edge function smoke check failed::${f}`);
+      }
+    }
     process.exit(1);
   }
   console.log(`\nAll ${FUNCTIONS.length} functions + ${HEALTH_PROBES.length} health probe(s) passed.`);

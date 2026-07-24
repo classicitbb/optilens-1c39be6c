@@ -7,14 +7,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Printer, CheckCircle, Truck } from "lucide-react";
+import { CheckCircle, CircleX, Loader2, Printer, RotateCcw, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { safeError } from "@/lib/safeLog";
 import type { AdminOrderRow } from "@/hooks/useAdminOrders";
+import { printOrderDocument } from "@/features/admin/print/orderDocument";
 import { format } from "date-fns";
 
 interface OrderItem {
@@ -47,6 +58,8 @@ const OrderDetailDialog = ({ order, open, onOpenChange, onStatusChanged }: Props
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [fullOrder, setFullOrder] = useState<any>(null);
+  const [returnToDraftOpen, setReturnToDraftOpen] = useState(false);
+  const [cancelOrderOpen, setCancelOrderOpen] = useState(false);
 
   useEffect(() => {
     if (!order || !open) return;
@@ -103,11 +116,91 @@ const OrderDetailDialog = ({ order, open, onOpenChange, onStatusChanged }: Props
   };
 
   const print = () => {
-    window.print();
+    const opened = printOrderDocument({
+      id: order.id,
+      createdAt: order.createdAt,
+      totalAmount: order.totalAmount,
+      status: order.status,
+      customerName: order.customerName,
+      contactEmail: order.contactEmail,
+      contactPhone: order.contactPhone,
+      shippingAddress: fullOrder?.shipping_address ?? null,
+      checkoutMethod: order.checkoutMethod,
+      items: items.map((item) => ({
+        id: item.id,
+        productName: item.product_name,
+        productType: item.product_type,
+        unitPrice: Number(item.product_price),
+        quantity: item.quantity,
+        variantLabel: item.variant_label,
+        sku: item.sku,
+      })),
+    });
+    if (!opened) {
+      toast({
+        title: "Print window blocked",
+        description: "Allow pop-ups for this site, then try printing the order again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const returnToDraft = async () => {
+    setUpdating(true);
+    try {
+      const { error } = await (supabase.rpc as any)("revert_on_account_order_to_draft", {
+        p_order_id: order.id,
+      });
+      if (error) throw error;
+      toast({
+        title: "Order returned to draft",
+        description: "The customer can restore the saved draft, update the items, and check out again.",
+      });
+      onStatusChanged?.();
+      setReturnToDraftOpen(false);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({
+        title: "Could not return order to draft",
+        description: e?.message ?? "Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const cancelOrder = async (reason: "refund_requested" | "order_error") => {
+    setUpdating(true);
+    try {
+      const { error } = await (supabase.rpc as any)("cancel_order", {
+        p_order_id: order.id,
+        p_reason: reason,
+      });
+      if (error) throw error;
+      toast({
+        title: "Order cancelled",
+        description: reason === "refund_requested"
+          ? "The refund request was recorded. Process the refund with the payment provider."
+          : "The cancellation was recorded as an order error.",
+      });
+      onStatusChanged?.();
+      setCancelOrderOpen(false);
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({
+        title: "Could not cancel order",
+        description: e?.message ?? "Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const addr = fullOrder?.shipping_address as any;
   const next = STATUS_NEXT[order.status];
+  const canCancel = ["draft", "pending_payment", "pending", "confirmed", "processing"].includes(order.status);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -196,10 +289,22 @@ const OrderDetailDialog = ({ order, open, onOpenChange, onStatusChanged }: Props
         </div>
 
         <DialogFooter className="print:hidden">
-          <Button variant="outline" onClick={print}>
+          <Button variant="outline" onClick={print} disabled={loading}>
             <Printer className="mr-1.5 h-4 w-4" />
             Print
           </Button>
+          {order.checkoutMethod === "on_account" && order.status === "pending" && (
+            <Button variant="outline" onClick={() => setReturnToDraftOpen(true)} disabled={updating}>
+              <RotateCcw className="mr-1.5 h-4 w-4" />
+              Return to Draft
+            </Button>
+          )}
+          {canCancel && (
+            <Button variant="outline" className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setCancelOrderOpen(true)} disabled={updating}>
+              <CircleX className="mr-1.5 h-4 w-4" />
+              Cancel Order
+            </Button>
+          )}
           {next && (
             <Button onClick={advance} disabled={updating}>
               {updating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <next.icon className="mr-1.5 h-4 w-4" />}
@@ -207,6 +312,45 @@ const OrderDetailDialog = ({ order, open, onOpenChange, onStatusChanged }: Props
             </Button>
           )}
         </DialogFooter>
+
+        <AlertDialog open={returnToDraftOpen} onOpenChange={setReturnToDraftOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Return this account order to draft?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The ordered items will be saved as a customer draft. The customer can restore it to their cart, change the items, and place a new order. This is available only before fulfilment starts.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={updating}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={returnToDraft} disabled={updating}>
+                {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Return to Draft
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={cancelOrderOpen} onOpenChange={setCancelOrderOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Choose the reason for the cancellation. A refund-request cancellation is recorded for processing; it does not issue a refund automatically.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={updating}>Keep order</AlertDialogCancel>
+              <Button variant="outline" onClick={() => void cancelOrder("order_error")} disabled={updating}>
+                Cancel — Order Error
+              </Button>
+              <Button variant="destructive" onClick={() => void cancelOrder("refund_requested")} disabled={updating}>
+                {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Cancel — Refund Requested
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

@@ -7,6 +7,7 @@ on:
       - "supabase/functions/**"
       - "supabase/config.toml"
       - "scripts/edge_functions_smoke.mjs"
+      - "scripts/email_pipeline_smoke.mjs"
       - ".github/workflows/edge-function-release.yml"
   schedule:
     - cron: "*/5 * * * *"
@@ -26,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
       - name: Deploy every function in source control
@@ -47,15 +48,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
       - name: Run readiness smoke suite and record its result
         env:
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DOCSTUDIO_HEALTH_API_KEY: ${{ secrets.DOCSTUDIO_HEALTH_API_KEY }}
           EDGE_HEALTH_SOURCE: deployment
         run: npm run qa:edge-smoke
+      - name: Run email pipeline smoke test (real submission, verifies email + ticket creation)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CUSTOMER_ONBOARDING_SMOKE_API_KEY: ${{ secrets.CUSTOMER_ONBOARDING_SMOKE_API_KEY }}
+        run: npm run qa:email-pipeline-smoke
 
   release-healthy:
     name: Release healthy
@@ -71,12 +81,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
       - name: Run readiness smoke suite and record its result
         env:
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DOCSTUDIO_HEALTH_API_KEY: ${{ secrets.DOCSTUDIO_HEALTH_API_KEY }}
           EDGE_HEALTH_SOURCE: scheduled
         run: npm run qa:edge-smoke

@@ -33,7 +33,16 @@ interface AssignedPricelistDetails {
   updated_at: string | null;
 }
 
+interface PortalPricingCurrencySettings {
+  baseCurrency: "BBD" | "USD";
+  bbdToUsdRate: number;
+}
+
 const money = (value: number) => `$${value.toFixed(2)}`;
+// Retain the established portal conversion while older databases await the
+// currency-settings RPC migration. Once available, the active admin setting
+// always supplies the rate instead.
+const FALLBACK_BBD_TO_USD_RATE = 0.5;
 
 const groupBySection = (rows: CatalogRow[]) => {
   const map = new Map<string, CatalogRow[]>();
@@ -52,9 +61,33 @@ const AssignedPricelistsSection = () => {
   const assignedPricelistId = identity?.assignedPricelistId ?? null;
   const hasPricelist = typeof assignedPricelistId === "number";
   const [pricesHidden, setPricesHidden] = useState(true);
-  const [showUSD, setShowUSD] = useState(false);
-  const currency = showUSD ? "USD" : "BBD";
-  const displayMoney = (bbd: number) => money(Number(bbd) * (showUSD ? 0.5 : 1));
+  const [showAlternateCurrency, setShowAlternateCurrency] = useState(false);
+
+  const { data: pricingCurrency } = useQuery<PortalPricingCurrencySettings | null>({
+    queryKey: ["portal-pricing-currency-settings"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("portal_pricing_currency_settings");
+      if (error) throw error;
+
+      const settings = Array.isArray(data) ? data[0] : data;
+      if (!settings) return null;
+
+      const rate = Number(settings.bbd_to_usd_rate);
+      return {
+        baseCurrency: settings.base_currency === "USD" ? "USD" : "BBD",
+        bbdToUsdRate: Number.isFinite(rate) && rate > 0 ? rate : FALLBACK_BBD_TO_USD_RATE,
+      };
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const baseCurrency = pricingCurrency?.baseCurrency ?? "BBD";
+  const alternateCurrency = baseCurrency === "BBD" ? "USD" : "BBD";
+  const currency = showAlternateCurrency ? alternateCurrency : baseCurrency;
+  const displayMoney = (bbd: number) => {
+    const amount = Number(bbd);
+    return money(currency === "USD" ? amount * (pricingCurrency?.bbdToUsdRate ?? FALLBACK_BBD_TO_USD_RATE) : amount);
+  };
 
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
 
@@ -161,10 +194,10 @@ const AssignedPricelistsSection = () => {
   const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || supplyRows.length > 0;
 
   const accordionTriggerClass =
-    "rounded-md px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
+    "rounded-md bg-muted-foreground px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
 
   const countBadge = (count: number, noun: string) => (
-    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal">
+    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-white">
       {count} {noun}{count === 1 ? "" : "s"}
     </span>
   );
@@ -177,7 +210,7 @@ const AssignedPricelistsSection = () => {
           const sectionRows = sections.get(section) ?? [];
           return (
             <AccordionItem key={section} value={section} className="border-b-0">
-              <AccordionTrigger className={accordionTriggerClass} style={{ background: "#1e4db7" }}>
+              <AccordionTrigger className={accordionTriggerClass}>
                 <span className="flex items-center gap-2">
                   {section}
                   {countBadge(sectionRows.length, "item")}
@@ -266,9 +299,13 @@ const AssignedPricelistsSection = () => {
           </TabsList>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <span className={cn("text-xs font-medium", showUSD ? "text-muted-foreground" : "text-primary")}>BBD</span>
-              <Switch checked={showUSD} onCheckedChange={setShowUSD} aria-label="Toggle currency" />
-              <span className={cn("text-xs font-medium", showUSD ? "text-primary" : "text-muted-foreground")}>USD</span>
+              <span className={cn("text-xs font-medium", showAlternateCurrency ? "text-muted-foreground" : "text-primary")}>{baseCurrency}</span>
+              <Switch
+                checked={showAlternateCurrency}
+                onCheckedChange={setShowAlternateCurrency}
+                aria-label={`Show prices in ${alternateCurrency}`}
+              />
+              <span className={cn("text-xs font-medium", showAlternateCurrency ? "text-primary" : "text-muted-foreground")}>{alternateCurrency}</span>
             </div>
             {hasAnyPrices && (
               <Button
@@ -310,7 +347,7 @@ const AssignedPricelistsSection = () => {
                 <Accordion type="multiple" defaultValue={[groupings[0].grouping.key]} className="w-full space-y-2">
                   {groupings.map(({ grouping, visibleCols, activeCategories }) => (
                     <AccordionItem key={grouping.id} value={grouping.key} className="border-b-0">
-                      <AccordionTrigger className={accordionTriggerClass} style={{ background: "#1e4db7" }}>
+                      <AccordionTrigger className={accordionTriggerClass}>
                         <span className="flex items-center gap-2">
                           {grouping.name}
                           {countBadge(activeCategories.length, "design")}

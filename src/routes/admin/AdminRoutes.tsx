@@ -85,13 +85,6 @@ const AdminRoutes = () => (
       <Route path="pricing/reference" element={<ReferenceDataPage />} />
       <Route path="pricing/imports" element={<ImportsPage />} />
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
-      <Route path="orders" element={<OrdersPage />} />
-
-      <Route path="sales" element={<Navigate to="/admin/sales/quotations" replace />} />
-      <Route path="sales/proposals" element={<CatalogPublisherV2Page />} />
-      <Route path="sales/quotations" element={<QuotationsListPage />} />
-      <Route path="sales/quotations/:id" element={<QuoteEditorPage />} />
-      <Route path="sales/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
       <Route path="contacts" element={<ContactsPage />} />
       <Route path="contacts/config/tags" element={<ContactTagsConfigPage />} />
       <Route path="contacts/config/industries" element={<IndustriesConfigPage />} />
@@ -106,6 +99,7 @@ const AdminRoutes = () => (
       <Route path="crm" element={<Navigate to="/admin/crm/dashboard" replace />} />
       <Route path="crm/dashboard" element={<CrmDashboardPage />} />
       <Route path="crm/pipeline" element={<CrmPipelinePage />} />
+      <Route path="crm/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="crm/outbox" element={<CrmOutboxPage />} />
       <Route path="crm/activities" element={<CrmActivitiesPage />} />
       <Route path="helpdesk" element={<Navigate to="/admin/helpdesk/overview" replace />} />
@@ -122,6 +116,10 @@ const AdminRoutes = () => (
       <Route path="website/portals" element={<WebsitePortalsPage />} />
       <Route path="website/documents" element={<Navigate to="/admin/docs/studio" replace />} />
       <Route path="website/features" element={<FeatureBoardPage />} />
+      <Route path="website/quotations" element={<QuotationsListPage />} />
+      <Route path="website/quotations/:id" element={<QuoteEditorPage />} />
+      <Route path="website/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
+      <Route path="website/orders" element={<OrdersPage />} />
       <Route path="docs" element={<Navigate to="/admin/docs/studio" replace />} />
       <Route path="docs/studio" element={<DocStudioPage />} />
       <Route path="website/store" element={<WebsiteStorePage />} />
@@ -154,10 +152,10 @@ const AdminRoutes = () => (
       <Route path="stock-lens-prices" element={<Navigate to="/admin/pricing/stock-lenses" replace />} />
       <Route path="supplies-prices" element={<Navigate to="/admin/pricing/supplies" replace />} />
       <Route path="imports" element={<Navigate to="/admin/pricing/imports" replace />} />
-      <Route path="catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />} />
+      <Route path="catalog-publisher" element={<Navigate to="/admin/crm/proposals" replace />} />
       <Route path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher" replace />} />
       <Route path="catalog-publisher/:id" element={<Navigate to="/admin/pricing/publisher" replace />} />
-      <Route path="quotations" element={<Navigate to="/admin/sales/quotations" replace />} />
+      <Route path="quotations" element={<Navigate to="/admin/website/quotations" replace />} />
       <Route path="costings/shipments" element={<Navigate to="/admin/pricing/costings" replace />} />
       <Route path="costings/reports" element={<Navigate to="/admin/pricing/costings/reports" replace />} />
       <Route path="parameters" element={<Navigate to="/admin/settings/company" replace />} />

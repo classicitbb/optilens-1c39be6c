@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { BookUser, Plus, Save, Trash2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { EMPTY_ADDRESS, ProfileAddress } from "@/lib/profileData";
 import { useCustomerAddresses, type CustomerAddress, type SaveCustomerAddressInput } from "@/hooks/useCustomerAddresses";
@@ -109,8 +109,27 @@ const AddressBookSection = ({
   const { addresses, isLoading, saveAddress, removeAddress } = useCustomerAddresses(targetUserId ?? emulation?.userId);
   const [draft, setDraft] = useState<SaveCustomerAddressInput>(emptyDraft());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const canAddAddress = useMemo(() => addresses.length < 2 || !!editingId, [addresses.length, editingId]);
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditingId(null);
+    setDraft(emptyDraft());
+  };
+
+  const startAdding = () => {
+    setEditingId(null);
+    setDraft(emptyDraft());
+    setEditorOpen(true);
+  };
+
+  const startEditing = (address: CustomerAddress) => {
+    setEditingId(address.id);
+    setDraft(toDraft(address));
+    setEditorOpen(true);
+  };
 
   const handleSave = async () => {
     try {
@@ -119,8 +138,7 @@ const AddressBookSection = ({
         label: draft.label.trim() || `Address ${addresses.length + (editingId ? 0 : 1)}`,
       });
       toast({ title: editingId ? "Address updated" : "Address saved", description: "Your profile address book is ready for checkout." });
-      setDraft(emptyDraft());
-      setEditingId(null);
+      closeEditor();
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to save address.", variant: "destructive" });
     }
@@ -131,8 +149,7 @@ const AddressBookSection = ({
       await removeAddress.mutateAsync(addressId);
       toast({ title: "Address removed", description: "The address has been removed from your profile." });
       if (editingId === addressId) {
-        setDraft(emptyDraft());
-        setEditingId(null);
+        closeEditor();
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to delete address.", variant: "destructive" });
@@ -151,12 +168,21 @@ const AddressBookSection = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <BookUser className="h-5 w-5" />
-          {title}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+        <div className="space-y-1.5">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <BookUser className="h-5 w-5" />
+            {title}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+          <p className="text-xs text-muted-foreground">
+            {addresses.length} of 2 saved addresses {addresses.length >= 2 ? "— limit reached" : ""}
+          </p>
+        </div>
+        <Button size="sm" onClick={startAdding} disabled={!canAddAddress}>
+          <Plus className="mr-2 h-4 w-4" />
+          New address
+        </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
@@ -173,7 +199,7 @@ const AddressBookSection = ({
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => { setEditingId(address.id); setDraft(toDraft(address)); }}>
+                  <Button variant="outline" size="sm" onClick={() => startEditing(address)}>
                     Edit
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleDelete(address.id)}>
@@ -190,37 +216,28 @@ const AddressBookSection = ({
           ) : null}
         </div>
 
-        <Separator className="my-2" />
+      </CardContent>
 
-        <div className="space-y-4 rounded-xl border p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground">{editingId ? "Edit saved address" : "Add saved address"}</p>
-              <p className="text-xs text-muted-foreground">Maximum 2 saved addresses per account.</p>
-            </div>
-            {!editingId && (
-              <Button variant="outline" size="sm" disabled={!canAddAddress}>
-                <Plus className="mr-2 h-4 w-4" />
-                {canAddAddress ? "Ready to add" : "Limit reached"}
-              </Button>
-            )}
-          </div>
+      <Dialog open={editorOpen} onOpenChange={(open) => open ? setEditorOpen(true) : closeEditor()}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Edit saved address" : "New saved address"}</DialogTitle>
+            <DialogDescription>
+              {editingId ? "Update this address and its checkout defaults." : "Save up to 2 reusable addresses for checkout."}
+            </DialogDescription>
+          </DialogHeader>
 
           <AddressEditor value={draft} onChange={setDraft} />
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button variant="outline" onClick={closeEditor}>Cancel</Button>
             <Button onClick={handleSave} disabled={saveAddress.isPending || !canAddAddress}>
               <Save className="mr-2 h-4 w-4" />
               {saveAddress.isPending ? "Saving…" : editingId ? "Save changes" : "Save address"}
             </Button>
-            {editingId ? (
-              <Button variant="outline" onClick={() => { setEditingId(null); setDraft(emptyDraft()); }}>
-                Cancel edit
-              </Button>
-            ) : null}
           </div>
-        </div>
-      </CardContent>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

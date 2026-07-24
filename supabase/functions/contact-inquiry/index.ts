@@ -1,12 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import * as React from "npm:react@18.3.1";
-import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { z } from "npm:zod@3.25.76";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
-import { getSmtpConfig, sendViaSMTP } from "../_shared/email/smtp.ts";
-import { template as notificationTemplate } from "../_shared/transactional-email-templates/contact-inquiry-notification.tsx";
-import { template as confirmationTemplate } from "../_shared/transactional-email-templates/inquiry-confirmation.tsx";
+import { getOrCreateUnsubscribeToken, getSmtpConfig, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -15,44 +11,6 @@ const corsPolicy = createCorsPolicy({
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const SITE_NAME = "Classic Visions";
-
-function generateToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function getOrCreateUnsubscribeToken(
-  supabase: ReturnType<typeof createClient>,
-  email: string,
-): Promise<string> {
-  const normalized = email.toLowerCase();
-  const { data: existing } = await supabase
-    .from("email_unsubscribe_tokens")
-    .select("token, used_at")
-    .eq("email", normalized)
-    .maybeSingle();
-
-  if (existing && !existing.used_at) return existing.token as string;
-
-  const token = generateToken();
-  await supabase
-    .from("email_unsubscribe_tokens")
-    .upsert(
-      { token, email: normalized },
-      { onConflict: "email", ignoreDuplicates: true },
-    );
-
-  const { data: stored } = await supabase
-    .from("email_unsubscribe_tokens")
-    .select("token")
-    .eq("email", normalized)
-    .maybeSingle();
-
-  return (stored?.token as string) ?? token;
-}
 
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
@@ -297,53 +255,25 @@ Deno.serve(async (req) => {
       console.error("Helpdesk ticket creation failed (non-fatal):", ticketCreateErr);
     }
 
-    const submittedAt = new Date(insertedInquiry.created_at).toUTCString();
-
-    // Send both emails immediately via SMTP (your own mail server)
-    if (smtpConfig) {
-      const notificationHtml = await renderAsync(React.createElement(notificationTemplate.component, {
-        inquiryType: payload.inquiryType,
-        name: payload.name,
-        email: payload.email,
-        phone: payload.phone || "",
-        businessName: payload.businessName || "",
-        message: payload.message,
-        pageSlug: payload.pageSlug,
-        sourceChannel: payload.sourceChannel,
-        submittedAt,
-        notes: payload.notes || "",
-      }));
-      const confirmationHtml = await renderAsync(React.createElement(confirmationTemplate.component, {
-        name: payload.name,
-        inquiryType: payload.inquiryType,
-        message: payload.message,
-        siteUrl: "https://classicvisions.net",
-      }));
-      await Promise.allSettled([
-        sendViaSMTP(
-          {
-            to: resolvedRecipient,
-            replyTo: payload.email,
-            subject: payload.inquiryType === "website-design-lead"
-              ? `Website design quote request from ${payload.name} — ${SITE_NAME}`
-              : `New Inquiry from ${payload.name} — ${SITE_NAME}`,
-            html: notificationHtml,
-          },
-          smtpConfig,
-        ).catch((err) => console.error("SMTP admin notification failed", { error: String(err) })),
-
-        sendViaSMTP(
-          {
-            to: payload.email,
-            subject: `We received your message — ${SITE_NAME}`,
-            html: confirmationHtml,
-          },
-          smtpConfig,
-        ).catch((err) => console.error("SMTP customer confirmation failed", { error: String(err) })),
-      ]);
+    // Only gates the customer-facing confirmation — the admin notification
+    // always goes out regardless of the submitter's portal notification setting.
+    const confirmationDisabled = await isAutoNotificationsDisabled(supabase, payload.email);
+    if (confirmationDisabled) {
+      await supabase.from("email_send_log").insert({
+        message_id: crypto.randomUUID(),
+        template_name: "inquiry-confirmation",
+        recipient_email: payload.email,
+        status: "suppressed",
+        error_message: "Auto notifications disabled for this account",
+      });
     }
 
-    // Enqueue for audit trail and as backup if SMTP was not yet configured
+    // Enqueue both emails through the transactional queue. This is the sole
+    // send path — an earlier "send immediately via SMTP" path was removed
+    // because sendViaSMTP() itself just enqueues into the same
+    // transactional_emails queue (see _shared/email/smtp.ts), so running
+    // both meant every submission sent two copies of each email, and the
+    // direct-send copy rendered without the unsubscribe link this path adds.
     try {
       const { renderAsync } = await import("npm:@react-email/components@0.0.22");
       const React = await import("npm:react@18.3.1");
@@ -422,18 +352,20 @@ Deno.serve(async (req) => {
           `contact-inquiry-${insertedInquiry.id}`,
           payload.email,
         ),
-        enqueueRenderedEmail(
-          "inquiry-confirmation",
-          payload.email,
-          confirmationTemplate,
-          {
-            name: payload.name,
-            inquiryType: payload.inquiryType,
-            message: payload.message,
-            siteUrl: "https://classicvisions.net",
-          },
-          `inquiry-confirm-${insertedInquiry.id}`,
-        ),
+        ...(confirmationDisabled ? [] : [
+          enqueueRenderedEmail(
+            "inquiry-confirmation",
+            payload.email,
+            confirmationTemplate,
+            {
+              name: payload.name,
+              inquiryType: payload.inquiryType,
+              message: payload.message,
+              siteUrl: "https://classicvisions.net",
+            },
+            `inquiry-confirm-${insertedInquiry.id}`,
+          ),
+        ]),
       ]);
     } catch (queueErr) {
       console.error("Email queue enqueue failed (non-fatal)", {

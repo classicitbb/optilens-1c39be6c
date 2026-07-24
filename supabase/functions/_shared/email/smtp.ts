@@ -39,6 +39,77 @@ export function getSmtpConfig(): SmtpConfig | null {
   return { from };
 }
 
+function generateUnsubscribeToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// The Lovable email API rejects any purpose:"transactional" send that lacks
+// an unsubscribe_token ("missing_unsubscribe"), so every enqueue path needs
+// one — one token per recipient, reused across sends until it's used.
+export async function getOrCreateUnsubscribeToken(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  email: string,
+): Promise<string> {
+  const normalized = email.toLowerCase();
+  const { data: existing } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token, used_at")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  if (existing && !existing.used_at) return existing.token as string;
+
+  const token = generateUnsubscribeToken();
+  await supabase
+    .from("email_unsubscribe_tokens")
+    .upsert(
+      { token, email: normalized },
+      { onConflict: "email", ignoreDuplicates: true },
+    );
+
+  const { data: stored } = await supabase
+    .from("email_unsubscribe_tokens")
+    .select("token")
+    .eq("email", normalized)
+    .maybeSingle();
+
+  return (stored?.token as string) ?? token;
+}
+
+// Per-portal-user override, set from Website Portals > Operations > Feature
+// access (feature_key: "auto-notifications"). Absent row means notifications
+// are on by default; an explicit enabled:false row is how admins silence a
+// test/troubleshooting account without touching the global suppression list.
+// Matched by email since most auto-notification senders only have the
+// recipient address on hand, not the portal user id.
+export async function isAutoNotificationsDisabled(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  email: string,
+): Promise<boolean> {
+  const normalized = email.toLowerCase();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("email", normalized)
+    .maybeSingle();
+  if (!profile?.user_id) return false;
+
+  const { data: override } = await supabase
+    .from("customer_portal_feature_overrides")
+    .select("enabled")
+    .eq("user_id", profile.user_id)
+    .eq("feature_key", "auto-notifications")
+    .maybeSingle();
+
+  return override?.enabled === false;
+}
+
 export async function sendViaSMTP(
   opts: SmtpMailOptions,
   config: SmtpConfig,
@@ -54,6 +125,7 @@ export async function sendViaSMTP(
   });
 
   const messageId = crypto.randomUUID();
+  const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, opts.to);
 
   // Audit log — append-only pending row
   await supabase.from("email_send_log").insert({
@@ -76,6 +148,7 @@ export async function sendViaSMTP(
       purpose: "transactional",
       label: "raw",
       idempotency_key: messageId,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
     },
   });

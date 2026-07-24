@@ -34,6 +34,10 @@ _Avoid_: Portal profile, portal customer record
 The optional website-login relationship for a customer contact; it is not a second editable customer record.
 _Avoid_: Portal contact, duplicate account
 
+**Company portal access**:
+A portal account for a person contact that is authorized to view a linked company customer account. The login belongs to the person; the prices, statements, orders, and company data belong to the linked company customer.
+_Avoid_: Company login, duplicate customer login
+
 **Innovations account number**:
 The customer account identifier that connects a customer contact to its Innovations data and online statements.
 _Avoid_: Generic account number, portal account number

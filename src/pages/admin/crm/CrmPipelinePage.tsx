@@ -120,7 +120,7 @@ const CrmPipelinePage = () => {
             onMove={handleMove}
             onEnroll={handleEnroll}
             onRemove={(c) => removeFromPipeline.mutate(c.id)}
-            onBuildPackage={(c) => navigate("/admin/sales/proposals", { state: { contactId: c.id, country: c.country } })}
+            onBuildPackage={(c) => navigate("/admin/crm/proposals", { state: { contactId: c.id, country: c.country } })}
           />
         ))}
         <StageColumn

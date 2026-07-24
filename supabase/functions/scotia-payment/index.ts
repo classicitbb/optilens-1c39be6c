@@ -21,7 +21,6 @@
 //   SCOTIA_CURRENCY        ISO numeric, e.g. "840" USD (default "840")
 // ============================================================
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "npm:zod@3.25.76";
 import {
   createCorsPolicy,
@@ -29,68 +28,22 @@ import {
   handleCorsPreflight,
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
+import { requireAuthenticatedUser, type AuthContext } from "../_shared/http/auth.ts";
 import {
   ALWAYS_HASH_ALGORITHM,
   DEFAULT_CHECKOUT_OPTION,
   GATEWAY_URLS,
+  classifyScotiaResponse,
   computeExtendedHash,
-  isApproved,
-  isSoftDecline,
-  validateResponseHash,
-  type ScotiaEnv,
 } from "../_shared/scotia/ipgConnect.ts";
+// Config resolution (StoreID/SharedSecret lookup) is shared with scotia-return
+// so both functions resolve credentials identically. See _shared/scotia/config.ts.
+import { getScotiaConfig as getConfig } from "../_shared/scotia/config.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
   allowMethods: "POST, OPTIONS",
 });
-
-interface ScotiaConfig {
-  storeId: string;
-  sharedSecret: string;
-  env: ScotiaEnv;
-  timezone: string;
-  currency: string;
-}
-
-const supabaseAdmin = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-);
-
-/**
- * Resolve credentials. Primary source is the admin-managed secret store
- * (get_scotia_credentials, service-role only, decrypts server-side). Falls back
- * to environment variables so the function still works before the store is
- * populated (or in local/dev).
- */
-async function getConfig(): Promise<ScotiaConfig> {
-  const envCfg: ScotiaConfig = {
-    storeId: Deno.env.get("SCOTIA_STORE_ID") ?? "",
-    sharedSecret: Deno.env.get("SCOTIA_SHARED_SECRET") ?? "",
-    env: (Deno.env.get("SCOTIA_ENV") ?? "test") as ScotiaEnv,
-    timezone: Deno.env.get("SCOTIA_TIMEZONE") ?? "America/Barbados",
-    currency: Deno.env.get("SCOTIA_CURRENCY") ?? "840", // 840 = USD
-  };
-
-  try {
-    const { data, error } = await supabaseAdmin.rpc("get_scotia_credentials");
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!error && row?.store_id && row?.shared_secret) {
-      return {
-        storeId: row.store_id,
-        sharedSecret: row.shared_secret,
-        env: (row.environment ?? envCfg.env) as ScotiaEnv,
-        timezone: row.timezone ?? envCfg.timezone,
-        currency: row.currency ?? envCfg.currency,
-      };
-    }
-  } catch (_err) {
-    // Secret store unavailable → fall back to env config below.
-  }
-
-  return envCfg;
-}
 
 // ── Request schemas ────────────────────────────────────────────────────────
 const prepareSchema = z.object({
@@ -100,10 +53,18 @@ const prepareSchema = z.object({
   // Where the gateway sends the buyer back (must be your own HTTPS URLs).
   responseSuccessURL: z.string().url(),
   responseFailURL: z.string().url(),
+  // Server-to-server webhook target (Fiserv posts outcome directly here,
+  // independent of the buyer's browser return). Optional — the caller can
+  // omit it and this function will derive the default scotia-notify URL.
+  notificationURL: z.string().url().optional(),
   // The page hosting the iframe — REQUIRED for IFRAME mode (manual page 13).
   hostURI: z.string().url().optional(),
   // Your internal order reference for support/reconciliation (oid).
   orderId: z.string().min(1).optional(),
+  // Admin-only reachability probe (Integrations page). Skips order ownership
+  // check because no real order exists; requires the caller to have the
+  // 'admin' role. The signed form is discarded by the caller — never posted.
+  testMode: z.boolean().optional(),
   // ── Tokenization (manual pages 22–23) ──
   assignToken: z.boolean().optional(),          // save a new card → returns hosteddataid
   hosteddataid: z.string().min(1).optional(),   // reuse a saved token (CVV-only flow)
@@ -132,6 +93,72 @@ function normalizeAmount(v: string | number): string {
   const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
   if (!Number.isFinite(n) || n <= 0) throw new Error("Invalid chargetotal");
   return n.toFixed(2);
+}
+
+function amountsMatch(left: string | number | null, right: string | number): boolean {
+  const leftAmount = Number(left);
+  const rightAmount = Number(right);
+  return Number.isFinite(leftAmount)
+    && Number.isFinite(rightAmount)
+    && Math.abs(leftAmount - rightAmount) < 0.005;
+}
+
+/**
+ * A gateway signature proves that Scotia returned the fields we sent; it does
+ * not prove that the browser was allowed to start the payment in the first
+ * place. Bind every prepare request to the authenticated owner's pending
+ * payment record before signing an `oid` for the gateway.
+ */
+async function assertPaymentOwnership(
+  orderId: string | undefined,
+  chargetotal: string | number,
+  authContext: AuthContext,
+): Promise<string | null> {
+  if (!orderId) return "An order reference is required to start a Scotia payment.";
+
+  if (orderId.startsWith("STMT-")) {
+    const paymentId = orderId.slice("STMT-".length);
+    const { data, error } = await authContext.supabaseUserClient
+      .from("account_payments")
+      .select("id, amount, status")
+      .eq("id", paymentId)
+      .maybeSingle();
+
+    if (error || !data || data.status !== "pending" || !amountsMatch(data.amount, chargetotal)) {
+      return "This statement payment is not available for this account.";
+    }
+    return null;
+  }
+
+  const { data: order, error: orderError } = await authContext.supabaseUserClient
+    .from("orders")
+    .select("id, total_amount, status, checkout_method")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (
+    orderError || !order || order.checkout_method !== "scotia_ecom"
+    || !["pending", "pending_payment"].includes(order.status)
+    || !amountsMatch(order.total_amount, chargetotal)
+  ) {
+    return "This order is not available for Scotia payment.";
+  }
+
+  const { data: payment, error: paymentError } = await authContext.supabaseUserClient
+    .from("order_payments")
+    .select("amount, provider, status")
+    .eq("order_id", orderId)
+    .eq("provider", "scotia")
+    .maybeSingle();
+
+  if (
+    paymentError || !payment || !["initiated", "failed"].includes(payment.status)
+    || !amountsMatch(payment.amount, chargetotal)
+  ) {
+    return "This order does not have a retryable Scotia payment.";
+  }
+
+  return null;
 }
 
 /** Current time in `YYYY:MM:DD-hh:mm:ss` for the configured timezone. */
@@ -174,27 +201,38 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request", detail: String(err) }, 400, req);
   }
 
+  const authContext = await requireAuthenticatedUser(req, getCorsHeaders(req, corsPolicy));
+  if (authContext instanceof Response) return authContext;
+
   try {
     if (parsed.action === "validate") {
-      const result = await validateResponseHash(parsed.response, cfg.sharedSecret);
-      const code = parsed.response.fail_rc
-        ? "" // internal error path
-        : (parsed.response.approval_code ?? "").split(":")[1] ?? ""; // "N:51:05-…" → "51"
-      const associationCode = (parsed.response.processor_response_code
-        ?? parsed.response.approval_code ?? "").split(":").pop()?.slice(0, 2) ?? "";
+      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret);
       return json({
-        hashValid: result.valid,
-        approved: isApproved(associationCode),
-        softDecline: isSoftDecline(associationCode),
-        associationResponseCode: associationCode,
-        failRc: parsed.response.fail_rc ?? null,
-        oid: parsed.response.oid ?? null,
-        hosteddataid: parsed.response.hosteddataid ?? null, // present when a token was created
+        hashValid: result.hashValid,
+        approved: result.approved,
+        softDecline: result.softDecline,
+        associationResponseCode: result.associationResponseCode,
+        failRc: result.failRc,
+        oid: result.oid,
+        hosteddataid: result.hosteddataid, // present when a token was created
       }, 200, req);
     }
 
     // action === "prepare"
     const p = parsed;
+    if (p.testMode) {
+      const { data: isAdmin, error: roleError } = await authContext.supabaseAdminClient.rpc(
+        "has_role",
+        { _user_id: authContext.user.id, _role: "admin" },
+      );
+      if (roleError || !isAdmin) {
+        return json({ error: "Admin role required for gateway test." }, 403, req);
+      }
+    } else {
+      const ownershipError = await assertPaymentOwnership(p.orderId, p.chargetotal, authContext);
+      if (ownershipError) return json({ error: ownershipError }, 403, req);
+    }
+
     const formParams: Record<string, string> = {
       chargetotal: normalizeAmount(p.chargetotal),
       checkoutoption: DEFAULT_CHECKOUT_OPTION,
@@ -212,6 +250,16 @@ Deno.serve(async (req) => {
     if (p.hostURI) formParams.hostURI = p.hostURI;
     // Support reference for reconciliation (shown to support as oid).
     if (p.orderId) formParams.oid = p.orderId;
+
+    // Server-to-server webhook: Fiserv posts the outcome here directly, so
+    // settlement doesn't depend on the buyer's browser completing the return
+    // trip. Falls back to the deployed scotia-notify function under the same
+    // Supabase project when the caller doesn't supply one.
+    const notificationURL = p.notificationURL
+      ?? (Deno.env.get("SUPABASE_URL")
+        ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/scotia-notify`
+        : undefined);
+    if (notificationURL) formParams.notificationURL = notificationURL;
 
     // Tokenization
     if (p.assignToken) formParams.assignToken = "true";

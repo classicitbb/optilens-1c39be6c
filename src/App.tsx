@@ -26,6 +26,7 @@ const Store = lazy(() => import("@/pages/Store"));
 const StoreProductPage = lazy(() => import("@/pages/StoreProductPage"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
+const OrderCompletePage = lazy(() => import("@/pages/OrderCompletePage"));
 const CartPage = lazy(() => import("@/pages/CartPage"));
 const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
 const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
@@ -107,6 +108,8 @@ const App = () => (
                     <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/order-complete" element={<OrderCompletePage />} />
+                    <Route path="/order/:orderId" element={<OrderCompletePage />} />
                     <Route path="/profile/*" element={<PortalRoutes />} />
                     <Route path="/portal" element={<Navigate to="/profile" replace />} />
                     <Route path="/*" element={<PublicRoutes />} />

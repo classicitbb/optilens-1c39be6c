@@ -1,21 +1,34 @@
 // ============================================================
 // Scotia eCom+ (IPG Connect) — frontend client helper
 // ------------------------------------------------------------
-// SCAFFOLD. Talks to the `scotia-payment` Edge Function which holds the
-// SharedSecret. The browser never sees the secret and never computes a hash.
+// Talks to the `scotia-payment` Edge Function which holds the SharedSecret.
+// The browser never sees the secret and never computes a hash.
 //
-// Flow (IFRAME mode, manual pages 12–13):
-//   1. prepareScotiaPayment() → { gatewayUrl, formParams } (incl. hashExtended)
-//   2. submitScotiaForm()      → builds a hidden form targeting the iframe and
-//                                POSTs it to the gateway.
-//   3. <ScotiaPaymentFrame>    → listens for the gateway postMessage and
-//                                forwards the buyer to success / fail.
+// Flow ("Direct Sale" / full-page redirect, manual page 11):
+//   test.ipg-online.com refuses to be framed cross-origin, so we don't use
+//   the IFRAME mode described on pages 12–13 — the buyer's whole browser
+//   navigates to Scotia and back, rather than paying inside an embedded
+//   frame.
+//   1. prepareScotiaPayment()   → { gatewayUrl, formParams } (incl. hashExtended)
+//   2. redirectToScotiaPayment() → builds a hidden form (no target — full
+//                                  top-level navigation) and submits it.
+//   3. Gateway redirects the browser back to the `scotia-return` Edge
+//      Function (responseSuccessURL/responseFailURL both point there), which
+//      validates the hash, settles the order/payment via service role, and
+//      302s the browser back into the SPA with a `?scotia=` result flag.
 //
 // Enable with VITE_SCOTIA_ENABLED=true. When disabled, checkout shows only the
 // existing offline methods + on-account (the permanent fallback).
 // ============================================================
 
 import { supabase } from "@/integrations/supabase/client";
+
+/** Public URL of the scotia-return Edge Function — where Scotia posts the
+ * buyer's browser back to after payment. Both responseSuccessURL and
+ * responseFailURL point here; the function reads the actual response params
+ * to determine the true outcome regardless of which URL Fiserv used. */
+export const SCOTIA_RETURN_URL =
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scotia-return`;
 
 /** Gateway origin used to validate inbound postMessage events (manual page 12). */
 export const SCOTIA_TEST_ORIGIN = "https://test.ipg-online.com";
@@ -34,8 +47,8 @@ export interface PreparePaymentInput {
   chargetotal: number;
   responseSuccessURL: string;
   responseFailURL: string;
-  /** Page URL hosting the iframe. Required for IFRAME mode. */
-  hostURI: string;
+  /** Page URL hosting the iframe. IFRAME mode only — unused in redirect mode. */
+  hostURI?: string;
   /** Internal order reference (becomes the gateway `oid`). */
   orderId?: string;
   // Tokenization
@@ -72,7 +85,9 @@ export async function prepareScotiaPayment(input: PreparePaymentInput): Promise<
 
 /**
  * Build a hidden form from prepared params and POST it into the iframe.
- * Mirrors the Direct/IFRAME sale form shape in the manual (pages 11–13).
+ * Mirrors the IFRAME sale form shape in the manual (pages 12–13). Kept for
+ * reference / possible future use if Fiserv enables cross-origin embedding
+ * for this StoreID — not called by the current (redirect-mode) checkout.
  */
 export function submitScotiaForm(prepared: PreparedPayment, iframeName: string): void {
   const form = document.createElement("form");
@@ -93,6 +108,31 @@ export function submitScotiaForm(prepared: PreparedPayment, iframeName: string):
   form.submit();
   // Leave the form in the DOM briefly so the POST completes, then clean up.
   setTimeout(() => form.remove(), 0);
+}
+
+/**
+ * Build a hidden form from prepared params and submit it as a full top-level
+ * navigation (no target → the whole browser leaves this page). This is the
+ * "Direct Sale" mode from the manual (page 11) — what checkout and statement
+ * payments actually use, since Scotia's hosted page refuses to be framed
+ * cross-origin. Nothing runs after this call; the page unloads.
+ */
+export function redirectToScotiaPayment(prepared: PreparedPayment): void {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = prepared.gatewayUrl;
+  form.style.display = "none";
+
+  for (const [name, value] of Object.entries(prepared.formParams)) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  }
+
+  document.body.appendChild(form);
+  form.submit();
 }
 
 /** Result surfaced after we validate a gateway response server-side. */

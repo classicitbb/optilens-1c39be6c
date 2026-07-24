@@ -10,6 +10,7 @@ export interface PricingSettings {
   created_at: string;
   base_currency: string;
   fx_rates: Record<string, number>;
+  import_costing_fx_rates: Record<string, number>;
   fx_risk_buffer: number;
   vat_rate: number;
   duty_rates: Record<string, number>;

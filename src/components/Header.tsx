@@ -17,9 +17,11 @@ import { CartSheet } from "@/components/CartSheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
+import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { createAuthHref } from "@/lib/authFlow";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 type MegaMenuLink = {
   label: string;
@@ -437,6 +439,16 @@ const THEME_OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
 ] as const;
 
+type HeaderProfileRow = { display_name: string | null; full_name: string | null; avatar_url: string | null };
+
+type HeaderProfileQuery = {
+  select: (columns: string) => {
+    eq: (column: string, value: string) => {
+      maybeSingle: () => Promise<{ data: HeaderProfileRow | null; error: { message: string } | null }>;
+    };
+  };
+};
+
 const getAccountInitials = (name: string, email: string) => {
   const source = name || email;
   const parts = source
@@ -461,9 +473,23 @@ const Header = () => {
   const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
   const { theme, resolvedTheme, setTheme } = useTheme();
   const activeTheme = theme ?? "system";
-  const activeUserName = resolveUserFullName(user) || user?.email?.split("@")[0] || "Account";
+  const { data: profile } = useQuery({
+    queryKey: ["header-profile-name", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await (supabase.from("profiles") as unknown as HeaderProfileQuery)
+        .select("display_name, full_name, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+  const activeUserName = capitalizeDisplayName(profile?.display_name || profile?.full_name || resolveUserFullName(user) || user?.email?.split("@")[0], "Account");
   const activeUserEmail = user?.email?.trim() || "";
-  const activeUserAvatar = resolveUserAvatar(user);
+  const activeUserAvatar = profile?.avatar_url || resolveUserAvatar(user);
   const activeUserInitials = getAccountInitials(activeUserName, activeUserEmail);
   const resolvedThemeValue = activeTheme === "system" ? resolvedTheme ?? "system" : activeTheme;
   const { data: storeProducts = [] } = useStoreProducts();
@@ -643,54 +669,11 @@ const Header = () => {
 
                       <div className="space-y-1 pt-1">
                         <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
-                          <Link to="/profile/account" {...labLinkNavigationProps} className="flex items-center gap-3">
+                          <Link to="/profile" {...labLinkNavigationProps} className="flex items-center gap-3">
                             <Settings className="h-4.5 w-4.5 text-foreground/80" />
-                            <span className="text-sm font-medium">Account settings</span>
+                            <span className="text-sm font-medium">My Account</span>
                           </Link>
                         </DropdownMenuItem>
-
-                        <div className="rounded-xl px-2.5 py-2 text-foreground outline-none ring-0 transition-colors hover:bg-accent/50 focus-within:bg-accent/70">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-center gap-3">
-                              <Palette className="h-4.5 w-4.5 text-foreground/80" />
-                              <div>
-                                <p className="text-sm font-medium leading-none">Appearance</p>
-                                <p className="mt-1 text-[11px] text-muted-foreground">Theme follows your preference instantly.</p>
-                              </div>
-                            </div>
-                            <ToggleGroup
-                              type="single"
-                              value={activeTheme}
-                              onValueChange={(value) => {
-                                if (value) setTheme(value);
-                              }}
-                              aria-label="Appearance theme"
-                              className="w-full justify-start rounded-full border border-border/70 bg-muted/60 p-0.5 sm:w-auto sm:justify-center"
-                            >
-                              {THEME_OPTIONS.map((option) => {
-                                const Icon = option.icon;
-                                const isActive = activeTheme === option.value;
-                                const isResolved = activeTheme === "system" && resolvedThemeValue === option.value;
-
-                                return (
-                                  <ToggleGroupItem
-                                    key={option.value}
-                                    value={option.value}
-                                    aria-label={option.label}
-                                    className={cn(
-                                      "h-7 flex-1 rounded-full border-0 px-2 text-muted-foreground shadow-none hover:bg-background/80 hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm sm:flex-none",
-                                      isActive && "ring-1 ring-border/60",
-                                    )}
-                                  >
-                                    <Icon className="h-3.5 w-3.5" />
-                                    <span className="sr-only">{option.label}</span>
-                                    {isResolved && !isActive ? <span className="sr-only">Active via system theme</span> : null}
-                                  </ToggleGroupItem>
-                                );
-                              })}
-                            </ToggleGroup>
-                          </div>
-                        </div>
                       </div>
 
                       <DropdownMenuSeparator className="mx-0 my-2" />
@@ -722,6 +705,49 @@ const Header = () => {
                       </div>
 
                       <DropdownMenuSeparator className="mx-0 my-2" />
+
+                      <div className="rounded-xl px-2.5 py-2 text-foreground outline-none ring-0 transition-colors hover:bg-accent/50 focus-within:bg-accent/70">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3">
+                            <Palette className="h-4.5 w-4.5 text-foreground/80" />
+                            <div>
+                              <p className="text-sm font-medium leading-none">Appearance</p>
+                              <p className="mt-1 text-[11px] text-muted-foreground">Theme follows your preference instantly.</p>
+                            </div>
+                          </div>
+                          <ToggleGroup
+                            type="single"
+                            value={activeTheme}
+                            onValueChange={(value) => {
+                              if (value) setTheme(value);
+                            }}
+                            aria-label="Appearance theme"
+                            className="w-full justify-start rounded-full border border-border/70 bg-muted/60 p-0.5 sm:w-auto sm:justify-center"
+                          >
+                            {THEME_OPTIONS.map((option) => {
+                              const Icon = option.icon;
+                              const isActive = activeTheme === option.value;
+                              const isResolved = activeTheme === "system" && resolvedThemeValue === option.value;
+
+                              return (
+                                <ToggleGroupItem
+                                  key={option.value}
+                                  value={option.value}
+                                  aria-label={option.label}
+                                  className={cn(
+                                    "h-7 flex-1 rounded-full border-0 px-2 text-muted-foreground shadow-none hover:bg-background/80 hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm sm:flex-none",
+                                    isActive && "ring-1 ring-border/60",
+                                  )}
+                                >
+                                  <Icon className="h-3.5 w-3.5" />
+                                  <span className="sr-only">{option.label}</span>
+                                  {isResolved && !isActive ? <span className="sr-only">Active via system theme</span> : null}
+                                </ToggleGroupItem>
+                              );
+                            })}
+                          </ToggleGroup>
+                        </div>
+                      </div>
 
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                         <LogOut className="h-4.5 w-4.5 text-foreground/80" />

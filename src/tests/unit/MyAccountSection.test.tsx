@@ -72,18 +72,25 @@ describe("MyAccountSection", () => {
     mocks.toast.mockReset();
   });
 
-  it("shows the source-managed ERP account number and signs out from the form actions", async () => {
+  it("shows the source-managed ERP account number and signs out from account actions", async () => {
     renderSection();
 
-    expect(await screen.findByRole("status", { name: "ERP Account Number" })).toHaveTextContent("RETAIL");
+    expect(await screen.findByText("ERP account")).toBeInTheDocument();
+    expect(screen.getByText("RETAIL")).toBeInTheDocument();
+    expect(screen.queryByText("Display Name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Avatar URL")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bio")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(mocks.signOut).toHaveBeenCalledOnce();
   });
 
-  it("uses ACC# when no ERP account is linked", async () => {
+  it("offers an optional account-number claim input when no ERP account is linked", async () => {
     mocks.accountNumber = null;
     renderSection();
 
-    expect(await screen.findByRole("status", { name: "ERP Account Number" })).toHaveTextContent("ACC#");
+    // The read-only ERP number is replaced by an optional claim field that
+    // speeds up admin approval but never grants access on its own.
+    expect(await screen.findByPlaceholderText("Account # from your invoice (optional)")).toBeInTheDocument();
+    expect(screen.getByText(/speed up approval/i)).toBeInTheDocument();
   });
 });

@@ -1,7 +1,6 @@
 import {
   BookOpen,
   DollarSign,
-  ShoppingCart,
   Users,
   Search,
   Target,
@@ -59,7 +58,7 @@ Every feature is accessible through the App Launcher, which organises the platfo
 
 The platform uses a consistent navigation model across all applications.
 
-- Open the App Launcher from the top bar to switch between business applications such as Pricing, Sales, CRM, Leads, Helpdesk, Website, Knowledge, and Settings
+- Open the App Launcher from the top bar to switch between business applications such as Pricing, CRM, Leads, Helpdesk, Website, Knowledge, and Settings
 - Each application has a dedicated sidebar with links to its individual pages
 - The Help panel is available on every page and displays articles relevant to the current view
 - The Global Search bar in the top navigation allows you to find records, articles, and pages across the entire platform
@@ -97,11 +96,13 @@ The operations console is split into admin domains with one canonical route per 
 - **Imports** supports bulk data loads for pricing domains
 - **Pricing Settings** defines global pricing parameters and defaults
 
-## Sales application
+## CRM application
 
-- **Proposals** builds consultative proposal documents
-- **Quotations** handles formal quote creation/editing
-- **Quotation Print Preview** provides print-ready output for signed or shared quotes
+- **Proposals** builds consultative proposal documents linked to customer opportunities
+
+## Website application
+
+- **Quotations** handles formal quote creation, editing, and print preview
 - **Web Orders** processes orders submitted through the public website store
 - **RX Orders** handles prescription lens orders submitted via the RX order form
 
@@ -506,9 +507,9 @@ Use proposals when the customer needs educational context, competitive compariso
     ],
   },
   {
-    id: "sales-app",
-    icon: ShoppingCart,
-    title: "Sales App",
+    id: "website-commerce",
+    icon: Globe,
+    title: "Website Commerce",
     articles: [
       {
         id: "quotations-lifecycle",
@@ -1463,6 +1464,39 @@ The Users page manages all user accounts with role assignments and access contro
 - Follow the principle of least privilege — assign the minimum role needed for each user's job function
 - Audit role changes through the Audit Log to maintain a clear record of access modifications
 - Customer users must always be tied to a customer record to ensure they only see their assigned pricelists`,
+      },
+      {
+        id: "access-deployment-training-guide",
+        title: "Access Deployment Training",
+        content: `## Start in Contacts
+
+Use **Deploy access** in Contacts to set up a customer portal login or an internal staff user. The assistant starts with a search by person, email, or Innovations account number, then shows the contact, customer account, and any existing login it found.
+
+It never chooses an account or silently links a login. Select the right records before deployment.
+
+## Customer portal access
+
+1. Select the customer contact.
+2. Choose **Customer portal** and select the primary customer account.
+3. If a login already uses the contact email, choose **Link this login** or **Leave unchanged**.
+4. If no login exists, send an invite or set a temporary password.
+5. Approve portal access only after checking the customer link and email.
+
+An unverified login can be prepared and linked, but access unlocks only after the person verifies their email. Assigned pricelist access also requires the Approved Access to Pricing tag, and statement access requires the Approved Access to Statement tag. CEO grants both.
+
+## Internal staff access
+
+Choose **Internal staff**, then explicitly select Admin, Operator, or Viewer. The assistant does not suggest a role because this is a business decision.
+
+## Exceptions and safe escalation
+
+Add a missing email in the contact before creating a login. When more than one account is found, choose the primary account yourself. If a contact and customer account are incompatible, correct the link first; do not force it.
+
+Use **Access training** for sandbox practice and its Operations follow-up template. The template keeps the search, records found, missing decision, and attempted action together so another operator can resolve the case without repeating the investigation.
+
+## Sync protection
+
+Innovations sync can fill empty CRM fields. It must not overwrite a populated CRM contact field. Review the contact record when a synced value is missing or conflicts with an edited value.`,
       },
       {
         id: "roles-permissions-guide",

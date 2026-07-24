@@ -16,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useCartDrafts, type CartDraftRow } from "@/hooks/useCartDrafts";
 import { useCartContext } from "@/contexts/CartContext";
+import { useRxDrafts } from "@/features/lens-assistant/api";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const formatMoney = (n: number) => `$${Number(n ?? 0).toFixed(2)}`;
@@ -26,6 +27,7 @@ const CartDraftsSection = () => {
   const { toast } = useToast();
   const { emulation } = usePortalIdentity();
   const { drafts, isLoading, deleteDraft } = useCartDrafts(emulation?.userId);
+  const { data: rxDrafts = [], isLoading: rxDraftsLoading } = useRxDrafts();
   const { addToCart } = useCartContext();
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CartDraftRow | null>(null);
@@ -137,14 +139,28 @@ const CartDraftsSection = () => {
       </div>
       {rxDrafts.length === 0 ? (
         <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          No Rx drafts yet. <Link to="/lens-assistant?audience=professional" className="font-medium text-primary hover:underline">Start the lens assistant</Link>.
+          No Rx drafts yet.{" "}
+          <Link to="/lens-assistant?audience=professional" className="font-medium text-primary hover:underline">
+            Start the lens assistant
+          </Link>
+          .
         </div>
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
           {rxDrafts.map((draft) => (
             <li key={draft.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div><div className="flex items-center gap-2"><span className="font-medium">{draft.name}</span><Badge variant="secondary" className="capitalize">{draft.status.replace(/_/g, " ")}</Badge></div><p className="mt-1 text-xs text-muted-foreground">Saved {formatDate(draft.updated_at)} · Not submitted to the lab</p></div>
-              <Button asChild variant="outline" size="sm"><Link to={`/profile/rx-drafts/${draft.id}`}>Open draft</Link></Button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{draft.name}</span>
+                  <Badge variant="secondary" className="capitalize">{draft.status.replace(/_/g, " ")}</Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saved {formatDate(draft.updated_at)} · Not submitted to the lab
+                </p>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/profile/rx-drafts/${draft.id}`}>Open draft</Link>
+              </Button>
             </li>
           ))}
         </ul>

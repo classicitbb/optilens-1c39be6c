@@ -31,7 +31,7 @@ type SortDirection = "asc" | "desc";
 
 type ShipmentRow = Shipment & {
   totalLandedBbd: number;
-  totalChargesBbd: number;
+  totalChargesIncludingVatBbd: number;
 };
 
 const fmt = formatMoney;
@@ -69,7 +69,7 @@ const ShipmentsTab = () => {
       return {
         ...shipment,
         totalLandedBbd: totals.totalLandedBbd,
-        totalChargesBbd: totals.totalChargesBbd,
+        totalChargesIncludingVatBbd: totals.totalChargesIncludingVatBbd,
       };
     });
   }, [chargesByShipment, settings, shipments]);

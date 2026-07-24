@@ -1,9 +1,11 @@
 import { format, subDays } from "date-fns";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, ExternalLink, Loader2, Package, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
+import { Clock, ExternalLink, Loader2, Package, Printer, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { printOrderDocument } from "@/features/admin/print/orderDocument";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { requestLiveData } from "@/lib/liveDataGateway";
+import InquireButton from "@/components/account/InquireButton";
 
 
 const formatAddress = (address?: Record<string, unknown> | null) => {
@@ -75,6 +78,7 @@ type LiveInnovationsOrder = {
   rx_number: string | null;
   patient: string | null;
   received_at: string | null;
+  promise_date?: string | null;
   status_name: string | null;
 };
 
@@ -91,6 +95,10 @@ const formatLiveDate = (value: string | null) => {
 
 const liveDeliveryId = (delivery: LiveDelivery) => delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8);
 
+// Shipping method names are stored in the lab system as "<route #> <courier name>"
+// (e.g. "1 Tia Lewis"); the route number isn't meaningful to the customer.
+const formatShippingMethodName = (name?: string | null) => (name ?? "").replace(/^\d+\s+/, "");
+
 const isSafeTrackingUrl = (value?: string | null) => {
   if (!value) return null;
   try {
@@ -104,32 +112,51 @@ const isSafeTrackingUrl = (value?: string | null) => {
 const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
   const trackingUrl = isSafeTrackingUrl(delivery.tracking_url);
   const shipmentItems = delivery.orders ?? [];
+  const shipmentRowCount = shipmentItems.length;
   const isOpen = !delivery.closed_at;
+  const shippingMethodName = formatShippingMethodName(delivery.shipping_method_name);
 
   return (
     <Accordion type="single" collapsible className="rounded-lg border bg-card px-3 sm:px-4">
       <AccordionItem value={delivery.shipment_session_id} className="border-none">
-        <AccordionTrigger className="py-3 text-left hover:no-underline">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 pr-3">
-            <span className="font-medium text-foreground">Shipment #{liveDeliveryId(delivery)}</span>
-            <Badge variant="outline">{isOpen ? "Open" : "Closed"}</Badge>
-            <span className="text-sm text-muted-foreground">{delivery.shipping_method_name || "Delivery method pending"}</span>
-            <span className="text-sm text-muted-foreground">{delivery.item_count ?? shipmentItems.length} item{(delivery.item_count ?? shipmentItems.length) === 1 ? "" : "s"}</span>
-            {delivery.tracking_number ? (
-              trackingUrl ? (
-                <a
-                  href={trackingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  Track {delivery.tracking_number} <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              ) : <span className="text-sm text-muted-foreground">Tracking {delivery.tracking_number}</span>
-            ) : null}
+        <div className="flex items-center gap-1">
+          <div className="min-w-0 flex-1">
+            <AccordionTrigger className="py-3 text-left hover:no-underline">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 pr-3">
+                <span className="font-medium text-foreground">Shipment #{liveDeliveryId(delivery)}</span>
+                <Badge variant="outline">{isOpen ? "Open" : "Closed"}</Badge>
+                <span className="text-sm text-muted-foreground">{shippingMethodName || "Delivery method pending"}</span>
+                <span className="text-sm text-muted-foreground">{shipmentRowCount} item{shipmentRowCount === 1 ? "" : "s"}</span>
+                {delivery.tracking_number ? (
+                  trackingUrl ? (
+                    <a
+                      href={trackingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      Track {delivery.tracking_number} <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : <span className="text-sm text-muted-foreground">Tracking {delivery.tracking_number}</span>
+                ) : null}
+              </div>
+            </AccordionTrigger>
           </div>
-        </AccordionTrigger>
+          <InquireButton
+            label="Ask about this shipment"
+            title={`Inquiry about Shipment #${liveDeliveryId(delivery)}`}
+            description={[
+              `Shipment #${liveDeliveryId(delivery)}`,
+              `Status: ${isOpen ? "Open" : "Closed"}`,
+              `Shipping method: ${shippingMethodName || "—"}`,
+              `Items: ${shipmentRowCount}`,
+              delivery.tracking_number ? `Tracking #: ${delivery.tracking_number}` : null,
+              "",
+              "Question: ",
+            ].filter((line) => line !== null).join("\n")}
+          />
+        </div>
         <AccordionContent className="pb-3">
           {shipmentItems.length ? (
             <Table>
@@ -171,11 +198,12 @@ const MyOrdersSection = () => {
   // Under admin emulation the gateway must fetch the emulated customer's data,
   // not the admin's; staff-only override honored server-side.
   const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
+  const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null, ordersUseBillToAccount: identity?.ordersUseBillToAccount ?? false };
   const [innovationsSearch, setInnovationsSearch] = useState("");
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
     enabled: canSeeLiveOrderStatus && typeof identity?.crmCustomerId === "number",
-    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal, websiteCustomerId }),
+    queryFn: ({ signal }) => requestLiveData<LiveInnovationsOrdersResponse>("innovations.customer_orders", {}, { signal, websiteCustomerId, localFallbackTarget }),
     staleTime: 30_000,
     retry: 1,
   });
@@ -185,7 +213,7 @@ const MyOrdersSection = () => {
     queryFn: ({ signal }) => requestLiveData<LiveDeliveriesResponse>(
       "optilens.customer_deliveries",
       { include_open: true, closed_since: format(subDays(new Date(), 45), "yyyy-MM-dd") },
-      { signal, websiteCustomerId },
+      { signal, websiteCustomerId, localFallbackTarget },
     ),
     staleTime: 30_000,
     retry: 1,
@@ -272,6 +300,7 @@ const MyOrdersSection = () => {
                         <TableHead>Rx Number</TableHead>
                         <TableHead>Patient</TableHead>
                         <TableHead>Received</TableHead>
+                        <TableHead>Promise Date</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -281,7 +310,25 @@ const MyOrdersSection = () => {
                         <TableCell>{order.rx_number ?? "—"}</TableCell>
                         <TableCell>{order.patient ?? "—"}</TableCell>
                         <TableCell>{formatLiveDate(order.received_at)}</TableCell>
-                        <TableCell><Badge variant="outline">{order.status_name ?? "—"}</Badge></TableCell>
+                        <TableCell>{formatLiveDate(order.promise_date ?? null)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline">{order.status_name ?? "—"}</Badge>
+                            <InquireButton
+                              label="Ask about this order"
+                              title={`Inquiry about ${order.patient ?? "patient"} — Rx ${order.rx_number ?? "—"}`}
+                              description={[
+                                `Rx Number: ${order.rx_number ?? "—"}`,
+                                `Patient: ${order.patient ?? "—"}`,
+                                `Received: ${formatLiveDate(order.received_at)}`,
+                                `Promise Date: ${formatLiveDate(order.promise_date ?? null)}`,
+                                `Status: ${order.status_name ?? "—"}`,
+                                "",
+                                "Question: ",
+                              ].join("\n")}
+                            />
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -375,6 +422,32 @@ const MyOrdersSection = () => {
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </Badge>
                         <span className="text-xl font-bold text-foreground">${order.totalAmount.toFixed(2)}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => printOrderDocument({
+                            id: order.id,
+                            createdAt: order.createdAt,
+                            totalAmount: order.totalAmount,
+                            status: order.status,
+                            customerName: order.customerName,
+                            contactEmail: order.contactEmail,
+                            contactPhone: order.contactPhone,
+                            shippingAddress: order.shippingAddress,
+                            checkoutMethod: order.checkoutMethod,
+                            items: order.items.map((item) => ({
+                              id: item.id,
+                              productName: item.productName,
+                              productType: item.productType,
+                              unitPrice: item.unitPrice,
+                              quantity: item.quantity,
+                            })),
+                          })}
+                        >
+                          <Printer className="mr-1.5 h-4 w-4" />
+                          Print order
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -408,6 +481,14 @@ const MyOrdersSection = () => {
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
+                    {order.status === "draft" && order.checkoutMethod === "on_account" ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 p-3">
+                        <p className="text-sm text-muted-foreground">This account order was returned for changes. Restore its saved draft to your cart, update the items, then check out again.</p>
+                        <Button asChild size="sm">
+                          <Link to="/profile/drafts">Open saved draft</Link>
+                        </Button>
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               ))}

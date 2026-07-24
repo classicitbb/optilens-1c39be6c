@@ -11,6 +11,8 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   [functions.lens-assistant]
     verify_jwt = true
+  [functions.crm-draft-outreach]
+    verify_jwt = true
   [functions.order-confirmation]
     verify_jwt = true
   [functions.lead-intelligence]
@@ -49,8 +51,18 @@ project_id = "dzsalnvmlvjoatryhqfz"
   # allowed to return the protocol's WWW-Authenticate discovery challenge.
   [functions.mcp]
     verify_jwt = false
-  # Scotia eCom+ (IPG Connect) hosted-payment helper. Public preflight/CORS is
-  # handled in code; the buyer's browser calls "prepare". Set verify_jwt=true
-  # before production so only authenticated checkout sessions can request a hash.
+  # Scotia eCom+ (IPG Connect) hosted-payment helper. An authenticated buyer
+  # can only obtain a signed gateway form for their own pending payment intent.
   [functions.scotia-payment]
+    verify_jwt = true
+  # Scotia eCom+ redirect-back endpoint. MUST stay verify_jwt=false — Fiserv's
+  # hosted page POSTs the buyer's browser back here directly (no Supabase
+  # session, no Authorization header at all). Authenticity comes entirely from
+  # the response hash, verified in code before anything is settled.
+  [functions.scotia-return]
+    verify_jwt = false
+  # Scotia eCom+ server-to-server notification webhook. MUST stay
+  # verify_jwt=false — Fiserv posts here directly with no Supabase session.
+  # Authenticity is proved by recomputing the response hash before settling.
+  [functions.scotia-notify]
     verify_jwt = false

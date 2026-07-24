@@ -4,6 +4,35 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-24 — Sales App Consolidation
+
+### Release Notes
+- Closed the standalone Sales app. Proposals now live in CRM; quotations and website orders now live in Website.
+
+### Technical Changelog
+- Replaced Sales routes with canonical `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders` routes, updated navigation and permissions, and added regression coverage that prevents the Sales app or routes from returning.
+
+## 2026-07-22 — Staff Public Networking Cards
+
+### Release Notes
+- Staff can create an opt-in public networking card with email, WhatsApp, skills, and a one-tap downloadable contact card.
+- A staff member's profile home screen now has **Share my card**, opening a large event-ready QR code.
+- Admin → Settings → Users has QR-preview and ID-card actions for every admin, operator, or viewer.
+
+### Technical Changelog
+- Added the RLS-protected `staff_public_cards` read model, public `/connect/:slug` route, vCard generation, and QR rendering.
+- Kept public-card data separate from private portal/CRM profile fields; unpublished cards remain non-public.
+
+## 2026-07-19 — Contacts Access Deployment Assistant
+
+### Release Notes
+- Contacts now provides one guided entry point for customer portal access and internal staff access, with safe sandbox training available before a live deployment.
+- The assistant finds contacts, customer accounts, and existing logins, then asks for only the account, login, and role decisions that require human confirmation.
+
+### Technical Changelog
+- Added a protected explicit existing-login/customer-link action, verified-email context, and a contacts-first workflow for invite, temporary-password, and role-assignment deployment.
+- Published contextual Wiki guidance and an operations follow-up template for missing data, conflicting links, and failed deployments.
+
 ## 2026-07-18 — Integration Status Recovery and Dependency Refresh
 
 ### Release Notes

@@ -32,6 +32,11 @@ const checks = [
     command: "npm",
     args: ["run", "security:product-cost-rls-audit"],
   },
+  {
+    name: "Customer internal-data access audit",
+    command: "npm",
+    args: ["run", "security:customer-data-access-audit"],
+  },
 ];
 
 for (const check of checks) {

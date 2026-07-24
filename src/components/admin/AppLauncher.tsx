@@ -10,7 +10,6 @@ import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 const APP_COLORS: Record<string, string> = {
   launchpad: "hsl(172 72% 40%)",
   pricing: "hsl(215 65% 50%)",
-  sales: "hsl(260 50% 55%)",
   contacts: "hsl(168 76% 42%)",
   leads: "hsl(38 92% 50%)",
   crm: "hsl(280 60% 55%)",

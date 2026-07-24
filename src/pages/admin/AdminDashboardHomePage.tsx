@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Settings, ShoppingCart, Target, Users } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Settings, Target, Users } from "lucide-react";
 import { Link } from "react-router";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,6 @@ const appTiles = [
     icon: DollarSign,
   },
   {
-    title: "Sales",
-    description: "Manage proposals, quotations, and order workflows across all channels.",
-    route: "/admin/sales/proposals",
-    icon: ShoppingCart,
-  },
-  {
     title: "Contacts",
     description: "Maintain customer records, tags, and industry segmentation data.",
     route: "/admin/contacts",
@@ -34,7 +28,7 @@ const appTiles = [
   },
   {
     title: "CRM",
-    description: "Track opportunities, pipeline performance, and scheduled sales activities.",
+    description: "Track opportunities, proposals, pipeline performance, and scheduled sales activities.",
     route: "/admin/crm/dashboard",
     icon: Target,
   },
@@ -46,7 +40,7 @@ const appTiles = [
   },
   {
     title: "Website",
-    description: "Update website content and manage feature pages and storefront touchpoints.",
+    description: "Update website content and manage storefront products, quotations, and orders.",
     route: "/admin/website/content",
     icon: Globe,
   },

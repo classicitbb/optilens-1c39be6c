@@ -20,7 +20,7 @@ import GlobalSearch from "./GlobalSearch";
 import AppLauncher from "./AppLauncher";
 import NotificationBell from "./NotificationBell";
 import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
-import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
+import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -35,8 +35,9 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/pricing/imports", "Pricing · Imports"],
 ["/admin/pricing/reference", "Pricing · Reference Data"],
 ["/admin/pricing/costings", "Costings"],
-["/admin/sales/proposals", "Sales · Proposals"],
-["/admin/sales/quotations", "Sales · Quotations"],
+["/admin/crm/proposals", "CRM · Proposals"],
+["/admin/website/quotations", "Website · Quotations"],
+["/admin/website/orders", "Website · Orders"],
 ["/admin/settings/users", "Settings · Users"],
 ["/admin/settings/company", "Settings · Company"],
 ["/admin/knowledge/wiki", "Knowledge · Wiki"],
@@ -57,7 +58,7 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/imports", "Pricing · Imports"],
 ["/admin/reference", "Pricing · Reference Data"],
 ["/admin/costings", "Costings"],
-["/admin/quotations", "Sales · Quotations"],
+["/admin/quotations", "Website · Quotations"],
 ["/admin/users", "Settings · Users"],
 ["/admin/parameters", "Settings · Company"],
 ["/admin/wiki", "Knowledge · Wiki"],
@@ -135,16 +136,16 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
       if (!user) return null;
       const { data } = await (supabase.
       from("profiles") as any).
-      select("display_name, avatar_url").
+      select("display_name, full_name, avatar_url").
       eq("user_id", user.id).
       maybeSingle();
-      return data as { display_name: string | null; avatar_url: string | null } | null;
+      return data as { display_name: string | null; full_name: string | null; avatar_url: string | null } | null;
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000
   });
 
-  const displayName = profile?.display_name || resolveUserFullName(user) || user?.email || "";
+  const displayName = capitalizeDisplayName(profile?.display_name || profile?.full_name || resolveUserFullName(user) || user?.email, "Account");
   const initials = getInitials(displayName || user?.email || "?");
   const avatarUrl = profile?.avatar_url || resolveUserAvatar(user);
 

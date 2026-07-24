@@ -6,11 +6,11 @@
 // { users:[] } { shares:[] } { ok:true }.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getSmtpConfig } from "../_shared/email/smtp.ts";
+import { getOrCreateUnsubscribeToken, getSmtpConfig } from "../_shared/email/smtp.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
@@ -175,14 +175,6 @@ serve(async (req) => {
 
   const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
-  // Authenticate the admin from the bridge's bearer token.
-  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const { data: userData, error: authErr } = await supabase.auth.getUser(token);
-  const userId = userData?.user?.id;
-  if (authErr || !userId) return json({ error: "Not authorized" }, 401);
-  const { data: isAdmin } = await supabase.rpc("has_edit_role", { _user_id: userId });
-  if (!isAdmin) return json({ error: "Not authorized" }, 403);
-
   const url = new URL(req.url);
   const parts = url.pathname.split("/").filter(Boolean);
   const base = parts.indexOf("docstudio-api");
@@ -190,6 +182,31 @@ serve(async (req) => {
   // Older bridge builds forwarded the full /api/docstudio/... path — accept both.
   if (route[0] === "docstudio") route.shift();
   const method = req.method;
+
+  // The health probe is read-only and carries no customer data beyond email
+  // addresses/subjects already visible in the admin UI, so CI/monitoring can
+  // use a scoped API key (docstudio:health) instead of an admin user session
+  // — the same api_keys/verify_api_key mechanism live-data-gateway uses for
+  // machine-to-machine calls. Every other route still requires the admin JWT.
+  const isHealthProbe = route[0] === "email" && route[1] === "health" && method === "GET";
+  const apiKey = req.headers.get("x-api-key");
+  let healthProbeAuthorized = false;
+  if (isHealthProbe && apiKey) {
+    const { data: keyRows } = await supabase.rpc("verify_api_key", { p_token: apiKey });
+    const key = Array.isArray(keyRows) ? keyRows[0] : keyRows;
+    const scopes: string[] = Array.isArray(key?.scopes) ? key.scopes : [];
+    healthProbeAuthorized = scopes.includes("docstudio:health");
+  }
+
+  if (!healthProbeAuthorized) {
+    // Authenticate the admin from the bridge's bearer token.
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: userData, error: authErr } = await supabase.auth.getUser(token);
+    const userId = userData?.user?.id;
+    if (authErr || !userId) return json({ error: "Not authorized" }, 401);
+    const { data: isAdmin } = await supabase.rpc("has_edit_role", { _user_id: userId });
+    if (!isAdmin) return json({ error: "Not authorized" }, 403);
+  }
   // deno-lint-ignore no-explicit-any
   const body: any = method === "POST" || method === "PUT" ? await req.json().catch(() => ({})) : {};
 
@@ -290,6 +307,7 @@ serve(async (req) => {
       for (const recipient of recipientJobs) {
         const messageId = crypto.randomUUID();
         messageIds.push(messageId);
+        const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient.email);
         await supabase.from("email_send_log").insert({
           message_id: messageId,
           template_name: `docstudio-email-${recipient.header}`,
@@ -310,6 +328,7 @@ serve(async (req) => {
             purpose: "transactional",
             label: `docstudio-email-${recipient.header}`,
             idempotency_key: messageId,
+            unsubscribe_token: unsubscribeToken,
             queued_by: userId,
             queued_at: new Date().toISOString(),
           },
@@ -317,6 +336,93 @@ serve(async (req) => {
         if (enqueueError) throw enqueueError;
       }
       return json({ ok: true, messageIds });
+    }
+
+    // Delivery health for the Studio's email tool (and the admin Email
+    // Previews page, which surfaces the same signal). Answers "is
+    // support@classicvisions.net actually sending?" from the shared
+    // email_send_log audit trail — the same table every sender (Doc Studio,
+    // contact-inquiry, transactional templates) writes to.
+    if (route[0] === "email" && route[1] === "health" && method === "GET") {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: rows, error: logError } = await supabase
+        .from("email_send_log")
+        .select("message_id,template_name,recipient_email,status,error_message,created_at")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (logError) throw logError;
+
+      const { data: state } = await supabase
+        .from("email_send_state")
+        .select("retry_after_until")
+        .maybeSingle();
+
+      const list = rows ?? [];
+      const now = Date.now();
+      const dayAgo = now - 24 * 60 * 60 * 1000;
+      const counts24h = { sent: 0, pending: 0, failed: 0, dlq: 0, bounced: 0, complained: 0, suppressed: 0 };
+      for (const row of list) {
+        if (new Date(row.created_at).getTime() < dayAgo) continue;
+        if (row.status in counts24h) counts24h[row.status as keyof typeof counts24h]++;
+      }
+
+      const lastSent = list.find((r) => r.status === "sent") ?? null;
+      const latest = list[0] ?? null;
+      const rateLimitedUntil =
+        state?.retry_after_until && new Date(state.retry_after_until).getTime() > now
+          ? state.retry_after_until
+          : null;
+
+      let status: "healthy" | "degraded" | "blocked" | "no_data" = "no_data";
+      let message = "No outbound email activity recorded in the last 7 days. Send a test email to check the pipeline.";
+
+      if (rateLimitedUntil) {
+        status = "blocked";
+        message = `Sending is paused by the provider's rate limit until ${new Date(rateLimitedUntil).toLocaleString()}.`;
+      } else if (latest) {
+        const latestAgeMs = now - new Date(latest.created_at).getTime();
+        if (latest.status === "sent") {
+          status = "healthy";
+          message = `Last email sent successfully to ${latest.recipient_email}.`;
+        } else if (latest.status === "pending" && latestAgeMs > 5 * 60 * 1000) {
+          status = "degraded";
+          message = "The most recent email has been stuck pending for over 5 minutes — the queue processor may not be running.";
+        } else if (latest.status === "pending") {
+          status = lastSent ? "healthy" : "no_data";
+          message = lastSent
+            ? `Most recent email is still processing; last confirmed send succeeded (${new Date(lastSent.created_at).toLocaleString()}).`
+            : "Most recent email is still processing.";
+        } else if (latest.status === "suppressed") {
+          status = lastSent ? "healthy" : "no_data";
+          message = "Most recent attempt was suppressed (recipient previously unsubscribed or bounced).";
+        } else {
+          status = "degraded";
+          // The DLQ row's own error_message is usually just "Max retries
+          // exceeded" — the process-email-queue dispatcher logs the *real*
+          // send error on the individual 'failed' rows that preceded it
+          // (same message_id). Surface that instead so this actually says
+          // why sends aren't going out (bad domain, bad API key, etc.),
+          // not just that they gave up retrying.
+          const isGenericRetryReason = latest.status === "dlq" && /max retries/i.test(latest.error_message ?? "");
+          const underlyingFailure = isGenericRetryReason
+            ? list.find((r) => r.message_id === latest.message_id && r.status === "failed" && r.error_message)
+            : null;
+          const reason = underlyingFailure?.error_message ?? latest.error_message;
+          message = `The most recent send attempt ${latest.status === "dlq" ? "failed permanently (moved to dead-letter queue)" : latest.status}${reason ? `: ${reason}` : "."}`;
+        }
+      }
+
+      return json({
+        status,
+        message,
+        sender: getSmtpConfig()?.from ?? "Classic Visions <support@classicvisions.net>",
+        lastSentAt: lastSent?.created_at ?? null,
+        latestAttempt: latest,
+        counts24h,
+        rateLimitedUntil,
+        recent: list.slice(0, 15),
+      });
     }
 
     // Statement populate for the studio's Statement tab: id is the Innovations

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { LifeBuoy, Plus, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { LifeBuoy, Plus, ChevronRight, Phone } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,15 +10,34 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { COMPANY_CONTACT } from "@/config/companyContact";
+
+// Other pages (e.g. a failed checkout payment) can deep-link here with
+// router state to prefill a new ticket — see CheckoutPage.tsx's "Contact us"
+// on the declined/error screen.
+interface HelpdeskPrefillState {
+  prefillTitle?: string;
+  prefillDescription?: string;
+}
 
 const HelpdeskTicketsSection = () => {
   const { identity, emulation, effectiveUserId } = usePortalIdentity();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const prefill = (location.state as HelpdeskPrefillState | null) ?? null;
+  const [title, setTitle] = useState(prefill?.prefillTitle ?? "");
+  const [description, setDescription] = useState(prefill?.prefillDescription ?? "");
+
+  // Apply a fresh prefill if the user navigates here again with new state
+  // (e.g. a second failed payment) without a full page reload.
+  useEffect(() => {
+    if (prefill?.prefillTitle) setTitle(prefill.prefillTitle);
+    if (prefill?.prefillDescription) setDescription(prefill.prefillDescription);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
   const { data: tickets = [] } = useQuery({
     queryKey: ["customer-helpdesk", effectiveUserId, identity?.crmContactId],
     enabled: !!user,
@@ -70,7 +89,17 @@ const HelpdeskTicketsSection = () => {
           <LifeBuoy className="h-5 w-5" />
           Helpdesk Tickets
         </CardTitle>
-        <CardDescription>Create tickets and follow updates from support.</CardDescription>
+        <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>Create tickets and follow updates from support.</span>
+          <span className="text-muted-foreground/60">·</span>
+          <a
+            href={COMPANY_CONTACT.phoneHref}
+            className="inline-flex items-center gap-1 text-secondary underline underline-offset-2 hover:text-secondary/80"
+          >
+            <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+            {COMPANY_CONTACT.phoneDisplay}
+          </a>
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-3 rounded-lg border p-4">

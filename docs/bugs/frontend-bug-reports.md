@@ -2,6 +2,24 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-24
+- Area: Admin application navigation
+- Impact: proposals, quotations, and web orders were split across a standalone Sales app even though their ownership belongs to CRM and Website.
+- Resolution: removed Sales from the launcher and route shell; proposals now open under CRM, while quotations and website orders open under Website. Internal editor, print-preview, notification, permission, and help links now use the new canonical destinations.
+- Follow-up: keep new links in CRM or Website only; do not restore `/admin/sales/**` or `/admin/orders` routes.
+
+## 2026-07-22
+- Area: staff networking and public contact sharing
+- Impact: staff had no safe, event-ready way to share a digital business card, QR code, or one-click contact details; exposing the existing portal profile would also risk leaking private account/CRM fields.
+- Resolution: added a separate opt-in public-card model and `/connect/:slug` surface, with publish control, email/WhatsApp actions, vCard download, profile-home QR sharing, and admin User-row preview/editor actions.
+- Follow-up: keep public fields in `staff_public_cards` only. Do not add private portal fields or CRM identifiers to its public renderer or anonymous select policy.
+
+## 2026-07-19
+- Area: Admin → Contacts → Deploy access
+- Impact: customer and staff access could require switching between Contacts, Users, and Website Portals, making it easy to miss an email, select the wrong account, or auto-link an existing sign-in without an explicit decision.
+- Resolution: added a single Contacts-first deployment assistant with explicit account/login/role choices, verification and statement-tag guidance, contact-only no-match intake, safe training scenarios, and a context-preserving operations follow-up template.
+- Follow-up: preserve the explicit-link confirmation whenever access provisioning changes; new exception patterns should become training prompts or Wiki guidance rather than extra manual navigation.
+
 ## 2026-07-18
 - Area: Admin → Settings → Integrations
 - Impact: gateway errors could remain visible after a configuration was repaired because the test operation did not persist its outcome; Innovations duplicate warnings had no manual refresh path.

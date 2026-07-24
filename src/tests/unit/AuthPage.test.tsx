@@ -111,7 +111,7 @@ describe("Auth page onboarding flow", () => {
     expect(screen.getByText("Individual visitor looking for lens guidance")).toBeInTheDocument();
   });
 
-  it("completes professional product signup and shows expectation panel", async () => {
+  it("completes professional product signup and shows email confirmation panel", async () => {
     renderAuth("/auth?mode=signup&audience=professional&redirect=%2Fstore");
 
     fireEvent.change(screen.getByLabelText("Full Name"), { target: { value: "Jordan Smith" } });
@@ -142,8 +142,9 @@ describe("Auth page onboarding flow", () => {
 
     await waitFor(() => {
       expect(mocks.insert).toHaveBeenCalled();
-      expect(screen.getByText("Onboarding Complete")).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "Request Trade Follow-up" })).toBeInTheDocument();
+      expect(screen.getByText("Confirm your email")).toBeInTheDocument();
+      expect(screen.getByText(/We sent a confirmation link to jordan@example.com/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Resend confirmation email" })).toBeInTheDocument();
     });
   });
 

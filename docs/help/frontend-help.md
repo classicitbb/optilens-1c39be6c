@@ -2,6 +2,26 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-24 — Sales app consolidation
+
+- The Apps launcher no longer has Sales. Open CRM → Proposals for proposal work.
+- Open Website → Quotations for quotes and their print previews, and Website → Orders for public-store order fulfilment.
+- Old `/admin/sales/**` and `/admin/orders` addresses are intentionally unavailable; use the destination app links above.
+
+## 2026-07-22 — Staff networking cards
+
+- For a trade show or networking event, staff open their profile home screen and select **Share my card**. The QR code opens their public card without requiring the recipient to sign in.
+- Recipients can use **Save contact** on the public card to download a `.vcf` contact file, or tap an email/WhatsApp button to start contact directly.
+- Administrators can configure or inspect a card at Admin → Settings → Users: use the ID-card icon to edit, and the QR icon to preview. A card must be published before its QR code should be shared.
+- If a card must stop being public, switch off **Publish this card** and save; the public route immediately becomes unavailable.
+
+## 2026-07-19 — Contacts access deployment
+
+- Start in Admin → Contacts → **Deploy access**. Search by person, email, or account number, then choose the contact and the primary customer account; the assistant will not make either choice silently.
+- If a login already uses the contact email, choose whether to link it or leave it unchanged. A login that has not verified email can be prepared, but it remains locked until verification.
+- Use **Access training** before live deployment for the guided sandbox scenarios. For a missing email, incompatible customer link, duplicate account number, or failed deployment, copy the operations follow-up template from its Exceptions tab.
+- A synced Innovations field may fill an empty CRM field but must not overwrite a populated CRM value. Correct the contact/customer record before retrying a deployment.
+
 ## 2026-07-18 — Integration status checks
 
 - If the payment gateway badge shows Error after credentials were corrected, open Admin → Settings → Integrations and select **Recheck & clear error**. The test creates no charge; it only verifies credential resolution and request-hash generation.

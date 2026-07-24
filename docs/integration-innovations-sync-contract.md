@@ -89,6 +89,10 @@ capitalization or whitespace. The office sync cannot write `portal_url` or
 | `name`                  | `Contacts` display name         |
 | `email`,`phone`         | `Contacts.Email`,`Phone`        |
 | `parent_id`             | resolved from customer's row    |
+| `business_name`         | linked `Customers.CustomerName` |
+| `street`,`street2`      | linked `CustomerAddresses` lines 1 and 2 |
+| `city`,`state`,`zip`    | linked `CustomerAddresses` locality/region/postcode where present |
+| `country`,`country_code`| linked `Countries` name/code where present |
 | `is_company`            | `false`                         |
 
 ### Balances → `public.customer_balances` (new)

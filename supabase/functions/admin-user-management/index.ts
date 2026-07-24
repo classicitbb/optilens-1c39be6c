@@ -4,14 +4,18 @@ import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 /**
  * Fires the customer-onboarding function for a newly created user.
- * This assigns the default template pricelist and sends the welcome email.
+ * This assigns the default template pricelist and, when sendWelcomeEmail is
+ * true, sends the welcome email. Defaults to suppressing the email — an
+ * admin creating/inviting/linking a portal account from Website Portals is
+ * configuring the account, not necessarily telling the customer it's ready.
  * Failures are logged but do NOT block the primary create/invite response.
  */
 async function triggerCustomerOnboarding(
   req: Request,
   userId: string,
   email: string,
-  displayName?: string,
+  displayName: string | undefined,
+  sendWelcomeEmail: boolean,
 ): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -30,7 +34,7 @@ async function triggerCustomerOnboarding(
         "x-admin-auth-token": req.headers.get("x-admin-auth-token") ?? "",
         "Origin": req.headers.get("Origin") ?? "",
       },
-      body: JSON.stringify({ userId, email, displayName }),
+      body: JSON.stringify({ userId, email, displayName, suppressEmail: !sendWelcomeEmail }),
     });
 
     if (!resp.ok) {
@@ -86,7 +90,7 @@ async function linkCustomerPortalAccount(
   let resolvedContactId = customer.contact_id ?? null;
   if (contactId) {
     const { data: contact, error: contactError } = await (adminClient.from("contacts") as any)
-      .select("id,parent_id,linked_customer_id,innovations_parent_customer_id")
+      .select("id,parent_id,is_company,linked_customer_id,innovations_parent_customer_id")
       .eq("id", contactId)
       .maybeSingle();
     if (contactError) throw contactError;
@@ -98,19 +102,34 @@ async function linkCustomerPortalAccount(
       contact.linked_customer_id === customer.id ||
       (customer.innovations_customer_id && contact.innovations_parent_customer_id === customer.innovations_customer_id);
 
-    if (!belongsDirectly && contact.parent_id) {
-      const { data: parent, error: parentError } = await (adminClient.from("contacts") as any)
-        .select("id,linked_customer_id,innovations_parent_customer_id")
-        .eq("id", contact.parent_id)
-        .maybeSingle();
-      if (parentError) throw parentError;
-      const parentBelongs =
-        parent?.id === customer.contact_id ||
-        parent?.linked_customer_id === customer.id ||
-        (customer.innovations_customer_id && parent?.innovations_parent_customer_id === customer.innovations_customer_id);
-      if (!parentBelongs) throw new Error("The selected contact is not linked to this ERP customer.");
-    } else if (!belongsDirectly) {
-      throw new Error("The selected contact is not linked to this ERP customer.");
+    const contactUpdates: Record<string, unknown> = {};
+    if (contact.is_company) {
+      if (!belongsDirectly) {
+        throw new Error("The selected company contact is not linked to this ERP customer.");
+      }
+    } else {
+      contactUpdates.linked_customer_id = customer.id;
+      if (customer.innovations_customer_id) {
+        contactUpdates.innovations_parent_customer_id = customer.innovations_customer_id;
+      }
+      if (customer.contact_id && contact.parent_id !== customer.contact_id && customer.contact_id !== contact.id) {
+        const { data: companyContact, error: companyContactError } = await (adminClient.from("contacts") as any)
+          .select("id,is_company")
+          .eq("id", customer.contact_id)
+          .maybeSingle();
+        if (companyContactError) throw companyContactError;
+        if (!companyContact?.is_company) {
+          throw new Error("The selected ERP customer is not linked to a company contact.");
+        }
+        contactUpdates.parent_id = customer.contact_id;
+      }
+    }
+
+    if (Object.keys(contactUpdates).length > 0) {
+      const { error: contactUpdateError } = await (adminClient.from("contacts") as any)
+        .update(contactUpdates)
+        .eq("id", contact.id);
+      if (contactUpdateError) throw contactUpdateError;
     }
 
     resolvedContactId = contact.id;
@@ -145,7 +164,26 @@ const allowedActions = new Set([
   "set-password",
   "invite-user",
   "create-user",
+  "link-customer-portal-account",
+  "emulate-portal-user",
+  "confirm-portal-staff",
+  "archive-portal-profile",
+  "set-login-disabled",
 ]);
+
+/** True if the login holds any staff role (admin/operator/viewer). */
+async function loginHasStaffRole(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await (adminClient.from("user_roles") as any)
+    .select("role")
+    .eq("user_id", userId);
+  if (error) throw error;
+  return ((data ?? []) as Array<{ role?: string | null }>).some(
+    (entry) => entry.role === "admin" || entry.role === "operator" || entry.role === "viewer",
+  );
+}
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
@@ -191,6 +229,7 @@ Deno.serve(async (req) => {
         id: u.id,
         email: u.email,
         created_at: u.created_at,
+        email_confirmed_at: u.email_confirmed_at,
       }));
       return jsonResponse(req, 200, result);
     }
@@ -234,7 +273,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "invite-user") {
-      const { email, customerId, displayName, contactId } = body;
+      const { email, customerId, displayName, contactId, sendEmail } = body;
+      const wantsEmail = sendEmail === true;
       if (!email) {
         return jsonResponse(req, 400, { error: "Email is required" });
       }
@@ -249,43 +289,73 @@ Deno.serve(async (req) => {
         if (customerError) throw customerError;
         if (!customer) return jsonResponse(req, 404, { error: "The selected ERP customer no longer exists" });
       }
-      const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        redirectTo: getPasswordRedirectTo(req),
-      });
-      if (error) {
-        const msg = error.message ?? "";
-        if (/already been registered|already registered|already exists/i.test(msg)) {
-          // User already exists — link them to the customer (if provided) and send a recovery email
-          const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-          const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
-          if (!existing) {
-            return jsonResponse(req, 409, { error: "A user with this email already exists." });
+
+      // Default (sendEmail !== true): create the login silently via
+      // generateLink, which — unlike inviteUserByEmail — never dispatches an
+      // email. The admin gets the action link back to share manually. Only
+      // when the admin explicitly opts in do we use inviteUserByEmail, which
+      // fires Supabase's own invite email through auth-email-hook.
+      let newUserId: string | undefined;
+      let actionLink: string | undefined;
+
+      if (wantsEmail) {
+        const { data: inviteData, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+          redirectTo: getPasswordRedirectTo(req),
+        });
+        if (error) {
+          const msg = error.message ?? "";
+          if (/already been registered|already registered|already exists/i.test(msg)) {
+            const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+            const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+            if (!existing) {
+              return jsonResponse(req, 409, { error: "A user with this email already exists." });
+            }
+            await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
+            await adminClient.auth.admin.generateLink({
+              type: "recovery",
+              email,
+              options: { redirectTo: getPasswordRedirectTo(req) },
+            });
+            return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
           }
-          await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
-          await adminClient.auth.admin.generateLink({
-            type: "recovery",
-            email,
-            options: { redirectTo: getPasswordRedirectTo(req) },
-          });
-          return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+          throw error;
         }
-        throw error;
+        newUserId = inviteData?.user?.id;
+      } else {
+        const { data: linkData, error } = await adminClient.auth.admin.generateLink({
+          type: "invite",
+          email,
+          options: { redirectTo: getPasswordRedirectTo(req) },
+        });
+        if (error) {
+          const msg = error.message ?? "";
+          if (/already been registered|already registered|already exists/i.test(msg)) {
+            const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+            const existing = list?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase());
+            if (!existing) {
+              return jsonResponse(req, 409, { error: "A user with this email already exists." });
+            }
+            await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
+            return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+          }
+          throw error;
+        }
+        newUserId = linkData?.user?.id;
+        actionLink = linkData?.properties?.action_link;
       }
 
-      if (inviteData?.user?.id) {
-        await linkCustomerPortalAccount(adminClient, inviteData.user.id, customerId, displayName, contactId);
+      if (newUserId) {
+        await linkCustomerPortalAccount(adminClient, newUserId, customerId, displayName, contactId);
+        // Assign default pricelist; only send the welcome email if the admin
+        // opted in to emailing this customer.
+        await triggerCustomerOnboarding(req, newUserId, email, displayName, wantsEmail);
       }
 
-      // Trigger onboarding: assign default pricelist + send welcome email
-      if (inviteData?.user?.id) {
-        await triggerCustomerOnboarding(req, inviteData.user.id, email, displayName);
-      }
-
-      return jsonResponse(req, 200, { success: true });
+      return jsonResponse(req, 200, { success: true, userId: newUserId, ...(actionLink ? { actionLink } : {}) });
     }
 
     if (action === "create-user") {
-      const { email, password, displayName, customerId, contactId } = body;
+      const { email, password, displayName, customerId, contactId, sendWelcomeEmail } = body;
       if (!email || !password) {
         return jsonResponse(req, 400, { error: "Email and password are required" });
       }
@@ -334,17 +404,176 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Trigger onboarding: assign default pricelist + send welcome email
+      // Assign default pricelist; only send the welcome email if the admin
+      // opted in to emailing this customer.
       if (newUser?.user?.id) {
-        await triggerCustomerOnboarding(req, newUser.user.id, email, displayName);
+        await triggerCustomerOnboarding(req, newUser.user.id, email, displayName, sendWelcomeEmail === true);
       }
 
       return jsonResponse(req, 200, { success: true, userId: newUser?.user?.id });
     }
 
+    if (action === "link-customer-portal-account") {
+      const { userId, customerId, contactId, displayName } = body;
+      if (!userId || !Number.isInteger(customerId) || customerId <= 0) {
+        return jsonResponse(req, 400, { error: "userId and a valid customerId are required" });
+      }
+      const { data: existing, error: lookupError } = await adminClient.auth.admin.getUserById(userId);
+      if (lookupError) throw lookupError;
+      if (!existing?.user) return jsonResponse(req, 404, { error: "The selected login no longer exists" });
+      await linkCustomerPortalAccount(adminClient, userId, customerId, displayName, contactId);
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "confirm-portal-staff") {
+      const { userId, customerId } = body;
+      if (!userId || !Number.isInteger(customerId) || customerId <= 0) {
+        return jsonResponse(req, 400, { error: "userId and a valid customerId are required" });
+      }
+
+      const { data: profile, error: profileError } = await (adminClient.from("profiles") as any)
+        .select("user_id,crm_contact_id,archived_at")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile) return jsonResponse(req, 404, { error: "That signup profile no longer exists." });
+      if (profile.archived_at) {
+        return jsonResponse(req, 400, { error: "This profile is archived. Un-archive it before confirming." });
+      }
+
+      const { data: customer, error: customerError } = await (adminClient.from("customers") as any)
+        .select("id,account_number")
+        .eq("id", customerId)
+        .maybeSingle();
+      if (customerError) throw customerError;
+      if (!customer) return jsonResponse(req, 404, { error: "The selected customer account no longer exists." });
+
+      // Link the person contact created at signup under the company account,
+      // set crm_customer_id, and grant the customer role.
+      await linkCustomerPortalAccount(adminClient, userId, customerId, undefined, profile.crm_contact_id ?? undefined);
+
+      // Record the deliberate approval and consume the claim so this leaves
+      // the approvals queue. sensitive-feature access still comes from tags.
+      const accountLabel = customer.account_number
+        ? `account ${customer.account_number}`
+        : `customer #${customer.id}`;
+      const { error: approveError } = await (adminClient.from("profiles") as any)
+        .update({
+          portal_access_approved_override: true,
+          portal_access_approved_at: new Date().toISOString(),
+          portal_access_approved_by: authContext.user.id,
+          portal_access_approved_note: `Confirmed as staff at ${accountLabel} from the approvals queue.`,
+          claimed_account_number: null,
+        })
+        .eq("user_id", userId);
+      if (approveError) throw approveError;
+
+      // Re-resolve identity so the status flips to approved_customer at once.
+      const { error: syncError } = await (adminClient.rpc as any)("sync_customer_portal_identity", { p_user_id: userId });
+      if (syncError) throw syncError;
+
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "archive-portal-profile") {
+      const { userId, archived } = body;
+      if (!userId || typeof archived !== "boolean") {
+        return jsonResponse(req, 400, { error: "userId and archived (boolean) are required" });
+      }
+      const { error } = await (adminClient.from("profiles") as any)
+        .update({
+          archived_at: archived ? new Date().toISOString() : null,
+          archived_by: archived ? authContext.user.id : null,
+        })
+        .eq("user_id", userId);
+      if (error) throw error;
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "set-login-disabled") {
+      const { userId, disabled } = body;
+      if (!userId || typeof disabled !== "boolean") {
+        return jsonResponse(req, 400, { error: "userId and disabled (boolean) are required" });
+      }
+      if (userId === authContext.user.id) {
+        return jsonResponse(req, 400, { error: "You cannot disable your own login." });
+      }
+      if (await loginHasStaffRole(adminClient, userId)) {
+        return jsonResponse(req, 403, { error: "Staff logins cannot be disabled from Website Portals." });
+      }
+      // ban_duration bans (disables) the login; "none" lifts the ban.
+      const { error } = await adminClient.auth.admin.updateUserById(userId, {
+        ban_duration: disabled ? "876000h" : "none",
+      });
+      if (error) throw error;
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "emulate-portal-user") {
+      const { userId } = body;
+      if (!userId) {
+        return jsonResponse(req, 400, { error: "userId is required" });
+      }
+      if (userId === authContext.user.id) {
+        return jsonResponse(req, 400, { error: "Choose a customer portal login to emulate." });
+      }
+
+      const { data: existing, error: lookupError } = await adminClient.auth.admin.getUserById(userId);
+      if (lookupError) throw lookupError;
+      const targetUser = existing?.user;
+      if (!targetUser?.email) {
+        return jsonResponse(req, 404, { error: "The selected portal login no longer exists." });
+      }
+
+      const { data: targetRoles, error: targetRolesError } = await (adminClient.from("user_roles") as any)
+        .select("role")
+        .eq("user_id", userId);
+      if (targetRolesError) throw targetRolesError;
+      const roles = (targetRoles ?? [])
+        .map((entry: { role?: string | null }) => entry.role)
+        .filter((role: unknown): role is string => typeof role === "string");
+      if (roles.some((role) => role === "admin" || role === "operator" || role === "viewer")) {
+        return jsonResponse(req, 403, { error: "Privileged staff accounts cannot be emulated from Website Portals." });
+      }
+
+      const { data: profile, error: profileError } = await (adminClient.from("profiles") as any)
+        .select("id,user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile) {
+        return jsonResponse(req, 404, { error: "The selected login does not have a portal profile." });
+      }
+
+      const { data: linkData, error } = await adminClient.auth.admin.generateLink({
+        type: "magiclink",
+        email: targetUser.email,
+      });
+      if (error) throw error;
+
+      const tokenHash = linkData?.properties?.hashed_token;
+      const verificationType = linkData?.properties?.verification_type ?? "magiclink";
+      if (!tokenHash) {
+        throw new Error("Supabase did not return an emulation token.");
+      }
+
+      return jsonResponse(req, 200, {
+        success: true,
+        userId,
+        email: targetUser.email,
+        tokenHash,
+        verificationType,
+      });
+    }
+
     return jsonResponse(req, 400, { error: "Unhandled action" });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Internal error";
-    return jsonResponse(req, 500, { error: message });
+    console.error("admin-user-management: unhandled error", err);
+    const message = err instanceof Error
+      ? err.message
+      : typeof err === "string"
+      ? err
+      : (() => { try { return JSON.stringify(err); } catch { return "Internal error"; } })();
+    return jsonResponse(req, 500, { error: message || "Internal error" });
   }
 });

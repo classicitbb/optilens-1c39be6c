@@ -19,8 +19,8 @@
         "connect-src": ["'self'", "https://*.supabase.co", "https://api.openai.com"],
         "worker-src": ["'self'", "blob:"],
         "manifest-src": ["'self'"],
-        "form-action": ["'self'"],
-        "frame-src": ["'none'"],
+        "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com"],
+        "frame-src": ["https://test.ipg-online.com", "https://www.ipg-online.com"],
         "upgrade-insecure-requests": []
       },
       "reportUri": "https://security-report.example.com/csp"
@@ -38,8 +38,8 @@
         "connect-src": ["'self'", "https://*.supabase.co", "https://api.openai.com"],
         "worker-src": ["'self'", "blob:"],
         "manifest-src": ["'self'"],
-        "form-action": ["'self'"],
-        "frame-src": ["'none'"],
+        "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com"],
+        "frame-src": ["https://test.ipg-online.com", "https://www.ipg-online.com"],
         "upgrade-insecure-requests": []
       }
     }

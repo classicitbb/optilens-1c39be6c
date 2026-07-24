@@ -1,16 +1,21 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-18T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-07-24T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Administrators can recheck the payment gateway and clear a stale error only after a successful zero-impact credential test.",
-    "Innovations sync status can be refreshed on demand; duplicate account-number links disappear from the warning once the underlying records are resolved."
+    "The standalone Sales app has been closed and removed from the launcher.",
+    "Admins now manage proposals from CRM and quotations plus website orders from Website."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "admin/crm",
       "impact": "medium",
-      "notes": "Updated as part of Integration Status Recovery and Dependency Refresh."
+      "notes": "Updated as part of Sales App Consolidation."
+    },
+    {
+      "module": "admin/website",
+      "impact": "medium",
+      "notes": "Updated as part of Sales App Consolidation."
     }
   ],
   "migrationNotes": [

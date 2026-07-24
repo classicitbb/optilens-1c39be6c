@@ -258,6 +258,14 @@ Deno.serve(async (req) => {
         }
       }
 
+      // The email API treats a failed idempotency_key as permanently poisoned:
+      // replaying the same key after a failure returns 409 "run_failed" forever,
+      // instead of actually retrying. Since failedAttempts already tracks real
+      // send failures for this message (see failedAttemptsByMessageId above),
+      // scope the key to the attempt number so each retry gets a fresh key.
+      const attemptIdempotencyKey =
+        failedAttempts > 0 ? `${payload.idempotency_key}:retry${failedAttempts}` : payload.idempotency_key
+
       try {
         await sendLovableEmail(
           {
@@ -271,7 +279,7 @@ Deno.serve(async (req) => {
             text: payload.text,
             purpose: payload.purpose,
             label: payload.label,
-            idempotency_key: payload.idempotency_key,
+            idempotency_key: attemptIdempotencyKey,
             unsubscribe_token: payload.unsubscribe_token,
             message_id: payload.message_id,
           },

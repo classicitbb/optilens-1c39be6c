@@ -2,6 +2,26 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-24 — Sales App Consolidation
+
+### Release Notes
+- The standalone Sales app has been closed and removed from the launcher.
+- Admins now manage proposals from CRM and quotations plus website orders from Website.
+
+## 2026-07-22 — Staff Public Networking Cards
+
+### Release Notes
+- Staff can publish a shareable digital business card at `/connect/:slug` with selected email, WhatsApp, phone, skills, and links.
+- Event sharing is one tap from the staff profile home screen through **Share my card**, which displays the public-card QR code.
+- Administrators can preview or configure a staff member's card directly from Admin → Settings → Users using the QR and ID-card row actions.
+
+## 2026-07-19 — Contacts Access Deployment Assistant
+
+### Release Notes
+- Admins can open **Deploy access** from Contacts to provision customer portal or internal staff access without navigating among Contacts, Users, and Website Portals.
+- The flow searches by person, email, or account number; it never silently chooses a customer or links an existing login.
+- **Access training** provides first-use sandbox scenarios, exception guidance, and an operations follow-up template.
+
 ## 2026-07-18 — Integration Status Recovery and Dependency Refresh
 
 ### Release Notes
