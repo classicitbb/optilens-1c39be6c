@@ -71,7 +71,14 @@ Deno.serve(async (req) => {
       // debugHash is safe to log: HMAC digests, not the shared secret, and
       // response_hash already travels in plaintext from Fiserv. Temporary —
       // remove once the mismatch is diagnosed.
-      console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash });
+      // Also dump every raw field Fiserv actually sent (masking anything
+      // card-like) — storename came back empty on the last attempt, so we
+      // need to see the true field name/shape rather than guess again.
+      const REDACT_KEYS = new Set(["cardnumber", "cvm", "cvv2", "track1", "track2"]);
+      const rawFields = Object.fromEntries(
+        Object.entries(response).map(([k, v]) => [k, REDACT_KEYS.has(k.toLowerCase()) ? "[redacted]" : v]),
+      );
+      console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash, rawFields });
       return redirect(returnPath, { scotia: "error" });
     }
 
