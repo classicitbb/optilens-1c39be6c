@@ -203,5 +203,5 @@ export async function requestLiveData<T>(
       throw new Error(friendlyGatewayMessage(status, "The private live-data source did not answer."));
     }
   }
-  throw new Error("The private live-data source did not answer within 32 seconds.");
+  throw new Error("The private live-data source did not answer within 65 seconds.");
 }
