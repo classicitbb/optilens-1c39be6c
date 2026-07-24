@@ -10,8 +10,20 @@
 //      shape (approved / association code / card fields / source=notification).
 
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { makeHandler, type NotifyAdmin, type NotifyDeps } from "./index.ts";
-import { hmacSha256Base64 } from "../_shared/scotia/ipgConnect.ts";
+
+// config.ts constructs a service-role Supabase client at module load. Provide
+// harmless placeholders so the client factory doesn't throw in unit tests —
+// the tests themselves inject a stub admin and never call the real client.
+Deno.env.set("SUPABASE_URL", Deno.env.get("SUPABASE_URL") ?? "http://localhost:54321");
+Deno.env.set(
+  "SUPABASE_SERVICE_ROLE_KEY",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "test-service-role-placeholder",
+);
+
+const { makeHandler } = await import("./index.ts");
+const { hmacSha256Base64 } = await import("../_shared/scotia/ipgConnect.ts");
+type NotifyAdmin = import("./index.ts").NotifyAdmin;
+type NotifyDeps = import("./index.ts").NotifyDeps;
 
 const SHARED_SECRET = "unit-test-shared-secret";
 
