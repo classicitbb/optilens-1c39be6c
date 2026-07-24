@@ -1062,30 +1062,126 @@ const CheckoutPage = () => {
                   <SectionHead>Payment method</SectionHead>
 
                   <div className="space-y-2">
-                    {/* Scotia eCom+ embedded card payment (flag-gated). */}
+                    {/* Scotia eCom+ full-page redirect card payment (flag-gated).
+                        Expands inline from this same choice; the other methods
+                        below hide while it's open — "Use a different payment
+                        method" restores them. */}
                     {SCOTIA_ENABLED && (
-                      <PickCard
-                        selected={payWithScotia}
-                        accent
-                        onClick={() => {
-                          setPayWithScotia(true);
-                          setScotiaError(null);
-                        }}
+                      <div
+                        className={cn(
+                          "rounded-lg border transition-all duration-150",
+                          payWithScotia
+                            ? "border-primary bg-primary/5 dark:bg-primary/10"
+                            : "border-border bg-card hover:border-secondary/60",
+                        )}
                       >
-                        <div className="flex items-start gap-3">
-                          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                          <div>
-                            <p className="text-sm font-medium text-foreground">Credit / Debit card</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              Secure card payment processed by Scotiabank. You stay on this page.
-                            </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPayWithScotia(true);
+                            setScotiaError(null);
+                          }}
+                          className="w-full rounded-lg px-3.5 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                          aria-pressed={payWithScotia}
+                          aria-expanded={payWithScotia}
+                        >
+                          <div className="flex items-start gap-3">
+                            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">Credit / Debit card</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                Secure card payment processed by Scotiabank. You'll be redirected to complete
+                                payment securely, then return here automatically.
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </PickCard>
+                        </button>
+
+                        {payWithScotia && (
+                          <div className="space-y-3 border-t border-primary/20 px-3.5 pb-3.5 pt-3">
+                            {scotiaError && (
+                              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs text-destructive" role="alert">
+                                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                <span>{scotiaError}</span>
+                              </div>
+                            )}
+
+                            {/* Saved Scotia cards — reuse with CVV only */}
+                            {savedScotiaCards.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="font-mono text-[9.5px] uppercase tracking-wide text-muted-foreground">
+                                  Saved cards
+                                </p>
+                                {savedScotiaCards.map((card) => (
+                                  <PickCard
+                                    key={card.id}
+                                    selected={selectedScotiaToken === card.paymentToken}
+                                    onClick={() => {
+                                      setSelectedScotiaToken(card.paymentToken);
+                                      setScotiaError(null);
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-sm text-foreground">
+                                        {card.brand} ···· {card.last4}
+                                      </span>
+                                      <span className="font-mono text-[10px] text-muted-foreground">
+                                        CVV only
+                                      </span>
+                                    </div>
+                                  </PickCard>
+                                ))}
+                                <PickCard
+                                  selected={selectedScotiaToken === null}
+                                  onClick={() => {
+                                    setSelectedScotiaToken(null);
+                                    setScotiaError(null);
+                                  }}
+                                >
+                                  <span className="text-sm text-foreground">Use a new card</span>
+                                </PickCard>
+                              </div>
+                            )}
+
+                            {selectedScotiaToken === null && (
+                              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                                <input
+                                  type="checkbox"
+                                  checked={saveScotiaCard}
+                                  onChange={(e) => setSaveScotiaCard(e.target.checked)}
+                                  className="h-3.5 w-3.5 rounded border-border"
+                                />
+                                Securely save this card for faster checkout next time
+                              </label>
+                            )}
+
+                            <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-background/60 px-3 py-2.5 text-xs text-muted-foreground">
+                              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+                              <span>
+                                {selectedScotiaToken
+                                  ? "Continue to review — you'll confirm with your card's CVV on Scotiabank's secure page."
+                                  : "Continue to review — you'll enter your card details on Scotiabank's secure page, then return here automatically."}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPayWithScotia(false);
+                                setScotiaError(null);
+                              }}
+                              className="font-mono text-[10px] text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded"
+                            >
+                              Use a different payment method
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
 
-                    {/* On Account — shown first for verified B2B */}
-                    {canPayOnAccount && (
+                    {/* On Account — shown first for verified B2B. Hidden while the
+                        card choice above is expanded. */}
+                    {!payWithScotia && canPayOnAccount && (
                       <PickCard
                         selected={formData.checkoutMethod === "on_account"}
                         accent
@@ -1121,13 +1217,13 @@ const CheckoutPage = () => {
                       </PickCard>
                     )}
 
-                    {/* Offline payment methods */}
-                    {availableOfflineMethods.map((method) => {
+                    {/* Offline payment methods — hidden while the card choice above is expanded. */}
+                    {!payWithScotia && availableOfflineMethods.map((method) => {
                       const Icon = method.icon;
                       return (
                         <PickCard
                           key={method.id}
-                          selected={!payWithScotia && formData.checkoutMethod === method.id}
+                          selected={formData.checkoutMethod === method.id}
                           onClick={() => {
                             setPayWithScotia(false);
                             setFormData((p) => ({ ...p, checkoutMethod: method.id, paymentMethodId: null }));
@@ -1145,78 +1241,6 @@ const CheckoutPage = () => {
                     })}
                   </div>
 
-                  {/* Scotia eCom+ — redirect mode. Scotia's hosted page won't
-                      embed cross-origin, so payment happens after leaving this
-                      page (via "Continue to Scotiabank" on the Review step),
-                      not inline here. */}
-                  {SCOTIA_ENABLED && payWithScotia && (
-                    <div className="mt-4">
-                      {scotiaError && (
-                        <div className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-xs text-destructive" role="alert">
-                          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                          <span>{scotiaError}</span>
-                        </div>
-                      )}
-                      {/* Saved Scotia cards — reuse with CVV only */}
-                      {savedScotiaCards.length > 0 && (
-                        <div className="mb-3 space-y-2">
-                          <p className="font-mono text-[9.5px] uppercase tracking-wide text-muted-foreground">
-                            Saved cards
-                          </p>
-                          {savedScotiaCards.map((card) => (
-                            <PickCard
-                              key={card.id}
-                              selected={selectedScotiaToken === card.paymentToken}
-                              onClick={() => {
-                                setSelectedScotiaToken(card.paymentToken);
-                                setScotiaError(null);
-                              }}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm text-foreground">
-                                  {card.brand} ···· {card.last4}
-                                </span>
-                                <span className="font-mono text-[10px] text-muted-foreground">
-                                  CVV only
-                                </span>
-                              </div>
-                            </PickCard>
-                          ))}
-                          <PickCard
-                            selected={selectedScotiaToken === null}
-                            onClick={() => {
-                              setSelectedScotiaToken(null);
-                              setScotiaError(null);
-                            }}
-                          >
-                            <span className="text-sm text-foreground">Use a new card</span>
-                          </PickCard>
-                        </div>
-                      )}
-
-                      {selectedScotiaToken === null && (
-                        <label className="mb-3 flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                          <input
-                            type="checkbox"
-                            checked={saveScotiaCard}
-                            onChange={(e) => setSaveScotiaCard(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-border"
-                          />
-                          Securely save this card for faster checkout next time
-                        </label>
-                      )}
-
-                      <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs text-muted-foreground">
-                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-                        <span>
-                          {selectedScotiaToken
-                            ? "Continue to review — you'll confirm with your card's CVV on Scotiabank's secure page."
-                            : "Continue to review — you'll enter your card details on Scotiabank's secure page, then return here automatically."}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Pending-payment notice for non-B2B */}
                   {!payWithScotia && formData.checkoutMethod !== "on_account" && (
                     <div className="mt-4 flex items-start gap-2 rounded-lg border border-accent/20 bg-accent/5 px-3 py-2.5 text-xs text-muted-foreground">
@@ -1233,7 +1257,7 @@ const CheckoutPage = () => {
                     </div>
                   )}
 
-                  {isCashOnly ? (
+                  {payWithScotia ? null : isCashOnly ? (
                     <p className="mt-4 text-xs text-muted-foreground">
                       This account is set to <strong>cash only</strong>. Contact us to discuss credit terms.
                     </p>

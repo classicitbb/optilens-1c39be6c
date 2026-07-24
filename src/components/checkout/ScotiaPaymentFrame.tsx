@@ -1,13 +1,23 @@
 // ============================================================
 // ScotiaPaymentFrame — embedded Scotia eCom+ hosted payment (IFRAME mode)
 // ------------------------------------------------------------
-// SCAFFOLD. Renders the gateway inside an iframe so the buyer never leaves
-// the checkout page (manual page 2 + 12–13). Listens for the gateway's
-// postMessage, validates the response server-side, then calls back with the
-// outcome. The parent decides what to do (settle order, show retry, etc.).
+// STASHED — NOT CURRENTLY MOUNTED ANYWHERE. test.ipg-online.com refuses to
+// be framed cross-origin (X-Frame-Options / frame-ancestors on Fiserv's
+// side, confirmed 2026-07), so checkout and the statement page both use the
+// full-page "Direct Sale" redirect flow instead (see scotiaConnect.ts:
+// redirectToScotiaPayment + supabase/functions/scotia-return).
 //
-// Only mounted when VITE_SCOTIA_ENABLED=true AND the buyer picks the Scotia
-// method. The existing offline methods remain as the fallback path.
+// This component is kept intact, unimported, in case Fiserv ever enables
+// cross-origin embedding for this StoreID and IFRAME mode becomes viable
+// again. To re-enable: import it back into the Step 3 payment panel in
+// CheckoutPage.tsx in place of the redirect notice, and swap
+// redirectToScotiaPayment for submitScotiaForm at the call site.
+//
+// Original design: renders the gateway inside an iframe so the buyer never
+// leaves the checkout page (manual page 2 + 12–13). Listens for the
+// gateway's postMessage, validates the response server-side, then calls
+// back with the outcome. The parent decides what to do (settle order, show
+// retry, etc.).
 // ============================================================
 
 import { useEffect, useId, useRef, useState } from "react";
