@@ -269,7 +269,7 @@ const MyOrdersSection = () => {
                   onChange={(event) => setInnovationsSearch(event.target.value)}
                   placeholder="Search patient or Rx #"
                   aria-label="Search lab orders by patient name or Rx number"
-                  className="pl-9"
+                  className="h-9 pl-9"
                 />
               </div>
               <Button variant="outline" size="sm" onClick={() => innovationsOrdersQuery.refetch()} disabled={innovationsOrdersQuery.isFetching}>
