@@ -1,15 +1,10 @@
-import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import Products from "@/components/Products";
-import Features from "@/components/Features";
-import About from "@/components/About";
-import BlogCarousel from "@/components/BlogCarousel";
-import KnowledgePreview from "@/components/KnowledgePreview";
-import ContactForm from "@/components/ContactForm";
-import CTA from "@/components/CTA";
-import Footer from "@/components/Footer";
-import AccountRequestBanner from "@/components/AccountRequestBanner";
+import { Navigate, useSearchParams } from "react-router";
+import SmartHome from "@/components/home/SmartHome";
 import Seo from "@/components/seo/Seo";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { COMPANY_CONTACT } from "@/config/companyContact";
+import { shouldRedirectAuthenticatedCustomer } from "@/features/home/smartHomeActions";
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -29,13 +24,13 @@ const organizationJsonLd = {
   name: "Classic Visions",
   url: "https://www.classicvisions.net",
   logo: "https://www.classicvisions.net/favicon.ico",
-  telephone: "+12464334928",
+  telephone: COMPANY_CONTACT.phoneDisplay,
   address: {
     "@type": "PostalAddress",
-    streetAddress: "Uplands Factory, Four Roads",
-    addressLocality: "Saint George",
-    postalCode: "BB20031",
-    addressCountry: "BB",
+    streetAddress: COMPANY_CONTACT.streetAddress,
+    addressLocality: COMPANY_CONTACT.locality,
+    postalCode: COMPANY_CONTACT.postalCode,
+    addressCountry: COMPANY_CONTACT.countryCode,
   },
   sameAs: [
     "https://www.facebook.com/classicvisionscb",
@@ -45,32 +40,29 @@ const organizationJsonLd = {
 };
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const { hasAccess: isStaff, isLoading: roleLoading } = useUserRole();
+  const [searchParams] = useSearchParams();
+  const publicPreview = searchParams.get("view") === "public";
+
+  if (loading || (user && roleLoading)) {
+    return <div className="min-h-screen bg-[#f8f6f1]" aria-label="Loading Classic Visions" />;
+  }
+
+  if (shouldRedirectAuthenticatedCustomer({ isSignedIn: Boolean(user), isStaff, publicPreview })) {
+    return <Navigate to="/profile" replace />;
+  }
+
   return (
-    <div className="min-h-screen">
+    <>
       <Seo
-        title="Classic Visions | Wholesale Optical Supplier — Barbados"
-        description="Your trusted wholesale partner for premium prescription lenses. Quality, precision, and reliable fulfillment for optical professionals."
+        title="Classic Visions | Order, Track and Find the Right Lens"
+        description="Order prescription lenses, check jobs, find account pricing, get technical help, or locate a participating Caribbean optical retailer."
         canonicalPath="/"
         jsonLd={[websiteJsonLd, organizationJsonLd]}
       />
-      <Header />
-      <AccountRequestBanner />
-      <main id="main-content">
-        <Hero />
-
-        <Products />
-        <Features />
-        <About />
-        <BlogCarousel />
-        <KnowledgePreview />
-
-        {/* Contact Section */}
-        <ContactForm />
-
-        <CTA />
-      </main>
-      <Footer />
-    </div>
+      <SmartHome />
+    </>
   );
 };
 

@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:sites-preview": "node scripts/build-sites-preview.mjs",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",
     "preview": "vite preview",
