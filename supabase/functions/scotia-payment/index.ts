@@ -237,6 +237,16 @@ Deno.serve(async (req) => {
     // Support reference for reconciliation (shown to support as oid).
     if (p.orderId) formParams.oid = p.orderId;
 
+    // Server-to-server webhook: Fiserv posts the outcome here directly, so
+    // settlement doesn't depend on the buyer's browser completing the return
+    // trip. Falls back to the deployed scotia-notify function under the same
+    // Supabase project when the caller doesn't supply one.
+    const notificationURL = p.notificationURL
+      ?? (Deno.env.get("SUPABASE_URL")
+        ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/scotia-notify`
+        : undefined);
+    if (notificationURL) formParams.notificationURL = notificationURL;
+
     // Tokenization
     if (p.assignToken) formParams.assignToken = "true";
     if (p.hosteddataid) formParams.hosteddataid = p.hosteddataid;
