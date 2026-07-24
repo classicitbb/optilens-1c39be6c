@@ -170,6 +170,23 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
 };
 
+type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "all";
+
+// ERP customers (and any login linked to one) are approved by default; a bare
+// login without an ERP link still needs an admin decision, so it buckets with
+// pending approval rather than a status of its own.
+const getAccountStatusBucket = (account: PortalAccountRecord): Exclude<AccountStatusFilter, "all"> => {
+  const user = account.portalUser;
+  if (user) {
+    if (user.crmCustomerId) return "approved";
+    if (user.portalAccessStatus === "pending_approval") return "pending_approval";
+    return "pending_profile";
+  }
+  if (account.linkedPortalUsers.length > 0) return "approved";
+  if (account.isErpCustomer) return "approved";
+  return "pending_approval";
+};
+
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "—");
 const getCartStatusLabel = (status: PortalCustomerListItem["cartStatus"]) => {
@@ -186,6 +203,7 @@ const WebsitePortalsPage = () => {
   const { users, resetPassword, inviteUser, createUser, emulatePortalUser, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>("approved");
   const [searchParams, setSearchParams] = useSearchParams();
   // Older deep links still open the requested account, but ordinary row clicks
   // keep their selection in component state and do not change the page URL.
@@ -467,13 +485,14 @@ const WebsitePortalsPage = () => {
   const accounts = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (customersQuery.data ?? []).filter((customer) => {
+      if (statusFilter !== "all" && getAccountStatusBucket(customer) !== statusFilter) return false;
       if (!q) return true;
       return [customer.fullName, customer.email, customer.organizationName, customer.phone]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [customersQuery.data, search]);
+  }, [customersQuery.data, search, statusFilter]);
 
   // The portal list is intentionally centred on ERP-backed accounts. Keep the
   // same source available at the approval decision so an admin can link a
@@ -1236,6 +1255,14 @@ const WebsitePortalsPage = () => {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="pl-9" />
             </div>
+            <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)}>
+              <TabsList>
+                <TabsTrigger value="approved">Approved</TabsTrigger>
+                <TabsTrigger value="pending_profile">Pending Profile</TabsTrigger>
+                <TabsTrigger value="pending_approval">Pending Approval</TabsTrigger>
+                <TabsTrigger value="all">All</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-hidden px-0 pb-0">
             <div className="h-full overflow-auto border-t">

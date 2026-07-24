@@ -107,7 +107,7 @@ export const ADMIN_APPS = {
     title: 'Website',
     icon: Globe,
     baseRoute: '/admin/website',
-    defaultRoute: '/admin/website/content',
+    defaultRoute: '/admin/website/portals',
     featurePrefix: 'website',
     sidebarItems: [
       { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },

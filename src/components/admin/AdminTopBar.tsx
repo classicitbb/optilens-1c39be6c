@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutGrid, HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, Pencil, ArrowLeft } from
+  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, Pencil, ArrowLeft, Settings } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -265,6 +265,21 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom"><span className="text-xs">Help</span></TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => navigate("/admin/settings/company")}
+                  aria-label="Settings"
+                >
+                  <Settings className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom"><span className="text-xs">Settings</span></TooltipContent>
             </Tooltip>
 
             <Tooltip>

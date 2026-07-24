@@ -208,7 +208,7 @@ const OrdersPage = () => {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <Tabs defaultValue="pending_payment">
+        <Tabs defaultValue="active">
           <TabsList className="mb-4">
             <TabsTrigger value="pending_payment" className="gap-1.5">
               <Clock className="h-3.5 w-3.5" />
