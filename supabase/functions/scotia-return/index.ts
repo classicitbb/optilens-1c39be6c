@@ -26,6 +26,7 @@ import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/co
 
 const CHECKOUT_RETURN_PATH = "/checkout";
 const STATEMENT_RETURN_PATH = "/profile/statements";
+const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
 function redirect(path: string, params: Record<string, string>): Response {
   const url = new URL(path, siteOrigin());
@@ -128,6 +129,8 @@ Deno.serve(async (req) => {
       return redirect(returnPath, { scotia: "error" });
     }
 
+    const orderReturnPath = ORDER_COMPLETE_PATH(oid);
+
     const { error: settleError } = await supabaseAdmin.rpc("settle_scotia_payment", {
       p_order_id: oid,
       p_gateway: gatewayPayload,
@@ -135,10 +138,10 @@ Deno.serve(async (req) => {
     });
     if (settleError) {
       console.error("scotia-return: settle_scotia_payment failed", { oid, settleError });
-      return redirect(returnPath, { scotia: "error", order: oid });
+      return redirect(orderReturnPath, { scotia: "error" });
     }
 
-    return redirect(returnPath, { scotia: outcome, order: oid });
+    return redirect(orderReturnPath, { scotia: outcome });
   } catch (err) {
     console.error("scotia-return: unexpected error", err);
     return redirect(returnPath, { scotia: "error" });
