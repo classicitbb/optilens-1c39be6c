@@ -61,3 +61,8 @@ project_id = "dzsalnvmlvjoatryhqfz"
   # the response hash, verified in code before anything is settled.
   [functions.scotia-return]
     verify_jwt = false
+  # Scotia eCom+ server-to-server notification webhook. MUST stay
+  # verify_jwt=false — Fiserv posts here directly with no Supabase session.
+  # Authenticity is proved by recomputing the response hash before settling.
+  [functions.scotia-notify]
+    verify_jwt = false
