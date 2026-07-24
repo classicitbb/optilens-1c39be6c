@@ -61,6 +61,10 @@ const prepareSchema = z.object({
   hostURI: z.string().url().optional(),
   // Your internal order reference for support/reconciliation (oid).
   orderId: z.string().min(1).optional(),
+  // Admin-only reachability probe (Integrations page). Skips order ownership
+  // check because no real order exists; requires the caller to have the
+  // 'admin' role. The signed form is discarded by the caller — never posted.
+  testMode: z.boolean().optional(),
   // ── Tokenization (manual pages 22–23) ──
   assignToken: z.boolean().optional(),          // save a new card → returns hosteddataid
   hosteddataid: z.string().min(1).optional(),   // reuse a saved token (CVV-only flow)
