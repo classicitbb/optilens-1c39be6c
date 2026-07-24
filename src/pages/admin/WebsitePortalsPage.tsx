@@ -150,7 +150,7 @@ interface ContactLookupRow {
   innovations_parent_customer_id: number | null;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices"] as const;
 
 const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   quotes: "Quotes",
@@ -159,6 +159,7 @@ const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "private-orders": "Private orders",
   "live-order-status": "Live order status",
   statements: "Statements",
+  "order-prices": "Order prices",
 };
 
 const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
@@ -168,6 +169,7 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "private-orders": "Approved customer access for private/manual order history.",
   "live-order-status": "Approved customer access for live lab and delivery status.",
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
+  "order-prices": "Off by default. Enable to show item prices and totals on this customer's Order status and lab shipment views.",
 };
 
 type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "all";

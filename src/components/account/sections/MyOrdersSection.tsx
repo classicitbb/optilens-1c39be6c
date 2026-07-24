@@ -1,5 +1,5 @@
 import { format, subDays } from "date-fns";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, ExternalLink, Loader2, Package, Printer, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
@@ -14,7 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +93,24 @@ const formatLiveDate = (value: string | null) => {
   return Number.isNaN(parsed.getTime()) ? value : format(parsed, "MM/dd/yyyy HH:mm");
 };
 
+// The lab/shipment bridge response is passed through untyped (see
+// liveDataGateway.ts), so a price field — if the source sends one at all —
+// may arrive under any of these conventional keys. Read defensively and fall
+// back to "no price data" rather than guessing wrong.
+const PRICE_FIELD_CANDIDATES = ["price", "unit_price", "line_total", "total_price", "amount", "total_amount", "sell_price"];
+const readItemPrice = (item: unknown): number | null => {
+  if (!item || typeof item !== "object") return null;
+  const record = item as Record<string, unknown>;
+  for (const key of PRICE_FIELD_CANDIDATES) {
+    const raw = record[key];
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+    if (typeof raw === "string" && raw.trim() !== "" && Number.isFinite(Number(raw))) return Number(raw);
+  }
+  return null;
+};
+const formatLivePrice = (value: number | null) => (value == null ? "—" : `$${value.toFixed(2)}`);
+const INNOVATIONS_ORDERS_PAGE_SIZE = 10;
+
 const liveDeliveryId = (delivery: LiveDelivery) => delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8);
 
 // Shipping method names are stored in the lab system as "<route #> <courier name>"
@@ -109,12 +127,16 @@ const isSafeTrackingUrl = (value?: string | null) => {
   }
 };
 
-const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
+const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; showPrices: boolean }) => {
   const trackingUrl = isSafeTrackingUrl(delivery.tracking_url);
   const shipmentItems = delivery.orders ?? [];
   const shipmentRowCount = shipmentItems.length;
   const isOpen = !delivery.closed_at;
   const shippingMethodName = formatShippingMethodName(delivery.shipping_method_name);
+  const shipmentPrices = shipmentItems.map((item) => readItemPrice(item));
+  const shipmentTotal = showPrices && shipmentPrices.some((value) => value != null)
+    ? shipmentPrices.reduce((sum, value) => sum + (value ?? 0), 0)
+    : null;
 
   return (
     <Accordion type="single" collapsible className="rounded-lg border bg-card px-3 sm:px-4">
@@ -167,6 +189,7 @@ const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
                   <TableHead>Patient / item</TableHead>
                   <TableHead className="text-right">Qty</TableHead>
                   <TableHead>Status</TableHead>
+                  {showPrices ? <TableHead className="text-right">Price</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -177,9 +200,19 @@ const LiveDeliveryCard = ({ delivery }: { delivery: LiveDelivery }) => {
                     <TableCell>{item.patient || item.description || "—"}</TableCell>
                     <TableCell className="text-right">{item.quantity ?? "—"}</TableCell>
                     <TableCell>{item.status_name ?? "—"}</TableCell>
+                    {showPrices ? <TableCell className="text-right">{formatLivePrice(shipmentPrices[index])}</TableCell> : null}
                   </TableRow>
                 ))}
               </TableBody>
+              {showPrices ? (
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={4} />
+                    <TableCell className="text-right font-semibold">Total</TableCell>
+                    <TableCell className="text-right font-semibold">{formatLivePrice(shipmentTotal)}</TableCell>
+                  </TableRow>
+                </TableFooter>
+              ) : null}
             </Table>
           ) : (
             <p className="text-sm text-muted-foreground">Shipment details are not available yet.</p>
@@ -195,11 +228,13 @@ const MyOrdersSection = () => {
   const { orders, loading } = useOrders(emulation?.userId);
   const canSeePrivateOrders = canAccessFeature("private-orders");
   const canSeeLiveOrderStatus = canAccessFeature("live-order-status");
+  const showPrices = canAccessFeature("order-prices");
   // Under admin emulation the gateway must fetch the emulated customer's data,
   // not the admin's; staff-only override honored server-side.
   const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null, ordersUseBillToAccount: identity?.ordersUseBillToAccount ?? false };
   const [innovationsSearch, setInnovationsSearch] = useState("");
+  const [innovationsVisibleCount, setInnovationsVisibleCount] = useState(INNOVATIONS_ORDERS_PAGE_SIZE);
   const innovationsOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
     enabled: canSeeLiveOrderStatus && typeof identity?.crmCustomerId === "number",
@@ -226,6 +261,18 @@ const MyOrdersSection = () => {
       [order.patient, order.rx_number].some((value) => value?.toLocaleLowerCase().includes(query)),
     );
   }, [innovationsOrdersQuery.data?.orders, innovationsSearch]);
+  // Search always runs against the full fetched set above; only the on-screen
+  // slice is paginated, and a new search starts back at the first page.
+  useEffect(() => {
+    setInnovationsVisibleCount(INNOVATIONS_ORDERS_PAGE_SIZE);
+  }, [innovationsSearch]);
+  const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
+  // The total reflects every matching order (not just the visible page), same
+  // as the search which always runs against the full fetched set.
+  const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
+  const innovationsTotal = showPrices && innovationsPrices.some((value) => value != null)
+    ? innovationsPrices.reduce((sum, value) => sum + (value ?? 0), 0)
+    : null;
   const pendingOrders = orders.filter((order) => ["draft", "pending", "confirmed", "processing"].includes(order.status));
   const completedOrders = orders.filter((order) => order.status === "completed");
   const otherOrders = orders.filter((order) => !["draft", "pending", "confirmed", "processing", "completed"].includes(order.status));
@@ -302,10 +349,11 @@ const MyOrdersSection = () => {
                         <TableHead>Received</TableHead>
                         <TableHead>Promise Date</TableHead>
                         <TableHead>Status</TableHead>
+                        {showPrices ? <TableHead className="text-right">Price</TableHead> : null}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {filteredInnovationsOrders.map((order) => (
+                    {visibleInnovationsOrders.map((order, index) => (
                       <TableRow key={`${order.rx_number ?? "order"}-${order.received_at ?? "unknown"}`}>
                         <TableCell>{order.rx_number ?? "—"}</TableCell>
                         <TableCell>{order.patient ?? "—"}</TableCell>
@@ -329,11 +377,35 @@ const MyOrdersSection = () => {
                             />
                           </div>
                         </TableCell>
+                        {showPrices ? <TableCell className="text-right">{formatLivePrice(innovationsPrices[index])}</TableCell> : null}
                       </TableRow>
                     ))}
                   </TableBody>
+                  {showPrices ? (
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell colSpan={4} />
+                        <TableCell className="text-right font-semibold">Total</TableCell>
+                        <TableCell className="text-right font-semibold">{formatLivePrice(innovationsTotal)}</TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  ) : null}
                 </Table>
               </CardContent>
+              {filteredInnovationsOrders.length > innovationsVisibleCount ? (
+                <div className="flex items-center justify-between gap-3 border-t p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Showing {visibleInnovationsOrders.length} of {filteredInnovationsOrders.length} orders.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInnovationsVisibleCount((count) => count + INNOVATIONS_ORDERS_PAGE_SIZE)}
+                  >
+                    Load more
+                  </Button>
+                </div>
+              ) : null}
             </Card>
           )}
           {innovationsOrdersQuery.data?.retrieved_at ? (
@@ -372,7 +444,7 @@ const MyOrdersSection = () => {
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
-              {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} />)}
+              {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} showPrices={showPrices} />)}
             </div>
           )}
           {deliveriesQuery.data?.retrieved_at ? (
