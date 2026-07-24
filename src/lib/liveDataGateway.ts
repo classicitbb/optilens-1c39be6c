@@ -166,7 +166,7 @@ export async function requestLiveData<T>(
   options: RequestLiveDataOptions = {},
 ): Promise<T> {
   const startedAt = Date.now();
-  const timeoutMs = options.timeoutMs ?? 32_000;
+  const timeoutMs = options.timeoutMs ?? 65_000;
   const requestBody = {
     action: "request",
     operation,
