@@ -114,6 +114,7 @@ export default function IntegrationsPage() {
         const { data, error } = await supabase.functions.invoke("scotia-payment", {
           body: {
             action: "prepare",
+            testMode: true,
             chargetotal: 1,
             responseSuccessURL: `${window.location.origin}/checkout`,
             responseFailURL: `${window.location.origin}/checkout`,
