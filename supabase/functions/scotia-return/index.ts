@@ -24,7 +24,7 @@
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/config.ts";
 
-const CHECKOUT_RETURN_PATH = "/checkout";
+const CHECKOUT_RETURN_PATH = "/order-complete";
 const STATEMENT_RETURN_PATH = "/profile/statements";
 const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
@@ -98,6 +98,7 @@ Deno.serve(async (req) => {
       // assignToken=true at prepare time — its presence IS the save request.
       save_token: !!result.hosteddataid,
       currency: result.currency,
+      chargetotal: result.chargetotal,
     };
 
     const outcome = result.approved ? "success" : "declined";

@@ -48,6 +48,8 @@ export interface CheckoutFormData {
   cardLast4: string;
   expiryMonth: number;
   expiryYear: number;
+  /** Server-validated checkout shipping charge, in the order currency. */
+  shippingAmount?: number;
 }
 
 interface CheckoutDialogProps {

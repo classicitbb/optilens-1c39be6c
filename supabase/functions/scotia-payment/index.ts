@@ -28,6 +28,7 @@ import {
   handleCorsPreflight,
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
+import { requireAuthenticatedUser, type AuthContext } from "../_shared/http/auth.ts";
 import {
   ALWAYS_HASH_ALGORITHM,
   DEFAULT_CHECKOUT_OPTION,
@@ -86,6 +87,72 @@ function normalizeAmount(v: string | number): string {
   return n.toFixed(2);
 }
 
+function amountsMatch(left: string | number | null, right: string | number): boolean {
+  const leftAmount = Number(left);
+  const rightAmount = Number(right);
+  return Number.isFinite(leftAmount)
+    && Number.isFinite(rightAmount)
+    && Math.abs(leftAmount - rightAmount) < 0.005;
+}
+
+/**
+ * A gateway signature proves that Scotia returned the fields we sent; it does
+ * not prove that the browser was allowed to start the payment in the first
+ * place. Bind every prepare request to the authenticated owner's pending
+ * payment record before signing an `oid` for the gateway.
+ */
+async function assertPaymentOwnership(
+  orderId: string | undefined,
+  chargetotal: string | number,
+  authContext: AuthContext,
+): Promise<string | null> {
+  if (!orderId) return "An order reference is required to start a Scotia payment.";
+
+  if (orderId.startsWith("STMT-")) {
+    const paymentId = orderId.slice("STMT-".length);
+    const { data, error } = await authContext.supabaseUserClient
+      .from("account_payments")
+      .select("id, amount, status")
+      .eq("id", paymentId)
+      .maybeSingle();
+
+    if (error || !data || data.status !== "pending" || !amountsMatch(data.amount, chargetotal)) {
+      return "This statement payment is not available for this account.";
+    }
+    return null;
+  }
+
+  const { data: order, error: orderError } = await authContext.supabaseUserClient
+    .from("orders")
+    .select("id, total_amount, status, checkout_method")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (
+    orderError || !order || order.checkout_method !== "scotia_ecom"
+    || !["pending", "pending_payment"].includes(order.status)
+    || !amountsMatch(order.total_amount, chargetotal)
+  ) {
+    return "This order is not available for Scotia payment.";
+  }
+
+  const { data: payment, error: paymentError } = await authContext.supabaseUserClient
+    .from("order_payments")
+    .select("amount, provider, status")
+    .eq("order_id", orderId)
+    .eq("provider", "scotia")
+    .maybeSingle();
+
+  if (
+    paymentError || !payment || !["initiated", "failed"].includes(payment.status)
+    || !amountsMatch(payment.amount, chargetotal)
+  ) {
+    return "This order does not have a retryable Scotia payment.";
+  }
+
+  return null;
+}
+
 /** Current time in `YYYY:MM:DD-hh:mm:ss` for the configured timezone. */
 function txnDateTime(timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -126,6 +193,9 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request", detail: String(err) }, 400, req);
   }
 
+  const authContext = await requireAuthenticatedUser(req, getCorsHeaders(req, corsPolicy));
+  if (authContext instanceof Response) return authContext;
+
   try {
     if (parsed.action === "validate") {
       const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret);
@@ -142,6 +212,9 @@ Deno.serve(async (req) => {
 
     // action === "prepare"
     const p = parsed;
+    const ownershipError = await assertPaymentOwnership(p.orderId, p.chargetotal, authContext);
+    if (ownershipError) return json({ error: ownershipError }, 403, req);
+
     const formParams: Record<string, string> = {
       chargetotal: normalizeAmount(p.chargetotal),
       checkoutoption: DEFAULT_CHECKOUT_OPTION,

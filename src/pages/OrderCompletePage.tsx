@@ -1,303 +1,210 @@
-// ============================================================
-// OrderCompletePage — /order/:orderId
-// ------------------------------------------------------------
-// Landing page after a Scotia eCom+ payment. `scotia-return` redirects the
-// buyer's browser here with `?scotia=success|declined|error` after settling
-// the order server-side via the service role. We independently confirm the
-// outcome by polling the order + latest payment row from Supabase (every 3s,
-// up to ~60s) so the UI reflects the true database state, not just the
-// query flag.
-//
-// States surfaced to the buyer:
-//   • Pending  — payment row not yet marked settled/failed (rare — the
-//                return endpoint settles synchronously; polling covers the
-//                brief window between the redirect and the RPC commit)
-//   • Approved — payment status = 'authorized' (approved, not yet fully
-//                settled downstream)
-//   • Settled  — payment status = 'settled' and order status advanced
-//   • Failed   — payment status = 'failed' or scotia=declined/error
-// ============================================================
-
-import { useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
-import { CheckCircle2, Clock, XCircle, ArrowRight, RefreshCcw } from "lucide-react";
-
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
+import { AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import Header from "@/components/Header";
+import SecurityTrustBar from "@/components/checkout/SecurityTrustBar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { createAuthHref } from "@/lib/authFlow";
+import { prepareScotiaPayment, redirectToScotiaPayment, SCOTIA_RETURN_URL } from "@/lib/payments/scotiaConnect";
 
-type PaymentStatus = "initiated" | "authorized" | "settled" | "failed" | "refunded" | "void" | "pending_review";
-type OrderStatus = "draft" | "pending" | "pending_payment" | "confirmed" | "processing" | "shipped" | "completed" | "cancelled";
+type CompletionState = "checking" | "success" | "declined" | "pending" | "error" | "not_found";
 
-interface OrderRow {
+type OrderSnapshot = {
   id: string;
-  status: OrderStatus;
-  total_amount: number | null;
-  created_at: string;
+  status: string;
+  total_amount: number;
   checkout_method: string | null;
-}
+};
 
-interface PaymentRow {
-  id: string;
-  status: PaymentStatus;
-  amount: number | null;
-  provider: string | null;
-  card_brand: string | null;
-  card_last4: string | null;
-  gateway_oid: string | null;
-  gateway_response_code: string | null;
-  gateway_fail_rc: string | null;
-  updated_at: string;
-}
+type PaymentSnapshot = {
+  status: string;
+  provider: string;
+};
 
-type Phase = "loading" | "pending" | "approved" | "settled" | "failed" | "not-found" | "unauthorized";
+const MAX_POLL_ATTEMPTS = 8;
 
-const POLL_INTERVAL_MS = 3000;
-const POLL_MAX_MS = 60000;
-
-function derivePhase(
-  order: OrderRow | null,
-  payment: PaymentRow | null,
-  scotiaFlag: string | null,
-): Phase {
-  if (!order) return "not-found";
-  if (scotiaFlag === "declined" || scotiaFlag === "error") {
-    if (payment?.status === "settled") return "settled";
-    return "failed";
-  }
-  if (!payment) return "pending";
-  switch (payment.status) {
-    case "settled":
-      return "settled";
-    case "authorized":
-      return "approved";
-    case "failed":
-    case "void":
-      return "failed";
-    default:
-      return "pending";
-  }
-}
-
-export default function OrderCompletePage() {
-  const { orderId } = useParams<{ orderId: string }>();
-  const [searchParams] = useSearchParams();
-  const scotiaFlag = searchParams.get("scotia");
+/**
+ * Final state for a Scotia redirect. The `scotia` query parameter is only a
+ * transport hint from the callback; the visible result always comes from the
+ * RLS-protected order and payment records belonging to the signed-in buyer.
+ */
+const OrderCompletePage = () => {
   const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { orderId: routeOrderId } = useParams<{ orderId: string }>();
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("order") ?? routeOrderId ?? null;
+  const returnedOutcome = searchParams.get("scotia");
+  const [state, setState] = useState<CompletionState>("checking");
+  const [order, setOrder] = useState<OrderSnapshot | null>(null);
+  const [payment, setPayment] = useState<PaymentSnapshot | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const pollAttempts = useRef(0);
 
-  const [order, setOrder] = useState<OrderRow | null>(null);
-  const [payment, setPayment] = useState<PaymentRow | null>(null);
-  const [phase, setPhase] = useState<Phase>("loading");
-  const [pollElapsed, setPollElapsed] = useState(0);
-  const [refreshTick, setRefreshTick] = useState(0);
+  const loadOutcome = useCallback(async (): Promise<CompletionState> => {
+    if (!orderId) {
+      setState("error");
+      return "error";
+    }
+
+    const [{ data: orderData, error: orderError }, { data: paymentData, error: paymentError }] = await Promise.all([
+      (supabase as any)
+        .from("orders")
+        .select("id,status,total_amount,checkout_method")
+        .eq("id", orderId)
+        .maybeSingle(),
+      (supabase as any)
+        .from("order_payments")
+        .select("status,provider")
+        .eq("order_id", orderId)
+        .eq("provider", "scotia")
+        .maybeSingle(),
+    ]);
+
+    // RLS makes an order belonging to another account indistinguishable from
+    // a missing one. Do not reveal any order or payment data in either case.
+    if (orderError || paymentError || !orderData || !paymentData || orderData.checkout_method !== "scotia_ecom") {
+      setOrder(null);
+      setPayment(null);
+      setState("not_found");
+      return "not_found";
+    }
+
+    setOrder(orderData as OrderSnapshot);
+    setPayment(paymentData as PaymentSnapshot);
+
+    const nextState: CompletionState =
+      orderData.status === "confirmed" && paymentData.status === "settled"
+        ? "success"
+        : paymentData.status === "failed" || orderData.status === "pending_payment"
+          ? "declined"
+          : "pending";
+    setState(nextState);
+    return nextState;
+  }, [orderId]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!orderId) {
-      setPhase("not-found");
-      return;
-    }
     if (!user) {
-      setPhase("unauthorized");
+      navigate(createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}` }), { replace: true });
       return;
     }
 
     let cancelled = false;
-    const start = Date.now();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    const fetchOnce = async () => {
-      const [orderRes, paymentRes] = await Promise.all([
-        supabase.from("orders").select("id,status,total_amount,created_at,checkout_method").eq("id", orderId).maybeSingle(),
-        supabase
-          .from("order_payments")
-          .select("id,status,amount,provider,card_brand,card_last4,gateway_oid,gateway_response_code,gateway_fail_rc,updated_at")
-          .eq("order_id", orderId)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
-
-      if (cancelled) return;
-      const nextOrder = (orderRes.data as OrderRow | null) ?? null;
-      const nextPayment = (paymentRes.data as PaymentRow | null) ?? null;
-      setOrder(nextOrder);
-      setPayment(nextPayment);
-      const nextPhase = derivePhase(nextOrder, nextPayment, scotiaFlag);
-      setPhase(nextPhase);
-      setPollElapsed(Date.now() - start);
-      return nextPhase;
+    const poll = async () => {
+      try {
+        const nextState = await loadOutcome();
+        if (!cancelled && nextState === "pending" && pollAttempts.current < MAX_POLL_ATTEMPTS) {
+          pollAttempts.current += 1;
+          timeout = setTimeout(poll, 1500);
+        } else if (!cancelled && nextState === "pending") {
+          setState(returnedOutcome === "success" ? "error" : "pending");
+        }
+      } catch {
+        if (!cancelled) setState("error");
+      }
     };
 
-    (async () => {
-      const initial = await fetchOnce();
-      // Poll while pending (payment hasn't landed) — the return endpoint settles
-      // synchronously, so this window is usually <1s but occasionally the
-      // browser races the RPC commit.
-      if (initial === "pending") {
-        const interval = window.setInterval(async () => {
-          const elapsed = Date.now() - start;
-          if (elapsed >= POLL_MAX_MS) {
-            window.clearInterval(interval);
-            return;
-          }
-          const next = await fetchOnce();
-          if (next && next !== "pending") {
-            window.clearInterval(interval);
-          }
-        }, POLL_INTERVAL_MS);
-        return () => window.clearInterval(interval);
-      }
-    })();
-
+    void poll();
     return () => {
       cancelled = true;
+      if (timeout) clearTimeout(timeout);
     };
-  }, [orderId, user, authLoading, scotiaFlag, refreshTick]);
+  }, [authLoading, loadOutcome, location.pathname, location.search, navigate, returnedOutcome, user]);
 
-  const currency = useMemo(() => {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-  }, []);
+  const retryPayment = async () => {
+    if (!order || !payment || !["initiated", "failed"].includes(payment.status)) return;
+    setRetrying(true);
+    try {
+      const prepared = await prepareScotiaPayment({
+        chargetotal: Number(order.total_amount),
+        responseSuccessURL: SCOTIA_RETURN_URL,
+        responseFailURL: SCOTIA_RETURN_URL,
+        orderId: order.id,
+      });
+      redirectToScotiaPayment(prepared);
+    } catch {
+      setRetrying(false);
+      setState("error");
+    }
+  };
 
-  if (phase === "loading" || authLoading) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <Skeleton className="h-8 w-64 mb-4" />
-        <Skeleton className="h-40 w-full" />
-      </div>
-    );
-  }
+  const content = (() => {
+    if (state === "checking" || state === "pending") {
+      return {
+        icon: <Loader2 className="h-9 w-9 animate-spin text-secondary" aria-hidden="true" />,
+        title: "Confirming your payment",
+        description: "We are checking the result returned by Scotiabank. This usually takes only a few seconds.",
+      };
+    }
+    if (state === "success") {
+      return {
+        icon: <CheckCircle className="h-9 w-9 text-secondary" aria-hidden="true" />,
+        title: "Payment received",
+        description: "Your payment is confirmed and your order is now being processed.",
+      };
+    }
+    if (state === "declined") {
+      return {
+        icon: <AlertCircle className="h-9 w-9 text-destructive" aria-hidden="true" />,
+        title: "Payment declined",
+        description: "Your bank did not approve this payment. Your order is reserved and you can try again.",
+      };
+    }
+    if (state === "not_found") {
+      return {
+        icon: <AlertCircle className="h-9 w-9 text-destructive" aria-hidden="true" />,
+        title: "Order unavailable",
+        description: "We could not find a Scotia checkout belonging to this account.",
+      };
+    }
+    return {
+      icon: <AlertCircle className="h-9 w-9 text-destructive" aria-hidden="true" />,
+      title: "Payment not confirmed",
+      description: "We could not verify a completed payment. Your order has not been marked as paid.",
+    };
+  })();
 
-  if (phase === "unauthorized") {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <Card>
-          <CardHeader><CardTitle>Sign in to view this order</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              You need to be signed in to see order {orderId?.slice(0, 8)}…
-            </p>
-            <Button asChild>
-              <Link to={`/auth?redirect=${encodeURIComponent(`/order/${orderId}${scotiaFlag ? `?scotia=${scotiaFlag}` : ""}`)}`}>Sign in</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (phase === "not-found") {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <Card>
-          <CardHeader><CardTitle>Order not found</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">We couldn't find that order under your account.</p>
-            <Button asChild variant="outline"><Link to="/profile/orders">Back to my orders</Link></Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const StatusIcon = phase === "settled" ? CheckCircle2
-    : phase === "approved" ? CheckCircle2
-    : phase === "failed" ? XCircle
-    : Clock;
-
-  const iconClass = phase === "settled" || phase === "approved" ? "text-emerald-600"
-    : phase === "failed" ? "text-destructive"
-    : "text-amber-600";
-
-  const heading = phase === "settled" ? "Payment settled"
-    : phase === "approved" ? "Payment approved"
-    : phase === "failed" ? (scotiaFlag === "declined" ? "Payment declined" : "Payment did not complete")
-    : "Confirming your payment…";
-
-  const subheading = phase === "settled" ? "Your order is confirmed and your card has been charged."
-    : phase === "approved" ? "The gateway approved your card. We're finalizing your order."
-    : phase === "failed" ? "The transaction was not approved. Your card was not charged."
-    : `We're waiting for the payment gateway to confirm. ${Math.max(0, Math.ceil((POLL_MAX_MS - pollElapsed) / 1000))}s remaining…`;
+  const canRetry = state === "declined" && !!order && !!payment && ["initiated", "failed"].includes(payment.status);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
-      <Card>
-        <CardHeader>
-          <div className="flex items-start gap-4">
-            <StatusIcon className={`h-10 w-10 shrink-0 ${iconClass}`} aria-hidden="true" />
-            <div className="flex-1">
-              <CardTitle className="text-2xl">{heading}</CardTitle>
-              <p className="text-muted-foreground mt-1">{subheading}</p>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 pb-16 pt-24">
+        <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-soft">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-muted">{content.icon}</div>
+          <h1 className="mb-2 text-2xl text-foreground">{content.title}</h1>
+          <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{content.description}</p>
+          {state === "success" && order && (
+            <div className="mb-6 rounded-lg bg-muted/60 px-4 py-3 text-left">
+              <p className="font-mono text-xs text-muted-foreground">Order reference</p>
+              <p className="mt-0.5 break-all font-mono text-sm font-semibold text-secondary">{order.id}</p>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="text-muted-foreground">Order reference</div>
-              <div className="font-mono text-xs break-all">{order?.id}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Order status</div>
-              <div><Badge variant="outline">{order?.status ?? "—"}</Badge></div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Payment status</div>
-              <div>
-                <Badge variant={phase === "failed" ? "destructive" : "outline"}>
-                  {payment?.status ?? (phase === "pending" ? "pending" : "—")}
-                </Badge>
-              </div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Amount</div>
-              <div className="font-medium">
-                {order?.total_amount != null ? currency.format(order.total_amount) : "—"}
-              </div>
-            </div>
-            {payment?.card_brand && (
-              <div>
-                <div className="text-muted-foreground">Card</div>
-                <div>{payment.card_brand} •••• {payment.card_last4 ?? "----"}</div>
-              </div>
-            )}
-            {payment?.gateway_response_code && (
-              <div>
-                <div className="text-muted-foreground">Gateway code</div>
-                <div className="font-mono text-xs">{payment.gateway_response_code}{payment.gateway_fail_rc ? ` / ${payment.gateway_fail_rc}` : ""}</div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-3 pt-2">
-            {phase === "pending" && (
-              <Button variant="outline" onClick={() => setRefreshTick((t) => t + 1)}>
-                <RefreshCcw className="h-4 w-4 mr-2" /> Refresh now
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            {canRetry && (
+              <Button onClick={retryPayment} disabled={retrying} className="gap-1.5">
+                {retrying ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+                Retry payment
               </Button>
             )}
-            {(phase === "settled" || phase === "approved") && (
-              <Button asChild>
-                <Link to="/profile/orders">View my orders <ArrowRight className="h-4 w-4 ml-2" /></Link>
-              </Button>
+            {state === "success" ? (
+              <Button asChild><Link to="/profile/orders">View my orders</Link></Button>
+            ) : (
+              <Button variant="outline" asChild><Link to="/profile/helpdesk">Contact us</Link></Button>
             )}
-            {phase === "failed" && (
-              <>
-                <Button asChild>
-                  <Link to="/checkout">Try again</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link to="/profile/orders">Back to my orders</Link>
-                </Button>
-              </>
-            )}
-            <Button asChild variant="ghost">
-              <Link to="/store">Continue shopping</Link>
-            </Button>
+            <Button variant="outline" asChild><Link to="/store">Continue shopping</Link></Button>
           </div>
-        </CardContent>
-      </Card>
+          <SecurityTrustBar compact className="mt-6 justify-center" />
+        </div>
+      </main>
     </div>
   );
-}
+};
+
+export default OrderCompletePage;

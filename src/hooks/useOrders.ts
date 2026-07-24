@@ -121,9 +121,10 @@ export const useOrders = (targetUserId?: string) => {
         card_last4: checkout.cardLast4,
         expiry_month: checkout.expiryMonth,
         expiry_year: checkout.expiryYear,
+        shipping_amount: checkout.shippingAmount ?? 0,
       };
 
-      const { data, error } = await (supabase.rpc as any)("place_customer_order", {
+      const { data, error } = await (supabase.rpc as any)("place_customer_order_with_shipping", {
         p_target_user_id: effectiveUserId,
         p_items: cartItems.map((item) => ({
           product_id: item.product_id,
@@ -139,6 +140,7 @@ export const useOrders = (targetUserId?: string) => {
         })),
         p_checkout: payload,
         p_actor_user_id: actorUserId ?? user?.id ?? effectiveUserId,
+        p_shipping_amount: checkout.shippingAmount ?? 0,
       });
 
       if (error) throw error;

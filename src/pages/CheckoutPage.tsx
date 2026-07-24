@@ -291,6 +291,7 @@ const CheckoutPage = () => {
         fullName: formData.fullName.trim(),
         phone: formData.phone.trim(),
         email: formData.email.trim(),
+        shippingAmount: shippingCost ?? 0,
       });
       if (!order) {
         setScotiaError("We couldn't start your order. Please try again.");
@@ -299,7 +300,10 @@ const CheckoutPage = () => {
       }
 
       const prepared = await prepareScotiaPayment({
-        chargetotal: totalPrice + (shippingCost ?? 0),
+        // The server returns the persisted payable total. Do not calculate a
+        // second amount in the browser: the signed gateway amount must match
+        // the order-payment record exactly.
+        chargetotal: order.totalAmount,
         responseSuccessURL: SCOTIA_RETURN_URL,
         responseFailURL: SCOTIA_RETURN_URL,
         orderId: order.id,
@@ -472,6 +476,7 @@ const CheckoutPage = () => {
       fullName: formData.fullName.trim(),
       phone: formData.phone.trim(),
       email: formData.email.trim(),
+      shippingAmount: shippingCost ?? 0,
     });
     setIsProcessing(false);
     if (success) {

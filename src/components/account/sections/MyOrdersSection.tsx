@@ -1,9 +1,11 @@
 import { format, subDays } from "date-fns";
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, ExternalLink, Loader2, Package, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
+import { Clock, ExternalLink, Loader2, Package, Printer, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
 import { useOrders } from "@/hooks/useOrders";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { printOrderDocument } from "@/features/admin/print/orderDocument";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -420,6 +422,32 @@ const MyOrdersSection = () => {
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </Badge>
                         <span className="text-xl font-bold text-foreground">${order.totalAmount.toFixed(2)}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => printOrderDocument({
+                            id: order.id,
+                            createdAt: order.createdAt,
+                            totalAmount: order.totalAmount,
+                            status: order.status,
+                            customerName: order.customerName,
+                            contactEmail: order.contactEmail,
+                            contactPhone: order.contactPhone,
+                            shippingAddress: order.shippingAddress,
+                            checkoutMethod: order.checkoutMethod,
+                            items: order.items.map((item) => ({
+                              id: item.id,
+                              productName: item.productName,
+                              productType: item.productType,
+                              unitPrice: item.unitPrice,
+                              quantity: item.quantity,
+                            })),
+                          })}
+                        >
+                          <Printer className="mr-1.5 h-4 w-4" />
+                          Print order
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -453,6 +481,14 @@ const MyOrdersSection = () => {
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
+                    {order.status === "draft" && order.checkoutMethod === "on_account" ? (
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 p-3">
+                        <p className="text-sm text-muted-foreground">This account order was returned for changes. Restore its saved draft to your cart, update the items, then check out again.</p>
+                        <Button asChild size="sm">
+                          <Link to="/profile/drafts">Open saved draft</Link>
+                        </Button>
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               ))}
