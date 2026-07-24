@@ -597,13 +597,30 @@ const CheckoutPage = () => {
                 <span>{scotiaError}</span>
               </div>
             )}
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            {scotiaReturnOrderId && (
+              <div className="mb-4 rounded-lg bg-muted/60 px-4 py-3">
+                <p className="font-mono text-xs text-muted-foreground">Order reference</p>
+                <p className="mt-0.5 break-all font-mono text-sm font-semibold text-secondary">
+                  {scotiaReturnOrderId}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Your order is saved and awaiting payment — find it under My Orders any time.
+                </p>
+              </div>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center">
               {scotiaReturnOrderId && (
                 <Button variant="default" onClick={retryScotiaOrder} disabled={isProcessing} className="gap-1.5">
                   {isProcessing && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                   Retry payment
                 </Button>
               )}
+              <Button variant="outline" asChild>
+                <Link to="/profile/orders">View my orders</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/checkout">Back to checkout</Link>
+              </Button>
               <Button variant="outline" asChild>
                 <Link
                   to="/profile/helpdesk"
