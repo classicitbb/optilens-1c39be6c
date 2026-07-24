@@ -8,7 +8,7 @@ import {
 } from "../_shared/http/cors.ts";
 
 const VERSION = "2026-07-16.1";
-const REQUEST_TTL_MS = 30_000;
+const REQUEST_TTL_MS = 60_000;
 const AGENT_ONLINE_MS = 12_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
 const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:write"]);
