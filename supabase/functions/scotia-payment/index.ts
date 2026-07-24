@@ -53,6 +53,10 @@ const prepareSchema = z.object({
   // Where the gateway sends the buyer back (must be your own HTTPS URLs).
   responseSuccessURL: z.string().url(),
   responseFailURL: z.string().url(),
+  // Server-to-server webhook target (Fiserv posts outcome directly here,
+  // independent of the buyer's browser return). Optional — the caller can
+  // omit it and this function will derive the default scotia-notify URL.
+  notificationURL: z.string().url().optional(),
   // The page hosting the iframe — REQUIRED for IFRAME mode (manual page 13).
   hostURI: z.string().url().optional(),
   // Your internal order reference for support/reconciliation (oid).
@@ -232,6 +236,16 @@ Deno.serve(async (req) => {
     if (p.hostURI) formParams.hostURI = p.hostURI;
     // Support reference for reconciliation (shown to support as oid).
     if (p.orderId) formParams.oid = p.orderId;
+
+    // Server-to-server webhook: Fiserv posts the outcome here directly, so
+    // settlement doesn't depend on the buyer's browser completing the return
+    // trip. Falls back to the deployed scotia-notify function under the same
+    // Supabase project when the caller doesn't supply one.
+    const notificationURL = p.notificationURL
+      ?? (Deno.env.get("SUPABASE_URL")
+        ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/scotia-notify`
+        : undefined);
+    if (notificationURL) formParams.notificationURL = notificationURL;
 
     // Tokenization
     if (p.assignToken) formParams.assignToken = "true";

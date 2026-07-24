@@ -8789,6 +8789,10 @@ export type Database = {
         Args: { p_sync_job_id: string }
         Returns: undefined
       }
+      cancel_order: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: undefined
+      }
       claim_live_data_gateway_request: {
         Args: { p_agent_key_id: string }
         Returns: {
@@ -9082,6 +9086,16 @@ export type Database = {
         }
         Returns: string
       }
+      place_customer_order_with_shipping: {
+        Args: {
+          p_actor_user_id?: string
+          p_checkout?: Json
+          p_items: Json
+          p_shipping_amount?: number
+          p_target_user_id: string
+        }
+        Returns: string
+      }
       portal_assigned_pricelist_addons: {
         Args: never
         Returns: {
@@ -9153,6 +9167,10 @@ export type Database = {
       revert_line_to_master: {
         Args: { p_customer_id: number; p_item_ref: string }
         Returns: undefined
+      }
+      revert_on_account_order_to_draft: {
+        Args: { p_order_id: string }
+        Returns: string
       }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
       set_custom_price: {

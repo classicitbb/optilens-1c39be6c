@@ -17,6 +17,6 @@ describe("paginateStatementLines", () => {
       Array.from({ length: 18 }, (_, index) => index + 48),
     ]);
     expect(pages.flat()).toEqual(lines);
-    expect(pages.at(-1)).toHaveLength(18);
+    expect(pages[pages.length - 1]).toHaveLength(18);
   });
 });
