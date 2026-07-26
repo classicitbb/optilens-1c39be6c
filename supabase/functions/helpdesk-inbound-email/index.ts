@@ -154,16 +154,18 @@ Deno.serve(async (req) => {
   }
 
   console.log(`${TAG} Token source: ${tokenSource}`);
-  console.log(`${TAG} Token length: ${providedSecret.length}, expected length: ${INBOUND_SECRET.length}`);
+  console.log(`${TAG} Token present: ${providedSecret.length > 0}`);
 
   if (!INBOUND_SECRET) {
     console.error(`${TAG} HELPDESK_INBOUND_SECRET env var is empty!`);
     return jsonResponse({ error: "Server misconfigured" }, 500);
   }
   if (providedSecret !== INBOUND_SECRET) {
-    console.warn(`${TAG} AUTH FAILED — provided[0..8]="${providedSecret.slice(0, 8)}…" expected[0..8]="${INBOUND_SECRET.slice(0, 8)}…"`);
+    // Never log any portion of the configured secret or the supplied token.
+    console.warn(`${TAG} AUTH FAILED — matched=false, source="${tokenSource}"`);
     return jsonResponse({ error: "Unauthorized" }, 401);
   }
+
 
   console.log(`${TAG} Auth OK via ${tokenSource}`);
 
