@@ -208,7 +208,10 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
   return out;
 }
 
-const VERSION = "2026-07-18.1-fill-empty-contact-customer-fields";
+// Bump this on every meaningful change. GET /innovations-sync/version is public
+// and unauthenticated precisely so a deploy can be verified from anywhere — if
+// this string doesn't change after a deploy, the deploy did not land.
+const VERSION = "2026-07-25.1-customer-email-collision-fallback";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
@@ -232,10 +235,36 @@ const patchEmptyFields = (
 // only on innovations_customer_id would insert a duplicate row instead of adopting the
 // pre-created one. account_number is the sole link between a website account and its
 // Innovations account, so it's the fallback match key here.
+const isEmailCollision = (err: { message?: string } | null) =>
+  !!err && /customers_email_key/i.test(err.message || "");
+
+/**
+ * `customers.email` carries a UNIQUE index, but an ERP email is not unique in
+ * practice: sibling branch accounts (e.g. Courts Optical Sheraton / Welches)
+ * legitimately share one address, and website-signup rows can already hold the
+ * address the ERP wants to attach to its own record.
+ *
+ * Losing the email is annoying; losing the whole customer record — name,
+ * address, payment routing — because of the email is much worse. So on a
+ * collision we retry once without `email` and report it as a warning. Same
+ * shape as the contacts_name_key retry below.
+ */
+async function writeCustomerWithEmailFallback(
+  write: (payload: Record<string, unknown>) => Promise<{ error: { message: string } | null }>,
+  payload: Record<string, unknown>,
+): Promise<{ error: { message: string } | null; emailConflict?: string }> {
+  const { error } = await write(payload);
+  if (!isEmailCollision(error) || payload.email === undefined) return { error };
+  const { email, ...withoutEmail } = payload;
+  const retry = await write(withoutEmail);
+  if (retry.error) return { error: retry.error };
+  return { error: null, emailConflict: String(email ?? "") };
+}
+
 async function upsertCustomerRow(
   supabase: ReturnType<typeof createClient>,
   row: Record<string, unknown>,
-): Promise<{ error: { message: string } | null }> {
+): Promise<{ error: { message: string } | null; emailConflict?: string }> {
   const { data: byInnovationsId, error: lookupErr } = await supabase
     .from("customers")
     .select("*")
@@ -245,10 +274,10 @@ async function upsertCustomerRow(
 
   if (byInnovationsId) {
     const patch = patchEmptyFields(byInnovationsId as Record<string, unknown>, row, ["innovations_customer_id"]);
-    return await supabase
-      .from("customers")
-      .update(patch)
-      .eq("id", (byInnovationsId as any).id);
+    return await writeCustomerWithEmailFallback(
+      (payload) => supabase.from("customers").update(payload).eq("id", (byInnovationsId as any).id),
+      patch,
+    );
   }
 
   const acctNumber = row.account_number;
@@ -270,20 +299,23 @@ async function upsertCustomerRow(
         .maybeSingle();
       if (existingErr) return { error: existingErr };
       const patch = patchEmptyFields((existing ?? {}) as Record<string, unknown>, row, ["innovations_customer_id"]);
-      return await supabase
-        .from("customers")
-        .update(patch)
-        .eq("id", (byAccountNumber as any).id);
+      return await writeCustomerWithEmailFallback(
+        (payload) => supabase.from("customers").update(payload).eq("id", (byAccountNumber as any).id),
+        patch,
+      );
     }
   }
 
-  return await supabase.from("customers").insert(row);
+  return await writeCustomerWithEmailFallback(
+    (payload) => supabase.from("customers").insert(payload),
+    row,
+  );
 }
 
 async function upsertContactRow(
   supabase: ReturnType<typeof createClient>,
   row: Record<string, unknown>,
-): Promise<{ error: { message: string } | null }> {
+): Promise<{ error: { message: string } | null; emailConflict?: string }> {
   const { data: existing, error: lookupErr } = await supabase
     .from("contacts")
     .select("*")
@@ -574,15 +606,23 @@ Deno.serve(async (req: Request) => {
   let upserted = 0;
   let failed = invalid.length;
   const errors: string[] = invalid.slice(0, 5).map((x) => `record ${x.index}: ${x.error}`);
+  // Non-fatal data problems: the record synced, but something was dropped.
+  // Kept separate from `errors` so they never inflate the failure count.
+  const warnings: string[] = [];
 
   if (!dryRun && mapped.length && (entity === "customers" || entity === "contacts")) {
     // Customer and contact rows resolve individually. Customers may need to
     // adopt a pre-existing website row; both entities preserve populated CRM
     // fields and only let Innovations fill gaps.
     for (const row of mapped) {
-      const { error: rowErr } = entity === "customers"
+      const { error: rowErr, emailConflict } = entity === "customers"
         ? await upsertCustomerRow(supabase, row)
         : await upsertContactRow(supabase, row);
+      if (emailConflict) {
+        // Synced, minus the email. Recorded so a real data problem stays
+        // visible instead of quietly disappearing into a "success" run.
+        warnings.push(`${row[cfg.required]}: email '${emailConflict}' already belongs to another customer — record synced without it`);
+      }
       if (rowErr) {
         failed++;
         if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);
@@ -698,7 +738,10 @@ Deno.serve(async (req: Request) => {
     upserted,
     failed,
     status,
-    error_summary: errors.length ? errors.join(" | ") : null,
+    error_summary: [
+      ...errors,
+      ...warnings.slice(0, 5).map((w) => `warning: ${w}`),
+    ].join(" | ") || null,
     started_at: started,
     finished_at: new Date().toISOString(),
   });
@@ -713,6 +756,7 @@ Deno.serve(async (req: Request) => {
       status,
       sample: mapped.slice(0, 3),
       errors,
+      warnings,
     },
     status === "failed" ? 422 : 200,
   );

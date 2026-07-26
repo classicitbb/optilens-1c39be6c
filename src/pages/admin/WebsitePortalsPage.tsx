@@ -172,12 +172,12 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "order-prices": "Off by default. Enable to show item prices and totals on this customer's Order status and lab shipment views.",
 };
 
-type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "all";
+type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "active" | "all";
 
 // ERP customers (and any login linked to one) are approved by default; a bare
 // login without an ERP link still needs an admin decision, so it buckets with
 // pending approval rather than a status of its own.
-const getAccountStatusBucket = (account: PortalAccountRecord): Exclude<AccountStatusFilter, "all"> => {
+const getAccountStatusBucket = (account: PortalAccountRecord): Exclude<AccountStatusFilter, "all" | "active"> => {
   const user = account.portalUser;
   if (user) {
     if (user.crmCustomerId) return "approved";
@@ -487,7 +487,11 @@ const WebsitePortalsPage = () => {
   const accounts = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (customersQuery.data ?? []).filter((customer) => {
-      if (statusFilter !== "all" && getAccountStatusBucket(customer) !== statusFilter) return false;
+      if (statusFilter === "active") {
+        if (!customer.portalUser) return false;
+      } else if (statusFilter !== "all" && getAccountStatusBucket(customer) !== statusFilter) {
+        return false;
+      }
       if (!q) return true;
       return [customer.fullName, customer.email, customer.organizationName, customer.phone]
         .join(" ")
@@ -1262,6 +1266,7 @@ const WebsitePortalsPage = () => {
                 <TabsTrigger value="approved">Approved</TabsTrigger>
                 <TabsTrigger value="pending_profile">Pending Profile</TabsTrigger>
                 <TabsTrigger value="pending_approval">Pending Approval</TabsTrigger>
+                <TabsTrigger value="active">Active</TabsTrigger>
                 <TabsTrigger value="all">All</TabsTrigger>
               </TabsList>
             </Tabs>
