@@ -1962,14 +1962,7 @@ class Component extends DCLogic {
   loadLetter = (it) => { this.setState({ ...it.fields }, () => { const ed = this.TINY.letter; if (ed) { try { ed.setContent(this.state.ltBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded “' + it.name + '”'); };
   loadSig = (it) => { this.setState({ ...it.fields }, this.persist); this.toast('Loaded “' + it.name + '”'); };
   saveEmail = () => {
-    this.saveCurrentFile('email').catch(() => {});
-    return;
-    const name = prompt('Name this email template:'); if (!name) return;
-    const emBody = this.emailEditor ? this.emailEditor.innerHTML : this.state.emBody;
-    const k = ['emHeader', 'emFooter', 'emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer'];
-    const fields = { emBody }; k.forEach(x => fields[x] = this.state[x]);
-    this.setState(s => ({ emailLib: [...s.emailLib, { id: Date.now() + '', name, fields }] }), this.persist);
-    this.toast('Template saved');
+    return this.saveCurrentFile('email');
   };
   saveLetter = () => {
     this.saveCurrentFile('letter').catch(() => {});
@@ -3376,7 +3369,12 @@ class Component extends DCLogic {
     // avoid the runtime reconciling one shared list across two mount points.
     const _tabBarHtml = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['pricelist', 'Price List'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => `<button onclick="window._dsApp.switchTab('${k}')" style="${this.tabStyle(tab === k)}">${l}</button>`).join('');
     const _mkTabBar = () => React.createElement('div', { style: { display: 'contents' }, dangerouslySetInnerHTML: { __html: _tabBarHtml } });
-    const emailLib = (d.emailLib || []).map(it => ({ name: it.name, load: () => this.loadEmail(it), del: () => this.delLib('emailLib', it.id, 'saved email') }));
+    // Saved email templates are durable Doc Studio files. Rendering from the
+    // same collection as My Files keeps the quick-reuse panel in sync after a
+    // save, refresh, or a later sign-in instead of relying on local storage.
+    const emailLib = (d.myFiles || [])
+      .filter(item => item.kind === 'file' && item.fileType === 'email')
+      .map(item => ({ name: item.fileName || 'Untitled email', load: () => this.openFile(item), del: () => this.deleteFileFromList(item) }));
     const letterLib = (d.letterLib || []).map(it => ({ name: it.name, load: () => this.loadLetter(it), del: () => this.delLib('letterLib', it.id, 'saved letterhead') }));
     const sigLib = (d.sigLib || []).map(it => ({ name: it.name, load: () => this.loadSig(it), del: () => this.delLib('sigLib', it.id, 'saved signature') }));
     const snippetItems = (d.snippets || []).map(s => ({ label: s.label, insert: () => this.insertSnippet(s.html), del: () => this.delLib('snippets', s.id, 'saved snippet') }));

@@ -198,11 +198,18 @@ serve(async (req) => {
     healthProbeAuthorized = scopes.includes("docstudio:health");
   }
 
+  // Keep the authenticated principal available to every protected route below.
+  // File writes previously referenced a block-scoped `userId`, which became a
+  // runtime ReferenceError after authentication succeeded.
+  // deno-lint-ignore no-explicit-any
+  let userData: any = null;
+  let userId = "";
   if (!healthProbeAuthorized) {
     // Authenticate the admin from the bridge's bearer token.
     const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    const { data: userData, error: authErr } = await supabase.auth.getUser(token);
-    const userId = userData?.user?.id;
+    const { data, error: authErr } = await supabase.auth.getUser(token);
+    userData = data;
+    userId = userData?.user?.id ?? "";
     if (authErr || !userId) return json({ error: "Not authorized" }, 401);
     const { data: isAdmin } = await supabase.rpc("has_edit_role", { _user_id: userId });
     if (!isAdmin) return json({ error: "Not authorized" }, 403);
