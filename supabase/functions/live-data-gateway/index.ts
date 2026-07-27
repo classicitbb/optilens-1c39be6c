@@ -9,7 +9,7 @@ import {
 
 const VERSION = "2026-07-16.1";
 const REQUEST_TTL_MS = 60_000;
-const AGENT_ONLINE_MS = 12_000;
+const AGENT_ONLINE_MS = 90_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
 const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:write"]);
 
@@ -760,7 +760,7 @@ async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
     return json(req, { ok: true });
   }
 
-  return json(req, { error: "Unsupported agent action." }, 404);
+  return json(req, { error: `Unsupported agent action: ${rawAction}`, supported: Object.keys(AGENT_ACTION_ALIASES) }, 400);
 }
 
 Deno.serve(async (req: Request) => {
@@ -777,6 +777,6 @@ Deno.serve(async (req: Request) => {
   if (action.startsWith("agent.")) return handleAgent(req, action, raw);
   if (action === "request") return handleClientRequest(req, raw);
   if (action === "status") return handleClientStatus(req, raw);
-  return json(req, { error: "Unsupported action." }, 404);
+  return json(req, { error: `Unsupported action: ${action}` }, 400);
 });
 
