@@ -2572,6 +2572,9 @@ export type Database = {
       }
       help_articles: {
         Row: {
+          author_id: string | null
+          body_html: string | null
+          body_json: Json | null
           category: string
           content: string
           content_type: string
@@ -2580,14 +2583,24 @@ export type Database = {
           id: string
           is_active: boolean
           is_public: boolean | null
+          last_edited_by: string | null
           page_slug: string
+          parent_id: string | null
+          published_at: string | null
+          section_id: string | null
           slug: string | null
           sort_order: number
+          status: string
+          summary: string
           title: string
           updated_at: string
+          version_number: number
           visibility: string
         }
         Insert: {
+          author_id?: string | null
+          body_html?: string | null
+          body_json?: Json | null
           category?: string
           content?: string
           content_type?: string
@@ -2596,14 +2609,24 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_public?: boolean | null
+          last_edited_by?: string | null
           page_slug: string
+          parent_id?: string | null
+          published_at?: string | null
+          section_id?: string | null
           slug?: string | null
           sort_order?: number
+          status?: string
+          summary?: string
           title: string
           updated_at?: string
+          version_number?: number
           visibility?: string
         }
         Update: {
+          author_id?: string | null
+          body_html?: string | null
+          body_json?: Json | null
           category?: string
           content?: string
           content_type?: string
@@ -2612,14 +2635,29 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_public?: boolean | null
+          last_edited_by?: string | null
           page_slug?: string
+          parent_id?: string | null
+          published_at?: string | null
+          section_id?: string | null
           slug?: string | null
           sort_order?: number
+          status?: string
+          summary?: string
           title?: string
           updated_at?: string
+          version_number?: number
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "help_articles_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       help_feedback: {
         Row: {
