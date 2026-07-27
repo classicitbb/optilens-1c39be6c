@@ -3,6 +3,9 @@ import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AccountLayout from "@/components/account/AccountLayout";
 import PortalFeatureGate from "@/components/account/PortalFeatureGate";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 
 const Profile = lazy(() => import("@/pages/Profile"));
 const MyAccountSection = lazy(() => import("@/components/account/sections/MyAccountSection"));
@@ -18,6 +21,26 @@ const StatementsSection = lazy(() => import("@/components/account/sections/State
 const RxDraftSection = lazy(() => import("@/components/account/sections/RxDraftSection"));
 const LensAssistantSection = lazy(() => import("@/components/account/sections/LensAssistantSection"));
 const NetworkingCardPage = lazy(() => import("@/pages/NetworkingCardPage"));
+
+const LensAssistantProfileRouteGate = () => {
+  const { isLoading: identityLoading } = usePortalIdentity();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
+  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
+
+  if (identityLoading || roleLoading || publicLensAssistant.isLoading || adminLensAssistant.isLoading) {
+    return <div className="flex min-h-[240px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
+  }
+
+  const rolloutEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
+  if (!rolloutEnabled) return <Navigate to="/profile" replace />;
+
+  return (
+    <PortalFeatureGate feature="lens-assistant">
+      <LensAssistantSection />
+    </PortalFeatureGate>
+  );
+};
 
 const PortalRoutes = () => {
   return (
@@ -39,7 +62,7 @@ const PortalRoutes = () => {
         <Route path="helpdesk/:ticketId" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketDetailSection /></PortalFeatureGate>} />
         <Route path="pricelists" element={<PortalFeatureGate feature="pricelists"><AssignedPricelistsSection /></PortalFeatureGate>} />
         <Route path="drafts" element={<CartDraftsSection />} />
-        <Route path="lens-assistant" element={<LensAssistantSection />} />
+        <Route path="lens-assistant" element={<LensAssistantProfileRouteGate />} />
         <Route path="rx-drafts/:draftId" element={<RxDraftSection />} />
         <Route path="statements" element={<PortalFeatureGate feature="statements"><StatementsSection /></PortalFeatureGate>} />
         <Route path="networking-card" element={<NetworkingCardPage />} />

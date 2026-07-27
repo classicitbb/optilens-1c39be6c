@@ -13,10 +13,11 @@ const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
   const { isAdmin } = useUserRole();
   const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
   const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
-  const lensAssistantEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
+  const lensAssistantEnabled = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
+    && canAccessFeature("lens-assistant");
 
   const items = ACCOUNT_NAV_ITEMS.filter((item) => {
-    if (item.to.startsWith("/lens-assistant")) return lensAssistantEnabled;
+    if (item.to.startsWith("/profile/lens-assistant")) return lensAssistantEnabled;
     if (item.to === "/profile/quotes") return canAccessFeature("quotes");
     if (item.to === "/profile/helpdesk") return canAccessFeature("helpdesk");
     if (item.to === "/profile/pricelists") return canAccessFeature("pricelists");

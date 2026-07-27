@@ -6,7 +6,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { getPortalEmulation, onPortalEmulationChange } from "@/lib/portalEmulation";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
-export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "live-order-status" | "statements" | "order-prices";
+export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "live-order-status" | "statements" | "order-prices" | "lens-assistant";
 
 export type PaymentTerms = "credit" | "cash" | "standard";
 
@@ -37,6 +37,7 @@ const featureTitles: Record<PortalFeature, string> = {
   "live-order-status": "Live order status",
   statements: "Statements",
   "order-prices": "Order prices",
+  "lens-assistant": "Lens Assistant",
 };
 
 const normalizeIdentity = (

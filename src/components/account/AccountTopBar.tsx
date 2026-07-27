@@ -39,9 +39,10 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   // Close the mobile sheet whenever the user navigates to a new page
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
-  const lensAssistantEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
+  const lensAssistantEnabled = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
+    && canAccessFeature("lens-assistant");
   const visibleItems = ACCOUNT_NAV_ITEMS.filter((item) => {
-    if (item.to.startsWith("/lens-assistant")) return lensAssistantEnabled;
+    if (item.to.startsWith("/profile/lens-assistant")) return lensAssistantEnabled;
     if (item.to === "/profile/quotes") return canAccessFeature("quotes");
     if (item.to === "/profile/helpdesk") return canAccessFeature("helpdesk");
     if (item.to === "/profile/pricelists") return canAccessFeature("pricelists");
