@@ -666,14 +666,35 @@ async function handleClientStatus(req: Request, body: JsonObject) {
   return json(req, { request_id: row.id, status: row.status, expires_at: row.expires_at, poll_after_ms: 500 }, 202);
 }
 
-async function handleAgent(req: Request, action: string, body: JsonObject) {
+const AGENT_ACTION_ALIASES: Record<string, string> = {
+  "agent.heartbeat": "agent.heartbeat",
+  "agent.ping": "agent.heartbeat",
+  "agent.register": "agent.heartbeat",
+  "agent.hello": "agent.heartbeat",
+  "agent.status": "agent.heartbeat",
+  "agent.next": "agent.next",
+  "agent.poll": "agent.next",
+  "agent.claim": "agent.next",
+  "agent.dequeue": "agent.next",
+  "agent.complete": "agent.complete",
+  "agent.result": "agent.complete",
+  "agent.submit": "agent.complete",
+  "agent.respond": "agent.complete",
+  "agent.finish": "agent.complete",
+};
+
+async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
   const supabase = adminClient();
   const agentAuth = await authenticateAgent(req, supabase);
   if (agentAuth.response) return agentAuth.response;
   const key = agentAuth.key;
   await cleanup(supabase);
 
+  const action = AGENT_ACTION_ALIASES[rawAction] ?? "";
+  if (!action) console.warn("live-data-gateway: unsupported agent action", rawAction);
+
   if (action === "agent.heartbeat") {
+
     const capabilities = Array.isArray(body.capabilities)
       ? body.capabilities.filter((value): value is Operation => typeof value === "string" && value in OPERATIONS)
       : [];
