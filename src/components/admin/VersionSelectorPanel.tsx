@@ -117,6 +117,7 @@ const VersionSelectorPanel = ({
     clearAutoCollapseTimer();
     if (selectorCollapsed || dialogOpen) return;
     autoCollapseTimerRef.current = window.setTimeout(() => {
+
       setSelectorCollapsed(true);
     }, VERSION_SELECTOR_AUTO_COLLAPSE_MS);
   }, [clearAutoCollapseTimer, dialogOpen, selectorCollapsed]);
