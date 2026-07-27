@@ -32,7 +32,9 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
-  const [backToWebsitePath] = useState(getLastNonProfilePath);
+  // Read on every render so the link always points at the most recent
+  // non-profile page the user visited in this session.
+  const backToWebsitePath = getLastNonProfilePath();
   const activeTheme = theme ?? "system";
   const formattedDisplayName = capitalizeDisplayName(displayName, "Customer");
 
