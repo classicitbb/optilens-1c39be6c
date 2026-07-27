@@ -331,6 +331,20 @@ const MyOrdersSection = () => {
             </div>
           </div>
 
+          {innovationsOrdersQuery.data?.source_status === "cached" ? (
+            <Alert>
+              <AlertDescription>
+                The live lab connection is unavailable, so these are your most recent invoiced orders from billing records. Work still in progress may not appear until the connection is restored.
+              </AlertDescription>
+            </Alert>
+          ) : innovationsOrdersQuery.data?.source_status === "offline" ? (
+            <Alert>
+              <AlertDescription>
+                The live lab connection is offline, so order status can&apos;t be shown right now.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           {innovationsOrdersQuery.isError ? (
             <Alert variant="destructive" role="alert">
               <AlertDescription>
@@ -341,6 +355,7 @@ const MyOrdersSection = () => {
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : (innovationsOrdersQuery.data?.orders.length ?? 0) === 0 ? (
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
+
           ) : filteredInnovationsOrders.length === 0 ? (
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
           ) : (
