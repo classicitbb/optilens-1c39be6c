@@ -613,7 +613,23 @@ async function handleClientStatus(req: Request, body: JsonObject) {
     }
     return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 200);
   }
-  if (row.status === "expired") return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 504);
+  if (row.status === "expired") {
+    const operation = typeof row.operation === "string" && row.operation in OPERATIONS ? row.operation as Operation : null;
+    if (operation) {
+      const fallback = await fallbackForFailedRequest(auth.supabaseAdminClient, operation, row);
+      if (fallback) {
+        await auth.supabaseAdminClient.from("live_data_gateway_requests").update({ consumed_at: new Date().toISOString() }).eq("id", row.id);
+        return json(req, {
+          request_id: row.id,
+          status: "completed",
+          operation,
+          retrieved_at: row.completed_at ?? new Date().toISOString(),
+          data: fallback,
+        });
+      }
+    }
+    return json(req, { request_id: row.id, status: row.status, error: row.error_message, code: row.error_code }, 504);
+  }
   return json(req, { request_id: row.id, status: row.status, expires_at: row.expires_at, poll_after_ms: 500 }, 202);
 }
 
