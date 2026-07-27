@@ -848,7 +848,14 @@
         <!-- ====== RIGHT: PREVIEW ====== -->
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
       <div style="height:58px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#f4f2ed;border-bottom:1px solid #ded9cd">
-        <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c">{{ previewTitle }}</div>
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;white-space:nowrap">{{ previewTitle }}</span>
+          <sc-if value="{{ showEmailFileIdentity }}" hint-placeholder-val="{{ false }}">
+            <span style="color:#b3aa9a;font-size:13px;line-height:1">•</span>
+            <span style="font:700 12px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ activeEmailFileName }}">{{ activeEmailFileName }}</span>
+            <span style="{{ activeEmailFileBadgeStyle }}">{{ activeEmailFileStatus }}</span>
+          </sc-if>
+        </div>
         <div style="display:flex;gap:9px">
           <sc-if value="{{ isLetter }}" hint-placeholder-val="{{ false }}">
             <button onClick="{{ printLetter }}" style="height:38px;padding:0 16px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Print / PDF</button>
@@ -1194,7 +1201,7 @@ class Component extends DCLogic {
     billSaveState: 'Local recovery only', billShareOpen: false, billShareUsers: [], billCollaborators: [], billShareUserId: '', billShareAccess: 'view',
     sidebarWidth: 396,
     myFiles: [], myFilesLoaded: false, fileTypeFilter: '', fileAccessFilter: '', myFilesViewMode: 'grid', myFilesSortCol: 'date', myFilesSortDir: -1,
-    currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileAccess: 'owner', currentFileIsOwner: true,
+    currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true,
     fileSaveState: 'DB save ready', fileSaveDialogOpen: false, fileSaveDialogKind: '', fileSaveDialogMode: 'save', fileSaveDialogType: '', fileSaveDialogName: '', fileSaveDialogError: '', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
     emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
     emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
@@ -1628,7 +1635,7 @@ class Component extends DCLogic {
     const cur = this.state.tab;
     this.syncTiny(cur);
     this.destroyTiny(cur);
-    const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
+    const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
     this.setState({ tab: k, ...reset }, this.persistSoon);
   };
 
@@ -2817,12 +2824,15 @@ class Component extends DCLogic {
 
   renderedForFile = (type) => type === 'email' ? this.buildEmail() : type === 'letter' ? this.buildLetter() : type === 'signature' ? this.buildSignature() : type === 'social' ? this.buildSocialPost() : type === 'pricelist' ? this.buildPricelist() : type === 'shiplabel' ? this.buildShippingLabel() : type === 'statement' ? this.buildStatement() : '';
 
-  filePayload = (type, name) => ({
+  filePayload = (type, name, options = {}) => ({
     fileType: type,
     fileName: name || this.state.currentFileName || this.defaultFileName(type),
     customerName: type === 'statement' ? this.state.stCustomer : type === 'pricelist' ? this.state.plCustomer : type === 'shiplabel' ? (this.state.slToCompany || this.state.slToName) : '',
     customerAccount: type === 'statement' ? this.state.selectedStatementCustomer : type === 'shiplabel' ? this.state.selectedShipCustomer : '',
-    metadata: { typeLabel: this.TYPE_LABELS[type] || type },
+    metadata: {
+      typeLabel: this.TYPE_LABELS[type] || type,
+      ...(type === 'email' ? { isTemplate: options.isTemplate ?? (this.state.currentFileType === 'email' ? !!this.state.currentFileIsTemplate : false) } : {})
+    },
     content: this.fileSnapshot(type),
     renderedHtml: this.renderedForFile(type),
     version: this.state.currentFileVersion || ''
@@ -2862,7 +2872,7 @@ class Component extends DCLogic {
     if (kind === 'billing') {
       await this.saveBillingFile({ name, forceNew: mode === 'save-as' });
     } else {
-      await this.saveCurrentFile(type, { name, forceNew: mode === 'save-as' || mode === 'template' });
+      await this.saveCurrentFile(type, { name, forceNew: mode === 'save-as' || mode === 'template', isTemplate: mode === 'template' ? true : undefined });
     }
   };
 
@@ -2875,8 +2885,8 @@ class Component extends DCLogic {
     try {
       this.setState({ fileSaveState: 'Saving...' });
       const data = existing
-        ? await this.docApi('/api/docstudio/files/' + encodeURIComponent(existing), { method: 'PUT', body: this.filePayload(type, name) })
-        : await this.docApi('/api/docstudio/files', { method: 'POST', body: this.filePayload(type, name) });
+        ? await this.docApi('/api/docstudio/files/' + encodeURIComponent(existing), { method: 'PUT', body: this.filePayload(type, name, options) })
+        : await this.docApi('/api/docstudio/files', { method: 'POST', body: this.filePayload(type, name, options) });
       this.applyFile(data.file);
       this.loadMyFiles();
       this.closeFileSaveDialog();
@@ -2901,6 +2911,7 @@ class Component extends DCLogic {
       currentFileType: type,
       currentFileVersion: file.version || '',
       currentFileName: file.fileName || '',
+      currentFileIsTemplate: type === 'email' && file.metadata?.isTemplate !== false,
       currentFileAccess: file.accessLevel || 'owner',
       currentFileIsOwner: !!file.isOwner,
       fileCollaborators: file.shares || [],
@@ -2999,7 +3010,7 @@ class Component extends DCLogic {
   deleteActiveFile = async () => {
     if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { this.toast('No saved file selected'); return; }
     await this.deleteFileFromList({ kind: 'file', id: this.state.currentFileId, isOwner: this.state.currentFileIsOwner });
-    this.setState({ currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' }, this.persistSoon);
+    this.setState({ currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' }, this.persistSoon);
   };
 
   clampSidebarWidth = (value) => {
@@ -3416,7 +3427,9 @@ class Component extends DCLogic {
     // same collection as My Files keeps the quick-reuse panel in sync after a
     // save, refresh, or a later sign-in instead of relying on local storage.
     const emailLib = (d.myFiles || [])
-      .filter(item => item.kind === 'file' && item.fileType === 'email')
+      // Older email records predate the explicit marker and originated from
+      // this Saved templates panel, so preserve them as reusable templates.
+      .filter(item => item.kind === 'file' && item.fileType === 'email' && item.metadata?.isTemplate !== false)
       .map(item => ({ name: item.fileName || 'Untitled email', load: () => this.openFile(item), del: () => this.deleteFileFromList(item) }));
     const letterLib = (d.letterLib || []).map(it => ({ name: it.name, load: () => this.loadLetter(it), del: () => this.delLib('letterLib', it.id, 'saved letterhead') }));
     const sigLib = (d.sigLib || []).map(it => ({ name: it.name, load: () => this.loadSig(it), del: () => this.delLib('sigLib', it.id, 'saved signature') }));
@@ -3523,6 +3536,10 @@ class Component extends DCLogic {
       isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isPricelist: tab === 'pricelist', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
       f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
       previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'pricelist' ? 'Price list preview' : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
+      showEmailFileIdentity: tab === 'email',
+      activeEmailFileName: d.currentFileKind === 'file' && d.currentFileType === 'email' ? (d.currentFileName || 'Untitled email') : 'Unsaved email',
+      activeEmailFileStatus: d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? 'Unsaved' : d.currentFileIsTemplate ? 'Template' : 'File',
+      activeEmailFileBadgeStyle: `padding:4px 7px;border-radius:999px;background:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#f1ede5' : d.currentFileIsTemplate ? '#dceef0' : '#e7edf5'};color:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#7a715f' : d.currentFileIsTemplate ? '#176d7a' : '#415b7a'};font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap`,
       copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'pricelist' ? 'Print price list' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
       copyNow: this.copyNow, printLetter: this.printLetter,
       openEmailSend: this.openEmailSend,
