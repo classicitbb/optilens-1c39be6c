@@ -45,6 +45,7 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
+  # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).
   [functions.live-data-gateway]
     verify_jwt = false
   # The MCP runtime performs its own OAuth 2.1 bearer validation and must be
