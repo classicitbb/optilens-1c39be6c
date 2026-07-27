@@ -92,7 +92,7 @@ const VersionSelectorPanel = ({
   const [masterMarkupPct, setMasterMarkupPct] = useState("0");
   const [masterDiscountPct, setMasterDiscountPct] = useState("0");
   const selectorPanelRef = useRef<HTMLDivElement | null>(null);
-  const autoCollapseTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const autoCollapseTimerRef = useRef<number | null>(null);
   const lastScrollYRef = useRef(0);
 
   const SECTION_TYPES = ["RX Lens Prices", "Stock Lens Prices", "Supplies Prices"] as const;
