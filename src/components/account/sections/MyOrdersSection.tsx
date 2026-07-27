@@ -401,15 +401,6 @@ const MyOrdersSection = () => {
                       </TableRow>
                     ))}
                   </TableBody>
-                  {showPrices ? (
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell colSpan={4} />
-                        <TableCell className="text-right font-semibold">Total</TableCell>
-                        <TableCell className="text-right font-semibold">{formatLivePrice(innovationsTotal)}</TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  ) : null}
                 </Table>
               </CardContent>
               {filteredInnovationsOrders.length > innovationsVisibleCount ? (
