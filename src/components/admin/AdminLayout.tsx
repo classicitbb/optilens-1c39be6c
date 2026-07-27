@@ -6,6 +6,7 @@ import AdminTopBar from "./AdminTopBar";
 import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
+import CrmActivityDialog from "./CrmActivityDialog";
 
 const AdminLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
@@ -33,6 +34,7 @@ const AdminLayout = () => {
               </div>
             </main>
             <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
+            <CrmActivityDialog />
           </div>
         </div>
       </div>

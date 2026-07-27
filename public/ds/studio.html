@@ -1468,12 +1468,22 @@ class Component extends DCLogic {
 
   // ---------- TinyMCE rich text editors ----------
   TINY = {};
+  TINY_HOSTS = {};
+  TINY_MOUNT_IDS = {};
   TINY_KEYS = { email: 'emBody', letter: 'ltBody', social: 'smBody' };
   mountTiny = (tab, node) => {
     if (!node || typeof tinymce === 'undefined') return;
-    if (node.dataset.tmceMounted === '1') return;
+    // The host survives tab switches and file saves. Only skip mounting when
+    // this exact host still owns a live editor; a stale data flag must never
+    // prevent the editor from coming back.
+    if (node.dataset.tmceMounted === '1' && this.TINY_HOSTS[tab] === node && this.TINY[tab]) return;
+    if (node.dataset.tmceMounted === '1') node.dataset.tmceMounted = '0';
+    const mountId = (this.TINY_MOUNT_IDS[tab] || 0) + 1;
+    this.TINY_MOUNT_IDS[tab] = mountId;
+    this.TINY_HOSTS[tab] = node;
     node.dataset.tmceMounted = '1';
     const ta = document.createElement('textarea');
+    ta.dataset.tmceMountId = String(mountId);
     node.appendChild(ta);
     const self = this, key = this.TINY_KEYS[tab];
     tinymce.init({
@@ -1508,17 +1518,41 @@ class Component extends DCLogic {
       skin: 'oxide', content_css: false,
       content_style: "@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap'); body{font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13.5px;line-height:1.65;color:#0B1E35;margin:12px 14px} h2{font-size:18px;font-weight:800;letter-spacing:-.01em} h3{font-size:15px;font-weight:700} a{color:#1A8A9C} img{max-width:100%}",
       setup: (ed) => {
+        if (self.TINY_MOUNT_IDS[tab] !== mountId) {
+          ed.on('init', () => { try { ed.remove(); } catch (e) {} });
+          return;
+        }
         self.TINY[tab] = ed;
         ed.on('init', () => {
+          if (self.TINY_MOUNT_IDS[tab] !== mountId || self.TINY_HOSTS[tab] !== node || node.dataset.tmceMounted !== '1') {
+            try { ed.remove(); } catch (e) {}
+            return;
+          }
           ed.setContent(self.state[key] || '');
           const sync = () => { self.setState({ [key]: ed.getContent() }); self.persistSoon(); };
           ed.on('input change undo redo ExecCommand', sync);
         });
       }
-    }).catch(() => {});
+    }).catch(() => {
+      if (self.TINY_MOUNT_IDS[tab] === mountId && self.TINY_HOSTS[tab] === node) {
+        node.dataset.tmceMounted = '0';
+        if (self.TINY[tab] && self.TINY[tab].targetElm === ta) self.TINY[tab] = null;
+        ta.remove();
+      }
+    });
   };
   syncTiny = (tab) => { const ed = this.TINY[tab], key = this.TINY_KEYS[tab]; if (ed && key) { try { this.setState({ [key]: ed.getContent() }); } catch (e) {} } };
-  destroyTiny = (tab) => { const ed = this.TINY[tab]; if (ed) { try { ed.remove(); } catch (e) {} this.TINY[tab] = null; } };
+  destroyTiny = (tab) => {
+    this.TINY_MOUNT_IDS[tab] = (this.TINY_MOUNT_IDS[tab] || 0) + 1;
+    const ed = this.TINY[tab];
+    const node = this.TINY_HOSTS[tab];
+    if (ed) { try { ed.remove(); } catch (e) {} }
+    this.TINY[tab] = null;
+    if (node) {
+      node.dataset.tmceMounted = '0';
+      node.querySelectorAll('.tox-tinymce, textarea').forEach(child => child.remove());
+    }
+  };
   refreshTinyContent = () => { Object.keys(this.TINY_KEYS).forEach(tab => { const ed = this.TINY[tab]; if (ed) { try { ed.setContent(this.state[this.TINY_KEYS[tab]] || ''); } catch (e) {} } }); };
   activeTiny = () => this.TINY[this.state.tab];
   setEmailHost = (node) => this.mountTiny('email', node);
