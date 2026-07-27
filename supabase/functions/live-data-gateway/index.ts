@@ -9,7 +9,7 @@ import {
 
 const VERSION = "2026-07-16.1";
 const REQUEST_TTL_MS = 60_000;
-const AGENT_ONLINE_MS = 12_000;
+const AGENT_ONLINE_MS = 90_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
 const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:write"]);
 
@@ -666,14 +666,35 @@ async function handleClientStatus(req: Request, body: JsonObject) {
   return json(req, { request_id: row.id, status: row.status, expires_at: row.expires_at, poll_after_ms: 500 }, 202);
 }
 
-async function handleAgent(req: Request, action: string, body: JsonObject) {
+const AGENT_ACTION_ALIASES: Record<string, string> = {
+  "agent.heartbeat": "agent.heartbeat",
+  "agent.ping": "agent.heartbeat",
+  "agent.register": "agent.heartbeat",
+  "agent.hello": "agent.heartbeat",
+  "agent.status": "agent.heartbeat",
+  "agent.next": "agent.next",
+  "agent.poll": "agent.next",
+  "agent.claim": "agent.next",
+  "agent.dequeue": "agent.next",
+  "agent.complete": "agent.complete",
+  "agent.result": "agent.complete",
+  "agent.submit": "agent.complete",
+  "agent.respond": "agent.complete",
+  "agent.finish": "agent.complete",
+};
+
+async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
   const supabase = adminClient();
   const agentAuth = await authenticateAgent(req, supabase);
   if (agentAuth.response) return agentAuth.response;
   const key = agentAuth.key;
   await cleanup(supabase);
 
+  const action = AGENT_ACTION_ALIASES[rawAction] ?? "";
+  if (!action) console.warn("live-data-gateway: unsupported agent action", rawAction);
+
   if (action === "agent.heartbeat") {
+
     const capabilities = Array.isArray(body.capabilities)
       ? body.capabilities.filter((value): value is Operation => typeof value === "string" && value in OPERATIONS)
       : [];
@@ -689,11 +710,21 @@ async function handleAgent(req: Request, action: string, body: JsonObject) {
   }
 
   if (action === "agent.next") {
+    // Polling proves the agent is alive even if its heartbeat action name differs.
+    await supabase.from("live_data_gateway_agents").upsert({
+      api_key_id: key.id,
+      agent_name: typeof body.agent_name === "string" ? body.agent_name.slice(0, 100) : "OptiLens Local",
+      capabilities: Array.isArray(body.capabilities)
+        ? body.capabilities.filter((value): value is Operation => typeof value === "string" && value in OPERATIONS)
+        : Object.keys(OPERATIONS),
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: "api_key_id" });
     const { data, error } = await supabase.rpc("claim_live_data_gateway_request", { p_agent_key_id: key.id });
     if (error) return json(req, { error: "Could not claim a live-data request.", detail: error.message }, 500);
     const requestRow = Array.isArray(data) ? data[0] ?? null : data ?? null;
     return json(req, { request: requestRow });
   }
+
 
   if (action === "agent.complete") {
     const requestId = typeof body.request_id === "string" ? body.request_id : "";
@@ -729,7 +760,7 @@ async function handleAgent(req: Request, action: string, body: JsonObject) {
     return json(req, { ok: true });
   }
 
-  return json(req, { error: "Unsupported agent action." }, 404);
+  return json(req, { error: `Unsupported agent action: ${rawAction}`, supported: Object.keys(AGENT_ACTION_ALIASES) }, 400);
 }
 
 Deno.serve(async (req: Request) => {
@@ -746,6 +777,6 @@ Deno.serve(async (req: Request) => {
   if (action.startsWith("agent.")) return handleAgent(req, action, raw);
   if (action === "request") return handleClientRequest(req, raw);
   if (action === "status") return handleClientStatus(req, raw);
-  return json(req, { error: "Unsupported action." }, 404);
+  return json(req, { error: `Unsupported action: ${action}` }, 400);
 });
 
