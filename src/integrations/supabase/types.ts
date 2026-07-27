@@ -9234,6 +9234,7 @@ export type Database = {
         }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
+      record_customer_portal_login: { Args: never; Returns: string }
       record_dhl_express_test: {
         Args: {
           p_actor_user_id?: string
@@ -9246,7 +9247,6 @@ export type Database = {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
       }
-      record_customer_portal_login: { Args: never; Returns: string | null }
       record_payment_gateway_test: {
         Args: { p_actor_user_id?: string; p_success: boolean }
         Returns: undefined
