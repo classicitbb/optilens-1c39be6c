@@ -39,6 +39,15 @@ export function getPortalEmulation(): PortalEmulationTarget | null {
   }
 }
 
+/**
+ * A real customer session is used during admin emulation. Callers that record
+ * customer activity must use this guard so an admin's preview never appears as
+ * a customer login.
+ */
+export function isPortalEmulationActive() {
+  return getPortalEmulation() !== null;
+}
+
 export function getStoredPortalAdminSession(): StoredAdminSession | null {
   try {
     const raw = sessionStorage.getItem(ADMIN_SESSION_KEY);

@@ -68,6 +68,7 @@ interface PortalCustomerListItem {
   assignedPricelistId: number | null;
   cartItemCount: number;
   cartStatus: "empty" | "in_progress" | "abandoned";
+  lastPortalLoginAt: string | null;
   presenceStatus: "online" | "idle" | "offline" | string;
 }
 
@@ -249,7 +250,7 @@ const WebsitePortalsPage = () => {
         portalUserIds.length
           ? (supabase as any)
               .from("profiles")
-              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id")
+              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id,last_portal_login_at")
               .in("user_id", portalUserIds)
               .order("updated_at", { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -402,6 +403,7 @@ const WebsitePortalsPage = () => {
             assignedPricelistId: null,
             cartItemCount,
             cartStatus: openAlertByUser.has(entry.user_id) ? "abandoned" : cartItemCount > 0 ? "in_progress" : "empty",
+            lastPortalLoginAt: typeof profile?.last_portal_login_at === "string" ? profile.last_portal_login_at : null,
             presenceStatus: presenceByUser.get(entry.user_id)?.status ?? "offline",
           } satisfies PortalCustomerListItem;
           return {
@@ -1275,12 +1277,13 @@ const WebsitePortalsPage = () => {
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-hidden px-0 pb-0">
             <div className="h-full overflow-auto border-t">
-              <table className="w-full min-w-[820px] table-fixed text-left text-sm">
+              <table className="w-full min-w-[960px] table-fixed text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-background text-xs text-muted-foreground shadow-sm">
                   <tr className="border-y">
-                    <th className="w-[28%] px-4 py-3 font-medium">Account name</th>
-                    <th className="w-[28%] px-4 py-3 font-medium">Email</th>
-                    <th className="w-[16%] px-4 py-3 font-medium">ERP ACC#</th>
+                    <th className="w-[24%] px-4 py-3 font-medium">Account name</th>
+                    <th className="w-[22%] px-4 py-3 font-medium">Email</th>
+                    <th className="w-[13%] px-4 py-3 font-medium">ERP ACC#</th>
+                    <th className="w-[13%] px-4 py-3 font-medium">Last login</th>
                     <th className="w-[14%] px-4 py-3 font-medium">Login</th>
                     <th className="w-[14%] px-4 py-3 font-medium">Status</th>
                   </tr>
@@ -1312,6 +1315,14 @@ const WebsitePortalsPage = () => {
                         <td className="px-4 py-3 text-xs text-muted-foreground">{account.email || "No email on file"}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">
                           {account.isErpCustomer ? <span>{account.accountNumber || "ERP customer"}</span> : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          {formatDateTime(user?.lastPortalLoginAt ?? account.linkedPortalUsers.reduce<string | null>(
+                            (latest, linkedUser) => !latest || (linkedUser.lastPortalLoginAt && linkedUser.lastPortalLoginAt > latest)
+                              ? linkedUser.lastPortalLoginAt
+                              : latest,
+                            null,
+                          ))}
                         </td>
                         <td className="px-4 py-3">
                           {user ? (
@@ -1352,7 +1363,7 @@ const WebsitePortalsPage = () => {
                       </ContextMenu>
                     );
                   })}
-                  {!accounts.length ? <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
+                  {!accounts.length ? <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
                 </tbody>
               </table>
             </div>

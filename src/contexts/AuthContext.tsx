@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import type { AuthAudience, AuthIntent } from "@/lib/authFlow";
+import { isPortalEmulationActive } from "@/lib/portalEmulation";
 
 export interface AuthSignupDetails {
   fullName?: string;
@@ -49,6 +50,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // The customer emulation flow creates a real customer session. Its
+        // marker is placed in tab storage before verifyOtp runs, so this only
+        // records a customer's own sign-in, never an admin preview.
+        if (event === "SIGNED_IN" && session && !isPortalEmulationActive()) {
+          void (async () => {
+            const { error } = await (supabase.rpc as any)("record_customer_portal_login");
+            // The tracking migration must never prevent authentication if it
+            // has not reached an environment yet.
+            if (error) return;
+          })();
+        }
       }
     );
 

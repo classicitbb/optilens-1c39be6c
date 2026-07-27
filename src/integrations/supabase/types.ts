@@ -6217,6 +6217,7 @@ export type Database = {
           email_verified_at: string | null
           full_name: string | null
           id: string
+          last_portal_login_at: string | null
           organization_name: string | null
           phone: string | null
           portal_access_approved_at: string | null
@@ -6245,6 +6246,7 @@ export type Database = {
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
+          last_portal_login_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_approved_at?: string | null
@@ -6273,6 +6275,7 @@ export type Database = {
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
+          last_portal_login_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_approved_at?: string | null
@@ -9243,6 +9246,7 @@ export type Database = {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
       }
+      record_customer_portal_login: { Args: never; Returns: string | null }
       record_payment_gateway_test: {
         Args: { p_actor_user_id?: string; p_success: boolean }
         Returns: undefined
