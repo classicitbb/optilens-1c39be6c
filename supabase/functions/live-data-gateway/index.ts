@@ -710,11 +710,21 @@ async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
   }
 
   if (action === "agent.next") {
+    // Polling proves the agent is alive even if its heartbeat action name differs.
+    await supabase.from("live_data_gateway_agents").upsert({
+      api_key_id: key.id,
+      agent_name: typeof body.agent_name === "string" ? body.agent_name.slice(0, 100) : "OptiLens Local",
+      capabilities: Array.isArray(body.capabilities)
+        ? body.capabilities.filter((value): value is Operation => typeof value === "string" && value in OPERATIONS)
+        : Object.keys(OPERATIONS),
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: "api_key_id" });
     const { data, error } = await supabase.rpc("claim_live_data_gateway_request", { p_agent_key_id: key.id });
     if (error) return json(req, { error: "Could not claim a live-data request.", detail: error.message }, 500);
     const requestRow = Array.isArray(data) ? data[0] ?? null : data ?? null;
     return json(req, { request: requestRow });
   }
+
 
   if (action === "agent.complete") {
     const requestId = typeof body.request_id === "string" ? body.request_id : "";
