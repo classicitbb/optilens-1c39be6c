@@ -3,7 +3,14 @@
 // they actually came from instead of always landing on the homepage.
 const STORAGE_KEY = "cv:lastNonProfilePath";
 
+// Paths that should never be treated as "where the user came from" — going
+// back to an auth screen or a raw redirect target is never what they want.
+const EXCLUDED_PREFIXES = ["/profile", "/auth", "/reset-password", "/unsubscribe"];
+
 export const recordNonProfilePath = (path: string) => {
+  if (EXCLUDED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`))) {
+    return;
+  }
   try {
     sessionStorage.setItem(STORAGE_KEY, path);
   } catch {
