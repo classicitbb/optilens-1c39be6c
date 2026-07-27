@@ -72,6 +72,8 @@ type LiveDeliveryItem = {
 type LiveDeliveriesResponse = {
   deliveries: LiveDelivery[];
   retrieved_at: string;
+  source_status?: string | null;
+  fallback?: boolean;
 };
 
 type LiveInnovationsOrder = {
@@ -85,7 +87,10 @@ type LiveInnovationsOrder = {
 type LiveInnovationsOrdersResponse = {
   orders: LiveInnovationsOrder[];
   retrieved_at: string;
+  source_status?: string | null;
+  fallback?: boolean;
 };
+
 
 const formatLiveDate = (value: string | null) => {
   if (!value) return "—";
