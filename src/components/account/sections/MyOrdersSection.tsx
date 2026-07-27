@@ -72,6 +72,8 @@ type LiveDeliveryItem = {
 type LiveDeliveriesResponse = {
   deliveries: LiveDelivery[];
   retrieved_at: string;
+  source_status?: string | null;
+  fallback?: boolean;
 };
 
 type LiveInnovationsOrder = {
@@ -85,7 +87,10 @@ type LiveInnovationsOrder = {
 type LiveInnovationsOrdersResponse = {
   orders: LiveInnovationsOrder[];
   retrieved_at: string;
+  source_status?: string | null;
+  fallback?: boolean;
 };
+
 
 const formatLiveDate = (value: string | null) => {
   if (!value) return "—";
@@ -326,6 +331,20 @@ const MyOrdersSection = () => {
             </div>
           </div>
 
+          {innovationsOrdersQuery.data?.source_status === "cached" ? (
+            <Alert>
+              <AlertDescription>
+                The live lab connection is unavailable, so these are your most recent invoiced orders from billing records. Work still in progress may not appear until the connection is restored.
+              </AlertDescription>
+            </Alert>
+          ) : innovationsOrdersQuery.data?.source_status === "offline" ? (
+            <Alert>
+              <AlertDescription>
+                The live lab connection is offline, so order status can&apos;t be shown right now.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           {innovationsOrdersQuery.isError ? (
             <Alert variant="destructive" role="alert">
               <AlertDescription>
@@ -336,6 +355,7 @@ const MyOrdersSection = () => {
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : (innovationsOrdersQuery.data?.orders.length ?? 0) === 0 ? (
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
+
           ) : filteredInnovationsOrders.length === 0 ? (
             <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
           ) : (
@@ -440,7 +460,12 @@ const MyOrdersSection = () => {
           ) : deliveriesQuery.isLoading ? (
             <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : liveDeliveries.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No open shipments or recently closed deliveries were found.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
+              {deliveriesQuery.data?.source_status === "offline"
+                ? "The live shipment connection is offline, so deliveries can't be shown right now."
+                : "No open shipments or recently closed deliveries were found."}
+            </CardContent></Card>
+
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>

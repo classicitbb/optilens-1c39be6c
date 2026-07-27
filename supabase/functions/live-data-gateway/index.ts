@@ -343,8 +343,41 @@ async function cachedLiveDataResponse(
     };
   }
 
+  if (operation === "innovations.customer_orders") {
+    // The on-prem connector is the only source of *live* work-in-progress, but
+    // invoiced lab orders are already mirrored through statement_lines, so the
+    // portal can still show recent order history when the connector is offline.
+    const statements = await cachedStatements(supabase, customer);
+    const statementIds = statements
+      .map((row) => integer((row as JsonObject).innovations_statement_id))
+      .filter((value): value is number => typeof value === "number");
+    if (statementIds.length === 0) return null;
+    const { data: lines } = await supabase
+      .from("statement_lines")
+      .select("order_id,invoice_id,patient,reference,order_type_name,post_date,amount")
+      .in("innovations_statement_id", statementIds)
+      .not("order_id", "is", null)
+      .order("post_date", { ascending: false, nullsFirst: false })
+      .limit(200);
+    if (!lines || lines.length === 0) return null;
+    return {
+      orders: (lines as JsonObject[]).map((line) => ({
+        rx_number: line.order_id === null || line.order_id === undefined ? null : String(line.order_id),
+        patient: (line.patient as string | null) || (line.reference as string | null) || null,
+        received_at: line.post_date ?? null,
+        promise_date: null,
+        status_name: (line.order_type_name as string | null) ?? "Invoiced",
+        invoice_id: line.invoice_id ?? null,
+        amount: line.amount ?? null,
+      })),
+      retrieved_at: new Date().toISOString(),
+      source_status: "cached",
+    };
+  }
+
   return null;
 }
+
 
 function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping) {
   const base = {
