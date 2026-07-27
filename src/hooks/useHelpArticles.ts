@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useToast } from "@/hooks/use-toast";
 import { canViewContextSlug } from "@/lib/wikiPermissions";
 import { canonicalToHtml, toCanonicalDocument } from "@/lib/wikiCanonical";
 import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
@@ -63,6 +64,7 @@ const normalizeArticle = (row: HelpArticleRow): HelpArticle => {
 
 export const useHelpArticles = (pageSlug?: string) => {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
   const canPublish = canEditFeature("wiki");
 
@@ -174,6 +176,10 @@ export const useHelpArticles = (pageSlug?: string) => {
       qc.invalidateQueries({ queryKey: ["help_articles"] });
       qc.invalidateQueries({ queryKey: ["help_articles_all"] });
       qc.invalidateQueries({ queryKey: ["help_article_versions"] });
+    },
+    onError: (error: unknown) => {
+      const description = error instanceof Error ? error.message : "Something went wrong while saving. Please try again.";
+      toast({ title: "Save failed", description, variant: "destructive" });
     },
   });
 

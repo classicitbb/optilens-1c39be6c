@@ -67,6 +67,7 @@ const RichTextEditor = ({
         heading: { levels: [1, 2, 3] },
         bulletList: { keepMarks: true },
         orderedList: { keepMarks: true },
+        link: false,
       }),
       Link.configure({
         openOnClick: false,

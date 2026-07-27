@@ -272,6 +272,10 @@ const AdminWikiPage = () => {
         }),
         { replace: false },
       );
+    } catch (error) {
+      const description =
+        error instanceof Error ? error.message : "Something went wrong while saving. Please try again.";
+      toast({ title: "Save failed", description, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
