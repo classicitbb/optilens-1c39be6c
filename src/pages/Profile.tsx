@@ -83,6 +83,15 @@ const Profile = () => {
     openTickets.length ? `${openTickets.length} open support request${openTickets.length === 1 ? "" : "s"}.` : null,
     canViewStatements && currentBalance > 0 ? `Account balance: BBD $${money(currentBalance)}.` : null,
   ].filter(Boolean) as string[];
+  const needsAttentionRoute = accessStatus !== "approved_customer"
+    ? "/profile/account"
+    : totalActiveOrders
+      ? "/profile/orders"
+      : openTickets.length
+        ? "/profile/helpdesk"
+        : canViewStatements && currentBalance > 0
+          ? "/profile/statements"
+          : "/profile/account";
 
   if (commandCenterQuery.isLoading || identityLoading) {
     return <div className="grid min-h-[420px] place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>;
@@ -93,15 +102,15 @@ const Profile = () => {
       <section className="overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b1e35,#125a69)] p-6 text-white shadow-medium sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Your website orders, Rx drafts, pricing, statements and support are brought together here.</p></div>
-          <div className="flex flex-wrap gap-2">{canUseLensAssistant ? <Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/profile/lens-assistant?mode=order&audience=professional"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button> : null}{isStaffRole(role) ? <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/networking-card"><QrCode className="mr-2 h-4 w-4" />Share my card</Link></Button> : null}<Button variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white" onClick={() => openAssistant({ query: "Show me what needs attention in my account.", autoSubmit: true, profile: "portal_support" })}><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Button></div>
+          <div className="flex flex-wrap gap-2">{canUseLensAssistant ? <Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/rx-order"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button> : null}{isStaffRole(role) ? <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/networking-card"><QrCode className="mr-2 h-4 w-4" />Share my card</Link></Button> : null}<Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/helpdesk"><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Link></Button></div>
         </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
-        <SummaryCard icon={AlertCircle} label="Needs attention" value={String(needsAttention.length)} detail={needsAttention[0] || "Nothing urgent"} tone="amber" />
-        <SummaryCard icon={PackageCheck} label="Active orders" value={String(totalActiveOrders)} tone="teal" />
-        <SummaryCard icon={FileText} label="Saved drafts" value={String(data?.drafts.length ?? 0)} detail="Cart and controlled Rx drafts" />
-        {canViewStatements ? <SummaryCard icon={CircleDollarSign} label="Current balance" value={`$${money(currentBalance)}`} detail="BBD · from the latest available account data" /> : null}
+        <SummaryCard icon={AlertCircle} label="Needs attention" value={String(needsAttention.length)} detail={needsAttention[0] || "Nothing urgent"} tone="amber" to={needsAttentionRoute} />
+        <SummaryCard icon={PackageCheck} label="Active orders" value={String(totalActiveOrders)} tone="teal" to="/profile/orders" />
+        <SummaryCard icon={FileText} label="Saved drafts" value={String(data?.drafts.length ?? 0)} detail="Cart and controlled Rx drafts" to="/profile/drafts" />
+        {canViewStatements ? <SummaryCard icon={CircleDollarSign} label="Current balance" value={`$${money(currentBalance)}`} detail="BBD · from the latest available account data" to="/profile/statements" /> : null}
       </section>
 
       {accessStatus !== "approved_customer" ? (
@@ -141,7 +150,13 @@ const Profile = () => {
   );
 };
 
-const SummaryCard = ({ icon: Icon, label, value, detail, tone = "default" }: { icon: typeof AlertCircle; label: string; value: string; detail?: string; tone?: "default" | "amber" | "teal" }) => <Card className={tone === "amber" ? "border-amber-200" : tone === "teal" ? "border-cyan-200" : undefined}><CardContent className="flex items-start gap-4 p-5"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${tone === "amber" ? "bg-amber-100 text-amber-700" : tone === "teal" ? "bg-cyan-100 text-cyan-700" : "bg-muted text-foreground"}`}><Icon className="h-5 w-5" /></span><span><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span><strong className="mt-1 block text-2xl">{value}</strong>{detail ? <span className="mt-1 block text-xs leading-5 text-muted-foreground">{detail}</span> : null}</span></CardContent></Card>;
+const SummaryCard = ({ icon: Icon, label, value, detail, tone = "default", to }: { icon: typeof AlertCircle; label: string; value: string; detail?: string; tone?: "default" | "amber" | "teal"; to: string }) => (
+  <Link to={to} aria-label={`View ${label}`} className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+    <Card className={`h-full cursor-pointer transition-all group-hover:-translate-y-0.5 group-hover:shadow-md ${tone === "amber" ? "border-amber-200" : tone === "teal" ? "border-cyan-200" : ""}`}>
+      <CardContent className="flex items-start gap-4 p-5"><span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${tone === "amber" ? "bg-amber-100 text-amber-700" : tone === "teal" ? "bg-cyan-100 text-cyan-700" : "bg-muted text-foreground"}`}><Icon className="h-5 w-5" /></span><span><span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</span><strong className="mt-1 block text-2xl">{value}</strong>{detail ? <span className="mt-1 block text-xs leading-5 text-muted-foreground">{detail}</span> : null}</span></CardContent>
+    </Card>
+  </Link>
+);
 
 const InfoRow = ({ label, value, icon: Icon }: { label: string; value: string; icon: typeof FileText }) => <div className="flex items-center gap-3 rounded-lg bg-muted/40 p-3"><Icon className="h-5 w-5 text-primary" /><span><span className="block text-xs text-muted-foreground">{label}</span><strong>{value}</strong></span></div>;
 const EmptyState = ({ title, detail }: { title: string; detail: string }) => <div className="rounded-xl border border-dashed p-6 text-center"><p className="font-semibold">{title}</p><p className="mt-1 text-sm text-muted-foreground">{detail}</p></div>;
