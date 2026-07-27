@@ -272,12 +272,8 @@ const MyOrdersSection = () => {
     setInnovationsVisibleCount(INNOVATIONS_ORDERS_PAGE_SIZE);
   }, [innovationsSearch]);
   const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
-  // The total reflects every matching order (not just the visible page), same
-  // as the search which always runs against the full fetched set.
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
-  const innovationsTotal = showPrices && innovationsPrices.some((value) => value != null)
-    ? innovationsPrices.reduce((sum, value) => sum + (value ?? 0), 0)
-    : null;
+
   const pendingOrders = orders.filter((order) => ["draft", "pending", "confirmed", "processing"].includes(order.status));
   const completedOrders = orders.filter((order) => order.status === "completed");
   const otherOrders = orders.filter((order) => !["draft", "pending", "confirmed", "processing", "completed"].includes(order.status));
@@ -401,15 +397,6 @@ const MyOrdersSection = () => {
                       </TableRow>
                     ))}
                   </TableBody>
-                  {showPrices ? (
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell colSpan={4} />
-                        <TableCell className="text-right font-semibold">Total</TableCell>
-                        <TableCell className="text-right font-semibold">{formatLivePrice(innovationsTotal)}</TableCell>
-                      </TableRow>
-                    </TableFooter>
-                  ) : null}
                 </Table>
               </CardContent>
               {filteredInnovationsOrders.length > innovationsVisibleCount ? (
