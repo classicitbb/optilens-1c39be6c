@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { fieldsMatch } from "@/lib/wildcardMatch";
-import { Search, BookOpen, ArrowRight } from "lucide-react";
+import { Search, BookOpen, ArrowRight, PlusCircle } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
@@ -25,16 +25,21 @@ const GlobalSearch = () => {
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const navigate = useNavigate();
+  const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { canView } = useRolePermissions();
+  const { canView, hasAppAccess } = useRolePermissions();
 
   const moduleResults = useMemo<SearchResult[]>(() => {
     return Object.values(ADMIN_APPS)
       .flatMap((app) =>
         app.sidebarItems.map((item) => {
           const feature = PATH_FEATURE_MAP[item.route];
-          if (!feature || !canView(feature)) return null;
+          // Keep search visibility aligned with the app launcher. The path map
+          // provides granular role checks where available, while app access is
+          // the fallback for modules whose permission is app-scoped or whose
+          // route is protected by the admin shell itself.
+          if ((!feature || !canView(feature)) && !hasAppAccess(app.featurePrefix)) return null;
           return {
             id: `module-${item.route}`,
             label: item.label,
@@ -46,7 +51,20 @@ const GlobalSearch = () => {
         })
       )
       .filter((item): item is SearchResult => !!item);
-  }, [canView]);
+  }, [canView, hasAppAccess]);
+
+  const actionResults = useMemo<SearchResult[]>(() => {
+    if (!hasAppAccess("crm")) return [];
+
+    return [{
+      id: "action-create-activity",
+      label: "Create Activity",
+      sublabel: "CRM",
+      path: "/admin/crm/activities?create=1",
+      icon: PlusCircle,
+      group: "Actions",
+    }];
+  }, [hasAppAccess]);
 
   const { data: wikiResults = [] } = useQuery({
     queryKey: ["global_search_wiki_articles"],
@@ -96,12 +114,15 @@ const GlobalSearch = () => {
     enabled: canView("wiki"),
   });
 
-  const allResults = useMemo(() => [...moduleResults, ...wikiResults], [moduleResults, wikiResults]);
+  const allResults = useMemo(
+    () => [...moduleResults, ...actionResults, ...wikiResults],
+    [actionResults, moduleResults, wikiResults],
+  );
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group)).slice(0, 10);
+    return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group));
   }, [allResults, query]);
 
   // Group results
@@ -158,6 +179,18 @@ const GlobalSearch = () => {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
+  const selectResult = (result: SearchResult) => {
+    if (result.id === "action-create-activity") {
+      const params = new URLSearchParams(location.search);
+      params.set("createActivity", "1");
+      navigate({ pathname: location.pathname, search: `?${params.toString()}` });
+    } else {
+      navigate(result.path);
+    }
+    setOpen(false);
+    setQuery("");
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -166,16 +199,12 @@ const GlobalSearch = () => {
       e.preventDefault();
       setHighlighted((h) => Math.max(h - 1, 0));
     } else if (e.key === "Enter" && flatResults[highlighted]) {
-      navigate(flatResults[highlighted].path);
-      setOpen(false);
-      setQuery("");
+      selectResult(flatResults[highlighted]);
     }
   };
 
   const handleSelect = (result: SearchResult) => {
-    navigate(result.path);
-    setOpen(false);
-    setQuery("");
+    selectResult(result);
   };
 
   const showDropdown = open && query.trim().length > 0;

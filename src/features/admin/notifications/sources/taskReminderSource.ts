@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import type { AdminNotificationEvent } from "@/features/admin/notifications/types";
 
 type DraftQuoteRow = {
@@ -12,9 +11,11 @@ type CampaignActivationProfileRow = {
   created_at: string;
 };
 
-const PLACEHOLDER_ROUTES = [
-  "/admin/crm/activities",
-] as const;
+type ActivityReminderRow = {
+  id: string;
+  activity_type: string;
+  due_at: string;
+};
 
 export async function getTaskReminderNotifications(): Promise<AdminNotificationEvent[]> {
   const reminders: AdminNotificationEvent[] = [];
@@ -61,23 +62,51 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
     });
   }
 
-  const moduleReminderTimestamp = new Date().toISOString();
-  PLACEHOLDER_ROUTES.forEach((route) => {
-    const sidebarItem = Object.values(ADMIN_APPS)
-      .flatMap((app) => app.sidebarItems)
-      .find((item) => item.route === route);
-    if (!sidebarItem) return;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
 
+  const { data: activityRows } = await (supabase.from("activities") as any)
+    .select("id,activity_type,due_at")
+    .neq("status", "completed")
+    .gte("due_at", startOfToday.toISOString())
+    .lt("due_at", startOfTomorrow.toISOString())
+    .order("due_at", { ascending: true })
+    .limit(100);
+
+  const dueToday = (activityRows ?? []) as ActivityReminderRow[];
+  if (dueToday.length > 0) {
     reminders.push({
-      id: `task_reminder:placeholder:${route}`,
+      id: "task_reminder:activities:today",
       type: "task_reminder",
-      title: `Finish setup: ${sidebarItem.label}`,
-      message: "This workflow is still a placeholder and needs implementation follow-up.",
-      createdAt: moduleReminderTimestamp,
+      title: `${dueToday.length} activit${dueToday.length === 1 ? "y" : "ies"} due today`,
+      message: dueToday.slice(0, 3).map((activity) => activity.activity_type).join(", "),
+      createdAt: dueToday[0].due_at,
       severity: "info",
-      href: route,
+      href: "/admin/crm/activities?urgency=today",
     });
-  });
+  }
+
+  const { data: overdueRows } = await (supabase.from("activities") as any)
+    .select("id,activity_type,due_at")
+    .neq("status", "completed")
+    .lt("due_at", startOfToday.toISOString())
+    .order("due_at", { ascending: true })
+    .limit(100);
+
+  const overdue = (overdueRows ?? []) as ActivityReminderRow[];
+  if (overdue.length > 0) {
+    reminders.push({
+      id: "task_reminder:activities:overdue",
+      type: "task_reminder",
+      title: `${overdue.length} overdue activit${overdue.length === 1 ? "y" : "ies"}`,
+      message: overdue.slice(0, 3).map((activity) => activity.activity_type).join(", "),
+      createdAt: overdue[0].due_at,
+      severity: "warning",
+      href: "/admin/crm/activities?urgency=overdue",
+    });
+  }
 
   return reminders;
 }

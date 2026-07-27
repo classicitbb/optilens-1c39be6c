@@ -18,7 +18,7 @@ export interface CrmActivity {
   created_at: string;
 }
 
-interface CreateActivityInput {
+export interface ActivityMutationInput {
   activityType: string;
   dueAt?: string;
   opportunityId?: string;
@@ -66,7 +66,7 @@ export const useStaffNames = () => {
 export const useCreateActivity = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: CreateActivityInput) => {
+    mutationFn: async (input: ActivityMutationInput) => {
       const payload = {
         activity_type: input.activityType,
         due_at: input.dueAt || null,
@@ -85,6 +85,28 @@ export const useCreateActivity = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["crm-activities"] });
       qc.invalidateQueries({ queryKey: ["crm-opportunities"] });
+    },
+  });
+};
+
+export const useUpdateActivity = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: ActivityMutationInput & { id: string }) => {
+      const { error } = await (supabase.from("activities") as any)
+        .update({
+          activity_type: input.activityType,
+          due_at: input.dueAt || null,
+          type: input.type || "note",
+          content: input.content || null,
+          status: input.status || "open",
+        } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm-activities"] });
+      qc.invalidateQueries({ queryKey: ["admin-notifications"] });
     },
   });
 };
