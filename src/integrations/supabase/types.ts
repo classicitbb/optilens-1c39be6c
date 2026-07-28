@@ -4643,6 +4643,33 @@ export type Database = {
           },
         ]
       }
+      live_data_gateway_request_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: number
+          latency_ms: number
+          operation: string | null
+          status_code: number
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: never
+          latency_ms: number
+          operation?: string | null
+          status_code: number
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: never
+          latency_ms?: number
+          operation?: string | null
+          status_code?: number
+        }
+        Relationships: []
+      }
       live_data_gateway_requests: {
         Row: {
           arguments: Json
