@@ -1,8 +1,11 @@
-import { Activity, AlertTriangle, CheckCircle2, Clock3, RefreshCw, Server, XCircle } from "lucide-react";
+import { useState } from "react";
+import { Activity, AlertTriangle, CheckCircle2, Clock3, RefreshCw, RotateCw, Server, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useEdgeFunctionHealth } from "@/features/admin/edge-function-health/useEdgeFunctionHealth";
 import { AGENT_ONLINE_MS, useLiveDataGatewayDiagnostics } from "@/features/admin/edge-function-health/useLiveDataGatewayDiagnostics";
 
@@ -15,8 +18,10 @@ const statusCodeBadgeVariant = (statusCode: number): "secondary" | "outline" | "
 };
 
 export default function EdgeFunctionStatusPage() {
+  const { toast } = useToast();
   const health = useEdgeFunctionHealth();
   const gateway = useLiveDataGatewayDiagnostics();
+  const [redeploying, setRedeploying] = useState(false);
   const functions = health.data?.functions ?? [];
   const latestRun = health.data?.latestRun ?? null;
   const healthyCount = functions.filter((item) => item.is_healthy).length;
@@ -32,6 +37,36 @@ export default function EdgeFunctionStatusPage() {
   const agentOnline = Boolean(
     gatewayAgent && Date.now() - new Date(gatewayAgent.last_seen_at).getTime() < AGENT_ONLINE_MS,
   );
+
+  const redeployGateway = async () => {
+    if (!window.confirm("Redeploy live-data-gateway from its current main source? This replaces the running function.")) return;
+    setRedeploying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("redeploy-edge-function", {
+        body: { function_name: "live-data-gateway" },
+      });
+      if (error) {
+        let description = error.message;
+        const context = (error as { context?: unknown }).context;
+        if (context instanceof Response) {
+          const payload = await context.clone().json().catch(() => null) as { error?: string; detail?: string; missing?: string[] } | null;
+          if (payload?.error) {
+            description = [payload.error, payload.detail, payload.missing?.length ? `Missing: ${payload.missing.join(", ")}` : null]
+              .filter(Boolean)
+              .join(" ");
+          }
+        }
+        toast({ title: "Redeploy failed", description, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Redeployed", description: `${data?.function_name ?? "live-data-gateway"} is running the latest main source.` });
+      void health.refetch();
+    } catch (err) {
+      toast({ title: "Redeploy failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    } finally {
+      setRedeploying(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -60,12 +95,18 @@ export default function EdgeFunctionStatusPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Server className="h-5 w-5" />
-            Live-Data Gateway Connector
-          </CardTitle>
-          <CardDescription>OptiLens Local's heartbeat and the gateway function's own reachability.</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5" />
+              Live-Data Gateway Connector
+            </CardTitle>
+            <CardDescription>OptiLens Local's heartbeat and the gateway function's own reachability.</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0 gap-2" onClick={() => void redeployGateway()} disabled={redeploying}>
+            <RotateCw className={`h-3.5 w-3.5 ${redeploying ? "animate-spin" : ""}`} />
+            Redeploy
+          </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex flex-wrap gap-2 text-sm">
