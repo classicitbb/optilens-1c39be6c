@@ -11,6 +11,7 @@ const VERSION = "2026-07-16.1";
 const REQUEST_TTL_MS = 60_000;
 const AGENT_ONLINE_MS = 90_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
+const REQUEST_LOG_RETENTION_MS = 14 * 24 * 60 * 60_000;
 const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:write"]);
 
 const OPERATIONS = {
@@ -129,6 +130,25 @@ async function cleanup(supabase: SupabaseClient) {
     .in("status", ["pending", "claimed"])
     .lte("expires_at", now);
   await supabase.from("live_data_gateway_requests").delete().lte("purge_after", now);
+  await supabase
+    .from("live_data_gateway_request_log")
+    .delete()
+    .lt("created_at", new Date(Date.now() - REQUEST_LOG_RETENTION_MS).toISOString());
+}
+
+async function logGatewayRequest(params: { action: string; operation: string | null; statusCode: number; latencyMs: number }) {
+  try {
+    const supabase = adminClient();
+    const { error } = await supabase.from("live_data_gateway_request_log").insert({
+      action: params.action,
+      operation: params.operation,
+      status_code: params.statusCode,
+      latency_ms: params.latencyMs,
+    });
+    if (error) console.warn("live-data-gateway: failed to record request log", error.message);
+  } catch (error) {
+    console.warn("live-data-gateway: failed to record request log", error);
+  }
 }
 
 function statementPayload(row: JsonObject): JsonObject {
@@ -770,13 +790,20 @@ Deno.serve(async (req: Request) => {
   if (rejectedOrigin) return rejectedOrigin;
   if (req.method !== "POST") return json(req, { error: "Method not allowed." }, 405);
 
+  const startedAt = Date.now();
   const raw = await req.json().catch(() => null);
   if (!isObject(raw)) return json(req, { error: "JSON object body required." }, 400);
   const action = typeof raw.action === "string" ? raw.action : "";
-  if (action === "version") return json(req, { name: "live-data-gateway", version: VERSION, operations: Object.keys(OPERATIONS) });
-  if (action.startsWith("agent.")) return handleAgent(req, action, raw);
-  if (action === "request") return handleClientRequest(req, raw);
-  if (action === "status") return handleClientStatus(req, raw);
-  return json(req, { error: `Unsupported action: ${action}` }, 400);
+  const operation = typeof raw.operation === "string" ? raw.operation : null;
+
+  let response: Response;
+  if (action === "version") response = json(req, { name: "live-data-gateway", version: VERSION, operations: Object.keys(OPERATIONS) });
+  else if (action.startsWith("agent.")) response = await handleAgent(req, action, raw);
+  else if (action === "request") response = await handleClientRequest(req, raw);
+  else if (action === "status") response = await handleClientStatus(req, raw);
+  else response = json(req, { error: `Unsupported action: ${action}` }, 400);
+
+  await logGatewayRequest({ action: action || "unknown", operation, statusCode: response.status, latencyMs: Date.now() - startedAt });
+  return response;
 });
 
