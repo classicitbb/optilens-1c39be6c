@@ -152,6 +152,9 @@ const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; sh
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 pr-3">
                 <span className="font-medium text-foreground">Shipment #{liveDeliveryId(delivery)}</span>
                 <Badge variant="outline">{isOpen ? "Open" : "Closed"}</Badge>
+                {!isOpen ? (
+                  <span className="text-sm text-muted-foreground">Closed {formatLiveDate(delivery.closed_at)}</span>
+                ) : null}
                 <span className="text-sm text-muted-foreground">{shippingMethodName || "Delivery method pending"}</span>
                 <span className="text-sm text-muted-foreground">{shipmentRowCount} item{shipmentRowCount === 1 ? "" : "s"}</span>
                 {delivery.tracking_number ? (
