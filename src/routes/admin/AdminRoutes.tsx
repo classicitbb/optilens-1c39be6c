@@ -61,6 +61,7 @@ const FeatureBoardPage = lazy(() => import("@/pages/admin/website/FeatureBoardPa
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
 const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
+const AssistantQualityPage = lazy(() => import("@/pages/admin/assistant/AssistantQualityPage"));
 
 const AdminRoutes = () => (
   <Routes>
@@ -108,6 +109,7 @@ const AdminRoutes = () => (
       <Route path="helpdesk/teams" element={<Navigate to="/admin/helpdesk/config?section=teams" replace />} />
       <Route path="helpdesk/stages" element={<Navigate to="/admin/helpdesk/config?section=stages" replace />} />
       <Route path="helpdesk/config" element={<HelpdeskConfigPage />} />
+      <Route path="assistant/quality" element={<AssistantQualityPage />} />
 
       <Route path="website" element={<Navigate to="/admin/website/portals" replace />} />
       <Route path="website/content" element={<ContentManagerPage />} />

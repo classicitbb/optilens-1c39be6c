@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, X } from "lucide-react";
+import { Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -177,10 +177,15 @@ const MessageQuickActions = ({
 const AssistantResultCard = ({
   result,
   isEnhancing,
+  messageId,
+  feedback,
 }: {
   result: Extract<ReturnType<typeof useCompanionAssistant>["messages"][number], { kind: "result" }>["result"];
   isEnhancing?: boolean;
+  messageId: string;
+  feedback?: "helpful" | "not_helpful";
 }) => {
+  const { markFeedback } = useCompanionAssistant();
   const renderLink = (path: string, title: string, external?: boolean, website?: string) => {
     if (external) {
       return (
@@ -220,6 +225,34 @@ const AssistantResultCard = ({
         </div>
       </div>
 
+      <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+        <span className="text-xs text-foreground/50">Was this helpful?</span>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback === "helpful" ? "secondary" : "ghost"}
+            className="h-8 gap-1.5 text-xs"
+            aria-label="Helpful answer"
+            aria-pressed={feedback === "helpful"}
+            onClick={() => markFeedback(messageId, "helpful")}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" /> Helpful
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback === "not_helpful" ? "secondary" : "ghost"}
+            className="h-8 gap-1.5 text-xs"
+            aria-label="Not helpful answer"
+            aria-pressed={feedback === "not_helpful"}
+            onClick={() => markFeedback(messageId, "not_helpful")}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
+          </Button>
+        </div>
+      </div>
+
       {(result.citations ?? result.topLinks).length > 0 ? (
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Sources</p>
@@ -253,21 +286,33 @@ const AssistantResultCard = ({
 
 const AssistantMessageList = () => {
   const { messages, submitQuickAction } = useCompanionAssistant();
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const wasNearBottomRef = useRef(true);
 
   useEffect(() => {
-    if (typeof bottomRef.current?.scrollIntoView === "function") {
-      bottomRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
+    const container = scrollContainerRef.current;
+    const lastMessage = messages[messages.length - 1];
+    if (!container || !lastMessage || !wasNearBottomRef.current) return;
+
+    const target = container.querySelector<HTMLElement>(`[data-assistant-message-id="${lastMessage.id}"]`);
+    target?.scrollIntoView({ behavior: "smooth", block: lastMessage.role === "assistant" ? "start" : "end" });
   }, [messages]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-4"
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          wasNearBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 96;
+        }}
+      >
         <div className="space-y-4 pb-2">
           {messages.map((message, index) => (
             <div
               key={message.id}
+              data-assistant-message-id={message.id}
               className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
             >
               <div className={cn("max-w-[88%]", message.role === "user" ? "items-end" : "items-start")}>
@@ -285,6 +330,7 @@ const AssistantMessageList = () => {
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} isStarter={index === 0} onAction={submitQuickAction} />
                     ) : null}
+                    {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
                   </div>
                 ) : null}
 
@@ -292,6 +338,8 @@ const AssistantMessageList = () => {
                   <AssistantResultCard
                     result={message.result}
                     isEnhancing={message.isEnhancing}
+                    messageId={message.id}
+                    feedback={message.feedback}
                   />
                 ) : null}
 
@@ -304,14 +352,29 @@ const AssistantMessageList = () => {
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} isStarter={false} onAction={submitQuickAction} />
                     ) : null}
+                    <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} />
                   </div>
                 ) : null}
               </div>
             </div>
           ))}
-          <div ref={bottomRef} />
         </div>
       </div>
+    </div>
+  );
+};
+
+const AssistantFeedbackControls = ({ messageId, feedback }: { messageId: string; feedback?: "helpful" | "not_helpful" }) => {
+  const { markFeedback } = useCompanionAssistant();
+  return (
+    <div className="flex items-center justify-end gap-1 border-t border-border/40 pt-2">
+      <span className="mr-1 text-[11px] text-foreground/40">Helpful?</span>
+      <Button type="button" size="icon" variant={feedback === "helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Helpful answer" aria-pressed={feedback === "helpful"} onClick={() => markFeedback(messageId, "helpful")}>
+        <ThumbsUp className="h-3.5 w-3.5" />
+      </Button>
+      <Button type="button" size="icon" variant={feedback === "not_helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Not helpful answer" aria-pressed={feedback === "not_helpful"} onClick={() => markFeedback(messageId, "not_helpful")}>
+        <ThumbsDown className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 };
@@ -326,13 +389,16 @@ const CompanionAssistant = () => {
     openAssistant,
     closeAssistant,
     submitQuery,
+    activeAudience,
+    setActiveAudience,
+    saveConversation,
+    isSavingConversation,
     nudge,
     dismissNudge,
     isSubmitting,
     openDetachedWindow,
     formState,
   } = useCompanionAssistant();
-  const isProfileRoute = location.pathname.startsWith("/profile");
 
   // Track whether the user dismissed the nudge ("Not now") — collapse to icon-only bubble
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -402,6 +468,34 @@ const CompanionAssistant = () => {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-4 py-2">
+        <label className="flex items-center gap-2 text-xs text-foreground/60">
+          <span>Helping as</span>
+          <select
+            value={activeAudience}
+            onChange={(event) => setActiveAudience(event.target.value as typeof activeAudience)}
+            className="h-8 rounded-md border border-border/60 bg-background px-2 text-xs text-foreground"
+            aria-label="Assistant audience"
+          >
+            <option value="visitor">Just browsing</option>
+            <option value="patient">Patient</option>
+            <option value="dispenser">Dispenser</option>
+            <option value="customer">Customer</option>
+          </select>
+        </label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 text-xs text-foreground/60 hover:text-foreground"
+          onClick={() => void saveConversation()}
+          disabled={isSavingConversation}
+        >
+          {isSavingConversation ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+          Save this chat
+        </Button>
+      </div>
+
       <div className="border-b border-border/50 bg-muted/30 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/40">
         Search, products, retailers, support
       </div>
@@ -443,8 +537,6 @@ const CompanionAssistant = () => {
       </div>
     </div>
   );
-
-  if (isProfileRoute && !isDetachedRoute) return null;
 
   return (
     <>

@@ -3,8 +3,38 @@ import type { ContentArticle } from "@/hooks/useContentArticles";
 import { SITE_SEARCH_INDEX } from "@/lib/siteSearchIndex";
 import { retailerMarketMap, retailerMarkets, retailerSearchIndex, type RetailerEntry } from "@/data/retailers";
 
+export type AssistantAudience = "visitor" | "patient" | "dispenser" | "customer" | "staff";
 export type AssistantProfile = "general_search" | "retailer_help" | "customer_support" | "portal_support";
 export type AssistantLinkKind = "site" | "product" | "knowledge" | "retailer";
+export type AssistantAnswerMode = "direct_answer" | "guided_navigation" | "clarification" | "auth_required" | "support_handoff" | "escalate_unknown";
+export type AssistantSourceTier = "company_policy" | "site_content" | "knowledge_base" | "external_web" | "human_support";
+
+export interface AssistantCitation {
+  id: string;
+  title: string;
+  url: string;
+  sourceTier: AssistantSourceTier;
+  evidence?: string;
+}
+
+export interface AssistantAction {
+  id: string;
+  label: string;
+  type: "open_page" | "find_retailer" | "sign_in" | "support_handoff";
+  path?: string;
+  requiresConfirmation?: boolean;
+}
+
+export interface AssistantResponse {
+  answer: string;
+  audience: AssistantAudience;
+  intent: AssistantQueryResult["intent"];
+  mode: AssistantAnswerMode;
+  confidence: "high" | "medium" | "low";
+  citations: AssistantCitation[];
+  actions: AssistantAction[];
+  requiresAuth?: boolean;
+}
 
 export interface AssistantLinkResult {
   id: string;
@@ -18,17 +48,23 @@ export interface AssistantLinkResult {
   marketName?: string;
   external?: boolean;
   score: number;
+  sourceId?: string;
+  sourceTier?: AssistantSourceTier;
+  evidence?: string;
 }
 
 export interface AssistantQueryResult {
   query: string;
   profile: AssistantProfile;
+  audience: AssistantAudience;
   intent: "retailer" | "product" | "support" | "general";
   topLinks: AssistantLinkResult[];
   answer: string;
   citations?: AssistantLinkResult[];
+  actions: AssistantAction[];
   confidence: "high" | "medium" | "low";
   suggestsHumanHelp: boolean;
+  answerMode: AssistantAnswerMode;
 }
 
 type CorpusEntry = {
@@ -44,6 +80,9 @@ type CorpusEntry = {
   marketSlug?: string;
   marketName?: string;
   external?: boolean;
+  sourceId?: string;
+  sourceTier?: AssistantSourceTier;
+  evidence?: string;
 };
 
 export interface AssistantEngineInput {
@@ -63,7 +102,6 @@ const RETAILER_WORDS = ["retailer", "optical", "optician", "clinic", "doctor", "
 const PRODUCT_WORDS = ["lens", "lenses", "coating", "progressive", "single vision", "anti-fatigue", "photochromic", "polarized", "blue filter"];
 const SUPPORT_WORDS = ["support", "help", "ticket", "contact", "email", "call", "order", "account", "portal", "customer service"];
 const HOME_PATH = "/";
-const MIN_ANSWER_LENGTH = 150;
 const MAX_ANSWER_LENGTH = 200;
 const INDUSTRY_FALLBACK = "I can help with lenses, coatings, eyewear care, retailer search, and optical support across Barbados and the Caribbean. Ask within that context and I will guide you.";
 
@@ -82,14 +120,38 @@ const sentenceCase = (value: string) => value.charAt(0).toUpperCase() + value.sl
 
 const limitLength = (value: string) => {
   const normalized = value.replace(/\s+/g, " ").trim();
-  if (normalized.length <= MAX_ANSWER_LENGTH && normalized.length >= MIN_ANSWER_LENGTH) return normalized;
+  if (normalized.length <= MAX_ANSWER_LENGTH) return normalized;
   if (normalized.length > MAX_ANSWER_LENGTH) {
     const shortened = normalized.slice(0, MAX_ANSWER_LENGTH - 1);
     const pivot = Math.max(shortened.lastIndexOf("."), shortened.lastIndexOf(","), shortened.lastIndexOf(" "));
     return `${shortened.slice(0, pivot > 120 ? pivot : MAX_ANSWER_LENGTH - 4).trim()}...`;
   }
 
-  return `${normalized} Ask another optical question and I will keep the answer concise and useful.`;
+  return normalized;
+};
+
+const audienceForProfile = (profile: AssistantProfile): AssistantAudience => {
+  if (profile === "portal_support") return "customer";
+  return "visitor";
+};
+
+export const inferAssistantAudience = ({
+  query,
+  route,
+  profile,
+  requestedAudience,
+}: {
+  query: string;
+  route: string;
+  profile: AssistantProfile;
+  requestedAudience?: AssistantAudience;
+}): AssistantAudience => {
+  if (requestedAudience) return requestedAudience;
+  const text = normalizeText(query);
+  if (route.startsWith("/profile")) return "customer";
+  if (route.startsWith("/patients") || includesAny(text, ["patient", "my glasses", "my eyes", "for myself", "wearing"])) return "patient";
+  if (route.startsWith("/professionals") || route.startsWith("/dispensing-tips") || includesAny(text, ["dispensing", "dispense", "fitting", "lablink", "optical professional", "for my patient"])) return "dispenser";
+  return audienceForProfile(profile);
 };
 
 const buildRetailerPath = (marketSlug: string) =>
@@ -107,6 +169,9 @@ export const buildAssistantCorpus = ({ products, knowledge, runtimeHeadings = []
     label: entry.group,
     text: `${entry.title} ${entry.description} ${(entry.keywords ?? []).join(" ")}`,
     kind: "site",
+    sourceId: entry.id,
+    sourceTier: "site_content",
+    evidence: entry.description,
   }));
 
   const productEntries: CorpusEntry[] = products.map((product) => ({
@@ -117,6 +182,9 @@ export const buildAssistantCorpus = ({ products, knowledge, runtimeHeadings = []
     label: "Product",
     text: `${product.name} ${product.description} ${product.category} ${product.subcategory} ${product.tags.join(" ")}`,
     kind: "product",
+    sourceId: `product-${product.product_type}-${product.id}`,
+    sourceTier: "site_content",
+    evidence: `${product.name}. ${product.description}. Category: ${product.category}. ${product.subcategory}.`,
   }));
 
   const knowledgeEntries: CorpusEntry[] = knowledge.map((article) => ({
@@ -127,6 +195,9 @@ export const buildAssistantCorpus = ({ products, knowledge, runtimeHeadings = []
     label: "Knowledge Base",
     text: `${article.title} ${article.description} ${article.content} ${article.category}`,
     kind: "knowledge",
+    sourceId: `knowledge-${article.id}`,
+    sourceTier: "knowledge_base",
+    evidence: article.content.slice(0, 1800),
   }));
 
   const retailerEntries: CorpusEntry[] = retailerSearchIndex.map((entry) => ({
@@ -142,6 +213,9 @@ export const buildAssistantCorpus = ({ products, knowledge, runtimeHeadings = []
     marketSlug: entry.marketSlug,
     marketName: entry.marketName,
     external: Boolean(entry.website?.startsWith("http")),
+    sourceId: `retailer-${entry.marketSlug}-${entry.name}`,
+    sourceTier: "site_content",
+    evidence: buildRetailerDescription(entry, entry.marketName),
   }));
 
   const headingEntries: CorpusEntry[] = runtimeHeadings.map((heading) => ({
@@ -152,6 +226,9 @@ export const buildAssistantCorpus = ({ products, knowledge, runtimeHeadings = []
     label: "Heading",
     text: `${heading.title} ${heading.description ?? ""}`,
     kind: "site",
+    sourceId: heading.id,
+    sourceTier: "site_content",
+    evidence: `${heading.title}. ${heading.description ?? ""}`,
   }));
 
   return [...siteEntries, ...productEntries, ...knowledgeEntries, ...retailerEntries, ...headingEntries];
@@ -260,14 +337,17 @@ export const runAssistantQuery = ({
   query,
   route,
   profile,
+  audience,
   corpus,
 }: {
   query: string;
   route: string;
   profile: AssistantProfile;
+  audience?: AssistantAudience;
   corpus: CorpusEntry[];
 }): AssistantQueryResult => {
   const intent = inferIntent(query, route, profile);
+  const resolvedAudience = audience ?? inferAssistantAudience({ query, route, profile });
   const filteredCorpus = intent === "retailer"
     ? corpus.filter((entry) => entry.kind === "retailer" || entry.path.startsWith("/find-a-retailer"))
     : intent === "product"
@@ -294,21 +374,41 @@ export const runAssistantQuery = ({
       marketName: entry.marketName,
       external: entry.external,
       score: entry.score,
+      sourceId: entry.sourceId,
+      sourceTier: entry.sourceTier,
+      evidence: entry.evidence?.slice(0, 1800),
     });
   }
 
   const topLinks = preferUsefulLinks(Array.from(uniqueLinks.values()), intent).slice(0, 4);
   const confidence = inferConfidence(topLinks[0]?.score ?? 0);
   const answer = topLinks[0] ? buildAnswerFromLink(topLinks[0], intent) : buildNoMatchAnswer(intent, query);
+  const citations = topLinks.map((link) => ({
+    id: link.sourceId ?? link.id,
+    title: link.title,
+    url: link.path,
+    sourceTier: link.sourceTier ?? "site_content",
+    evidence: link.evidence,
+  }));
+  const actions = topLinks.slice(0, 3).map((link) => ({
+    id: `open-${link.id}`,
+    label: `Open ${link.label}`,
+    type: "open_page" as const,
+    path: link.path,
+  }));
 
   return {
     query,
     profile,
+    audience: resolvedAudience,
     intent,
     topLinks,
     answer,
+    citations,
+    actions,
     confidence,
     suggestsHumanHelp: topLinks.length === 0 && confidence === "low",
+    answerMode: topLinks.length === 0 && confidence === "low" ? "support_handoff" : "direct_answer",
   };
 };
 

@@ -97,6 +97,7 @@ const RetailerPromptHarness = () => {
 describe("CompanionAssistant", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
   it("renders starter actions when opened", async () => {
@@ -132,5 +133,8 @@ describe("CompanionAssistant", () => {
     });
 
     expect(await screen.findByText(/assistant response/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Helpful answer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Not helpful answer" })).toBeInTheDocument();
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: "start" }));
   });
 });

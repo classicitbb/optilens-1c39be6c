@@ -7,7 +7,7 @@ import {
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
   Kanban, CalendarCheck, Inbox,
   LayoutDashboard,
-  Ticket,
+  Ticket, MessageSquare,
   Layout, UserCircle, Store,
   BookMarked, HelpCircle,
   Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity,
@@ -100,6 +100,17 @@ export const ADMIN_APPS = {
       { label: 'Overview', route: '/admin/helpdesk/overview', icon: LayoutDashboard },
       { label: 'Tickets', route: '/admin/helpdesk/tickets', icon: Ticket },
       { label: 'Config', route: '/admin/helpdesk/config', icon: Settings },
+    ] satisfies SidebarItem[],
+  },
+  assistant: {
+    key: 'assistant' as const,
+    title: 'Assistant',
+    icon: MessageSquare,
+    baseRoute: '/admin/assistant',
+    defaultRoute: '/admin/assistant/quality',
+    featurePrefix: 'assistant',
+    sidebarItems: [
+      { label: 'Quality & Feedback', route: '/admin/assistant/quality', icon: MessageSquare },
     ] satisfies SidebarItem[],
   },
   website: {

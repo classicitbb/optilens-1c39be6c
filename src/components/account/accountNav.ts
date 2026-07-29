@@ -9,6 +9,7 @@ import {
   User,
   WalletCards,
   Glasses,
+  MessageSquare,
 } from "lucide-react";
 import type { SidebarNavItem } from "@/components/shared/SidebarNavList";
 
@@ -22,6 +23,7 @@ export const ACCOUNT_NAV_ITEMS: SidebarNavItem[] = [
   { label: "Payment Methods", to: "/profile/payment-methods", icon: WalletCards },
   { label: "Quote Requests", to: "/profile/quotes", icon: FileSignature },
   { label: "Helpdesk Tickets", to: "/profile/helpdesk", icon: LifeBuoy },
+  { label: "Saved Assistant Chats", to: "/profile/assistant-chats", icon: MessageSquare },
   { label: "Assigned Pricelist", to: "/profile/pricelists", icon: BadgeDollarSign },
   { label: "Statements", to: "/profile/statements", icon: DollarSign },
 ];

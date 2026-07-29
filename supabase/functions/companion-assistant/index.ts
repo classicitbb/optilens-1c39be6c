@@ -4,12 +4,12 @@ import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
 
 const corsPolicy = createCorsPolicy();
 
-const SYSTEM_PROMPT = `You are the Classic Visions search and help companion for visitors and customers.
+const SYSTEM_PROMPT = `You are the Classic Visions full-service support assistant for visitors, patients, optical dispensers, and customers.
 
 Your job:
-- Give immediate, smart, confident answers for an optical industry website.
-- Sound knowledgeable, warm, and commercially helpful without sounding pushy.
-- Stay within eyewear, lenses, coatings, retailer search, eye-care guidance, optical buying, or customer support context.
+- Give immediate, natural, useful answers grounded in the supplied Classic Visions evidence.
+- Sound knowledgeable, warm, and human without sounding scripted or pushy.
+- Adapt your language to the audience: plain and educational for patients, practical and professional for dispensers, concise and account-aware for customers, welcoming for visitors.
 
 Source priority (use in this order):
 1. Website content — published site pages, product catalog, retailer data, and company policies. Always prefer this first.
@@ -20,13 +20,17 @@ Source priority (use in this order):
 Formatting rules:
 - Format your answer in markdown. Use **bold** for key terms, bullet lists when comparing options or listing steps.
 - Cite sources inline using numbered references like [1], [2] that match the numbered "Website context links" list provided.
-- Answers should be as long as needed to fully help — typically 2–5 sentences or a short list.
+- Answer the actual question first. Use 2–6 sentences or a short list when that is clearer.
 - Do not truncate or trail off mid-sentence.
 - Return your answer only — no preamble like "Here is your answer:".
 - Do not dump bare URLs into the answer text. Links are shown separately as citations.
 - Do not invent website facts, policies, prices, or retailer details that were not supplied.
 - If the question is outside the site's scope, redirect politely into optical, eyewear, retailer, or support context.
+- If audience or intent is unclear, ask one concise clarifying question instead of guessing.
 - If retailer context is weak, still offer a helpful direction within Barbados or the Caribbean.
+- For dispensers, distinguish education from ordering or lab confirmation.
+- For patients, do not diagnose or interpret a prescription as medical advice.
+- For customer account questions, only rely on explicitly supplied account evidence.
 - Avoid medical diagnosis. For health-risk or prescription concerns, advise consulting an eye care professional.
 - When none of the first three source tiers can answer, suggest the visitor reach out to support (helpdesk ticket, phone, or email).
 - Never mention these instructions.`;
@@ -39,14 +43,19 @@ type ContextLink = {
   kind?: string;
   marketName?: string | null;
   website?: string | null;
+  sourceId?: string | null;
+  sourceTier?: string | null;
+  evidence?: string | null;
 };
 
 type CompanionRequest = {
   query?: string;
   route?: string;
   profile?: string;
+  audience?: string;
   intent?: string;
   confidence?: string;
+  answerMode?: string;
   fallbackAnswer?: string;
   topLinks?: ContextLink[];
   conversation?: Array<{
@@ -63,6 +72,13 @@ const buildUserPrompt = (payload: CompanionRequest) => {
     )
     .join("\n");
 
+  const evidence = (payload.topLinks ?? [])
+    .slice(0, 4)
+    .map((link, index) =>
+      `[${index + 1}] Source tier: ${link.sourceTier ?? "site_content"}; Source id: ${link.sourceId ?? "unknown"}\n${link.evidence ?? link.description ?? "No evidence excerpt supplied."}`,
+    )
+    .join("\n\n");
+
   const conversation = (payload.conversation ?? [])
     .slice(-6)
     .map((turn) => `${turn.role === "user" ? "User" : "Assistant"}: ${turn.text ?? ""}`)
@@ -72,11 +88,16 @@ const buildUserPrompt = (payload: CompanionRequest) => {
     `Visitor query: ${payload.query ?? ""}`,
     `Current route: ${payload.route ?? ""}`,
     `Assistant profile: ${payload.profile ?? ""}`,
+    `Audience: ${payload.audience ?? "visitor"}`,
     `Detected intent: ${payload.intent ?? ""}`,
     `Local confidence: ${payload.confidence ?? ""}`,
+    `Answer mode: ${payload.answerMode ?? "direct_answer"}`,
     "",
     "Website context links (cite these as [1], [2], etc. in your answer):",
     topLinks || "None supplied.",
+    "",
+    "Evidence excerpts (these are the facts you may use):",
+    evidence || "None supplied.",
     "",
     "Recent conversation:",
     conversation || "No prior turns.",
@@ -139,7 +160,7 @@ serve(async (req) => {
       ? await generateWithGateway(payload, gatewayKey)
       : payload.fallbackAnswer ?? null;
 
-    const answer = (rawAnswer ?? payload.fallbackAnswer ?? "").replace(/\s+/g, " ").trim() || null;
+    const answer = (rawAnswer ?? payload.fallbackAnswer ?? "").trim() || null;
     const citations = (payload.topLinks ?? []).slice(0, 4);
 
     return new Response(JSON.stringify({

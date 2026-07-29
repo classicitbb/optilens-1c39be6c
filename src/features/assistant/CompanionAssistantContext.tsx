@@ -14,8 +14,10 @@ import {
   buildAssistantCorpus,
   buildRetailerPrompt,
   collectRuntimeHeadings,
+  inferAssistantAudience,
   runAssistantQuery,
   shouldAskClarifier,
+  type AssistantAudience,
   type AssistantProfile,
 } from "./companionAssistantEngine";
 import {
@@ -39,11 +41,32 @@ export type {
 
 const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 const POPOUT_SNAPSHOT_KEY = "companion-assistant-popout";
+const PENDING_SAVE_KEY = "companion-assistant-pending-save";
+const ANONYMOUS_SESSION_KEY = "companion-assistant-anonymous-session";
 
 const getProfileForRoute = (pathname: string): AssistantProfile => {
   if (pathname.startsWith("/profile")) return "portal_support";
   if (pathname.startsWith("/find-a-retailer")) return "retailer_help";
   return "general_search";
+};
+
+const getDefaultAudienceForRoute = (pathname: string): AssistantAudience => {
+  if (pathname.startsWith("/profile")) return "customer";
+  if (pathname.startsWith("/patients")) return "patient";
+  if (pathname.startsWith("/professionals") || pathname.startsWith("/dispensing-tips")) return "dispenser";
+  return "visitor";
+};
+
+const getAnonymousSessionId = () => {
+  try {
+    const existing = window.sessionStorage.getItem(ANONYMOUS_SESSION_KEY);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    window.sessionStorage.setItem(ANONYMOUS_SESSION_KEY, created);
+    return created;
+  } catch {
+    return `anonymous-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
 };
 
 const getStarterActions = (pathname: string): AssistantQuickAction[] =>
@@ -141,12 +164,15 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const userName = resolveUserFullName(user) || "";
   const userEmail = user?.email?.trim() || "";
   const activeProfile = getProfileForRoute(pathname);
+  const [audienceOverride, setAudienceOverride] = useState<AssistantAudience | null>(null);
+  const activeAudience = audienceOverride ?? getDefaultAudienceForRoute(pathname);
   const starterActions = useMemo(() => getStarterActions(pathname), [pathname]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [currentQuery, setCurrentQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingConversation, setIsSavingConversation] = useState(false);
   const [nudge, setNudge] = useState<{ message: string; query?: string } | null>(null);
   const [formState, setFormState] = useState<AssistantFormState | null>(null);
   const lastQueryRef = useRef<string | null>(null);
@@ -176,6 +202,62 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       },
     ]);
   }, [pathname, starterActions]);
+
+  const persistConversation = useCallback(async (conversationMessages: AssistantMessage[], audience: AssistantAudience) => {
+    if (!user || conversationMessages.length < 2) return;
+
+    setIsSavingConversation(true);
+    try {
+      const firstUserMessage = conversationMessages.find((message) => message.role === "user" && message.kind === "user");
+      const title = firstUserMessage && firstUserMessage.kind === "user"
+        ? firstUserMessage.text.slice(0, 80)
+        : "Assistant conversation";
+      const { data: conversation, error: conversationError } = await (supabase as any)
+        .from("assistant_conversations")
+        .insert({ user_id: user.id, title, audience, context: { route: pathname } })
+        .select("id")
+        .single();
+      if (conversationError) throw conversationError;
+
+      const rows = conversationMessages
+        .filter((message): message is Extract<AssistantMessage, { kind: "text" | "user" | "result" }> => message.kind === "text" || message.kind === "user" || message.kind === "result")
+        .map((message) => ({
+          conversation_id: conversation.id,
+          user_id: user.id,
+          role: message.role,
+          content: message.kind === "result" ? message.result.answer : message.text,
+          metadata: message.kind === "result" ? {
+            query: message.result.query,
+            audience: message.result.audience,
+            intent: message.result.intent,
+            answerMode: message.result.answerMode,
+            confidence: message.result.confidence,
+            citations: message.result.citations ?? message.result.topLinks,
+          } : {},
+        }));
+
+      if (rows.length) {
+        const { error: messageError } = await (supabase as any).from("assistant_messages").insert(rows);
+        if (messageError) throw messageError;
+      }
+      try { window.sessionStorage.removeItem(PENDING_SAVE_KEY); } catch { /* best effort */ }
+    } finally {
+      setIsSavingConversation(false);
+    }
+  }, [pathname, user]);
+
+  const saveConversation = useCallback(async () => {
+    if (messages.length < 2) return;
+    if (!user) {
+      try {
+        window.sessionStorage.setItem(PENDING_SAVE_KEY, JSON.stringify({ messages, audience: activeAudience }));
+      } catch { /* best effort */ }
+      const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.href = `/auth?mode=signin&redirect=${encodeURIComponent(redirect)}`;
+      return;
+    }
+    await persistConversation(messages, activeAudience);
+  }, [activeAudience, messages, persistConversation, user]);
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -214,6 +296,21 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       setIsOpen(true);
     }
   }, [isDetachedRoute]);
+
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const raw = window.sessionStorage.getItem(PENDING_SAVE_KEY);
+      if (!raw) return;
+      const pending = JSON.parse(raw) as { messages?: AssistantMessage[]; audience?: AssistantAudience };
+      if (Array.isArray(pending.messages) && pending.messages.length > 1) {
+        setMessages(pending.messages);
+        void persistConversation(pending.messages, pending.audience ?? activeAudience);
+      }
+    } catch {
+      // Ignore malformed or unavailable pending-save state.
+    }
+  }, [activeAudience, persistConversation, user]);
 
   useEffect(() => {
     if (isOpen) return;
@@ -283,28 +380,43 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       const next = [payload, ...current].slice(0, 25);
       window.localStorage.setItem(key, JSON.stringify(next));
     } catch {
-      // Ignore storage issues. Feedback is best-effort on the client until a
-      // server-side analytics sink is introduced.
+      // Ignore storage issues; the server insert below remains authoritative.
     }
-  }, []);
+    void (async () => {
+      const identityKey = user?.id ?? getAnonymousSessionId();
+      const { error } = await (supabase as any).from("assistant_feedback").upsert({
+        ...payload,
+        user_id: user?.id ?? null,
+        anonymous_session_id: user ? null : identityKey,
+        feedback_key: `${identityKey}:${String(payload.message_id)}`,
+      }, { onConflict: "feedback_key" });
+      if (error) return;
+    })();
+  }, [user]);
 
   const markFeedback = useCallback((messageId: string, feedback: "helpful" | "not_helpful") => {
     setMessages((current) =>
       current.map((message) =>
-        message.id === messageId && message.kind === "result" ? { ...message, feedback } : message,
+        message.id === messageId && message.role === "assistant" ? { ...message, feedback } : message,
       ),
     );
 
-    const resultMessage = messages.find((message) => message.id === messageId && message.kind === "result");
-    if (!resultMessage || resultMessage.kind !== "result") return;
+    const assistantMessage = messages.find((message) => message.id === messageId && message.role === "assistant");
+    if (!assistantMessage || assistantMessage.role !== "assistant") return;
+    const result = assistantMessage.kind === "result" ? assistantMessage.result : null;
 
     persistFeedback({
-      messageId,
-      feedback,
-      query: resultMessage.result.query,
+      message_id: messageId,
+      vote: feedback,
       route: pathname,
-      profile: resultMessage.result.profile,
-      at: new Date().toISOString(),
+      audience: result?.audience ?? activeAudience,
+      intent: result?.intent ?? "general",
+      answer_mode: result?.answerMode ?? "direct_answer",
+      confidence: result?.confidence ?? "medium",
+      citation_ids: result ? (result.citations ?? result.topLinks).map((link) => link.path) : [],
+      source_ids: result ? (result.citations ?? result.topLinks).map((link) => link.sourceId ?? link.id) : [],
+      conversation_id: null,
+      created_at: new Date().toISOString(),
     });
 
     if (feedback === "helpful") {
@@ -326,9 +438,9 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         ],
       },
     ]);
-  }, [messages, pathname, persistFeedback]);
+  }, [activeAudience, messages, pathname, persistFeedback]);
 
-  const submitQueryInternal = useCallback(async (queryValue: string, profile: AssistantProfile) => {
+  const submitQueryInternal = useCallback(async (queryValue: string, profile: AssistantProfile, audience: AssistantAudience = activeAudience) => {
     const trimmedQuery = queryValue.trim();
     if (!trimmedQuery) return;
 
@@ -371,8 +483,20 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
 
     const normalizedPortalQuery = trimmedQuery.toLowerCase();
-    const asksForPrivateAccountData = Boolean(user) && /\b(my|account|order|job|balance|statement|invoice|draft|pricelist|price|support|warranty|remake|purchase order|patient)\b/.test(normalizedPortalQuery);
+    const asksForPrivateAccountData = /\b(my|account|order|job|balance|statement|invoice|draft|pricelist|price|support|warranty|remake|purchase order|patient)\b/.test(normalizedPortalQuery);
     if (asksForPrivateAccountData) {
+      if (!user) {
+        lastQueryRef.current = trimmedQuery;
+        negativeFeedbackRef.current = false;
+        setMessages((current) => [...current, {
+          id: createId("assistant"),
+          role: "assistant",
+          kind: "text",
+          text: "I can help with that, but I need you to sign in first so I can safely check account information. Your question will stay here when you return.",
+          quickActions: [{ type: "link", label: "Sign in for account help", href: `/auth?mode=signin&redirect=${encodeURIComponent(pathname)}` }],
+        }]);
+        return;
+      }
       setIsSubmitting(true);
       try {
         const account = await fetchCustomerCommandCenter();
@@ -443,6 +567,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         query: trimmedQuery,
         route: pathname,
         profile,
+        audience,
         corpus,
       });
 
@@ -466,6 +591,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         query: trimmedQuery,
         route: pathname,
         profile,
+        audience: result.audience,
         result,
         conversation: [...conversation, { role: "user", text: trimmedQuery }],
       });
@@ -486,11 +612,12 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [corpus, messages, pathname, user]);
+  }, [activeAudience, corpus, messages, pathname, user]);
 
-  const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile) => {
-    await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile);
-  }, [activeProfile, currentQuery, submitQueryInternal]);
+  const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile, audience?: AssistantAudience) => {
+    if (audience) setAudienceOverride(audience);
+    await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile, audience ?? activeAudience);
+  }, [activeAudience, activeProfile, currentQuery, submitQueryInternal]);
 
   const openAssistant = useCallback((options?: OpenAssistantOptions) => {
     setIsOpen(true);
@@ -503,10 +630,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
     if (options?.autoSubmit && options.query) {
       window.setTimeout(() => {
-        void submitQueryInternal(options.query!, options.profile ?? activeProfile);
+        if (options.audience) setAudienceOverride(options.audience);
+        void submitQueryInternal(options.query!, options.profile ?? activeProfile, options.audience ?? activeAudience);
       }, 0);
     }
-  }, [activeProfile, messages.length, resetConversation, submitQueryInternal]);
+  }, [activeAudience, activeProfile, messages.length, resetConversation, submitQueryInternal]);
 
   const openDetachedWindow = useCallback(() => {
     try {
@@ -697,6 +825,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     isDetachedRoute,
     messages,
     activeProfile,
+    activeAudience,
+    setActiveAudience: setAudienceOverride,
     currentQuery,
     setCurrentQuery,
     openAssistant,
@@ -704,6 +834,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitQuery,
     submitQuickAction,
     markFeedback,
+    saveConversation,
+    isSavingConversation,
     nudge,
     dismissNudge,
     isSubmitting,
@@ -715,6 +847,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitForm,
   }), [
     activeProfile,
+    activeAudience,
     closeAssistant,
     currentQuery,
     dismissNudge,
@@ -722,6 +855,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     isOpen,
     isDetachedRoute,
     isSubmitting,
+    isSavingConversation,
     markFeedback,
     messages,
     nudge,
@@ -732,6 +866,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitForm,
     submitQuickAction,
     submitQuery,
+    saveConversation,
+    setAudienceOverride,
     updateForm,
   ]);
 

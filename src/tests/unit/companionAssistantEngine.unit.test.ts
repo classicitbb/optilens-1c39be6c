@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAssistantCorpus, runAssistantQuery, shouldAskClarifier } from "@/features/assistant/companionAssistantEngine";
+import { buildAssistantCorpus, inferAssistantAudience, runAssistantQuery, shouldAskClarifier } from "@/features/assistant/companionAssistantEngine";
 
 describe("companion assistant engine", () => {
   const corpus = buildAssistantCorpus({
@@ -68,6 +68,14 @@ describe("companion assistant engine", () => {
     expect(result.answer.length).toBeGreaterThanOrEqual(120);
     expect(result.answer.length).toBeLessThanOrEqual(200);
     expect(result.answer.toLowerCase()).toContain("progressive");
+    expect(result.audience).toBe("visitor");
+    expect(result.answerMode).toBe("direct_answer");
+  });
+
+  it("infers patient and dispenser audiences from route and language", () => {
+    expect(inferAssistantAudience({ query: "What should I expect?", route: "/patients/progressive-lenses", profile: "general_search" })).toBe("patient");
+    expect(inferAssistantAudience({ query: "How do I dispense this design?", route: "/dispensing-tips", profile: "general_search" })).toBe("dispenser");
+    expect(inferAssistantAudience({ query: "Explain this simply", route: "/lenses/progressive", profile: "general_search", requestedAudience: "patient" })).toBe("patient");
   });
 
   it("asks for a clarifier after a repeated unsatisfying query", () => {

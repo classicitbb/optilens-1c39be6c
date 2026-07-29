@@ -3,6 +3,8 @@
 ## Goals
 - Compose an assistant from focused modules instead of a monolithic chatbot.
 - Support role-aware experiences for `public`, `customer`, `staff`, future `admin`, and separate `moonshot`.
+- The website assistant uses the bounded audiences `visitor`, `patient`, `dispenser`, `customer`, and `staff`.
+- Every answer carries a controlled intent, answer mode, confidence, citations, and available actions.
 - Enforce source precedence on every request:
   1. approved internal knowledge
   2. site knowledge
@@ -23,7 +25,7 @@
 - Sequence: intent → retrieval → policy → attribution → answer mode → analytics/gaps/ticket.
 
 ### 3) Intent classification (server)
-- Classifies user message into controlled intent taxonomy (`product_lookup`, `policy_lookup`, `how_to`, `account_support`, `unknown`).
+- Classifies user message into controlled intent taxonomy (`product`, `retailer`, `support`, `account_support`, `ordering`, `complaint_remake`, `navigation`, `unknown`).
 
 ### 4) Retrieval service (server)
 - Pulls from internal indexed knowledge first.
@@ -52,9 +54,16 @@
 ## Answer modes
 - `direct_answer`: policy-safe direct response from internal/site knowledge.
 - `guided_navigation`: directs user to approved route/docs path with summary.
+- `clarification`: asks a focused question when audience or intent is ambiguous.
 - `auth_required`: user must authenticate to continue.
-- `ticket_offer`: suggests support handoff when insufficient certainty.
+- `support_handoff`: prepares a role-aware human-support request with confirmation before submission.
 - `escalate_unknown`: unknown intent or no safe answer, route to human review.
+
+## Persistence and feedback contract
+- Conversations remain temporary until the visitor chooses `Save this chat`.
+- Saved conversations are authenticated, row-owned records with explicit restore, rename, and delete controls.
+- Response feedback is one vote per message, available to anonymous sessions and authenticated users, and is aggregated into the staff quality workspace.
+- Negative feedback is a knowledge-gap signal; it does not grant staff access to private conversation content.
 
 
 ## Moonshot leadership coach isolation

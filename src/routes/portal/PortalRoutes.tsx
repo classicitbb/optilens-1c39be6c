@@ -15,6 +15,7 @@ const PaymentMethodsSection = lazy(() => import("@/components/account/sections/P
 const QuoteFormSection = lazy(() => import("@/components/account/sections/QuoteFormSection"));
 const HelpdeskTicketsSection = lazy(() => import("@/components/account/sections/HelpdeskTicketsSection"));
 const HelpdeskTicketDetailSection = lazy(() => import("@/components/account/sections/HelpdeskTicketDetailSection"));
+const AssistantConversationsSection = lazy(() => import("@/components/account/sections/AssistantConversationsSection"));
 const AssignedPricelistsSection = lazy(() => import("@/components/account/sections/AssignedPricelistsSection"));
 const CartDraftsSection = lazy(() => import("@/components/account/sections/CartDraftsSection"));
 const StatementsSection = lazy(() => import("@/components/account/sections/StatementsSection"));
@@ -60,6 +61,7 @@ const PortalRoutes = () => {
         <Route path="quotes" element={<PortalFeatureGate feature="quotes"><QuoteFormSection /></PortalFeatureGate>} />
         <Route path="helpdesk" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketsSection /></PortalFeatureGate>} />
         <Route path="helpdesk/:ticketId" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketDetailSection /></PortalFeatureGate>} />
+        <Route path="assistant-chats" element={<AssistantConversationsSection />} />
         <Route path="pricelists" element={<PortalFeatureGate feature="pricelists"><AssignedPricelistsSection /></PortalFeatureGate>} />
         <Route path="drafts" element={<CartDraftsSection />} />
         <Route path="lens-assistant" element={<LensAssistantProfileRouteGate />} />
