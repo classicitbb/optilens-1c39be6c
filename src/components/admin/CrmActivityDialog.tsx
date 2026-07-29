@@ -14,6 +14,7 @@ import {
   useCreateActivity,
   useUpdateActivity,
 } from "@/features/admin/crm/hooks/useActivities";
+import { TASK_CHANNEL_LABELS, TASK_CHANNELS, type ActivityTaskChannel } from "@/features/admin/crm/activityChannels";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,11 +22,12 @@ type ActivityForm = {
   activityType: string;
   dueAt: string;
   type: ActivityChannelType;
+  taskChannel: ActivityTaskChannel;
   content: string;
   status: string;
 };
 
-const EMPTY_FORM: ActivityForm = { activityType: "", dueAt: "", type: "note", content: "", status: "open" };
+const EMPTY_FORM: ActivityForm = { activityType: "", dueAt: "", type: "note", taskChannel: "todo", content: "", status: "open" };
 
 const toDateTimeLocal = (value: string | null | undefined) => {
   if (!value) return "";
@@ -52,6 +54,7 @@ const CrmActivityDialog = () => {
       activityType: editing.activity_type,
       dueAt: toDateTimeLocal(editing.due_at),
       type: editing.type,
+      taskChannel: editing.task_channel,
       content: editing.content ?? "",
       status: editing.status,
     } : EMPTY_FORM);
@@ -73,6 +76,7 @@ const CrmActivityDialog = () => {
       activityType: form.activityType.trim(),
       dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : undefined,
       type: form.type,
+      taskChannel: form.taskChannel,
       content: form.content.trim() || undefined,
       status: form.status,
     };
@@ -106,10 +110,17 @@ const CrmActivityDialog = () => {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label>Channel</Label>
+              <Label>Activity type</Label>
               <Select value={form.type} onValueChange={(value) => setForm({ ...form, type: value as ActivityChannelType })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{ACTIVITY_TYPES.map((type) => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Task channel</Label>
+              <Select value={form.taskChannel} onValueChange={(value) => setForm({ ...form, taskChannel: value as ActivityTaskChannel })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{TASK_CHANNELS.map((channel) => <SelectItem key={channel} value={channel}>{TASK_CHANNEL_LABELS[channel]}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { fieldsMatch } from "@/lib/wildcardMatch";
-import { Search, BookOpen, ArrowRight, PlusCircle } from "lucide-react";
+import { Search, BookOpen, ArrowRight, PlusCircle, Ticket } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
@@ -10,6 +10,7 @@ import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
+import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS } from "./globalSearchActions";
 
 interface SearchResult {
   id: string;
@@ -18,6 +19,7 @@ interface SearchResult {
   path: string;
   icon: React.ElementType;
   group: string;
+  keywords?: string[];
 }
 
 const GlobalSearch = () => {
@@ -28,7 +30,7 @@ const GlobalSearch = () => {
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { canView, hasAppAccess } = useRolePermissions();
+  const { canView, canEditFeature, hasAppAccess } = useRolePermissions();
 
   const moduleResults = useMemo<SearchResult[]>(() => {
     return Object.values(ADMIN_APPS)
@@ -54,17 +56,27 @@ const GlobalSearch = () => {
   }, [canView, hasAppAccess]);
 
   const actionResults = useMemo<SearchResult[]>(() => {
-    if (!hasAppAccess("crm")) return [];
-
-    return [{
+    const results: SearchResult[] = [];
+    if (hasAppAccess("crm")) results.push({
       id: "action-create-activity",
       label: "Create Activity",
       sublabel: "CRM",
       path: "/admin/crm/activities?create=1",
       icon: PlusCircle,
       group: "Actions",
-    }];
-  }, [hasAppAccess]);
+      keywords: [...CREATE_ACTIVITY_SEARCH_KEYWORDS],
+    });
+    if (canEditFeature("helpdesk")) results.push({
+      id: "action-create-ticket",
+      label: "Create Ticket",
+      sublabel: "Helpdesk",
+      path: "/admin/helpdesk/tickets?createTicket=1",
+      icon: Ticket,
+      group: "Actions",
+      keywords: [...CREATE_TICKET_SEARCH_KEYWORDS],
+    });
+    return results;
+  }, [canEditFeature, hasAppAccess]);
 
   const { data: wikiResults = [] } = useQuery({
     queryKey: ["global_search_wiki_articles"],
@@ -122,7 +134,7 @@ const GlobalSearch = () => {
   const results = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group));
+    return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? [])));
   }, [allResults, query]);
 
   // Group results

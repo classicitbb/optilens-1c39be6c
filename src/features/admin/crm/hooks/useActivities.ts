@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { ActivityTaskChannel } from "../activityChannels";
 
 // Allowed values for the DB's `type` (channel) column - see activities_type_check.
 export const ACTIVITY_TYPES = ["note", "call", "email", "whatsapp", "meeting", "quote"] as const;
@@ -9,6 +10,7 @@ export interface CrmActivity {
   id: string;
   activity_type: string;
   type: ActivityChannelType;
+  task_channel: ActivityTaskChannel;
   content: string | null;
   status: string;
   due_at: string | null;
@@ -25,6 +27,7 @@ export interface ActivityMutationInput {
   contactId?: string;
   status?: string;
   type?: ActivityChannelType;
+  taskChannel?: ActivityTaskChannel;
   content?: string;
   createdBy?: string;
 }
@@ -34,7 +37,7 @@ export const useActivities = () => {
     queryKey: ["crm-activities"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("activities") as any)
-        .select("id,activity_type,type,content,status,due_at,opportunity_id,contact_id,created_by,created_at")
+        .select("id,activity_type,type,task_channel,content,status,due_at,opportunity_id,contact_id,created_by,created_at")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
@@ -73,7 +76,8 @@ export const useCreateActivity = () => {
         opportunity_id: input.opportunityId || null,
         contact_id: input.contactId || null,
         status: input.status || "open",
-        type: input.type || "note",
+          type: input.type || "note",
+        task_channel: input.taskChannel || "todo",
         content: input.content || null,
         created_by: input.createdBy || null,
       };
@@ -97,10 +101,27 @@ export const useUpdateActivity = () => {
         .update({
           activity_type: input.activityType,
           due_at: input.dueAt || null,
-          type: input.type || "note",
+        type: input.type || "note",
+          task_channel: input.taskChannel || "todo",
           content: input.content || null,
           status: input.status || "open",
         } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm-activities"] });
+      qc.invalidateQueries({ queryKey: ["admin-notifications"] });
+    },
+  });
+};
+
+export const useMoveActivityChannel = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, taskChannel }: { id: string; taskChannel: ActivityTaskChannel }) => {
+      const { error } = await (supabase.from("activities") as any)
+        .update({ task_channel: taskChannel } as any)
         .eq("id", id);
       if (error) throw error;
     },

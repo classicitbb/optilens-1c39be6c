@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Ticket, Plus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,6 +68,7 @@ function consistentDefault(field: keyof CreateSnapshot): string | undefined {
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
@@ -184,6 +185,15 @@ const HelpdeskTicketsPage = () => {
       dueDate: "",
     });
   }, [stages, priorities]);
+
+  useEffect(() => {
+    if (searchParams.get("createTicket") === "1" && canEditTickets) {
+      setCreateDialogOpen(true);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("createTicket");
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [canEditTickets, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (createDialogOpen) {
