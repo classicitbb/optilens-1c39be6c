@@ -144,6 +144,7 @@ export type Database = {
           id: string
           opportunity_id: string | null
           status: string | null
+          task_channel: Database["public"]["Enums"]["activity_task_channel"]
           type: string
         }
         Insert: {
@@ -157,6 +158,7 @@ export type Database = {
           id?: string
           opportunity_id?: string | null
           status?: string | null
+          task_channel?: Database["public"]["Enums"]["activity_task_channel"]
           type?: string
         }
         Update: {
@@ -170,6 +172,7 @@ export type Database = {
           id?: string
           opportunity_id?: string | null
           status?: string | null
+          task_channel?: Database["public"]["Enums"]["activity_task_channel"]
           type?: string
         }
         Relationships: [
@@ -485,6 +488,145 @@ export type Database = {
             columns: ["draft_pricelist_version_id"]
             isOneToOne: false
             referencedRelation: "pricelist_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistant_conversations: {
+        Row: {
+          audience: string
+          context: Json
+          created_at: string
+          id: string
+          is_archived: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audience?: string
+          context?: Json
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audience?: string
+          context?: Json
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      assistant_feedback: {
+        Row: {
+          anonymous_session_id: string | null
+          answer_mode: string | null
+          audience: string
+          citation_ids: Json
+          comment: string | null
+          confidence: string | null
+          conversation_id: string | null
+          created_at: string
+          feedback_key: string
+          id: string
+          intent: string | null
+          message_id: string | null
+          route: string | null
+          source_ids: Json
+          updated_at: string
+          user_id: string | null
+          vote: string
+        }
+        Insert: {
+          anonymous_session_id?: string | null
+          answer_mode?: string | null
+          audience?: string
+          citation_ids?: Json
+          comment?: string | null
+          confidence?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          feedback_key: string
+          id?: string
+          intent?: string | null
+          message_id?: string | null
+          route?: string | null
+          source_ids?: Json
+          updated_at?: string
+          user_id?: string | null
+          vote: string
+        }
+        Update: {
+          anonymous_session_id?: string | null
+          answer_mode?: string | null
+          audience?: string
+          citation_ids?: Json
+          comment?: string | null
+          confidence?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          feedback_key?: string
+          id?: string
+          intent?: string | null
+          message_id?: string | null
+          route?: string | null
+          source_ids?: Json
+          updated_at?: string
+          user_id?: string | null
+          vote?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistant_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -9499,6 +9641,7 @@ export type Database = {
       }
     }
     Enums: {
+      activity_task_channel: "todo" | "agent_todo"
       app_role: "admin" | "operator" | "viewer" | "customer"
       shipment_status: "draft" | "reviewed" | "locked"
       store_variant_mode:
@@ -9634,6 +9777,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_task_channel: ["todo", "agent_todo"],
       app_role: ["admin", "operator", "viewer", "customer"],
       shipment_status: ["draft", "reviewed", "locked"],
       store_variant_mode: [
