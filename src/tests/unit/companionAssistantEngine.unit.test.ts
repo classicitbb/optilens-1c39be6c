@@ -70,6 +70,16 @@ describe("companion assistant engine", () => {
     expect(result.answer.toLowerCase()).toContain("progressive");
     expect(result.audience).toBe("visitor");
     expect(result.answerMode).toBe("direct_answer");
+    expect(result.confidence).not.toBe("high");
+
+    const controlledFallback = runAssistantQuery({
+      query: "ZenVue Brilliance Progressive",
+      route: "/lenses/progressive",
+      profile: "general_search",
+      errorState: true,
+      corpus,
+    });
+    expect(controlledFallback.confidence).toBe("high");
   });
 
   it("infers patient and dispenser audiences from route and language", () => {

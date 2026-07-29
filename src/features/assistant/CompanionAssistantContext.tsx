@@ -780,12 +780,16 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         .slice(-1)
         .map((message) => ({
           query: message.result.query,
-          links: message.result.topLinks.map((link) => ({ title: link.title, path: link.path })),
+          links: (message.result.citations ?? message.result.topLinks).map((link) => ({ title: link.title, path: link.path })),
+          audience: message.result.audience,
+          confidence: message.result.confidence,
+          answerMode: message.result.answerMode,
         }));
 
       const contextNotes = {
         route: `${pathname}${location.search}${location.hash}`,
         assistantProfile: activeProfile,
+        audience: activeAudience,
         market: formState.market,
         issueType: formState.issueType,
         productTopic: formState.productTopic,
@@ -851,7 +855,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeProfile, createTicket, formState, identity?.crmContactId, location.hash, location.search, messages, pathname, user]);
+  }, [activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, location.hash, location.search, messages, pathname, user]);
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,
