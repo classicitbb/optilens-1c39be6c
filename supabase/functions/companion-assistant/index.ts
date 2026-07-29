@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
 
@@ -62,6 +63,68 @@ type CompanionRequest = {
     role?: string;
     text?: string;
   }>;
+};
+
+const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+
+const scoreContext = (query: string, text: string) => {
+  const queryWords = normalize(query).split(" ").filter((word) => word.length > 2);
+  const normalizedText = normalize(text);
+  return queryWords.reduce((score, word) => score + (normalizedText.includes(word) ? 2 : 0), 0);
+};
+
+const retrieveServerContext = async (request: Request, payload: CompanionRequest): Promise<ContextLink[]> => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) return [];
+
+  const db = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: request.headers.get("Authorization") ?? "" } },
+  });
+  const { data: authData } = await db.auth.getUser();
+  const allowedVisibility = authData.user ? ["public", "customer"] : ["public"];
+
+  const [{ data: articles }, { data: lenses }, { data: supplies }] = await Promise.all([
+    (db.from("help_articles") as any)
+      .select("id,title,content,description,page_slug,category,visibility")
+      .eq("is_active", true)
+      .in("visibility", allowedVisibility)
+      .limit(200),
+    (db.rpc as any)("get_lenses_safe"),
+    (db.rpc as any)("get_supplies_safe"),
+  ]);
+
+  const articleLinks = (articles ?? []).map((article: any) => ({
+    title: article.title,
+    description: article.description ?? article.category ?? "",
+    path: `/knowledge/${article.page_slug}`,
+    label: "Knowledge article",
+    kind: "knowledge",
+    sourceId: `server:article:${article.id}`,
+    sourceTier: "knowledge_base",
+    evidence: `${article.title}\n${article.content ?? article.description ?? ""}`.slice(0, 1800),
+    score: scoreContext(payload.query ?? "", `${article.title} ${article.description ?? ""} ${article.content ?? ""}`),
+  }));
+
+  const productLinks = [...(lenses ?? []), ...(supplies ?? [])]
+    .filter((product: any) => product.show_on_website === true)
+    .map((product: any) => ({
+      title: product.name,
+      description: product.notes ?? product.description ?? product.category ?? "",
+      path: `/store/product/${product.product_type === "supply" ? "supply" : "lens"}/${product.id}`,
+      label: "Published product",
+      kind: "product",
+      sourceId: `server:product:${product.id}`,
+      sourceTier: "site_content",
+      evidence: `${product.name}\n${product.notes ?? product.description ?? ""}`.slice(0, 1800),
+      score: scoreContext(payload.query ?? "", `${product.name} ${product.notes ?? ""} ${product.description ?? ""}`),
+    }));
+
+  return [...articleLinks, ...productLinks]
+    .filter((link) => link.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 4)
+    .map(({ score: _score, ...link }) => link);
 };
 
 const buildUserPrompt = (payload: CompanionRequest) => {
@@ -153,15 +216,17 @@ serve(async (req) => {
 
   try {
     const payload = (await req.json()) as CompanionRequest;
+    const serverLinks = await retrieveServerContext(req, payload).catch(() => []);
+    const groundedPayload = serverLinks.length > 0 ? { ...payload, topLinks: serverLinks } : payload;
 
     const gatewayKey = Deno.env.get("LOVABLE_API_KEY");
 
     const rawAnswer = gatewayKey
-      ? await generateWithGateway(payload, gatewayKey)
-      : payload.fallbackAnswer ?? null;
+      ? await generateWithGateway(groundedPayload, gatewayKey)
+      : groundedPayload.fallbackAnswer ?? null;
 
-    const answer = (rawAnswer ?? payload.fallbackAnswer ?? "").trim() || null;
-    const citations = (payload.topLinks ?? []).slice(0, 4);
+    const answer = (rawAnswer ?? groundedPayload.fallbackAnswer ?? "").trim() || null;
+    const citations = (groundedPayload.topLinks ?? []).slice(0, 4);
 
     return new Response(JSON.stringify({
       answer,

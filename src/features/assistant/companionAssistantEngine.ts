@@ -154,6 +154,23 @@ export const inferAssistantAudience = ({
   return audienceForProfile(profile);
 };
 
+export const shouldAskAudienceClarifier = ({
+  query,
+  route,
+  authenticated,
+  requestedAudience,
+}: {
+  query: string;
+  route: string;
+  authenticated: boolean;
+  requestedAudience?: AssistantAudience | null;
+}) => {
+  if (authenticated || requestedAudience) return false;
+  const text = normalizeText(query);
+  if (route.startsWith("/patients") || route.startsWith("/professionals") || route.startsWith("/dispensing-tips") || route.startsWith("/find-a-retailer")) return false;
+  return !includesAny(text, ["patient", "dispenser", "optician", "optical professional", "for my practice", "for my patient"]);
+};
+
 const buildRetailerPath = (marketSlug: string) =>
   marketSlug === "barbados" ? "/find-a-retailer/barbados" : `/find-a-retailer#${marketSlug}`;
 

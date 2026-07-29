@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAssistantCorpus, inferAssistantAudience, runAssistantQuery, shouldAskClarifier } from "@/features/assistant/companionAssistantEngine";
+import { buildAssistantCorpus, inferAssistantAudience, runAssistantQuery, shouldAskAudienceClarifier, shouldAskClarifier } from "@/features/assistant/companionAssistantEngine";
 
 describe("companion assistant engine", () => {
   const corpus = buildAssistantCorpus({
@@ -90,5 +90,11 @@ describe("companion assistant engine", () => {
       lastQuery: "Find a retailer in Barbados",
       nextQuery: "find a retailer in barbados",
     })).toBe(false);
+  });
+
+  it("asks anonymous visitors for audience context inline", () => {
+    expect(shouldAskAudienceClarifier({ query: "Which lens is best for computer use?", route: "/", authenticated: false })).toBe(true);
+    expect(shouldAskAudienceClarifier({ query: "Which lens is best for my patient?", route: "/", authenticated: false })).toBe(false);
+    expect(shouldAskAudienceClarifier({ query: "Which lens is best?", route: "/", authenticated: true })).toBe(false);
   });
 });

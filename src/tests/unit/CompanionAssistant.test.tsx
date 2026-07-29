@@ -137,4 +137,23 @@ describe("CompanionAssistant", () => {
     expect(screen.getByRole("button", { name: "Not helpful answer" })).toBeInTheDocument();
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: "start" }));
   });
+
+  it("asks an anonymous visitor for audience context with inline choices", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <CompanionAssistantProvider>
+          <CompanionAssistant />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /search & help/i }));
+    const input = screen.getByPlaceholderText("Ask anything");
+    fireEvent.change(input, { target: { value: "Which lens is best for computer use?" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter", charCode: 13 });
+
+    expect(await screen.findByText(/are you asking as a patient/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I’m a patient" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I’m a dispenser" })).toBeInTheDocument();
+  });
 });

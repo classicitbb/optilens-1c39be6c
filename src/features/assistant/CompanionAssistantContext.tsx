@@ -17,6 +17,7 @@ import {
   inferAssistantAudience,
   runAssistantQuery,
   shouldAskClarifier,
+  shouldAskAudienceClarifier,
   type AssistantAudience,
   type AssistantProfile,
 } from "./companionAssistantEngine";
@@ -69,17 +70,17 @@ const getAnonymousSessionId = () => {
   }
 };
 
-const getStarterActions = (pathname: string): AssistantQuickAction[] =>
+const getStarterActions = (pathname: string, isAuthenticated: boolean): AssistantQuickAction[] =>
   pathname.startsWith("/profile")
     ? [
-        { type: "query", label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" },
+        ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" as const }]),
         { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=professional" },
         { type: "web_search", label: "Search the web", query: "Latest trends in progressive lens technology" },
         { type: "form", label: "Get support", profile: "portal_support" },
         { type: "link", label: "Track an order", href: "/profile/orders" },
       ]
     : [
-        { type: "query", label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" },
+        ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" as const }]),
         { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=patient" },
         { type: "web_search", label: "Search the web", query: "Best lens coatings for digital screen use" },
         { type: "form", label: "Get support", profile: "customer_support" },
@@ -93,8 +94,8 @@ const isKeyPage = (pathname: string) =>
   pathname.startsWith("/coatings") ||
   pathname.startsWith("/profile");
 
-const getRouteNudge = (pathname: string) => {
-  if (pathname.startsWith("/find-a-retailer")) {
+const getRouteNudge = (pathname: string, isAuthenticated: boolean) => {
+  if (pathname.startsWith("/find-a-retailer") && !isAuthenticated) {
     return {
       message: "Need help narrowing down a retailer or clinic?",
       query: "Help me find a retailer based on this page.",
@@ -165,8 +166,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const userEmail = user?.email?.trim() || "";
   const activeProfile = getProfileForRoute(pathname);
   const [audienceOverride, setAudienceOverride] = useState<AssistantAudience | null>(null);
-  const activeAudience = audienceOverride ?? getDefaultAudienceForRoute(pathname);
-  const starterActions = useMemo(() => getStarterActions(pathname), [pathname]);
+  const activeAudience = audienceOverride ?? (user ? "dispenser" : getDefaultAudienceForRoute(pathname));
+  const starterActions = useMemo(() => getStarterActions(pathname, Boolean(user)), [pathname, user]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
@@ -316,7 +317,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     if (isOpen) return;
     if (!isKeyPage(pathname)) return;
 
-    const routeNudge = getRouteNudge(pathname);
+    const routeNudge = getRouteNudge(pathname, Boolean(user));
     if (!routeNudge) return;
 
     if (nudgeTimerRef.current) window.clearTimeout(nudgeTimerRef.current);
@@ -328,7 +329,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         nudgeTimerRef.current = null;
       }
     };
-  }, [isOpen, pathname]);
+  }, [isOpen, pathname, user]);
 
   useEffect(() => {
     setFormState((current) => {
@@ -471,9 +472,9 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           id: createId("assistant"),
           role: "assistant",
           kind: "text",
-          text: "Before I change paths, what are you trying to do most right now: find a retailer, compare products, or get direct support?",
+          text: user ? "Before I change paths, what are you trying to do most right now: compare products, get dispensing guidance, or get direct support?" : "Before I change paths, what are you trying to do most right now: find a retailer, compare products, or get direct support?",
           quickActions: [
-            { type: "query", label: "Find a retailer", query: "Help me find a retailer or clinic.", profile: "retailer_help" },
+            ...(user ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer or clinic.", profile: "retailer_help" as const }]),
             { type: "query", label: "Compare products", query: "Help me compare lens or coating options." },
             { type: "form", label: "Get direct support", profile: pathname.startsWith("/profile") ? "portal_support" : "customer_support" },
           ],
@@ -483,6 +484,38 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
 
     const normalizedPortalQuery = trimmedQuery.toLowerCase();
+
+    if (shouldAskAudienceClarifier({ query: trimmedQuery, route: pathname, authenticated: Boolean(user), requestedAudience: audienceOverride })) {
+      setMessages((current) => [...current, {
+        id: createId("assistant"),
+        role: "assistant",
+        kind: "text",
+        text: "I can tailor that answer better. Are you asking as a patient, an optical professional, or just exploring?",
+        quickActions: [
+          { type: "query", label: "I’m a patient", query: trimmedQuery, audience: "patient" },
+          { type: "query", label: "I’m a dispenser", query: trimmedQuery, audience: "dispenser" },
+          { type: "query", label: "Just browsing", query: trimmedQuery, audience: "visitor" },
+        ],
+      }]);
+      return;
+    }
+
+    if (user && /\b(retailer|retailers|clinic|clinics|where can i buy|find a practice)\b/.test(normalizedPortalQuery)) {
+      lastQueryRef.current = trimmedQuery;
+      setMessages((current) => [...current, {
+        id: createId("assistant"),
+        role: "assistant",
+        kind: "text",
+        text: "You’re signed in as an optical professional, so I’ll skip public retailer-finding assistance. I can help with lens selection, dispensing, ordering, LabLink, or a support request instead.",
+        quickActions: [
+          { type: "link", label: "Open the lens assistant", href: "/lens-assistant?audience=professional" },
+          { type: "query", label: "Dispensing guidance", query: "Give me practical dispensing guidance.", audience: "dispenser" },
+          { type: "form", label: "Prepare support request", profile: "portal_support" },
+        ],
+      }]);
+      return;
+    }
+
     const asksForPrivateAccountData = /\b(my|account|order|job|balance|statement|invoice|draft|pricelist|price|support|warranty|remake|purchase order|patient)\b/.test(normalizedPortalQuery);
     if (asksForPrivateAccountData) {
       if (!user) {
@@ -612,7 +645,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeAudience, corpus, messages, pathname, user]);
+  }, [activeAudience, audienceOverride, corpus, messages, pathname, user]);
 
   const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile, audience?: AssistantAudience) => {
     if (audience) setAudienceOverride(audience);
@@ -709,7 +742,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
   const submitQuickAction = useCallback((action: AssistantQuickAction) => {
     if (action.type === "query") {
-      void submitQuery(action.query, action.profile ?? activeProfile);
+      void submitQuery(action.query, action.profile ?? activeProfile, action.audience);
       return;
     }
 
@@ -810,7 +843,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
               ]
             : [
                 { type: "link", label: "Open contact section", href: "/#contact" },
-                { type: "query", label: "Find a retailer", query: "Help me find a retailer.", profile: "retailer_help" },
+                ...(user ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer.", profile: "retailer_help" as const }]),
                 { type: "query", label: "Ask another question", query: "Help me find the best page for my next question." },
               ],
         },

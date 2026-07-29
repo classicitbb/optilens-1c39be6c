@@ -114,61 +114,43 @@ const AssistantForm = () => {
 
 const MessageQuickActions = ({
   quickActions,
-  isStarter,
   onAction,
 }: {
   quickActions: AssistantQuickAction[];
-  isStarter: boolean;
   onAction: (action: AssistantQuickAction) => void;
 }) => {
-  if (isStarter) {
-    return (
-      <div className="flex flex-col items-start gap-2">
-        {quickActions.map((action) => (
-          <Button
-            key={action.label}
-            size="sm"
-            variant="outline"
-            className="h-auto justify-start rounded-full border-border/50 bg-card/80 px-4 py-2 text-left text-sm font-normal text-foreground/80 shadow-soft hover:bg-muted hover:text-foreground"
-            onClick={() => onAction(action)}
-          >
-            {action.label}
-          </Button>
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-1 text-sm leading-6">
+    <div className="flex flex-wrap gap-2">
       {quickActions.map((action) => (
-        <p key={action.label}>
+        <span key={action.label}>
           {action.type === "link" ? (
             action.external ? (
               <a
                 href={action.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-secondary underline underline-offset-2 hover:text-secondary/80"
+                className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-card/80 px-3 py-1.5 text-xs text-secondary shadow-soft hover:bg-muted"
               >
                 {action.label}
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             ) : (
-              <Link to={action.href} className="text-secondary underline underline-offset-2 hover:text-secondary/80">
+              <Link to={action.href} className="inline-flex items-center rounded-full border border-border/50 bg-card/80 px-3 py-1.5 text-xs text-secondary shadow-soft hover:bg-muted">
                 {action.label}
               </Link>
             )
           ) : (
-            <button
+            <Button
               type="button"
-              className="p-0 text-left text-secondary underline underline-offset-2 hover:text-secondary/80"
+              size="sm"
+              variant="outline"
+              className="h-auto rounded-full border-border/50 bg-card/80 px-3 py-1.5 text-xs font-normal text-secondary shadow-soft hover:bg-muted"
               onClick={() => onAction(action)}
             >
               {action.label}
-            </button>
+            </Button>
           )}
-        </p>
+        </span>
       ))}
     </div>
   );
@@ -328,7 +310,7 @@ const AssistantMessageList = () => {
                       <ReactMarkdown>{message.text}</ReactMarkdown>
                     </div>
                     {message.quickActions?.length ? (
-                      <MessageQuickActions quickActions={message.quickActions} isStarter={index === 0} onAction={submitQuickAction} />
+                      <MessageQuickActions quickActions={message.quickActions} onAction={submitQuickAction} />
                     ) : null}
                     {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
                   </div>
@@ -350,7 +332,7 @@ const AssistantMessageList = () => {
                       <p className="mt-1 leading-6">{message.text}</p>
                     </div>
                     {message.quickActions?.length ? (
-                      <MessageQuickActions quickActions={message.quickActions} isStarter={false} onAction={submitQuickAction} />
+                      <MessageQuickActions quickActions={message.quickActions} onAction={submitQuickAction} />
                     ) : null}
                     <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} />
                   </div>
@@ -390,7 +372,6 @@ const CompanionAssistant = () => {
     closeAssistant,
     submitQuery,
     activeAudience,
-    setActiveAudience,
     saveConversation,
     isSavingConversation,
     nudge,
@@ -469,20 +450,7 @@ const CompanionAssistant = () => {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-4 py-2">
-        <label className="flex items-center gap-2 text-xs text-foreground/60">
-          <span>Helping as</span>
-          <select
-            value={activeAudience}
-            onChange={(event) => setActiveAudience(event.target.value as typeof activeAudience)}
-            className="h-8 rounded-md border border-border/60 bg-background px-2 text-xs text-foreground"
-            aria-label="Assistant audience"
-          >
-            <option value="visitor">Just browsing</option>
-            <option value="patient">Patient</option>
-            <option value="dispenser">Dispenser</option>
-            <option value="customer">Customer</option>
-          </select>
-        </label>
+        <span className="text-xs text-foreground/60">Answering for: <span className="font-semibold capitalize text-foreground/80">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span></span>
         <Button
           type="button"
           variant="ghost"
