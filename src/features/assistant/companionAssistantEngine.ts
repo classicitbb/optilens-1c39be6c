@@ -407,12 +407,10 @@ export const runAssistantQuery = ({
   const topLinks = preferUsefulLinks(Array.from(uniqueLinks.values()), intent).slice(0, 4);
   const confidence = inferConfidence(topLinks[0]?.score ?? 0, errorState);
   const answer = topLinks[0] ? buildAnswerFromLink(topLinks[0], intent) : buildNoMatchAnswer(intent, query);
-  const citations = topLinks.map((link) => ({
+  const citations: AssistantLinkResult[] = topLinks.map((link) => ({
+    ...link,
     id: link.sourceId ?? link.id,
-    title: link.title,
-    url: link.path,
     sourceTier: link.sourceTier ?? "site_content",
-    evidence: link.evidence,
   }));
   const actions = topLinks.slice(0, 3).map((link) => ({
     id: `open-${link.id}`,

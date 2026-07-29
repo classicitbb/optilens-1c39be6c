@@ -83,7 +83,7 @@ const GlobalSearch = () => {
     queryFn: async () => {
       if (!canView("wiki")) return [] as SearchResult[];
 
-      const staticResults = wikiCategories
+      const staticResults: SearchResult[] = wikiCategories
         .filter((category) => canViewWikiCategory(category.id, canView))
         .flatMap((cat) =>
           cat.articles.map((article) => ({
