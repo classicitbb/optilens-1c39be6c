@@ -413,7 +413,7 @@ const CompanionAssistant = () => {
   const assistantWindow = (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border border-border/50 shadow-elegant backdrop-blur-md",
+        "flex flex-col overflow-hidden border-2 border-[#c9a227] shadow-elegant backdrop-blur-md",
         "bg-background/80",
         isDetachedRoute
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
