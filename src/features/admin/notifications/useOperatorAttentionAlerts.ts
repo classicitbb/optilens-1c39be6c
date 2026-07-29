@@ -1,15 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getOperatorAttentionItems, type AttentionTask, type AttentionTicket } from "./operatorAttention";
+import { getOperatorAttentionItems, isOperatorAttentionSnoozed, type AttentionTask, type AttentionTicket } from "./operatorAttention";
 import { playAlertJingle } from "@/features/admin/helpdesk/hooks/useHelpdeskTicketAlerts";
 
 const SOUND_WINDOW_MS = 60_000;
 const SOUND_INTERVAL_MS = 6_000;
 const CHECK_INTERVAL_MS = 30_000;
+const SNOOZE_STORAGE_KEY = "operator-attention-snoozed-until";
+
+const readSnoozedUntil = () => {
+  try {
+    const value = Number(window.localStorage.getItem(SNOOZE_STORAGE_KEY));
+    return Number.isFinite(value) && value > Date.now() ? value : null;
+  } catch {
+    return null;
+  }
+};
 
 export const useOperatorAttentionAlerts = () => {
   const [now, setNow] = useState(() => Date.now());
+  const [snoozedUntil, setSnoozedUntil] = useState(readSnoozedUntil);
   const alertStartedAt = useRef<Map<string, number>>(new Map());
   const soundedAt = useRef<Map<string, number>>(new Map());
 
@@ -63,6 +74,8 @@ export const useOperatorAttentionAlerts = () => {
       }
     }
 
+    if (isOperatorAttentionSnoozed(snoozedUntil, now)) return;
+
     for (const item of items) {
       const startedAt = alertStartedAt.current.get(item.id) ?? now;
       alertStartedAt.current.set(item.id, startedAt);
@@ -72,7 +85,22 @@ export const useOperatorAttentionAlerts = () => {
         soundedAt.current.set(item.id, now);
       }
     }
-  }, [items, now]);
+  }, [items, now, snoozedUntil]);
 
-  return { items, isLoading: ticketsQuery.isLoading || tasksQuery.isLoading };
+  const snooze = (durationMs: number) => {
+    const until = Date.now() + durationMs;
+    setSnoozedUntil(until);
+    try {
+      window.localStorage.setItem(SNOOZE_STORAGE_KEY, String(until));
+    } catch {
+      // The in-memory timer still provides snooze when browser storage is unavailable.
+    }
+  };
+
+  return {
+    items,
+    isLoading: ticketsQuery.isLoading || tasksQuery.isLoading,
+    isSnoozed: isOperatorAttentionSnoozed(snoozedUntil, now),
+    snooze,
+  };
 };

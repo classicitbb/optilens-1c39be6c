@@ -13,6 +13,7 @@ import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
 
 const AssistantForm = () => {
   const { formState, updateForm, closeForm, submitForm, isSubmitting } = useCompanionAssistant();
+  const [isReviewing, setIsReviewing] = useState(false);
 
   if (!formState) return null;
 
@@ -99,11 +100,18 @@ const AssistantForm = () => {
         className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
       />
 
+      {isReviewing ? (
+        <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs leading-5 text-foreground/70">
+          Please confirm that you want to send this request to the support team with the current page and assistant context attached.
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
-        <Button type="button" className="rounded-full" onClick={() => void submitForm()} disabled={isSubmitting || !formState.name.trim() || !formState.email.trim() || !formState.summary.trim()}>
+        <Button type="button" className="rounded-full" onClick={() => { if (isReviewing) void submitForm(); else setIsReviewing(true); }} disabled={isSubmitting || !formState.name.trim() || !formState.email.trim() || !formState.summary.trim()}>
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-          Submit request
+          {isReviewing ? "Confirm & submit" : "Review request"}
         </Button>
+        {isReviewing ? <Button type="button" variant="outline" className="rounded-full border-border/50 bg-card/80 text-foreground hover:bg-muted" onClick={() => setIsReviewing(false)}>Edit request</Button> : null}
         <Button type="button" variant="outline" className="rounded-full border-border/50 bg-card/80 text-foreground hover:bg-muted" onClick={closeForm}>
           Keep chatting
         </Button>
@@ -189,7 +197,7 @@ const AssistantResultCard = ({
     <div className="space-y-3 rounded-[22px] border border-border/50 bg-card/80 p-4 shadow-soft backdrop-blur-md">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary" className="border border-secondary/20 bg-secondary/10 capitalize text-secondary">{result.intent}</Badge>
-        <Badge variant="outline" className="border-foreground/20 capitalize text-foreground/60">{result.confidence} confidence</Badge>
+        <Badge variant="outline" className="border-foreground/20 capitalize text-foreground/60">{result.confidence} confidence{result.errorState ? " · controlled fallback" : ""}</Badge>
         {isEnhancing ? (
           <Badge variant="outline" className="border-amber-400/30 bg-amber-400/10 text-amber-100">
             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

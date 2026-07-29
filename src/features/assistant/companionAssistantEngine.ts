@@ -34,6 +34,7 @@ export interface AssistantResponse {
   citations: AssistantCitation[];
   actions: AssistantAction[];
   requiresAuth?: boolean;
+  errorState?: boolean;
 }
 
 export interface AssistantLinkResult {
@@ -65,6 +66,7 @@ export interface AssistantQueryResult {
   confidence: "high" | "medium" | "low";
   suggestsHumanHelp: boolean;
   answerMode: AssistantAnswerMode;
+  errorState?: boolean;
 }
 
 type CorpusEntry = {
@@ -259,8 +261,11 @@ const inferIntent = (query: string, route: string, profile: AssistantProfile): A
   return "general";
 };
 
-const inferConfidence = (topScore: number): AssistantQueryResult["confidence"] => {
-  if (topScore >= 30) return "high";
+const inferConfidence = (topScore: number, errorState: boolean): AssistantQueryResult["confidence"] => {
+  // High confidence is reserved for a controlled deterministic fallback after
+  // the model/gateway has failed. Normal generated answers are never promoted
+  // beyond medium because source overlap alone does not prove contextual fit.
+  if (errorState && topScore >= 30) return "high";
   if (topScore >= 16) return "medium";
   return "low";
 };
@@ -355,12 +360,14 @@ export const runAssistantQuery = ({
   route,
   profile,
   audience,
+  errorState = false,
   corpus,
 }: {
   query: string;
   route: string;
   profile: AssistantProfile;
   audience?: AssistantAudience;
+  errorState?: boolean;
   corpus: CorpusEntry[];
 }): AssistantQueryResult => {
   const intent = inferIntent(query, route, profile);
@@ -398,7 +405,7 @@ export const runAssistantQuery = ({
   }
 
   const topLinks = preferUsefulLinks(Array.from(uniqueLinks.values()), intent).slice(0, 4);
-  const confidence = inferConfidence(topLinks[0]?.score ?? 0);
+  const confidence = inferConfidence(topLinks[0]?.score ?? 0, errorState);
   const answer = topLinks[0] ? buildAnswerFromLink(topLinks[0], intent) : buildNoMatchAnswer(intent, query);
   const citations = topLinks.map((link) => ({
     id: link.sourceId ?? link.id,
@@ -426,6 +433,7 @@ export const runAssistantQuery = ({
     confidence,
     suggestsHumanHelp: topLinks.length === 0 && confidence === "low",
     answerMode: topLinks.length === 0 && confidence === "low" ? "support_handoff" : "direct_answer",
+    errorState,
   };
 };
 

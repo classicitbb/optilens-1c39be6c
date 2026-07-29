@@ -102,17 +102,6 @@ export const ADMIN_APPS = {
       { label: 'Config', route: '/admin/helpdesk/config', icon: Settings },
     ] satisfies SidebarItem[],
   },
-  assistant: {
-    key: 'assistant' as const,
-    title: 'Assistant',
-    icon: MessageSquare,
-    baseRoute: '/admin/assistant',
-    defaultRoute: '/admin/assistant/quality',
-    featurePrefix: 'assistant',
-    sidebarItems: [
-      { label: 'Quality & Feedback', route: '/admin/assistant/quality', icon: MessageSquare },
-    ] satisfies SidebarItem[],
-  },
   website: {
     key: 'website' as const,
     title: 'Website',
@@ -127,6 +116,7 @@ export const ADMIN_APPS = {
       { label: 'Orders', route: '/admin/website/orders', icon: Package },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
       { label: 'Feature Board', route: '/admin/website/features', icon: SlidersHorizontal },
+      { label: 'Assistant Quality', route: '/admin/assistant/quality', icon: MessageSquare },
     ] satisfies SidebarItem[],
   },
   docstudio: {

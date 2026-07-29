@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOperatorAttentionItems, isTaskAttentionRequired, isTicketAttentionRequired } from "@/features/admin/notifications/operatorAttention";
+import { getOperatorAttentionItems, isOperatorAttentionSnoozed, isTaskAttentionRequired, isTicketAttentionRequired } from "@/features/admin/notifications/operatorAttention";
 
 const NOW = Date.parse("2026-07-29T16:00:00.000Z");
 
@@ -29,5 +29,11 @@ describe("operator attention state", () => {
       tasks: [{ id: "a1", activity_type: "Task", due_at: "2026-07-29T15:00:00.000Z", status: "open" }],
     });
     expect(items.map((item) => item.href)).toEqual(["/admin/helpdesk/tickets/t1", "/admin/crm/activities?urgency=overdue"]);
+  });
+
+  it("temporarily snoozes the banner without changing the handled-state rules", () => {
+    expect(isOperatorAttentionSnoozed(NOW + 10 * 60_000, NOW)).toBe(true);
+    expect(isOperatorAttentionSnoozed(NOW, NOW)).toBe(false);
+    expect(isOperatorAttentionSnoozed(null, NOW)).toBe(false);
   });
 });

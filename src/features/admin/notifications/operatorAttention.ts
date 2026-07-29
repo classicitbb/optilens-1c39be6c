@@ -19,6 +19,9 @@ export type OperatorAttentionItem =
   | { id: string; kind: "ticket"; title: string; detail: string; href: string }
   | { id: string; kind: "task"; title: string; detail: string; href: string };
 
+export const isOperatorAttentionSnoozed = (snoozedUntil: number | null, now = Date.now()) =>
+  snoozedUntil !== null && snoozedUntil > now;
+
 export const isTicketAttentionRequired = (ticket: AttentionTicket, now = Date.now()) => {
   const isHandled = Boolean(ticket.closed_at || ticket.stage?.is_closed);
   if (isHandled) return false;
