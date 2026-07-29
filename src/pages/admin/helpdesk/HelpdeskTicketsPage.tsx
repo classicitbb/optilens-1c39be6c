@@ -35,6 +35,11 @@ interface StageOption { id: string; name: string; is_closed: boolean; }
 interface TicketTypeOption { id: string; name: string; }
 interface PriorityOption { level: number; label: string; color: string; }
 
+const EMPTY_TEAMS: TeamOption[] = [];
+const EMPTY_STAGES: StageOption[] = [];
+const EMPTY_TICKET_TYPES: TicketTypeOption[] = [];
+const EMPTY_PRIORITIES: PriorityOption[] = [];
+
 // ── localStorage helpers for "last two consistent creations" ──
 const STORAGE_KEY = "helpdesk_create_history";
 
@@ -114,7 +119,7 @@ const HelpdeskTicketsPage = () => {
     }
   }, []);
 
-  const { data: teams = [] } = useQuery({
+  const { data: teams = EMPTY_TEAMS } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
     enabled: canViewTickets,
     queryFn: async () => {
@@ -124,7 +129,7 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
-  const { data: stages = [] } = useQuery({
+  const { data: stages = EMPTY_STAGES } = useQuery({
     queryKey: ["helpdesk", "stages", "options", teamId],
     enabled: canViewTickets,
     queryFn: async () => {
@@ -134,7 +139,7 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
-  const { data: ticketTypes = [] } = useQuery({
+  const { data: ticketTypes = EMPTY_TICKET_TYPES } = useQuery({
     queryKey: ["helpdesk", "ticket-types", "options"],
     enabled: canViewTickets,
     queryFn: async () => {
@@ -144,7 +149,7 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
-  const { data: priorities = [] } = useQuery({
+  const { data: priorities = EMPTY_PRIORITIES } = useQuery({
     queryKey: ["helpdesk", "priorities"],
     enabled: canViewTickets,
     queryFn: async () => {
