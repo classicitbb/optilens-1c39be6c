@@ -7,6 +7,7 @@ import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import CrmActivityDialog from "./CrmActivityDialog";
+import OperatorAttentionAlert from "./OperatorAttentionAlert";
 
 const AdminLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
@@ -23,6 +24,7 @@ const AdminLayout = () => {
     <AdminRoleProvider>
       <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
         <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
+        <OperatorAttentionAlert />
         <div className="relative flex flex-1 min-h-0">
           {!hideSidebar && <AdminSidebar />}
           <div className="flex flex-1 min-w-0 min-h-0">
