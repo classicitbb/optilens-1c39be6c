@@ -8,7 +8,7 @@ export const TASK_CHANNEL_LABELS: Record<ActivityTaskChannel, string> = {
 
 export const getTaskChannelLabel = (channel: ActivityTaskChannel) => TASK_CHANNEL_LABELS[channel];
 
-export const filterActivitiesByTaskChannel = (
-  activities: Array<{ task_channel: ActivityTaskChannel }>,
+export const filterActivitiesByTaskChannel = <T extends { task_channel: ActivityTaskChannel }>(
+  activities: T[],
   channel: ActivityTaskChannel | "all",
-) => channel === "all" ? activities : activities.filter((activity) => activity.task_channel === channel);
+): T[] => channel === "all" ? activities : activities.filter((activity) => activity.task_channel === channel);
