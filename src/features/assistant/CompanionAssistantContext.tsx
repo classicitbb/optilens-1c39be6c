@@ -543,8 +543,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
             { type: "form", label: "Prepare support request", profile: "portal_support" },
           ];
         } else if (/balance|statement|invoice/.test(normalizedPortalQuery)) {
-          const balance = Number(account.balance?.current_balance ?? account.latestStatement?.closing_balance ?? 0);
-          text = `Your latest available account balance is BBD $${balance.toFixed(2)}. ${account.latestStatement ? "A statement is available in your account." : "No statement is currently available from the connected source."}`;
+          const rawBalance = account.balance?.current_balance ?? account.latestStatement?.closing_balance ?? null;
+          const numericBalance = rawBalance === null ? null : Number(rawBalance);
+          text = numericBalance !== null && Number.isFinite(numericBalance)
+            ? `Your latest available account balance is BBD $${numericBalance.toFixed(2)}. ${account.latestStatement ? "A statement is available in your account." : "No statement is currently available from the connected source."}`
+            : "I could not verify a current balance from the connected account source, so I will not invent a figure. You can open Statements or ask the accounts team to confirm it.";
           quickActions = [
             { type: "link", label: "View statements", href: "/profile/statements" },
             { type: "form", label: "Ask accounts for help", profile: "portal_support" },
@@ -790,6 +793,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         route: `${pathname}${location.search}${location.hash}`,
         assistantProfile: activeProfile,
         audience: activeAudience,
+        accountAccessStatus: identity?.portalAccessStatus ?? null,
+        accountCustomer: identity?.customerName ?? identity?.organizationName ?? null,
         market: formState.market,
         issueType: formState.issueType,
         productTopic: formState.productTopic,
