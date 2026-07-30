@@ -11,7 +11,8 @@ const studioSource = readFileSync(
 
 describe("Doc Studio TinyMCE lifecycle guard", () => {
   it("does not let a stale host marker block a remount", () => {
-    expect(studioSource).toContain("TINY_HOSTS = {};\n  TINY_MOUNT_IDS = {};");
+    expect(studioSource).toContain("TINY_HOSTS = {};");
+    expect(studioSource).toContain("TINY_MOUNT_IDS = {};");
     expect(studioSource).toContain(
       "if (node.dataset.tmceMounted === '1' && this.TINY_HOSTS[tab] === node && this.TINY[tab]) return;",
     );

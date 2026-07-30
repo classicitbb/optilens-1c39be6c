@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let sendMode: "manual" | "automatic" = "automatic"
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -78,6 +79,7 @@ Deno.serve(async (req) => {
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
+    if (body.auditSource === "manual") sendMode = "manual"
   } catch {
     return jsonResponse(400, { error: 'Invalid JSON in request body' }, corsHeaders)
   }
@@ -294,6 +296,7 @@ Deno.serve(async (req) => {
     template_name: templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
+    metadata: { send_mode: sendMode, subject: resolvedSubject, initiated_by: authContext.user.id },
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {

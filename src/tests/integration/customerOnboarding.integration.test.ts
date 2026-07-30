@@ -35,9 +35,9 @@ describe("customer onboarding email wiring", () => {
 
     expect(adminFunction).toContain("functions/v1/customer-onboarding");
     expect(adminFunction).toContain('if (action === "invite-user")');
-    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, inviteData.user.id, email, displayName);');
+    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUserId, email, displayName, wantsEmail);');
     expect(adminFunction).toContain('if (action === "create-user")');
-    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUser.user.id, email, displayName);');
+    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUser.user.id, email, displayName, sendWelcomeEmail === true);');
   });
 
   it("queues the welcome-pricelist email from customer onboarding", () => {

@@ -320,6 +320,7 @@ serve(async (req) => {
           template_name: `docstudio-email-${recipient.header}`,
           recipient_email: recipient.email,
           status: "pending",
+          metadata: { send_mode: "manual", subject, initiated_by: userId },
         });
 
         const { error: enqueueError } = await supabase.rpc("enqueue_email", {
@@ -343,6 +344,45 @@ serve(async (req) => {
         if (enqueueError) throw enqueueError;
       }
       return json({ ok: true, messageIds });
+    }
+
+    // The Audit Log consumes the shared delivery trail. One email can create
+    // several log rows as it moves from pending to sent/failed, so return one
+    // row per message with both its queued time and latest delivery state.
+    if (route[0] === "email" && route[1] === "audit" && method === "GET") {
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      if (!isAdmin) return json({ error: "Not authorized" }, 403);
+
+      const requestedLimit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 100, 1), 500);
+      const { data: rows, error: logError } = await supabase
+        .from("email_send_log")
+        .select("id,message_id,template_name,recipient_email,status,error_message,metadata,created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (logError) throw logError;
+
+      const grouped = new Map<string, { latest: any; earliest: any }>();
+      for (const row of rows ?? []) {
+        const key = row.message_id || row.id;
+        const current = grouped.get(key);
+        if (current) current.earliest = row;
+        else grouped.set(key, { latest: row, earliest: row });
+      }
+
+      const entries = Array.from(grouped.values())
+        .map(({ latest, earliest }) => ({
+          id: latest.id,
+          messageId: latest.message_id,
+          recipientEmail: latest.recipient_email,
+          templateName: latest.template_name,
+          sendMode: earliest.metadata?.send_mode === "manual" || earliest.template_name.startsWith("docstudio-email-") ? "manual" : "automatic",
+          deliveryStatus: latest.status,
+          errorMessage: latest.error_message,
+          queuedAt: earliest.created_at,
+          statusUpdatedAt: latest.created_at,
+        }))
+        .slice(0, requestedLimit);
+      return json({ entries });
     }
 
     // Delivery health for the Studio's email tool (and the admin Email

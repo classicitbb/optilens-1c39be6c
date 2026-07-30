@@ -153,6 +153,7 @@ export default function EmailPreviewsPage() {
           templateName: selected.id,
           recipientEmail: sampleEmail,
           templateData: buildTestTemplateData(selected.id, sampleName, sampleEmail),
+          auditSource: "manual",
         },
       });
       if (error) throw new Error(error.message);
