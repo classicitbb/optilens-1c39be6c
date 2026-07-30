@@ -42,6 +42,17 @@ import { Switch } from "@/components/ui/switch";
 import { useSearchParams } from "react-router";
 
 const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
+import EditorErrorBoundary from "@/components/admin/EditorErrorBoundary";
+
+const describeError = (error: unknown): string => {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  const err = error as { message?: string; details?: string; hint?: string; code?: string };
+  return [err.message, err.details, err.hint, err.code && `(code ${err.code})`]
+    .filter(Boolean)
+    .join(" — ") || "Unknown error";
+};
+
 
 type BlogPostDraft = Partial<BlogPost>;
 
