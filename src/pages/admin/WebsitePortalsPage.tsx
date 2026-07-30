@@ -69,6 +69,8 @@ interface PortalCustomerListItem {
   cartStatus: "empty" | "in_progress" | "abandoned";
   lastPortalLoginAt: string | null;
   presenceStatus: "online" | "idle" | "offline" | string;
+  emailConfirmedAt: string | null;
+  inviteSentAt: string | null;
 }
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
@@ -207,7 +209,7 @@ const WebsitePortalsPage = () => {
   const { users, resetPassword, inviteUser, createUser, emulatePortalUser, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>("approved");
+  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>("active");
   const [searchParams, setSearchParams] = useSearchParams();
   // Older deep links still open the requested account, but ordinary row clicks
   // keep their selection in component state and do not change the page URL.
@@ -403,6 +405,8 @@ const WebsitePortalsPage = () => {
             cartStatus: openAlertByUser.has(entry.user_id) ? "abandoned" : cartItemCount > 0 ? "in_progress" : "empty",
             lastPortalLoginAt: typeof profile?.last_portal_login_at === "string" ? profile.last_portal_login_at : null,
             presenceStatus: presenceByUser.get(entry.user_id)?.status ?? "offline",
+            emailConfirmedAt: entry.email_confirmed_at,
+            inviteSentAt: entry.invited_at,
           } satisfies PortalCustomerListItem;
           return {
             id: `user:${entry.user_id}`,
@@ -938,13 +942,19 @@ const WebsitePortalsPage = () => {
     if (!selectedAccount?.crmCustomerId || !provisioningMode) return;
     try {
       if (provisioningMode === "invite") {
-        await inviteUser.mutateAsync({
+        const result = await inviteUser.mutateAsync({
           email: provisioningEmail,
           customerId: selectedAccount.crmCustomerId,
           contactId: selectedAccount.crmContactId ?? undefined,
           displayName: provisioningName,
+          sendEmail: true,
         });
-        toast({ title: "Invite sent", description: `The existing customer invitation email was sent to ${provisioningEmail}.` });
+        toast({
+          title: result.alreadyExisted ? "Existing login linked" : "Invite email sent",
+          description: result.alreadyExisted
+            ? `An existing login for ${provisioningEmail} was linked to this customer. Use a password reset if they need a new sign-in email.`
+            : `The customer invitation email was sent to ${provisioningEmail}.`,
+        });
       } else {
         const result = await createUser.mutateAsync({
           email: provisioningEmail,
@@ -1244,7 +1254,7 @@ const WebsitePortalsPage = () => {
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <div className="relative w-full md:w-1/2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="h-10 pl-9" />
               </div>
               <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)} className="md:ml-auto">
                 <TabsList>
@@ -1309,7 +1319,9 @@ const WebsitePortalsPage = () => {
                         <td className="px-4 py-3">
                           {user ? (
                             <span className="flex items-center gap-2">
-                              <Badge variant="outline">Active</Badge>
+                              {user.inviteSentAt && !user.emailConfirmedAt ? (
+                                <Badge variant="secondary" title={`Invitation email sent ${formatDateTime(user.inviteSentAt)}; awaiting acceptance.`}>Invite sent</Badge>
+                              ) : <Badge variant="outline">Active</Badge>}
                               <Button
                                 size="sm"
                                 variant="ghost"
