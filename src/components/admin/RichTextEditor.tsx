@@ -79,10 +79,14 @@ const RichTextEditor = ({
     ],
     content: content || "",
     onUpdate: ({ editor: ed }) => {
-      if (!suppressUpdate.current) {
+      if (suppressUpdate.current || ed.isDestroyed) return;
+      try {
         onChange(ed.getHTML());
+      } catch (error) {
+        console.error("RichTextEditor: failed to read editor content", error);
       }
     },
+
     editorProps: {
       handlePaste(view, event) {
         const items = Array.from(event.clipboardData?.items ?? []);
@@ -126,12 +130,19 @@ const RichTextEditor = ({
 
   // Sync external content changes
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      suppressUpdate.current = true;
-      editor.commands.setContent(content || "");
+    if (!editor || editor.isDestroyed) return;
+    try {
+      if (content !== editor.getHTML()) {
+        suppressUpdate.current = true;
+        editor.commands.setContent(content || "");
+        suppressUpdate.current = false;
+      }
+    } catch (error) {
       suppressUpdate.current = false;
+      console.error("RichTextEditor: failed to sync content", error);
     }
   }, [content, editor]);
+
 
   const setLink = useCallback(() => {
     if (!editor) return;

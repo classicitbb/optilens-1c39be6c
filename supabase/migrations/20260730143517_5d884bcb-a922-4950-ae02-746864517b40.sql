@@ -1,0 +1,1 @@
+DELETE FROM public.blog_posts WHERE title = 'QA Test Post 001';
