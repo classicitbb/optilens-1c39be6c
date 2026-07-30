@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BellRing,
   CreditCard,
   ExternalLink,
   Eye,
@@ -215,7 +214,6 @@ const WebsitePortalsPage = () => {
   const legacySelectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(() => legacySelectedAccountId);
   const dismissedLegacyAccountRef = useRef<string | null>(null);
-  const [cutoffHours, setCutoffHours] = useState("24");
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
   const [accountNumberDraft, setAccountNumberDraft] = useState("");
   const [provisioningMode, setProvisioningMode] = useState<"create" | "invite" | null>(null);
@@ -503,6 +501,17 @@ const WebsitePortalsPage = () => {
         .includes(q);
     });
   }, [customersQuery.data, search, statusFilter]);
+
+  const accountCounts = useMemo(() => {
+    const allAccounts = customersQuery.data ?? [];
+    return {
+      approved: allAccounts.filter((account) => getAccountStatusBucket(account) === "approved").length,
+      pending_profile: allAccounts.filter((account) => getAccountStatusBucket(account) === "pending_profile").length,
+      pending_approval: allAccounts.filter((account) => getAccountStatusBucket(account) === "pending_approval").length,
+      active: allAccounts.filter((account) => account.portalUser !== null).length,
+      all: allAccounts.length,
+    } satisfies Record<AccountStatusFilter, number>;
+  }, [customersQuery.data]);
 
   // The portal list is intentionally centred on ERP-backed accounts. Keep the
   // same source available at the approval decision so an admin can link a
@@ -836,24 +845,6 @@ const WebsitePortalsPage = () => {
     },
     onSuccess: () => { detailQuery.refetch(); toast({ title: "Alert resolved", description: "The abandoned cart alert has been marked resolved." }); },
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to resolve alert.", variant: "destructive" }),
-  });
-
-  const runAbandonedCartScan = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("queue_abandoned_cart_alerts", { p_cutoff_hours: Number(cutoffHours || 24) });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ["website-portals-customer-detail"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
-      toast({
-        title: "Abandoned cart scan complete",
-        description: `Created ${result?.created ?? 0} alert(s) and refreshed ${result?.updated ?? 0}.`,
-      });
-      detailQuery.refetch();
-    },
-    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to scan abandoned carts.", variant: "destructive" }),
   });
 
   const placeOnBehalfOrder = useMutation({
@@ -1238,42 +1229,33 @@ const WebsitePortalsPage = () => {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4">
       <div className="shrink-0">
-        <AdminPageHeader icon={ShieldCheck} title="Website Portals">
-          <div className="flex items-center gap-2">
-            <Input value={cutoffHours} onChange={(event) => setCutoffHours(event.target.value)} className="h-8 w-20 text-xs" />
-            <Button size="sm" variant="outline" onClick={() => runAbandonedCartScan.mutate()} disabled={runAbandonedCartScan.isPending}>
-              <BellRing className="mr-2 h-3.5 w-3.5" />
-              {runAbandonedCartScan.isPending ? "Scanning…" : "Scan abandoned carts"}
-            </Button>
-          </div>
-        </AdminPageHeader>
+        <AdminPageHeader
+          icon={ShieldCheck}
+          title="Website Portals"
+          tooltip="ERP customers are approved by default. A website login is optional until it is needed."
+        />
       </div>
 
       <PortalApprovalsQueue onReviewContact={openContactEditor} />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Card className="flex min-h-0 flex-1 flex-col overflow-hidden shadow-none hover:shadow-none">
-          <CardHeader className="space-y-3 pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-base">Customer accounts</CardTitle>
-                <CardDescription className="mt-1">ERP customers are approved by default. A website login is optional until it is needed.</CardDescription>
-              </div>
-              <Badge variant="outline">{accounts.length}</Badge>
-            </div>
-            <div className="relative">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative w-full md:w-1/2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="pl-9" />
+              </div>
+              <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)} className="md:ml-auto">
+                <TabsList>
+                  <TabsTrigger value="approved">Approved ({accountCounts.approved})</TabsTrigger>
+                  <TabsTrigger value="pending_profile">Pending Profile ({accountCounts.pending_profile})</TabsTrigger>
+                  <TabsTrigger value="pending_approval">Pending Approval ({accountCounts.pending_approval})</TabsTrigger>
+                  <TabsTrigger value="active">Active ({accountCounts.active})</TabsTrigger>
+                  <TabsTrigger value="all">All ({accountCounts.all})</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
-            <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)}>
-              <TabsList>
-                <TabsTrigger value="approved">Approved</TabsTrigger>
-                <TabsTrigger value="pending_profile">Pending Profile</TabsTrigger>
-                <TabsTrigger value="pending_approval">Pending Approval</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="all">All</TabsTrigger>
-              </TabsList>
-            </Tabs>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-hidden px-0 pb-0">
             <div className="h-full overflow-auto border-t">
