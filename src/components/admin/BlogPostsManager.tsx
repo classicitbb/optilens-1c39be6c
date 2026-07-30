@@ -276,8 +276,9 @@ const BlogPostsManager = ({
       toast({ title: editing.id ? "Blog entry updated" : "Blog entry created" });
       setEditing(null);
       setTagInput("");
-    } catch {
-      toast({ title: "Could not save blog entry", variant: "destructive" });
+    } catch (error) {
+      console.error("Blog entry save failed", error);
+      toast({ title: "Could not save blog entry", description: describeError(error), variant: "destructive" });
     }
   };
 
@@ -286,8 +287,9 @@ const BlogPostsManager = ({
     try {
       await deleteBlogPost(id);
       toast({ title: "Blog entry deleted" });
-    } catch {
-      toast({ title: "Could not delete blog entry", variant: "destructive" });
+    } catch (error) {
+      console.error("Blog entry delete failed", error);
+      toast({ title: "Could not delete blog entry", description: describeError(error), variant: "destructive" });
     }
   };
 
@@ -295,10 +297,12 @@ const BlogPostsManager = ({
     try {
       const count = await seedBlogPosts();
       toast({ title: "Legacy drafts imported", description: `${count ?? 0} Classic Visions posts are now available in Blog Posts.` });
-    } catch {
-      toast({ title: "Could not import drafts", variant: "destructive" });
+    } catch (error) {
+      console.error("Blog draft import failed", error);
+      toast({ title: "Could not import drafts", description: describeError(error), variant: "destructive" });
     }
   };
+
 
   if (editing) {
     const selectedRelated = new Set(editing.related_post_slugs ?? []);
