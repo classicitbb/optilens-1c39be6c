@@ -25,7 +25,7 @@ export const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
   const isLoading = loadingMessages || loadingEvents;
 
   const items: TimelineItem[] = [
-    { kind: "opening", ts: new Date(ticket.created_at).getTime(), data: ticket },
+    { kind: "opening" as const, ts: new Date(ticket.created_at).getTime(), data: ticket },
     ...messages.map((m) => ({ kind: "message" as const, ts: new Date(m.sent_at).getTime(), data: m })),
     ...events.map((e) => ({ kind: "activity" as const, ts: new Date(e.created_at).getTime(), data: e })),
   ].sort((a, b) => a.ts - b.ts || (a.kind === "opening" ? -1 : b.kind === "opening" ? 1 : 0));
