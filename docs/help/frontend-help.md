@@ -6,6 +6,7 @@ Support-facing notes for the frontend runtime.
 
 - When viewing an open ticket, new replies should appear without refreshing. If they do not, first check that the user is signed in and permitted to the ticket; the page deliberately does not subscribe to any other customer's conversation.
 - Operators receive a Helpdesk notification when a customer replies. Opening the ticket shows the complete current thread; no inbox reload is needed.
+- If sending fails, the operator should receive a single **Failed to send** notice. A second browser-level promise error is a regression and should be reported with the ticket URL and time.
 - In the assistant, a customer must confirm **Ask a person** before the Helpdesk conversation is created. After confirmation, use the opened ticket to continue with a human.
 
 ## 2026-07-24 — Sales app consolidation

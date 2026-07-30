@@ -8,6 +8,7 @@ Track frontend regressions and customer-facing issues.
 - Root cause: the two screens performed one-time HTTP reads and client-side direct writes; no private live message signal existed to invalidate the affected ticket or office queue.
 - Resolution: added database-authorized private Realtime broadcasts, an idempotent authenticated send RPC, targeted cache refreshes, operator notification, and exact-ticket navigation after assistant human-help confirmation.
 - Follow-up: keep event payloads identifier-only and enforce access in `realtime.messages` policies. Do not add polling or a public/shared Helpdesk channel.
+- Regression: the first RPC version exposed `ticket_id` as a return field and used the name unqualified in its write/duplicate path, producing Postgres error `42702`. The correction uses unambiguous table references; the reply component catches a rejected mutation after its toast is shown.
 
 ## 2026-07-24
 - Area: Admin → Settings → Integrations / DHL Express

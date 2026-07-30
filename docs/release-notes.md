@@ -7,6 +7,7 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 - New customer and operator replies appear in the open Helpdesk conversation without manually refreshing the page.
 - When a customer asks the assistant for a person, confirms the handoff, and a ticket is created, the assistant opens that exact ticket for a continuous conversation.
+- A failed reply now shows one clear error message rather than an additional browser error alert.
 
 ## 2026-07-24 — Sales App Consolidation
 

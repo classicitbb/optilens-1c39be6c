@@ -20,28 +20,38 @@ export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
     const body = replyBody.trim();
     if (!body) return;
 
-    await mutateAsync({
-      ticketId,
-      direction: "outbound",
-      body,
-    });
+    try {
+      await mutateAsync({
+        ticketId,
+        direction: "outbound",
+        body,
+      });
 
-    setReplyBody("");
-    toast({ title: "Reply sent" });
+      setReplyBody("");
+      toast({ title: "Reply sent" });
+    } catch {
+      // The mutation displays the customer-safe error toast. Catching here
+      // prevents React event handlers from surfacing it as an unhandled promise.
+    }
   };
 
   const handleAddNote = async () => {
     const body = noteBody.trim();
     if (!body) return;
 
-    await mutateAsync({
-      ticketId,
-      direction: "internal_note",
-      body,
-    });
+    try {
+      await mutateAsync({
+        ticketId,
+        direction: "internal_note",
+        body,
+      });
 
-    setNoteBody("");
-    toast({ title: "Note added" });
+      setNoteBody("");
+      toast({ title: "Note added" });
+    } catch {
+      // The mutation displays the customer-safe error toast. Catching here
+      // prevents React event handlers from surfacing it as an unhandled promise.
+    }
   };
 
   return (
