@@ -493,26 +493,29 @@ const BlogPostsManager = ({
 
                 <div>
                   <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Body content</label>
-                  <Suspense fallback={<div className="h-[420px] animate-pulse rounded-lg border border-border bg-muted/20" />}>
-                    <RichTextEditor
-                      content={editing.content || ""}
-                      onChange={(html) => {
-                        const next: BlogPostDraft = { ...editing, content: html };
-                        if (!editing.cover_image_url) {
-                          const found = extractFirstImage(html);
-                          if (found) {
-                            next.cover_image_url = found.src;
-                            if (!editing.cover_image_alt && found.alt) {
-                              next.cover_image_alt = found.alt;
+                  <EditorErrorBoundary label="The body editor">
+                    <Suspense fallback={<div className="h-[420px] animate-pulse rounded-lg border border-border bg-muted/20" />}>
+                      <RichTextEditor
+                        content={editing.content || ""}
+                        onChange={(html) => {
+                          const next: BlogPostDraft = { ...editing, content: html };
+                          if (!editing.cover_image_url) {
+                            const found = extractFirstImage(html);
+                            if (found) {
+                              next.cover_image_url = found.src;
+                              if (!editing.cover_image_alt && found.alt) {
+                                next.cover_image_alt = found.alt;
+                              }
                             }
                           }
-                        }
-                        setEditing(next);
-                      }}
-                      placeholder="Write the article body..."
-                      minHeight="420px"
-                    />
-                  </Suspense>
+                          setEditing(next);
+                        }}
+                        placeholder="Write the article body..."
+                        minHeight="420px"
+                      />
+                    </Suspense>
+                  </EditorErrorBoundary>
+
                 </div>
               </div>
 
