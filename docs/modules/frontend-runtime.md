@@ -8,6 +8,8 @@ Operational notes and change context for code in `src/**`.
 - `useLiveHelpdeskInboxUpdates` runs in the operator shell and refreshes the Helpdesk queue when a customer replies, creates a ticket, or its status changes. A visible toast calls out new customer replies.
 - All browser message writes use `send_helpdesk_ticket_message`, which assigns the direction server-side and uses a client message UUID to make retrying a submit safe. Do not reintroduce direct client-table inserts for messages.
 - The RPC must keep every `helpdesk_ticket_messages` column reference explicit because its `RETURNS TABLE` fields share names with table columns. `TicketReplyComposer` catches rejected `mutateAsync` calls because the mutation itself owns the error toast.
+- `TicketMessageBubble` and the portal ticket detail each use a full-width conversation row: the signed-in sender is right-aligned and the responder is left-aligned. Do not infer alignment from a display name; use message direction.
+- The database marks an automatic acknowledgement with `is_automated`. The trigger sends it once for portal/chat/assistant-created tickets, or the first inbound customer message before a human response. Working hours are Monday–Friday, 8:30 AM–5:00 PM in `America/Barbados`.
 - The assistant handoff navigation stays at `/profile/helpdesk/:ticketId`; keep the confirmation requirement before creating a support conversation.
 
 ## 2026-07-24 — Sales app consolidation

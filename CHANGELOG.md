@@ -14,6 +14,7 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 - Added an authenticated, idempotent message RPC and private Supabase Realtime topics, with database authorization for the relevant customer or staff member only.
 - Added targeted client-cache refreshes for one ticket and the office inbox, avoiding polling and broad data reloads.
 - Corrected a database-function result-column collision that blocked reply sending, and prevented a handled send error from becoming an unhandled browser promise.
+- Standardized two-way conversation alignment (sender right, received reply left) and added one server-side Helpdesk acknowledgement per customer conversation, with business-hours and urgent-call wording.
 
 ## 2026-07-24 — Sales App Consolidation
 
