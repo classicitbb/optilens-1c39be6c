@@ -8,11 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface TicketReplyComposerProps {
   ticketId: string;
-  senderName?: string;
-  senderEmail?: string;
 }
 
-export const TicketReplyComposer = ({ ticketId, senderName, senderEmail }: TicketReplyComposerProps) => {
+export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
   const [replyBody, setReplyBody] = useState("");
   const [noteBody, setNoteBody] = useState("");
   const { mutateAsync, isPending } = useTicketMessageMutation();
@@ -26,9 +24,6 @@ export const TicketReplyComposer = ({ ticketId, senderName, senderEmail }: Ticke
       ticketId,
       direction: "outbound",
       body,
-      senderName,
-      senderEmail,
-      setFirstResponse: true,
     });
 
     setReplyBody("");
@@ -43,8 +38,6 @@ export const TicketReplyComposer = ({ ticketId, senderName, senderEmail }: Ticke
       ticketId,
       direction: "internal_note",
       body,
-      senderName,
-      senderEmail,
     });
 
     setNoteBody("");

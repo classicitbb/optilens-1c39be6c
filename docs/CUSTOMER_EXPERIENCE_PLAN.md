@@ -31,21 +31,60 @@ Facts and rules as dictated:
 6. **Portal publishing with expiring access.** A customer's pricelist publishes to their portal behind tokenized/password access that **expires after inactivity (a few weeks)**. Expired → the pricelist page shows a "request access" action that messages us for a fresh password.
 7. **Builder location.** The pricelist builder migrates from OptiLens Local into the CV Web pricing engine (per the tool-migration principle) and edits what's assigned to the account.
 
-## "Order this lens" — pricelist-to-order flow (design, not yet built)
+## "Order this lens" — pricelist-to-order flow (locked 2026-07-30, extends 2026-07-14 decision below — not a reversal)
 
+**Clarified relationship to the 2026-07-14 entry:** the Rx order form stays exactly what was decided — its own dedicated, first-class flow, not built out of store-cart UI. What's new is what happens at the *end* of that flow: **submitting** a completed Rx order (not an intermediate "add to cart" click mid-editing) is the moment it becomes a line item in the store cart. The form and the cart remain two distinct things; submission is the bridge between them.
+
+### Entry points (all converge on the same Rx Order Form)
+1. **Pricelist/price grid** — click a price cell → form opens with that lens (supplier/brand/material/design/index) prefilled, still swappable.
+2. **Profile → "New Rx Order"** — blank form, lens picked via searchable catalog picker.
+3. **My Orders → resume a draft** — form reopens prefilled from a saved draft.
+4. **Cart → Edit** — pencil icon on the Rx cart card reopens the form prefilled from the cart item; saving recalculates and updates the card in place. Only available pre-checkout.
+
+### Form behavior
+- **Job scope toggle:** surface-only vs. full-glaze. Frame/tracing fields only appear if full-glaze is selected (ties to the existing `Full Lab` catalog flag). Surface-only jobs never collect frame data.
+- **Live quote panel:** every price-driving parameter (index, design, coating, prism, oversize, tint — per the confirmed list below) recomputes on screen as they type, shown in the customer's account-default currency (see Currency below).
+- **"Request assistance":** while editing, the customer can flag the form for help on a specific missing/uncertain item (e.g. no PD yet) and save it as a draft to come back to — lets them keep working other orders instead of blocking.
+- **Submit requires full validation.** An incomplete order **cannot** be submitted into the cart — it can only be saved as a draft. Drafts are resumable and printable (physical/fax reference). This is a hard gate, not a soft flag.
+
+### After submit
+Submitting a completed Rx order drops it into the cart as a line item and immediately presents three choices, no forced path:
+1. **Checkout now** — go straight to payment/on-account with just this item (or whatever else is already in cart).
+2. **Start another Rx order** — form resets/reopens for the next job; prior submission stays in cart.
+3. **Continue shopping** — return to the store to browse stock/supplies; Rx item stays in cart.
+
+### Pricing lock and drift
+- **Price locks at add-to-cart** (not live-repriced at checkout), consistent with the existing "custom prices hold on master change" rule. The quote shown when added is the quote honored through checkout.
+- **Production-cost drift:** if the lab's actual cost to produce the job exceeds the locked quote (e.g. extra thinning needed), it routes through the **existing price-match approval flow** — owner/manager approval required before the customer is charged the difference. No silent reconciliation.
+
+### Cart line item
+- Rx orders render as a card in the cart (lens name, Rx summary, quoted price), not a plain SKU row — same cart the customer uses for stock/supplies (cloth, cleaner, etc.).
+- Editable pre-checkout via the pencil icon (reopens the form). **Locked after payment/submission** — once transmitted to Innovations as a real job, the customer can no longer self-edit; any change becomes a staff-routed amendment request (production may already be underway).
+
+### Currency
+- **Account-level default**, not a per-order toggle. Set once in account preferences; applies consistently across the price grid, live quote, cart, invoices, and payment. Customer sees BBD/USD/EUR per that setting everywhere, not just while quoting.
+- **Open item:** whether BBD↔USD↔EUR conversion uses a live FX feed or an admin-set fixed rate (see Remaining open items).
+
+### Order history
+- My Orders shows, per Rx order: the submitted Rx details, the quoted price at checkout, current pipeline status (Received → In production/at supplier → Coating → QC → Shipped → Delivered), and — once the lab processes it — the actual charged price if it differs from quote, flagged the same way master-price drift is flagged elsewhere in this doc.
+
+---
+
+**2026-07-14 original entry (still in force — extended, not superseded):**
 - On any pricelist row, click/hover the price → **"Order this lens"** → prefilled Rx order form.
 - The form captures: prescription, add-ons, patient info, frame size, prism/personalization.
 - **Live price:** every parameter has a price consequence, recomputed on screen as they type. No surprises at invoice time.
 - Submission creates an Rx order.
-
-**Decision needed (recommendation recorded):** dedicated **Rx order form** (not a store-cart flow). Rx work is parametric and priced per-job — a cart is the wrong metaphor. The store keeps carts for stock/supplies; the Rx form is its own first-class flow reachable from pricelists and the portal. Flag: `rx_order_form`.
+- **Decision confirmed:** dedicated Rx order form, not built as store-cart UI — this stands. **2026-07-30 addition:** submitting the completed form is what places the order into the store cart as a line item (see above) — the destination changed, the form's identity as a standalone flow did not.
 
 ## Draft orders (design, not yet built)
 
 One drafts surface holding three order types, resumable any time:
 - **Web store order** (cart draft — partially exists as cart persistence)
-- **Rx order** (interrupted form state)
+- **Rx order** (interrupted/incomplete form state — the ONLY path for incomplete Rx data; cannot be added to cart incomplete. Printable. Supports a "request assistance" flag on a specific field.)
 - **Service order** (subscriptions / paid services)
+
+Once an Rx draft passes full validation, it moves from the Drafts surface into the Cart (as an Rx cart card, see above) rather than staying a separate order type.
 
 ## Build sequence (proposed)
 
@@ -88,3 +127,6 @@ One drafts surface holding three order types, resumable any time:
 1. **Payment provider** for online invoice payment (v1 statements includes pay-online). Which processor, and card vs bank transfer?
 2. **Default markup targets** above the 15% floor — flat or per category? Capture during pricelist-builder port.
 3. **Helpdesk integration detail:** confirm which existing helpdesk system and its API/entry point for portal-originated tickets.
+4. **Currency conversion source (added 2026-07-30):** BBD/USD/EUR — live FX feed or admin-set fixed rate? Affects whether the locked-quote price is truly fixed or still exposed to rate movement between quote and payment.
+5. **Rx order granularity (added 2026-07-30):** does one Rx cart item always represent one job (one pair, OD+OS, one frame/add-on set), or can a single Rx order request multiple pairs of the same prescription? Not yet asked.
+6. **Amendment-request routing (added 2026-07-30):** post-submission edit requests are staff-routed per today's decision — confirm where they land (helpdesk ticket vs. a dedicated admin queue) once helpdesk integration (#3) is resolved.

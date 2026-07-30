@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { usePublicKnowledge } from "@/hooks/useContentArticles";
@@ -154,6 +154,7 @@ const createInitialFormState = ({
 
 export const CompanionAssistantProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const pathname = location.pathname;
   const isDetachedRoute = pathname === "/assistant/window";
   const { user } = useAuth();
@@ -801,8 +802,9 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         previousResults: resultSummary,
       };
 
+      let portalTicketId: string | null = null;
       if (formState.kind === "portal_support" && user) {
-        await createTicket.mutateAsync({
+        portalTicketId = await createTicket.mutateAsync({
           title: formState.issueType.trim() || "Portal assistant support request",
           description: `${summary}\n\nAssistant context:\n${JSON.stringify(contextNotes, null, 2)}`,
           partnerContactId: identity?.crmContactId ?? null,
@@ -842,11 +844,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           kind: "confirmation",
           title: "Request sent",
           text: formState.kind === "portal_support"
-            ? "Your request was submitted with your portal context attached. You can keep chatting here, or jump back to your helpdesk and orders if you want to continue self-service."
+            ? "Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here."
             : "Your request was submitted with the current page and assistant context attached. You can keep chatting here, or open one of the source links above while the team follows up.",
           quickActions: pathname.startsWith("/profile")
             ? [
-                { type: "link", label: "Open helpdesk", href: "/profile/helpdesk" },
+                { type: "link", label: "Open live conversation", href: portalTicketId ? `/profile/helpdesk/${portalTicketId}` : "/profile/helpdesk" },
                 { type: "link", label: "View orders", href: "/profile/orders" },
                 { type: "query", label: "Ask another question", query: "Help me with something else in my account.", profile: "portal_support" },
               ]
@@ -857,10 +859,15 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
               ],
         },
       ]);
+
+      if (portalTicketId) {
+        setIsOpen(false);
+        navigate(`/profile/helpdesk/${portalTicketId}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, location.hash, location.search, messages, pathname, user]);
+  }, [activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, location.hash, location.search, messages, navigate, pathname, user]);
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,

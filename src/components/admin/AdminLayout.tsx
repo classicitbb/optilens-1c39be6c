@@ -8,11 +8,13 @@ import { pathnameToContextSlug } from "@/lib/adminContexts";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import CrmActivityDialog from "./CrmActivityDialog";
 import OperatorAttentionAlert from "./OperatorAttentionAlert";
+import { useLiveHelpdeskInboxUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
 
 const AdminLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const location = useLocation();
   usePresenceHeartbeat("admin");
+  useLiveHelpdeskInboxUpdates();
   const contextSlug = pathnameToContextSlug(location.pathname);
   const isDocStudio = location.pathname === "/admin/docs/studio";
   const hideSidebar =

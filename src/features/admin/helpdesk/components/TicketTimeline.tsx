@@ -5,6 +5,7 @@ import type { HelpdeskTicketEvent } from "../hooks/useHelpdeskTicketTimeline";
 import { TicketMessageBubble } from "./TicketMessageBubble";
 import { TicketActivityEntry } from "./TicketActivityEntry";
 import { TicketOpeningMessage } from "./TicketOpeningMessage";
+import { useLiveHelpdeskTicketUpdates } from "../hooks/useLiveHelpdeskUpdates";
 import { Loader2 } from "lucide-react";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
@@ -19,6 +20,7 @@ interface TicketTimelineProps {
 
 export const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
   const ticketId = ticket.id;
+  useLiveHelpdeskTicketUpdates(ticketId);
   const { data: messages = [], isLoading: loadingMessages } = useHelpdeskMessages(ticketId);
   const { data: events = [], isLoading: loadingEvents } = useHelpdeskTicketTimeline(ticketId);
 

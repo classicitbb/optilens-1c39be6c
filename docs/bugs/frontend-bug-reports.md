@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-30
+- Area: customer portal Helpdesk, operator Helpdesk, and assistant handoff
+- Impact: ticket messages required a manual page refresh, so customers and operators could miss a new reply even while both were using the website.
+- Root cause: the two screens performed one-time HTTP reads and client-side direct writes; no private live message signal existed to invalidate the affected ticket or office queue.
+- Resolution: added database-authorized private Realtime broadcasts, an idempotent authenticated send RPC, targeted cache refreshes, operator notification, and exact-ticket navigation after assistant human-help confirmation.
+- Follow-up: keep event payloads identifier-only and enforce access in `realtime.messages` policies. Do not add polling or a public/shared Helpdesk channel.
+
 ## 2026-07-24
 - Area: Admin → Settings → Integrations / DHL Express
 - Impact: there was no secure place to configure DHL Express credentials for tracking and landed-cost work; adding credentials to a browser client would expose the Basic Auth pair and storing DHL estimate responses would violate its service terms.

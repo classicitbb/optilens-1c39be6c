@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-30 — Live Helpdesk Conversations
+
+### Release Notes
+- Helpdesk replies can now appear in the customer portal and operator inbox without a browser refresh.
+- An assistant request for human help opens the exact live Helpdesk conversation once the customer confirms it.
+
+### Technical Changelog
+- Added an authenticated, idempotent message RPC and private Supabase Realtime topics, with database authorization for the relevant customer or staff member only.
+- Added targeted client-cache refreshes for one ticket and the office inbox, avoiding polling and broad data reloads.
+
 ## 2026-07-24 — Sales App Consolidation
 
 ### Release Notes

@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-30 — Live Helpdesk conversations
+
+- When viewing an open ticket, new replies should appear without refreshing. If they do not, first check that the user is signed in and permitted to the ticket; the page deliberately does not subscribe to any other customer's conversation.
+- Operators receive a Helpdesk notification when a customer replies. Opening the ticket shows the complete current thread; no inbox reload is needed.
+- In the assistant, a customer must confirm **Ask a person** before the Helpdesk conversation is created. After confirmation, use the opened ticket to continue with a human.
+
 ## 2026-07-24 — Sales app consolidation
 
 - The Apps launcher no longer has Sales. Open CRM → Proposals for proposal work.

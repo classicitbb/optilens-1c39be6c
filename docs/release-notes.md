@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-30 — Live Helpdesk Conversations
+
+### Release Notes
+- New customer and operator replies appear in the open Helpdesk conversation without manually refreshing the page.
+- When a customer asks the assistant for a person, confirms the handoff, and a ticket is created, the assistant opens that exact ticket for a continuous conversation.
+
 ## 2026-07-24 — Sales App Consolidation
 
 ### Release Notes
