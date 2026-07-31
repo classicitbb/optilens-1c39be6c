@@ -8,7 +8,7 @@ export interface Quote {
   quote_type: "STOCK" | "RX";
   status: string;
   customer_name: string;
-  account_id: string | null;
+  account_id: number | null;
   contact_name: string | null;
   contact_email: string | null;
   contact_phone: string | null;
@@ -52,6 +52,29 @@ export interface QuoteLine {
   parent_line_id: string | null;
   sort_order: number;
   line_note: string | null;
+  needs_assistance: boolean;
+  assistance_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuoteFrameDetails {
+  id: string;
+  quote_id: string;
+  job_scope: "surface_only" | "full_glaze";
+  brand: string | null;
+  model_colour: string | null;
+  bridge_mm: number | null;
+  a_mm: number | null;
+  b_mm: number | null;
+  ed_mm: number | null;
+  dbl_mm: number | null;
+  is_uncut: boolean;
+  uncut_price: number | null;
+  shape_source_file: string | null;
+  shape_traced_ed: number | null;
+  shape_traced_axis: number | null;
+  standard_shape_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -175,11 +198,12 @@ export const useQuotes = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (params: { quote_type: "STOCK" | "RX"; customer_name?: string }) => {
+    mutationFn: async (params: { quote_type: "STOCK" | "RX"; customer_name?: string; account_id?: number | null }) => {
       const { data, error } = await (supabase.from("quotes") as any)
         .insert({
           quote_type: params.quote_type,
           customer_name: params.customer_name || "",
+          account_id: params.account_id ?? null,
           created_by: user!.id,
           quote_number: "", // trigger fills this
         } as any)
@@ -298,6 +322,48 @@ export const useRxDetails = (quoteLineId: string | undefined) => {
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["rx-details", quoteLineId] }),
+  });
+
+  return { ...query, upsertMutation };
+};
+
+// One row per quote — replaces the old `[[FRAME:{...}]]` JSON-in-notes_internal
+// hack. Same upsert-by-parent-id pattern as useRxDetails above.
+export const useQuoteFrameDetails = (quoteId: string | undefined) => {
+  const qc = useQueryClient();
+
+  const query = useQuery<QuoteFrameDetails | null>({
+    queryKey: ["quote-frame-details", quoteId],
+    queryFn: async () => {
+      if (!quoteId) return null;
+      const { data, error } = await (supabase.from("quote_frame_details") as any)
+        .select("*")
+        .eq("quote_id", quoteId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as QuoteFrameDetails | null;
+    },
+    enabled: !!quoteId,
+  });
+
+  const upsertMutation = useMutation({
+    mutationFn: async (detail: Partial<QuoteFrameDetails> & { quote_id: string }) => {
+      const { data: existing } = await (supabase.from("quote_frame_details") as any)
+        .select("id")
+        .eq("quote_id", detail.quote_id)
+        .maybeSingle();
+      if (existing) {
+        const { error } = await (supabase.from("quote_frame_details") as any)
+          .update(detail as any)
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("quote_frame_details") as any)
+          .insert(detail as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["quote-frame-details", quoteId] }),
   });
 
   return { ...query, upsertMutation };

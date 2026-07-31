@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useQuoteLines, useRxDetails, computeLineProfit, OVERRIDE_REASONS, Quote, QuoteLine, RxDetail } from "@/hooks/useQuotes";
+import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useLenses, Lens } from "@/hooks/useLenses";
 import { useAddons, Addon } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
@@ -426,6 +427,8 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
   const { data: addons = [] } = useAddons();
   const { data: supplies = [] } = useSupplies();
   const { data: lines = [], addLineMutation, updateLineMutation, deleteLineMutation } = useQuoteLines(quote.id);
+  const { data: customerAccounts = [] } = useCustomerAccounts();
+  const [accountPickerOpen, setAccountPickerOpen] = useState(false);
   const { toast } = useToast();
 
   // Ref data for lens filtering
@@ -698,6 +701,58 @@ const RxQuoteWizard = ({ quote, onUpdateQuote, headerForm, setHeaderForm, saveHe
           <div className="space-y-4">
             <h2 className="text-sm font-semibold text-foreground">Patient / Customer Identification</h2>
             <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground block mb-1">ERP Account</label>
+                <Popover open={accountPickerOpen} onOpenChange={setAccountPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      disabled={!canEdit}
+                      className="h-8 w-full justify-between text-xs font-normal"
+                    >
+                      {headerForm.account_id
+                        ? (() => {
+                            const acc = customerAccounts.find(a => a.id === headerForm.account_id);
+                            return acc ? `${acc.name}${acc.account_number ? ` · ${acc.account_number}` : ""}` : `Account #${headerForm.account_id}`;
+                          })()
+                        : "Place order on behalf of…"}
+                      <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search accounts by name or #..." className="h-8 text-xs" />
+                      <CommandList>
+                        <CommandEmpty className="py-3 text-xs text-muted-foreground text-center">No account found.</CommandEmpty>
+                        <CommandGroup>
+                          {customerAccounts.map(acc => (
+                            <CommandItem
+                              key={acc.id}
+                              value={`${acc.name} ${acc.account_number ?? ""}`}
+                              className="text-xs"
+                              onSelect={() => {
+                                // Only auto-fill the name if the staff member hasn't already typed a custom one.
+                                const resolvedName = headerForm.customer_name && headerForm.customer_name.trim() ? headerForm.customer_name : acc.name;
+                                setHeaderForm(p => ({ ...p, account_id: acc.id, customer_name: resolvedName }));
+                                setAccountPickerOpen(false);
+                                // Save directly via onUpdateQuote rather than saveHeader(): saveHeader's
+                                // closure reads headerForm from the parent's last render, which won't yet
+                                // include the account_id we just set in the line above (setState is async).
+                                onUpdateQuote({ account_id: acc.id, customer_name: resolvedName });
+                              }}
+                            >
+                              <span className="flex-1">{acc.name}</span>
+                              {acc.account_number && <span className="text-muted-foreground ml-2">{acc.account_number}</span>}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <p className="text-[10px] text-muted-foreground mt-1">Determines which pricelist prices this quote — see the Lens step.</p>
+              </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground block mb-1">Customer / Practice *</label>
                 <Input value={headerForm.customer_name ?? ""} onChange={e => setHeaderForm(p => ({ ...p, customer_name: e.target.value }))} onBlur={saveHeader} className="h-8 text-xs" disabled={!canEdit} placeholder="Practice or customer name" />
