@@ -102,19 +102,11 @@ const CrmActivitiesPage = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="CRM Activities" icon={CalendarCheck} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center justify-between">
-            Tasks
-            <Button size="sm" className="h-8 text-xs" onClick={() => openDialog("createActivity", "1")}>
-              <PlusCircle className="h-3.5 w-3.5 mr-1" /> New Task
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent><p className="text-xs text-muted-foreground">Create follow-ups and manage task status from the list below.</p></CardContent>
-      </Card>
+      <AdminPageHeader title="CRM Activities" icon={CalendarCheck}>
+        <Button size="sm" className="h-8 text-xs" onClick={() => openDialog("createActivity", "1")}>
+          <PlusCircle className="h-3.5 w-3.5 mr-1" /> New Task
+        </Button>
+      </AdminPageHeader>
 
       <Card>
         <CardHeader>
