@@ -116,7 +116,7 @@ export const ADMIN_APPS = {
       { label: 'Orders', route: '/admin/website/orders', icon: Package },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
       { label: 'Feature Board', route: '/admin/website/features', icon: SlidersHorizontal },
-      { label: 'Assistant Quality', route: '/admin/assistant/quality', icon: MessageSquare },
+      { label: 'Assistant Quality', route: '/admin/website/assistant/quality', icon: MessageSquare },
     ] satisfies SidebarItem[],
   },
   docstudio: {

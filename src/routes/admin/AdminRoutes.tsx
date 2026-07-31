@@ -109,7 +109,7 @@ const AdminRoutes = () => (
       <Route path="helpdesk/teams" element={<Navigate to="/admin/helpdesk/config?section=teams" replace />} />
       <Route path="helpdesk/stages" element={<Navigate to="/admin/helpdesk/config?section=stages" replace />} />
       <Route path="helpdesk/config" element={<HelpdeskConfigPage />} />
-      <Route path="assistant/quality" element={<AssistantQualityPage />} />
+      <Route path="website/assistant/quality" element={<AssistantQualityPage />} />
 
       <Route path="website" element={<Navigate to="/admin/website/portals" replace />} />
       <Route path="website/content" element={<ContentManagerPage />} />
