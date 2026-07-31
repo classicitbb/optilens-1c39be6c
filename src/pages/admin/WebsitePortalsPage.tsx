@@ -71,6 +71,9 @@ interface PortalCustomerListItem {
   presenceStatus: "online" | "idle" | "offline" | string;
   emailConfirmedAt: string | null;
   inviteSentAt: string | null;
+  // Admin-recorded manual invitation, kept separate from the Supabase invite
+  // email above: staff often invite a customer from their own mailbox.
+  manualInviteEmailSentAt: string | null;
 }
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
@@ -250,7 +253,7 @@ const WebsitePortalsPage = () => {
         portalUserIds.length
           ? (supabase as any)
               .from("profiles")
-              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id,last_portal_login_at")
+              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id,last_portal_login_at,portal_invite_email_sent_at")
               .in("user_id", portalUserIds)
               .order("updated_at", { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -407,6 +410,7 @@ const WebsitePortalsPage = () => {
             presenceStatus: presenceByUser.get(entry.user_id)?.status ?? "offline",
             emailConfirmedAt: entry.email_confirmed_at,
             inviteSentAt: entry.invited_at,
+            manualInviteEmailSentAt: typeof profile?.portal_invite_email_sent_at === "string" ? profile.portal_invite_email_sent_at : null,
           } satisfies PortalCustomerListItem;
           return {
             id: `user:${entry.user_id}`,
@@ -771,6 +775,36 @@ const WebsitePortalsPage = () => {
     onError: (error: any) => toast({ title: "Approval failed", description: error.message || "Failed to update portal approval.", variant: "destructive" }),
   });
 
+  // Records that staff invited this login to Classic Visions by hand. It never
+  // sends anything — the customer was emailed outside the app, and this is the
+  // only place that fact can be captured (auth.users.invited_at only moves for
+  // Supabase invite emails).
+  const setManualInviteEmailSent = useMutation({
+    mutationFn: async ({ userId, sent }: { userId: string; sent: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({
+          user_id: userId,
+          portal_invite_email_sent_at: sent ? new Date().toISOString() : null,
+          portal_invite_email_sent_by: sent ? user?.id ?? null : null,
+        }, { onConflict: "user_id" });
+      if (error) throw error;
+    },
+    onSuccess: async (_result, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] }),
+        queryClient.invalidateQueries({ queryKey: ["website-portals-customer-detail"] }),
+      ]);
+      toast({
+        title: variables.sent ? "Invitation marked as sent" : "Invitation mark cleared",
+        description: variables.sent
+          ? "Recorded that this login was emailed an invitation to Classic Visions. No email was sent from here."
+          : "The manual invitation record was removed from this login.",
+      });
+    },
+    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to update the invitation record.", variant: "destructive" }),
+  });
+
   const linkPortalToErpCustomer = useMutation({
     mutationFn: async (customerId: number) => {
       if (!selectedCustomer) throw new Error("Select a portal login first.");
@@ -1062,6 +1096,14 @@ const WebsitePortalsPage = () => {
     }
   };
 
+  // Only a real login can be invited to the portal, so the action stays hidden
+  // for ERP-only accounts and company records with no login of their own.
+  const toggleManualInviteEmail = (account: PortalAccountRecord) => {
+    const portalUser = account.portalUser;
+    if (!portalUser) return;
+    setManualInviteEmailSent.mutate({ userId: portalUser.userId, sent: !portalUser.manualInviteEmailSentAt });
+  };
+
   const createPortalLogin = (account: PortalAccountRecord) => {
     if (!account.crmCustomerId) {
       toast({ title: "Customer approval required", description: "Approve or link this customer before creating a website login.", variant: "destructive" });
@@ -1272,11 +1314,11 @@ const WebsitePortalsPage = () => {
               <table className="w-full min-w-[960px] table-fixed text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-background text-xs text-muted-foreground shadow-sm">
                   <tr className="border-y">
-                    <th className="w-[24%] px-4 py-3 font-medium">Account name</th>
-                    <th className="w-[22%] px-4 py-3 font-medium">Email</th>
-                    <th className="w-[13%] px-4 py-3 font-medium">ERP ACC#</th>
+                    <th className="w-[22%] px-4 py-3 font-medium">Account name</th>
+                    <th className="w-[20%] px-4 py-3 font-medium">Email</th>
+                    <th className="w-[11%] px-4 py-3 font-medium">ERP ACC#</th>
                     <th className="w-[13%] px-4 py-3 font-medium">Last login</th>
-                    <th className="w-[14%] px-4 py-3 font-medium">Login</th>
+                    <th className="w-[20%] px-4 py-3 font-medium">Login</th>
                     <th className="w-[14%] px-4 py-3 font-medium">Status</th>
                   </tr>
                 </thead>
@@ -1318,7 +1360,7 @@ const WebsitePortalsPage = () => {
                         </td>
                         <td className="px-4 py-3">
                           {user ? (
-                            <span className="flex items-center gap-2">
+                            <span className="flex flex-wrap items-center gap-1.5">
                               {user.inviteSentAt && !user.emailConfirmedAt ? (
                                 <Badge variant="secondary" title={`Invitation email sent ${formatDateTime(user.inviteSentAt)}; awaiting acceptance.`}>Invite sent</Badge>
                               ) : <Badge variant="outline">Active</Badge>}
@@ -1331,6 +1373,18 @@ const WebsitePortalsPage = () => {
                                 onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
                               >
                                 <Eye className="mr-1 h-3 w-3" /> {emulatePortalUser.isPending ? "Signing in…" : "Emulate"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={user.manualInviteEmailSentAt ? "secondary" : "ghost"}
+                                className="h-6 px-2 text-[11px]"
+                                title={user.manualInviteEmailSentAt
+                                  ? `Invitation to Classic Visions marked as sent ${formatDateTime(user.manualInviteEmailSentAt)}. Click to clear.`
+                                  : "Record that you emailed this customer an invitation to Classic Visions. Nothing is sent from here."}
+                                disabled={setManualInviteEmailSent.isPending}
+                                onClick={(event) => { event.stopPropagation(); toggleManualInviteEmail(account); }}
+                              >
+                                <Mail className="mr-1 h-3 w-3" /> {user.manualInviteEmailSentAt ? "Invited" : "Mark invited"}
                               </Button>
                             </span>
                           ) : linkedLoginCount > 0 ? (
@@ -1352,6 +1406,9 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
                         <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => toggleManualInviteEmail(account)} disabled={!account.portalUser || setManualInviteEmailSent.isPending}>
+                          {account.portalUser?.manualInviteEmailSentAt ? "Clear invitation mark" : "Mark invitation email sent"}
+                        </ContextMenuItem>
                         <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser || linkedLoginCount > 0 || account.isCompanyContact !== false}>Create login</ContextMenuItem>
                       </ContextMenuContent>
                       </ContextMenu>
