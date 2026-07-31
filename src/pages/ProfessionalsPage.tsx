@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import Seo from "@/components/seo/Seo";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const tradeBenefits = [
   {
@@ -32,7 +33,7 @@ const sections = [
       { label: "Apply for a Trade Account", to: "/professionals/trade-account" },
       { label: "Optician Website Design", to: "/optical-retail-websites" },
       { label: "Online Ordering Portal", to: "/rx-order" },
-      { label: "Order Tracking", to: "/rx-job-status" },
+      { label: "Order Tracking", to: "/profile/orders" },
       { label: "Price List Request", to: "/professionals/price-list-request" },
       { label: "Rx Lab Services", to: "/rx-lab-services" },
     ],
@@ -60,6 +61,15 @@ const sections = [
 ];
 
 const ProfessionalsPage = () => {
+  const { identity } = usePortalIdentity();
+  const hasLinkedErpAccount = !!identity?.crmCustomerId;
+  const visibleSections = hasLinkedErpAccount
+    ? sections.map((section) => ({
+        ...section,
+        links: section.links.filter((link) => link.to !== "/professionals/trade-account"),
+      }))
+    : sections;
+
   return (
     <div className="min-h-screen bg-background">
       <Seo
@@ -79,11 +89,16 @@ const ProfessionalsPage = () => {
               If you are evaluating who to trust with your prescription lens workflow, this page is meant to show the relationship, the resources, and the day-to-day value behind opening a trade account with us.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild>
-                <Link to="/professionals/trade-account">Apply for a Trade Account</Link>
-              </Button>
+              {!hasLinkedErpAccount && (
+                <Button asChild>
+                  <Link to="/professionals/trade-account">Apply for a Trade Account</Link>
+                </Button>
+              )}
               <Button variant="outline" asChild>
                 <Link to="/rx-order">Open LabLink</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/profile">Go to my account</Link>
               </Button>
             </div>
           </div>
@@ -113,9 +128,11 @@ const ProfessionalsPage = () => {
               ))}
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild>
-                <Link to="/professionals/trade-account">Apply for a Trade Account</Link>
-              </Button>
+              {!hasLinkedErpAccount && (
+                <Button asChild>
+                  <Link to="/professionals/trade-account">Apply for a Trade Account</Link>
+                </Button>
+              )}
               <Button variant="outline" asChild>
                 <Link to="/professionals/price-list-request">Request a Price List</Link>
               </Button>
@@ -123,7 +140,7 @@ const ProfessionalsPage = () => {
           </section>
 
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {sections.map((section) => (
+            {visibleSections.map((section) => (
               <div key={section.title} className="rounded-xl border border-border bg-card p-5 flex flex-col">
                 <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
                 <div className="mt-4 space-y-2 flex-1">
@@ -137,15 +154,6 @@ const ProfessionalsPage = () => {
                     </Link>
                   ))}
                 </div>
-                {section.title === "For Optical Stores & Clinics" && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <a href="https://old.classicvisions.net" target="_blank" rel="noopener noreferrer">
-                        Visit Old Website
-                      </a>
-                    </Button>
-                  </div>
-                )}
               </div>
             ))}
           </div>

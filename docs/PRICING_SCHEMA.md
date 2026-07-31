@@ -1,9 +1,33 @@
 # Pricing Schema — Target Model (BS1-01)
 
+> ## ⚠️ REALITY CHECK — 2026-07-31 (read this first)
+>
+> **The master→customer-fork model this document designs was never adopted.** Live-verified against
+> `admin.classicvisions.net/admin/pricing/rx-lenses`: the pricing engine actually in daily use is
+> `customers.assigned_pricelist_id → pricelist_versions → matrix_allocations/price_matrix`, the exact
+> mechanism this doc's §"Reconciliation" (below) says would be **phased out**. It was not phased out —
+> it's the only one that ever went live. `pricelists` / `pricelist_lines` / `effective_price()` (BS1-04,
+> built 2026-07-15) exist in the schema with **zero rows and zero `src/` callers**. Do not build new
+> features against `effective_price()` — see `docs/PRICING_WHICH_TABLE.md` for what to actually use.
+>
+> **This document also omitted a fourth pricing-adjacent system it should have audited**:
+> `pricing_sheets` / `addon_pricing_sheets` / `customer_pricing_access` (built Feb 2026, months before
+> this BS1 audit). Status as of 2026-07-31: `pricing_sheets` and `addon_pricing_sheets` are live in the
+> UI (Product Catalog and Website Store add-on edit dialogs let staff assign a per-sheet price override
+> per add-on) but **that data is write-only** — nothing in `src/` reads `addon_pricing_sheets` to
+> actually price an order, an invoice, or anything customer-facing. `customer_pricing_access` (assigns a
+> portal user to a pricing sheet, via `CustomerPricingPanel.tsx`) is in the same state — assignable, never
+> read. Staff using these screens may reasonably believe they're setting real prices; they are not.
+>
+> Everything below this line is the BS1-01 design document as originally written — kept for history,
+> not for guidance. See `docs/PRICING_WHICH_TABLE.md` for the current reality and what to actually build against.
+
 Audit of every existing pricing-related table, decisions on keep/extend/deprecate, and the
 target schema for the master→customer-fork pricing model (`docs/CUSTOMER_EXPERIENCE_PLAN.md`).
 Every entity name below is locked for BS1-02 through BS1-08 — do not introduce a differently
 named table for the same concept.
+
+**This locking never actually took hold in practice — see the Reality Check banner above.**
 
 ## Two separate domains — do not conflate
 

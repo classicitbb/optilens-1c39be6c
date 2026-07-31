@@ -4,7 +4,6 @@ import Products from "@/components/Products";
 import Features from "@/components/Features";
 import About from "@/components/About";
 import BlogCarousel from "@/components/BlogCarousel";
-import KnowledgePreview from "@/components/KnowledgePreview";
 import ContactForm from "@/components/ContactForm";
 import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
@@ -62,7 +61,6 @@ const Index = () => {
         <Features />
         <About />
         <BlogCarousel />
-        <KnowledgePreview />
 
         {/* Contact Section */}
         <ContactForm />

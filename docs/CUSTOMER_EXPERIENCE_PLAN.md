@@ -21,6 +21,11 @@ A customer doing business with Classic Visions is never in the dark: account, or
 
 ## Pricing engine — the master→custom fork model (design, not yet built)
 
+> **Reality check, 2026-07-31:** this design was never built out into the live product. The
+> pricing engine actually in use today is `pricelist_versions` (see `docs/PRICING_WHICH_TABLE.md`).
+> The Rx Order Form (see "Order this lens" below) is being built against `pricelist_versions`, not
+> this model — treat this section as historical intent, not current architecture.
+
 Facts and rules as dictated:
 
 1. **Supplier cost origin.** Prices originate from supplier costs; multiple suppliers carry the same/equivalent lens at wildly different costs. Sell price is set against the **most expensive supplier** at a minimum margin (e.g., 15%) so ANY supplier can fulfil profitably (virtual-lab model). If a supplier's price is rejected/kicked out and another exists, the next price governs; if only one price exists, it stands alone.

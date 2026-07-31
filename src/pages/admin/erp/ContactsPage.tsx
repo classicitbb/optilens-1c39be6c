@@ -23,6 +23,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
+import { useAdminUsers } from "@/hooks/useAdminUsers";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -505,6 +506,14 @@ const ContactsPage = ({
 }: ContactsPageProps) => {
   const { data: contactsData, isLoading } = useContacts();
   const contacts = contactsData ?? EMPTY_CONTACTS;
+  const { users: adminUsers } = useAdminUsers();
+  const salespersonOptions = useMemo(
+    () =>
+      adminUsers
+        .filter((u) => u.role === "admin" || u.role === "operator")
+        .map((u) => u.display_name || u.full_name || u.email || u.user_id),
+    [adminUsers],
+  );
 
   // Bulk lookup for the ERP-resolved parent-customer link (contacts.linked_customer_id
   // -> customers.id), auto-maintained by resolve_contact_customer_links() on every
@@ -2379,7 +2388,21 @@ const ContactsPage = ({
                         </div>
                         <div>
                           <label className="text-[11px] font-medium mb-0.5 block">Salesperson</label>
-                          <Input className="h-7 text-xs" value={editContact.salesperson ?? ""} onChange={(e) => setEditContact({ ...editContact, salesperson: e.target.value })} />
+                          <Select
+                            value={editContact.salesperson || "none"}
+                            onValueChange={(v) => setEditContact({ ...editContact, salesperson: v === "none" ? "" : v })}
+                          >
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select salesperson" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {editContact.salesperson && !salespersonOptions.includes(editContact.salesperson) && (
+                                <SelectItem value={editContact.salesperson}>{editContact.salesperson} (unrecognized)</SelectItem>
+                              )}
+                              {salespersonOptions.map((name) => (
+                                <SelectItem key={name} value={name}>{name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
