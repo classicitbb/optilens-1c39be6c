@@ -125,7 +125,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Apply for a Trade Account", description: "Lead form", to: "/professionals/trade-account" },
     { label: "Optician Website Design", description: "Preview and quote a retail website build", to: "/optical-retail-websites" },
     { label: "Online Ordering Portal", description: "Login to LabLink", to: "/rx-order" },
-    { label: "Order Tracking", description: "Track shipments and job status", to: "/rx-job-status" },
+    { label: "Order Tracking", description: "Track shipments and job status", to: "/profile/orders" },
     { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" },
     { label: "Rx Lab Services", description: "Custom surfacing, edging, tinting, and specialty coatings", to: "/rx-lab-services" }]
 
