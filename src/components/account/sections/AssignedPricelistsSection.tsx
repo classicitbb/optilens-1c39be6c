@@ -1,16 +1,23 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BadgeDollarSign, Eye, EyeOff, Loader2 } from "lucide-react";
+import { BadgeDollarSign, Download, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
+import { useCart } from "@/hooks/useCart";
+import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { supabase } from "@/integrations/supabase/client";
 import PriceOverrideCell from "@/components/account/PriceOverrideCell";
@@ -30,6 +37,7 @@ interface CatalogRow {
   sort_order: number;
   row_key: string;
   catalog_type: string;
+  item_id: string | null;
 }
 
 interface AssignedPricelistDetails {
@@ -48,6 +56,22 @@ const buildMatrixRowKey = (groupingKey: string, categoryKey: string, columnKey: 
   `matrix:${groupingKey}:${categoryKey}:${columnKey}`;
 
 const money = (value: number) => `$${value.toFixed(2)}`;
+
+const escapeCsvCell = (value: string) => (/[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
+const toCsv = (rows: string[][]) => rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n");
+
+const downloadCsv = (csv: string, filename: string) => {
+  const blob = new Blob(["﻿", csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 // Used only if the currency-settings RPC hasn't returned anything yet (or a
 // user's saved preference names a currency the admin has since removed) —
 // falls back to treating the stored value as already-displayable BBD.
@@ -72,6 +96,8 @@ const AssignedPricelistsSection = () => {
   const [pricesHidden, setPricesHidden] = useState(true);
   const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
     queryKey: ["portal-pricing-currency-settings"],
@@ -96,6 +122,30 @@ const AssignedPricelistsSection = () => {
     const amount = Number(bbd);
     const rate = currencyByCode.get(currency)?.bbdPerUnit;
     return money(rate ? amount / rate : amount);
+  };
+
+  // Stock lenses & supplies -> straight into the store cart, priced at the
+  // customer's own wholesale rate (not the currently-toggled display
+  // currency — cart_items has no currency column, so it must stay in the
+  // same BBD terms as every other cart entry).
+  const addCatalogRowToCart = (row: CatalogRow) => {
+    if (!row.item_id) return;
+    const productType = row.row_type as "lens" | "supply" | "addon";
+    addToCart({
+      id: getStableStoreProductCartId({ id: row.item_id, product_type: productType }),
+      name: row.display_description,
+      price: row.bbd_price,
+      productType,
+    });
+  };
+
+  // RX lens designs & add-ons -> no structured Rx-cart exists today, so this
+  // hands off to the existing free-text Quote Requests form instead of
+  // inventing new schema for a hover button.
+  const addToRxQuoteRequest = (description: string, bbdPrice: number) => {
+    navigate("/profile/quotes", {
+      state: { prefillNote: `${description} — wholesale BBD $${bbdPrice.toFixed(2)}. Please quote pricing and lead time.` },
+    });
   };
 
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
@@ -202,6 +252,59 @@ const AssignedPricelistsSection = () => {
   const updatedAt = pricelistDetails?.updated_at ?? null;
   const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || supplyRows.length > 0;
 
+  const { user } = useAuth();
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [csvPassword, setCsvPassword] = useState("");
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvVerifying, setCsvVerifying] = useState(false);
+
+  // Flat, long-format export (Section/Group/Item/Material/Price) rather than
+  // mirroring the on-screen grid exactly — lens groupings each have a
+  // different set of active material columns, so a single wide table would
+  // need a union of every column across every grouping, padded with blanks.
+  const buildPricelistCsv = () => {
+    const csvRows: string[][] = [["Section", "Group", "Item", "Material/Index", `Price (${currency})`]];
+
+    groupings.forEach(({ grouping, visibleCols, activeCategories }) => {
+      activeCategories.forEach((category) => {
+        visibleCols.forEach((column) => {
+          const price = priceByKey.get(`${grouping.key}::${category.key}::${column.key}`);
+          if (price != null) {
+            csvRows.push(["RX Lens Prices", grouping.name, category.name, column.key, displayMoney(price).replace(/^\$/, "")]);
+          }
+        });
+      });
+    });
+
+    const addCatalogSection = (label: string, sections: Map<string, CatalogRow[]>) => {
+      sections.forEach((sectionRows, sectionName) => {
+        sectionRows.forEach((row) => {
+          csvRows.push([label, sectionName, row.display_description, "", displayMoney(row.bbd_price).replace(/^\$/, "")]);
+        });
+      });
+    };
+    addCatalogSection("Add-ons, Extras & Coatings", addonsBySection);
+    addCatalogSection("Stock Lenses", stockBySection);
+    addCatalogSection("Supplies", suppliesBySection);
+
+    return toCsv(csvRows);
+  };
+
+  const handleConfirmCsvExport = async () => {
+    if (!user?.email) return;
+    setCsvVerifying(true);
+    setCsvError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email: user.email, password: csvPassword });
+    setCsvVerifying(false);
+    if (error) {
+      setCsvError("That password wasn't correct. Please try again.");
+      return;
+    }
+    downloadCsv(buildPricelistCsv(), `pricelist-${assignedPricelistName ?? "export"}.csv`.replace(/\s+/g, "-"));
+    setCsvDialogOpen(false);
+    setCsvPassword("");
+  };
+
   const accordionTriggerClass =
     "rounded-md bg-muted-foreground px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
 
@@ -248,6 +351,11 @@ const AssignedPricelistsSection = () => {
                                 onSave={(price) => setOverride.mutate({ rowKey, price, currencyCode: currency })}
                                 onClear={() => clearOverride.mutate(rowKey)}
                                 isSaving={setOverride.isPending}
+                                action={
+                                  row.row_type === "lens" || row.row_type === "supply"
+                                    ? { type: "cart", onClick: () => addCatalogRowToCart(row) }
+                                    : { type: "rx", onClick: () => addToRxQuoteRequest(row.display_description, row.bbd_price) }
+                                }
                               />
                             </td>
                           </tr>
@@ -330,6 +438,12 @@ const AssignedPricelistsSection = () => {
               </SelectContent>
             </Select>
             {hasAnyPrices && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => setCsvDialogOpen(true)}>
+                <Download className="h-4 w-4" />
+                Save to CSV
+              </Button>
+            )}
+            {hasAnyPrices && (
               <Button
                 variant="outline"
                 size="sm"
@@ -405,6 +519,10 @@ const AssignedPricelistsSection = () => {
                                             onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
                                             onClear={() => clearOverride.mutate(rowKey)}
                                             isSaving={setOverride.isPending}
+                                            action={{
+                                              type: "rx",
+                                              onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),
+                                            }}
                                           />
                                         ) : (
                                           "—"
@@ -459,6 +577,49 @@ const AssignedPricelistsSection = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={csvDialogOpen}
+        onOpenChange={(open) => {
+          setCsvDialogOpen(open);
+          if (!open) {
+            setCsvPassword("");
+            setCsvError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm your password to export</DialogTitle>
+            <DialogDescription>
+              This downloads your full assigned pricelist as a CSV file. Re-enter your password to continue.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="csv-export-password">Password</Label>
+            <Input
+              id="csv-export-password"
+              type="password"
+              value={csvPassword}
+              onChange={(event) => setCsvPassword(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && csvPassword && !csvVerifying) void handleConfirmCsvExport();
+              }}
+              disabled={csvVerifying}
+              autoFocus
+            />
+            {csvError && <p className="text-sm text-destructive">{csvError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCsvDialogOpen(false)} disabled={csvVerifying}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleConfirmCsvExport()} disabled={!csvPassword || csvVerifying}>
+              {csvVerifying ? "Verifying…" : "Confirm & download"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

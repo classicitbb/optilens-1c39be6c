@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router";
 import { FileSignature, Plus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,11 @@ const QuoteFormSection = () => {
   const { emulation } = usePortalIdentity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes] = useState("");
+  // Lazy initializer: seeds once from an "Add to Rx" navigation off the
+  // pricelist page (state.prefillNote), then behaves as a normal textarea.
+  const [notes, setNotes] = useState(() => (location.state as { prefillNote?: string } | null)?.prefillNote ?? "");
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ["customer-quotes", emulation?.userId ?? user?.id],
     enabled: !!user,

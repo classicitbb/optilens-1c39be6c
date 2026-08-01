@@ -1,6 +1,29 @@
 {
   "version": 1,
-  "updatedAt": "2026-03-27",
+  "updatedAt": "2026-08-01",
   "owner": "engineering",
-  "exceptions": []
+  "exceptions": [
+    {
+      "id": 1123898,
+      "package": "brace-expansion",
+      "severity": "high",
+      "scope": "dev-only",
+      "reason": "Transitive via eslint/typescript-eslint -> minimatch; no minimatch release yet pins a patched brace-expansion. npm audit fix and --force both leave it unresolved as of 2026-08-01.",
+      "compensatingControls": "Dev-tooling only (lint/build), not present in the runtime bundle; no untrusted input reaches this path.",
+      "owner": "engineering",
+      "createdOn": "2026-08-01",
+      "expiresOn": "2026-08-31"
+    },
+    {
+      "id": 1130591,
+      "package": "brace-expansion",
+      "severity": "high",
+      "scope": "dev-only",
+      "reason": "Same transitive chain as advisory 1123898 (eslint/typescript-eslint -> minimatch); no fix available yet.",
+      "compensatingControls": "Dev-tooling only (lint/build), not present in the runtime bundle; no untrusted input reaches this path.",
+      "owner": "engineering",
+      "createdOn": "2026-08-01",
+      "expiresOn": "2026-08-31"
+    }
+  ]
 }
