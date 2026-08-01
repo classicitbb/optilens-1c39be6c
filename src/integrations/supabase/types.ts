@@ -199,6 +199,62 @@ export type Database = {
           },
         ]
       }
+      addon_clash_rules: {
+        Row: {
+          addon_id_a: string
+          addon_id_b: string
+          created_at: string
+          created_by: string | null
+          id: string
+          reason: string
+        }
+        Insert: {
+          addon_id_a: string
+          addon_id_b: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason: string
+        }
+        Update: {
+          addon_id_a?: string
+          addon_id_b?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_clash_rules_addon_id_a_fkey"
+            columns: ["addon_id_a"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_clash_rules_addon_id_a_fkey"
+            columns: ["addon_id_a"]
+            isOneToOne: false
+            referencedRelation: "addons_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_clash_rules_addon_id_b_fkey"
+            columns: ["addon_id_b"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_clash_rules_addon_id_b_fkey"
+            columns: ["addon_id_b"]
+            isOneToOne: false
+            referencedRelation: "addons_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addon_pricing_sheets: {
         Row: {
           addon_id: string
@@ -3108,9 +3164,11 @@ export type Database = {
       helpdesk_ticket_messages: {
         Row: {
           body: string
+          client_message_id: string
           created_at: string
           direction: string
           id: string
+          is_automated: boolean
           sender_email: string | null
           sender_name: string | null
           sender_user_id: string | null
@@ -3119,9 +3177,11 @@ export type Database = {
         }
         Insert: {
           body: string
+          client_message_id: string
           created_at?: string
           direction: string
           id?: string
+          is_automated?: boolean
           sender_email?: string | null
           sender_name?: string | null
           sender_user_id?: string | null
@@ -3130,9 +3190,11 @@ export type Database = {
         }
         Update: {
           body?: string
+          client_message_id?: string
           created_at?: string
           direction?: string
           id?: string
+          is_automated?: boolean
           sender_email?: string | null
           sender_name?: string | null
           sender_user_id?: string | null
@@ -6433,6 +6495,8 @@ export type Database = {
           portal_access_approved_override: boolean
           portal_access_note: string | null
           portal_access_status: string | null
+          portal_invite_email_sent_at: string | null
+          portal_invite_email_sent_by: string | null
           profile_completed_at: string | null
           shipping_address: Json | null
           updated_at: string
@@ -6462,6 +6526,8 @@ export type Database = {
           portal_access_approved_override?: boolean
           portal_access_note?: string | null
           portal_access_status?: string | null
+          portal_invite_email_sent_at?: string | null
+          portal_invite_email_sent_by?: string | null
           profile_completed_at?: string | null
           shipping_address?: Json | null
           updated_at?: string
@@ -6491,6 +6557,8 @@ export type Database = {
           portal_access_approved_override?: boolean
           portal_access_note?: string | null
           portal_access_status?: string | null
+          portal_invite_email_sent_at?: string | null
+          portal_invite_email_sent_by?: string | null
           profile_completed_at?: string | null
           shipping_address?: Json | null
           updated_at?: string
@@ -6546,8 +6614,87 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_frame_details: {
+        Row: {
+          a_mm: number | null
+          b_mm: number | null
+          brand: string | null
+          bridge_mm: number | null
+          created_at: string
+          dbl_mm: number | null
+          ed_mm: number | null
+          id: string
+          is_uncut: boolean
+          job_scope: string
+          model_colour: string | null
+          quote_id: string
+          shape_source_file: string | null
+          shape_traced_axis: number | null
+          shape_traced_ed: number | null
+          standard_shape_id: string | null
+          uncut_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          a_mm?: number | null
+          b_mm?: number | null
+          brand?: string | null
+          bridge_mm?: number | null
+          created_at?: string
+          dbl_mm?: number | null
+          ed_mm?: number | null
+          id?: string
+          is_uncut?: boolean
+          job_scope?: string
+          model_colour?: string | null
+          quote_id: string
+          shape_source_file?: string | null
+          shape_traced_axis?: number | null
+          shape_traced_ed?: number | null
+          standard_shape_id?: string | null
+          uncut_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          a_mm?: number | null
+          b_mm?: number | null
+          brand?: string | null
+          bridge_mm?: number | null
+          created_at?: string
+          dbl_mm?: number | null
+          ed_mm?: number | null
+          id?: string
+          is_uncut?: boolean
+          job_scope?: string
+          model_colour?: string | null
+          quote_id?: string
+          shape_source_file?: string | null
+          shape_traced_axis?: number | null
+          shape_traced_ed?: number | null
+          standard_shape_id?: string | null
+          uncut_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_frame_details_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: true
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_frame_details_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: true
+            referencedRelation: "quotes_customer"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_lines: {
         Row: {
+          assistance_note: string | null
           created_at: string
           description_override: string | null
           gp_amount: number
@@ -6557,6 +6704,7 @@ export type Database = {
           item_name: string
           line_note: string | null
           line_type: string
+          needs_assistance: boolean
           override_note: string | null
           override_reason: string | null
           parent_line_id: string | null
@@ -6575,6 +6723,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assistance_note?: string | null
           created_at?: string
           description_override?: string | null
           gp_amount?: number
@@ -6584,6 +6733,7 @@ export type Database = {
           item_name?: string
           line_note?: string | null
           line_type?: string
+          needs_assistance?: boolean
           override_note?: string | null
           override_reason?: string | null
           parent_line_id?: string | null
@@ -6602,6 +6752,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assistance_note?: string | null
           created_at?: string
           description_override?: string | null
           gp_amount?: number
@@ -6611,6 +6762,7 @@ export type Database = {
           item_name?: string
           line_note?: string | null
           line_type?: string
+          needs_assistance?: boolean
           override_note?: string | null
           override_reason?: string | null
           parent_line_id?: string | null
@@ -6661,7 +6813,7 @@ export type Database = {
       }
       quotes: {
         Row: {
-          account_id: string | null
+          account_id: number | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -6686,7 +6838,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
-          account_id?: string | null
+          account_id?: number | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -6711,7 +6863,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
-          account_id?: string | null
+          account_id?: number | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -6735,7 +6887,22 @@ export type Database = {
           updated_at?: string
           valid_until?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quotes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "quotes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_permissions: {
         Row: {
@@ -8067,6 +8234,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_currency_preferences: {
+        Row: {
+          currency_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          currency_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          currency_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_presence: {
         Row: {
           availability_mode: string
@@ -8092,6 +8277,36 @@ export type Database = {
           last_seen_at?: string
           role_scope?: string
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_price_overrides: {
+        Row: {
+          created_at: string
+          currency_code: string
+          custom_price: number
+          id: string
+          row_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code?: string
+          custom_price: number
+          id?: string
+          row_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          custom_price?: number
+          id?: string
+          row_key?: string
           updated_at?: string
           user_id?: string
         }
@@ -8741,7 +8956,7 @@ export type Database = {
       }
       quotes_customer: {
         Row: {
-          account_id: string | null
+          account_id: number | null
           contact_email: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -8761,7 +8976,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
-          account_id?: string | null
+          account_id?: number | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -8781,7 +8996,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
-          account_id?: string | null
+          account_id?: number | null
           contact_email?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -8800,7 +9015,22 @@ export type Database = {
           updated_at?: string | null
           valid_until?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quotes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "quotes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       statement_lines_public: {
         Row: {
@@ -9089,6 +9319,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      close_helpdesk_ticket_for_participant: {
+        Args: { p_ticket_id: string }
+        Returns: boolean
+      }
       create_api_key: {
         Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
         Returns: Json
@@ -9314,6 +9548,10 @@ export type Database = {
         Returns: boolean
       }
       has_staff_role: { Args: { _user_id: string }; Returns: boolean }
+      insert_helpdesk_ticket_autoresponse: {
+        Args: { p_ticket_id: string }
+        Returns: undefined
+      }
       integration_secret_encryption_key: { Args: never; Returns: string }
       list_lead_provider_credentials_status: {
         Args: { p_tenant_key?: string }
@@ -9391,7 +9629,9 @@ export type Database = {
         Args: never
         Returns: {
           bbd_price: number
+          catalog_type: string
           display_description: string
+          row_key: string
           row_type: string
           section: string
           sort_order: number
@@ -9401,7 +9641,9 @@ export type Database = {
         Args: { p_catalog_type: string }
         Returns: {
           bbd_price: number
+          catalog_type: string
           display_description: string
+          row_key: string
           row_type: string
           section: string
           sort_order: number
@@ -9424,6 +9666,14 @@ export type Database = {
         }[]
       }
       portal_assigned_pricelist_updated_at: { Args: never; Returns: string }
+      portal_pricing_currency_settings: {
+        Args: never
+        Returns: {
+          bbd_per_unit: number
+          currency_code: string
+          is_default: boolean
+        }[]
+      }
       publish_lens_recommendation_rule_set: {
         Args: { p_rule_set_id: string }
         Returns: undefined
@@ -9473,6 +9723,26 @@ export type Database = {
         Returns: string
       }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
+      send_helpdesk_ticket_message: {
+        Args: {
+          p_body: string
+          p_client_message_id: string
+          p_internal_note?: boolean
+          p_ticket_id: string
+        }
+        Returns: {
+          body: string
+          client_message_id: string
+          created_at: string
+          direction: string
+          id: string
+          sender_email: string
+          sender_name: string
+          sender_user_id: string
+          sent_at: string
+          ticket_id: string
+        }[]
+      }
       set_custom_price: {
         Args: {
           p_customer_id: number
