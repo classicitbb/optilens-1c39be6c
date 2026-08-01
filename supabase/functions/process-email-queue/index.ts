@@ -1,5 +1,6 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { isSuppressionBlocking } from '../_shared/email/suppression.ts'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -76,6 +77,35 @@ async function moveToDlq(
   if (error) {
     console.error('Failed to move message to DLQ', { queue, msg_id: msg.msg_id, reason, error })
   }
+}
+
+// Suppression is enforced here, at the single choke point every queued message
+// passes through, rather than at each producer. `send-transactional-email` has
+// its own check, but callers that enqueue directly via the `enqueue_email` RPC
+// (Doc Studio, and campaigns) bypass it entirely.
+//
+// The auth-vs-everything-else rule lives in _shared/email/suppression.ts so it
+// can be unit-tested without Deno.
+async function checkSuppression(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  queue: string
+): Promise<{ blocked: boolean; reason: string | null; lookupError: string | null }> {
+  const { data, error } = await supabase
+    .from('suppressed_emails')
+    .select('reason')
+    .eq('email', String(email ?? '').toLowerCase())
+    .maybeSingle()
+
+  if (error) {
+    return { blocked: false, reason: null, lookupError: error.message ?? String(error) }
+  }
+  if (!data) {
+    return { blocked: false, reason: null, lookupError: null }
+  }
+
+  const reason = typeof data.reason === 'string' ? data.reason : 'unknown'
+  return { blocked: isSuppressionBlocking(reason, queue), reason, lookupError: null }
 }
 
 Deno.serve(async (req) => {
@@ -256,6 +286,43 @@ Deno.serve(async (req) => {
           }
           continue
         }
+      }
+
+      // Refuse to deliver to a suppressed recipient. Fail closed: if the lookup
+      // itself fails we leave the message on the queue rather than guessing, so
+      // it retries when the visibility timeout expires and eventually hits the
+      // TTL/DLQ path if the failure persists.
+      const suppression = await checkSuppression(supabase, payload.to as string, queue)
+      if (suppression.lookupError) {
+        console.error('Suppression check failed — refusing to send', {
+          queue,
+          msg_id: msg.msg_id,
+          error: suppression.lookupError,
+        })
+        runErrors.push({ queue, stage: 'suppression_check', message: suppression.lookupError })
+        continue
+      }
+      if (suppression.blocked) {
+        console.log('Email suppressed', { queue, msg_id: msg.msg_id, reason: suppression.reason })
+        await supabase.from('email_send_log').insert({
+          message_id: payload.message_id,
+          template_name: (payload.label || queue) as string,
+          recipient_email: payload.to,
+          status: 'suppressed',
+          error_message: `Recipient suppressed (${suppression.reason})`,
+        })
+        const { error: suppressedDelError } = await supabase.rpc('delete_email', {
+          queue_name: queue,
+          message_id: msg.msg_id,
+        })
+        if (suppressedDelError) {
+          console.error('Failed to delete suppressed message from queue', {
+            queue,
+            msg_id: msg.msg_id,
+            error: suppressedDelError,
+          })
+        }
+        continue
       }
 
       // The email API treats a failed idempotency_key as permanently poisoned:
