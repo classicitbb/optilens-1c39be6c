@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeDollarSign, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
+import { useCart } from "@/hooks/useCart";
+import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { supabase } from "@/integrations/supabase/client";
 import PriceOverrideCell from "@/components/account/PriceOverrideCell";
@@ -30,6 +33,7 @@ interface CatalogRow {
   sort_order: number;
   row_key: string;
   catalog_type: string;
+  item_id: string | null;
 }
 
 interface AssignedPricelistDetails {
@@ -72,6 +76,8 @@ const AssignedPricelistsSection = () => {
   const [pricesHidden, setPricesHidden] = useState(true);
   const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
     queryKey: ["portal-pricing-currency-settings"],
@@ -96,6 +102,30 @@ const AssignedPricelistsSection = () => {
     const amount = Number(bbd);
     const rate = currencyByCode.get(currency)?.bbdPerUnit;
     return money(rate ? amount / rate : amount);
+  };
+
+  // Stock lenses & supplies -> straight into the store cart, priced at the
+  // customer's own wholesale rate (not the currently-toggled display
+  // currency — cart_items has no currency column, so it must stay in the
+  // same BBD terms as every other cart entry).
+  const addCatalogRowToCart = (row: CatalogRow) => {
+    if (!row.item_id) return;
+    const productType = row.row_type as "lens" | "supply" | "addon";
+    addToCart({
+      id: getStableStoreProductCartId({ id: row.item_id, product_type: productType }),
+      name: row.display_description,
+      price: row.bbd_price,
+      productType,
+    });
+  };
+
+  // RX lens designs & add-ons -> no structured Rx-cart exists today, so this
+  // hands off to the existing free-text Quote Requests form instead of
+  // inventing new schema for a hover button.
+  const addToRxQuoteRequest = (description: string, bbdPrice: number) => {
+    navigate("/profile/quotes", {
+      state: { prefillNote: `${description} — wholesale BBD $${bbdPrice.toFixed(2)}. Please quote pricing and lead time.` },
+    });
   };
 
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
@@ -248,6 +278,11 @@ const AssignedPricelistsSection = () => {
                                 onSave={(price) => setOverride.mutate({ rowKey, price, currencyCode: currency })}
                                 onClear={() => clearOverride.mutate(rowKey)}
                                 isSaving={setOverride.isPending}
+                                action={
+                                  row.row_type === "lens" || row.row_type === "supply"
+                                    ? { type: "cart", onClick: () => addCatalogRowToCart(row) }
+                                    : { type: "rx", onClick: () => addToRxQuoteRequest(row.display_description, row.bbd_price) }
+                                }
                               />
                             </td>
                           </tr>
@@ -405,6 +440,10 @@ const AssignedPricelistsSection = () => {
                                             onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
                                             onClear={() => clearOverride.mutate(rowKey)}
                                             isSaving={setOverride.isPending}
+                                            action={{
+                                              type: "rx",
+                                              onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),
+                                            }}
                                           />
                                         ) : (
                                           "—"

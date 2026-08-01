@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { Check, Pencil, RotateCcw, X } from "lucide-react";
+import { Check, FileSignature, Pencil, RotateCcw, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+interface PriceOverrideCellAction {
+  type: "cart" | "rx";
+  onClick: () => void;
+}
 
 interface PriceOverrideCellProps {
   wholesaleDisplay: string;
@@ -11,15 +16,32 @@ interface PriceOverrideCellProps {
   onSave: (price: number) => void;
   onClear: () => void;
   isSaving?: boolean;
+  // Independent of the price-override concern above — lets a row also offer
+  // a hover-revealed "add to cart" / "add to Rx" action, e.g. for stock
+  // lenses/supplies (cart) vs RX lens designs and add-ons (Rx quote request).
+  action?: PriceOverrideCellAction;
 }
 
 const formatOverride = (price: number, currencyCode: string) => `${currencyCode} $${price.toFixed(2)}`;
+
+const ActionButton = ({ action }: { action: PriceOverrideCellAction }) => (
+  <Button
+    type="button"
+    size="icon"
+    variant="ghost"
+    className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100 focus-visible:opacity-100"
+    title={action.type === "cart" ? "Add to cart" : "Add to Rx quote request"}
+    onClick={action.onClick}
+  >
+    {action.type === "cart" ? <ShoppingCart className="h-3.5 w-3.5" /> : <FileSignature className="h-3.5 w-3.5" />}
+  </Button>
+);
 
 // A wholesale price cell that a portal user can replace with their own
 // retail price — once set, the override always shows in place of the
 // wholesale figure, regardless of the page's Show/Hide toggle, since it's
 // the user's own data rather than the sensitive wholesale cost.
-const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, onClear, isSaving }: PriceOverrideCellProps) => {
+const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, onClear, isSaving, action }: PriceOverrideCellProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
@@ -59,8 +81,9 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
 
   if (override) {
     return (
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="group flex items-center justify-end gap-1.5">
         <span className="font-semibold text-foreground">{formatOverride(override.custom_price, override.currency_code)}</span>
+        {action && <ActionButton action={action} />}
         <Button
           type="button"
           size="icon"
@@ -91,6 +114,7 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
   return (
     <div className="group flex items-center justify-end gap-1.5">
       <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>
+      {action && <ActionButton action={action} />}
       <Button
         type="button"
         size="icon"
