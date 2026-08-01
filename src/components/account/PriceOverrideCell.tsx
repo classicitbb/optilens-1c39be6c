@@ -20,9 +20,19 @@ interface PriceOverrideCellProps {
   // a hover-revealed "add to cart" / "add to Rx" action, e.g. for stock
   // lenses/supplies (cart) vs RX lens designs and add-ons (Rx quote request).
   action?: PriceOverrideCellAction;
+  // When the caller makes an ancestor row itself hoverable/clickable (e.g. a
+  // whole "Add to Cart" table row), pass true so this cell defers to that
+  // row's hover group instead of declaring its own — otherwise hovering
+  // anywhere but this cell wouldn't reveal the action icon.
+  useRowHoverGroup?: boolean;
 }
 
 const formatOverride = (price: number, currencyCode: string) => `${currencyCode} $${price.toFixed(2)}`;
+
+// Every interactive control in this cell stops propagation — it may sit
+// inside a clickable row (whole-row "Add to Cart"), and editing/clearing an
+// override must never also trigger that row's click action.
+const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
 
 const ActionButton = ({ action }: { action: PriceOverrideCellAction }) => (
   <Button
@@ -31,7 +41,10 @@ const ActionButton = ({ action }: { action: PriceOverrideCellAction }) => (
     variant="ghost"
     className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-primary group-hover:opacity-100 focus-visible:opacity-100"
     title={action.type === "cart" ? "Add to cart" : "Add to Rx quote request"}
-    onClick={action.onClick}
+    onClick={(event) => {
+      stop(event);
+      action.onClick();
+    }}
   >
     {action.type === "cart" ? <ShoppingCart className="h-3.5 w-3.5" /> : <FileSignature className="h-3.5 w-3.5" />}
   </Button>
@@ -41,9 +54,19 @@ const ActionButton = ({ action }: { action: PriceOverrideCellAction }) => (
 // retail price. The override only stands in for the *blur* — it shows
 // whenever prices are hidden, but "Show prices" means "show the real
 // supplier price," so it takes priority over any override while active.
-const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, onClear, isSaving, action }: PriceOverrideCellProps) => {
+const PriceOverrideCell = ({
+  wholesaleDisplay,
+  pricesHidden,
+  override,
+  onSave,
+  onClear,
+  isSaving,
+  action,
+  useRowHoverGroup,
+}: PriceOverrideCellProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const groupClass = useRowHoverGroup ? "" : "group";
 
   if (editing) {
     const parsed = Number(draft);
@@ -54,7 +77,7 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
       setEditing(false);
     };
     return (
-      <div className="flex items-center justify-end gap-1">
+      <div className="flex items-center justify-end gap-1" onClick={stop}>
         <Input
           type="number"
           min="0"
@@ -81,7 +104,7 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
 
   if (override && pricesHidden) {
     return (
-      <div className="group flex items-center justify-end gap-1.5">
+      <div className={cn("flex items-center justify-end gap-1.5", groupClass)}>
         <span className="font-semibold text-foreground">{formatOverride(override.custom_price, override.currency_code)}</span>
         {action && <ActionButton action={action} />}
         <Button
@@ -90,7 +113,8 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
           variant="ghost"
           className="h-6 w-6 text-muted-foreground hover:text-foreground"
           title="Edit your price"
-          onClick={() => {
+          onClick={(event) => {
+            stop(event);
             setDraft(String(override.custom_price));
             setEditing(true);
           }}
@@ -103,7 +127,10 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
           variant="ghost"
           className="h-6 w-6 text-muted-foreground hover:text-destructive"
           title="Remove your price"
-          onClick={onClear}
+          onClick={(event) => {
+            stop(event);
+            onClear();
+          }}
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </Button>
@@ -116,7 +143,7 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
   // the pencil edits the existing value instead of starting blank, and the
   // remove control stays reachable without needing to hide prices again.
   return (
-    <div className="group flex items-center justify-end gap-1.5">
+    <div className={cn("flex items-center justify-end gap-1.5", groupClass)}>
       <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>
       {action && <ActionButton action={action} />}
       <Button
@@ -125,7 +152,8 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
         variant="ghost"
         className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
         title={override ? "Edit your price" : "Enter your own retail price"}
-        onClick={() => {
+        onClick={(event) => {
+          stop(event);
           setDraft(override ? String(override.custom_price) : "");
           setEditing(true);
         }}
@@ -139,7 +167,10 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
           variant="ghost"
           className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
           title="Remove your price"
-          onClick={onClear}
+          onClick={(event) => {
+            stop(event);
+            onClear();
+          }}
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </Button>
