@@ -38,9 +38,9 @@ const ActionButton = ({ action }: { action: PriceOverrideCellAction }) => (
 );
 
 // A wholesale price cell that a portal user can replace with their own
-// retail price — once set, the override always shows in place of the
-// wholesale figure, regardless of the page's Show/Hide toggle, since it's
-// the user's own data rather than the sensitive wholesale cost.
+// retail price. The override only stands in for the *blur* — it shows
+// whenever prices are hidden, but "Show prices" means "show the real
+// supplier price," so it takes priority over any override while active.
 const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, onClear, isSaving, action }: PriceOverrideCellProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -79,7 +79,7 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
     );
   }
 
-  if (override) {
+  if (override && pricesHidden) {
     return (
       <div className="group flex items-center justify-end gap-1.5">
         <span className="font-semibold text-foreground">{formatOverride(override.custom_price, override.currency_code)}</span>
@@ -111,6 +111,10 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
     );
   }
 
+  // No override, or "Show prices" is active — show the real wholesale
+  // price. When an override exists but is being superseded by Show prices,
+  // the pencil edits the existing value instead of starting blank, and the
+  // remove control stays reachable without needing to hide prices again.
   return (
     <div className="group flex items-center justify-end gap-1.5">
       <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>
@@ -120,14 +124,26 @@ const PriceOverrideCell = ({ wholesaleDisplay, pricesHidden, override, onSave, o
         size="icon"
         variant="ghost"
         className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-        title="Enter your own retail price"
+        title={override ? "Edit your price" : "Enter your own retail price"}
         onClick={() => {
-          setDraft("");
+          setDraft(override ? String(override.custom_price) : "");
           setEditing(true);
         }}
       >
         <Pencil className="h-3.5 w-3.5" />
       </Button>
+      {override && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+          title="Remove your price"
+          onClick={onClear}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
+      )}
     </div>
   );
 };
