@@ -15,6 +15,16 @@
 --    (today it's prototype-only, in-memory).
 
 -- ── 1. quotes.account_id: TEXT -> INTEGER FK ────────────────────────────────
+--
+-- First attempt at this failed: `quotes_customer` (the customer-portal quote
+-- read view, /profile/quotes) has a rule depending on quotes.account_id, and
+-- Postgres won't retype a column a view depends on. Fix: drop the view, do
+-- the retype, recreate the view + its grants exactly as they were (copied
+-- verbatim from 20260717003803_datamation_restore_portal_quote_customer_views.sql
+-- and the follow-up grant-tightening in 20260717003919). quote_lines_customer
+-- doesn't select account_id, so it isn't affected and is left alone.
+
+DROP VIEW IF EXISTS public.quotes_customer;
 
 -- Defensive: null out anything that isn't a valid integer before changing
 -- the column type, so this can't fail on unexpected legacy junk. Given the
@@ -30,6 +40,44 @@ ALTER TABLE public.quotes
 ALTER TABLE public.quotes
   ADD CONSTRAINT quotes_account_id_fkey
   FOREIGN KEY (account_id) REFERENCES public.customers(id) ON DELETE SET NULL;
+
+-- Recreate quotes_customer exactly as it was (same columns, same
+-- security_invoker + portal-feature-gate WHERE clause) — only the
+-- underlying account_id column type changed, not the view's shape.
+CREATE OR REPLACE VIEW public.quotes_customer
+WITH (security_invoker = true) AS
+SELECT
+  id,
+  quote_number,
+  quote_type,
+  status,
+  customer_name,
+  account_id,
+  contact_name,
+  contact_email,
+  contact_phone,
+  currency,
+  valid_until,
+  lead_time_days,
+  notes_customer,
+  subtotal_sell,
+  grand_total,
+  created_by,
+  created_at,
+  updated_at
+FROM public.quotes
+WHERE created_by = auth.uid()
+  AND public.can_access_customer_portal_feature(auth.uid(), 'quotes');
+
+-- Re-apply the same grant tightening 20260717003919 did — CREATE OR REPLACE
+-- VIEW resets privileges to Supabase's broader defaults, so this has to be
+-- redone every time the view is recreated, same as last time.
+REVOKE ALL ON public.quotes_customer FROM PUBLIC;
+REVOKE ALL ON public.quotes_customer FROM anon;
+REVOKE ALL ON public.quotes_customer FROM authenticated;
+REVOKE ALL ON public.quotes_customer FROM service_role;
+GRANT SELECT ON public.quotes_customer TO authenticated;
+GRANT SELECT ON public.quotes_customer TO service_role;
 
 -- ── 2. addon_clash_rules ─────────────────────────────────────────────────
 

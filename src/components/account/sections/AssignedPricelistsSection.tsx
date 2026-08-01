@@ -5,13 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
+import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
+import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
+import PriceOverrideCell from "@/components/account/PriceOverrideCell";
 
 interface MatrixRow {
   category: string;
@@ -26,6 +28,8 @@ interface CatalogRow {
   row_type: string;
   bbd_price: number;
   sort_order: number;
+  row_key: string;
+  catalog_type: string;
 }
 
 interface AssignedPricelistDetails {
@@ -33,16 +37,21 @@ interface AssignedPricelistDetails {
   updated_at: string | null;
 }
 
-interface PortalPricingCurrencySettings {
-  baseCurrency: "BBD" | "USD";
-  bbdToUsdRate: number;
+interface PortalCurrencyOption {
+  currencyCode: string;
+  bbdPerUnit: number;
+  isDefault: boolean;
 }
 
+const buildCatalogRowKey = (row: Pick<CatalogRow, "catalog_type" | "row_key">) => `catalog:${row.catalog_type}:${row.row_key}`;
+const buildMatrixRowKey = (groupingKey: string, categoryKey: string, columnKey: string) =>
+  `matrix:${groupingKey}:${categoryKey}:${columnKey}`;
+
 const money = (value: number) => `$${value.toFixed(2)}`;
-// Retain the established portal conversion while older databases await the
-// currency-settings RPC migration. Once available, the active admin setting
-// always supplies the rate instead.
-const FALLBACK_BBD_TO_USD_RATE = 0.5;
+// Used only if the currency-settings RPC hasn't returned anything yet (or a
+// user's saved preference names a currency the admin has since removed) —
+// falls back to treating the stored value as already-displayable BBD.
+const FALLBACK_CURRENCY = "BBD";
 
 const groupBySection = (rows: CatalogRow[]) => {
   const map = new Map<string, CatalogRow[]>();
@@ -61,32 +70,32 @@ const AssignedPricelistsSection = () => {
   const assignedPricelistId = identity?.assignedPricelistId ?? null;
   const hasPricelist = typeof assignedPricelistId === "number";
   const [pricesHidden, setPricesHidden] = useState(true);
-  const [showAlternateCurrency, setShowAlternateCurrency] = useState(false);
+  const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
+  const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
 
-  const { data: pricingCurrency } = useQuery<PortalPricingCurrencySettings | null>({
+  const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
     queryKey: ["portal-pricing-currency-settings"],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("portal_pricing_currency_settings");
       if (error) throw error;
-
-      const settings = Array.isArray(data) ? data[0] : data;
-      if (!settings) return null;
-
-      const rate = Number(settings.bbd_to_usd_rate);
-      return {
-        baseCurrency: settings.base_currency === "USD" ? "USD" : "BBD",
-        bbdToUsdRate: Number.isFinite(rate) && rate > 0 ? rate : FALLBACK_BBD_TO_USD_RATE,
-      };
+      return ((data ?? []) as any[])
+        .map((row) => ({
+          currencyCode: String(row.currency_code),
+          bbdPerUnit: Number(row.bbd_per_unit),
+          isDefault: !!row.is_default,
+        }))
+        .filter((option) => Number.isFinite(option.bbdPerUnit) && option.bbdPerUnit > 0);
     },
     staleTime: 5 * 60_000,
   });
 
-  const baseCurrency = pricingCurrency?.baseCurrency ?? "BBD";
-  const alternateCurrency = baseCurrency === "BBD" ? "USD" : "BBD";
-  const currency = showAlternateCurrency ? alternateCurrency : baseCurrency;
+  const currencyByCode = useMemo(() => new Map(currencyOptions.map((option) => [option.currencyCode, option])), [currencyOptions]);
+  const defaultCurrency = currencyOptions.find((option) => option.isDefault)?.currencyCode ?? currencyOptions[0]?.currencyCode ?? FALLBACK_CURRENCY;
+  const currency = preferredCurrency && currencyByCode.has(preferredCurrency) ? preferredCurrency : defaultCurrency;
   const displayMoney = (bbd: number) => {
     const amount = Number(bbd);
-    return money(currency === "USD" ? amount * (pricingCurrency?.bbdToUsdRate ?? FALLBACK_BBD_TO_USD_RATE) : amount);
+    const rate = currencyByCode.get(currency)?.bbdPerUnit;
+    return money(rate ? amount / rate : amount);
   };
 
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
@@ -226,14 +235,24 @@ const AssignedPricelistsSection = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {sectionRows.map((row, index) => (
-                        <tr key={`${section}-${index}`} className="border-b last:border-b-0">
-                          <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-foreground">
-                            <span className={cn(pricesHidden && "select-none blur-sm")}>{displayMoney(row.bbd_price)}</span>
-                          </td>
-                        </tr>
-                      ))}
+                      {sectionRows.map((row, index) => {
+                        const rowKey = buildCatalogRowKey(row);
+                        return (
+                          <tr key={`${section}-${index}`} className="border-b last:border-b-0">
+                            <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
+                            <td className="px-3 py-2 text-right font-semibold text-foreground">
+                              <PriceOverrideCell
+                                wholesaleDisplay={displayMoney(row.bbd_price)}
+                                pricesHidden={pricesHidden}
+                                override={overrides.get(rowKey)}
+                                onSave={(price) => setOverride.mutate({ rowKey, price, currencyCode: currency })}
+                                onClear={() => clearOverride.mutate(rowKey)}
+                                isSaving={setOverride.isPending}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -298,15 +317,18 @@ const AssignedPricelistsSection = () => {
             <TabsTrigger value="supplies">Supplies</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className={cn("text-xs font-medium", showAlternateCurrency ? "text-muted-foreground" : "text-primary")}>{baseCurrency}</span>
-              <Switch
-                checked={showAlternateCurrency}
-                onCheckedChange={setShowAlternateCurrency}
-                aria-label={`Show prices in ${alternateCurrency}`}
-              />
-              <span className={cn("text-xs font-medium", showAlternateCurrency ? "text-primary" : "text-muted-foreground")}>{alternateCurrency}</span>
-            </div>
+            <Select value={currency} onValueChange={(code) => setCurrencyPreference.mutate(code)}>
+              <SelectTrigger className="h-8 w-24 text-xs font-medium" aria-label="Display currency">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {currencyOptions.map((option) => (
+                  <SelectItem key={option.currencyCode} value={option.currencyCode}>
+                    {option.currencyCode}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {hasAnyPrices && (
               <Button
                 variant="outline"
@@ -372,10 +394,18 @@ const AssignedPricelistsSection = () => {
                                   <td className="px-4 py-2 font-medium text-foreground">{category.name}</td>
                                   {visibleCols.map((column) => {
                                     const price = priceByKey.get(`${grouping.key}::${category.key}::${column.key}`);
+                                    const rowKey = buildMatrixRowKey(grouping.key, category.key, column.key);
                                     return (
                                       <td key={column.key} className="px-3 py-2 text-right font-semibold text-foreground">
                                         {price != null ? (
-                                          <span className={cn(pricesHidden && "select-none blur-sm")}>{displayMoney(price)}</span>
+                                          <PriceOverrideCell
+                                            wholesaleDisplay={displayMoney(price)}
+                                            pricesHidden={pricesHidden}
+                                            override={overrides.get(rowKey)}
+                                            onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
+                                            onClear={() => clearOverride.mutate(rowKey)}
+                                            isSaving={setOverride.isPending}
+                                          />
                                         ) : (
                                           "—"
                                         )}
