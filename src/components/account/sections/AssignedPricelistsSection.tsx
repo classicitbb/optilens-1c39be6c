@@ -19,6 +19,7 @@ import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
 import { useCart } from "@/hooks/useCart";
 import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import PriceOverrideCell from "@/components/account/PriceOverrideCell";
 
@@ -340,8 +341,20 @@ const AssignedPricelistsSection = () => {
                     <tbody>
                       {sectionRows.map((row, index) => {
                         const rowKey = buildCatalogRowKey(row);
+                        const rowAction =
+                          row.row_type === "lens" || row.row_type === "supply"
+                            ? { type: "cart" as const, onClick: () => addCatalogRowToCart(row) }
+                            : { type: "rx" as const, onClick: () => addToRxQuoteRequest(row.display_description, row.bbd_price) };
+                        const isCartRow = rowAction.type === "cart";
                         return (
-                          <tr key={`${section}-${index}`} className="border-b last:border-b-0">
+                          <tr
+                            key={`${section}-${index}`}
+                            className={cn(
+                              "group border-b last:border-b-0",
+                              isCartRow && "cursor-pointer hover:bg-muted/50",
+                            )}
+                            onClick={isCartRow ? rowAction.onClick : undefined}
+                          >
                             <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
                             <td className="px-3 py-2 text-right font-semibold text-foreground">
                               <PriceOverrideCell
@@ -351,11 +364,8 @@ const AssignedPricelistsSection = () => {
                                 onSave={(price) => setOverride.mutate({ rowKey, price, currencyCode: currency })}
                                 onClear={() => clearOverride.mutate(rowKey)}
                                 isSaving={setOverride.isPending}
-                                action={
-                                  row.row_type === "lens" || row.row_type === "supply"
-                                    ? { type: "cart", onClick: () => addCatalogRowToCart(row) }
-                                    : { type: "rx", onClick: () => addToRxQuoteRequest(row.display_description, row.bbd_price) }
-                                }
+                                action={rowAction}
+                                useRowHoverGroup
                               />
                             </td>
                           </tr>
