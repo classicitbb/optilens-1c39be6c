@@ -100,6 +100,30 @@ describe("admin function policy", () => {
     });
   });
 
+  it("honors an explicit sendEmail/sendWelcomeEmail choice instead of defaulting", () => {
+    expect(
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "invite-user",
+        payload: { email: "customer@example.com", sendEmail: true },
+      }),
+    ).toEqual({ action: "invite-user", email: "customer@example.com", sendEmail: true });
+
+    expect(
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "create-user",
+        payload: { email: "customer@example.com", password: "strong-passphrase-123", sendWelcomeEmail: false },
+      }),
+    ).toEqual({
+      action: "create-user",
+      email: "customer@example.com",
+      password: "strong-passphrase-123",
+      displayName: undefined,
+      sendWelcomeEmail: false,
+    });
+  });
+
   it("permits an approved ERP customer to be attached to a customer invite", () => {
     expect(
       validateAdminFunctionRequest({
@@ -203,5 +227,70 @@ describe("admin function policy", () => {
         payload: { email: "customer@example.com", contactId: 42 },
       }),
     ).toThrow("contactId must be a string");
+  });
+
+  it("requires a target user and ERP customer to confirm portal staff", () => {
+    const userId = "6a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
+    expect(
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "confirm-portal-staff",
+        payload: { userId, customerId: 42 },
+      }),
+    ).toEqual({ action: "confirm-portal-staff", userId, customerId: 42 });
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "confirm-portal-staff",
+        payload: { userId },
+      }),
+    ).toThrow("customerId is required");
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "confirm-portal-staff",
+        payload: { userId: "not-a-user-id", customerId: 42 },
+      }),
+    ).toThrow("userId must be a valid user id");
+  });
+
+  it("toggles archived state on a portal profile", () => {
+    const userId = "6a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
+    expect(
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "archive-portal-profile",
+        payload: { userId, archived: true },
+      }),
+    ).toEqual({ action: "archive-portal-profile", userId, archived: true });
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "archive-portal-profile",
+        payload: { userId, archived: "yes" },
+      }),
+    ).toThrow("archived must be a boolean");
+  });
+
+  it("toggles login-disabled state for a portal user", () => {
+    const userId = "6a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d";
+    expect(
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "set-login-disabled",
+        payload: { userId, disabled: false },
+      }),
+    ).toEqual({ action: "set-login-disabled", userId, disabled: false });
+
+    expect(() =>
+      validateAdminFunctionRequest({
+        actorRole: "admin",
+        action: "set-login-disabled",
+        payload: { userId, disabled: "no" },
+      }),
+    ).toThrow("disabled must be a boolean");
   });
 });

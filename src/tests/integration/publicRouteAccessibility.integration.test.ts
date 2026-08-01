@@ -91,7 +91,7 @@ describe("public route accessibility", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
-    expect(source).toContain('<Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />');
+    expect(source).toContain('<Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />');
   });
 
   it("declares runtime routes for the LabLink embed pages", () => {
@@ -115,7 +115,7 @@ describe("public route accessibility", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
-    expect(source).toContain('<Route path="knowledge/:articleSlug" element={<Knowledge />} />');
+    expect(source).toContain('<Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />');
   });
 
   it("declares runtime routes for /blog and /blog/:slug", () => {
