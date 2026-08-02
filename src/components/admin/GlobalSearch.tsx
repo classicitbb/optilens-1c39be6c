@@ -10,7 +10,7 @@ import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
-import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS } from "./globalSearchActions";
+import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS, NEW_RX_ORDER_SEARCH_KEYWORDS } from "./globalSearchActions";
 
 interface SearchResult {
   id: string;
@@ -74,6 +74,15 @@ const GlobalSearch = () => {
       icon: Ticket,
       group: "Actions",
       keywords: [...CREATE_TICKET_SEARCH_KEYWORDS],
+    });
+    if (hasAppAccess("website")) results.push({
+      id: "action-new-rx-order",
+      label: "New Rx Order",
+      sublabel: "Quotations",
+      path: "/admin/website/quotations/new-rx",
+      icon: PlusCircle,
+      group: "Actions",
+      keywords: [...NEW_RX_ORDER_SEARCH_KEYWORDS],
     });
     return results;
   }, [canEditFeature, hasAppAccess]);

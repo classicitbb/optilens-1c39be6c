@@ -192,6 +192,33 @@ const ENTITIES: Record<string, EntityConfig> = {
       "avg_gap_days",
     ],
   },
+  // Lens alias catalog (source: Zen DB LensAlias via optilens-local's
+  // data/rx/catalog.generated.json — see INNOVA_INTEGRATION_ARCHITECTURE.md
+  // §2.1). Read-mostly mirror; changes rarely (a new lens style/colour is a
+  // supplier event). Generic batch-upsert keyed on the immutable 13-digit
+  // alias. Reuses customers:write — same optilens-local push authority as
+  // banks, no new scope needed on the existing API key.
+  lens_aliases: {
+    table: "innovations_lens_aliases",
+    conflictKey: "alias",
+    required: "alias",
+    scope: "customers:write",
+    allow: [
+      "alias",
+      "material_code",
+      "material_description",
+      "style_code",
+      "style_description",
+      "color_code",
+      "color_description",
+      "mf_type",
+      "category",
+      "suppliers",
+      "pricing_key",
+      "is_active",
+      "synced_at",
+    ],
+  },
 };
 
 function json(body: unknown, status = 200): Response {
@@ -211,7 +238,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-07-25.1-customer-email-collision-fallback";
+const VERSION = "2026-08-01.1-lens-aliases-and-rx-submissions";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
@@ -556,6 +583,61 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true });
     }
     return json({ error: "Unsupported _requests operation." }, 404);
+  }
+
+  // ── Rx submission outbox (office worker pulls approved submissions,
+  // submits to InnovaAPI /process_rxi or the file-drop, writes the result
+  // back). Mirrors the _requests claim/complete pattern exactly: claim is a
+  // conditional UPDATE so two workers can't take the same row. ──
+  if (entity === "_rx_submissions") {
+    if (!scopes.includes("customers:write")) {
+      return json({ error: "Missing required scope: customers:write" }, 403);
+    }
+    if (req.method === "GET" && id === "next") {
+      const { data: pending } = await supabase
+        .from("rx_order_submissions")
+        .select("id,quote_id,payload,mode,attempts")
+        .eq("status", "approved")
+        .order("approved_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!pending) return json({ submission: null });
+      const { data: claimed, error: claimErr } = await supabase
+        .from("rx_order_submissions")
+        .update({ status: "claimed", claimed_at: new Date().toISOString() })
+        .eq("id", (pending as any).id)
+        .eq("status", "approved")
+        .select("id,quote_id,payload,mode,attempts")
+        .maybeSingle();
+      if (claimErr || !claimed) return json({ submission: null }); // lost the race
+      return json({ submission: claimed });
+    }
+    if (req.method === "POST" && id === "complete") {
+      const body = (await req.json().catch(() => null)) as any;
+      if (!body || !body.id) {
+        return json({ error: "Body must be { id, ok, transport?, result_code?, result_message?, rxt_data?, error? }." }, 400);
+      }
+      const { data: updated, error: updErr } = await supabase
+        .from("rx_order_submissions")
+        .update({
+          status: body.ok ? "submitted" : "failed",
+          transport: body.transport ?? null,
+          result_code: body.result_code ?? null,
+          result_message: body.result_message ?? null,
+          rxt_data: body.rxt_data ?? null,
+          last_error: body.ok ? null : (body.error ?? body.result_message ?? "Unknown error"),
+          submitted_at: body.ok ? new Date().toISOString() : null,
+          attempts: (Number(body.attempts) || 0) + 1,
+        })
+        .eq("id", body.id)
+        .eq("status", "claimed")
+        .select("id")
+        .maybeSingle();
+      if (updErr) return json({ error: "Update failed", detail: updErr.message }, 500);
+      if (!updated) return json({ error: "Submission not found or not in claimed state." }, 409);
+      return json({ ok: true });
+    }
+    return json({ error: "Unsupported _rx_submissions operation." }, 404);
   }
 
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);

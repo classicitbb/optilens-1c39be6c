@@ -24,6 +24,9 @@ const ImportCostingsPage = lazy(() => import("@/pages/admin/costings/ImportCosti
 const ShipmentDetailPage = lazy(() => import("@/pages/admin/costings/ShipmentDetailPage"));
 const CostingsReportsPage = lazy(() => import("@/pages/admin/costings/CostingsReportsPage"));
 const QuotationsListPage = lazy(() => import("@/pages/admin/QuotationsListPage"));
+const RxOrderFormPage = lazy(() => import("@/pages/admin/RxOrderFormPage"));
+const RxSubmissionsPage = lazy(() => import("@/pages/admin/RxSubmissionsPage"));
+const AliasMappingPage = lazy(() => import("@/pages/admin/AliasMappingPage"));
 const QuoteEditorPage = lazy(() => import("@/pages/admin/QuoteEditorPage"));
 const QuotePrintPreviewPage = lazy(() => import("@/pages/admin/QuotePrintPreviewPage"));
 const CatalogPublisherPage = lazy(() => import("@/pages/admin/CatalogPublisherPage"));
@@ -83,6 +86,7 @@ const AdminRoutes = () => (
       <Route path="pricing/costings/:id" element={<ShipmentDetailPage />} />
       <Route path="pricing/costings/reports" element={<CostingsReportsPage />} />
       <Route path="pricing/reference" element={<ReferenceDataPage />} />
+      <Route path="pricing/alias-mapping" element={<AliasMappingPage />} />
       <Route path="pricing/imports" element={<ImportsPage />} />
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
       <Route path="contacts" element={<ContactsPage />} />
@@ -118,8 +122,11 @@ const AdminRoutes = () => (
       <Route path="website/documents" element={<Navigate to="/admin/docs/studio" replace />} />
       <Route path="website/features" element={<FeatureBoardPage />} />
       <Route path="website/quotations" element={<QuotationsListPage />} />
+      <Route path="website/quotations/new-rx" element={<RxOrderFormPage />} />
+      <Route path="website/quotations/rx/:id" element={<RxOrderFormPage />} />
       <Route path="website/quotations/:id" element={<QuoteEditorPage />} />
       <Route path="website/quotations/:id/print-preview" element={<QuotePrintPreviewPage />} />
+      <Route path="website/rx-submissions" element={<RxSubmissionsPage />} />
       <Route path="website/orders" element={<OrdersPage />} />
       <Route path="docs" element={<Navigate to="/admin/docs/studio" replace />} />
       <Route path="docs/studio" element={<DocStudioPage />} />

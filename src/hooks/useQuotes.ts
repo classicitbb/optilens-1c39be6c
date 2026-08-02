@@ -54,6 +54,9 @@ export interface QuoteLine {
   line_note: string | null;
   needs_assistance: boolean;
   assistance_note: string | null;
+  /** Resolved Innovations 13-digit alias (colour choice) — null until the
+   *  Lens step's colour sub-step sets it or mapping exists. */
+  innovations_alias: string | null;
   created_at: string;
   updated_at: string;
 }
