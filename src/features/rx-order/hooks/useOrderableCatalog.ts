@@ -12,6 +12,7 @@ import { useAddons, Addon } from "@/hooks/useAddons";
 // can say so instead of silently showing an empty form.
 
 interface PricelistScope {
+  accountId: number;
   pricelistVersionId: number | null;
   pricelistName: string | null;
   lensIds: Set<string>;
@@ -22,6 +23,7 @@ interface PricelistScope {
 }
 
 const EMPTY_SCOPE: PricelistScope = {
+  accountId: 0,
   pricelistVersionId: null,
   pricelistName: null,
   lensIds: new Set(),
@@ -42,7 +44,7 @@ export const usePricelistScope = (accountId: number | null) => {
         .maybeSingle();
       if (custErr) throw custErr;
       const versionId = customer?.assigned_pricelist_id ?? null;
-      if (versionId == null) return EMPTY_SCOPE;
+      if (versionId == null) return { ...EMPTY_SCOPE, accountId };
 
       const [{ data: version }, { data: rows, error: rowsErr }] = await Promise.all([
         (supabase.from("pricelist_versions") as any).select("id, name").eq("id", versionId).maybeSingle(),
@@ -62,6 +64,7 @@ export const usePricelistScope = (accountId: number | null) => {
         if (r.bbd_price != null) priceByItemId.set(r.item_id, Number(r.bbd_price));
       }
       return {
+        accountId,
         pricelistVersionId: versionId,
         pricelistName: version?.name ?? null,
         lensIds,

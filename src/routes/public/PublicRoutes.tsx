@@ -97,6 +97,15 @@ const LensAssistantRouteGate = () => {
   return enabled ? <LensAssistantPage /> : <Navigate to={user ? "/profile" : "/"} replace />;
 };
 
+// Gates the new in-house Rx order form on its Feature Board flag — toggling
+// it off must actually block the route (not just hide the nav link), so
+// direct/bookmarked URLs fall back to the LabLink portal that's always live.
+const RxOrderRouteGate = () => {
+  const { enabled, isLoading } = useWebsiteFeature("rx_order_form", true);
+  if (isLoading) return null;
+  return enabled ? <RxOrderPage /> : <Navigate to="/rx-order/lablink" replace />;
+};
+
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
@@ -115,7 +124,7 @@ const PublicRoutes = () => (
       path="rx-order"
       element={
         <ProtectedRoute>
-          <RxOrderPage />
+          <RxOrderRouteGate />
         </ProtectedRoute>
       }
     />

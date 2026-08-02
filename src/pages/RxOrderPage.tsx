@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuotes } from "@/hooks/useQuotes";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/Header";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
 
 // Customer-portal surface of the Rx order form (linked from /profile's
@@ -47,24 +48,34 @@ const RxOrderPage = () => {
 
   if (!identityLoading && lockedAccountId == null && !isStaff) {
     return (
-      <div className="p-12 text-center text-sm text-muted-foreground max-w-lg mx-auto">
-        Your portal account isn't linked to a trading account yet, so Rx ordering is not
-        available. Contact Classic Visions to finish setting up your account.
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="pt-24 p-12 text-center text-sm text-muted-foreground max-w-lg mx-auto">
+          Your portal account isn't linked to a trading account yet, so Rx ordering is not
+          available. Contact Classic Visions to finish setting up your account.
+        </div>
       </div>
     );
   }
 
-  return quoteId ? (
-    <RxOrderEmbed
-      quoteId={quoteId}
-      quoteNumber={quote?.quote_number}
-      surface="portal"
-      lockedAccountId={lockedAccountId}
-      checkoutPath="/checkout"
-      storePath="/store"
-    />
-  ) : (
-    <div className="p-12 text-center text-sm text-muted-foreground">Preparing your Rx order…</div>
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="pt-16">
+        {quoteId ? (
+          <RxOrderEmbed
+            quoteId={quoteId}
+            quoteNumber={quote?.quote_number}
+            surface="portal"
+            lockedAccountId={lockedAccountId}
+            checkoutPath="/checkout"
+            storePath="/store"
+          />
+        ) : (
+          <div className="p-12 text-center text-sm text-muted-foreground">Preparing your Rx order…</div>
+        )}
+      </div>
+    </div>
   );
 };
 

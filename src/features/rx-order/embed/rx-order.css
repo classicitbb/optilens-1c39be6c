@@ -30,8 +30,23 @@
 @media (prefers-color-scheme: dark){
   body{background:hsl(213 30% 12%)}.cv-rx-embed .pagehead h1{color:hsl(43 25% 94%)}.cv-rx-embed .pagehead p{color:hsl(213 15% 68%)}.cv-rx-embed .topbar{background:hsl(213 30% 12% / .85);border-bottom-color:hsl(213 20% 26%)}.cv-rx-embed .brand .t2{color:hsl(213 15% 68%)}.cv-rx-embed .steps,.cv-rx-embed .card,.cv-rx-embed .qcard,.cv-rx-embed .vcard,.cv-rx-embed .modal,.cv-rx-embed .sdraw,.cv-rx-embed .annopop,.cv-rx-embed .gearmenu,.cv-rx-embed .qactions{background:#fff;color:hsl(213 66% 13%)}/* action stack becomes a card of its own so ghost buttons stay legible */
 .cv-rx-embed .qactions{border:1px solid var(--border-soft);border-radius:15px;padding:11px;box-shadow:var(--shadow-soft)}.cv-rx-embed .qactions .btn-ghost{background:#fff;color:hsl(213 66% 13%);border-color:var(--border)}.cv-rx-embed .qactions .btn-ghost:hover{background:hsl(43 25% 96%)}.cv-rx-embed .gatenote{color:var(--muted-fg)}.cv-rx-embed .banner{background:#FBF2DE;border-color:hsl(38 61% 45%);color:hsl(38 70% 24%)}.cv-rx-embed .banner .btn-ghost{background:#fff;border-color:hsl(38 40% 60%);color:hsl(38 70% 24%)}.cv-rx-embed .nextcue{background:hsl(213 25% 18%);border-color:hsl(213 20% 30%);color:hsl(213 15% 72%)}.cv-rx-embed .topbar .btn-ghost,.cv-rx-embed .topbar .iconbtn{background:hsl(213 25% 18%);color:hsl(43 25% 92%);border-color:hsl(213 20% 32%)}.cv-rx-embed .topbar .chip{background:hsl(213 25% 18%);color:hsl(213 15% 72%);border-color:hsl(213 20% 32%)}.cv-rx-embed .topbar .chip b{color:hsl(43 25% 92%)}.cv-rx-embed .pagehead .iconbtn,.cv-rx-embed .pagehead .btn-ghost{background:#fff;color:hsl(213 66% 13%);border-color:var(--border)}.cv-rx-embed .needcue{background:#EAF7EE;border-color:hsl(140 45% 42%)}}
-/* sticky step rail — form scrolls under it,.cv-rx-embed quote panel unaffected */
-.cv-rx-embed .steps{position:sticky;top:60px;z-index:40}
+/* sticky step rail — form scrolls under it,.cv-rx-embed quote panel unaffected.
+   Offset is 0 by default (admin surface scrolls inside its own container,
+   below the admin top bar); the portal surface sits under the site's fixed
+   header, so it opts into an offset matching that header's height. */
+.cv-rx-embed .steps{position:sticky;top:0;z-index:40}
+.cv-rx-embed.has-fixed-header .steps{top:64px}
+/* help + settings gear wrap onto a new pagehead row together, never apart */
+.cv-rx-embed .headtools{display:inline-flex;align-items:center;gap:8px;flex:none}
+/* settings gear is admin-only */
+.cv-rx-embed.no-gear .gearwrap{display:none}
+/* branch picker: only the account list scrolls, inside the modal frame —
+   not the whole modal (which was letting the page scroll past it). */
+.cv-rx-embed .branch-modal{display:flex;flex-direction:column;max-height:86vh;overflow:hidden}
+.cv-rx-embed .branch-modal .mbody{display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden}
+.cv-rx-embed .branch-modal .searchbox{flex:none}
+.cv-rx-embed .branch-modal .choices{overflow-y:auto;flex:1;min-height:0;padding-right:8px;margin-right:-8px}
+.cv-rx-embed .branch-modal .gatenote{flex:none}
 @media(max-width:640px){.cv-rx-embed .steps{position:static} }/* collapsed summaries */
 .cv-rx-embed .summary{display:flex;align-items:center;gap:12px;border:1px solid hsl(140 55% 40% / .45);background:hsl(140 55% 40% / .07);
   border-radius:12px;padding:10px 13px;animation:fade .25s var(--ease)}.cv-rx-embed .summary .st{font-size:13px;font-weight:650;color:hsl(140 45% 26%)}.cv-rx-embed .summary .sd{font-size:11.5px;color:var(--muted-fg);margin-top:2px;font-variant-numeric:tabular-nums;line-height:1.45}.cv-rx-embed .summary .btn{margin-left:auto;flex:none}/* advanced disclosure */

@@ -111,7 +111,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         description: "Please sign in to add items to your cart.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     try {
@@ -162,6 +162,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         title: "Added to cart",
         description: `${product.name} has been added to your cart.`,
       });
+      return true;
     } catch (error) {
       safeError("Error adding to cart:", error);
       toast({
@@ -169,6 +170,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
         description: "Failed to add item to cart.",
         variant: "destructive",
       });
+      return false;
     }
   };
 

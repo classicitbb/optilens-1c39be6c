@@ -27,7 +27,13 @@ export interface EngineData {
   clashes: [string, string, string][];
 }
 
-export interface LensRef { lensId: string; name: string; listPrice: number; basePrice: number }
+export interface LensRef {
+  lensId: string;
+  name: string;
+  listPrice: number;
+  basePrice: number;
+  colourName: string;
+}
 
 const initials = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "AC";
@@ -84,7 +90,13 @@ export function buildEngineData(opts: {
     const key = `${m}|${dKey}|${cKey}`;
     const existing = lensIndex.get(key);
     if (!existing || l.sell_price < existing.listPrice) {
-      lensIndex.set(key, { lensId: l.id, name: l.name, listPrice: l.sell_price, basePrice: l.base_price });
+      lensIndex.set(key, {
+        lensId: l.id,
+        name: l.name,
+        listPrice: l.sell_price,
+        basePrice: l.base_price,
+        colourName: l.finishtype?.name ?? "",
+      });
     }
   }
 
@@ -136,6 +148,31 @@ export async function persistPayload(
   const lensKey = `${payload.lens.material}|${payload.lens.design}|${payload.lens.colour}`;
   const lens = ctx.lensIndex.get(lensKey) ?? null;
 
+  // The embedded form selects a live finish-type, while Innovations needs its
+  // 13-digit colour alias. Resolve only an exact normalized colour match; a
+  // primary alias is not a safe substitute because it can describe a different
+  // tint/finish. Approval below then keeps unmatched colours out of production.
+  const normaliseColour = (value: string) => value
+    .toLowerCase()
+    .replace(/transitions?/g, "photochromic")
+    .replace(/photo(?!chromic)/g, "photochromic")
+    .replace(/colou?r/g, "")
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+  let innovationsAlias: string | null = null;
+  if (lens?.colourName) {
+    const { data: mappedAliases, error: aliasError } = await (supabase.from("lens_alias_map") as any)
+      .select("innovations_alias, innovations_lens_aliases(color_description, is_active)")
+      .eq("lens_id", lens.lensId)
+      .not("confirmed_at", "is", null);
+    if (aliasError) throw aliasError;
+    const wantedColour = normaliseColour(lens.colourName);
+    innovationsAlias = (mappedAliases ?? []).find((row: any) =>
+      row.innovations_lens_aliases?.is_active !== false
+      && normaliseColour(row.innovations_lens_aliases?.color_description ?? "") === wantedColour,
+    )?.innovations_alias ?? null;
+  }
+
   // Replace all lines for this quote (the engine is the source of truth).
   const { error: delErr } = await (supabase.from("quote_lines") as any).delete().eq("quote_id", quoteId);
   if (delErr) throw delErr;
@@ -151,6 +188,7 @@ export async function persistPayload(
     quote_id: quoteId,
     line_type: "Lens",
     product_id: lens?.lensId ?? null,
+    innovations_alias: innovationsAlias,
     sku: "",
     item_name: lens?.name ?? `${payload.lens.material} ${payload.lens.design} ${payload.lens.colour}`,
     qty: 1,

@@ -18,7 +18,7 @@
 -- for everyone it touches.
 
 -- ── Step 0: sanity check the two pricelist names resolve uniquely ─────────
-select id, name, currency, created_at
+select id, name, base_currency, created_at
 from public.pricelist_versions
 where name in ('Classic Visions July 2026 Current Prices', 'Retail Price List Barbados');
 -- Expect exactly 2 rows. If you get 0, 1, or >2, stop and check for a rename
@@ -36,20 +36,36 @@ left join public.pricelist_versions pv on pv.id = c.assigned_pricelist_id
 order by c.id;
 
 -- ── Step 1: default every customer EXCEPT the retailer account ─────────────
-update public.customers
-set assigned_pricelist_id = (
-  select id from public.pricelist_versions
-  where name = 'Classic Visions July 2026 Current Prices'
-)
-where id <> 776;
+-- A scalar subquery with no matching row returns NULL, which would silently
+-- erase every customer's assignment. Enforce the review instruction in SQL so
+-- a renamed or duplicated version aborts before any customer row is touched.
+DO $$
+DECLARE
+  v_default_ids integer[];
+  v_retail_ids integer[];
+BEGIN
+  SELECT array_agg(id ORDER BY id) INTO v_default_ids
+  FROM public.pricelist_versions
+  WHERE name = 'Classic Visions July 2026 Current Prices';
 
--- ── Step 2: the one exception — the retailer account ───────────────────────
-update public.customers
-set assigned_pricelist_id = (
-  select id from public.pricelist_versions
-  where name = 'Retail Price List Barbados'
-)
-where id = 776;
+  SELECT array_agg(id ORDER BY id) INTO v_retail_ids
+  FROM public.pricelist_versions
+  WHERE name = 'Retail Price List Barbados';
+
+  IF COALESCE(cardinality(v_default_ids), 0) <> 1
+     OR COALESCE(cardinality(v_retail_ids), 0) <> 1 THEN
+    RAISE EXCEPTION
+      'Expected exactly one default and one retail pricelist version; found default %, retail %',
+      COALESCE(cardinality(v_default_ids), 0), COALESCE(cardinality(v_retail_ids), 0);
+  END IF;
+
+  UPDATE public.customers
+  SET assigned_pricelist_id = CASE
+    WHEN id = 776 THEN v_retail_ids[1]
+    ELSE v_default_ids[1]
+  END;
+END;
+$$;
 
 -- ── Step 3: verify ──────────────────────────────────────────────────────────
 select

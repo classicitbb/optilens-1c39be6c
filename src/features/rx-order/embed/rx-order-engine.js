@@ -2704,10 +2704,14 @@ function showShape(omaData) {
 }
 
 /* ---------- branch ---------- */
+let branchQuery='';
 function renderBranches(){
-  $('#branchList').innerHTML=BRANCHES.map(b=>`<button class="branch ${S.branch&&S.branch.id===b.id?'cur':''}" data-b="${b.id}">
+  const q=branchQuery.trim().toLowerCase();
+  const list=q?BRANCHES.filter(b=>(b.name+' '+b.info+' '+(b.code||'')).toLowerCase().includes(q)):BRANCHES;
+  $('#branchList').innerHTML=list.length?list.map(b=>`<button class="branch ${S.branch&&S.branch.id===b.id?'cur':''}" data-b="${b.id}">
     <span class="bi">${b.code}</span><span><span class="bn">${b.name}</span><span class="bd">${b.info}</span></span>
-    ${S.branch&&S.branch.id===b.id?'<span class="bt">Current</span>':''}</button>`).join('');
+    ${S.branch&&S.branch.id===b.id?'<span class="bt">Current</span>':''}</button>`).join('')
+    :'<p class="chipnone" style="padding:22px 4px;text-align:center">No accounts match your search.</p>';
   $$('#branchList .branch').forEach(el=>el.addEventListener('click',()=>{
     const b=BRANCHES.find(x=>x.id===el.dataset.b), changing=S.branch&&S.branch.id!==b.id;
     if(changing&&!confirm('Move this order to '+b.name+'?\n\nPricing, currency and delivery may differ.')) return;
@@ -2720,8 +2724,15 @@ function renderBranches(){
     render();
   }));
 }
-$('#branchChip').addEventListener('click',()=>{renderBranches();$('#branchScrim').classList.add('on');});
-$('#reopenBranch').addEventListener('click',()=>{renderBranches();$('#branchScrim').classList.add('on');});
+function openBranchPicker(){
+  branchQuery=''; const s=$('#branchSearch'); if(s) s.value='';
+  renderBranches();
+  $('#branchScrim').classList.add('on');
+  if(s) setTimeout(()=>s.focus(),50);
+}
+$('#branchChip').addEventListener('click',openBranchPicker);
+$('#reopenBranch').addEventListener('click',openBranchPicker);
+$('#branchSearch').addEventListener('input',e=>{ branchQuery=e.target.value; renderBranches(); });
 
 /* ---------- toast ---------- */
 function toast(m){const t=$('#toast');$('#toastMsg').textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2800);}
@@ -2875,7 +2886,9 @@ $('#printBtn').addEventListener('click',()=>{
   w.document.write(html); w.document.close();
 });
 
-function submit(){
+let submitInFlight=false;
+async function submit(){
+  if(submitInFlight) return;
   const V=secValid();
   if(!(V['sec-patient']&&V['sec-frame']&&V['sec-lens']&&V['sec-rx'])) return;
   const c=CUR[S.cur], {sub}=price();
@@ -2894,11 +2907,18 @@ function submit(){
   $('#scrim .mhead p').textContent=S.pricesOn
     ? 'Price is now locked at this quote and will be honoured through checkout.'
     : 'Your order is in the cart. Pricing isn\'t enabled on this account, so we confirm the price with you before production.';
-  const __p=stashOrder('submitted'); if(ADAPTER.onSubmitted) ADAPTER.onSubmitted(__p);
-  $('#scrim').classList.add('on');
+  submitInFlight=true;
+  try{
+    const __p=stashOrder('submitted');
+    if(ADAPTER.onSubmitted) await ADAPTER.onSubmitted(__p);
+    $('#scrim').classList.add('on');
+  }catch(err){
+    console.error('Rx order submission could not be persisted',err);
+    toast('Could not save the order and add it to the cart. Please try again.');
+  }finally{ submitInFlight=false; }
 }
-$('#submitBtn').addEventListener('click',submit);
-$('#submitBtn2').addEventListener('click',submit);
+$('#submitBtn').addEventListener('click',()=>{void submit();});
+$('#submitBtn2').addEventListener('click',()=>{void submit();});
 $$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
   const n=b.dataset.next; $('#scrim').classList.remove('on');
   if(n==='another') setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
@@ -2984,16 +3004,17 @@ $('#btnReorder').addEventListener('click',()=>{
 });
 
 /* ---------- keep the sticky quote panel clear of the sticky step rail ----------
-   .steps is pinned at top:60px; its rendered height varies (it can wrap to two
-   rows on narrower desktop widths), so a fixed top offset on .quote either left
-   a gap or let it slide underneath the step rail depending on viewport width.
-   Measuring .steps and pushing .quote's sticky top just past it keeps a
-   consistent gap at any width, and never overlaps. */
+   .steps' sticky top offset depends on the host surface (see .has-fixed-header
+   in the CSS) and its rendered height varies (it can wrap to two rows on
+   narrower desktop widths), so a fixed top offset on .quote either left a gap
+   or let it slide underneath the step rail depending on viewport width.
+   Reading .steps' own computed offset and pushing .quote's sticky top just
+   past it keeps a consistent gap at any width/surface, and never overlaps. */
 function syncQuoteStickyTop(){
   const steps=$('.steps'), quote=$('.quote');
   if(!steps||!quote) return;
   if(window.innerWidth<=1080){ quote.style.top=''; return; } // matches the .quote{position:static} breakpoint
-  const stepsTop=60; // must match .steps{top:60px} in CSS
+  const stepsTop=parseFloat(getComputedStyle(steps).top)||0; // matches .steps{top:...} in CSS
   quote.style.top=(stepsTop+steps.offsetHeight+8)+'px';
 }
 winListen('resize',syncQuoteStickyTop);
@@ -3027,6 +3048,9 @@ if(ADAPTER.lockedBranchId){
   const el=$$('#branchList .branch').find(b=>b.dataset.b===String(ADAPTER.lockedBranchId));
   if(el) el.click();
   const chip=$('#branchChip'); if(chip) chip.style.pointerEvents='none';
+} else if(ADAPTER.defaultBranchId && $$('#branchList .branch').find(b=>b.dataset.b===String(ADAPTER.defaultBranchId))){
+  // Preselected, not locked — the picker (chip, gear "Store picker") stays open to switching accounts.
+  $$('#branchList .branch').find(b=>b.dataset.b===String(ADAPTER.defaultBranchId)).click();
 } else {
   $('#branchScrim').classList.add('on');
 }
@@ -3038,7 +3062,7 @@ return {
     __docL.forEach(([t,f,o])=>document.removeEventListener(t,f,o));
     __winL.forEach(([t,f,o])=>window.removeEventListener(t,f,o));
   },
-  refreshData(){ applyAdapterData(); fillLensSelects(); buildPopular(); buildTreatList(); renderBranches(); render(); },
+  refreshData(){ applyAdapterData(); repair(); fillLensSelects(); buildPopular(); buildTreatList(); renderBranches(); render(); },
   getPayload: buildPayload,
   restorePayload,
   clearAll,
