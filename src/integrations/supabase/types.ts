@@ -3689,6 +3689,54 @@ export type Database = {
         }
         Relationships: []
       }
+      innovations_lens_aliases: {
+        Row: {
+          alias: string
+          category: string
+          color_code: string
+          color_description: string
+          is_active: boolean
+          material_code: string
+          material_description: string
+          mf_type: string
+          pricing_key: string
+          style_code: string
+          style_description: string
+          suppliers: string[]
+          synced_at: string
+        }
+        Insert: {
+          alias: string
+          category?: string
+          color_code: string
+          color_description: string
+          is_active?: boolean
+          material_code: string
+          material_description: string
+          mf_type?: string
+          pricing_key?: string
+          style_code: string
+          style_description: string
+          suppliers?: string[]
+          synced_at?: string
+        }
+        Update: {
+          alias?: string
+          category?: string
+          color_code?: string
+          color_description?: string
+          is_active?: boolean
+          material_code?: string
+          material_description?: string
+          mf_type?: string
+          pricing_key?: string
+          style_code?: string
+          style_description?: string
+          suppliers?: string[]
+          synced_at?: string
+        }
+        Relationships: []
+      }
       innovations_sync_dead_letters: {
         Row: {
           api_key_id: string | null
@@ -4451,6 +4499,71 @@ export type Database = {
           value_type?: string
         }
         Relationships: []
+      }
+      lens_alias_map: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          innovations_alias: string
+          is_primary: boolean
+          lens_id: string
+          lens_option_id: string | null
+          match_confidence: number | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          innovations_alias: string
+          is_primary?: boolean
+          lens_id: string
+          lens_option_id?: string | null
+          match_confidence?: number | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          innovations_alias?: string
+          is_primary?: boolean
+          lens_id?: string
+          lens_option_id?: string | null
+          match_confidence?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_alias_map_innovations_alias_fkey"
+            columns: ["innovations_alias"]
+            isOneToOne: false
+            referencedRelation: "innovations_lens_aliases"
+            referencedColumns: ["alias"]
+          },
+          {
+            foreignKeyName: "lens_alias_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_alias_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lens_alias_map_lens_option_id_fkey"
+            columns: ["lens_option_id"]
+            isOneToOne: false
+            referencedRelation: "lens_options"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lens_lens_options: {
         Row: {
@@ -6701,6 +6814,7 @@ export type Database = {
           gp_percent: number
           group_key: string | null
           id: string
+          innovations_alias: string | null
           item_name: string
           line_note: string | null
           line_type: string
@@ -6730,6 +6844,7 @@ export type Database = {
           gp_percent?: number
           group_key?: string | null
           id?: string
+          innovations_alias?: string | null
           item_name?: string
           line_note?: string | null
           line_type?: string
@@ -6759,6 +6874,7 @@ export type Database = {
           gp_percent?: number
           group_key?: string | null
           id?: string
+          innovations_alias?: string | null
           item_name?: string
           line_note?: string | null
           line_type?: string
@@ -6781,6 +6897,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "quote_lines_innovations_alias_fkey"
+            columns: ["innovations_alias"]
+            isOneToOne: false
+            referencedRelation: "innovations_lens_aliases"
+            referencedColumns: ["alias"]
+          },
           {
             foreignKeyName: "quote_lines_parent_line_id_fkey"
             columns: ["parent_line_id"]
@@ -7157,6 +7280,108 @@ export type Database = {
             columns: ["rule_set_id"]
             isOneToOne: false
             referencedRelation: "lens_recommendation_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_order_submissions: {
+        Row: {
+          account_id: number | null
+          approved_at: string | null
+          approved_by: string | null
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          mode: number
+          order_id: string | null
+          payload: Json
+          quote_id: string
+          result_code: number | null
+          result_message: string | null
+          rxt_data: string | null
+          status: string
+          submitted_at: string | null
+          transport: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          mode?: number
+          order_id?: string | null
+          payload?: Json
+          quote_id: string
+          result_code?: number | null
+          result_message?: string | null
+          rxt_data?: string | null
+          status?: string
+          submitted_at?: string | null
+          transport?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          mode?: number
+          order_id?: string | null
+          payload?: Json
+          quote_id?: string
+          result_code?: number | null
+          result_message?: string | null
+          rxt_data?: string | null
+          status?: string
+          submitted_at?: string | null
+          transport?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_order_submissions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "rx_order_submissions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_order_submissions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_order_submissions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: true
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_order_submissions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: true
+            referencedRelation: "quotes_customer"
             referencedColumns: ["id"]
           },
         ]
@@ -9259,6 +9484,7 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
+      approve_rx_submission: { Args: { p_id: string }; Returns: undefined }
       assign_customer_account_number: {
         Args: { p_account_number: string; p_customer_id: number }
         Returns: {
@@ -9279,6 +9505,10 @@ export type Database = {
           object_name: string
           object_type: string
         }[]
+      }
+      build_rx_submission_payload: {
+        Args: { p_quote_id: string }
+        Returns: Json
       }
       bulk_toggle_anchor_exclusion: {
         Args: { p_excluded: boolean; p_lens_ids: string[]; p_reason?: string }
@@ -9304,6 +9534,7 @@ export type Database = {
         Args: { p_order_id: string; p_reason: string }
         Returns: undefined
       }
+      cancel_rx_submission: { Args: { p_id: string }; Returns: undefined }
       claim_live_data_gateway_request: {
         Args: { p_agent_key_id: string }
         Returns: {
@@ -9631,6 +9862,7 @@ export type Database = {
           bbd_price: number
           catalog_type: string
           display_description: string
+          item_id: string
           row_key: string
           row_type: string
           section: string
@@ -9643,6 +9875,7 @@ export type Database = {
           bbd_price: number
           catalog_type: string
           display_description: string
+          item_id: string
           row_key: string
           row_type: string
           section: string
