@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Link2 } from "lucide-react";
+import { CheckCircle2, Link2, Loader2, RefreshCw } from "lucide-react";
 
 // Alias mapping review (INNOVA_INTEGRATION_ARCHITECTURE.md §2.2, simplified
 // to a single batch-confirm table): proposals are computed client-side from
@@ -29,6 +29,12 @@ interface AliasRow {
 }
 
 interface MapRow { id: string; lens_id: string; innovations_alias: string; is_primary: boolean; confirmed_at: string | null }
+
+interface AliasSyncRun { status: string; received: number; upserted: number; failed: number; dry_run: boolean; started_at: string }
+interface AliasSyncRequest { id: string; status: string; requested_at: string; finished_at: string | null }
+
+const ALIAS_ENTITY = "lens_aliases";
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
 
 const norm = (s: string) =>
   s.toLowerCase()
@@ -67,6 +73,78 @@ const AliasMappingPage = () => {
       return data ?? [];
     },
   });
+
+  // Sync controls. The cloud cannot call into the office, so "Sync aliases"
+  // queues a request in innovations_sync_requests and the OptiLens Local agent
+  // claims it on its next poll — the same path as the Integrations card's
+  // "Sync now", scoped to the alias catalog. "Recheck" is the other half: when
+  // the push has already been run locally, it pulls in what landed without a
+  // page reload.
+  const { data: syncState, refetch: refetchSyncState } = useQuery({
+    queryKey: ["lens-alias-sync-state"],
+    queryFn: async () => {
+      const [runRes, reqRes] = await Promise.all([
+        (supabase.from("innovations_sync_runs") as any)
+          .select("status, received, upserted, failed, dry_run, started_at")
+          .eq("entity", ALIAS_ENTITY)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        (supabase.from("innovations_sync_requests") as any)
+          .select("id, status, requested_at, finished_at")
+          .contains("entities", [ALIAS_ENTITY])
+          .order("requested_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      return {
+        lastRun: (runRes.data ?? null) as AliasSyncRun | null,
+        lastRequest: (reqRes.data ?? null) as AliasSyncRequest | null,
+      };
+    },
+  });
+
+  const pendingRequest = syncState?.lastRequest
+    && (syncState.lastRequest.status === "pending" || syncState.lastRequest.status === "claimed");
+
+  const requestSync = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase.from("innovations_sync_requests") as any)
+        .insert({ entities: [ALIAS_ENTITY], status: "pending" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lens-alias-sync-state"] });
+      toast({
+        title: "Alias sync requested",
+        description: "OptiLens Local will run it on its next check. Use Recheck once it reports done.",
+      });
+    },
+    onError: (e: any) => toast({ title: "Could not request the alias sync", description: e.message, variant: "destructive" }),
+  });
+
+  const [isRechecking, setIsRechecking] = useState(false);
+  const recheck = async () => {
+    setIsRechecking(true);
+    try {
+      const [aliasResult] = await Promise.all([
+        qc.refetchQueries({ queryKey: ["innovations-lens-aliases"] }).then(
+          () => qc.getQueryData<AliasRow[]>(["innovations-lens-aliases"]) ?? []),
+        qc.refetchQueries({ queryKey: ["lens-alias-map-all"] }),
+        refetchSyncState(),
+      ]);
+      toast({
+        title: "Alias catalog rechecked",
+        description: aliasResult.length
+          ? `${aliasResult.length} alias${aliasResult.length === 1 ? "" : "es"} in the cloud catalog.`
+          : "Still nothing in the cloud catalog — the local push has not landed yet.",
+      });
+    } catch (e: any) {
+      toast({ title: "Could not recheck", description: e.message, variant: "destructive" });
+    } finally {
+      setIsRechecking(false);
+    }
+  };
 
   const mappedLensIds = useMemo(() => new Set(existing.filter((m) => m.confirmed_at).map((m) => m.lens_id)), [existing]);
   const mappedAliases = useMemo(() => new Set(existing.map((m) => m.innovations_alias)), [existing]);
@@ -156,6 +234,26 @@ const AliasMappingPage = () => {
         <div className="ml-auto flex items-center gap-2">
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter lenses…" className="h-8 text-xs w-56" />
           <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => void recheck()}
+            disabled={isRechecking}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isRechecking ? "animate-spin" : ""}`} />
+            Recheck
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => requestSync.mutate()}
+            disabled={requestSync.isPending || !!pendingRequest}
+          >
+            {(requestSync.isPending || pendingRequest) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {pendingRequest ? "Sync requested…" : "Sync aliases"}
+          </Button>
+          <Button
             size="sm"
             className="h-8 text-xs gap-1.5"
             disabled={!Object.values(selected).some(Boolean) || confirmMutation.isPending}
@@ -168,9 +266,36 @@ const AliasMappingPage = () => {
       </div>
 
       {aliases.length === 0 && (
-        <div className="text-xs text-muted-foreground border border-dashed border-border rounded p-6 text-center">
-          No aliases synced yet. Run the catalog push from optilens-local (Sync → lens_aliases) first.
+        <div className="text-xs text-muted-foreground border border-dashed border-border rounded p-6 text-center space-y-1">
+          <p>
+            No aliases synced yet. Run the catalog push from optilens-local (Sync → lens_aliases), or use
+            <strong className="text-foreground"> Sync aliases</strong> to queue that push for the office agent.
+          </p>
+          <p>
+            Already ran it locally? <strong className="text-foreground">Recheck</strong> pulls in whatever has landed.
+          </p>
         </div>
+      )}
+
+      {(syncState?.lastRun || syncState?.lastRequest) && (
+        <p className="text-[10px] text-muted-foreground">
+          {syncState.lastRun && (
+            <>
+              Last alias push: <strong className="text-foreground">{fmt(syncState.lastRun.started_at)}</strong>
+              {syncState.lastRun.dry_run ? " (dry run)" : ""}
+              {" · "}{syncState.lastRun.upserted}/{syncState.lastRun.received} upserted
+              {syncState.lastRun.failed ? ` · ${syncState.lastRun.failed} failed` : ""}
+            </>
+          )}
+          {syncState.lastRun && syncState.lastRequest ? " — " : ""}
+          {syncState.lastRequest && (
+            <>
+              Last request: <strong className="text-foreground capitalize">{syncState.lastRequest.status}</strong>
+              {" · "}{fmt(syncState.lastRequest.finished_at ?? syncState.lastRequest.requested_at)}
+              {pendingRequest && " — waiting for the office agent to pick it up"}
+            </>
+          )}
+        </p>
       )}
 
       <div className="border border-border rounded overflow-hidden">
