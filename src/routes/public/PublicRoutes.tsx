@@ -19,6 +19,7 @@ const OpticalRetailWebsitesPage = lazy(() => import("@/pages/OpticalRetailWebsit
 const RxLabServicesPage = lazy(() => import("@/pages/RxLabServicesPage"));
 const LensAssistantPage = lazy(() => import("@/pages/LensAssistantPage"));
 const LabLinkEmbedPage = lazy(() => import("@/pages/LabLinkEmbedPage"));
+const RxOrderPage = lazy(() => import("@/pages/RxOrderPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("@/pages/LensDesignGuidePage"));
@@ -107,15 +108,26 @@ const PublicRoutes = () => (
     <Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
     <Route path="lens-assistant" element={<LensAssistantRouteGate />} />
+    {/* The in-house Rx order form (ported prototype) replaces the LabLink
+        iframe here — profile's "Start an Rx order" lands on this. The old
+        LabLink portal stays reachable at /rx-order/lablink as a fallback. */}
     <Route
       path="rx-order"
+      element={
+        <ProtectedRoute>
+          <RxOrderPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="rx-order/lablink"
       element={
         <ProtectedRoute>
           <LabLinkEmbedPage
             title="Online Ordering Portal"
             iframeTitle="Classic Visions Online Ordering Portal"
             src={LABLINK_PORTAL_URL}
-            canonicalPath="/rx-order"
+            canonicalPath="/rx-order/lablink"
           />
         </ProtectedRoute>
       }

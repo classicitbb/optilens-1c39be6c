@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuotes } from "@/hooks/useQuotes";
 import { useToast } from "@/hooks/use-toast";
-import RxOrderForm from "@/features/rx-order/RxOrderForm";
+import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
-// Fast-path entry (RX_ORDER_FORM_BUILD_PLAN.md §5): /admin/website/quotations/new-rx
-// creates a blank RX quote and drops straight into the shared Rx Order Form —
-// no type-picker modal. /admin/website/quotations/rx/:id re-opens an existing
-// quote in the same form.
+// Admin surface for the ported prototype Rx order form. Fast-path entry
+// (/admin/website/quotations/new-rx) creates a blank RX quote and drops
+// straight into the form; /admin/website/quotations/rx/:id re-opens one.
+// The form itself is the verbatim prototype (see features/rx-order/embed).
 const RxOrderFormPage = () => {
   const { id: routeQuoteId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
@@ -17,6 +19,17 @@ const RxOrderFormPage = () => {
   const { createMutation } = useQuotes();
   const [quoteId, setQuoteId] = useState<string | null>(routeQuoteId ?? null);
   const creatingRef = useRef(false);
+
+  const { data: quote } = useQuery({
+    queryKey: ["rx-order-quote-header", quoteId],
+    enabled: !!quoteId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("quotes") as any)
+        .select("id, quote_number").eq("id", quoteId).single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   useEffect(() => {
     if (quoteId || creatingRef.current) return;
@@ -26,7 +39,6 @@ const RxOrderFormPage = () => {
       {
         onSuccess: (q) => {
           setQuoteId(q.id);
-          // Make the URL shareable/reloadable without creating a second quote.
           navigate(`/admin/website/quotations/rx/${q.id}`, { replace: true });
         },
         onError: (e: any) => {
@@ -38,19 +50,22 @@ const RxOrderFormPage = () => {
   }, [quoteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
+    <div className="min-h-0">
+      <div className="flex items-center gap-2 px-4 pt-3">
+        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
           <ArrowLeft className="h-3.5 w-3.5" /> Quotations
         </Button>
-        <h1 className="text-base font-semibold text-foreground">Rx Order Form</h1>
+        {quote?.quote_number && (
+          <span className="text-[11px] text-muted-foreground">Saved as quote <span className="font-mono">{quote.quote_number}</span></span>
+        )}
       </div>
       {quoteId ? (
-        <RxOrderForm
+        <RxOrderEmbed
           quoteId={quoteId}
+          quoteNumber={quote?.quote_number}
           surface="admin"
-          account={{ accountId: null, locked: false }}
-          actions={{ print: true, cart: true }}
+          checkoutPath="/checkout"
+          storePath="/store"
         />
       ) : (
         <div className="text-xs text-muted-foreground p-6">Creating order…</div>
