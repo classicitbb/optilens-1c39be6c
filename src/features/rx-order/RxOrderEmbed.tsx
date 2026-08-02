@@ -26,6 +26,14 @@ export interface RxOrderEmbedProps {
   /** Where "Proceed to checkout" goes once the order is in the cart. */
   checkoutPath?: string;
   storePath?: string;
+  /**
+   * Partial `cv.rxorder/1` payload replayed into the form on mount — the Lens
+   * Assistant handoff. Must be settled before the embed renders; the engine
+   * applies it during its own init and does not re-read the prop afterwards.
+   */
+  prefill?: unknown;
+  /** HTML for the banner shown above a prefilled form. */
+  prefillBanner?: string;
 }
 
 interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
@@ -35,6 +43,7 @@ interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
 export const RxOrderEmbed = ({
   quoteId, quoteNumber, surface, lockedAccountId = null,
   checkoutPath = "/checkout", storePath = "/store",
+  prefill, prefillBanner,
 }: RxOrderEmbedProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -146,6 +155,9 @@ export const RxOrderEmbed = ({
       lockedBranchId: lockedAccountId != null ? String(lockedAccountId) : undefined,
       defaultBranchId: defaultAccountId != null ? String(defaultAccountId) : undefined,
       orderNo: () => quoteNumber || undefined,
+      // Re-applied if the engine ever remounts, which wipes its DOM anyway.
+      prefill,
+      prefillBanner,
       lensPrice: lensPriceBBD,
       onBranchChange: (branchId: string) => { setSelectedAccountId(Number(branchId) || null); },
       onDraftSaved: (payload: any) => {

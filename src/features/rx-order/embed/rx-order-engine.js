@@ -3054,6 +3054,17 @@ if(ADAPTER.lockedBranchId){
 } else {
   $('#branchScrim').classList.add('on');
 }
+/* Arriving from the Lens Assistant: replay a partial payload, then flag the
+   form as prefilled so the skipped-mandatory beacon glows what's still missing. */
+if(ADAPTER.prefill){
+  restorePayload(ADAPTER.prefill);
+  S.fromDraft=true;
+  const banner=$('#draftBanner');
+  if(banner){
+    banner.classList.remove('hide');
+    if(ADAPTER.prefillBanner) banner.querySelector('span:nth-child(2)').innerHTML=ADAPTER.prefillBanner;
+  }
+}
 render();
 syncQuoteStickyTop();
 
