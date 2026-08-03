@@ -74,7 +74,62 @@ const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+  const statementSeenKey = `cv.portal.statements.last-seen:${targetUserId ?? "anonymous"}`;
+  const [lastStatementSeenAt, setLastStatementSeenAt] = useState(() => {
+    try { return localStorage.getItem(statementSeenKey) ?? "1970-01-01T00:00:00.000Z"; } catch { return "1970-01-01T00:00:00.000Z"; }
+  });
+  const isViewingStatements = pathname === "/profile/statements";
+
+  useEffect(() => {
+    try { setLastStatementSeenAt(localStorage.getItem(statementSeenKey) ?? "1970-01-01T00:00:00.000Z"); } catch { setLastStatementSeenAt("1970-01-01T00:00:00.000Z"); }
+  }, [statementSeenKey]);
+
+  const { data: statements = [] } = useQuery({
+    queryKey: ["customer-statement-indicator", identity?.crmCustomerId],
+    enabled: Boolean(user && typeof identity?.crmCustomerId === "number" && canAccessFeature("statements")),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("statements_public")
+        .select("id,period_end")
+        .eq("customer_id", identity!.crmCustomerId)
+        .order("period_end", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string; period_end: string | null }>;
+    },
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
+  useEffect(() => {
+    if (!isViewingStatements || !statements.length) return;
+    const newest = statements.reduce((latest, statement) => {
+      const value = statement.period_end ?? "";
+      return value > latest ? value : latest;
+    }, "");
+    if (!newest) return;
+    try { localStorage.setItem(statementSeenKey, newest); } catch { /* Browser storage is optional. */ }
+    setLastStatementSeenAt(newest);
+  }, [isViewingStatements, statementSeenKey, statements]);
+
+  const { data: orderRows = [] } = useQuery({
+    queryKey: ["customer-order-indicator", targetUserId],
+    enabled: Boolean(user && targetUserId),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orders")
+        .select("id")
+        .eq("user_id", targetUserId);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: string }>;
+    },
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
   const draftCount = cartDrafts.length + rxDrafts.length;
+  // The nav is a notification, not a historical-statement counter. A single
+  // badge says that the newest posted period has not been opened yet.
+  const unseenStatementCount = statements.some((statement) => (statement.period_end ?? "") > lastStatementSeenAt) ? 1 : 0;
+  const uniqueOrderCount = new Set(orderRows.map((order) => order.id)).size;
 
   const items = ACCOUNT_NAV_ITEMS.filter((item) => {
     if (item.to === "/profile/rx-order") return lensAssistantEnabled;
@@ -86,6 +141,12 @@ const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
   }).map((item) => {
     if (item.to === "/profile/drafts" && draftCount > 0) {
       return { ...item, badge: <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground" aria-label={`${draftCount} saved draft${draftCount === 1 ? "" : "s"}`}>{draftCount}</span> };
+    }
+    if (item.to === "/profile/orders" && uniqueOrderCount > 0) {
+      return { ...item, badge: <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground" aria-label={`${uniqueOrderCount} unique order${uniqueOrderCount === 1 ? "" : "s"}`}>{uniqueOrderCount}</span> };
+    }
+    if (item.to === "/profile/statements" && unseenStatementCount > 0) {
+      return { ...item, badge: <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground" aria-label={`${unseenStatementCount} new statement${unseenStatementCount === 1 ? "" : "s"}`}>{unseenStatementCount}</span> };
     }
     if (item.to === "/profile/helpdesk" && unreadMessages.length > 0) {
       return { ...item, badge: <span className="ml-auto rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground" aria-label={`${unreadMessages.length} new support message${unreadMessages.length === 1 ? "" : "s"}`}>{unreadMessages.length > 9 ? "9+" : unreadMessages.length}</span> };

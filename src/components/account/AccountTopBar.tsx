@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, CircleHelp, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Sun } from "lucide-react";
+import { ArrowLeft, CircleHelp, House, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -67,12 +67,17 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
     <>
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
         <div className="grid h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-3 md:px-4">
-          {/* Left: back to website */}
-          <div className="min-w-0">
-            <Button variant="ghost" asChild className="h-7 max-w-full gap-1.5 px-2 text-xs sm:text-sm">
-              <Link to={backToWebsitePath}>
+          {/* Left: return to the previous website page, then go home. */}
+          <div className="flex min-w-0 items-center">
+            <Button variant="ghost" size="icon" asChild className="h-7 w-7 shrink-0" title="Back to website">
+              <Link to={backToWebsitePath} aria-label="Back to website">
                 <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">Website</span>
+              </Link>
+            </Button>
+            <Separator orientation="vertical" className="mx-1 h-4" />
+            <Button variant="ghost" size="icon" asChild className="h-7 w-7 shrink-0" title="Classic Visions homepage">
+              <Link to="/" aria-label="Classic Visions homepage">
+                <House className="h-3.5 w-3.5" />
               </Link>
             </Button>
           </div>

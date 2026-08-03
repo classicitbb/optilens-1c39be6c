@@ -898,12 +898,12 @@ function buildSteps(V){
     const t=rootEl.querySelector(b.dataset.go);
     if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});
   }));
-  $$('#steps [data-step-action]').forEach(b=>b.addEventListener('click',()=>{
+  $$('#steps [data-step-action]').forEach(b=>b.addEventListener('click',e=>{
     const action=b.dataset.stepAction;
     if(action==='save-draft') $('#saveDraft').click();
     if(action==='branch-picker') $('#branchChip').click();
     if(action==='coach') $('#coachBtn').click();
-    if(action==='settings') $('#gearBtn').click();
+    if(action==='settings') { e.stopPropagation(); $('#gearBtn').click(); }
   }));
   const currency=$('#steps [data-step-currency]');
   if(currency) currency.addEventListener('change',e=>{
@@ -2840,9 +2840,13 @@ $('#btnDemo').addEventListener('click',()=>fillDemo(false));
 
 /* ---------- draft / print / submit ---------- */
 ['#saveDraft','#saveDraft2','#saveDraft3'].forEach(s=>$(s).addEventListener('click',()=>{
-  const n=S.assists.size, p=stashOrder('draft'); if(ADAPTER.onDraftSaved) ADAPTER.onDraftSaved(p);
-  toast('Draft saved ('+payloadSize(p)+' bundle'+(p.shape?', shape included':'')+')'
-    +(n?` · ${n} flagged for assistance`:'')+' · resumable from history');
+  const n=S.assists.size, p=stashOrder('draft');
+  Promise.resolve(ADAPTER.onDraftSaved?.(p)).then(()=>{
+    toast('Draft saved ('+payloadSize(p)+' bundle'+(p.shape?', shape included':'')+')'
+      +(n?` · ${n} flagged for assistance`:'')+' · resumable from Saved Drafts');
+  }).catch(error=>{
+    toast('Draft could not be saved to your account'+(error?.message?`: ${error.message}`:''));
+  });
 }));
 
 $('#printBtn').addEventListener('click',()=>{

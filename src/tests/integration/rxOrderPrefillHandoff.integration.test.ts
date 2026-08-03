@@ -143,4 +143,15 @@ describe("lens assistant → rx order handoff", () => {
 
     engine.destroy();
   });
+
+  it("keeps the admin toolbar settings menu open after clicking its proxy gear", () => {
+    const { host, engine } = mount();
+
+    host.querySelector<HTMLButtonElement>('[data-step-action="settings"]')?.click();
+
+    expect(host.querySelector("#gearMenu")?.classList.contains("on")).toBe(true);
+    expect(host.querySelector("#gearBtn")?.getAttribute("aria-expanded")).toBe("true");
+
+    engine.destroy();
+  });
 });

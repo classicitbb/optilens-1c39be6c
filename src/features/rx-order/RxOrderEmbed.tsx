@@ -8,6 +8,7 @@ import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
 import { usePricelistScope } from "./hooks/useOrderableCatalog";
 import { buildEngineData, persistPayload, syntheticCartProductId, LensRef } from "./embed/rx-order-adapter";
 // The prototype, verbatim: scoped styles + markup + engine (see embed/ files).
@@ -56,6 +57,7 @@ export const RxOrderEmbed = ({
   const { data: addons = [], isLoading: addonsLoading } = useAddons();
   const { data: accounts = [], isLoading: accountsLoading } = useCustomerAccounts();
   const { addToCart } = useCart();
+  const saveEmbeddedRxDraft = useSaveEmbeddedRxOrderDraft();
   const { isAdmin } = useUserRole();
 
   const { data: clashRules = [] } = useQuery<ClashRule[]>({
@@ -162,8 +164,9 @@ export const RxOrderEmbed = ({
       prefillBanner,
       lensPrice: lensPriceBBD,
       onBranchChange: (branchId: string) => { setSelectedAccountId(Number(branchId) || null); },
-      onDraftSaved: (payload: any) => {
-        persist(payload).catch((e: any) => toast({ title: "Draft not fully saved to the cloud", description: e.message, variant: "destructive" }));
+      onDraftSaved: async (payload: any) => {
+        await persist(payload);
+        await saveEmbeddedRxDraft.mutateAsync(payload);
       },
       onSubmitted: async (payload: any) => {
         const { totalBBD } = await persist(payload);

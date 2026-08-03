@@ -66,7 +66,7 @@ const CartDraftsSection = () => {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl text-foreground">Saved Drafts</h1>
-        <p className="text-sm text-muted-foreground">Snapshots of carts you saved for later.</p>
+        <p className="text-sm text-muted-foreground">Cart and Rx-order drafts you saved for later.</p>
       </div>
 
       <div className="overflow-x-auto rounded-lg border bg-card">

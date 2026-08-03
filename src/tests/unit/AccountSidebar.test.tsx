@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   lensAssistantPublic: false,
   lensAssistantAdmin: true,
   lensAssistantProfileEnabled: true,
+  cartDrafts: [] as Array<{ id: string }>,
+  rxDrafts: [] as Array<{ id: string }>,
+  statementRows: [] as Array<{ id: string; period_end: string | null }>,
+  orderRows: [] as Array<{ id: string }>,
 }));
 
 vi.mock("@/hooks/usePortalIdentity", () => ({
@@ -29,15 +33,20 @@ vi.mock("@/contexts/AuthContext", () => ({
 }));
 
 vi.mock("@/hooks/useCartDrafts", () => ({
-  useCartDrafts: () => ({ drafts: [] }),
+  useCartDrafts: () => ({ drafts: mocks.cartDrafts }),
 }));
 
 vi.mock("@/features/lens-assistant/api", () => ({
-  useRxDrafts: () => ({ data: [] }),
+  useRxDrafts: () => ({ data: mocks.rxDrafts }),
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({ data: [] }),
+  useQuery: (options: { queryKey?: unknown[] }) => {
+    const key = options.queryKey?.[0];
+    if (key === "customer-statement-indicator") return { data: mocks.statementRows };
+    if (key === "customer-order-indicator") return { data: mocks.orderRows };
+    return { data: [] };
+  },
 }));
 
 vi.mock("@/hooks/useUserRole", () => ({
@@ -65,6 +74,11 @@ describe("AccountSidebar", () => {
     mocks.lensAssistantPublic = false;
     mocks.lensAssistantAdmin = true;
     mocks.lensAssistantProfileEnabled = true;
+    mocks.cartDrafts = [];
+    mocks.rxDrafts = [];
+    mocks.statementRows = [];
+    mocks.orderRows = [];
+    localStorage.clear();
   });
 
   it("lets approved customers open statements", () => {
@@ -108,5 +122,22 @@ describe("AccountSidebar", () => {
     renderSidebar();
 
     expect(screen.queryByRole("link", { name: "Rx Order Form" })).not.toBeInTheDocument();
+  });
+
+  it("counts saved cart and Rx drafts together", () => {
+    mocks.cartDrafts = [{ id: "cart-1" }];
+    mocks.rxDrafts = [{ id: "rx-1" }, { id: "rx-2" }];
+    renderSidebar();
+
+    expect(screen.getByLabelText("3 saved drafts")).toBeInTheDocument();
+  });
+
+  it("shows unique order and unseen-statement counts", () => {
+    mocks.orderRows = [{ id: "order-1" }, { id: "order-1" }, { id: "order-2" }];
+    mocks.statementRows = [{ id: "statement-1", period_end: "2026-08-01T00:00:00.000Z" }];
+    renderSidebar();
+
+    expect(screen.getByLabelText("2 unique orders")).toBeInTheDocument();
+    expect(screen.getByLabelText("1 new statement")).toBeInTheDocument();
   });
 });

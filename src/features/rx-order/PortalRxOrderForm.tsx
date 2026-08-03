@@ -6,7 +6,7 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
-import { useRxDraft } from "@/features/lens-assistant/api";
+import { isEmbeddedRxOrderPayload, useRxDraft } from "@/features/lens-assistant/api";
 import { buildPrefillBanner, buildRxPrefillPayload } from "@/features/rx-order/prefill/rxOrderPrefill";
 
 // Shared portal form used both from the standalone order route and My Account.
@@ -22,8 +22,13 @@ const PortalRxOrderForm = () => {
   const draftId = searchParams.get("draft") ?? undefined;
   const { data: draft, isFetched: draftFetched, isError: draftError } = useRxDraft(draftId);
   const draftSettled = !draftId || draftFetched;
-  const prefill = useMemo(() => (draft ? buildRxPrefillPayload(draft) : undefined), [draft]);
-  const prefillBanner = useMemo(() => (draft ? buildPrefillBanner(draft) : undefined), [draft]);
+  const isEmbeddedDraft = isEmbeddedRxOrderPayload(draft?.input_payload);
+  const prefill = useMemo(() => (
+    !draft ? undefined : isEmbeddedDraft ? draft.input_payload : buildRxPrefillPayload(draft)
+  ), [draft, isEmbeddedDraft]);
+  const prefillBanner = useMemo(() => (
+    !draft ? undefined : isEmbeddedDraft ? `Resuming saved Rx order for <b>${draft.name}</b>.` : buildPrefillBanner(draft)
+  ), [draft, isEmbeddedDraft]);
 
   useEffect(() => {
     if (draftId && draftFetched && !draft) {

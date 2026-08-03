@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import {
@@ -17,6 +17,7 @@ import {
   QrCode,
   ShieldCheck,
   Sparkles,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ const date = (value: string | null | undefined) => value ? new Date(value).toLoc
 
 const Profile = () => {
   const { user } = useAuth();
-  const { identity, isLoading: identityLoading, canAccessFeature, emulation } = usePortalIdentity();
+  const { identity, isLoading: identityLoading, canAccessFeature, emulation, effectiveUserId } = usePortalIdentity();
   const { openAssistant } = useCompanionAssistant();
   const { role, isAdmin } = useUserRole();
   const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
@@ -77,6 +78,25 @@ const Profile = () => {
   const currentBalance = Number(data?.balance?.current_balance ?? data?.latestStatement?.closing_balance ?? 0);
   const displayName = data?.profile?.customerName || data?.profile?.organizationName || user?.email?.split("@")[0] || "Customer";
   const accessStatus = identity?.portalAccessStatus ?? data?.profile?.accessStatus ?? "pending_profile";
+  const approvedAccessNoticeStorageKey = `cv.portal.approved-access-notice.dismissed:${effectiveUserId ?? user?.id ?? "anonymous"}`;
+  const [isApprovedAccessNoticeDismissed, setIsApprovedAccessNoticeDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setIsApprovedAccessNoticeDismissed(window.localStorage.getItem(approvedAccessNoticeStorageKey) === "true");
+    } catch {
+      setIsApprovedAccessNoticeDismissed(false);
+    }
+  }, [approvedAccessNoticeStorageKey]);
+
+  const dismissApprovedAccessNotice = () => {
+    try {
+      window.localStorage.setItem(approvedAccessNoticeStorageKey, "true");
+    } catch {
+      // The notice should still disappear if storage is unavailable.
+    }
+    setIsApprovedAccessNoticeDismissed(true);
+  };
   const needsAttention = [
     accessStatus !== "approved_customer" ? "Complete account setup or wait for customer approval." : null,
     totalActiveOrders ? `${totalActiveOrders} order${totalActiveOrders === 1 ? "" : "s"} still in progress.` : null,
@@ -115,9 +135,9 @@ const Profile = () => {
 
       {accessStatus !== "approved_customer" ? (
         <Card className="border-amber-300 bg-amber-50/60"><CardHeader className="sm:flex-row sm:items-center sm:justify-between"><div><CardTitle className="text-lg">Complete your customer access</CardTitle><CardDescription>{identity?.portalAccessNote || data?.profile?.accessNote || "Finish your profile to continue the approval process."}</CardDescription></div><Button asChild variant="outline"><Link to="/profile/account">Open account setup</Link></Button></CardHeader></Card>
-      ) : (
-        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 text-emerald-700" /><div><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>Customer-only pricing, statements, quotes and support workflows are available.</CardDescription></div></CardHeader></Card>
-      )}
+      ) : !isApprovedAccessNoticeDismissed ? (
+        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div className="min-w-0 flex-1"><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>Customer-only pricing, statements, quotes and support workflows are available.</CardDescription></div><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Dismiss approved customer access message permanently" title="Dismiss permanently" onClick={dismissApprovedAccessNotice}><X className="h-4 w-4" /></Button></CardHeader></Card>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <Card><CardHeader className="flex-row items-center justify-between"><div><CardTitle>Orders in progress</CardTitle><CardDescription>Website checkout orders. Lab job status is tracked on the orders page.</CardDescription></div><Button asChild variant="ghost" size="sm"><Link to="/profile/orders">All orders<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></CardHeader><CardContent className="space-y-3">
