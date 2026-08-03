@@ -8311,8 +8311,11 @@ export type Database = {
           duty_added: boolean
           id: string
           image_url: string | null
+          innovations_misc_item_id: number | null
+          inventory_qty: number | null
           is_active: boolean
           labour_added: boolean
+          last_synced_at: string | null
           name: string
           notes: string | null
           preferred: boolean
@@ -8321,6 +8324,7 @@ export type Database = {
           show_in_pricelist: boolean
           show_on_website: boolean
           sku: string | null
+          source: string
           stk_wspl: boolean
           stocked: boolean
           supplier_id: string | null
@@ -8341,8 +8345,11 @@ export type Database = {
           duty_added?: boolean
           id?: string
           image_url?: string | null
+          innovations_misc_item_id?: number | null
+          inventory_qty?: number | null
           is_active?: boolean
           labour_added?: boolean
+          last_synced_at?: string | null
           name: string
           notes?: string | null
           preferred?: boolean
@@ -8351,6 +8358,7 @@ export type Database = {
           show_in_pricelist?: boolean
           show_on_website?: boolean
           sku?: string | null
+          source?: string
           stk_wspl?: boolean
           stocked?: boolean
           supplier_id?: string | null
@@ -8371,8 +8379,11 @@ export type Database = {
           duty_added?: boolean
           id?: string
           image_url?: string | null
+          innovations_misc_item_id?: number | null
+          inventory_qty?: number | null
           is_active?: boolean
           labour_added?: boolean
+          last_synced_at?: string | null
           name?: string
           notes?: string | null
           preferred?: boolean
@@ -8381,6 +8392,7 @@ export type Database = {
           show_in_pricelist?: boolean
           show_on_website?: boolean
           sku?: string | null
+          source?: string
           stk_wspl?: boolean
           stocked?: boolean
           supplier_id?: string | null
