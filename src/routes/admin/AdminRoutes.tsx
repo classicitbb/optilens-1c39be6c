@@ -63,6 +63,7 @@ const DocStudioPage = lazy(() => import("@/pages/admin/website/DocStudioPage"));
 const FeatureBoardPage = lazy(() => import("@/pages/admin/website/FeatureBoardPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
+const LensAssistantRulesPage = lazy(() => import("@/pages/admin/LensAssistantRulesPage"));
 const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
 const AssistantQualityPage = lazy(() => import("@/pages/admin/assistant/AssistantQualityPage"));
 
@@ -131,6 +132,7 @@ const AdminRoutes = () => (
       <Route path="docs" element={<Navigate to="/admin/docs/studio" replace />} />
       <Route path="docs/studio" element={<DocStudioPage />} />
       <Route path="website/store" element={<WebsiteStorePage />} />
+      <Route path="website/store/lens-assistant" element={<LensAssistantRulesPage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
 
       <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />

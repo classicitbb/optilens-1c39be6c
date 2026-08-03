@@ -1,5 +1,11 @@
 # Developer Workflow Help
 
+## Windows smoke checks
+
+- Run `npm run qa:smoke` normally. The harness launches the local Vite entrypoint directly and does not depend on Windows npm command-shim spawning.
+- If the smoke server still fails before any route checks run, confirm dependencies were installed with `npm ci` and that `node_modules/vite/bin/vite.js` exists.
+- Use `npm run build:sites-preview` only for the separate private Sites package. Normal Vercel builds continue to use `npm run build`.
+
 ## PR quality guardrails
 Run the PR checks locally before opening a pull request:
 

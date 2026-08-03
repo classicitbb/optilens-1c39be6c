@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.sites-preview
+.sites-archive
 coverage
 *.local
 
