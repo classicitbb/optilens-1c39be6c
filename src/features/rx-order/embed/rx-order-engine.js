@@ -122,7 +122,12 @@ const S={branch:null,scope:'uncut',vision:'sv',purpose:'dist',eyes:'pair',
   tintCfg:{colour:'Grey',density:75,gradTop:80,gradBottom:10,finish:'Standard',match:false},
   chemClips:[],
   dismissed:new Set(), warnOff:new Set(), suggOff:false, ownerReview:false,
-  revealAll:false, prefilled:false, fromDraft:false, edTouched:false, diamTouched:false};
+  revealAll:false, prefilled:false, fromDraft:false, edTouched:false, diamTouched:false,
+  collapsedSections:new Set(), editingSections:new Set()};
+
+/* Assist tag raised automatically when the chosen lens has no price on the
+   account's matrix. Constant so it can be added and removed idempotently. */
+const UNPRICED_ASSIST='Lens not priced on this account — quote requested';
 
 const money=n=>n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const q4=n=>Math.round(n*4)/4;
@@ -629,9 +634,15 @@ function renderSuggestions(){
 /* ---------- pricing ---------- */
 function price(){
   const lines=[];
-  if(!(S.m&&S.d&&S.c)) return {lines,sub:0,ready:false};
+  if(!(S.m&&S.d&&S.c)) return {lines,sub:0,ready:false,unpriced:false};
   const d=design(), m=material(), c=colour();
-  lines.push({n:d.n,i:`${m.n} · ${c.n}`,v:(ADAPTER.lensPrice?ADAPTER.lensPrice(S.m,S.d,S.c):null)??(d.base+m.up)}); /* the lens itself — not removable from the quote */
+  /* An adapter that answers null means the combination has no price on this
+     account's matrix — "not offered". That is NOT the same as costing zero, and
+     collapsing the two would let a $0.00 order through. Without an adapter at
+     all (the standalone prototype) the synthetic base+upcharge still applies. */
+  const quoted=ADAPTER.lensPrice?ADAPTER.lensPrice(S.m,S.d,S.c):undefined;
+  const unpriced=!!ADAPTER.lensPrice&&quoted==null;
+  lines.push({n:d.n,i:`${m.n} · ${c.n}`,v:unpriced?0:(quoted??(d.base+m.up)),unpriced}); /* the lens itself — not removable from the quote */
   /* colour upcharge is a flat add-on regardless of material/design, so it already
      equals the delta vs Clear (which is always up:0 and simply shows no line) —
      the label now says so explicitly, per feedback asking "how much extra is it". */
@@ -658,7 +669,7 @@ function price(){
   let sub=lines.reduce((a,l)=>a+l.v,0);
   if(S.eyes!=='pair'){ sub*=.55; lines.forEach(l=>l.v*=.55); }
   if($('#service').value==='pri'){ const f=sub*.15; lines.push({n:'Priority service',i:'3 working days',v:f}); sub+=f; }
-  return {lines,sub,ready:true};
+  return {lines,sub,ready:true,unpriced};
 }
 
 /* ---------- section validity ---------- */
@@ -679,6 +690,55 @@ function secValid(){
     &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35))
     &&errors().length===0;
   return {'sec-patient':patient,'sec-frame':frame,'sec-lens':lens,'sec-rx':rxOk,'sec-treat':true,'sec-notes':true};
+}
+const SECTION_IDS=['sec-patient','sec-frame','sec-lens','sec-rx','sec-treat','sec-notes'];
+const selectLabel=id=>{
+  const el=$('#'+id);
+  return el?.selectedOptions?.[0]?.textContent?.trim()||el?.value||'';
+};
+function sectionHasCapturedData(id){
+  if(id==='sec-patient'||id==='sec-frame'||id==='sec-lens'||id==='sec-rx') return true;
+  if(id==='sec-treat') return S.treat.size>0||S.chemClips.length>0;
+  return !!$('#notes').value.trim()||$('#service').value!=='std'||$('#delivery').selectedIndex!==0;
+}
+function sectionSummary(id){
+  if(id==='sec-patient'){
+    const ref=$('#ref').value.trim();
+    return [$('#pfirst').value.trim()+' '+$('#plast').value.trim(),ref&&'Ref '+ref].filter(Boolean).join(' · ');
+  }
+  if(id==='sec-frame') return [$('#fname').value.trim(),`${$('#fa').value} × ${$('#fb').value} mm`, `DBL ${$('#fdbl').value} mm`,S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
+  if(id==='sec-lens') return [material()?.n,design()?.n,colour()?.n].filter(Boolean).join(' · ');
+  if(id==='sec-rx') return activeEyes().map(e=>{
+    const r=readRow(e), parts=[r.sph!==null?sgn(r.sph):'',r.cyl?sgn(r.cyl):'',r.axis!==null?'×'+r.axis:'',r.pd!==null?'PD '+r.pd:''].filter(Boolean);
+    return e.toUpperCase()+' '+parts.join(' ');
+  }).join(' · ');
+  if(id==='sec-treat'){
+    const treatments=TREAT.filter(t=>S.treat.has(t.id)).map(t=>t.n);
+    if(S.chemClips.length) treatments.push('Chemistrie layer');
+    return treatments.join(' · ');
+  }
+  return [selectLabel('service'),selectLabel('delivery'),$('#notes').value.trim()&&'Lab notes added'].filter(Boolean).join(' · ');
+}
+function syncSectionCollapse(V){
+  SECTION_IDS.forEach(id=>{
+    const section=$('#'+id); if(!section) return;
+    const complete=!!V[id]&&sectionHasCapturedData(id);
+    if(!complete){ S.collapsedSections.delete(id); S.editingSections.delete(id); }
+    else if(!S.editingSections.has(id)&&!section.contains(document.activeElement)) S.collapsedSections.add(id);
+    const collapsed=S.collapsedSections.has(id);
+    section.classList.toggle('section-collapsed',collapsed);
+    const summary=section.querySelector('.section-summary');
+    if(summary) summary.textContent=collapsed?sectionSummary(id):'';
+  });
+}
+function openSection(id){
+  const section=$('#'+id); if(!section) return;
+  S.collapsedSections.delete(id); S.editingSections.add(id); render();
+  section.scrollIntoView?.({behavior:'smooth',block:'start'});
+  setTimeout(()=>{
+    const field=section.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled])');
+    if(field) field.focus();
+  },0);
 }
 function errors(){
   const out=[];
@@ -744,21 +804,24 @@ function render(){
   } else if(lb) lb.remove();
 
   /* quote */
-  const c=CUR[S.cur], {lines,sub,ready}=price(), conv=n=>n*c.rate, total=conv(sub);
+  const c=CUR[S.cur], {lines,sub,ready,unpriced}=price(), conv=n=>n*c.rate, total=conv(sub);
   const show=S.pricesOn;
   $('#qLines').innerHTML=!ready
     ? '<div class="qempty">No lens chosen yet — the quote fills in as you select.</div>'
-    : lines.map(l=>`<div class="qline ${show?'':'masked'}"><span class="qn"><b>${l.n}</b><i>${l.i}</i></span><span class="qv">${show?money(conv(l.v)):'••••'}</span>${l.rm?`<button type="button" class="qline-rm" data-rmtype="${l.rm.type}" data-rmid="${l.rm.id}" title="Remove from order">✕</button>`:''}</div>`).join('');
-  $('#qSubtotal').textContent=show?c.sym+' '+money(conv(sub)):'——';
-  $('#qTotal').textContent=show?c.sym+' '+money(total):'——';
+    : lines.map(l=>`<div class="qline ${show?'':'masked'}"><span class="qn"><b>${l.n}</b><i>${l.i}</i></span><span class="qv">${l.unpriced?'on request':(show?money(conv(l.v)):'••••')}</span>${l.rm?`<button type="button" class="qline-rm" data-rmtype="${l.rm.type}" data-rmid="${l.rm.id}" title="Remove from order">✕</button>`:''}</div>`).join('');
+  /* A total of 0.00 beside an "on request" line reads as free. Say what it is. */
+  const onRequest=show&&unpriced;
+  $('#qSubtotal').textContent=onRequest?'on request':(show?c.sym+' '+money(conv(sub)):'——');
+  $('#qTotal').textContent=onRequest?'on request':(show?c.sym+' '+money(total):'——');
   $('#qCur').textContent=show?c.sym:''; $('#curChip').textContent=c.sym;
   $('#qLabel').textContent=show?'Live quote · '+S.cur:'Order summary';
   $('#mCur').textContent=show?'order total':'Pricing not shown on this account';
   $('#qSub').textContent=!show?'confirmed with you before production'
     :(!ready?'choose a lens to start pricing'
+      :unpriced?'this lens is not on your pricelist — save as a draft and we will quote it'
       :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))+' · updates as you type');
-  const amt=$('#qAmt'); amt.textContent=show?money(total):'——';
-  $('#mAmt').textContent=show?c.sym+' '+money(total):'——';
+  const amt=$('#qAmt'); amt.textContent=onRequest?'on request':(show?money(total):'——');
+  $('#mAmt').textContent=onRequest?'on request':(show?c.sym+' '+money(total):'——');
   if(show&&lastTotal!==null&&Math.abs(total-lastTotal)>.001){amt.classList.remove('pulse');void amt.offsetWidth;amt.classList.add('pulse');}
   lastTotal=total;
   let np=$('#noPricingNote');
@@ -793,7 +856,7 @@ function render(){
   $$('#rxPrompts [data-pax]').forEach(b=>b.addEventListener('click',()=>{cell(b.dataset.pax,'axis').value='';render();}));
 
   /* progressive disclosure */
-  const V=secValid(), ids=['sec-patient','sec-frame','sec-lens','sec-rx','sec-treat','sec-notes'];
+  const V=secValid(), ids=SECTION_IDS;
   let gate=true, firstLocked=null;
   ids.forEach(id=>{
     const el=$('#'+id), show=S.revealAll||gate;
@@ -810,6 +873,8 @@ function render(){
     cue.innerHTML=`<span class="lk">🔒</span><span>Finish <b>${$('#'+firstLocked+' h2').textContent}</b> and <b>${names[firstLocked]}</b> opens next.</span>`;
   } else cue.classList.add('hide');
 
+  syncSectionCollapse(V);
+
   /* checklist */
   const checks=[
     {t:'Patient name',ok:V['sec-patient'],go:'#sec-patient'},
@@ -821,7 +886,17 @@ function render(){
   $$('#vList li').forEach(li=>li.addEventListener('click',()=>{const t=rootEl.querySelector(li.dataset.go); if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});}));
   $('#vBar').style.width=Math.round(checks.filter(k=>k.ok).length/checks.length*100)+'%';
   const valid=checks.every(k=>k.ok);
-  ['#submitBtn','#submitBtn2'].forEach(s=>$(s).disabled=!valid);
+  /* An unpriced combination cannot go to the cart — there is no price to charge,
+     so the only route is a draft we quote back. Flagged for assistance so it
+     reaches the same follow-up queue as any other help request. The mutation
+     sits above the assist-list render below, so it lands in this same pass. */
+  const {unpriced:noPrice}=price();
+  if(noPrice) S.assists.add(UNPRICED_ASSIST); else S.assists.delete(UNPRICED_ASSIST);
+  ['#submitBtn','#submitBtn2'].forEach(s=>{
+    const b=$(s);
+    b.disabled=!valid||noPrice;
+    b.title=noPrice?'This lens is not priced on your account — save it as a draft and we will quote it.':'';
+  });
 
   markNeeded();
   buildSteps(V);
@@ -896,7 +971,7 @@ function buildSteps(V){
   </div>`;
   $$('.step').forEach(b=>b.addEventListener('click',()=>{
     const t=rootEl.querySelector(b.dataset.go);
-    if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});
+    if(t&&!t.classList.contains('hide')) openSection(t.id);
   }));
   $$('#steps [data-step-action]').forEach(b=>b.addEventListener('click',e=>{
     const action=b.dataset.stepAction;
@@ -1087,6 +1162,17 @@ function clearSection(k){
   render(); toast('Cleared '+k+' section');
 }
 $$('.clear-sec').forEach(b=>b.addEventListener('click',()=>clearSection(b.dataset.sec)));
+$$('[data-edit-section]').forEach(b=>b.addEventListener('click',()=>openSection(b.dataset.editSection)));
+docListen('focusout',e=>{
+  const section=e.target.closest?.('.card[data-step]');
+  if(!section) return;
+  setTimeout(()=>{
+    if(!section.contains(document.activeElement)){
+      S.editingSections.delete(section.id);
+      render();
+    }
+  },0);
+});
 function clearAll(){
   Object.keys(SECFIELDS).forEach(k=>{(SECFIELDS[k]||[]).forEach(id=>{const el=$('#'+id); if(el) el.value='';});});
   $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value='');
@@ -1097,6 +1183,7 @@ function clearAll(){
   if(typeof buildShapePick==='function') buildShapePick();
   if(typeof newOrderNo==='function') newOrderNo();
   S.revealAll=false; S.prefilled=false; S.fromDraft=false;
+  S.collapsedSections.clear(); S.editingSections.clear();
   $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#drop').classList.remove('hide'); $('#prefillChip').classList.add('hide');
   $('#draftBanner').classList.add('hide');
   $$('.field.assist').forEach(f=>f.classList.remove('assist'));

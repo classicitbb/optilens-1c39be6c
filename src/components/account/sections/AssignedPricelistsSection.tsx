@@ -520,7 +520,7 @@ const AssignedPricelistsSection = () => {
                                     const price = priceByKey.get(`${grouping.key}::${category.key}::${column.key}`);
                                     const rowKey = buildMatrixRowKey(grouping.key, category.key, column.key);
                                     return (
-                                      <td key={column.key} className="px-3 py-2 text-right font-semibold text-foreground">
+                                      <td key={column.key} className="px-3 py-2 text-center font-semibold text-foreground">
                                         {price != null ? (
                                           <PriceOverrideCell
                                             wholesaleDisplay={displayMoney(price)}
@@ -529,6 +529,7 @@ const AssignedPricelistsSection = () => {
                                             onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
                                             onClear={() => clearOverride.mutate(rowKey)}
                                             isSaving={setOverride.isPending}
+                                            centered
                                             action={{
                                               type: "rx",
                                               onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),

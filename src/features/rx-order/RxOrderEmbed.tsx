@@ -9,7 +9,10 @@ import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
-import { usePricelistScope } from "./hooks/useOrderableCatalog";
+import { isRxOrderableAddon, isRxOrderableLens, usePricelistScope } from "./hooks/useOrderableCatalog";
+import { useInnovationsCatalogAliases, useRxMatrixPrices } from "./hooks/useInnovationsCatalog";
+import { buildInnovationsCatalog, comboKey, type CatalogAlias } from "./embed/innovations-catalog";
+import { priceForAlias, type PriceLookup } from "./pricing/matrixPricing";
 import { buildEngineData, persistPayload, syntheticCartProductId, LensRef } from "./embed/rx-order-adapter";
 // The prototype, verbatim: scoped styles + markup + engine (see embed/ files).
 import "./embed/rx-order.css";
@@ -52,6 +55,7 @@ export const RxOrderEmbed = ({
   const engineRef = useRef<any>(null);
   const engineDataRef = useRef<any>(null);
   const lensIndexRef = useRef<Map<string, LensRef>>(new Map());
+  const aliasIndexRef = useRef<Map<string, CatalogAlias>>(new Map());
   const [hasMountedEngine, setHasMountedEngine] = useState(false);
   const { data: lenses = [], isLoading: lensesLoading } = useLenses();
   const { data: addons = [], isLoading: addonsLoading } = useAddons();
@@ -91,13 +95,26 @@ export const RxOrderEmbed = ({
   const scopeIsCurrent = effectiveAccountId == null || scope?.accountId === effectiveAccountId;
   const scopeRef = useRef(scope);
   scopeRef.current = scopeIsCurrent ? scope : undefined;
-  const ready = !lensesLoading && !addonsLoading && !accountsLoading
-    && (hasMountedEngine || effectiveAccountId == null || (scopeIsCurrent && !scopeLoading));
+
+  // Innovations is the catalogue; the matrix is the price. Neither goes through
+  // the CV lenses table — see docs/rx-order-innovations-catalogue.md §2.1/§2.3.
+  const { data: catalogAliases = [], isLoading: aliasesLoading } = useInnovationsCatalogAliases();
+  const { data: priceLookup, isLoading: pricesLoading } = useRxMatrixPrices(
+    scopeIsCurrent ? scope?.pricelistVersionId : undefined,
+  );
+  const priceLookupRef = useRef<PriceLookup | undefined>(priceLookup);
+  priceLookupRef.current = priceLookup;
+
+  const ready = !lensesLoading && !addonsLoading && !accountsLoading && !aliasesLoading
+    && (hasMountedEngine || effectiveAccountId == null || (scopeIsCurrent && !scopeLoading && !pricesLoading));
 
   const engineInput = useMemo(() => {
     if (!ready) return null;
-    const activeLenses = lenses.filter((l) => l.is_active && l.show_on_website && (l.sell_price > 0 || l.base_price > 0));
-    const activeAddons = addons.filter((a) => a.is_active && a.show_on_website);
+    // Shared predicates — the Rx availability rule lives in one place, and
+    // deliberately excludes show_on_website (that gates the website store's
+    // bulk-box channel, not prescription ordering).
+    const activeLenses = lenses.filter(isRxOrderableLens);
+    const activeAddons = addons.filter(isRxOrderableAddon);
     const scopedLenses = scopeIsCurrent && scope?.hasLensRows
       ? activeLenses.filter((l) => scope.lensIds.has(l.id))
       : activeLenses;
@@ -105,14 +122,24 @@ export const RxOrderEmbed = ({
       ? activeAddons.filter((a) => scope.addonIds.has(a.id))
       : activeAddons;
     const scopedAccounts = lockedAccountId != null ? accounts.filter((a) => a.id === lockedAccountId) : accounts;
-    return buildEngineData({
+    // Accounts, treatments and clash rules stay CV-sourced — misc items are not
+    // in the alias feed yet (docs §5.3). The three catalogue axes come from
+    // Innovations and replace the lens-row derivation entirely.
+    const cv = buildEngineData({
       lenses: scopedLenses,
       addons: scopedAddons,
       clashRules,
       accounts: scopedAccounts,
       addonPriceFor: (id, fallback) => scope?.priceByItemId?.get?.(id) ?? fallback,
     });
-  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent]);
+    const catalog = buildInnovationsCatalog(catalogAliases);
+    return {
+      data: { ...cv.data, ...catalog.data },
+      lensIndex: cv.lensIndex,
+      aliasIndex: catalog.aliasIndex,
+      ambiguous: catalog.ambiguous,
+    };
+  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent, catalogAliases]);
 
   useEffect(() => {
     // Settings gear (prototype/account-simulation controls) is admin-only.
@@ -138,18 +165,34 @@ export const RxOrderEmbed = ({
 
   useEffect(() => {
     if (!hostRef.current || !engineInput || engineRef.current) return;
-    const { data, lensIndex } = engineInput;
+    const { data, lensIndex, aliasIndex } = engineInput;
     engineDataRef.current = data;
     lensIndexRef.current = lensIndex;
+    aliasIndexRef.current = aliasIndex;
+
+    const aliasFor = (m: string, d: string, c: string) => aliasIndexRef.current.get(comboKey(m, d, c));
+    // Price is the matrix cell the alias classifies into. Null is not an error:
+    // it means the combination is not offered, and the form routes it to the
+    // quote-only / request-assistance path (docs §2.4).
     const lensPriceBBD = (m: string, d: string, c: string): number | null => {
-      const ref: LensRef | undefined = lensIndexRef.current.get(`${m}|${d}|${c}`);
-      if (!ref) return null;
-      return scopeRef.current?.priceByItemId?.get?.(ref.lensId) ?? ref.listPrice;
+      const alias = aliasFor(m, d, c);
+      const lookup = priceLookupRef.current;
+      if (!alias || !lookup) return null;
+      return priceForAlias(alias, lookup);
+    };
+    const resolveAlias = (m: string, d: string, c: string) => {
+      const alias = aliasFor(m, d, c);
+      if (!alias) return null;
+      return {
+        alias: alias.alias,
+        label: `${alias.pricing_key.split("|")[0].trim()} ${alias.mf_type} ${alias.style_description} ${alias.color_description}`,
+      };
     };
     const persist = async (payload: any) => persistPayload(quoteId, payload, {
       lensIndex: lensIndexRef.current,
       addons,
       lensPriceBBD,
+      resolveAlias,
     });
 
     hostRef.current.innerHTML = markup;

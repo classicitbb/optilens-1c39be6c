@@ -140,18 +140,29 @@ export function buildEngineData(opts: {
 export async function persistPayload(
   quoteId: string,
   payload: any,
-  ctx: { lensIndex: Map<string, LensRef>; addons: Addon[]; lensPriceBBD: (m: string, d: string, c: string) => number | null },
+  ctx: {
+    lensIndex: Map<string, LensRef>;
+    addons: Addon[];
+    lensPriceBBD: (m: string, d: string, c: string) => number | null;
+    /**
+     * Innovations-sourced catalogue: the selection IS an alias, so the code to
+     * order is known outright. When supplied this replaces the lens_alias_map
+     * lookup entirely — see docs/rx-order-innovations-catalogue.md §2.1.
+     */
+    resolveAlias?: (m: string, d: string, c: string) => { alias: string; label: string } | null;
+  },
 ): Promise<{ totalBBD: number }> {
   const rate = payload?.quote?.rate || 1;
   const toBBD = (amt: number) => Math.round((amt / rate) * 100) / 100;
 
   const lensKey = `${payload.lens.material}|${payload.lens.design}|${payload.lens.colour}`;
   const lens = ctx.lensIndex.get(lensKey) ?? null;
+  const resolved = ctx.resolveAlias?.(payload.lens.material, payload.lens.design, payload.lens.colour) ?? null;
 
-  // The embedded form selects a live finish-type, while Innovations needs its
-  // 13-digit colour alias. Resolve only an exact normalized colour match; a
-  // primary alias is not a safe substitute because it can describe a different
-  // tint/finish. Approval below then keeps unmatched colours out of production.
+  // Legacy path: the CV-sourced form selected a finish type, so the 13-digit
+  // colour alias had to be recovered through the confirmed mapping. Only an
+  // exact normalized colour match is safe — a primary alias can describe a
+  // different tint. Dead once every surface is Innovations-sourced.
   const normaliseColour = (value: string) => value
     .toLowerCase()
     .replace(/transitions?/g, "photochromic")
@@ -159,8 +170,8 @@ export async function persistPayload(
     .replace(/colou?r/g, "")
     .replace(/[^a-z0-9]+/g, "")
     .trim();
-  let innovationsAlias: string | null = null;
-  if (lens?.colourName) {
+  let innovationsAlias: string | null = resolved?.alias ?? null;
+  if (!innovationsAlias && lens?.colourName) {
     const { data: mappedAliases, error: aliasError } = await (supabase.from("lens_alias_map") as any)
       .select("innovations_alias, innovations_lens_aliases(color_description, is_active)")
       .eq("lens_id", lens.lensId)
@@ -179,10 +190,28 @@ export async function persistPayload(
 
   const lines: any[] = [];
   const quoteLines: any[] = Array.isArray(payload?.quote?.lines) ? payload.quote.lines : [];
-  const lensAmount = quoteLines.length
-    ? toBBD(quoteLines[0].amount)
-    : ctx.lensPriceBBD(payload.lens.material, payload.lens.design, payload.lens.colour) ?? lens?.listPrice ?? 0;
-  const assistNote = payload.assistance?.length ? `Assistance requested: ${payload.assistance.join(", ")}` : null;
+  const matrixPrice = ctx.lensPriceBBD(payload.lens.material, payload.lens.design, payload.lens.colour);
+  // No matrix cell and no CV lens row = not offered on this account. Such an
+  // order cannot reach the cart (the engine blocks submit and offers only
+  // "save as draft"), so what lands here is a quote request to be priced by
+  // hand — flagged as such rather than presented as a real price.
+  //
+  // The amount columns are NOT NULL DEFAULT 0, so a genuine "no price" cannot
+  // be stored as null without a migration. needs_assistance + assistance_note
+  // are what distinguish it from a line that is actually free.
+  const unpriced = matrixPrice == null && !lens;
+  const lensAmount = unpriced
+    ? 0
+    : quoteLines.length
+      ? toBBD(quoteLines[0].amount)
+      : matrixPrice ?? lens?.listPrice ?? 0;
+  const assistReasons = [
+    ...(payload.assistance ?? []),
+    ...(unpriced && !(payload.assistance ?? []).some((a: string) => /not priced/i.test(a))
+      ? ["Lens not priced on this account — quote requested"]
+      : []),
+  ];
+  const assistNote = assistReasons.length ? `Assistance requested: ${assistReasons.join(", ")}` : null;
 
   lines.push({
     quote_id: quoteId,
@@ -190,7 +219,8 @@ export async function persistPayload(
     product_id: lens?.lensId ?? null,
     innovations_alias: innovationsAlias,
     sku: "",
-    item_name: lens?.name ?? `${payload.lens.material} ${payload.lens.design} ${payload.lens.colour}`,
+    item_name: lens?.name ?? resolved?.label
+      ?? `${payload.lens.material} ${payload.lens.design} ${payload.lens.colour}`,
     qty: 1,
     unit_cost_landed_bbd: lens?.basePrice ?? 0,
     unit_base_price_bbd: lensAmount,

@@ -25,6 +25,10 @@ interface PriceOverrideCellProps {
   // row's hover group instead of declaring its own — otherwise hovering
   // anywhere but this cell wouldn't reveal the action icon.
   useRowHoverGroup?: boolean;
+  // Material matrix columns are centered, unlike the right-aligned catalog
+  // price columns. Keep the displayed amount centered even when edit actions
+  // are available at the edge of the cell.
+  centered?: boolean;
 }
 
 const formatOverride = (price: number, currencyCode: string) => `${currencyCode} $${price.toFixed(2)}`;
@@ -63,6 +67,7 @@ const PriceOverrideCell = ({
   isSaving,
   action,
   useRowHoverGroup,
+  centered = false,
 }: PriceOverrideCellProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -77,7 +82,7 @@ const PriceOverrideCell = ({
       setEditing(false);
     };
     return (
-      <div className="flex items-center justify-end gap-1" onClick={stop}>
+      <div className={cn("flex items-center gap-1", centered ? "relative justify-center" : "justify-end")} onClick={stop}>
         <Input
           type="number"
           min="0"
@@ -92,48 +97,52 @@ const PriceOverrideCell = ({
           }}
           className="h-7 w-24 text-right"
         />
-        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" disabled={!valid || isSaving} onClick={commit}>
-          <Check className="h-3.5 w-3.5" />
-        </Button>
-        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(false)}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <div className={cn("flex items-center gap-1", centered && "absolute right-0")}>
+          <Button type="button" size="icon" variant="ghost" className="h-6 w-6" disabled={!valid || isSaving} onClick={commit}>
+            <Check className="h-3.5 w-3.5" />
+          </Button>
+          <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(false)}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (override && pricesHidden) {
     return (
-      <div className={cn("flex items-center justify-end gap-1.5", groupClass)}>
+      <div className={cn("flex items-center gap-1.5", centered ? "relative justify-center" : "justify-end", groupClass)}>
         <span className="font-semibold text-foreground">{formatOverride(override.custom_price, override.currency_code)}</span>
-        {action && <ActionButton action={action} />}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 text-muted-foreground hover:text-foreground"
-          title="Edit your price"
-          onClick={(event) => {
-            stop(event);
-            setDraft(String(override.custom_price));
-            setEditing(true);
-          }}
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 text-muted-foreground hover:text-destructive"
-          title="Remove your price"
-          onClick={(event) => {
-            stop(event);
-            onClear();
-          }}
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-        </Button>
+        <div className={cn("flex items-center gap-1.5", centered && "absolute right-0")}>
+          {action && <ActionButton action={action} />}
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+            title="Edit your price"
+            onClick={(event) => {
+              stop(event);
+              setDraft(String(override.custom_price));
+              setEditing(true);
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            title="Remove your price"
+            onClick={(event) => {
+              stop(event);
+              onClear();
+            }}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
     );
   }
@@ -143,38 +152,40 @@ const PriceOverrideCell = ({
   // the pencil edits the existing value instead of starting blank, and the
   // remove control stays reachable without needing to hide prices again.
   return (
-    <div className={cn("flex items-center justify-end gap-1.5", groupClass)}>
+    <div className={cn("flex items-center gap-1.5", centered ? "relative justify-center" : "justify-end", groupClass)}>
       <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>
-      {action && <ActionButton action={action} />}
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-        title={override ? "Edit your price" : "Enter your own retail price"}
-        onClick={(event) => {
-          stop(event);
-          setDraft(override ? String(override.custom_price) : "");
-          setEditing(true);
-        }}
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-      {override && (
+      <div className={cn("flex items-center gap-1.5", centered && "absolute right-0")}>
+        {action && <ActionButton action={action} />}
         <Button
           type="button"
           size="icon"
           variant="ghost"
-          className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
-          title="Remove your price"
+          className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          title={override ? "Edit your price" : "Enter your own retail price"}
           onClick={(event) => {
             stop(event);
-            onClear();
+            setDraft(override ? String(override.custom_price) : "");
+            setEditing(true);
           }}
         >
-          <RotateCcw className="h-3.5 w-3.5" />
+          <Pencil className="h-3.5 w-3.5" />
         </Button>
-      )}
+        {override && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+            title="Remove your price"
+            onClick={(event) => {
+              stop(event);
+              onClear();
+            }}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

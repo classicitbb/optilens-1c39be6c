@@ -3,13 +3,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLenses, Lens } from "@/hooks/useLenses";
 import { useAddons, Addon } from "@/hooks/useAddons";
 
-// Availability rule (RX_ORDER_FORM_BUILD_PLAN.md §1, locked):
+// Availability rule (docs/rx-order-innovations-catalogue.md §2.2 — supersedes the
+// rule previously locked in RX_ORDER_FORM_BUILD_PLAN.md §1):
 //   shown = on the account's assigned pricelist_versions document
-//           AND is_active AND show_on_website.
+//           AND is_active AND priced.
+//
+// `show_on_website` is NOT part of this. It means "stock semi-finished or uncut
+// lens sold as a bulk box through the website store, for labs who surface their
+// own" — a different channel with a different catalogue. Gating prescription
+// ordering on it was a mistake that left the Rx form offering 10 of 1,011
+// active lenses. The storefront still gates on it independently in
+// useStoreProducts, which is where it belongs.
+//
 // If the assigned version has no explicit lens/addon catalog rows at all
 // (some versions price RX purely through the matrix), we fall back to the
 // full active+priced catalog and surface `pricelistHasRows=false` so the UI
 // can say so instead of silently showing an empty form.
+
+/**
+ * The Rx availability predicates. Exported and shared so the rule exists once —
+ * it previously lived inline in both this hook and RxOrderEmbed, which is how
+ * `show_on_website` came to gate one surface and not the other.
+ *
+ * Priced means sell OR base above zero: a lens with only a base price is still
+ * orderable, the account's pricelist supplies the sell price.
+ */
+export const isRxOrderableLens = (lens: Pick<Lens, "is_active" | "sell_price" | "base_price">) =>
+  lens.is_active && (lens.sell_price > 0 || lens.base_price > 0);
+
+export const isRxOrderableAddon = (addon: Pick<Addon, "is_active">) => addon.is_active;
 
 interface PricelistScope {
   accountId: number;
@@ -93,10 +115,8 @@ export const useOrderableCatalog = (accountId: number | null): OrderableCatalog 
   const { data: addons = [], isLoading: addonsLoading } = useAddons();
   const { data: scope, isLoading: scopeLoading } = usePricelistScope(accountId);
 
-  const activeLenses = lenses.filter(
-    (l) => l.is_active && l.show_on_website && (l.sell_price > 0 || l.base_price > 0),
-  );
-  const activeAddons = addons.filter((a) => a.is_active && a.show_on_website);
+  const activeLenses = lenses.filter(isRxOrderableLens);
+  const activeAddons = addons.filter(isRxOrderableAddon);
 
   const scopedLenses = scope?.hasLensRows
     ? activeLenses.filter((l) => scope.lensIds.has(l.id))
