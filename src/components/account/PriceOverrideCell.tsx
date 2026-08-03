@@ -33,6 +33,9 @@ interface PriceOverrideCellProps {
 
 const formatOverride = (price: number, currencyCode: string) => `${currencyCode} $${price.toFixed(2)}`;
 
+const hoverActionSurfaceClass =
+  "flex items-center gap-0.5 rounded-md border border-border/70 bg-background/95 p-0.5 shadow-md backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100";
+
 // Every interactive control in this cell stops propagation — it may sit
 // inside a clickable row (whole-row "Add to Cart"), and editing/clearing an
 // override must never also trigger that row's click action.
@@ -113,7 +116,7 @@ const PriceOverrideCell = ({
     return (
       <div className={cn("flex items-center gap-1.5", centered ? "relative justify-center" : "justify-end", groupClass)}>
         <span className="font-semibold text-foreground">{formatOverride(override.custom_price, override.currency_code)}</span>
-        <div className={cn("flex items-center gap-1.5", centered && "absolute right-0")}>
+        <div className={cn(hoverActionSurfaceClass, centered && "absolute right-0")}>
           {action && <ActionButton action={action} />}
           <Button
             type="button"
@@ -154,7 +157,7 @@ const PriceOverrideCell = ({
   return (
     <div className={cn("flex items-center gap-1.5", centered ? "relative justify-center" : "justify-end", groupClass)}>
       <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>
-      <div className={cn("flex items-center gap-1.5", centered && "absolute right-0")}>
+      <div className={cn(hoverActionSurfaceClass, centered && "absolute right-0")}>
         {action && <ActionButton action={action} />}
         <Button
           type="button"
