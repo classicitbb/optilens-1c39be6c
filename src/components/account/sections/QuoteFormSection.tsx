@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "react-router";
-import { FileSignature, Plus } from "lucide-react";
+import { FileSignature, Plus, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ const QuoteFormSection = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [customerName, setCustomerName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const canSubmit = customerName.trim().length > 0 && notes.trim().length > 0;
   // Lazy initializer: seeds once from an "Add to Rx" navigation off the
   // pricelist page (state.prefillNote), then behaves as a normal textarea.
   const [notes, setNotes] = useState(() => (location.state as { prefillNote?: string } | null)?.prefillNote ?? "");
@@ -45,23 +48,28 @@ const QuoteFormSection = () => {
   });
 
   const submitQuote = async () => {
-    if (!user) return;
-    const { error } = await (supabase as any).from("quotes").insert({
-      created_by: user.id,
-      quote_type: "STOCK",
-      customer_name: customerName.trim() || user.email,
-      contact_email: user.email,
-      notes_customer: notes.trim() || null,
-      quote_number: "",
-    });
-    if (error) {
-      toast({ title: "Error", description: error.message || "Failed to submit quote request.", variant: "destructive" });
-      return;
+    if (!user || !canSubmit || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await (supabase as any).from("quotes").insert({
+        created_by: user.id,
+        quote_type: "STOCK",
+        customer_name: customerName.trim(),
+        contact_email: user.email,
+        notes_customer: notes.trim() || null,
+        quote_number: "",
+      });
+      if (error) {
+        toast({ title: "Error", description: error.message || "Failed to submit quote request.", variant: "destructive" });
+        return;
+      }
+      setCustomerName("");
+      setNotes("");
+      await queryClient.invalidateQueries({ queryKey: ["customer-quotes", emulation?.userId ?? user.id] });
+      toast({ title: "Quote request submitted", description: "Your request is now in the quotation pipeline." });
+    } finally {
+      setIsSubmitting(false);
     }
-    setCustomerName("");
-    setNotes("");
-    await queryClient.invalidateQueries({ queryKey: ["customer-quotes", user.id] });
-    toast({ title: "Quote request submitted", description: "Your request is now in the quotation pipeline." });
   };
 
   return (
@@ -74,14 +82,55 @@ const QuoteFormSection = () => {
         <CardDescription>Submit quote requests and track their status.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-3 rounded-lg border p-4">
-          <Input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Customer/business name" />
-          <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Tell us what products and quantities you need." />
-          <Button onClick={submitQuote} disabled={!!emulation} title={emulation ? "Submitting is disabled while emulating a customer" : undefined}>
-            <Plus className="mr-2 h-4 w-4" />
-            Submit quote request
-          </Button>
-        </div>
+        <form
+          className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4 sm:p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitQuote();
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">Start a quote request</h3>
+              <p className="text-sm text-muted-foreground">Share the customer and product details so we can prepare pricing.</p>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+            <div className="space-y-1.5">
+              <Label htmlFor="quote-customer-name">Customer or business</Label>
+              <Input
+                id="quote-customer-name"
+                name="customer-name"
+                value={customerName}
+                onChange={(event) => setCustomerName(event.target.value)}
+                placeholder="Enter a customer or business name…"
+                autoComplete="organization"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="quote-request-details">Request details</Label>
+              <Textarea
+                id="quote-request-details"
+                name="request-details"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Tell us what products and quantities you need…"
+                className="min-h-24 resize-y"
+                required
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={!canSubmit || !!emulation || isSubmitting} title={emulation ? "Submitting is disabled while emulating a customer" : undefined}>
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
+              {isSubmitting ? "Submitting…" : "Submit quote request"}
+            </Button>
+          </div>
+        </form>
         <div className="space-y-2">
           {isLoading ? <p className="text-sm text-muted-foreground">Loading quote requests…</p> : null}
           {!isLoading && !quotes.length ? <p className="text-sm text-muted-foreground">No quote requests yet.</p> : null}
