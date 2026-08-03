@@ -44,8 +44,6 @@ verify_jwt = false
 # Innovations -> CV outbound sync receiver. Auth is x-api-key in code
 # (verify_api_key + per-resource write scope), so the platform JWT gate is off.
 # MUST stay false: the office optilens-local caller sends no Authorization header.
-[functions.handle-email-unsubscribe]
-verify_jwt = false
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
   # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).
