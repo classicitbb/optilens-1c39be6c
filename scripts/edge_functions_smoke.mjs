@@ -91,6 +91,37 @@ const HEALTH_PROBES = [
     },
   },
   {
+    // Regression guard for a real incident (2026-08-03): a manual redeploy via
+    // the Lovable dashboard/agent left the project's edge gateway requiring an
+    // Authorization header, even though this function's config.toml sets
+    // verify_jwt=false and implements its own x-api-key auth for the
+    // optilens-local office integration. The office's scheduled sync sends
+    // ONLY x-api-key (see docs/integration-innovations-sync-contract.md) and
+    // cannot add an Authorization header without a separate, unplanned code
+    // change — so this must keep working with zero Authorization/apikey
+    // headers. A bogus key must reach the function's own verify_api_key check
+    // (JSON body `{"error":"Invalid or revoked API key."}`) rather than being
+    // rejected by the platform gateway first (body shaped like
+    // `{"code":"UNAUTHORIZED_NO_AUTH_HEADER",...}`) — that distinguishes "the
+    // function ran" from "the gateway blocked it before our code saw it".
+    name: "innovations-sync auth contract (no Authorization header)",
+    path: "/innovations-sync/customers",
+    method: "POST",
+    headers: () => ({ "x-api-key": "smoke-test-invalid-key", "Content-Type": "application/json" }),
+    body: () => JSON.stringify({ dry_run: true, records: [] }),
+    check: async (res) => {
+      if (res.status !== 401) return `expected 401, got ${res.status}`;
+      const body = await res.json().catch(() => null);
+      if (body?.code === "UNAUTHORIZED_NO_AUTH_HEADER") {
+        return "gateway rejected the request before the function's own x-api-key check ran — verify_jwt / gateway auth-enforcement regressed";
+      }
+      if (!body || typeof body.error !== "string") {
+        return `unexpected body: ${JSON.stringify(body)}`;
+      }
+      return null;
+    },
+  },
+  {
     // Requires a scoped `docstudio:health` API key (see docstudio-api/index.ts)
     // AND a valid signed JWT — docstudio-api doesn't override verify_jwt in
     // config.toml, so the Supabase gateway rejects the request before our
@@ -171,6 +202,7 @@ async function runHealthProbe(probe) {
         method: probe.method,
         signal,
         headers: { Origin: ORIGIN, ...(probe.headers?.() ?? {}) },
+        ...(probe.body ? { body: probe.body() } : {}),
       }),
     TIMEOUT_MS,
     probe.name,
