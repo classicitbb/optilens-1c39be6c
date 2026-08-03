@@ -2,6 +2,21 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-07-30
+- Area: customer portal Helpdesk, operator Helpdesk, and assistant handoff
+- Impact: ticket messages required a manual page refresh, so customers and operators could miss a new reply even while both were using the website.
+- Root cause: the two screens performed one-time HTTP reads and client-side direct writes; no private live message signal existed to invalidate the affected ticket or office queue.
+- Resolution: added database-authorized private Realtime broadcasts, an idempotent authenticated send RPC, targeted cache refreshes, operator notification, and exact-ticket navigation after assistant human-help confirmation.
+- Follow-up: keep event payloads identifier-only and enforce access in `realtime.messages` policies. Do not add polling or a public/shared Helpdesk channel.
+- Regression: the first RPC version exposed `ticket_id` as a return field and used the name unqualified in its write/duplicate path, producing Postgres error `42702`. The correction uses unambiguous table references; the reply component catches a rejected mutation after its toast is shown.
+- Regression prevention: two-way messages must not share the same alignment. The outer message row owns left/right placement and must be full width. Automatic acknowledgements use `is_automated`, preventing reply loops and repeat notices after a human reply.
+
+## 2026-07-24
+- Area: Admin → Settings → Integrations / DHL Express
+- Impact: there was no secure place to configure DHL Express credentials for tracking and landed-cost work; adding credentials to a browser client would expose the Basic Auth pair and storing DHL estimate responses would violate its service terms.
+- Resolution: added an admin-only configuration card, encrypted credential storage, and a JWT-protected server endpoint limited to on-demand configuration testing, shipment tracking, and landed-cost requests. Estimate data is returned only for the immediate request and is not persisted.
+- Follow-up: do not connect arbitrary customer tracking numbers to the DHL endpoint. First establish a server-side, customer-scoped shipment ownership mapping.
+
 ## 2026-07-24
 - Area: Admin application navigation
 - Impact: proposals, quotations, and web orders were split across a standalone Sales app even though their ownership belongs to CRM and Website.

@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { Lock, Mail, User } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import type { HelpdeskTicketMessage } from "../hooks/useHelpdeskMessages";
 
 interface TicketMessageBubbleProps {
@@ -18,7 +19,9 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
           <span className="font-medium">{senderLabel}</span>
           <span className="opacity-60">Internal note · {time}</span>
         </div>
-        <p className="text-sm text-foreground/80 whitespace-pre-wrap">{message.body}</p>
+        <div className="prose prose-sm max-w-none text-foreground/80 [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
+          <ReactMarkdown>{message.body}</ReactMarkdown>
+        </div>
       </div>
     );
   }
@@ -26,7 +29,7 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
   const isOutbound = message.direction === "outbound";
 
   return (
-    <div className={`flex flex-col gap-1 ${isOutbound ? "items-end" : "items-start"}`}>
+    <div className={`flex w-full flex-col gap-1 ${isOutbound ? "items-end" : "items-start"}`}>
       <div
         className={`max-w-[80%] rounded-xl px-4 py-2.5 ${
           isOutbound
@@ -34,7 +37,9 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
             : "bg-muted text-foreground border border-border"
         }`}
       >
-        <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+        <div className="prose prose-sm max-w-none text-inherit [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
+          <ReactMarkdown>{message.body}</ReactMarkdown>
+        </div>
       </div>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
         {isOutbound ? <User size={10} /> : <Mail size={10} />}

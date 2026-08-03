@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
 import { useNavigate } from "react-router";
+import { format } from "date-fns";
 
 const severityColor: Record<string, string> = {
   error: "text-destructive",
@@ -99,6 +100,9 @@ const NotificationBell = () => {
               onClick={() => void handleClick(n.id, n.href)}>
                     <p className={`text-xs font-medium truncate ${severityColor[n.severity] ?? ""}`}>{n.title}</p>
                     <p className="text-[11px] line-clamp-2 text-[hsl(var(--admin-muted-fg))]">{n.message}</p>
+                    <p className="mt-0.5 text-[10px] text-[hsl(var(--admin-muted-fg))]">
+                      {format(new Date(n.createdAt), "MMM d, h:mm a")}
+                    </p>
                   </button>
                   <button
               className="shrink-0 text-[hsl(var(--admin-muted-fg))] hover:text-[hsl(var(--admin-fg))] text-xs mt-0.5"

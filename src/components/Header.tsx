@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette, ShoppingCart } from "lucide-react";
@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useAccountRequestDismissed } from "@/components/AccountRequestBanner";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useTheme } from "next-themes";
@@ -125,7 +126,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Apply for a Trade Account", description: "Lead form", to: "/professionals/trade-account" },
     { label: "Optician Website Design", description: "Preview and quote a retail website build", to: "/optical-retail-websites" },
     { label: "Online Ordering Portal", description: "Login to LabLink", to: "/rx-order" },
-    { label: "Order Tracking", description: "Track shipments and job status", to: "/rx-job-status" },
+    { label: "Order Tracking", description: "Track shipments and job status", to: "/profile/orders" },
     { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" },
     { label: "Rx Lab Services", description: "Custom surfacing, edging, tinting, and specialty coatings", to: "/rx-lab-services" }]
 
@@ -493,6 +494,22 @@ const Header = () => {
   const activeUserInitials = getAccountInitials(activeUserName, activeUserEmail);
   const resolvedThemeValue = activeTheme === "system" ? resolvedTheme ?? "system" : activeTheme;
   const { data: storeProducts = [] } = useStoreProducts();
+  const { identity: portalIdentity } = usePortalIdentity();
+  const hasLinkedErpAccount = !!portalIdentity?.crmCustomerId;
+  const visibleMenu = useMemo(() => {
+    if (!hasLinkedErpAccount) return PRIMARY_MENU;
+    return PRIMARY_MENU.map((item) =>
+      item.label === "Professionals"
+        ? {
+            ...item,
+            sections: item.sections.map((section) => ({
+              ...section,
+              links: section.links.filter((link) => link.to !== "/professionals/trade-account"),
+            })),
+          }
+        : item
+    );
+  }, [hasLinkedErpAccount]);
   const preserveLabLinkSession = location.pathname === "/rx-order" || location.pathname === "/rx-job-status";
   const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
@@ -537,7 +554,7 @@ const Header = () => {
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
-          {PRIMARY_MENU.map((item) =>
+          {visibleMenu.map((item) =>
             <MegaMenu key={item.label} item={item} preserveLabLinkSession={preserveLabLinkSession} />
             )}
         </nav>
@@ -558,7 +575,7 @@ const Header = () => {
               </SheetTitle>
               <nav>
                 <Accordion type="multiple" className="space-y-3">
-                  {PRIMARY_MENU.map((item) =>
+                  {visibleMenu.map((item) =>
                     <AccordionItem key={item.label} value={item.label} className="rounded-lg border border-border/60 px-3">
                       <AccordionTrigger className="py-3 text-sm font-semibold text-foreground hover:no-underline">
                         {item.label}

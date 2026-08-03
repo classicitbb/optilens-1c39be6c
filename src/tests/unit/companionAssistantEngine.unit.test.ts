@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAssistantCorpus, runAssistantQuery, shouldAskClarifier } from "@/features/assistant/companionAssistantEngine";
+import { buildAssistantCorpus, inferAssistantAudience, runAssistantQuery, shouldAskAudienceClarifier, shouldAskClarifier } from "@/features/assistant/companionAssistantEngine";
 
 describe("companion assistant engine", () => {
   const corpus = buildAssistantCorpus({
@@ -68,6 +68,24 @@ describe("companion assistant engine", () => {
     expect(result.answer.length).toBeGreaterThanOrEqual(120);
     expect(result.answer.length).toBeLessThanOrEqual(200);
     expect(result.answer.toLowerCase()).toContain("progressive");
+    expect(result.audience).toBe("visitor");
+    expect(result.answerMode).toBe("direct_answer");
+    expect(result.confidence).not.toBe("high");
+
+    const controlledFallback = runAssistantQuery({
+      query: "ZenVue Brilliance Progressive",
+      route: "/lenses/progressive",
+      profile: "general_search",
+      errorState: true,
+      corpus,
+    });
+    expect(controlledFallback.confidence).toBe("high");
+  });
+
+  it("infers patient and dispenser audiences from route and language", () => {
+    expect(inferAssistantAudience({ query: "What should I expect?", route: "/patients/progressive-lenses", profile: "general_search" })).toBe("patient");
+    expect(inferAssistantAudience({ query: "How do I dispense this design?", route: "/dispensing-tips", profile: "general_search" })).toBe("dispenser");
+    expect(inferAssistantAudience({ query: "Explain this simply", route: "/lenses/progressive", profile: "general_search", requestedAudience: "patient" })).toBe("patient");
   });
 
   it("asks for a clarifier after a repeated unsatisfying query", () => {
@@ -82,5 +100,11 @@ describe("companion assistant engine", () => {
       lastQuery: "Find a retailer in Barbados",
       nextQuery: "find a retailer in barbados",
     })).toBe(false);
+  });
+
+  it("asks anonymous visitors for audience context inline", () => {
+    expect(shouldAskAudienceClarifier({ query: "Which lens is best for computer use?", route: "/", authenticated: false })).toBe(true);
+    expect(shouldAskAudienceClarifier({ query: "Which lens is best for my patient?", route: "/", authenticated: false })).toBe(false);
+    expect(shouldAskAudienceClarifier({ query: "Which lens is best?", route: "/", authenticated: true })).toBe(false);
   });
 });

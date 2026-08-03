@@ -6,7 +6,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { getPortalEmulation, onPortalEmulationChange } from "@/lib/portalEmulation";
 
 export type PortalAccessStatus = "pending_verification" | "pending_profile" | "pending_approval" | "approved_customer";
-export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "live-order-status" | "statements";
+export type PortalFeature = "quotes" | "helpdesk" | "pricelists" | "private-orders" | "live-order-status" | "statements" | "order-prices" | "lens-assistant";
 
 export type PaymentTerms = "credit" | "cash" | "standard";
 
@@ -36,6 +36,8 @@ const featureTitles: Record<PortalFeature, string> = {
   "private-orders": "Private orders",
   "live-order-status": "Live order status",
   statements: "Statements",
+  "order-prices": "Order prices",
+  "lens-assistant": "Lens Assistant",
 };
 
 const normalizeIdentity = (
@@ -72,6 +74,8 @@ export const canAccessPortalFeature = (identity: PortalIdentity | null, feature:
   if (feature === "pricelists") {
     return identity.portalAccessStatus === "approved_customer" && identity.canAccessPricing;
   }
+  // Off by default: prices only show once staff explicitly enables it for a customer.
+  if (feature === "order-prices") return override === true;
   if (override === true) return true;
   if (feature === "private-orders") return identity.portalAccessStatus === "approved_customer";
   return identity.portalAccessStatus === "approved_customer";

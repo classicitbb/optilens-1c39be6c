@@ -15,6 +15,7 @@ import { useSupportAvailability } from "@/hooks/useSupportAvailability";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { capitalizeDisplayName } from "@/lib/profileData";
+import { getLastNonProfilePath } from "@/lib/lastExternalPath";
 
 interface AccountTopBarProps {
   displayName: string;
@@ -31,15 +32,19 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
+  // Read on every render so the link always points at the most recent
+  // non-profile page the user visited in this session.
+  const backToWebsitePath = getLastNonProfilePath();
   const activeTheme = theme ?? "system";
   const formattedDisplayName = capitalizeDisplayName(displayName, "Customer");
 
   // Close the mobile sheet whenever the user navigates to a new page
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
-  const lensAssistantEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
+  const lensAssistantEnabled = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
+    && canAccessFeature("lens-assistant");
   const visibleItems = ACCOUNT_NAV_ITEMS.filter((item) => {
-    if (item.to.startsWith("/lens-assistant")) return lensAssistantEnabled;
+    if (item.to.startsWith("/profile/lens-assistant")) return lensAssistantEnabled;
     if (item.to === "/profile/quotes") return canAccessFeature("quotes");
     if (item.to === "/profile/helpdesk") return canAccessFeature("helpdesk");
     if (item.to === "/profile/pricelists") return canAccessFeature("pricelists");
@@ -54,7 +59,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
           {/* Left: back to website */}
           <div className="min-w-0">
             <Button variant="ghost" asChild className="h-7 max-w-full gap-1.5 px-2 text-xs sm:text-sm">
-              <Link to="/?view=public">
+              <Link to={backToWebsitePath}>
                 <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Website</span>
               </Link>

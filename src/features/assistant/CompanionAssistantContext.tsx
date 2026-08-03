@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { usePublicKnowledge } from "@/hooks/useContentArticles";
@@ -14,8 +14,11 @@ import {
   buildAssistantCorpus,
   buildRetailerPrompt,
   collectRuntimeHeadings,
+  inferAssistantAudience,
   runAssistantQuery,
   shouldAskClarifier,
+  shouldAskAudienceClarifier,
+  type AssistantAudience,
   type AssistantProfile,
 } from "./companionAssistantEngine";
 import {
@@ -39,6 +42,8 @@ export type {
 
 const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 const POPOUT_SNAPSHOT_KEY = "companion-assistant-popout";
+const PENDING_SAVE_KEY = "companion-assistant-pending-save";
+const ANONYMOUS_SESSION_KEY = "companion-assistant-anonymous-session";
 
 const getProfileForRoute = (pathname: string): AssistantProfile => {
   if (pathname.startsWith("/profile")) return "portal_support";
@@ -46,17 +51,36 @@ const getProfileForRoute = (pathname: string): AssistantProfile => {
   return "general_search";
 };
 
-const getStarterActions = (pathname: string): AssistantQuickAction[] =>
+const getDefaultAudienceForRoute = (pathname: string): AssistantAudience => {
+  if (pathname.startsWith("/profile")) return "customer";
+  if (pathname.startsWith("/patients")) return "patient";
+  if (pathname.startsWith("/professionals") || pathname.startsWith("/dispensing-tips")) return "dispenser";
+  return "visitor";
+};
+
+const getAnonymousSessionId = () => {
+  try {
+    const existing = window.sessionStorage.getItem(ANONYMOUS_SESSION_KEY);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    window.sessionStorage.setItem(ANONYMOUS_SESSION_KEY, created);
+    return created;
+  } catch {
+    return `anonymous-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+};
+
+const getStarterActions = (pathname: string, isAuthenticated: boolean): AssistantQuickAction[] =>
   pathname.startsWith("/profile")
     ? [
-        { type: "query", label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" },
+        ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" as const }]),
         { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=professional" },
         { type: "web_search", label: "Search the web", query: "Latest trends in progressive lens technology" },
         { type: "form", label: "Get support", profile: "portal_support" },
         { type: "link", label: "Track an order", href: "/profile/orders" },
       ]
     : [
-        { type: "query", label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" },
+        ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" as const }]),
         { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=patient" },
         { type: "web_search", label: "Search the web", query: "Best lens coatings for digital screen use" },
         { type: "form", label: "Get support", profile: "customer_support" },
@@ -70,8 +94,8 @@ const isKeyPage = (pathname: string) =>
   pathname.startsWith("/coatings") ||
   pathname.startsWith("/profile");
 
-const getRouteNudge = (pathname: string) => {
-  if (pathname.startsWith("/find-a-retailer")) {
+const getRouteNudge = (pathname: string, isAuthenticated: boolean) => {
+  if (pathname.startsWith("/find-a-retailer") && !isAuthenticated) {
     return {
       message: "Need help narrowing down a retailer or clinic?",
       query: "Help me find a retailer based on this page.",
@@ -130,6 +154,7 @@ const createInitialFormState = ({
 
 export const CompanionAssistantProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const pathname = location.pathname;
   const isDetachedRoute = pathname === "/assistant/window";
   const { user } = useAuth();
@@ -141,12 +166,15 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const userName = resolveUserFullName(user) || "";
   const userEmail = user?.email?.trim() || "";
   const activeProfile = getProfileForRoute(pathname);
-  const starterActions = useMemo(() => getStarterActions(pathname), [pathname]);
+  const [audienceOverride, setAudienceOverride] = useState<AssistantAudience | null>(null);
+  const activeAudience = audienceOverride ?? (user ? "dispenser" : getDefaultAudienceForRoute(pathname));
+  const starterActions = useMemo(() => getStarterActions(pathname, Boolean(user)), [pathname, user]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [currentQuery, setCurrentQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingConversation, setIsSavingConversation] = useState(false);
   const [nudge, setNudge] = useState<{ message: string; query?: string } | null>(null);
   const [formState, setFormState] = useState<AssistantFormState | null>(null);
   const lastQueryRef = useRef<string | null>(null);
@@ -176,6 +204,62 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       },
     ]);
   }, [pathname, starterActions]);
+
+  const persistConversation = useCallback(async (conversationMessages: AssistantMessage[], audience: AssistantAudience) => {
+    if (!user || conversationMessages.length < 2) return;
+
+    setIsSavingConversation(true);
+    try {
+      const firstUserMessage = conversationMessages.find((message) => message.role === "user" && message.kind === "user");
+      const title = firstUserMessage && firstUserMessage.kind === "user"
+        ? firstUserMessage.text.slice(0, 80)
+        : "Assistant conversation";
+      const { data: conversation, error: conversationError } = await (supabase as any)
+        .from("assistant_conversations")
+        .insert({ user_id: user.id, title, audience, context: { route: pathname } })
+        .select("id")
+        .single();
+      if (conversationError) throw conversationError;
+
+      const rows = conversationMessages
+        .filter((message): message is Extract<AssistantMessage, { kind: "text" | "user" | "result" }> => message.kind === "text" || message.kind === "user" || message.kind === "result")
+        .map((message) => ({
+          conversation_id: conversation.id,
+          user_id: user.id,
+          role: message.role,
+          content: message.kind === "result" ? message.result.answer : message.text,
+          metadata: message.kind === "result" ? {
+            query: message.result.query,
+            audience: message.result.audience,
+            intent: message.result.intent,
+            answerMode: message.result.answerMode,
+            confidence: message.result.confidence,
+            citations: message.result.citations ?? message.result.topLinks,
+          } : {},
+        }));
+
+      if (rows.length) {
+        const { error: messageError } = await (supabase as any).from("assistant_messages").insert(rows);
+        if (messageError) throw messageError;
+      }
+      try { window.sessionStorage.removeItem(PENDING_SAVE_KEY); } catch { /* best effort */ }
+    } finally {
+      setIsSavingConversation(false);
+    }
+  }, [pathname, user]);
+
+  const saveConversation = useCallback(async () => {
+    if (messages.length < 2) return;
+    if (!user) {
+      try {
+        window.sessionStorage.setItem(PENDING_SAVE_KEY, JSON.stringify({ messages, audience: activeAudience }));
+      } catch { /* best effort */ }
+      const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.href = `/auth?mode=signin&redirect=${encodeURIComponent(redirect)}`;
+      return;
+    }
+    await persistConversation(messages, activeAudience);
+  }, [activeAudience, messages, persistConversation, user]);
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -216,10 +300,25 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   }, [isDetachedRoute]);
 
   useEffect(() => {
+    if (!user) return;
+    try {
+      const raw = window.sessionStorage.getItem(PENDING_SAVE_KEY);
+      if (!raw) return;
+      const pending = JSON.parse(raw) as { messages?: AssistantMessage[]; audience?: AssistantAudience };
+      if (Array.isArray(pending.messages) && pending.messages.length > 1) {
+        setMessages(pending.messages);
+        void persistConversation(pending.messages, pending.audience ?? activeAudience);
+      }
+    } catch {
+      // Ignore malformed or unavailable pending-save state.
+    }
+  }, [activeAudience, persistConversation, user]);
+
+  useEffect(() => {
     if (isOpen) return;
     if (!isKeyPage(pathname)) return;
 
-    const routeNudge = getRouteNudge(pathname);
+    const routeNudge = getRouteNudge(pathname, Boolean(user));
     if (!routeNudge) return;
 
     if (nudgeTimerRef.current) window.clearTimeout(nudgeTimerRef.current);
@@ -231,7 +330,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         nudgeTimerRef.current = null;
       }
     };
-  }, [isOpen, pathname]);
+  }, [isOpen, pathname, user]);
 
   useEffect(() => {
     setFormState((current) => {
@@ -283,28 +382,43 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       const next = [payload, ...current].slice(0, 25);
       window.localStorage.setItem(key, JSON.stringify(next));
     } catch {
-      // Ignore storage issues. Feedback is best-effort on the client until a
-      // server-side analytics sink is introduced.
+      // Ignore storage issues; the server insert below remains authoritative.
     }
-  }, []);
+    void (async () => {
+      const identityKey = user?.id ?? getAnonymousSessionId();
+      const { error } = await (supabase as any).from("assistant_feedback").upsert({
+        ...payload,
+        user_id: user?.id ?? null,
+        anonymous_session_id: user ? null : identityKey,
+        feedback_key: `${identityKey}:${String(payload.message_id)}`,
+      }, { onConflict: "feedback_key" });
+      if (error) return;
+    })();
+  }, [user]);
 
   const markFeedback = useCallback((messageId: string, feedback: "helpful" | "not_helpful") => {
     setMessages((current) =>
       current.map((message) =>
-        message.id === messageId && message.kind === "result" ? { ...message, feedback } : message,
+        message.id === messageId && message.role === "assistant" ? { ...message, feedback } : message,
       ),
     );
 
-    const resultMessage = messages.find((message) => message.id === messageId && message.kind === "result");
-    if (!resultMessage || resultMessage.kind !== "result") return;
+    const assistantMessage = messages.find((message) => message.id === messageId && message.role === "assistant");
+    if (!assistantMessage || assistantMessage.role !== "assistant") return;
+    const result = assistantMessage.kind === "result" ? assistantMessage.result : null;
 
     persistFeedback({
-      messageId,
-      feedback,
-      query: resultMessage.result.query,
+      message_id: messageId,
+      vote: feedback,
       route: pathname,
-      profile: resultMessage.result.profile,
-      at: new Date().toISOString(),
+      audience: result?.audience ?? activeAudience,
+      intent: result?.intent ?? "general",
+      answer_mode: result?.answerMode ?? "direct_answer",
+      confidence: result?.confidence ?? "medium",
+      citation_ids: result ? (result.citations ?? result.topLinks).map((link) => link.path) : [],
+      source_ids: result ? (result.citations ?? result.topLinks).map((link) => link.sourceId ?? link.id) : [],
+      conversation_id: null,
+      created_at: new Date().toISOString(),
     });
 
     if (feedback === "helpful") {
@@ -326,9 +440,9 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         ],
       },
     ]);
-  }, [messages, pathname, persistFeedback]);
+  }, [activeAudience, messages, pathname, persistFeedback]);
 
-  const submitQueryInternal = useCallback(async (queryValue: string, profile: AssistantProfile) => {
+  const submitQueryInternal = useCallback(async (queryValue: string, profile: AssistantProfile, audience: AssistantAudience = activeAudience) => {
     const trimmedQuery = queryValue.trim();
     if (!trimmedQuery) return;
 
@@ -359,9 +473,9 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           id: createId("assistant"),
           role: "assistant",
           kind: "text",
-          text: "Before I change paths, what are you trying to do most right now: find a retailer, compare products, or get direct support?",
+          text: user ? "Before I change paths, what are you trying to do most right now: compare products, get dispensing guidance, or get direct support?" : "Before I change paths, what are you trying to do most right now: find a retailer, compare products, or get direct support?",
           quickActions: [
-            { type: "query", label: "Find a retailer", query: "Help me find a retailer or clinic.", profile: "retailer_help" },
+            ...(user ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer or clinic.", profile: "retailer_help" as const }]),
             { type: "query", label: "Compare products", query: "Help me compare lens or coating options." },
             { type: "form", label: "Get direct support", profile: pathname.startsWith("/profile") ? "portal_support" : "customer_support" },
           ],
@@ -371,8 +485,52 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
 
     const normalizedPortalQuery = trimmedQuery.toLowerCase();
-    const asksForPrivateAccountData = Boolean(user) && /\b(my|account|order|job|balance|statement|invoice|draft|pricelist|price|support|warranty|remake|purchase order|patient)\b/.test(normalizedPortalQuery);
+
+    if (shouldAskAudienceClarifier({ query: trimmedQuery, route: pathname, authenticated: Boolean(user), requestedAudience: audienceOverride })) {
+      setMessages((current) => [...current, {
+        id: createId("assistant"),
+        role: "assistant",
+        kind: "text",
+        text: "I can tailor that answer better. Are you asking as a patient, an optical professional, or just exploring?",
+        quickActions: [
+          { type: "query", label: "I’m a patient", query: trimmedQuery, audience: "patient" },
+          { type: "query", label: "I’m a dispenser", query: trimmedQuery, audience: "dispenser" },
+          { type: "query", label: "Just browsing", query: trimmedQuery, audience: "visitor" },
+        ],
+      }]);
+      return;
+    }
+
+    if (user && /\b(retailer|retailers|clinic|clinics|where can i buy|find a practice)\b/.test(normalizedPortalQuery)) {
+      lastQueryRef.current = trimmedQuery;
+      setMessages((current) => [...current, {
+        id: createId("assistant"),
+        role: "assistant",
+        kind: "text",
+        text: "You’re signed in as an optical professional, so I’ll skip public retailer-finding assistance. I can help with lens selection, dispensing, ordering, LabLink, or a support request instead.",
+        quickActions: [
+          { type: "link", label: "Open the lens assistant", href: "/lens-assistant?audience=professional" },
+          { type: "query", label: "Dispensing guidance", query: "Give me practical dispensing guidance.", audience: "dispenser" },
+          { type: "form", label: "Prepare support request", profile: "portal_support" },
+        ],
+      }]);
+      return;
+    }
+
+    const asksForPrivateAccountData = /\b(my|account|order|job|balance|statement|invoice|draft|pricelist|price|support|warranty|remake|purchase order|patient)\b/.test(normalizedPortalQuery);
     if (asksForPrivateAccountData) {
+      if (!user) {
+        lastQueryRef.current = trimmedQuery;
+        negativeFeedbackRef.current = false;
+        setMessages((current) => [...current, {
+          id: createId("assistant"),
+          role: "assistant",
+          kind: "text",
+          text: "I can help with that, but I need you to sign in first so I can safely check account information. Your question will stay here when you return.",
+          quickActions: [{ type: "link", label: "Sign in for account help", href: `/auth?mode=signin&redirect=${encodeURIComponent(pathname)}` }],
+        }]);
+        return;
+      }
       setIsSubmitting(true);
       try {
         const account = await fetchCustomerCommandCenter();
@@ -386,8 +544,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
             { type: "form", label: "Prepare support request", profile: "portal_support" },
           ];
         } else if (/balance|statement|invoice/.test(normalizedPortalQuery)) {
-          const balance = Number(account.balance?.current_balance ?? account.latestStatement?.closing_balance ?? 0);
-          text = `Your latest available account balance is BBD $${balance.toFixed(2)}. ${account.latestStatement ? "A statement is available in your account." : "No statement is currently available from the connected source."}`;
+          const rawBalance = account.balance?.current_balance ?? account.latestStatement?.closing_balance ?? null;
+          const numericBalance = rawBalance === null ? null : Number(rawBalance);
+          text = numericBalance !== null && Number.isFinite(numericBalance)
+            ? `Your latest available account balance is BBD $${numericBalance.toFixed(2)}. ${account.latestStatement ? "A statement is available in your account." : "No statement is currently available from the connected source."}`
+            : "I could not verify a current balance from the connected account source, so I will not invent a figure. You can open Statements or ask the accounts team to confirm it.";
           quickActions = [
             { type: "link", label: "View statements", href: "/profile/statements" },
             { type: "form", label: "Ask accounts for help", profile: "portal_support" },
@@ -443,6 +604,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         query: trimmedQuery,
         route: pathname,
         profile,
+        audience,
         corpus,
       });
 
@@ -466,6 +628,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         query: trimmedQuery,
         route: pathname,
         profile,
+        audience: result.audience,
         result,
         conversation: [...conversation, { role: "user", text: trimmedQuery }],
       });
@@ -477,7 +640,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
                 ...message,
                 result: generatedAnswer
                   ? { ...message.result, answer: generatedAnswer.answer, citations: generatedAnswer.citations }
-                  : message.result,
+                  : { ...message.result, errorState: true, confidence: message.result.topLinks.length > 0 ? "high" : "low" },
                 isEnhancing: false,
               }
             : message,
@@ -486,11 +649,12 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [corpus, messages, pathname, user]);
+  }, [activeAudience, audienceOverride, corpus, messages, pathname, user]);
 
-  const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile) => {
-    await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile);
-  }, [activeProfile, currentQuery, submitQueryInternal]);
+  const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile, audience?: AssistantAudience) => {
+    if (audience) setAudienceOverride(audience);
+    await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile, audience ?? activeAudience);
+  }, [activeAudience, activeProfile, currentQuery, submitQueryInternal]);
 
   const openAssistant = useCallback((options?: OpenAssistantOptions) => {
     setIsOpen(true);
@@ -503,10 +667,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
     if (options?.autoSubmit && options.query) {
       window.setTimeout(() => {
-        void submitQueryInternal(options.query!, options.profile ?? activeProfile);
+        if (options.audience) setAudienceOverride(options.audience);
+        void submitQueryInternal(options.query!, options.profile ?? activeProfile, options.audience ?? activeAudience);
       }, 0);
     }
-  }, [activeProfile, messages.length, resetConversation, submitQueryInternal]);
+  }, [activeAudience, activeProfile, messages.length, resetConversation, submitQueryInternal]);
 
   const openDetachedWindow = useCallback(() => {
     try {
@@ -581,7 +746,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
   const submitQuickAction = useCallback((action: AssistantQuickAction) => {
     if (action.type === "query") {
-      void submitQuery(action.query, action.profile ?? activeProfile);
+      void submitQuery(action.query, action.profile ?? activeProfile, action.audience);
       return;
     }
 
@@ -619,20 +784,27 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         .slice(-1)
         .map((message) => ({
           query: message.result.query,
-          links: message.result.topLinks.map((link) => ({ title: link.title, path: link.path })),
+          links: (message.result.citations ?? message.result.topLinks).map((link) => ({ title: link.title, path: link.path })),
+          audience: message.result.audience,
+          confidence: message.result.confidence,
+          answerMode: message.result.answerMode,
         }));
 
       const contextNotes = {
         route: `${pathname}${location.search}${location.hash}`,
         assistantProfile: activeProfile,
+        audience: activeAudience,
+        accountAccessStatus: identity?.portalAccessStatus ?? null,
+        accountCustomer: identity?.customerName ?? identity?.organizationName ?? null,
         market: formState.market,
         issueType: formState.issueType,
         productTopic: formState.productTopic,
         previousResults: resultSummary,
       };
 
+      let portalTicketId: string | null = null;
       if (formState.kind === "portal_support" && user) {
-        await createTicket.mutateAsync({
+        portalTicketId = await createTicket.mutateAsync({
           title: formState.issueType.trim() || "Portal assistant support request",
           description: `${summary}\n\nAssistant context:\n${JSON.stringify(contextNotes, null, 2)}`,
           partnerContactId: identity?.crmContactId ?? null,
@@ -672,31 +844,38 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           kind: "confirmation",
           title: "Request sent",
           text: formState.kind === "portal_support"
-            ? "Your request was submitted with your portal context attached. You can keep chatting here, or jump back to your helpdesk and orders if you want to continue self-service."
+            ? "Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here."
             : "Your request was submitted with the current page and assistant context attached. You can keep chatting here, or open one of the source links above while the team follows up.",
           quickActions: pathname.startsWith("/profile")
             ? [
-                { type: "link", label: "Open helpdesk", href: "/profile/helpdesk" },
+                { type: "link", label: "Open live conversation", href: portalTicketId ? `/profile/helpdesk/${portalTicketId}` : "/profile/helpdesk" },
                 { type: "link", label: "View orders", href: "/profile/orders" },
                 { type: "query", label: "Ask another question", query: "Help me with something else in my account.", profile: "portal_support" },
               ]
             : [
                 { type: "link", label: "Open contact section", href: "/#contact" },
-                { type: "query", label: "Find a retailer", query: "Help me find a retailer.", profile: "retailer_help" },
+                ...(user ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer.", profile: "retailer_help" as const }]),
                 { type: "query", label: "Ask another question", query: "Help me find the best page for my next question." },
               ],
         },
       ]);
+
+      if (portalTicketId) {
+        setIsOpen(false);
+        navigate(`/profile/helpdesk/${portalTicketId}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeProfile, createTicket, formState, identity?.crmContactId, location.hash, location.search, messages, pathname, user]);
+  }, [activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, location.hash, location.search, messages, navigate, pathname, user]);
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,
     isDetachedRoute,
     messages,
     activeProfile,
+    activeAudience,
+    setActiveAudience: setAudienceOverride,
     currentQuery,
     setCurrentQuery,
     openAssistant,
@@ -704,6 +883,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitQuery,
     submitQuickAction,
     markFeedback,
+    saveConversation,
+    isSavingConversation,
     nudge,
     dismissNudge,
     isSubmitting,
@@ -715,6 +896,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitForm,
   }), [
     activeProfile,
+    activeAudience,
     closeAssistant,
     currentQuery,
     dismissNudge,
@@ -722,6 +904,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     isOpen,
     isDetachedRoute,
     isSubmitting,
+    isSavingConversation,
     markFeedback,
     messages,
     nudge,
@@ -732,6 +915,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitForm,
     submitQuickAction,
     submitQuery,
+    saveConversation,
+    setAudienceOverride,
     updateForm,
   ]);
 

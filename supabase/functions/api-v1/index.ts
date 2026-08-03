@@ -1,5 +1,5 @@
 // External REST API v1 — keyed access to core domain data.
-// touch: 2026-07-02 — invoices/balances/statements resources (push retry)
+// touch: 2026-07-25 — catalog write allowlist matched to pricelist_catalog_rows
 // Auth: x-api-key header. Verified via public.verify_api_key RPC.
 // Routes: /api-v1/<resource>[/<id>]
 //   GET  /<resource>           -> list (?limit=&offset=&order=)
@@ -33,15 +33,18 @@ const RESOURCES: Record<string, ResourceConfig> = {
     table: "catalog_live",
     readScope: "catalog:read",
     writeScope: "catalog:write",
-    // Writes route to pricelist_catalog_rows (handled specially below).
+    // Writes route to pricelist_catalog_rows (handled specially below), so the
+    // allowlists below MUST track that table's real columns — not catalog_live's.
+    // pricelist_catalog_rows: catalog_type, row_key, row_type, section,
+    // display_description, bbd_price, item_id, sort_order
+    // (row_key / row_type / section are NOT NULL with no default).
     insertable: [
-      "row_label", "category", "section_key", "sort_order",
-      "lens_id", "supply_id", "addon_id",
-      "price", "currency", "notes", "is_active",
+      "catalog_type", "row_key", "row_type", "section",
+      "display_description", "bbd_price", "item_id", "sort_order",
     ],
     updatable: [
-      "row_label", "category", "section_key", "sort_order",
-      "price", "currency", "notes", "is_active",
+      "catalog_type", "section", "display_description",
+      "bbd_price", "item_id", "sort_order",
     ],
   },
   contacts: {
@@ -168,6 +171,12 @@ const RESOURCES: Record<string, ResourceConfig> = {
   moonshot_rocks: { table: "rocks", readScope: "moonshot:read", writeScope: "moonshot:write" },
   moonshot_todos: { table: "todos", readScope: "moonshot:read", writeScope: "moonshot:write" },
 };
+
+// The CV catalog editor, the portal RPC (portal_assigned_pricelist_catalog) and
+// the PDF generator all switch on these exact values. Anything else is written
+// but never rendered, so reject it at the door rather than silently accept it.
+const CATALOG_TYPES = new Set(["rx", "stock", "buysell"]);
+const CATALOG_ROW_TYPES = new Set(["lens", "addon", "supply"]);
 
 function pickFields(body: Record<string, any>, allowed?: string[]): Record<string, any> {
   if (!allowed || allowed.length === 0) return body;
@@ -323,15 +332,42 @@ Deno.serve(async (req: Request) => {
         return json({ error: "No writable fields present in request body." }, 400);
       }
       if (resource === "catalog") {
+        // NOT NULL on the table, no defaults — reject with a readable error
+        // instead of leaking a Postgres 23502.
+        const missing = ["row_key", "row_type", "section"].filter(
+          (f) => body[f] === undefined || body[f] === null || body[f] === "",
+        );
+        if (missing.length) {
+          return json({
+            error: `Missing required catalog field(s): ${missing.join(", ")}.`,
+            detail: "pricelist_catalog_rows requires row_key, row_type and section.",
+          }, 400);
+        }
+        const catalogType = body.catalog_type ?? "rx";
+        if (!CATALOG_TYPES.has(catalogType)) {
+          return json({
+            error: `Invalid catalog_type '${catalogType}'.`,
+            detail: `Expected one of: ${[...CATALOG_TYPES].join(", ")}.`,
+          }, 400);
+        }
+        if (!CATALOG_ROW_TYPES.has(body.row_type)) {
+          return json({
+            error: `Invalid row_type '${body.row_type}'.`,
+            detail: `Expected one of: ${[...CATALOG_ROW_TYPES].join(", ")}.`,
+          }, 400);
+        }
         const { data: draftId, error: draftErr } = await supabase.rpc(
           "api_get_or_create_catalog_draft",
           { p_api_key_id: key.id },
         );
         if (draftErr) throw draftErr;
-        const row = { ...body, pricelist_version_id: draftId };
+        const row = { ...body, catalog_type: catalogType, pricelist_version_id: draftId };
+        // Republishing the same pricelist must be idempotent — the table has
+        // UNIQUE(pricelist_version_id, catalog_type, row_key), so a plain insert
+        // would 409 on every row of the second run.
         const { data, error } = await supabase
           .from("pricelist_catalog_rows")
-          .insert(row)
+          .upsert(row, { onConflict: "pricelist_version_id,catalog_type,row_key" })
           .select()
           .maybeSingle();
         if (error) throw error;
@@ -351,6 +387,12 @@ Deno.serve(async (req: Request) => {
         return json({ error: "No writable fields present in request body." }, 400);
       }
       if (resource === "catalog") {
+        if (body.catalog_type !== undefined && !CATALOG_TYPES.has(body.catalog_type)) {
+          return json({
+            error: `Invalid catalog_type '${body.catalog_type}'.`,
+            detail: `Expected one of: ${[...CATALOG_TYPES].join(", ")}.`,
+          }, 400);
+        }
         const { data: draftId, error: draftErr } = await supabase.rpc(
           "api_get_or_create_catalog_draft",
           { p_api_key_id: key.id },

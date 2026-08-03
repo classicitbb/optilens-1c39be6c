@@ -4,13 +4,27 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-07-30 — Live Helpdesk Conversations
+
+### Release Notes
+- Helpdesk replies can now appear in the customer portal and operator inbox without a browser refresh.
+- An assistant request for human help opens the exact live Helpdesk conversation once the customer confirms it.
+
+### Technical Changelog
+- Added an authenticated, idempotent message RPC and private Supabase Realtime topics, with database authorization for the relevant customer or staff member only.
+- Added targeted client-cache refreshes for one ticket and the office inbox, avoiding polling and broad data reloads.
+- Corrected a database-function result-column collision that blocked reply sending, and prevented a handled send error from becoming an unhandled browser promise.
+- Standardized two-way conversation alignment (sender right, received reply left) and added one server-side Helpdesk acknowledgement per customer conversation, with business-hours and urgent-call wording.
+
 ## 2026-07-24 — Sales App Consolidation
 
 ### Release Notes
 - Closed the standalone Sales app. Proposals now live in CRM; quotations and website orders now live in Website.
+- Admin → Settings → Integrations now includes secure DHL Express MyDHL configuration for on-demand shipment tracking and landed-cost estimates.
 
 ### Technical Changelog
 - Replaced Sales routes with canonical `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders` routes, updated navigation and permissions, and added regression coverage that prevents the Sales app or routes from returning.
+- DHL Basic Auth credentials are encrypted at rest and resolved only by an admin-protected Edge Function; DHL tracking and landed-cost results are not stored.
 
 ## 2026-07-22 — Staff Public Networking Cards
 

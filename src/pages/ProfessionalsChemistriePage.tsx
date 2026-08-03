@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -173,11 +174,25 @@ const SPECS = [
 { icon: Sparkles, label: "Swarovski crystal options", detail: "12 premium crystal colors available" }];
 
 
+const CHEMISTRIE_CONTACT_PRELOAD_MSG =
+  "Hi, I'm interested in the Chemistrie Lens System. Please send me more information.";
+
 /* ─────────────── COMPONENT ─────────────── */
 
 export default function ProfessionalsChemistriePage() {
   const [tab, setTab] = useState("sun-colors");
   const [heroBgVideoError, setHeroBgVideoError] = useState(false);
+  const navigate = useNavigate();
+  const { identity } = usePortalIdentity();
+  const hasLinkedErpAccount = !!identity?.crmCustomerId;
+
+  const handleInquire = () => {
+    const params = new URLSearchParams({ msg: CHEMISTRIE_CONTACT_PRELOAD_MSG });
+    navigate(`/?${params.toString()}#contact`);
+    setTimeout(() => {
+      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+    }, 150);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -231,13 +246,13 @@ export default function ProfessionalsChemistriePage() {
             </ul>
 
             <div className="flex flex-wrap gap-4">
-              <Button size="lg" asChild>
-                <Link to="/professionals/trade-account">Apply for Trade Account</Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <a href="https://www.forecps.com" target="_blank" rel="noopener noreferrer">
-                  Visit ForECPs.com <ExternalLink className="ml-1 h-4 w-4" />
-                </a>
+              {!hasLinkedErpAccount && (
+                <Button size="lg" asChild>
+                  <Link to="/professionals/trade-account">Apply for Trade Account</Link>
+                </Button>
+              )}
+              <Button variant="outline" size="lg" onClick={handleInquire}>
+                Inquire Today
               </Button>
             </div>
           </div>
@@ -576,15 +591,17 @@ export default function ProfessionalsChemistriePage() {
               to discuss pricing, demo kits, and wholesale account setup.
             </p>
             <div className="flex flex-wrap justify-center gap-4 mb-10">
-              <Button
-                size="lg"
-                variant="secondary"
-                asChild>
-                
-                <Link to="/professionals/trade-account">
-                  Apply for a Trade Account <ArrowRight className="ml-1 h-5 w-5" />
-                </Link>
-              </Button>
+              {!hasLinkedErpAccount && (
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  asChild>
+
+                  <Link to="/professionals/trade-account">
+                    Apply for a Trade Account <ArrowRight className="ml-1 h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
               <Button
                 size="lg"
                 className="border-2 border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"

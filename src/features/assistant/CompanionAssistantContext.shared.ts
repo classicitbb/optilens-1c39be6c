@@ -1,8 +1,8 @@
 import { createContext } from "react";
-import type { AssistantProfile, AssistantQueryResult } from "./companionAssistantEngine";
+import type { AssistantAnswerMode, AssistantAudience, AssistantProfile, AssistantQueryResult } from "./companionAssistantEngine";
 
 export type AssistantQuickAction =
-  | { type: "query"; label: string; query: string; profile?: AssistantProfile }
+  | { type: "query"; label: string; query: string; profile?: AssistantProfile; audience?: AssistantAudience }
   | { type: "web_search"; label: string; query: string }
   | { type: "form"; label: string; profile?: AssistantProfile }
   | { type: "link"; label: string; href: string; external?: boolean };
@@ -14,6 +14,7 @@ export type AssistantMessage =
       kind: "text";
       text: string;
       quickActions?: AssistantQuickAction[];
+      feedback?: "helpful" | "not_helpful";
     }
   | {
       id: string;
@@ -30,6 +31,7 @@ export type AssistantMessage =
       title: string;
       text: string;
       quickActions?: AssistantQuickAction[];
+      feedback?: "helpful" | "not_helpful";
     }
   | {
       id: string;
@@ -56,6 +58,7 @@ export type OpenAssistantOptions = {
   query?: string;
   autoSubmit?: boolean;
   profile?: AssistantProfile;
+  audience?: AssistantAudience;
 };
 
 export interface CompanionAssistantContextValue {
@@ -63,13 +66,17 @@ export interface CompanionAssistantContextValue {
   isDetachedRoute: boolean;
   messages: AssistantMessage[];
   activeProfile: AssistantProfile;
+  activeAudience: AssistantAudience;
+  setActiveAudience: (audience: AssistantAudience) => void;
   currentQuery: string;
   setCurrentQuery: (value: string) => void;
   openAssistant: (options?: OpenAssistantOptions) => void;
   closeAssistant: () => void;
-  submitQuery: (query?: string, profile?: AssistantProfile) => Promise<void>;
+  submitQuery: (query?: string, profile?: AssistantProfile, audience?: AssistantAudience) => Promise<void>;
   submitQuickAction: (action: AssistantQuickAction) => void;
   markFeedback: (messageId: string, feedback: "helpful" | "not_helpful") => void;
+  saveConversation: () => Promise<void>;
+  isSavingConversation: boolean;
   nudge: { message: string; query?: string } | null;
   dismissNudge: () => void;
   isSubmitting: boolean;

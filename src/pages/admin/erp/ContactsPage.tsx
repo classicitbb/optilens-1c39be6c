@@ -23,6 +23,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
+import { useAdminUsers } from "@/hooks/useAdminUsers";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -183,6 +184,8 @@ const FIELD_ALIASES: Record<string, ContactImportField> = {
 };
 
 const normalizeHeader = (header: string) => header.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : "—");
 
 const parseCsvLine = (line: string): string[] => {
   const values: string[] = [];
@@ -503,6 +506,14 @@ const ContactsPage = ({
 }: ContactsPageProps) => {
   const { data: contactsData, isLoading } = useContacts();
   const contacts = contactsData ?? EMPTY_CONTACTS;
+  const { users: adminUsers } = useAdminUsers();
+  const salespersonOptions = useMemo(
+    () =>
+      adminUsers
+        .filter((u) => u.role === "admin" || u.role === "operator")
+        .map((u) => u.display_name || u.full_name || u.email || u.user_id),
+    [adminUsers],
+  );
 
   // Bulk lookup for the ERP-resolved parent-customer link (contacts.linked_customer_id
   // -> customers.id), auto-maintained by resolve_contact_customer_links() on every
@@ -665,7 +676,7 @@ const ContactsPage = ({
     queryKey: ["contact-linked-portal-profile", editContact?.id, accountSettingsCustomer?.id],
     queryFn: async () => {
       const query = (supabase.from("profiles") as any)
-        .select("id,user_id,full_name,organization_name,portal_access_status,crm_contact_id,crm_customer_id")
+        .select("id,user_id,full_name,organization_name,portal_access_status,crm_contact_id,crm_customer_id,last_portal_login_at")
         .limit(1);
       if (editContact?.is_company && accountSettingsCustomer?.id) query.eq("crm_customer_id", accountSettingsCustomer.id);
       else if (editContact?.id) query.eq("crm_contact_id", editContact.id);
@@ -673,7 +684,7 @@ const ContactsPage = ({
       else return null;
       const { data, error } = await query.maybeSingle();
       if (error) throw error;
-      return data as { id: string; user_id: string; full_name: string | null; organization_name: string | null; portal_access_status: string | null; crm_contact_id: string | null; crm_customer_id: number | null } | null;
+      return data as { id: string; user_id: string; full_name: string | null; organization_name: string | null; portal_access_status: string | null; crm_contact_id: string | null; crm_customer_id: number | null; last_portal_login_at: string | null } | null;
     },
     enabled: !!editContact?.id || !!accountSettingsCustomer?.id,
   });
@@ -2377,7 +2388,21 @@ const ContactsPage = ({
                         </div>
                         <div>
                           <label className="text-[11px] font-medium mb-0.5 block">Salesperson</label>
-                          <Input className="h-7 text-xs" value={editContact.salesperson ?? ""} onChange={(e) => setEditContact({ ...editContact, salesperson: e.target.value })} />
+                          <Select
+                            value={editContact.salesperson || "none"}
+                            onValueChange={(v) => setEditContact({ ...editContact, salesperson: v === "none" ? "" : v })}
+                          >
+                            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select salesperson" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {editContact.salesperson && !salespersonOptions.includes(editContact.salesperson) && (
+                                <SelectItem value={editContact.salesperson}>{editContact.salesperson} (unrecognized)</SelectItem>
+                              )}
+                              {salespersonOptions.map((name) => (
+                                <SelectItem key={name} value={name}>{name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 
@@ -2634,9 +2659,22 @@ const ContactsPage = ({
                                   </p>
                                 </div>
                                 <div className="rounded-lg bg-muted/40 p-3">
-                                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website portal</p>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Website portal</p>
+                                    <Badge
+                                      variant={linkedPortalProfile ? "default" : "secondary"}
+                                      className="shrink-0 text-[10px] px-1.5 py-0 h-5"
+                                    >
+                                      {linkedPortalProfile ? "Deployed" : "Not deployed"}
+                                    </Badge>
+                                  </div>
                                   <p className="mt-1 text-sm font-medium">{linkedPortalProfile ? "Profile linked" : "No profile linked"}</p>
                                   <p className="mt-0.5 text-xs text-muted-foreground">{linkedPortalProfile?.portal_access_status?.replace(/_/g, " ") || "Login can be created or invited"}</p>
+                                  {linkedPortalProfile && (
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      Last sign in: {formatDateTime(linkedPortalProfile.last_portal_login_at)}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               <div className="space-y-1.5">

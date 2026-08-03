@@ -42,6 +42,17 @@ import { Switch } from "@/components/ui/switch";
 import { useSearchParams } from "react-router";
 
 const RichTextEditor = lazy(() => import("@/components/admin/RichTextEditor"));
+import EditorErrorBoundary from "@/components/admin/EditorErrorBoundary";
+
+const describeError = (error: unknown): string => {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  const err = error as { message?: string; details?: string; hint?: string; code?: string };
+  return [err.message, err.details, err.hint, err.code && `(code ${err.code})`]
+    .filter(Boolean)
+    .join(" — ") || "Unknown error";
+};
+
 
 type BlogPostDraft = Partial<BlogPost>;
 
@@ -276,8 +287,9 @@ const BlogPostsManager = ({
       toast({ title: editing.id ? "Blog entry updated" : "Blog entry created" });
       setEditing(null);
       setTagInput("");
-    } catch {
-      toast({ title: "Could not save blog entry", variant: "destructive" });
+    } catch (error) {
+      console.error("Blog entry save failed", error);
+      toast({ title: "Could not save blog entry", description: describeError(error), variant: "destructive" });
     }
   };
 
@@ -286,8 +298,9 @@ const BlogPostsManager = ({
     try {
       await deleteBlogPost(id);
       toast({ title: "Blog entry deleted" });
-    } catch {
-      toast({ title: "Could not delete blog entry", variant: "destructive" });
+    } catch (error) {
+      console.error("Blog entry delete failed", error);
+      toast({ title: "Could not delete blog entry", description: describeError(error), variant: "destructive" });
     }
   };
 
@@ -295,10 +308,12 @@ const BlogPostsManager = ({
     try {
       const count = await seedBlogPosts();
       toast({ title: "Legacy drafts imported", description: `${count ?? 0} Classic Visions posts are now available in Blog Posts.` });
-    } catch {
-      toast({ title: "Could not import drafts", variant: "destructive" });
+    } catch (error) {
+      console.error("Blog draft import failed", error);
+      toast({ title: "Could not import drafts", description: describeError(error), variant: "destructive" });
     }
   };
+
 
   if (editing) {
     const selectedRelated = new Set(editing.related_post_slugs ?? []);
@@ -478,26 +493,29 @@ const BlogPostsManager = ({
 
                 <div>
                   <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Body content</label>
-                  <Suspense fallback={<div className="h-[420px] animate-pulse rounded-lg border border-border bg-muted/20" />}>
-                    <RichTextEditor
-                      content={editing.content || ""}
-                      onChange={(html) => {
-                        const next: BlogPostDraft = { ...editing, content: html };
-                        if (!editing.cover_image_url) {
-                          const found = extractFirstImage(html);
-                          if (found) {
-                            next.cover_image_url = found.src;
-                            if (!editing.cover_image_alt && found.alt) {
-                              next.cover_image_alt = found.alt;
+                  <EditorErrorBoundary label="The body editor">
+                    <Suspense fallback={<div className="h-[420px] animate-pulse rounded-lg border border-border bg-muted/20" />}>
+                      <RichTextEditor
+                        content={editing.content || ""}
+                        onChange={(html) => {
+                          const next: BlogPostDraft = { ...editing, content: html };
+                          if (!editing.cover_image_url) {
+                            const found = extractFirstImage(html);
+                            if (found) {
+                              next.cover_image_url = found.src;
+                              if (!editing.cover_image_alt && found.alt) {
+                                next.cover_image_alt = found.alt;
+                              }
                             }
                           }
-                        }
-                        setEditing(next);
-                      }}
-                      placeholder="Write the article body..."
-                      minHeight="420px"
-                    />
-                  </Suspense>
+                          setEditing(next);
+                        }}
+                        placeholder="Write the article body..."
+                        minHeight="420px"
+                      />
+                    </Suspense>
+                  </EditorErrorBoundary>
+
                 </div>
               </div>
 

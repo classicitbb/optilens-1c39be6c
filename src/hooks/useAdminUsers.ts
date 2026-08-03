@@ -16,6 +16,7 @@ export interface AdminUser {
   role_id: string | null;
   created_at: string | null;
   email_confirmed_at: string | null;
+  invited_at: string | null;
 }
 
 export const useAdminUsers = () => {
@@ -34,9 +35,9 @@ export const useAdminUsers = () => {
       if (pErr) throw pErr;
       if (rErr) throw rErr;
 
-      let authUsers: { id: string; email: string; created_at: string; email_confirmed_at: string | null }[] = [];
+      let authUsers: { id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null }[] = [];
       try {
-        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string; email_confirmed_at: string | null }[]>(
+        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null }[]>(
           validateAdminFunctionRequest({ actorRole: role, action: "list-users" })
         );
         if (Array.isArray(data)) authUsers = data;
@@ -69,6 +70,7 @@ export const useAdminUsers = () => {
           role_id: role?.id ?? null,
           created_at: auth?.created_at ?? null,
           email_confirmed_at: auth?.email_confirmed_at ?? null,
+          invited_at: auth?.invited_at ?? null,
         } satisfies AdminUser;
       }).sort((left, right) => {
         const leftLabel = (left.display_name || left.email || left.user_id).toLowerCase();

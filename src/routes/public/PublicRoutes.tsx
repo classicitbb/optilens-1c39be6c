@@ -8,6 +8,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Index = lazy(() => import("@/pages/Index"));
 const VizionizeCleanerPage = lazy(() => import("@/pages/VizionizeCleanerPage"));
@@ -18,6 +19,7 @@ const OpticalRetailWebsitesPage = lazy(() => import("@/pages/OpticalRetailWebsit
 const RxLabServicesPage = lazy(() => import("@/pages/RxLabServicesPage"));
 const LensAssistantPage = lazy(() => import("@/pages/LensAssistantPage"));
 const LabLinkEmbedPage = lazy(() => import("@/pages/LabLinkEmbedPage"));
+const RxOrderPage = lazy(() => import("@/pages/RxOrderPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("@/pages/LensDesignGuidePage"));
@@ -95,6 +97,15 @@ const LensAssistantRouteGate = () => {
   return enabled ? <LensAssistantPage /> : <Navigate to={user ? "/profile" : "/"} replace />;
 };
 
+// Gates the new in-house Rx order form on its Feature Board flag — toggling
+// it off must actually block the route (not just hide the nav link), so
+// direct/bookmarked URLs fall back to the LabLink portal that's always live.
+const RxOrderRouteGate = () => {
+  const { enabled, isLoading } = useWebsiteFeature("rx_order_form", true);
+  if (isLoading) return null;
+  return enabled ? <RxOrderPage /> : <Navigate to="/rx-order/lablink" replace />;
+};
+
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
@@ -103,18 +114,31 @@ const PublicRoutes = () => (
     <Route path="blog/:slug" element={<BlogPostPage />} />
     <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
     <Route path="connect/:slug" element={<ConnectCardPage />} />
-    <Route path="optical-retail-websites" element={<OpticalRetailWebsitesPage />} />
+    <Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
     <Route path="lens-assistant" element={<LensAssistantRouteGate />} />
+    {/* The in-house Rx order form (ported prototype) replaces the LabLink
+        iframe here — profile's "Start an Rx order" lands on this. The old
+        LabLink portal stays reachable at /rx-order/lablink as a fallback. */}
     <Route
       path="rx-order"
       element={
-        <LabLinkEmbedPage
-          title="Online Ordering Portal"
-          iframeTitle="Classic Visions Online Ordering Portal"
-          src={LABLINK_PORTAL_URL}
-          canonicalPath="/rx-order"
-        />
+        <ProtectedRoute>
+          <RxOrderRouteGate />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="rx-order/lablink"
+      element={
+        <ProtectedRoute>
+          <LabLinkEmbedPage
+            title="Online Ordering Portal"
+            iframeTitle="Classic Visions Online Ordering Portal"
+            src={LABLINK_PORTAL_URL}
+            canonicalPath="/rx-order/lablink"
+          />
+        </ProtectedRoute>
       }
     />
     <Route
@@ -128,8 +152,8 @@ const PublicRoutes = () => (
         />
       }
     />
-    <Route path="knowledge" element={<Knowledge />} />
-    <Route path="knowledge/:articleSlug" element={<Knowledge />} />
+    <Route path="knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+    <Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="legal/:slug" element={<LegalPage />} />
 
     <Route path="lenses/lens-types" element={<LensDesignGuidePage />} />
@@ -174,9 +198,9 @@ const PublicRoutes = () => (
     <Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />
     <Route path="professionals/repairs-policy" element={<RepairsPolicyPage />} />
     <Route path="professionals/returns-replacements" element={<ReturnsReplacementsPage />} />
-    <Route path="professionals/tracing-cutting-guide" element={<TracingCuttingGuidePage />} />
-    <Route path="professionals/lab-process-overview" element={<LabProcessOverviewPage />} />
-    <Route path="professionals/lens-ordering-tips" element={<LensOrderingTipsPage />} />
+    <Route path="professionals/tracing-cutting-guide" element={<ProtectedRoute><TracingCuttingGuidePage /></ProtectedRoute>} />
+    <Route path="professionals/lab-process-overview" element={<ProtectedRoute><LabProcessOverviewPage /></ProtectedRoute>} />
+    <Route path="professionals/lens-ordering-tips" element={<ProtectedRoute><LensOrderingTipsPage /></ProtectedRoute>} />
     <Route path="professionals/:slug" element={<ProfessionalsPortalPage />} />
     <Route path="return-policy" element={<LegalPage />} />
 

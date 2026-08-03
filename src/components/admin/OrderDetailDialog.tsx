@@ -204,8 +204,8 @@ const OrderDetailDialog = ({ order, open, onOpenChange, onStatusChanged }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl print:shadow-none">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col overflow-hidden print:shadow-none">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-3">
             Order <span className="font-mono">#{order.id.slice(0, 8).toUpperCase()}</span>
             <Badge variant="outline" className="capitalize">
@@ -217,7 +217,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange, onStatusChanged }: Props
           </DialogDescription>
         </DialogHeader>
 
-        <div id="order-print-region" className="space-y-4 text-sm">
+        <div id="order-print-region" className="min-h-0 flex-1 space-y-4 overflow-y-auto text-sm">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <div className="text-xs font-semibold uppercase text-muted-foreground">Customer</div>
@@ -288,7 +288,7 @@ const OrderDetailDialog = ({ order, open, onOpenChange, onStatusChanged }: Props
           </div>
         </div>
 
-        <DialogFooter className="print:hidden">
+        <DialogFooter className="shrink-0 print:hidden">
           <Button variant="outline" onClick={print} disabled={loading}>
             <Printer className="mr-1.5 h-4 w-4" />
             Print

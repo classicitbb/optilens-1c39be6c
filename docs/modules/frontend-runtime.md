@@ -2,11 +2,27 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-07-30 — Live Helpdesk conversations
+
+- `useLiveHelpdeskTicketUpdates` joins one private `helpdesk:ticket:<ticket-id>` topic only while that conversation is open. Its broadcasts contain identifiers, then refresh only that ticket's messages, timeline, and summary queries.
+- `useLiveHelpdeskInboxUpdates` runs in the operator shell and refreshes the Helpdesk queue when a customer replies, creates a ticket, or its status changes. A visible toast calls out new customer replies.
+- All browser message writes use `send_helpdesk_ticket_message`, which assigns the direction server-side and uses a client message UUID to make retrying a submit safe. Do not reintroduce direct client-table inserts for messages.
+- The RPC must keep every `helpdesk_ticket_messages` column reference explicit because its `RETURNS TABLE` fields share names with table columns. `TicketReplyComposer` catches rejected `mutateAsync` calls because the mutation itself owns the error toast.
+- `TicketMessageBubble` and the portal ticket detail each use a full-width conversation row: the signed-in sender is right-aligned and the responder is left-aligned. Do not infer alignment from a display name; use message direction.
+- The database marks an automatic acknowledgement with `is_automated`. The trigger sends it once for portal/chat/assistant-created tickets, or the first inbound customer message before a human response. Working hours are Monday–Friday, 8:30 AM–5:00 PM in `America/Barbados`.
+- The assistant handoff navigation stays at `/profile/helpdesk/:ticketId`; keep the confirmation requirement before creating a support conversation.
+
 ## 2026-07-24 — Sales app consolidation
 
 - The Sales app is no longer registered in `ADMIN_APPS` or the launcher navigation registry.
 - Canonical admin routes are `/admin/crm/proposals`, `/admin/website/quotations`, and `/admin/website/orders`; quotation editor, print-preview, notification, breadcrumb, and permission links use these destinations.
 - `adminSalesClosure.integration.test.ts` prevents the removed Sales and standalone orders routes from being reintroduced.
+
+## 2026-07-24 — DHL Express MyDHL integration
+
+- `IntegrationsPage` configures the DHL Express account number, environment, and Basic Auth credential pair. Credentials are write-only in the browser and encrypted in `dhl_express_secrets`.
+- The JWT-protected `dhl-express` Edge Function is admin-only and permits exactly three actions: a read-only configuration test, one shipment tracking lookup, and one landed-cost estimate. Landed-cost request and response data are deliberately not persisted.
+- Customer My Orders continues to use the existing customer-scoped live-delivery feed. Do not route an arbitrary portal tracking number into `dhl-express` until the server can prove that it belongs to the signed-in customer's delivery.
 
 ## 2026-07-22 — Staff public networking cards
 

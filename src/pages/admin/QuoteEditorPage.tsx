@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
-  useQuotes, useQuoteLines, useRxDetails, Quote, QuoteLine, RxDetail,
+  useQuotes, useQuoteLines, Quote, QuoteLine,
   computeLineProfit, QUOTE_STATUSES, OVERRIDE_REASONS,
 } from "@/hooks/useQuotes";
 import { useLenses, Lens } from "@/hooks/useLenses";
 import { useAddons, Addon } from "@/hooks/useAddons";
 import { useSupplies, Supply } from "@/hooks/useSupplies";
-import { supabase } from "@/integrations/supabase/client";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +22,6 @@ import QuotePdfExport, { QuotePdfExportHandle, QuotePreviewPanel } from "@/compo
 import { resolvePrintSettings } from "@/features/admin/print/printStyles";
 import { getPersistedPrintSettings, savePersistedPrintSettings } from "@/features/admin/print/printSettingsStore";
 import { PrintSettings } from "@/features/admin/print/types";
-import RxQuoteWizard from "@/components/admin/RxQuoteWizard";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const profitBadge = (status: string) => {
@@ -82,10 +80,6 @@ const QuoteEditorPage = () => {
   const [noteDialogLine, setNoteDialogLine] = useState<QuoteLine | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
 
-  // Rx map (for summary / PDF export on RX quotes)
-  const lensLineIds = useMemo(() => lines.filter(l => l.line_type === "Lens").map(l => l.id), [lines]);
-  const [rxMap, setRxMap] = useState<Record<string, RxDetail>>({});
-
   useEffect(() => {
     setPrintSettings(getPersistedPrintSettings(printSettingsProfileId, { paperSize: "A4", orientation: "portrait" }));
   }, [printSettingsProfileId]);
@@ -97,18 +91,10 @@ const QuoteEditorPage = () => {
     });
   }, [printSettingsProfileId]);
 
+  // RX quotes live in the in-house Rx order form now — bounce stale links here.
   useEffect(() => {
-    if (lensLineIds.length === 0) { setRxMap({}); return; }
-    const fetchAll = async () => {
-      const { data, error } = await (supabase.from("rx_details") as any).select("*").in("quote_line_id", lensLineIds);
-      if (!error && data) {
-        const map: Record<string, RxDetail> = {};
-        data.forEach((r: any) => { map[r.quote_line_id] = r as RxDetail; });
-        setRxMap(map);
-      }
-    };
-    fetchAll();
-  }, [lensLineIds.join(",")]);
+    if (quote?.quote_type === "RX") navigate(`/admin/website/quotations/rx/${quote.id}`, { replace: true });
+  }, [quote?.id, quote?.quote_type, navigate]);
 
   useEffect(() => {
     if (quote) {
@@ -218,15 +204,13 @@ const QuoteEditorPage = () => {
     return supplies.filter(sup => sup.is_active && (sup.name.toLowerCase().includes(s) || sup.sku?.toLowerCase().includes(s))).slice(0, 50).map(sup => ({ id: sup.id, name: sup.name, sku: sup.sku || "", type: "Stock", cost: sup.base_price, price: sup.sell_price }));
   }, [pickerSearch, supplies]);
 
-  if (!quote) {
+  if (!quote || quote.quote_type === "RX") {
     return (
       <div className="flex items-center justify-center h-40">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-primary" />
       </div>
     );
   }
-
-  const isRx = quote.quote_type === "RX";
 
   return (
     <div className="flex flex-col h-full">
@@ -304,7 +288,7 @@ const QuoteEditorPage = () => {
               <input type="checkbox" checked={showInternalExport} onChange={e => setShowInternalExport(e.target.checked)} className="h-3 w-3 rounded" />
               Internal
             </label>
-            {!isRx && canEdit && lines.length > 0 && (
+            {canEdit && lines.length > 0 && (
               <div className="flex gap-0.5 ml-auto">
                 <span className="text-[11px] text-muted-foreground self-center mr-1">Round:</span>
                 {[1, 5, 10].map(n => <Button key={n} size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => roundTotalUp(n)}>↑{n}</Button>)}
@@ -313,25 +297,8 @@ const QuoteEditorPage = () => {
           </div>
         </div>
 
-        {/* ══ RX QUOTE: multi-step wizard ════════════════════════════════ */}
-        {isRx && (
-          <RxQuoteWizard
-            quote={quote}
-            onUpdateQuote={updates => updateMutation.mutate({ id: quote.id, updates: updates as any })}
-            headerForm={headerForm}
-            setHeaderForm={setHeaderForm}
-            saveHeader={saveHeader}
-            emailError={emailError}
-            setEmailError={setEmailError}
-            totals={totals}
-            canEdit={canEdit}
-            printSettingsProfileId={printSettingsProfileId}
-          />
-        )}
-
         {/* ══ STOCK QUOTE: flat editor ════════════════════════════════════ */}
-        {!isRx && (
-          <div className="flex flex-col xl:flex-row gap-4">
+        <div className="flex flex-col xl:flex-row gap-4">
             <div className="flex-1 min-w-0 space-y-4">
               {/* Header fields */}
               <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
@@ -494,11 +461,9 @@ const QuoteEditorPage = () => {
               </div>
             </div>
           </div>
-        )}
       </div>
 
       {/* ── STOCK: product picker dialog ────────────────────────────────── */}
-      {!isRx && (
         <Dialog open={productPickerOpen} onOpenChange={setProductPickerOpen}>
           <DialogContent className="sm:max-w-lg max-h-[70vh] flex flex-col">
             <DialogHeader><DialogTitle className="text-sm font-semibold">Add Stock Item</DialogTitle></DialogHeader>
@@ -519,7 +484,6 @@ const QuoteEditorPage = () => {
             </div>
           </DialogContent>
         </Dialog>
-      )}
 
       {/* ── Override reason dialog ──────────────────────────────────────── */}
       <Dialog open={!!overrideDialogLine} onOpenChange={open => { if (!open) { setOverrideDialogLine(null); setOverrideReason(""); setOverrideNote(""); } }}>
@@ -619,7 +583,6 @@ const QuoteEditorPage = () => {
               quote={quote}
               lines={lines}
               totals={totals}
-              rxMap={rxMap}
               printSettings={printSettings}
               printSettingsProfileId={printSettingsProfileId}
               onPrintSettingsChange={(next) => setPrintSettings(savePersistedPrintSettings(printSettingsProfileId, next))}
@@ -632,7 +595,6 @@ const QuoteEditorPage = () => {
               lines={lines}
               totals={totals}
               showInternal={showInternalExport}
-              rxMap={rxMap}
               printSettings={printSettings}
               printSettingsProfileId={printSettingsProfileId}
               showTriggerButton={false}

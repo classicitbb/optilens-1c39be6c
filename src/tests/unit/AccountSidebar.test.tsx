@@ -8,11 +8,16 @@ const mocks = vi.hoisted(() => ({
   isAdmin: false,
   lensAssistantPublic: false,
   lensAssistantAdmin: true,
+  lensAssistantProfileEnabled: true,
 }));
 
 vi.mock("@/hooks/usePortalIdentity", () => ({
   usePortalIdentity: () => ({
-    canAccessFeature: (feature: string) => feature === "statements" ? mocks.statementsEnabled : true,
+    canAccessFeature: (feature: string) => {
+      if (feature === "statements") return mocks.statementsEnabled;
+      if (feature === "lens-assistant") return mocks.lensAssistantProfileEnabled;
+      return true;
+    },
   }),
 }));
 
@@ -40,6 +45,7 @@ describe("AccountSidebar", () => {
     mocks.isAdmin = false;
     mocks.lensAssistantPublic = false;
     mocks.lensAssistantAdmin = true;
+    mocks.lensAssistantProfileEnabled = true;
   });
 
   it("lets approved customers open statements", () => {
@@ -73,6 +79,15 @@ describe("AccountSidebar", () => {
     mocks.lensAssistantAdmin = true;
     renderSidebar();
 
-    expect(screen.getByRole("link", { name: "Lens Assistant" })).toHaveAttribute("href", "/lens-assistant?audience=professional");
+    expect(screen.getByRole("link", { name: "Lens Assistant" })).toHaveAttribute("href", "/profile/lens-assistant?audience=professional");
+  });
+
+  it("hides Lens Assistant when this profile has an explicit disabled override", () => {
+    mocks.isAdmin = false;
+    mocks.lensAssistantPublic = true;
+    mocks.lensAssistantProfileEnabled = false;
+    renderSidebar();
+
+    expect(screen.queryByRole("link", { name: "Lens Assistant" })).not.toBeInTheDocument();
   });
 });

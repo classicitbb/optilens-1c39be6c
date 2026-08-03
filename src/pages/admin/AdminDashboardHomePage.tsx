@@ -1,4 +1,4 @@
-import { Activity, ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Settings, Target, Users } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, BookOpen, DollarSign, Globe, LifeBuoy, Megaphone, Target, Users } from "lucide-react";
 import { Link } from "react-router";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ const appTiles = [
   {
     title: "Website",
     description: "Update website content and manage storefront products, quotations, and orders.",
-    route: "/admin/website/content",
+    route: "/admin/website/portals",
     icon: Globe,
   },
   {
@@ -55,12 +55,6 @@ const appTiles = [
     description: "Review live edge-function readiness, the latest smoke result, and any active failures.",
     route: "/admin/settings/edge-functions",
     icon: Activity,
-  },
-  {
-    title: "Settings",
-    description: "Manage company settings, users, permissions, integrations, and audit controls.",
-    route: "/admin/settings/company",
-    icon: Settings,
   },
 ];
 
@@ -112,34 +106,18 @@ const AdminDashboardHomePage = () => {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
-                    {analyticsOverview.data?.metrics.map((metric) => (
-                      <Card key={metric.label} className="border-border/70">
-                        <CardHeader className="space-y-1 p-4 pb-1.5">
-                          <CardDescription className="text-xs">{metric.label}</CardDescription>
-                          <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {analyticsOverview.data?.webVitals.map((metric) => (
-                      <Card key={metric.label} className="border-border/70">
-                        <CardHeader className="space-y-1 p-4 pb-1.5">
-                          <CardDescription className="text-xs">{metric.label}</CardDescription>
-                          <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                          <p className="text-xs text-muted-foreground">{metric.trend}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
+                  {analyticsOverview.data?.metrics.map((metric) => (
+                    <Card key={metric.label} className="border-border/70">
+                      <CardHeader className="space-y-1 p-4 pb-1.5">
+                        <CardDescription className="text-xs">{metric.label}</CardDescription>
+                        <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
             </AccordionContent>

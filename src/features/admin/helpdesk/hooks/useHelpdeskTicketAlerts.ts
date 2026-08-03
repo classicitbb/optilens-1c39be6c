@@ -1,43 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 /**
- * Shared "needs attention" alerting for helpdesk tickets, used by both the Overview
- * board and the Tickets list so opening a ticket in either place is remembered
- * everywhere, and only one alert loop / chime runs regardless of how many pages are open.
+ * Shared visual "needs attention" state for helpdesk tickets, used by both the
+ * Overview board and Tickets list. Global sound and banner alerting lives in the
+ * admin layout so it is not duplicated when either page is open.
  *
- * A ticket alerts (flashes + chimes) while either is true:
- *  - it's unstaged and hasn't been opened AND replied to yet
+ * A ticket is visually marked while either is true:
+ *  - it's unstaged and not handled yet
  *  - its deadline has passed and it hasn't been closed yet
  */
 
 interface AlertableTicket {
   id: string;
   stage_id: string | null;
-  first_response_at?: string | null;
+  stage?: { is_closed: boolean } | null;
   deadline?: string | null;
   closed_at?: string | null;
 }
 
-const OPENED_TICKETS_STORAGE_KEY = "helpdesk-unstaged-opened-ticket-ids";
-const CHIME_INTERVAL_MS = 6000;
 const OVERDUE_CHECK_INTERVAL_MS = 30000;
-
-const loadOpenedTicketIds = (): Set<string> => {
-  try {
-    const raw = window.localStorage.getItem(OPENED_TICKETS_STORAGE_KEY);
-    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
-  } catch {
-    return new Set();
-  }
-};
-
-const saveOpenedTicketIds = (ids: Set<string>) => {
-  try {
-    window.localStorage.setItem(OPENED_TICKETS_STORAGE_KEY, JSON.stringify([...ids]));
-  } catch {
-    // ignore storage failures (private browsing, quota, etc.)
-  }
-};
 
 // A short three-note ascending alert chime, synthesized so no audio asset is needed.
 export const playAlertJingle = () => {
@@ -68,17 +49,7 @@ export const playAlertJingle = () => {
 };
 
 export const useHelpdeskTicketAlerts = (tickets: AlertableTicket[]) => {
-  const [openedTicketIds, setOpenedTicketIds] = useState<Set<string>>(() => loadOpenedTicketIds());
-
-  const markTicketOpened = useCallback((ticketId: string) => {
-    setOpenedTicketIds((prev) => {
-      if (prev.has(ticketId)) return prev;
-      const next = new Set(prev);
-      next.add(ticketId);
-      saveOpenedTicketIds(next);
-      return next;
-    });
-  }, []);
+  const markTicketOpened = useCallback((_ticketId: string) => undefined, []);
 
   // Ticks so a ticket starts alerting the moment its deadline passes, without needing a refetch.
   const [now, setNow] = useState(() => Date.now());
@@ -90,29 +61,14 @@ export const useHelpdeskTicketAlerts = (tickets: AlertableTicket[]) => {
   const alertingTicketIds = useMemo(() => {
     const ids = new Set<string>();
     tickets.forEach((t) => {
-      // Unstaged tickets keep flashing + chiming until they've been opened AND replied to.
-      const isUnstagedAlert = !t.stage_id && (!openedTicketIds.has(t.id) || !t.first_response_at);
+      // Unstaged tickets keep flashing until the workflow reaches a closed stage.
+      const isUnstagedAlert = !t.stage_id && !t.stage?.is_closed && !t.closed_at;
       // Overdue tickets flash regardless of stage/response, until closed.
       const isOverdueAlert = !!t.deadline && !t.closed_at && new Date(t.deadline).getTime() <= now;
       if (isUnstagedAlert || isOverdueAlert) ids.add(t.id);
     });
     return ids;
-  }, [tickets, openedTicketIds, now]);
-
-  const seenAlertIds = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    const hasNewAlert = [...alertingTicketIds].some((id) => !seenAlertIds.current.has(id));
-    if (hasNewAlert) playAlertJingle();
-    seenAlertIds.current = new Set(alertingTicketIds);
-  }, [alertingTicketIds]);
-
-  // Keep chiming, on a short loop, until every alerting ticket has been resolved.
-  const hasActiveAlerts = alertingTicketIds.size > 0;
-  useEffect(() => {
-    if (!hasActiveAlerts) return;
-    const interval = window.setInterval(() => playAlertJingle(), CHIME_INTERVAL_MS);
-    return () => window.clearInterval(interval);
-  }, [hasActiveAlerts]);
+  }, [tickets, now]);
 
   return { alertingTicketIds, markTicketOpened };
 };

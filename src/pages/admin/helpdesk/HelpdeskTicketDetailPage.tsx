@@ -48,67 +48,63 @@ const HelpdeskTicketDetailPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-start gap-3 px-6 py-4 border-b border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="shrink-0 h-8 w-8 p-0 mt-0.5"
-          onClick={() => navigate(returnTo)}
-        >
-          <ArrowLeft size={15} />
-        </Button>
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-mono text-muted-foreground">{ticket.ticket_number}</span>
-            {ticket.stage && (
-              <Badge variant="secondary" className="text-xs">
-                {ticket.stage.name}
+    <div className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Header */}
+        <div className="flex items-start gap-3 border-b border-border px-6 py-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-0.5 h-8 w-8 shrink-0 p-0"
+            onClick={() => navigate(returnTo)}
+          >
+            <ArrowLeft size={15} />
+          </Button>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground">{ticket.ticket_number}</span>
+              {ticket.stage && (
+                <Badge variant="secondary" className="text-xs">
+                  {ticket.stage.name}
+                </Badge>
+              )}
+              <Badge
+                variant="outline"
+                className={`text-xs ${priorityColors[ticket.priority] ?? priorityColors[1]}`}
+              >
+                {normalizeHelpdeskPriorityLabel(ticket.priority)}
               </Badge>
-            )}
-            <Badge
-              variant="outline"
-              className={`text-xs ${priorityColors[ticket.priority] ?? priorityColors[1]}`}
-            >
-              {normalizeHelpdeskPriorityLabel(ticket.priority)}
-            </Badge>
-          </div>
-          <h1 className="text-lg font-semibold leading-tight truncate">{ticket.title}</h1>
-          {ticket.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">{ticket.description}</p>
-          )}
-          {/* Contact / customer */}
-          {ticket.partner_contact && (
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <User size={13} className="text-muted-foreground shrink-0" />
-              <span className="text-sm text-muted-foreground">
-                {ticket.partner_contact.name}
-                {ticket.partner_contact.email && (
-                  <span className="ml-1.5 text-xs">· {ticket.partner_contact.email}</span>
-                )}
-              </span>
             </div>
-          )}
+            <h1 className="truncate text-lg font-semibold leading-tight">{ticket.title}</h1>
+            {/* Contact / customer */}
+            {ticket.partner_contact && (
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <User size={13} className="shrink-0 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {ticket.partner_contact.name}
+                  {ticket.partner_contact.email && (
+                    <span className="ml-1.5 text-xs">· {ticket.partner_contact.email}</span>
+                  )}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Body: timeline + sidebar */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left: conversation */}
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Conversation */}
+        <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-6">
-            <TicketTimeline ticketId={ticket.id} />
+            <TicketTimeline ticket={ticket} />
           </div>
           <div className="px-6 pb-4">
             <TicketReplyComposer ticketId={ticket.id} />
           </div>
         </div>
+      </div>
 
-        {/* Right: sidebar */}
-        <div className="w-72 shrink-0 overflow-y-auto border-l border-border">
-          <TicketDetailSidebar ticket={ticket} />
-        </div>
+      {/* Details run alongside the ticket header, from the top of the page. */}
+      <div className="w-72 shrink-0 overflow-hidden">
+        <TicketDetailSidebar ticket={ticket} />
       </div>
     </div>
   );

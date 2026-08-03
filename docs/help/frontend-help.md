@@ -2,11 +2,26 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-07-30 — Live Helpdesk conversations
+
+- When viewing an open ticket, new replies should appear without refreshing. If they do not, first check that the user is signed in and permitted to the ticket; the page deliberately does not subscribe to any other customer's conversation.
+- Operators receive a Helpdesk notification when a customer replies. Opening the ticket shows the complete current thread; no inbox reload is needed.
+- If sending fails, the operator should receive a single **Failed to send** notice. A second browser-level promise error is a regression and should be reported with the ticket URL and time.
+- In a customer conversation, messages written by the signed-in customer are on the right and support replies are on the left. The office sees the inverse: staff messages right, customer messages left.
+- A customer receives one automatic acknowledgement per ticket. Outside Monday–Friday, 8:30 AM–5:00 PM Barbados time, it advises that the ticket will be reviewed next business day and gives **+1 246 433-4928** for urgent help.
+- In the assistant, a customer must confirm **Ask a person** before the Helpdesk conversation is created. After confirmation, use the opened ticket to continue with a human.
+
 ## 2026-07-24 — Sales app consolidation
 
 - The Apps launcher no longer has Sales. Open CRM → Proposals for proposal work.
 - Open Website → Quotations for quotes and their print previews, and Website → Orders for public-store order fulfilment.
 - Old `/admin/sales/**` and `/admin/orders` addresses are intentionally unavailable; use the destination app links above.
+
+## 2026-07-24 — DHL Express integration
+
+- Open Admin → Settings → Integrations to save the DHL Express account number plus the MyDHL API username and password supplied by DHL. The password cannot be viewed after saving; enter both credential fields to rotate them.
+- Use **Test configuration** before enabling the service. The test sends only DHL's read-only reference-data request; it does not create a shipment, label, pickup, or quote. DHL's test environment allows 500 service calls per day.
+- Tracking and landed-cost requests are server-side, on-demand admin operations. The customer Delivery Status panel stays on its existing customer-scoped source until DHL tracking can be safely matched to the customer's delivery record.
 
 ## 2026-07-22 — Staff networking cards
 

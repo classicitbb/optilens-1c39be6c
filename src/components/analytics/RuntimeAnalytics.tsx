@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import { COOKIE_PREFERENCES_EVENT, hasAnalyticsConsent } from "@/lib/cookieConsent";
 import { flushTrackedSession, shouldTrackWebsitePath, trackPageView, trackWebVital } from "@/lib/websiteAnalytics";
 
@@ -89,12 +88,7 @@ const RuntimeAnalytics = () => {
 
   if (!enabled) return null;
 
-  return (
-    <>
-      <Analytics beforeSend={(event) => (shouldSendToVercel(event.url) ? event : null)} />
-      <SpeedInsights beforeSend={(event) => (shouldSendToVercel(event.url) ? event : null)} />
-    </>
-  );
+  return <Analytics beforeSend={(event) => (shouldSendToVercel(event.url) ? event : null)} />;
 };
 
 export default RuntimeAnalytics;

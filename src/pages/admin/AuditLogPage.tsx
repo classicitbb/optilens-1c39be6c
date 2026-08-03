@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuditLogQuery, AuditLogEntry } from "@/hooks/useAuditLog";
+import { useAuditLogQuery, useEmailAuditLog, AuditLogEntry } from "@/hooks/useAuditLog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,14 @@ const TABS = [
   { key: "company_settings,pricing_settings", label: "Settings" },
   { key: "suppliers,brands,materials,mftypes,lenstypes,lens_options,finishtypes", label: "Reference Data" },
   { key: "pricelist_versions,pricelist_export", label: "Pricing Edits" },
+  { key: "email", label: "Email" },
 ];
 
 const ACTION_COLORS: Record<string, string> = {
   create: "bg-[hsl(var(--admin-success)/0.15)] text-[hsl(var(--admin-success))]",
   update: "bg-[hsl(var(--admin-accent)/0.15)] text-[hsl(var(--admin-accent))]",
   delete: "bg-[hsl(var(--admin-destructive)/0.15)] text-[hsl(var(--admin-destructive))]",
+  send: "bg-sky-500/15 text-sky-700",
 };
 
 interface AuditLogPageProps {
@@ -32,7 +34,8 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(100);
 
-  const tableFilter = activeTab.includes(",") ? undefined : (activeTab || undefined);
+  const isEmailTab = activeTab === "email";
+  const tableFilter = activeTab.includes(",") || isEmailTab ? undefined : (activeTab || undefined);
   const tableNamesFilter = activeTab.includes(",") ? activeTab.split(",") : undefined;
 
   const { data: entries, isLoading } = useAuditLogQuery({
@@ -40,8 +43,33 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
     table_names: tableNamesFilter,
     limit,
   });
+  const emailAudit = useEmailAuditLog(isEmailTab, limit);
 
-  const filtered = (entries ?? []).filter((e) => {
+  const displayedEntries: AuditLogEntry[] = isEmailTab
+    ? (emailAudit.data ?? []).map((entry) => ({
+      id: entry.id,
+      table_name: "email",
+      record_id: entry.messageId ?? entry.id,
+      action: "send",
+      user_id: "system",
+      created_at: entry.queuedAt,
+      old_data: null,
+      new_data: {
+        name: entry.recipientEmail,
+        recipient_email: entry.recipientEmail,
+        template_name: entry.templateName,
+        send_mode: entry.sendMode,
+        delivery_status: entry.deliveryStatus,
+        queued_at: entry.queuedAt,
+        status_updated_at: entry.statusUpdatedAt,
+        error_message: entry.errorMessage,
+      },
+      change_summary: { delivery_state: { old: "queued", new: entry.deliveryStatus } },
+      reason: null,
+    }))
+    : (entries ?? []);
+
+  const filtered = displayedEntries.filter((e) => {
     if (search) {
       const q = search.toLowerCase();
       const matchesName =
@@ -53,6 +81,8 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
     }
     return true;
   });
+
+  const isLoadingEntries = isEmailTab ? emailAudit.isLoading : isLoading;
 
   return (
     <div className={embedded ? "space-y-4" : "p-4 space-y-4"}>
@@ -84,7 +114,7 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
         <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, table…" className="h-8 text-xs pl-8" />
       </div>
 
-      {isLoading ? (
+      {isLoadingEntries ? (
         <div className="flex items-center justify-center h-40">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-[hsl(var(--admin-accent))] border-t-transparent" />
         </div>
@@ -95,7 +125,7 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
           {filtered.map((entry) => (
             <AuditRow key={entry.id} entry={entry} />
           ))}
-          {(entries?.length ?? 0) >= limit && (
+          {(displayedEntries.length ?? 0) >= limit && (
             <div className="flex justify-center pt-4">
               <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setLimit((l) => l + 100)}>
                 Load More
@@ -111,6 +141,8 @@ const AuditLogPage = ({ embedded = false }: AuditLogPageProps) => {
 const AuditRow = ({ entry }: { entry: AuditLogEntry }) => {
   const [expanded, setExpanded] = useState(false);
   const recordName = entry.new_data?.name || entry.old_data?.name || entry.record_id.slice(0, 8);
+  const isEmail = entry.table_name === "email";
+  const emailStatus = isEmail ? String(entry.new_data?.delivery_status ?? "pending") : null;
 
   return (
     <div className="rounded border text-xs border-[hsl(var(--admin-table-border))] bg-[hsl(var(--admin-table-surface))]">
@@ -127,6 +159,16 @@ const AuditRow = ({ entry }: { entry: AuditLogEntry }) => {
         </Badge>
         <span className="text-[hsl(var(--admin-muted-fg))] w-24 shrink-0 capitalize">{entry.table_name}</span>
         <span className="flex-1 truncate font-medium text-[hsl(var(--admin-table-fg))]">{recordName}</span>
+        {isEmail && (
+          <Badge variant="outline" className="shrink-0 text-[10px] capitalize">
+            {entry.new_data?.send_mode}
+          </Badge>
+        )}
+        {emailStatus && (
+          <Badge className={`shrink-0 text-[10px] ${["failed", "dlq", "bounced", "complained"].includes(emailStatus) ? "bg-red-500/15 text-red-700" : emailStatus === "sent" ? "bg-emerald-500/15 text-emerald-700" : "bg-amber-500/15 text-amber-700"}`}>
+            {emailStatus}
+          </Badge>
+        )}
         {entry.reason && (
           <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
             {entry.reason}
@@ -157,7 +199,7 @@ const AuditRow = ({ entry }: { entry: AuditLogEntry }) => {
               </pre>
             </div>
           </div>
-          <p className="text-[10px] text-[hsl(var(--admin-muted-fg))]">User: {entry.user_id.slice(0, 8)}… | ID: {entry.record_id.slice(0, 8)}…</p>
+          <p className="text-[10px] text-[hsl(var(--admin-muted-fg))]">User: {entry.user_id === "system" ? "System" : `${entry.user_id.slice(0, 8)}…`} | ID: {entry.record_id.slice(0, 8)}…</p>
         </div>
       )}
     </div>

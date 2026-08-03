@@ -37,3 +37,4 @@ bun.lockb
 .env
 .env.*
 !.env.example
+supabase/functions/mcp/index.ts

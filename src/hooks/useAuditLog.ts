@@ -90,6 +90,32 @@ export interface AuditLogFilters {
   offset?: number;
 }
 
+export interface EmailAuditEntry {
+  id: string;
+  messageId: string | null;
+  recipientEmail: string;
+  templateName: string;
+  sendMode: "manual" | "automatic";
+  deliveryStatus: string;
+  errorMessage: string | null;
+  queuedAt: string;
+  statusUpdatedAt: string;
+}
+
+export const useEmailAuditLog = (enabled: boolean, limit = 100) => {
+  return useQuery<EmailAuditEntry[]>({
+    queryKey: ["email-audit-log", limit],
+    enabled,
+    staleTime: 0,
+    refetchOnMount: "always" as const,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke(`docstudio-api/email/audit?limit=${limit}`, { method: "GET" });
+      if (error) throw error;
+      return ((data as { entries?: EmailAuditEntry[] })?.entries ?? []);
+    },
+  });
+};
+
 export const useAuditLogQuery = (filters: AuditLogFilters) => {
   return useQuery<AuditLogEntry[]>({
     queryKey: ["audit_log", filters],

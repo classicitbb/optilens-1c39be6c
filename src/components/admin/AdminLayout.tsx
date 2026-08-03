@@ -6,11 +6,15 @@ import AdminTopBar from "./AdminTopBar";
 import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
+import CrmActivityDialog from "./CrmActivityDialog";
+import OperatorAttentionAlert from "./OperatorAttentionAlert";
+import { useLiveHelpdeskInboxUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
 
 const AdminLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const location = useLocation();
   usePresenceHeartbeat("admin");
+  useLiveHelpdeskInboxUpdates();
   const contextSlug = pathnameToContextSlug(location.pathname);
   const isDocStudio = location.pathname === "/admin/docs/studio";
   const hideSidebar =
@@ -22,6 +26,7 @@ const AdminLayout = () => {
     <AdminRoleProvider>
       <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
         <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
+        <OperatorAttentionAlert />
         <div className="relative flex flex-1 min-h-0">
           {!hideSidebar && <AdminSidebar />}
           <div className="flex flex-1 min-w-0 min-h-0">
@@ -33,6 +38,7 @@ const AdminLayout = () => {
               </div>
             </main>
             <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
+            <CrmActivityDialog />
           </div>
         </div>
       </div>

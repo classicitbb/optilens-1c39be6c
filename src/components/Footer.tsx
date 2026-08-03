@@ -24,8 +24,9 @@ const footerColumns = [
     title: "Support",
     links: [
       { label: "Contact", to: "/#contact" },
-      { label: "Tracking", to: "/rx-job-status" },
-      { label: "LabLink", to: "/rx-order" },
+      { label: "My Order Status", to: "/profile/orders" },
+      { label: "Rx Order Form", to: "/rx-order" },
+      { label: "Lenses and Supplies", to: "/store" },
     ],
   },
   {

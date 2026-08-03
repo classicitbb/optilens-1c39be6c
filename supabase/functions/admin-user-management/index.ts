@@ -230,6 +230,7 @@ Deno.serve(async (req) => {
         email: u.email,
         created_at: u.created_at,
         email_confirmed_at: u.email_confirmed_at,
+        invited_at: (u as { invited_at?: string | null }).invited_at ?? null,
       }));
       return jsonResponse(req, 200, result);
     }

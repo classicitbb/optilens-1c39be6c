@@ -8,18 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useLiveHelpdeskTicketUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
 
 const HelpdeskTicketDetailSection = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { identity } = usePortalIdentity();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [replyBody, setReplyBody] = useState("");
+  useLiveHelpdeskTicketUpdates(ticketId);
 
   const { data: ticket, isLoading: loadingTicket } = useQuery({
     queryKey: ["portal-helpdesk-ticket", ticketId],
@@ -60,7 +60,7 @@ const HelpdeskTicketDetailSection = () => {
   const closeTicket = useMutation({
     mutationFn: async () => {
       const { data, error } = await (supabase as any)
-        .rpc("close_helpdesk_ticket_by_token", { p_token: ticketId });
+        .rpc("close_helpdesk_ticket_for_participant", { p_ticket_id: ticketId });
       if (error) throw error;
       return data;
     },
@@ -74,17 +74,14 @@ const HelpdeskTicketDetailSection = () => {
 
   const sendReply = useMutation({
     mutationFn: async (body: string) => {
-      const { error } = await (supabase as any)
-        .from("helpdesk_ticket_messages")
-        .insert({
-          ticket_id: ticketId,
-          direction: "inbound",
-          body,
-          sender_user_id: user?.id ?? null,
-          sender_name: identity?.customerName ?? identity?.organizationName ?? null,
-          sender_email: user?.email ?? null,
-        });
+      const { data, error } = await (supabase.rpc as any)("send_helpdesk_ticket_message", {
+        p_ticket_id: ticketId,
+        p_body: body,
+        p_client_message_id: crypto.randomUUID(),
+        p_internal_note: false,
+      });
       if (error) throw error;
+      return Array.isArray(data) ? data[0] : data;
     },
     onSuccess: () => {
       setReplyBody("");
@@ -152,7 +149,7 @@ const HelpdeskTicketDetailSection = () => {
             messages.map((msg) => {
               const isCustomer = msg.direction === "inbound";
               return (
-                <div key={msg.id} className={`flex flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}>
+                <div key={msg.id} className={`flex w-full flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}>
                   <div
                     className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                       isCustomer

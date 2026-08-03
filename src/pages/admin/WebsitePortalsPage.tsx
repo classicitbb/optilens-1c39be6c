@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BellRing,
   CreditCard,
   ExternalLink,
   Eye,
@@ -68,7 +67,13 @@ interface PortalCustomerListItem {
   assignedPricelistId: number | null;
   cartItemCount: number;
   cartStatus: "empty" | "in_progress" | "abandoned";
+  lastPortalLoginAt: string | null;
   presenceStatus: "online" | "idle" | "offline" | string;
+  emailConfirmedAt: string | null;
+  inviteSentAt: string | null;
+  // Admin-recorded manual invitation, kept separate from the Supabase invite
+  // email above: staff often invite a customer from their own mailbox.
+  manualInviteEmailSentAt: string | null;
 }
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
@@ -150,7 +155,7 @@ interface ContactLookupRow {
   innovations_parent_customer_id: number | null;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices", "lens-assistant"] as const;
 
 const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   quotes: "Quotes",
@@ -159,6 +164,8 @@ const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "private-orders": "Private orders",
   "live-order-status": "Live order status",
   statements: "Statements",
+  "order-prices": "Order prices",
+  "lens-assistant": "Lens Assistant",
 };
 
 const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
@@ -168,6 +175,25 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "private-orders": "Approved customer access for private/manual order history.",
   "live-order-status": "Approved customer access for live lab and delivery status.",
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
+  "order-prices": "Off by default. Enable to show item prices and totals on this customer's Order status and lab shipment views.",
+  "lens-assistant": "Approved customer access to the Lens Assistant in this profile. The global Lens Assistant rollout flag must also be enabled.",
+};
+
+type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "active" | "all";
+
+// ERP customers (and any login linked to one) are approved by default; a bare
+// login without an ERP link still needs an admin decision, so it buckets with
+// pending approval rather than a status of its own.
+const getAccountStatusBucket = (account: PortalAccountRecord): Exclude<AccountStatusFilter, "all" | "active"> => {
+  const user = account.portalUser;
+  if (user) {
+    if (user.crmCustomerId) return "approved";
+    if (user.portalAccessStatus === "pending_approval") return "pending_approval";
+    return "pending_profile";
+  }
+  if (account.linkedPortalUsers.length > 0) return "approved";
+  if (account.isErpCustomer) return "approved";
+  return "pending_approval";
 };
 
 const formatMoney = (value: number | null | undefined) => `$${Number(value ?? 0).toFixed(2)}`;
@@ -186,13 +212,13 @@ const WebsitePortalsPage = () => {
   const { users, resetPassword, inviteUser, createUser, emulatePortalUser, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>("active");
   const [searchParams, setSearchParams] = useSearchParams();
   // Older deep links still open the requested account, but ordinary row clicks
   // keep their selection in component state and do not change the page URL.
   const legacySelectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(() => legacySelectedAccountId);
   const dismissedLegacyAccountRef = useRef<string | null>(null);
-  const [cutoffHours, setCutoffHours] = useState("24");
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
   const [accountNumberDraft, setAccountNumberDraft] = useState("");
   const [provisioningMode, setProvisioningMode] = useState<"create" | "invite" | null>(null);
@@ -227,7 +253,7 @@ const WebsitePortalsPage = () => {
         portalUserIds.length
           ? (supabase as any)
               .from("profiles")
-              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id")
+              .select("id,user_id,email,full_name,phone,organization_name,portal_access_status,portal_access_note,portal_access_approved_override,portal_access_approved_at,portal_access_approved_note,crm_contact_id,crm_customer_id,last_portal_login_at,portal_invite_email_sent_at")
               .in("user_id", portalUserIds)
               .order("updated_at", { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -380,7 +406,11 @@ const WebsitePortalsPage = () => {
             assignedPricelistId: null,
             cartItemCount,
             cartStatus: openAlertByUser.has(entry.user_id) ? "abandoned" : cartItemCount > 0 ? "in_progress" : "empty",
+            lastPortalLoginAt: typeof profile?.last_portal_login_at === "string" ? profile.last_portal_login_at : null,
             presenceStatus: presenceByUser.get(entry.user_id)?.status ?? "offline",
+            emailConfirmedAt: entry.email_confirmed_at,
+            inviteSentAt: entry.invited_at,
+            manualInviteEmailSentAt: typeof profile?.portal_invite_email_sent_at === "string" ? profile.portal_invite_email_sent_at : null,
           } satisfies PortalCustomerListItem;
           return {
             id: `user:${entry.user_id}`,
@@ -467,13 +497,29 @@ const WebsitePortalsPage = () => {
   const accounts = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (customersQuery.data ?? []).filter((customer) => {
+      if (statusFilter === "active") {
+        if (!customer.portalUser) return false;
+      } else if (statusFilter !== "all" && getAccountStatusBucket(customer) !== statusFilter) {
+        return false;
+      }
       if (!q) return true;
       return [customer.fullName, customer.email, customer.organizationName, customer.phone]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [customersQuery.data, search]);
+  }, [customersQuery.data, search, statusFilter]);
+
+  const accountCounts = useMemo(() => {
+    const allAccounts = customersQuery.data ?? [];
+    return {
+      approved: allAccounts.filter((account) => getAccountStatusBucket(account) === "approved").length,
+      pending_profile: allAccounts.filter((account) => getAccountStatusBucket(account) === "pending_profile").length,
+      pending_approval: allAccounts.filter((account) => getAccountStatusBucket(account) === "pending_approval").length,
+      active: allAccounts.filter((account) => account.portalUser !== null).length,
+      all: allAccounts.length,
+    } satisfies Record<AccountStatusFilter, number>;
+  }, [customersQuery.data]);
 
   // The portal list is intentionally centred on ERP-backed accounts. Keep the
   // same source available at the approval decision so an admin can link a
@@ -729,6 +775,36 @@ const WebsitePortalsPage = () => {
     onError: (error: any) => toast({ title: "Approval failed", description: error.message || "Failed to update portal approval.", variant: "destructive" }),
   });
 
+  // Records that staff invited this login to Classic Visions by hand. It never
+  // sends anything — the customer was emailed outside the app, and this is the
+  // only place that fact can be captured (auth.users.invited_at only moves for
+  // Supabase invite emails).
+  const setManualInviteEmailSent = useMutation({
+    mutationFn: async ({ userId, sent }: { userId: string; sent: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .upsert({
+          user_id: userId,
+          portal_invite_email_sent_at: sent ? new Date().toISOString() : null,
+          portal_invite_email_sent_by: sent ? user?.id ?? null : null,
+        }, { onConflict: "user_id" });
+      if (error) throw error;
+    },
+    onSuccess: async (_result, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["website-portals-customers"] }),
+        queryClient.invalidateQueries({ queryKey: ["website-portals-customer-detail"] }),
+      ]);
+      toast({
+        title: variables.sent ? "Invitation marked as sent" : "Invitation mark cleared",
+        description: variables.sent
+          ? "Recorded that this login was emailed an invitation to Classic Visions. No email was sent from here."
+          : "The manual invitation record was removed from this login.",
+      });
+    },
+    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to update the invitation record.", variant: "destructive" }),
+  });
+
   const linkPortalToErpCustomer = useMutation({
     mutationFn: async (customerId: number) => {
       if (!selectedCustomer) throw new Error("Select a portal login first.");
@@ -807,24 +883,6 @@ const WebsitePortalsPage = () => {
     },
     onSuccess: () => { detailQuery.refetch(); toast({ title: "Alert resolved", description: "The abandoned cart alert has been marked resolved." }); },
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to resolve alert.", variant: "destructive" }),
-  });
-
-  const runAbandonedCartScan = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("queue_abandoned_cart_alerts", { p_cutoff_hours: Number(cutoffHours || 24) });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ["website-portals-customer-detail"] });
-      await queryClient.invalidateQueries({ queryKey: ["admin-notifications"] });
-      toast({
-        title: "Abandoned cart scan complete",
-        description: `Created ${result?.created ?? 0} alert(s) and refreshed ${result?.updated ?? 0}.`,
-      });
-      detailQuery.refetch();
-    },
-    onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to scan abandoned carts.", variant: "destructive" }),
   });
 
   const placeOnBehalfOrder = useMutation({
@@ -918,13 +976,19 @@ const WebsitePortalsPage = () => {
     if (!selectedAccount?.crmCustomerId || !provisioningMode) return;
     try {
       if (provisioningMode === "invite") {
-        await inviteUser.mutateAsync({
+        const result = await inviteUser.mutateAsync({
           email: provisioningEmail,
           customerId: selectedAccount.crmCustomerId,
           contactId: selectedAccount.crmContactId ?? undefined,
           displayName: provisioningName,
+          sendEmail: true,
         });
-        toast({ title: "Invite sent", description: `The existing customer invitation email was sent to ${provisioningEmail}.` });
+        toast({
+          title: result.alreadyExisted ? "Existing login linked" : "Invite email sent",
+          description: result.alreadyExisted
+            ? `An existing login for ${provisioningEmail} was linked to this customer. Use a password reset if they need a new sign-in email.`
+            : `The customer invitation email was sent to ${provisioningEmail}.`,
+        });
       } else {
         const result = await createUser.mutateAsync({
           email: provisioningEmail,
@@ -1030,6 +1094,14 @@ const WebsitePortalsPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  // Only a real login can be invited to the portal, so the action stays hidden
+  // for ERP-only accounts and company records with no login of their own.
+  const toggleManualInviteEmail = (account: PortalAccountRecord) => {
+    const portalUser = account.portalUser;
+    if (!portalUser) return;
+    setManualInviteEmailSent.mutate({ userId: portalUser.userId, sent: !portalUser.manualInviteEmailSentAt });
   };
 
   const createPortalLogin = (account: PortalAccountRecord) => {
@@ -1209,43 +1281,44 @@ const WebsitePortalsPage = () => {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden p-4">
       <div className="shrink-0">
-        <AdminPageHeader icon={ShieldCheck} title="Website Portals">
-          <div className="flex items-center gap-2">
-            <Input value={cutoffHours} onChange={(event) => setCutoffHours(event.target.value)} className="h-8 w-20 text-xs" />
-            <Button size="sm" variant="outline" onClick={() => runAbandonedCartScan.mutate()} disabled={runAbandonedCartScan.isPending}>
-              <BellRing className="mr-2 h-3.5 w-3.5" />
-              {runAbandonedCartScan.isPending ? "Scanning…" : "Scan abandoned carts"}
-            </Button>
-          </div>
-        </AdminPageHeader>
+        <AdminPageHeader
+          icon={ShieldCheck}
+          title="Website Portals"
+          tooltip="ERP customers are approved by default. A website login is optional until it is needed."
+        />
       </div>
 
       <PortalApprovalsQueue onReviewContact={openContactEditor} />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Card className="flex min-h-0 flex-1 flex-col overflow-hidden shadow-none hover:shadow-none">
-          <CardHeader className="space-y-3 pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-base">Customer accounts</CardTitle>
-                <CardDescription className="mt-1">ERP customers are approved by default. A website login is optional until it is needed.</CardDescription>
-              </div>
-              <Badge variant="outline">{accounts.length}</Badge>
-            </div>
-            <div className="relative">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative w-full md:w-1/2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="h-10 pl-9" />
+              </div>
+              <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)} className="md:ml-auto">
+                <TabsList>
+                  <TabsTrigger value="approved">Approved ({accountCounts.approved})</TabsTrigger>
+                  <TabsTrigger value="pending_profile">Pending Profile ({accountCounts.pending_profile})</TabsTrigger>
+                  <TabsTrigger value="pending_approval">Pending Approval ({accountCounts.pending_approval})</TabsTrigger>
+                  <TabsTrigger value="active">Active ({accountCounts.active})</TabsTrigger>
+                  <TabsTrigger value="all">All ({accountCounts.all})</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-hidden px-0 pb-0">
             <div className="h-full overflow-auto border-t">
-              <table className="w-full min-w-[820px] table-fixed text-left text-sm">
+              <table className="w-full min-w-[960px] table-fixed text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-background text-xs text-muted-foreground shadow-sm">
                   <tr className="border-y">
-                    <th className="w-[28%] px-4 py-3 font-medium">Account name</th>
-                    <th className="w-[28%] px-4 py-3 font-medium">Email</th>
-                    <th className="w-[16%] px-4 py-3 font-medium">ERP ACC#</th>
-                    <th className="w-[14%] px-4 py-3 font-medium">Login</th>
+                    <th className="w-[22%] px-4 py-3 font-medium">Account name</th>
+                    <th className="w-[20%] px-4 py-3 font-medium">Email</th>
+                    <th className="w-[11%] px-4 py-3 font-medium">ERP ACC#</th>
+                    <th className="w-[13%] px-4 py-3 font-medium">Last login</th>
+                    <th className="w-[20%] px-4 py-3 font-medium">Login</th>
                     <th className="w-[14%] px-4 py-3 font-medium">Status</th>
                   </tr>
                 </thead>
@@ -1277,10 +1350,20 @@ const WebsitePortalsPage = () => {
                         <td className="px-4 py-3 text-xs text-muted-foreground">
                           {account.isErpCustomer ? <span>{account.accountNumber || "ERP customer"}</span> : "—"}
                         </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          {formatDateTime(user?.lastPortalLoginAt ?? account.linkedPortalUsers.reduce<string | null>(
+                            (latest, linkedUser) => !latest || (linkedUser.lastPortalLoginAt && linkedUser.lastPortalLoginAt > latest)
+                              ? linkedUser.lastPortalLoginAt
+                              : latest,
+                            null,
+                          ))}
+                        </td>
                         <td className="px-4 py-3">
                           {user ? (
-                            <span className="flex items-center gap-2">
-                              <Badge variant="outline">Active</Badge>
+                            <span className="flex flex-wrap items-center gap-1.5">
+                              {user.inviteSentAt && !user.emailConfirmedAt ? (
+                                <Badge variant="secondary" title={`Invitation email sent ${formatDateTime(user.inviteSentAt)}; awaiting acceptance.`}>Invite sent</Badge>
+                              ) : <Badge variant="outline">Active</Badge>}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -1290,6 +1373,18 @@ const WebsitePortalsPage = () => {
                                 onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
                               >
                                 <Eye className="mr-1 h-3 w-3" /> {emulatePortalUser.isPending ? "Signing in…" : "Emulate"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={user.manualInviteEmailSentAt ? "secondary" : "ghost"}
+                                className="h-6 px-2 text-[11px]"
+                                title={user.manualInviteEmailSentAt
+                                  ? `Invitation to Classic Visions marked as sent ${formatDateTime(user.manualInviteEmailSentAt)}. Click to clear.`
+                                  : "Record that you emailed this customer an invitation to Classic Visions. Nothing is sent from here."}
+                                disabled={setManualInviteEmailSent.isPending}
+                                onClick={(event) => { event.stopPropagation(); toggleManualInviteEmail(account); }}
+                              >
+                                <Mail className="mr-1 h-3 w-3" /> {user.manualInviteEmailSentAt ? "Invited" : "Mark invited"}
                               </Button>
                             </span>
                           ) : linkedLoginCount > 0 ? (
@@ -1311,12 +1406,15 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
                         <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => toggleManualInviteEmail(account)} disabled={!account.portalUser || setManualInviteEmailSent.isPending}>
+                          {account.portalUser?.manualInviteEmailSentAt ? "Clear invitation mark" : "Mark invitation email sent"}
+                        </ContextMenuItem>
                         <ContextMenuItem onSelect={() => createPortalLogin(account)} disabled={!account.crmCustomerId || !!account.portalUser || linkedLoginCount > 0 || account.isCompanyContact !== false}>Create login</ContextMenuItem>
                       </ContextMenuContent>
                       </ContextMenu>
                     );
                   })}
-                  {!accounts.length ? <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
+                  {!accounts.length ? <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">No customer accounts match this search.</td></tr> : null}
                 </tbody>
               </table>
             </div>

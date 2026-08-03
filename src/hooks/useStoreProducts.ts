@@ -30,7 +30,11 @@ export const getStableStoreProductCartId = (product: Pick<StoreProduct, "id" | "
     hash = Math.imul(hash, 16777619);
   }
 
-  return Math.abs(hash >>> 0);
+  // cart_items.product_id is a Postgres int4 (max 2147483647). `hash >>> 0`
+  // yields a full unsigned 32-bit value (up to 4294967295), which overflows
+  // int4 for roughly half of all inputs and causes the insert to fail
+  // silently for those products. Fold into the positive int4 range instead.
+  return (hash >>> 0) % 2147483647;
 };
 
 export const resolveStoreProductFromCartRef = (
@@ -128,7 +132,7 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     product_type: "lens" as const,
     category: "Lens",
     subcategory: "",
-    tags: [...(overrideMap.get(`lens:${l.id}`)?.website_badges ?? [])].filter(Boolean),
+    tags: [...new Set((overrideMap.get(`lens:${l.id}`)?.website_badges ?? []) as string[])].filter(Boolean),
     image_url: (mediaMap.get(`lens:${l.id}`) ?? [])[0] || null,
     image_urls: mediaMap.get(`lens:${l.id}`) ?? [],
     has_variants: (variantSummaryMap.get(`lens:${l.id}`) ?? 0) > 0,
@@ -146,7 +150,7 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     product_type: "supply" as const,
     category: s.category,
     subcategory: `${s.quantity_per_unit} ${s.unit}`,
-    tags: [s.category, s.unit, ...(overrideMap.get(`supply:${s.id}`)?.website_badges ?? [])].filter(Boolean),
+    tags: [...new Set([s.category, s.unit, ...(overrideMap.get(`supply:${s.id}`)?.website_badges ?? [])] as string[])].filter(Boolean),
     image_url: (mediaMap.get(`supply:${s.id}`) ?? [])[0] || s.image_url || null,
     image_urls: (mediaMap.get(`supply:${s.id}`) ?? []).length > 0 ? (mediaMap.get(`supply:${s.id}`) ?? []) : (s.image_url ? [s.image_url] : []),
     has_variants: (variantSummaryMap.get(`supply:${s.id}`) ?? 0) > 0,
@@ -164,7 +168,7 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     product_type: "addon" as const,
     category: a.category || "Service",
     subcategory: "service",
-    tags: [a.category, ...(overrideMap.get(`addon:${a.id}`)?.website_badges ?? [])].filter(Boolean),
+    tags: [...new Set([a.category, ...(overrideMap.get(`addon:${a.id}`)?.website_badges ?? [])] as string[])].filter(Boolean),
     image_url: (mediaMap.get(`addon:${a.id}`) ?? [])[0] || null,
     image_urls: mediaMap.get(`addon:${a.id}`) ?? [],
     has_variants: (variantSummaryMap.get(`addon:${a.id}`) ?? 0) > 0,

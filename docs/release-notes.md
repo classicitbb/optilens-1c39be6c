@@ -2,11 +2,20 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-07-30 — Live Helpdesk Conversations
+
+### Release Notes
+- New customer and operator replies appear in the open Helpdesk conversation without manually refreshing the page.
+- When a customer asks the assistant for a person, confirms the handoff, and a ticket is created, the assistant opens that exact ticket for a continuous conversation.
+- A failed reply now shows one clear error message rather than an additional browser error alert.
+- Customer messages appear on the sender's right and support responses on the left. New customer conversations receive an immediate acknowledgement; after hours it includes the urgent support number.
+
 ## 2026-07-24 — Sales App Consolidation
 
 ### Release Notes
 - The standalone Sales app has been closed and removed from the launcher.
 - Admins now manage proposals from CRM and quotations plus website orders from Website.
+- Admins can now save and test DHL Express MyDHL credentials for on-demand tracking and landed-cost estimates. No shipment, label, or pickup is created by this integration.
 
 ## 2026-07-22 — Staff Public Networking Cards
 

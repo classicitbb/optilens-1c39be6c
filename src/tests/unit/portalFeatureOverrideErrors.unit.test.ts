@@ -21,4 +21,18 @@ describe("describePortalFeatureOverrideError", () => {
       "Network unavailable",
     );
   });
+
+  it("explains Lens Assistant check-constraint failures with the resolving migration", () => {
+    const description = describePortalFeatureOverrideError(
+      {
+        code: "23514",
+        message:
+          'new row for relation "customer_portal_feature_overrides" violates check constraint "customer_portal_feature_overrides_feature_key_check"',
+      },
+      "lens-assistant",
+    );
+
+    expect(description).toContain("Cannot update Lens Assistant (lens-assistant).");
+    expect(description).toContain("20260727110000_allow_lens_assistant_portal_feature_key.sql");
+  });
 });

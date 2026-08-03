@@ -45,8 +45,14 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
+  # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).
   [functions.live-data-gateway]
     verify_jwt = false
+  # Admin-only redeploy trigger. Does its own admin check in code
+  # (requirePrivilegedAccess); platform-level verify_jwt stays on too since
+  # there's no special caller like the on-prem agent to accommodate.
+  [functions.redeploy-edge-function]
+    verify_jwt = true
   # The MCP runtime performs its own OAuth 2.1 bearer validation and must be
   # allowed to return the protocol's WWW-Authenticate discovery challenge.
   [functions.mcp]
@@ -66,3 +72,7 @@ project_id = "dzsalnvmlvjoatryhqfz"
   # Authenticity is proved by recomputing the response hash before settling.
   [functions.scotia-notify]
     verify_jwt = false
+  # DHL credentials are tested only by an authenticated admin; all carrier
+  # operations remain server-side so Basic Auth can never reach the browser.
+  [functions.dhl-express]
+    verify_jwt = true

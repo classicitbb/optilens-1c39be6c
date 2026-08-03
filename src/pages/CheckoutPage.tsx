@@ -37,7 +37,6 @@ import { EMPTY_ADDRESS, type ProfileAddress, resolveUserFullName } from "@/lib/p
 import { cn } from "@/lib/utils";
 import { createAuthHref } from "@/lib/authFlow";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
-import SecurityTrustBar from "@/components/checkout/SecurityTrustBar";
 import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -179,7 +178,7 @@ const OrderSummarySidebar = ({
             {item.product_name}
             <span className="ml-1 text-muted-foreground">× {item.quantity}</span>
           </span>
-          <span className="shrink-0 font-mono text-sm font-semibold text-foreground">
+          <span className="shrink-0 tabular-nums text-sm font-semibold text-foreground">
             ${(item.product_price * item.quantity).toFixed(2)}
           </span>
         </div>
@@ -191,11 +190,11 @@ const OrderSummarySidebar = ({
     <div className="space-y-1.5 text-sm">
       <div className="flex justify-between text-muted-foreground">
         <span>Subtotal</span>
-        <span className="font-mono">${totalPrice.toFixed(2)}</span>
+        <span className="tabular-nums">${totalPrice.toFixed(2)}</span>
       </div>
       <div className="flex justify-between text-muted-foreground">
         <span>Shipping</span>
-        <span className="font-mono">
+        <span className="tabular-nums">
           {shippingCost === 0 ? "Free" : shippingCost ? `$${shippingCost.toFixed(2)}` : "TBD"}
         </span>
       </div>
@@ -205,7 +204,7 @@ const OrderSummarySidebar = ({
 
     <div className="flex items-baseline justify-between">
       <span className="font-semibold text-foreground">Total</span>
-      <span className="font-mono text-base font-bold text-foreground">
+      <span className="tabular-nums text-base font-bold text-foreground">
         ${(totalPrice + (shippingCost ?? 0)).toFixed(2)}
         <span className="ml-1 font-mono text-[9px] font-normal uppercase tracking-wider text-muted-foreground">
           USD
@@ -224,8 +223,6 @@ const OrderSummarySidebar = ({
         )}
       </div>
     )}
-
-    <SecurityTrustBar />
   </aside>
 );
 
@@ -567,7 +564,6 @@ const CheckoutPage = () => {
                 <Link to="/store">Continue shopping</Link>
               </Button>
             </div>
-            <SecurityTrustBar compact className="mt-6 justify-center" />
           </div>
         </main>
       </div>
@@ -691,8 +687,6 @@ const CheckoutPage = () => {
                 <Link to="/store">Continue shopping</Link>
               </Button>
             </div>
-
-            <SecurityTrustBar compact className="mt-6 justify-center" />
           </div>
         </main>
       </div>
@@ -1084,7 +1078,7 @@ const CheckoutPage = () => {
                                 <p className="text-xs text-muted-foreground">{method.detail}</p>
                               </div>
                             </div>
-                            <span className="shrink-0 font-mono text-sm font-semibold text-foreground">
+                            <span className="shrink-0 tabular-nums text-sm font-semibold text-foreground">
                               {method.price === 0 ? "Free" : `$${method.price.toFixed(2)}`}
                             </span>
                           </div>
@@ -1243,7 +1237,7 @@ const CheckoutPage = () => {
                             </p>
                             <div className="mt-2.5 flex items-center justify-between rounded-md bg-muted/60 px-3 py-2">
                               <span className="text-xs text-muted-foreground">Available credit</span>
-                              <span className="font-mono text-sm font-bold text-foreground">$12,500 USD</span>
+                              <span className="tabular-nums text-sm font-bold text-foreground">$12,500 USD</span>
                             </div>
                           </div>
                         </div>

@@ -166,7 +166,7 @@ export async function requestLiveData<T>(
   options: RequestLiveDataOptions = {},
 ): Promise<T> {
   const startedAt = Date.now();
-  const timeoutMs = options.timeoutMs ?? 32_000;
+  const timeoutMs = options.timeoutMs ?? 65_000;
   const requestBody = {
     action: "request",
     operation,
@@ -203,5 +203,5 @@ export async function requestLiveData<T>(
       throw new Error(friendlyGatewayMessage(status, "The private live-data source did not answer."));
     }
   }
-  throw new Error("The private live-data source did not answer within 32 seconds.");
+  throw new Error("The private live-data source did not answer within 65 seconds.");
 }

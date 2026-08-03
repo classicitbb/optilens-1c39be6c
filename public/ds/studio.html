@@ -848,7 +848,14 @@
         <!-- ====== RIGHT: PREVIEW ====== -->
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
       <div style="height:58px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#f4f2ed;border-bottom:1px solid #ded9cd">
-        <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c">{{ previewTitle }}</div>
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;white-space:nowrap">{{ previewTitle }}</span>
+          <sc-if value="{{ showEmailFileIdentity }}" hint-placeholder-val="{{ false }}">
+            <span style="color:#b3aa9a;font-size:13px;line-height:1">•</span>
+            <span style="font:700 12px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ activeEmailFileName }}">{{ activeEmailFileName }}</span>
+            <span style="{{ activeEmailFileBadgeStyle }}">{{ activeEmailFileStatus }}</span>
+          </sc-if>
+        </div>
         <div style="display:flex;gap:9px">
           <sc-if value="{{ isLetter }}" hint-placeholder-val="{{ false }}">
             <button onClick="{{ printLetter }}" style="height:38px;padding:0 16px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Print / PDF</button>
@@ -899,7 +906,7 @@
           <sc-if value="{{ showFileActions }}" hint-placeholder-val="{{ false }}">
             <span style="align-self:center;font:600 11.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fileSaveState }}</span>
             <button onClick="{{ saveActiveFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save</span></button>
-            <button onClick="{{ renameActiveFile }}" title="Rename" aria-label="Rename" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">drive_file_rename_outline</span></button>
+            <button onClick="{{ saveAsActiveFile }}" title="Save as" aria-label="Save as" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save_as</span></button>
             <button onClick="{{ shareActiveFile }}" title="Share" aria-label="Share" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">share</span></button>
             <button onClick="{{ deleteActiveFile }}" title="Delete" aria-label="Delete" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #e4c8c8;border-radius:9px;background:#fff;color:#a23b3b;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">delete</span></button>
           </sc-if>
@@ -947,6 +954,28 @@
           </sc-for>
         </div>
         <button onClick="{{ saveBillShares }}" style="height:38px;border:0;border-radius:9px;background:#0B1E35;color:#F4F2ED;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Save sharing</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ fileSaveDialogOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeFileSaveDialog }}" style="position:fixed;inset:0;background:rgba(11,30,53,.38);z-index:74"></div>
+    <div id="ds-file-save-dialog" role="dialog" aria-modal="true" aria-labelledby="ds-file-save-title" style="position:fixed;top:50%;left:50%;width:min(440px,calc(100vw - 40px));transform:translate(-50%,-50%);z-index:75;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 24px 64px -16px rgba(11,30,53,.45);overflow:hidden">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid #f0ede6">
+        <div>
+          <div id="ds-file-save-title" style="font:800 17px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">{{ fileSaveDialogTitle }}</div>
+          <div style="font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-top:5px">{{ fileSaveDialogDescription }}</div>
+        </div>
+        <button onClick="{{ closeFileSaveDialog }}" aria-label="Close" style="flex:none;background:none;border:0;color:#8a93a0;cursor:pointer;font-size:21px;line-height:1;padding:2px 5px">×</button>
+      </div>
+      <div style="padding:18px 20px 20px">
+        <label for="ds-file-save-name" style="display:block;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Name</label>
+        <input id="ds-file-save-name" class="cv-in" type="text" value="{{ fileSaveDialogName }}" onChange="{{ setFileSaveDialogName }}" style="width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+        <sc-if value="{{ fileSaveDialogError }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font:600 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#a23b3b;margin-top:8px">{{ fileSaveDialogError }}</div></sc-if>
+        <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:18px">
+          <button onClick="{{ closeFileSaveDialog }}" style="height:36px;padding:0 14px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Cancel</button>
+          <button onClick="{{ submitFileSaveDialog }}" style="height:36px;padding:0 15px;border:0;border-radius:8px;background:#0B1E35;color:#F4F2ED;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">{{ fileSaveDialogSubmitLabel }}</button>
+        </div>
       </div>
     </div>
   </sc-if>
@@ -1172,8 +1201,8 @@ class Component extends DCLogic {
     billSaveState: 'Local recovery only', billShareOpen: false, billShareUsers: [], billCollaborators: [], billShareUserId: '', billShareAccess: 'view',
     sidebarWidth: 396,
     myFiles: [], myFilesLoaded: false, fileTypeFilter: '', fileAccessFilter: '', myFilesViewMode: 'grid', myFilesSortCol: 'date', myFilesSortDir: -1,
-    currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileAccess: 'owner', currentFileIsOwner: true,
-    fileSaveState: 'DB save ready', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
+    currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true,
+    fileSaveState: 'DB save ready', fileSaveDialogOpen: false, fileSaveDialogKind: '', fileSaveDialogMode: 'save', fileSaveDialogType: '', fileSaveDialogName: '', fileSaveDialogError: '', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
     emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
     emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
     emailContacts: [],
@@ -1259,7 +1288,7 @@ class Component extends DCLogic {
   };
 
   // ---------- persistence ----------
-  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, dsPricelists, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, dsPricelists, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -1439,12 +1468,22 @@ class Component extends DCLogic {
 
   // ---------- TinyMCE rich text editors ----------
   TINY = {};
+  TINY_HOSTS = {};
+  TINY_MOUNT_IDS = {};
   TINY_KEYS = { email: 'emBody', letter: 'ltBody', social: 'smBody' };
   mountTiny = (tab, node) => {
     if (!node || typeof tinymce === 'undefined') return;
-    if (node.dataset.tmceMounted === '1') return;
+    // The host survives tab switches and file saves. Only skip mounting when
+    // this exact host still owns a live editor; a stale data flag must never
+    // prevent the editor from coming back.
+    if (node.dataset.tmceMounted === '1' && this.TINY_HOSTS[tab] === node && this.TINY[tab]) return;
+    if (node.dataset.tmceMounted === '1') node.dataset.tmceMounted = '0';
+    const mountId = (this.TINY_MOUNT_IDS[tab] || 0) + 1;
+    this.TINY_MOUNT_IDS[tab] = mountId;
+    this.TINY_HOSTS[tab] = node;
     node.dataset.tmceMounted = '1';
     const ta = document.createElement('textarea');
+    ta.dataset.tmceMountId = String(mountId);
     node.appendChild(ta);
     const self = this, key = this.TINY_KEYS[tab];
     tinymce.init({
@@ -1479,17 +1518,41 @@ class Component extends DCLogic {
       skin: 'oxide', content_css: false,
       content_style: "@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap'); body{font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13.5px;line-height:1.65;color:#0B1E35;margin:12px 14px} h2{font-size:18px;font-weight:800;letter-spacing:-.01em} h3{font-size:15px;font-weight:700} a{color:#1A8A9C} img{max-width:100%}",
       setup: (ed) => {
+        if (self.TINY_MOUNT_IDS[tab] !== mountId) {
+          ed.on('init', () => { try { ed.remove(); } catch (e) {} });
+          return;
+        }
         self.TINY[tab] = ed;
         ed.on('init', () => {
+          if (self.TINY_MOUNT_IDS[tab] !== mountId || self.TINY_HOSTS[tab] !== node || node.dataset.tmceMounted !== '1') {
+            try { ed.remove(); } catch (e) {}
+            return;
+          }
           ed.setContent(self.state[key] || '');
           const sync = () => { self.setState({ [key]: ed.getContent() }); self.persistSoon(); };
           ed.on('input change undo redo ExecCommand', sync);
         });
       }
-    }).catch(() => {});
+    }).catch(() => {
+      if (self.TINY_MOUNT_IDS[tab] === mountId && self.TINY_HOSTS[tab] === node) {
+        node.dataset.tmceMounted = '0';
+        if (self.TINY[tab] && self.TINY[tab].targetElm === ta) self.TINY[tab] = null;
+        ta.remove();
+      }
+    });
   };
   syncTiny = (tab) => { const ed = this.TINY[tab], key = this.TINY_KEYS[tab]; if (ed && key) { try { this.setState({ [key]: ed.getContent() }); } catch (e) {} } };
-  destroyTiny = (tab) => { const ed = this.TINY[tab]; if (ed) { try { ed.remove(); } catch (e) {} this.TINY[tab] = null; } };
+  destroyTiny = (tab) => {
+    this.TINY_MOUNT_IDS[tab] = (this.TINY_MOUNT_IDS[tab] || 0) + 1;
+    const ed = this.TINY[tab];
+    const node = this.TINY_HOSTS[tab];
+    if (ed) { try { ed.remove(); } catch (e) {} }
+    this.TINY[tab] = null;
+    if (node) {
+      node.dataset.tmceMounted = '0';
+      node.querySelectorAll('.tox-tinymce, textarea').forEach(child => child.remove());
+    }
+  };
   refreshTinyContent = () => { Object.keys(this.TINY_KEYS).forEach(tab => { const ed = this.TINY[tab]; if (ed) { try { ed.setContent(this.state[this.TINY_KEYS[tab]] || ''); } catch (e) {} } }); };
   activeTiny = () => this.TINY[this.state.tab];
   setEmailHost = (node) => this.mountTiny('email', node);
@@ -1606,7 +1669,7 @@ class Component extends DCLogic {
     const cur = this.state.tab;
     this.syncTiny(cur);
     this.destroyTiny(cur);
-    const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
+    const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
     this.setState({ tab: k, ...reset }, this.persistSoon);
   };
 
@@ -1961,16 +2024,7 @@ class Component extends DCLogic {
   loadEmail = (it) => { this.setState({ ...it.fields }, () => { const ed = this.TINY.email; if (ed) { try { ed.setContent(this.state.emBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded “' + it.name + '”'); };
   loadLetter = (it) => { this.setState({ ...it.fields }, () => { const ed = this.TINY.letter; if (ed) { try { ed.setContent(this.state.ltBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded “' + it.name + '”'); };
   loadSig = (it) => { this.setState({ ...it.fields }, this.persist); this.toast('Loaded “' + it.name + '”'); };
-  saveEmail = () => {
-    this.saveCurrentFile('email').catch(() => {});
-    return;
-    const name = prompt('Name this email template:'); if (!name) return;
-    const emBody = this.emailEditor ? this.emailEditor.innerHTML : this.state.emBody;
-    const k = ['emHeader', 'emFooter', 'emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer'];
-    const fields = { emBody }; k.forEach(x => fields[x] = this.state[x]);
-    this.setState(s => ({ emailLib: [...s.emailLib, { id: Date.now() + '', name, fields }] }), this.persist);
-    this.toast('Template saved');
-  };
+  saveEmail = () => this.openFileSaveDialog('file', 'template', 'email');
   saveLetter = () => {
     this.saveCurrentFile('letter').catch(() => {});
     return;
@@ -2804,12 +2858,15 @@ class Component extends DCLogic {
 
   renderedForFile = (type) => type === 'email' ? this.buildEmail() : type === 'letter' ? this.buildLetter() : type === 'signature' ? this.buildSignature() : type === 'social' ? this.buildSocialPost() : type === 'pricelist' ? this.buildPricelist() : type === 'shiplabel' ? this.buildShippingLabel() : type === 'statement' ? this.buildStatement() : '';
 
-  filePayload = (type, name) => ({
+  filePayload = (type, name, options = {}) => ({
     fileType: type,
     fileName: name || this.state.currentFileName || this.defaultFileName(type),
     customerName: type === 'statement' ? this.state.stCustomer : type === 'pricelist' ? this.state.plCustomer : type === 'shiplabel' ? (this.state.slToCompany || this.state.slToName) : '',
     customerAccount: type === 'statement' ? this.state.selectedStatementCustomer : type === 'shiplabel' ? this.state.selectedShipCustomer : '',
-    metadata: { typeLabel: this.TYPE_LABELS[type] || type },
+    metadata: {
+      typeLabel: this.TYPE_LABELS[type] || type,
+      ...(type === 'email' ? { isTemplate: options.isTemplate ?? (this.state.currentFileType === 'email' ? !!this.state.currentFileIsTemplate : false) } : {})
+    },
     content: this.fileSnapshot(type),
     renderedHtml: this.renderedForFile(type),
     version: this.state.currentFileVersion || ''
@@ -2817,18 +2874,56 @@ class Component extends DCLogic {
 
   canEditCurrentFile = () => this.state.currentFileAccess !== 'view';
 
-  saveCurrentFile = async (type) => {
+  openFileSaveDialog = (kind, mode = 'save', type = this.state.tab) => {
+    const isBilling = kind === 'billing';
+    if (isBilling ? !this.canEditBillingFile() : !this.canEditCurrentFile()) {
+      this.toast('Read-only shared file');
+      return;
+    }
+    const existingName = isBilling
+      ? this.billingDocumentName()
+      : (this.state.currentFileKind === 'file' && this.state.currentFileType === type ? this.state.currentFileName : '');
+    const fallbackName = isBilling ? this.billingDocumentName() : this.defaultFileName(type);
+    const suggestedName = mode === 'template' && existingName
+      ? existingName + ' template'
+      : (existingName || fallbackName);
+    this.setState({
+      fileSaveDialogOpen: true,
+      fileSaveDialogKind: kind,
+      fileSaveDialogMode: mode,
+      fileSaveDialogType: type,
+      fileSaveDialogName: suggestedName,
+      fileSaveDialogError: ''
+    }, () => requestAnimationFrame(() => document.getElementById('ds-file-save-name')?.focus()));
+  };
+
+  closeFileSaveDialog = () => this.setState({ fileSaveDialogOpen: false, fileSaveDialogError: '' });
+  setFileSaveDialogName = (e) => this.setState({ fileSaveDialogName: e.target.value, fileSaveDialogError: '' });
+  submitFileSaveDialog = async () => {
+    const name = (this.state.fileSaveDialogName || '').trim();
+    if (!name) { this.setState({ fileSaveDialogError: 'Enter a name before saving.' }); return; }
+    const { fileSaveDialogKind: kind, fileSaveDialogMode: mode, fileSaveDialogType: type } = this.state;
+    if (kind === 'billing') {
+      await this.saveBillingFile({ name, forceNew: mode === 'save-as' });
+    } else {
+      await this.saveCurrentFile(type, { name, forceNew: mode === 'save-as' || mode === 'template', isTemplate: mode === 'template' ? true : undefined });
+    }
+  };
+
+  saveCurrentFile = async (type, options = {}) => {
     if (!this.canEditCurrentFile()) { this.toast('Read-only shared file'); return; }
-    const existing = this.state.currentFileKind === 'file' && this.state.currentFileType === type ? this.state.currentFileId : '';
-    const name = existing ? (this.state.currentFileName || this.defaultFileName(type)) : prompt('Save file as:', this.defaultFileName(type));
-    if (!name) return;
+    const currentId = this.state.currentFileKind === 'file' && this.state.currentFileType === type ? this.state.currentFileId : '';
+    const existing = options.forceNew ? '' : currentId;
+    if (!existing && !options.name) { this.openFileSaveDialog('file', 'save', type); return; }
+    const name = options.name || this.state.currentFileName || this.defaultFileName(type);
     try {
       this.setState({ fileSaveState: 'Saving...' });
       const data = existing
-        ? await this.docApi('/api/docstudio/files/' + encodeURIComponent(existing), { method: 'PUT', body: this.filePayload(type, name) })
-        : await this.docApi('/api/docstudio/files', { method: 'POST', body: this.filePayload(type, name) });
+        ? await this.docApi('/api/docstudio/files/' + encodeURIComponent(existing), { method: 'PUT', body: this.filePayload(type, name, options) })
+        : await this.docApi('/api/docstudio/files', { method: 'POST', body: this.filePayload(type, name, options) });
       this.applyFile(data.file);
       this.loadMyFiles();
+      this.closeFileSaveDialog();
       this.toast('File saved');
     } catch (e) {
       this.setState({ fileSaveState: e.status === 409 ? 'Conflict - reload needed' : 'Save failed' });
@@ -2850,6 +2945,7 @@ class Component extends DCLogic {
       currentFileType: type,
       currentFileVersion: file.version || '',
       currentFileName: file.fileName || '',
+      currentFileIsTemplate: type === 'email' && file.metadata?.isTemplate !== false,
       currentFileAccess: file.accessLevel || 'owner',
       currentFileIsOwner: !!file.isOwner,
       fileCollaborators: file.shares || [],
@@ -2935,12 +3031,11 @@ class Component extends DCLogic {
   };
 
   saveActiveFile = () => this.saveCurrentFile(this.state.tab);
+  saveAsActiveFile = () => this.openFileSaveDialog('file', 'save-as', this.state.tab);
   renameActiveFile = async () => {
     if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { return this.saveActiveFile(); }
     if (!this.state.currentFileIsOwner) { this.toast('Only the owner can rename this file'); return; }
-    const name = prompt('Rename file:', this.state.currentFileName || this.defaultFileName(this.state.tab));
-    if (!name) return;
-    this.setState({ currentFileName: name }, this.saveActiveFile);
+    this.openFileSaveDialog('file', 'rename', this.state.tab);
   };
   shareActiveFile = () => {
     if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { this.toast('Save this file before sharing'); return; }
@@ -2949,7 +3044,7 @@ class Component extends DCLogic {
   deleteActiveFile = async () => {
     if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { this.toast('No saved file selected'); return; }
     await this.deleteFileFromList({ kind: 'file', id: this.state.currentFileId, isOwner: this.state.currentFileIsOwner });
-    this.setState({ currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' }, this.persistSoon);
+    this.setState({ currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' }, this.persistSoon);
   };
 
   clampSidebarWidth = (value) => {
@@ -3051,17 +3146,20 @@ class Component extends DCLogic {
     });
   };
 
-  saveBillingFile = async () => {
+  saveBillingFile = async (options = {}) => {
     if (!this.canEditBillingFile()) { this.toast('Read-only shared file'); return; }
-    const id = this.state.currentBillingDocumentId;
+    const currentId = this.state.currentBillingDocumentId;
+    const id = options.forceNew ? '' : currentId;
+    if (!id && !options.name) { this.openFileSaveDialog('billing', 'save'); return; }
     try {
       this.setState({ billSaveState: 'Saving...' });
       const data = id
-        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id), { method: 'PUT', body: this.billFilePayload() })
-        : await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload() });
+        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id), { method: 'PUT', body: this.billFilePayload(options.name) })
+        : await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload(options.name) });
       this.applyBillingDocument(data.document);
       this.loadBillingFiles();
       this.loadMyFiles();
+      this.closeFileSaveDialog();
       this.toast('Billing file saved');
     } catch (e) {
       this.setState({ billSaveState: e.status === 409 ? 'Conflict - reload needed' : 'Save failed' });
@@ -3069,29 +3167,12 @@ class Component extends DCLogic {
     }
   };
 
-  saveBillingFileAs = async () => {
-    if (!this.canEditBillingFile()) { this.toast('Read-only shared file'); return; }
-    const name = prompt('Save billing file as:', this.billingDocumentName());
-    if (!name) return;
-    try {
-      this.setState({ billSaveState: 'Saving...' });
-      const data = await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload(name) });
-      this.applyBillingDocument(data.document);
-      this.loadBillingFiles();
-      this.loadMyFiles();
-      this.toast('Billing file saved');
-    } catch (e) {
-      this.setState({ billSaveState: 'Save failed' });
-      this.toast(e.message || 'Save failed');
-    }
-  };
+  saveBillingFileAs = () => this.openFileSaveDialog('billing', 'save-as');
 
   renameBillingFile = async () => {
     if (!this.state.currentBillingDocumentId) { this.saveBillingFileAs(); return; }
     if (!this.canEditBillingFile()) { this.toast('Read-only shared file'); return; }
-    const name = prompt('Rename billing file:', this.billingDocumentName());
-    if (!name) return;
-    this.setState({ currentBillingDocumentName: name }, this.saveBillingFile);
+    this.openFileSaveDialog('billing', 'rename');
   };
 
   deleteBillingFile = async () => {
@@ -3376,7 +3457,14 @@ class Component extends DCLogic {
     // avoid the runtime reconciling one shared list across two mount points.
     const _tabBarHtml = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['pricelist', 'Price List'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => `<button onclick="window._dsApp.switchTab('${k}')" style="${this.tabStyle(tab === k)}">${l}</button>`).join('');
     const _mkTabBar = () => React.createElement('div', { style: { display: 'contents' }, dangerouslySetInnerHTML: { __html: _tabBarHtml } });
-    const emailLib = (d.emailLib || []).map(it => ({ name: it.name, load: () => this.loadEmail(it), del: () => this.delLib('emailLib', it.id, 'saved email') }));
+    // Saved email templates are durable Doc Studio files. Rendering from the
+    // same collection as My Files keeps the quick-reuse panel in sync after a
+    // save, refresh, or a later sign-in instead of relying on local storage.
+    const emailLib = (d.myFiles || [])
+      // Older email records predate the explicit marker and originated from
+      // this Saved templates panel, so preserve them as reusable templates.
+      .filter(item => item.kind === 'file' && item.fileType === 'email' && item.metadata?.isTemplate !== false)
+      .map(item => ({ name: item.fileName || 'Untitled email', load: () => this.openFile(item), del: () => this.deleteFileFromList(item) }));
     const letterLib = (d.letterLib || []).map(it => ({ name: it.name, load: () => this.loadLetter(it), del: () => this.delLib('letterLib', it.id, 'saved letterhead') }));
     const sigLib = (d.sigLib || []).map(it => ({ name: it.name, load: () => this.loadSig(it), del: () => this.delLib('sigLib', it.id, 'saved signature') }));
     const snippetItems = (d.snippets || []).map(s => ({ label: s.label, insert: () => this.insertSnippet(s.html), del: () => this.delLib('snippets', s.id, 'saved snippet') }));
@@ -3482,6 +3570,10 @@ class Component extends DCLogic {
       isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isPricelist: tab === 'pricelist', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
       f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
       previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'pricelist' ? 'Price list preview' : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
+      showEmailFileIdentity: tab === 'email',
+      activeEmailFileName: d.currentFileKind === 'file' && d.currentFileType === 'email' ? (d.currentFileName || 'Untitled email') : 'Unsaved email',
+      activeEmailFileStatus: d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? 'Unsaved' : d.currentFileIsTemplate ? 'Template' : 'File',
+      activeEmailFileBadgeStyle: `padding:4px 7px;border-radius:999px;background:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#f1ede5' : d.currentFileIsTemplate ? '#dceef0' : '#e7edf5'};color:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#7a715f' : d.currentFileIsTemplate ? '#176d7a' : '#415b7a'};font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap`,
       copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'pricelist' ? 'Print price list' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
       copyNow: this.copyNow, printLetter: this.printLetter,
       openEmailSend: this.openEmailSend,
@@ -3499,7 +3591,13 @@ class Component extends DCLogic {
       emailSendButtonOpacity: d.emailSending ? '.65' : '1',
       showFileActions: ['email', 'letter', 'signature', 'social', 'pricelist', 'shiplabel', 'statement'].includes(tab),
       fileSaveState: d.fileSaveState || '',
-      saveActiveFile: this.saveActiveFile, renameActiveFile: this.renameActiveFile, shareActiveFile: this.shareActiveFile, deleteActiveFile: this.deleteActiveFile,
+      saveActiveFile: this.saveActiveFile, saveAsActiveFile: this.saveAsActiveFile, renameActiveFile: this.renameActiveFile, shareActiveFile: this.shareActiveFile, deleteActiveFile: this.deleteActiveFile,
+      fileSaveDialogOpen: d.fileSaveDialogOpen,
+      fileSaveDialogName: d.fileSaveDialogName || '', fileSaveDialogError: d.fileSaveDialogError || '',
+      fileSaveDialogTitle: d.fileSaveDialogMode === 'template' ? 'Save as template' : d.fileSaveDialogMode === 'save-as' ? 'Save as' : d.fileSaveDialogMode === 'rename' ? 'Rename file' : 'Save file',
+      fileSaveDialogDescription: d.fileSaveDialogMode === 'template' ? 'Create a reusable email template in Saved templates.' : d.fileSaveDialogMode === 'save-as' ? 'Create a new copy with this name.' : d.fileSaveDialogMode === 'rename' ? 'Choose a new name for this saved file.' : 'Choose a name for this new file.',
+      fileSaveDialogSubmitLabel: d.fileSaveDialogMode === 'template' ? 'Save template' : d.fileSaveDialogMode === 'save-as' ? 'Save copy' : d.fileSaveDialogMode === 'rename' ? 'Rename' : 'Save',
+      closeFileSaveDialog: this.closeFileSaveDialog, setFileSaveDialogName: this.setFileSaveDialogName, submitFileSaveDialog: this.submitFileSaveDialog,
       sidebarStyle: `width:${sidebarWidth}px;flex:none;background:#fff;border-right:1px solid #e7e4db;overflow:auto`,
       sidebarResizerStyle: `width:8px;flex:none;cursor:col-resize;background:${d.sidebarDragging ? '#1A8A9C' : '#e7e4db'};border-right:1px solid #d8d2c4;outline:none;transition:background .12s`,
       startSidebarDrag: this.startSidebarDrag,

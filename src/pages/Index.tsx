@@ -1,3 +1,13 @@
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import Products from "@/components/Products";
+import Features from "@/components/Features";
+import About from "@/components/About";
+import BlogCarousel from "@/components/BlogCarousel";
+import ContactForm from "@/components/ContactForm";
+import CTA from "@/components/CTA";
+import Footer from "@/components/Footer";
+import AccountRequestBanner from "@/components/AccountRequestBanner";
 import { Navigate, useSearchParams } from "react-router";
 import SmartHome from "@/components/home/SmartHome";
 import Seo from "@/components/seo/Seo";
@@ -61,6 +71,23 @@ const Index = () => {
         canonicalPath="/"
         jsonLd={[websiteJsonLd, organizationJsonLd]}
       />
+      <Header />
+      <AccountRequestBanner />
+      <main id="main-content">
+        <Hero />
+
+        <Products />
+        <Features />
+        <About />
+        <BlogCarousel />
+
+        {/* Contact Section */}
+        <ContactForm />
+
+        <CTA />
+      </main>
+      <Footer />
+    </div>
       <SmartHome />
     </>
   );

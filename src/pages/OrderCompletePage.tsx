@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { AlertCircle, CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import Header from "@/components/Header";
-import SecurityTrustBar from "@/components/checkout/SecurityTrustBar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -200,7 +199,6 @@ const OrderCompletePage = () => {
             )}
             <Button variant="outline" asChild><Link to="/store">Continue shopping</Link></Button>
           </div>
-          <SecurityTrustBar compact className="mt-6 justify-center" />
         </div>
       </main>
     </div>

@@ -19,6 +19,9 @@ const featureLabels: Record<PortalFeature, string> = {
   "private-orders": "Private orders",
   "live-order-status": "Live order status",
   statements: "Statements",
+  "order-prices": "Order prices",
+  "lens-assistant": "Lens Assistant",
+
 };
 
 interface PortalAccessNoticeProps {

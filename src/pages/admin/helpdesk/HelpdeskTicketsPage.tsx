@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Ticket, Plus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,11 @@ interface StageOption { id: string; name: string; is_closed: boolean; }
 interface TicketTypeOption { id: string; name: string; }
 interface PriorityOption { level: number; label: string; color: string; }
 
+const EMPTY_TEAMS: TeamOption[] = [];
+const EMPTY_STAGES: StageOption[] = [];
+const EMPTY_TICKET_TYPES: TicketTypeOption[] = [];
+const EMPTY_PRIORITIES: PriorityOption[] = [];
+
 // ── localStorage helpers for "last two consistent creations" ──
 const STORAGE_KEY = "helpdesk_create_history";
 
@@ -68,6 +73,7 @@ function consistentDefault(field: keyof CreateSnapshot): string | undefined {
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
@@ -113,7 +119,7 @@ const HelpdeskTicketsPage = () => {
     }
   }, []);
 
-  const { data: teams = [] } = useQuery({
+  const { data: teams = EMPTY_TEAMS } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
     enabled: canViewTickets,
     queryFn: async () => {
@@ -123,7 +129,7 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
-  const { data: stages = [] } = useQuery({
+  const { data: stages = EMPTY_STAGES } = useQuery({
     queryKey: ["helpdesk", "stages", "options", teamId],
     enabled: canViewTickets,
     queryFn: async () => {
@@ -133,7 +139,7 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
-  const { data: ticketTypes = [] } = useQuery({
+  const { data: ticketTypes = EMPTY_TICKET_TYPES } = useQuery({
     queryKey: ["helpdesk", "ticket-types", "options"],
     enabled: canViewTickets,
     queryFn: async () => {
@@ -143,7 +149,7 @@ const HelpdeskTicketsPage = () => {
     },
   });
 
-  const { data: priorities = [] } = useQuery({
+  const { data: priorities = EMPTY_PRIORITIES } = useQuery({
     queryKey: ["helpdesk", "priorities"],
     enabled: canViewTickets,
     queryFn: async () => {
@@ -184,6 +190,15 @@ const HelpdeskTicketsPage = () => {
       dueDate: "",
     });
   }, [stages, priorities]);
+
+  useEffect(() => {
+    if (searchParams.get("createTicket") === "1" && canEditTickets) {
+      setCreateDialogOpen(true);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("createTicket");
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [canEditTickets, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (createDialogOpen) {

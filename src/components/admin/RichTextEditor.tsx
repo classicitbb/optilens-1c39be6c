@@ -5,7 +5,7 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useCallback, useState, useRef } from "react";
 import {
-  Bold, Italic, List, ListOrdered, Link as LinkIcon, Type, Plus, ChevronDown, ImagePlus,
+  Bold, Italic, List, ListOrdered, Link as LinkIcon, Type, Plus, ChevronDown, ImagePlus, WandSparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { formatLegacyRichText } from "@/lib/formatLegacyRichText";
+
+const ImageNode = Node.create({
+  name: "image",
+  group: "block",
+  draggable: true,
+  selectable: true,
+  inline: false,
+  atom: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      alt: { default: null },
+      title: { default: null },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "img[src]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["img", mergeAttributes(HTMLAttributes)];
+  },
+});
 
 interface RichTextEditorProps {
   content: string;
@@ -39,34 +62,13 @@ const RichTextEditor = ({
   const [imageOpen, setImageOpen] = useState(false);
   const suppressUpdate = useRef(false);
 
-  const ImageNode = Node.create({
-    name: "image",
-    group: "block",
-    draggable: true,
-    selectable: true,
-    inline: false,
-    atom: true,
-    addAttributes() {
-      return {
-        src: { default: null },
-        alt: { default: null },
-        title: { default: null },
-      };
-    },
-    parseHTML() {
-      return [{ tag: "img[src]" }];
-    },
-    renderHTML({ HTMLAttributes }) {
-      return ["img", mergeAttributes(HTMLAttributes)];
-    },
-  });
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
         bulletList: { keepMarks: true },
         orderedList: { keepMarks: true },
+        link: false,
       }),
       Link.configure({
         openOnClick: false,
@@ -77,10 +79,14 @@ const RichTextEditor = ({
     ],
     content: content || "",
     onUpdate: ({ editor: ed }) => {
-      if (!suppressUpdate.current) {
+      if (suppressUpdate.current || ed.isDestroyed) return;
+      try {
         onChange(ed.getHTML());
+      } catch (error) {
+        console.error("RichTextEditor: failed to read editor content", error);
       }
     },
+
     editorProps: {
       handlePaste(view, event) {
         const items = Array.from(event.clipboardData?.items ?? []);
@@ -124,12 +130,19 @@ const RichTextEditor = ({
 
   // Sync external content changes
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      suppressUpdate.current = true;
-      editor.commands.setContent(content || "");
+    if (!editor || editor.isDestroyed) return;
+    try {
+      if (content !== editor.getHTML()) {
+        suppressUpdate.current = true;
+        editor.commands.setContent(content || "");
+        suppressUpdate.current = false;
+      }
+    } catch (error) {
       suppressUpdate.current = false;
+      console.error("RichTextEditor: failed to sync content", error);
     }
   }, [content, editor]);
+
 
   const setLink = useCallback(() => {
     if (!editor) return;
@@ -159,6 +172,11 @@ const RichTextEditor = ({
     setImageUrl("");
     setImageAlt("");
   }, [editor, imageAlt, imageUrl]);
+
+  const formatPastedText = useCallback(() => {
+    if (!editor) return;
+    editor.commands.setContent(formatLegacyRichText(editor.getText()));
+  }, [editor]);
 
   if (!editor) return null;
 
@@ -257,6 +275,19 @@ const RichTextEditor = ({
           title="Numbered List"
         >
           <ListOrdered className="h-3.5 w-3.5" />
+        </Button>
+
+        <div className="w-px h-5 bg-border mx-1" />
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 gap-1 px-2 text-xs"
+          onClick={formatPastedText}
+          title="Format pasted text as rich text"
+        >
+          <WandSparkles className="h-3.5 w-3.5" />
+          Format text
         </Button>
 
         <div className="w-px h-5 bg-border mx-1" />

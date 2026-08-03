@@ -40,6 +40,10 @@ const QuotationsListPage = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [newQuoteOpen, setNewQuoteOpen] = useState(false);
 
+  // RX quotes open in the in-house Rx order form; STOCK quotes keep the flat editor.
+  const quoteEditPath = (q: Pick<Quote, "id" | "quote_type">) =>
+    q.quote_type === "RX" ? `/admin/website/quotations/rx/${q.id}` : `/admin/website/quotations/${q.id}`;
+
   const handleCreate = (quoteType: "STOCK" | "RX") => {
     createMutation.mutate(
       { quote_type: quoteType },
@@ -47,7 +51,7 @@ const QuotationsListPage = () => {
         onSuccess: (data) => {
           setNewQuoteOpen(false);
           toast({ title: `${quoteType} quote created` });
-          navigate(`/admin/website/quotations/${data.id}`);
+          navigate(quoteEditPath(data));
         },
         onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
       }
@@ -60,7 +64,7 @@ const QuotationsListPage = () => {
       {
         onSuccess: (data) => {
           toast({ title: "Quote duplicated" });
-          navigate(`/admin/website/quotations/${data.id}`);
+          navigate(quoteEditPath(data));
         },
         onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
       }
@@ -168,7 +172,7 @@ const QuotationsListPage = () => {
               <TableRow
                 key={q.id}
                 className="cursor-pointer"
-                onClick={() => navigate(`/admin/website/quotations/${q.id}`)}
+                onClick={() => navigate(quoteEditPath(q))}
               >
                 <TableCell className="text-xs font-medium">{q.quote_number}</TableCell>
                 <TableCell className="text-xs">{q.customer_name || "—"}</TableCell>
@@ -200,7 +204,7 @@ const QuotationsListPage = () => {
                 <TableCell className="text-xs">
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => navigate(`/admin/website/quotations/${q.id}`)}
+                      onClick={() => navigate(quoteEditPath(q))}
                       className="p-1 rounded hover:bg-black/5"
                       title="View/Edit"
                     >
