@@ -1,16 +1,12 @@
 <div class="wrap">
 
   <div class="pagehead">
-    <div>
-      <h1>New Rx order</h1>
-      <p>Live-priced as you type. Price locks the moment you submit to cart.</p>
-    </div>
     <div class="spacer"></div>
     <span class="prefill hide" id="prefillChip"></span>
     <span class="ordno" id="ordNo"><span>Order</span> —</span>
     <button class="btn btn-ghost btn-sm" id="saveDraft">Save draft</button>
     <button class="chip btnchip" id="branchChip"><span class="dot"></span>Ordering for <b id="branchName">—</b> <span style="opacity:.5">▾</span></button>
-    <span class="chip" title="Account-level setting"><span class="lockicon">🔒</span> <b id="curChip">BBD $</b></span>
+    <span class="chip" title="Display currency"><span class="lockicon">🔒</span> <b id="curChip">USD $</b></span>
     <div class="headtools">
       <button class="iconbtn" id="coachBtn" title="Order coach">?</button>
       <div class="gearwrap">
@@ -20,8 +16,9 @@
           <div class="gearrow">
             <span style="flex:none">Currency</span>
             <select id="curSim">
-              <option value="BBD">BBD $</option><option value="USD">USD $</option><option value="EUR">EUR €</option>
-              <option value="TTD">TTD $</option><option value="JMD">JMD $</option><option value="XCD">XCD $</option>
+              <option value="USD">USD $</option><option value="EUR">EUR €</option><option value="CAD">CAD $</option>
+              <option value="XCD">XCD $</option><option value="TTD">TTD $</option><option value="JMD">JMD $</option>
+              <option value="BBD">BBD $</option><option value="GYD">GYD $</option>
             </select>
           </div>
           <label class="sw"><input type="checkbox" id="pricesOn" checked> Prices visible on account</label>

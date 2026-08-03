@@ -108,14 +108,16 @@ const CUR={
   BBD:{sym:'BBD $',rate:1,     n:'Barbados dollar'},
   USD:{sym:'USD $',rate:.5,    n:'US dollar'},
   EUR:{sym:'EUR €',rate:.46,   n:'Euro'},
+  CAD:{sym:'CAD $',rate:.68,   n:'Canadian dollar'},
   TTD:{sym:'TTD $',rate:3.40,  n:'Trinidad & Tobago dollar'},
   JMD:{sym:'JMD $',rate:78.50, n:'Jamaican dollar'},
-  XCD:{sym:'XCD $',rate:1.35,  n:'East Caribbean dollar'}
+  XCD:{sym:'XCD $',rate:1.35,  n:'East Caribbean dollar'},
+  GYD:{sym:'GYD $',rate:104.5, n:'Guyanese dollar'}
 };
 
 /* ---------- state ---------- */
 const S={branch:null,scope:'uncut',vision:'sv',purpose:'dist',eyes:'pair',
-  m:'',d:'',c:'', treat:new Set(), cur:'BBD', pricesOn:true, assists:new Set(), file:null, shapeOk:false,
+  m:'',d:'',c:'', treat:new Set(), cur:'USD', pricesOn:true, assists:new Set(), file:null, shapeOk:false,
   shape:null, shapeSrc:'', stdShape:'', shapeExpanded:false, frameExpanded:false, orderNo:'',
   tintCfg:{colour:'Grey',density:75,gradTop:80,gradBottom:10,finish:'Standard',match:false},
   chemClips:[],
@@ -878,14 +880,36 @@ function markNeeded(){
 
 function buildSteps(V){
   const secs=$$('.card[data-step]');
-  $('#steps').innerHTML=secs.map((s,i)=>{
+  const stepButtons=secs.map((s,i)=>{
     const locked=s.classList.contains('hide');
     return `<button class="step ${V[s.id]?'done':''} ${locked?'locked':''}" data-go="#${s.id}"><span class="n">${V[s.id]?'✓':(locked?'🔒':i+1)}</span>${s.dataset.step}</button>`;
   }).join('');
+  const currencyOptions=Object.entries(CUR).map(([code,c])=>`<option value="${code}" ${S.cur===code?'selected':''}>${c.sym}</option>`).join('');
+  const settings=rootEl.classList.contains('no-gear')?'':`<button class="iconbtn sm" data-step-action="settings" title="Order settings" aria-label="Order settings">⚙</button>`;
+  $('#steps').innerHTML=`<div class="step-list">${stepButtons}</div><div class="step-actions" aria-label="Order actions">
+    <span class="ordno"><span>Order</span> ${S.orderNo||'—'}</span>
+    <button class="btn btn-ghost btn-sm" data-step-action="save-draft">Save draft</button>
+    <button class="chip btnchip" data-step-action="branch-picker"><span class="dot"></span>Ordering for <b>${S.branch?S.branch.name.replace('Bridgetown Optical — ',''):'—'}</b> <span style="opacity:.5">▾</span></button>
+    <select class="step-currency" data-step-currency aria-label="Display currency">${currencyOptions}</select>
+    <button class="iconbtn sm" data-step-action="coach" title="Order coach" aria-label="Order coach">?</button>
+    ${settings}
+  </div>`;
   $$('.step').forEach(b=>b.addEventListener('click',()=>{
     const t=rootEl.querySelector(b.dataset.go);
     if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});
   }));
+  $$('#steps [data-step-action]').forEach(b=>b.addEventListener('click',()=>{
+    const action=b.dataset.stepAction;
+    if(action==='save-draft') $('#saveDraft').click();
+    if(action==='branch-picker') $('#branchChip').click();
+    if(action==='coach') $('#coachBtn').click();
+    if(action==='settings') $('#gearBtn').click();
+  }));
+  const currency=$('#steps [data-step-currency]');
+  if(currency) currency.addEventListener('change',e=>{
+    $('#curSim').value=e.target.value;
+    $('#curSim').dispatchEvent(new Event('change',{bubbles:true}));
+  });
 }
 
 /* ---------- segmented ---------- */
@@ -2717,7 +2741,7 @@ function renderBranches(){
     if(changing&&!confirm('Move this order to '+b.name+'?\n\nPricing, currency and delivery may differ.')) return;
     S.branch=b; if(ADAPTER.onBranchChange) ADAPTER.onBranchChange(b.id); $('#branchName').textContent=b.name.replace('Bridgetown Optical — ','');
     /* currency and price visibility follow the account */
-    S.cur=b.cur||'BBD'; S.pricesOn=b.prices!==false;
+    S.cur=b.cur||'USD'; S.pricesOn=b.prices!==false;
     $('#curSim').value=S.cur; $('#pricesOn').checked=S.pricesOn;
     $('#branchScrim').classList.remove('on');
     if(changing) toast('Order now placed against '+b.name+(S.pricesOn?'':' — pricing not enabled on that account'));

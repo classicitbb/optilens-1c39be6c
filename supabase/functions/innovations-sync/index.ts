@@ -219,6 +219,37 @@ const ENTITIES: Record<string, EntityConfig> = {
       "synced_at",
     ],
   },
+  // Physical stocked items (source: Innovations dbo.MiscItems, filtered to
+  // "Stocked Item" checked and not Inactive — see docs/ERP_ITEM_SYNC_PLAN.md §7).
+  // Replaces manual CSV entry into the Supplies catalog for items that already
+  // exist in the ERP. Generic batch-upsert keyed on the immutable MiscItemID;
+  // manually-entered rows keep source='manual' until reconciled/backfilled
+  // (see docs/ERP_ITEM_SYNC_PLAN.md §3) so a first sync never duplicates them.
+  //
+  // sell_price is deliberately NOT in this allowlist. The ERP's own Price
+  // column is always 0 for stocked items — real prices live in a separate
+  // multi-pricelist system with no single canonical value per item — so this
+  // sync only ever supplies cost. Setting sell_price for a newly-synced item
+  // stays a reviewed staff step through the existing supplies pricing-review
+  // UI (src/hooks/usePricingEngine.ts / ImportSuppliesTab.tsx), same as manual
+  // entry today — never silently computed and never overwritten by re-sync.
+  supplies: {
+    table: "supplies",
+    conflictKey: "innovations_misc_item_id",
+    required: "innovations_misc_item_id",
+    scope: "supplies:write",
+    allow: [
+      "innovations_misc_item_id",
+      "sku",
+      "name",
+      "category",
+      "base_price",
+      "inventory_qty",
+      "is_active",
+      "source",
+      "last_synced_at",
+    ],
+  },
 };
 
 function json(body: unknown, status = 200): Response {

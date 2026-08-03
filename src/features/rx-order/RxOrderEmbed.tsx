@@ -121,6 +121,7 @@ export const RxOrderEmbed = ({
     // Portal surface sits under the site's fixed Header; admin surface
     // scrolls inside AdminLayout's own container, below its top bar.
     hostRef.current?.classList.toggle("has-fixed-header", surface === "portal");
+    hostRef.current?.classList.toggle("portal-account-toolbar", surface === "portal");
   }, [surface]);
 
   useEffect(() => {
@@ -150,7 +151,8 @@ export const RxOrderEmbed = ({
     });
 
     hostRef.current.innerHTML = markup;
-    const engine = createRxOrderEngine(hostRef.current, {
+    const host = hostRef.current;
+    const engine = createRxOrderEngine(host, {
       data: engineDataRef.current,
       lockedBranchId: lockedAccountId != null ? String(lockedAccountId) : undefined,
       defaultBranchId: defaultAccountId != null ? String(defaultAccountId) : undefined,

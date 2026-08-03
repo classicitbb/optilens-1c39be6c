@@ -2,7 +2,6 @@ import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 
 import {
-  LABLINK_PORTAL_URL,
   LABLINK_TRACKING_URL,
 } from "@/config/externalLinks";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +18,6 @@ const OpticalRetailWebsitesPage = lazy(() => import("@/pages/OpticalRetailWebsit
 const RxLabServicesPage = lazy(() => import("@/pages/RxLabServicesPage"));
 const LensAssistantPage = lazy(() => import("@/pages/LensAssistantPage"));
 const LabLinkEmbedPage = lazy(() => import("@/pages/LabLinkEmbedPage"));
-const RxOrderPage = lazy(() => import("@/pages/RxOrderPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("@/pages/LensDesignGuidePage"));
@@ -97,15 +95,6 @@ const LensAssistantRouteGate = () => {
   return enabled ? <LensAssistantPage /> : <Navigate to={user ? "/profile" : "/"} replace />;
 };
 
-// Gates the new in-house Rx order form on its Feature Board flag — toggling
-// it off must actually block the route (not just hide the nav link), so
-// direct/bookmarked URLs fall back to the LabLink portal that's always live.
-const RxOrderRouteGate = () => {
-  const { enabled, isLoading } = useWebsiteFeature("rx_order_form", true);
-  if (isLoading) return null;
-  return enabled ? <RxOrderPage /> : <Navigate to="/rx-order/lablink" replace />;
-};
-
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
@@ -117,30 +106,6 @@ const PublicRoutes = () => (
     <Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
     <Route path="lens-assistant" element={<LensAssistantRouteGate />} />
-    {/* The in-house Rx order form (ported prototype) replaces the LabLink
-        iframe here — profile's "Start an Rx order" lands on this. The old
-        LabLink portal stays reachable at /rx-order/lablink as a fallback. */}
-    <Route
-      path="rx-order"
-      element={
-        <ProtectedRoute>
-          <RxOrderRouteGate />
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="rx-order/lablink"
-      element={
-        <ProtectedRoute>
-          <LabLinkEmbedPage
-            title="Online Ordering Portal"
-            iframeTitle="Classic Visions Online Ordering Portal"
-            src={LABLINK_PORTAL_URL}
-            canonicalPath="/rx-order/lablink"
-          />
-        </ProtectedRoute>
-      }
-    />
     <Route
       path="rx-job-status"
       element={

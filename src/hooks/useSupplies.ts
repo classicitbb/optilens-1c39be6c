@@ -30,6 +30,12 @@ export interface Supply {
   vat_paid: boolean;
   labour_added: boolean;
   stk_wspl: boolean;
+  // ERP sync fields (see docs/ERP_ITEM_SYNC_PLAN.md). Not part of SupplyFormData —
+  // written only by the innovations-sync edge function, never by the manual form.
+  innovations_misc_item_id: number | null;
+  source: "manual" | "innovations";
+  last_synced_at: string | null;
+  inventory_qty: number | null;
   created_at: string;
   updated_at: string;
 }

@@ -119,5 +119,5 @@ export const specialtyLenses: SpecialtyLens[] = [
 // Preserve the selected identifier in the URL so those routes can adopt it without changing this page's contract.
 export const getSpecialtyLensActionPaths = (lens: SpecialtyLens) => ({
   pricing: `/professionals/price-list-request?selectedLens=${encodeURIComponent(lens.pricingLensId)}`,
-  ordering: `/rx-order?selectedLens=${encodeURIComponent(lens.orderingLensId)}`,
+  ordering: `/profile/rx-order?selectedLens=${encodeURIComponent(lens.orderingLensId)}`,
 });

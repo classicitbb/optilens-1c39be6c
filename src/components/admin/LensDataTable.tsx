@@ -15,6 +15,7 @@ import type { Lens } from "@/hooks/useLenses";
 import { usePricelistUsedItems } from "@/hooks/usePricelistUsedItems";
 import { fieldsMatch } from "@/lib/wildcardMatch";
 import { getStoreProductRoute } from "@/hooks/useStoreProducts";
+import { useLensAliasLinks } from "@/features/alias-mapping/useLensAliasLinks";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,7 @@ const LensDataTable = ({
   const { canEditFeature } = useRolePermissions();
   const canEditCatalog = canEditFeature("catalog");
   const { data: usedItems = new Set<string>() } = usePricelistUsedItems();
+  const { data: aliasLinks = new Map() } = useLensAliasLinks();
 
   const showCost = canEdit;
   const { settings } = usePricingEngine();
@@ -379,7 +381,7 @@ const LensDataTable = ({
   const currency = (v: number) => `$${Number(v).toFixed(2)}`;
   const showActions = unlocked && canEditCatalog;
   const costCols = showCost ? 1 : 0;
-  const colCount = 14 + costCols + (showActions ? 2 : 0);
+  const colCount = 15 + costCols + (showActions ? 2 : 0); // +1 for ALIAS
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
     <button className="flex items-center gap-1 hover:text-foreground whitespace-nowrap" onClick={() => toggleSort(k)}>
@@ -421,6 +423,7 @@ const LensDataTable = ({
     const supplierName = fkName(lens.supplier);
     const supplierStyle = supplierName ? getSupplierStyle(supplierName) : null;
     const rowBg = getRowBg(lens, idx, isBestCost);
+    const aliasLink = aliasLinks.get(lens.id);
 
     return (
       <TableRow
@@ -495,6 +498,25 @@ const LensDataTable = ({
               <Globe className="h-3 w-3" style={{ color: "hsl(var(--admin-success))" }} />
             </button>
           )}
+        </TableCell>
+        {/* ALIAS — confirmed Innovations colour links, curated in
+            /admin/pricing/alias-mapping. Blank means unmapped. */}
+        <TableCell className="text-center py-1.5 w-12 px-1" onClick={(e) => e.stopPropagation()}>
+          {aliasLink ? (
+            <button
+              title={`${aliasLink.count} confirmed colour alias${aliasLink.count === 1 ? "" : "es"}`
+                + (aliasLink.primary ? ` · default ${aliasLink.primary}` : "")
+                + " — click to review the mapping"}
+              className="text-[10px] font-mono font-semibold"
+              style={{ color: "hsl(25 70% 50%)" }}
+              onClick={() => window.open(
+                `/admin/pricing/alias-mapping?lens=${encodeURIComponent(lens.name)}`,
+                "_blank", "noopener,noreferrer",
+              )}
+            >
+              {aliasLink.count}
+            </button>
+          ) : null}
         </TableCell>
         {showActions && (
           <TableCell onClick={(e) => e.stopPropagation()} className="py-1.5">
@@ -583,6 +605,11 @@ const LensDataTable = ({
               <TableHead className="w-10 px-1 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: "hsl(210 70% 55%)" }}>LAB</TableHead>
               <TableHead className="w-12 px-1 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: "hsl(270 55% 58%)" }}>WSPL</TableHead>
               <TableHead className="w-10 px-1 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap" style={{ color: "hsl(var(--admin-success))" }}>WEB</TableHead>
+              <TableHead
+                className="w-12 px-1 text-center text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap"
+                style={{ color: "hsl(25 70% 50%)" }}
+                title="Confirmed Innovations colour aliases. Without one, an Rx order cannot resolve an alias to submit."
+              >ALIAS</TableHead>
               {showActions && <TableHead />}
               {showActions && <TableHead className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(var(--admin-muted-fg))" }}>Actions</TableHead>}
             </TableRow>

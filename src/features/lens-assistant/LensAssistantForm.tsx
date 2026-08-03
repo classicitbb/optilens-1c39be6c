@@ -146,7 +146,7 @@ export const LensAssistantForm = ({ className }: LensAssistantFormProps = {}) =>
       input,
       recommendation: result,
     });
-    navigate(`/rx-order?draft=${draft.id}`);
+    navigate(`/profile/rx-order?draft=${draft.id}`);
   };
 
   const fieldErrors = showValidation ? validation.errors : {};
@@ -191,7 +191,7 @@ export const LensAssistantForm = ({ className }: LensAssistantFormProps = {}) =>
         <Button size="lg" onClick={() => void runRecommendation()} disabled={isRecommending}>
           {isRecommending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />} Find approved options
         </Button>
-        <Button size="lg" variant="outline" asChild><Link to={input.audience === "patient" ? "/find-a-retailer" : "/rx-order"}>Skip to {input.audience === "patient" ? "retailer finder" : "LabLink"}</Link></Button>
+        <Button size="lg" variant="outline" asChild><Link to={input.audience === "patient" ? "/find-a-retailer" : "/profile/rx-order"}>Skip to {input.audience === "patient" ? "retailer finder" : "Rx Order Form"}</Link></Button>
       </div>
 
       {result ? (

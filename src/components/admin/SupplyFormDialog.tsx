@@ -188,6 +188,12 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
   const labelCls = "text-xs font-medium";
   const sectionCls = "text-[11px] font-semibold uppercase tracking-wider mb-2";
 
+  // ERP-synced items get their SKU and cost from the office system on every
+  // sync — editing them here would just be overwritten next run. Sell price is
+  // deliberately NOT locked: the sync never sets it (see docs/ERP_ITEM_SYNC_PLAN.md
+  // §5), so it's always a staff-set value regardless of source.
+  const erpLocked = supply?.source === "innovations";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="admin-tool admin-overlay-surface sm:max-w-5xl max-h-[90vh] overflow-y-auto [&>button[data-radix-collection-item]]:hidden" style={{ borderRadius: "4px" }}>
@@ -230,8 +236,10 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                     <Input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} required />
                   </div>
                   <div>
-                    <Label className={labelCls}>SKU</Label>
-                    <Input className={inputCls} value={form.sku} onChange={(e) => set("sku", e.target.value)} />
+                    <Label className={labelCls}>
+                      SKU{erpLocked && <span className="text-muted-foreground font-normal"> (synced from ERP)</span>}
+                    </Label>
+                    <Input className={inputCls} value={form.sku} onChange={(e) => set("sku", e.target.value)} disabled={erpLocked} />
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
@@ -335,8 +343,11 @@ const SupplyFormDialog = ({ open, onOpenChange, supply, supplies, onSubmit, onSu
                     />
                   </div>
                   <div>
-                    <Label className={labelCls}>{form.bb_item ? "Cost (BBD)" : "Cost (USD)"}</Label>
-                    <Input className={inputCls} type="number" step="0.01" min="0" value={form.base_price} onChange={(e) => set("base_price", +e.target.value)} />
+                    <Label className={labelCls}>
+                      {form.bb_item ? "Cost (BBD)" : "Cost (USD)"}
+                      {erpLocked && <span className="text-muted-foreground font-normal"> (synced from ERP)</span>}
+                    </Label>
+                    <Input className={inputCls} type="number" step="0.01" min="0" value={form.base_price} onChange={(e) => set("base_price", +e.target.value)} disabled={erpLocked} />
                   </div>
                   <div>
                     <Label className={labelCls}>Sell Price (BBD)</Label>

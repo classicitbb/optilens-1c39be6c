@@ -64,7 +64,8 @@ const PortalRoutes = () => {
         <Route path="assistant-chats" element={<AssistantConversationsSection />} />
         <Route path="pricelists" element={<PortalFeatureGate feature="pricelists"><AssignedPricelistsSection /></PortalFeatureGate>} />
         <Route path="drafts" element={<CartDraftsSection />} />
-        <Route path="lens-assistant" element={<LensAssistantProfileRouteGate />} />
+        <Route path="rx-order" element={<LensAssistantProfileRouteGate />} />
+        <Route path="lens-assistant" element={<Navigate to="/profile/rx-order" replace />} />
         <Route path="rx-drafts/:draftId" element={<RxDraftSection />} />
         <Route path="statements" element={<PortalFeatureGate feature="statements"><StatementsSection /></PortalFeatureGate>} />
         <Route path="networking-card" element={<NetworkingCardPage />} />

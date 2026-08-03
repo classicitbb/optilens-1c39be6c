@@ -24,7 +24,7 @@ const footerColumns = [
     links: [
       { label: "Contact", to: "/#contact" },
       { label: "My Order Status", to: "/profile/orders" },
-      { label: "Rx Order Form", to: "/rx-order" },
+      { label: "Rx Order Form", to: "/profile/rx-order" },
       { label: "Lenses and Supplies", to: "/store" },
     ],
   },
@@ -84,7 +84,7 @@ const Footer = () => {
   const { data: copyrightArticle } = useLegalPage("copyright");
   const location = useLocation();
   const copyrightText = copyrightArticle?.content || "© 2026 Classic Visions. All rights reserved.";
-  const preserveLabLinkSession = location.pathname === "/rx-order" || location.pathname === "/rx-job-status";
+  const preserveLabLinkSession = location.pathname === "/rx-job-status";
   const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
   return (

@@ -13,12 +13,31 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/hooks/usePortalIdentity", () => ({
   usePortalIdentity: () => ({
+    identity: null,
+    emulation: null,
+    effectiveUserId: null,
     canAccessFeature: (feature: string) => {
       if (feature === "statements") return mocks.statementsEnabled;
       if (feature === "lens-assistant") return mocks.lensAssistantProfileEnabled;
       return true;
     },
   }),
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
+vi.mock("@/hooks/useCartDrafts", () => ({
+  useCartDrafts: () => ({ drafts: [] }),
+}));
+
+vi.mock("@/features/lens-assistant/api", () => ({
+  useRxDrafts: () => ({ data: [] }),
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: [] }),
 }));
 
 vi.mock("@/hooks/useUserRole", () => ({
@@ -65,29 +84,29 @@ describe("AccountSidebar", () => {
     expect(screen.queryByText("Statements")).not.toBeInTheDocument();
   });
 
-  it("hides Lens Assistant entirely for customers until the public flag is enabled", () => {
+  it("hides the Rx Order Form entirely for customers until the public flag is enabled", () => {
     mocks.isAdmin = false;
     mocks.lensAssistantPublic = false;
     renderSidebar();
 
-    expect(screen.queryByRole("link", { name: "Lens Assistant" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Lens Assistant")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rx Order Form" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Rx Order Form")).not.toBeInTheDocument();
   });
 
-  it("lets admins open Lens Assistant when the admin flag is enabled", () => {
+  it("lets admins open the Rx Order Form when the admin flag is enabled", () => {
     mocks.isAdmin = true;
     mocks.lensAssistantAdmin = true;
     renderSidebar();
 
-    expect(screen.getByRole("link", { name: "Lens Assistant" })).toHaveAttribute("href", "/profile/lens-assistant?audience=professional");
+    expect(screen.getByRole("link", { name: "Rx Order Form" })).toHaveAttribute("href", "/profile/rx-order");
   });
 
-  it("hides Lens Assistant when this profile has an explicit disabled override", () => {
+  it("hides the Rx Order Form when this profile has an explicit disabled override", () => {
     mocks.isAdmin = false;
     mocks.lensAssistantPublic = true;
     mocks.lensAssistantProfileEnabled = false;
     renderSidebar();
 
-    expect(screen.queryByRole("link", { name: "Lens Assistant" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rx Order Form" })).not.toBeInTheDocument();
   });
 });

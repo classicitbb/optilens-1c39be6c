@@ -29,17 +29,18 @@ export const recommendLenses = async (input: LensRecommendationInput): Promise<L
   return data as LensRecommendationResult;
 };
 
-export const useRxDrafts = () => {
+export const useRxDrafts = (targetUserId?: string) => {
   const { user } = useAuth();
+  const effectiveUserId = targetUserId ?? user?.id;
   return useQuery<RxOrderDraft[]>({
-    queryKey: [...RX_DRAFTS_QUERY_KEY, user?.id],
-    enabled: Boolean(user),
+    queryKey: [...RX_DRAFTS_QUERY_KEY, effectiveUserId],
+    enabled: Boolean(user && effectiveUserId),
     queryFn: async () => {
-      if (!user) return [];
+      if (!effectiveUserId) return [];
       const { data, error } = await (supabase as any)
         .from("rx_order_drafts")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", effectiveUserId)
         .order("updated_at", { ascending: false });
       if (error) {
         if (isMissingFeatureError(error)) return [];

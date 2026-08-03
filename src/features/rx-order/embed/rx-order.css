@@ -34,8 +34,18 @@
    Offset is 0 by default (admin surface scrolls inside its own container,
    below the admin top bar); the portal surface sits under the site's fixed
    header, so it opts into an offset matching that header's height. */
-.cv-rx-embed .steps{position:sticky;top:0;z-index:40}
+.cv-rx-embed .steps{position:sticky;top:0;z-index:40;display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center}
 .cv-rx-embed.has-fixed-header .steps{top:64px}
+.cv-rx-embed.portal-account-toolbar .pagehead{display:none}
+.cv-rx-embed .step-list{display:flex;gap:5px;flex-wrap:wrap;min-width:0}
+.cv-rx-embed .step-actions{display:inline-flex;align-items:center;gap:8px;min-width:max-content;justify-self:end}
+.cv-rx-embed .step-actions .ordno{padding:5px 11px;font-size:12px}
+.cv-rx-embed .step-actions .btn{background:#fff;color:var(--fg);height:30px;font-size:12px}
+.cv-rx-embed .step-actions .chip{height:30px;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.cv-rx-embed .step-actions .chip b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cv-rx-embed .step-actions .step-currency{width:auto;height:30px;padding:0 26px 0 9px;font-size:12px;border-radius:9px}
+@media(max-width:1080px){.cv-rx-embed .step-actions{gap:6px}.cv-rx-embed .step-actions .chip{max-width:180px}}
+@media(max-width:760px){.cv-rx-embed .steps{display:flex;align-items:flex-start}.cv-rx-embed .step-list{flex:1}.cv-rx-embed .step-actions{width:100%;justify-content:flex-end;flex-wrap:wrap}}
 /* help + settings gear wrap onto a new pagehead row together, never apart */
 .cv-rx-embed .headtools{display:inline-flex;align-items:center;gap:8px;flex:none}
 /* settings gear is admin-only */

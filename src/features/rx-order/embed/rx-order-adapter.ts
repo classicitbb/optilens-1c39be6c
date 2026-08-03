@@ -119,7 +119,7 @@ export function buildEngineData(opts: {
       code: initials(a.name),
       name: a.name,
       info: a.account_number ? `Account #${a.account_number}` : "ERP account",
-      cur: "BBD",
+      cur: "USD",
       prices: true,
     })),
     materials: [...materials.values()].sort((a, b) => a.n.localeCompare(b.n)),

@@ -23,7 +23,7 @@ describe("SpecialtyLensesPage", () => {
     const endlessDetails = document.getElementById("endless-pilot-progressive-details");
     expect(endlessDetails).not.toBeNull();
     expect(within(endlessDetails!).getByRole("link", { name: "View My Price" })).toHaveAttribute("href", "/professionals/price-list-request?selectedLens=endless-pilot-progressive");
-    expect(within(endlessDetails!).getByRole("link", { name: "Order This Lens" })).toHaveAttribute("href", "/rx-order?selectedLens=endless-pilot-progressive");
+    expect(within(endlessDetails!).getByRole("link", { name: "Order This Lens" })).toHaveAttribute("href", "/profile/rx-order?selectedLens=endless-pilot-progressive");
 
     fireEvent.click(omniLuxTrigger);
     expect(endlessTrigger).toHaveAttribute("aria-expanded", "false");

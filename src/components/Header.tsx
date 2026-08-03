@@ -125,7 +125,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Apply for a Trade Account", description: "Lead form", to: "/professionals/trade-account" },
     { label: "Optician Website Design", description: "Preview and quote a retail website build", to: "/optical-retail-websites" },
-    { label: "Online Ordering Portal", description: "Login to LabLink", to: "/rx-order" },
+    { label: "Rx Order Form", description: "Create an Rx order in My Account", to: "/profile/rx-order" },
     { label: "Order Tracking", description: "Track shipments and job status", to: "/profile/orders" },
     { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" },
     { label: "Rx Lab Services", description: "Custom surfacing, edging, tinting, and specialty coatings", to: "/rx-lab-services" }]
@@ -249,7 +249,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "tracing-cutting-guide": "Tracing & Cutting Guide",
   "lab-process-overview": "Lab Process Overview",
   "lens-ordering-tips": "Lens Ordering Tips",
-  "rx-order": "Online Ordering Portal",
+  "rx-order": "Rx Order Form",
   "rx-job-status": "Order Tracking"
 };
 
@@ -510,7 +510,7 @@ const Header = () => {
         : item
     );
   }, [hasLinkedErpAccount]);
-  const preserveLabLinkSession = location.pathname === "/rx-order" || location.pathname === "/rx-job-status";
+  const preserveLabLinkSession = location.pathname === "/rx-job-status";
   const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
   const handleSignOut = async () => {
