@@ -4,7 +4,7 @@ import { buildEmbeddedRxOrderDraftFields } from "@/features/lens-assistant/api";
 describe("embedded Rx-order draft persistence", () => {
   it("retains the engine payload and labels the saved order by patient", () => {
     const payload = {
-      schema: "cv.rxorder/1",
+      schema: "cv.rxorder/1" as const,
       patient: { first: "Marcus", last: "Grant" },
       orderNo: "80000001",
       rx: { od: { sph: -2 }, os: { sph: -1.5 } },
