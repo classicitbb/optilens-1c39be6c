@@ -23,8 +23,8 @@ CREATE INDEX innovations_store_lens_power_rows_lens_idx ON public.innovations_st
 
 ALTER TABLE public.innovations_store_lenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.innovations_store_lens_power_rows ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Staff can read Innovations store lenses" ON public.innovations_store_lenses FOR SELECT TO authenticated USING (public.is_admin_user(auth.uid()));
-CREATE POLICY "Staff can read Innovations store lens powers" ON public.innovations_store_lens_power_rows FOR SELECT TO authenticated USING (public.is_admin_user(auth.uid()));
+CREATE POLICY "Staff can read Innovations store lenses" ON public.innovations_store_lenses FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+CREATE POLICY "Staff can read Innovations store lens powers" ON public.innovations_store_lens_power_rows FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::public.app_role));
 REVOKE ALL ON public.innovations_store_lenses, public.innovations_store_lens_power_rows FROM anon;
 GRANT SELECT ON public.innovations_store_lenses, public.innovations_store_lens_power_rows TO authenticated;
 GRANT ALL ON public.innovations_store_lenses, public.innovations_store_lens_power_rows TO service_role;
