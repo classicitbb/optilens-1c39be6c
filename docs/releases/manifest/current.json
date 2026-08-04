@@ -3,14 +3,15 @@
   "releaseDateTimeUtc": "2026-08-04T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "The **Is Lab** contact tag now enables Stock Lenses and Lab Supplies when it is assigned to the portal person, parent company, customer-linked contact, or CRM company resolved to that customer account.",
-    "An open portal rechecks this permission when the pricelist page is revisited or the browser regains focus."
+    "A person keeps one email login while authorized company accounts appear in a switcher in My Account.",
+    "Orders, deliveries, statements, pricing, and other live account data follow the selected account; the server rejects an account that is not an active membership.",
+    "Adding another account to an existing login no longer replaces its original primary customer link."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Portal Lab Pricelist Tag Resolution."
+      "notes": "Updated as part of Multi-account Portal Access."
     }
   ],
   "migrationNotes": [

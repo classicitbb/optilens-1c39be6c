@@ -50,7 +50,8 @@ describe("portal company access and statement billing gate", () => {
     expect(source).toContain('["admin", "operator"].includes(row.role)');
     expect(source).not.toContain('["admin", "editor", "author"].includes(row.role)');
     expect(source).toContain('config.feature === "statements"');
-    expect(source).toContain('rpc("can_access_customer_statement"');
+    expect(source).toContain('rpc("can_access_portal_account_feature"');
+    expect(source).toContain("p_customer_id: websiteCustomerId");
     expect(source).toContain("Statements are available only to contacts tagged Approved Access to Statement or CEO.");
   });
 });

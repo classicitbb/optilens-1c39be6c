@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-04 — Multi-account Portal Access
+
+### Release Notes
+- A person keeps one email login while authorized company accounts appear in a switcher in My Account.
+- Orders, deliveries, statements, pricing, and other live account data follow the selected account; the server rejects an account that is not an active membership.
+- Adding another account to an existing login no longer replaces its original primary customer link.
+
 ## 2026-08-04 — Portal Lab Pricelist Tag Resolution
 
 ### Release Notes

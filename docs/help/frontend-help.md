@@ -2,6 +2,13 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-08-04 — Multiple accounts on one login
+
+- Customers with more than one active company account use the account selector beside **My Account**. Customers with one account do not see the selector.
+- Confirm the company name or account number shown in the selector before placing an order, opening a statement, or starting a payment.
+- To grant another account, use Deploy access with the person's existing login and the additional customer. This adds access without changing the original default account.
+- If an expected account is absent, verify that its membership is active. Do not create a second login or change `profiles.crm_customer_id` to force access.
+
 ## 2026-08-04 — Lab pricelist access
 
 - In Admin → Contacts, select **Is Lab** on the portal person or their linked company and save the contact. When the customer returns to My Pricelists, Stock Lenses and the Lab Supplies section should appear.

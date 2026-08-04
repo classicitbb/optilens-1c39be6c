@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-04 — Multi-account portal access
+- Area: customer portal identity, live account data, and Deploy access
+- Impact: one login could point to only one `profiles.crm_customer_id`; linking another customer replaced the first and the browser could not select a deliberate account context.
+- Root cause: person identity, default account selection, and authorization were represented by the same profile column.
+- Resolution: introduced active user/customer memberships, membership-scoped feature overrides, a visible account selector, and server-side membership enforcement for live-data requests. The profile customer remains a compatibility/default pointer only.
+- Follow-up: keep carts, drafts, payments, orders, and future portal data explicitly customer-scoped. Never treat the browser's stored selection as authorization.
+
 ## 2026-08-04
 - Area: customer portal assigned pricelists and Admin → Contacts tags
 - Impact: selecting **Is Lab** on a valid CRM company could leave Stock Lenses and Lab Supplies hidden, and an already-open portal could preserve the denied result for five minutes.

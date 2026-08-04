@@ -2,6 +2,13 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-08-04 — Multi-account portal access
+
+- `usePortalIdentity` is the compatibility interface over `portal_account_memberships`; `profiles.crm_customer_id` remains only the default/legacy pointer during rollout.
+- `AccountSwitcher` stores a user-scoped customer preference, but every live-data request sends the selected customer to the server for active-membership validation. Local storage is never authorization.
+- Account-specific React Query keys include `crmCustomerId`. Switching broadcasts `cv:portal-account-selection` so every hook instance updates in the same tab and cancels in-flight account requests.
+- `admin-user-management` adds a membership without overwriting the original profile/customer/contact relationship. The live-data gateway checks membership status and membership-scoped feature overrides before resolving customer data.
+
 ## 2026-08-04 — Portal Lab pricelist access
 
 - `AssignedPricelistsSection` treats `can_access_customer_lab_pricing` as mutable authorization state and rechecks it on mount and window focus; do not give a denied result a long stale time.

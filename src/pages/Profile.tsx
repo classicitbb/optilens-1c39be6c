@@ -60,7 +60,7 @@ const Profile = () => {
   const canUseLensAssistant = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
     && canAccessFeature("lens-assistant");
   // Under admin emulation the gateway must fetch the emulated customer's data, not the admin's.
-  const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
+  const websiteCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null, ordersUseBillToAccount: identity?.ordersUseBillToAccount ?? false };
   const liveOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],

@@ -14,8 +14,9 @@ describe("portal access deployment coupling", () => {
     expect(adminFunction).toContain("contactUpdates.linked_customer_id = customer.id");
     expect(adminFunction).toContain("contactUpdates.innovations_parent_customer_id = customer.innovations_customer_id");
     expect(adminFunction).toContain("contactUpdates.parent_id = customer.contact_id");
-    expect(adminFunction).toContain("crm_customer_id: customer.id");
-    expect(adminFunction).toContain("crm_contact_id: resolvedContactId");
+    expect(adminFunction).toContain("profilePayload.crm_customer_id = customer.id");
+    expect(adminFunction).toContain('from("portal_account_memberships")');
+    expect(adminFunction).toContain("profilePayload.crm_contact_id = resolvedContactId");
   });
 
   it("lets company account settings discover linked person portal profiles by ERP customer", () => {

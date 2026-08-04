@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-04 — Multi-account Portal Access
+
+### Release Notes
+- One customer login can now be granted access to multiple company accounts and switch the active account inside My Account.
+
+### Technical Changelog
+- Added membership-scoped account authorization and feature overrides, server validation in the live-data gateway, non-destructive admin linking, account-scoped request caches, and migration coverage for existing single-account profiles.
+
 ## 2026-08-04 — Portal Lab Pricelist Tag Resolution
 
 ### Release Notes

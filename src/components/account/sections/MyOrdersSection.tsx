@@ -239,7 +239,7 @@ const MyOrdersSection = () => {
   const showPrices = canAccessFeature("order-prices");
   // Under admin emulation the gateway must fetch the emulated customer's data,
   // not the admin's; staff-only override honored server-side.
-  const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
+  const websiteCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null, ordersUseBillToAccount: identity?.ordersUseBillToAccount ?? false };
   const [innovationsSearch, setInnovationsSearch] = useState("");
   const [innovationsVisibleCount, setInnovationsVisibleCount] = useState(INNOVATIONS_ORDERS_PAGE_SIZE);

@@ -18,6 +18,7 @@ import { capitalizeDisplayName } from "@/lib/profileData";
 import { getLastNonProfilePath } from "@/lib/lastExternalPath";
 import { CartSheet } from "@/components/CartSheet";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import AccountSwitcher from "@/features/portal-account-access/AccountSwitcher";
 
 interface AccountTopBarProps {
   displayName: string;
@@ -82,8 +83,11 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
             </Button>
           </div>
 
-          {/* Center: title */}
-          <Link to="/profile" className="px-2 text-sm font-semibold tracking-tight text-foreground hover:text-primary transition-colors">My Account</Link>
+          {/* Center: title and active account */}
+          <div className="flex items-center gap-2">
+            <Link to="/profile" className="shrink-0 px-2 text-sm font-semibold tracking-tight text-foreground transition-colors hover:text-primary">My Account</Link>
+            <div className="hidden sm:block"><AccountSwitcher /></div>
+          </div>
 
           {/* Right: mobile hamburger (< lg) | desktop avatar + help (>= lg) */}
           <div className="flex items-center justify-end gap-1">
@@ -190,6 +194,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
 
           {/* Search */}
           <div className="border-b px-4 py-3">
+            <div className="mb-3 sm:hidden"><AccountSwitcher compact /></div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input

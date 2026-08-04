@@ -333,7 +333,7 @@ const StatementsSection = () => {
   const { identity, emulation } = usePortalIdentity();
   const crmCustomerId = identity?.crmCustomerId ?? null;
   // Under admin emulation the gateway must serve the emulated customer's data.
-  const websiteCustomerId = emulation && typeof crmCustomerId === "number" ? crmCustomerId : undefined;
+  const websiteCustomerId = typeof crmCustomerId === "number" ? crmCustomerId : undefined;
   const localFallbackTarget = {
     accountNumber: identity?.accountNumber ?? null,
   };
