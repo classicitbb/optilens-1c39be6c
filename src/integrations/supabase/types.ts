@@ -5937,6 +5937,86 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_account_memberships: {
+        Row: {
+          access_role: string
+          approved_at: string | null
+          approved_by: string | null
+          contact_id: string
+          created_at: string
+          customer_id: number
+          id: string
+          is_default: boolean
+          revoked_at: string | null
+          source: string
+          status: string
+          suspended_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_role?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contact_id: string
+          created_at?: string
+          customer_id: number
+          id?: string
+          is_default?: boolean
+          revoked_at?: string | null
+          source?: string
+          status?: string
+          suspended_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_role?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contact_id?: string
+          created_at?: string
+          customer_id?: number
+          id?: string
+          is_default?: boolean
+          revoked_at?: string | null
+          source?: string
+          status?: string
+          suspended_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_account_memberships_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_account_memberships_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "portal_account_memberships_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "portal_account_memberships_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_catalog: {
         Row: {
           id: string
@@ -9626,6 +9706,10 @@ export type Database = {
       bulk_toggle_anchor_exclusion: {
         Args: { p_excluded: boolean; p_lens_ids: string[]; p_reason?: string }
         Returns: number
+      }
+      can_access_customer_lab_pricing: {
+        Args: { p_user_id?: string }
+        Returns: boolean
       }
       can_access_customer_portal_feature: {
         Args: { p_feature_key?: string; p_user_id?: string }
