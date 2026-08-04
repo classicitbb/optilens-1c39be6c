@@ -3737,6 +3737,101 @@ export type Database = {
         }
         Relationships: []
       }
+      innovations_store_lens_power_rows: {
+        Row: {
+          add: number | null
+          base: number | null
+          cylinder: number | null
+          diameter: number | null
+          id: string
+          innovations_lens_id: string
+          innovations_power_row_id: string
+          left_opc: string | null
+          right_opc: string | null
+          sphere: number | null
+          stock_on_hand: number
+          synced_at: string
+        }
+        Insert: {
+          add?: number | null
+          base?: number | null
+          cylinder?: number | null
+          diameter?: number | null
+          id?: string
+          innovations_lens_id: string
+          innovations_power_row_id: string
+          left_opc?: string | null
+          right_opc?: string | null
+          sphere?: number | null
+          stock_on_hand?: number
+          synced_at?: string
+        }
+        Update: {
+          add?: number | null
+          base?: number | null
+          cylinder?: number | null
+          diameter?: number | null
+          id?: string
+          innovations_lens_id?: string
+          innovations_power_row_id?: string
+          left_opc?: string | null
+          right_opc?: string | null
+          sphere?: number | null
+          stock_on_hand?: number
+          synced_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "innovations_store_lens_power_rows_innovations_lens_id_fkey"
+            columns: ["innovations_lens_id"]
+            isOneToOne: false
+            referencedRelation: "innovations_store_lenses"
+            referencedColumns: ["innovations_lens_id"]
+          },
+        ]
+      }
+      innovations_store_lenses: {
+        Row: {
+          finish_type: string | null
+          id: string
+          innovations_lens_id: string
+          is_enabled: boolean
+          lens_state: string
+          lens_type: string | null
+          material: string | null
+          mf_type: string | null
+          name: string
+          option_name: string | null
+          synced_at: string
+        }
+        Insert: {
+          finish_type?: string | null
+          id?: string
+          innovations_lens_id: string
+          is_enabled?: boolean
+          lens_state: string
+          lens_type?: string | null
+          material?: string | null
+          mf_type?: string | null
+          name: string
+          option_name?: string | null
+          synced_at?: string
+        }
+        Update: {
+          finish_type?: string | null
+          id?: string
+          innovations_lens_id?: string
+          is_enabled?: boolean
+          lens_state?: string
+          lens_type?: string | null
+          material?: string | null
+          mf_type?: string | null
+          name?: string
+          option_name?: string | null
+          synced_at?: string
+        }
+        Relationships: []
+      }
       innovations_sync_dead_letters: {
         Row: {
           api_key_id: string | null
