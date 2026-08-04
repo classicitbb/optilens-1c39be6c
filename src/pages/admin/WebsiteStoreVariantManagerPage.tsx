@@ -22,6 +22,9 @@ import {
   type VariantMode,
 } from "@/hooks/useProductVariants";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
+import { useLenses } from "@/hooks/useLenses";
+import { useInnovationsLensPowerRows, useInnovationsStoreLensCatalog } from "@/hooks/useInnovationsStoreLensCatalog";
+import { buildImportedLensVariants } from "@/features/store-variants/innovationsVariantImport";
 
 const LENS_TEMPLATE = `Diameter,Sph,Cyl,OPC,Eye\n80.00,4.00,1.00,0023409923,Left\n80.00,4.00,1.00,0024409930,Right`;
 
@@ -66,8 +69,14 @@ const WebsiteStoreVariantManagerPage = () => {
   const [csvInput, setCsvInput] = useState("");
   const [manualLens, setManualLens] = useState({ sphere: "", cylinder: "", diameter: "", leftOpc: "", rightOpc: "", stock: "", price: "" });
   const [manualGeneric, setManualGeneric] = useState({ title: "", attrsJson: '{"size":"M"}', sku: "", opc: "", stock: "", price: "" });
+  const [innovationsLensId, setInnovationsLensId] = useState("");
+  const [catalogLensId, setCatalogLensId] = useState("");
+  const [importPreview, setImportPreview] = useState<Partial<ProductVariant>[]>([]);
 
   const { data: products = [] } = useStoreProducts();
+  const { data: catalogLenses = [] } = useLenses();
+  const { data: innovationsLenses = [] } = useInnovationsStoreLensCatalog();
+  const { data: innovationsPowerRows = [] } = useInnovationsLensPowerRows(innovationsLensId || undefined);
   const product = useMemo(() => products.find((item) => item.id === productId && item.product_type === productType), [productId, productType, products]);
 
   const { data: settings, refetch: refetchSettings } = useProductVariantSettings(productType, productId);
@@ -86,6 +95,7 @@ const WebsiteStoreVariantManagerPage = () => {
   const isChiral = Boolean(config.is_chiral ?? defaultChiral);
   const rowLabel = String(config.row_label ?? "Sphere");
   const columnLabel = String(config.column_label ?? "Cylinder");
+  const eligibleCatalogLenses = catalogLenses.filter((lens) => lens.is_active && /semi.?finished|finished/i.test(lens.finishtype?.name ?? ""));
 
   const saveConfig = (partial: Record<string, unknown>) => {
     saveSettingsMutation.mutate({
@@ -213,6 +223,18 @@ const WebsiteStoreVariantManagerPage = () => {
     await refreshVariants();
   };
 
+  const prepareInnovationsImport = () => {
+    if (!innovationsLensId) return;
+    setImportPreview(buildImportedLensVariants(innovationsPowerRows, { isChiral, rowLabel, columnLabel, price: Number(product?.sell_price ?? 0) }));
+  };
+  const applyInnovationsImport = async () => {
+    if (!importPreview.length) return;
+    await upsertVariantsMutation.mutateAsync(importPreview);
+    await refreshVariants();
+    setImportPreview([]);
+    toast({ title: "Variants applied", description: `${importPreview.length} reviewed grid record(s) saved.` });
+  };
+
   return (
     <div className="space-y-6">
       <AdminPageHeader icon={Layers} title="Store Variants">
@@ -272,6 +294,22 @@ const WebsiteStoreVariantManagerPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {currentMode === "lens_grid" && (
+        <Card>
+          <CardHeader><CardTitle>Lens matching and Innovations import</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">Match this website product in place. The product page remains the owner of its title and price; this page only stores matching and imports grid rows.</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-2"><Label>Innovations Lens Database</Label><Select value={innovationsLensId || String(config.innovations_lens_id ?? "")} onValueChange={(value) => { setInnovationsLensId(value); saveConfig({ innovations_lens_id: value }); }}><SelectTrigger><SelectValue placeholder="Choose enabled semi-finished or finished lens" /></SelectTrigger><SelectContent>{innovationsLenses.map((lens) => <SelectItem key={lens.id} value={lens.innovations_lens_id}>{lens.name} — {[lens.material, lens.lens_type, lens.option_name, lens.mf_type, lens.finish_type].filter(Boolean).join(" · ")}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>CV Web Lens Catalog price source</Label><Select value={catalogLensId || String(config.cv_web_lens_id ?? "")} onValueChange={(value) => { setCatalogLensId(value); saveConfig({ cv_web_lens_id: value }); }}><SelectTrigger><SelectValue placeholder="Choose semi-finished or finished catalog lens" /></SelectTrigger><SelectContent>{eligibleCatalogLenses.map((lens) => <SelectItem key={lens.id} value={lens.id}>{lens.name} — {Number(lens.sell_price).toFixed(2)}</SelectItem>)}</SelectContent></Select></div>
+            </div>
+            <Button variant="outline" onClick={prepareInnovationsImport} disabled={!innovationsLensId || !innovationsPowerRows.length}>Prepare variant-records preview</Button>
+            {innovationsLensId && innovationsPowerRows.length === 0 && <p className="text-sm text-muted-foreground">No power rows have been received from Lens Local for this match yet.</p>}
+            {importPreview.length > 0 && <div className="rounded-md border p-3 space-y-3"><p className="text-sm font-medium">Reviewable import preview: {importPreview.length} grid record(s)</p><div className="text-xs text-muted-foreground">{importPreview.map((row) => `${row.title} (stock ${row.stock_qty})`).join("; ")}</div><Button onClick={applyInnovationsImport} disabled={upsertVariantsMutation.isPending}>Apply to saved grid records</Button></div>}
+          </CardContent>
+        </Card>
+      )}
 
       {currentMode === "lens_grid" && (
         <Card>
