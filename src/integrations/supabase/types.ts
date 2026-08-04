@@ -9752,6 +9752,29 @@ export type Database = {
         }[]
       }
       get_customer_command_center: { Args: never; Returns: Json }
+      get_customer_quote_lines: {
+        Args: { p_quote_id: string }
+        Returns: {
+          assistance_note: string
+          created_at: string
+          description_override: string
+          group_key: string
+          id: string
+          innovations_alias: string
+          item_name: string
+          line_note: string
+          line_type: string
+          needs_assistance: boolean
+          parent_line_id: string
+          product_id: string
+          qty: number
+          quote_id: string
+          sku: string
+          sort_order: number
+          unit_sell_price_bbd: number
+          updated_at: string
+        }[]
+      }
       get_dhl_express_credentials: {
         Args: never
         Returns: {
