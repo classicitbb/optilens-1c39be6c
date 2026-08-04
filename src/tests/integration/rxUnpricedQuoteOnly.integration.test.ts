@@ -152,3 +152,81 @@ describe("unpriced combinations are quote-only", () => {
     engine.destroy();
   });
 });
+
+describe("currency table swapped in by the adapter", () => {
+  const CURRENCIES = {
+    BBD: { sym: "BBD $", rate: 1, n: "Barbados dollar" },
+    USD: { sym: "USD $", rate: 0.5, n: "US dollar" },
+    EUR: { sym: "EUR €", rate: 0.4608, n: "Euro (indicative)", indicative: true },
+  };
+
+  const mountWithCurrencies = () => {
+    const host = document.createElement("div");
+    host.className = "cv-rx-embed";
+    host.innerHTML = markup;
+    document.body.appendChild(host);
+    const engine = createRxOrderEngine(host, {
+      data: { ...DATA, currencies: CURRENCIES },
+      lockedBranchId: "1",
+      orderNo: () => "Q-1",
+      lensPrice,
+    });
+    return { host, engine };
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    localStorage.clear();
+  });
+
+  it("replaces the static option list, dropping codes the table has no rate for", () => {
+    // The markup ships CAD and GYD; neither is in the live table, and selecting
+    // one would read .rate off undefined and take the quote down.
+    const { host, engine } = mountWithCurrencies();
+
+    const codes = Array.from(host.querySelectorAll<HTMLOptionElement>("#curSim option")).map((o) => o.value);
+    expect(codes).toEqual(["BBD", "USD", "EUR"]);
+    expect(codes).not.toContain("CAD");
+    expect(codes).not.toContain("GYD");
+
+    engine.destroy();
+  });
+
+  it("marks the display-only currencies in the picker", () => {
+    const { host, engine } = mountWithCurrencies();
+
+    const eur = Array.from(host.querySelectorAll<HTMLOptionElement>("#curSim option")).find((o) => o.value === "EUR");
+    const usd = Array.from(host.querySelectorAll<HTMLOptionElement>("#curSim option")).find((o) => o.value === "USD");
+    expect(eur?.textContent).toMatch(/indicative/i);
+    expect(usd?.textContent).not.toMatch(/indicative/i);
+
+    engine.destroy();
+  });
+
+  it("converts a BBD matrix price into USD at half, not double", () => {
+    const { host, engine } = mountWithCurrencies();
+    engine.state.m = "plastic 1.50";
+    engine.state.d = "single vision|regular";
+    engine.state.c = "uncoated";
+    engine.state.cur = "USD";
+    engine.refreshData();
+
+    // 278.25 BBD at 2 BBD per USD.
+    expect(host.querySelector("#qTotal")?.textContent).toContain("139.13");
+
+    engine.destroy();
+  });
+
+  it("says an indicative currency is guidance, not the billed amount", () => {
+    const { host, engine } = mountWithCurrencies();
+    engine.state.m = "plastic 1.50";
+    engine.state.d = "single vision|regular";
+    engine.state.c = "uncoated";
+    engine.state.cur = "EUR";
+    engine.refreshData();
+
+    expect(host.querySelector("#qSub")?.textContent).toMatch(/guidance, billed in USD/i);
+
+    engine.destroy();
+  });
+});

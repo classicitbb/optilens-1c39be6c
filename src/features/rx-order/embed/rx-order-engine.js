@@ -816,10 +816,14 @@ function render(){
   $('#qCur').textContent=show?c.sym:''; $('#curChip').textContent=c.sym;
   $('#qLabel').textContent=show?'Live quote · '+S.cur:'Order summary';
   $('#mCur').textContent=show?'order total':'Pricing not shown on this account';
+  /* Only BBD and USD are transactional; anything else is a courtesy conversion
+     and must say so, or a customer will treat it as the price they will pay. */
+  const indicative=!!c.indicative;
   $('#qSub').textContent=!show?'confirmed with you before production'
     :(!ready?'choose a lens to start pricing'
       :unpriced?'this lens is not on your pricelist — save as a draft and we will quote it'
-      :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))+' · updates as you type');
+      :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))
+        +(indicative?` · ${S.cur} shown for guidance, billed in USD`:' · updates as you type'));
   const amt=$('#qAmt'); amt.textContent=onRequest?'on request':(show?money(total):'——');
   $('#mAmt').textContent=onRequest?'on request':(show?c.sym+' '+money(total):'——');
   if(show&&lastTotal!==null&&Math.abs(total-lastTotal)>.001){amt.classList.remove('pulse');void amt.offsetWidth;amt.classList.add('pulse');}
@@ -959,7 +963,7 @@ function buildSteps(V){
     const locked=s.classList.contains('hide');
     return `<button class="step ${V[s.id]?'done':''} ${locked?'locked':''}" data-go="#${s.id}"><span class="n">${V[s.id]?'✓':(locked?'🔒':i+1)}</span>${s.dataset.step}</button>`;
   }).join('');
-  const currencyOptions=Object.entries(CUR).map(([code,c])=>`<option value="${code}" ${S.cur===code?'selected':''}>${c.sym}</option>`).join('');
+  const currencyOptions=Object.entries(CUR).map(([code,c])=>`<option value="${code}" ${S.cur===code?'selected':''}>${c.sym}${c.indicative?' · indicative':''}</option>`).join('');
   const settings=rootEl.classList.contains('no-gear')?'':`<button class="iconbtn sm" data-step-action="settings" title="Order settings" aria-label="Order settings">⚙</button>`;
   $('#steps').innerHTML=`<div class="step-list">${stepButtons}</div><div class="step-actions" aria-label="Order actions">
     <span class="ordno"><span>Order</span> ${S.orderNo||'—'}</span>
@@ -3149,6 +3153,16 @@ function applyAdapterData(){
   else Object.entries(MATRIX).forEach(([m,v])=>v.d.forEach(d=>v.c.forEach(c=>COMBOS.push({m,d,c}))));
   if(D.currencies&&Object.keys(D.currencies).length){
     Object.keys(CUR).forEach(k=>delete CUR[k]); Object.assign(CUR,D.currencies);
+    /* The gear's currency list is static markup and offers codes the live table
+       may not have (CAD, GYD). Selecting one of those reads .rate off undefined
+       and takes the quote down, so rebuild the options from the table itself. */
+    const sim=$('#curSim');
+    if(sim){
+      sim.innerHTML=Object.entries(CUR)
+        .map(([code,c])=>`<option value="${code}">${c.sym}${c.indicative?' · indicative':''}</option>`).join('');
+      if(!CUR[S.cur]) S.cur=Object.keys(CUR)[0];
+      sim.value=S.cur;
+    }
   }
 }
 

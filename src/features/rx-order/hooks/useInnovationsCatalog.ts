@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { CatalogAlias } from "../embed/innovations-catalog";
 import { buildPriceLookup, type PriceLookup } from "../pricing/matrixPricing";
+import { buildEngineCurrencies, type EngineCurrency } from "../pricing/currencies";
 
 // The Rx order form's two data sources under the Innovations-as-catalogue model
 // (docs/rx-order-innovations-catalogue.md): what may be ordered, and what it
@@ -58,5 +59,27 @@ export const useRxMatrixPrices = (pricelistVersionId: number | null | undefined)
         if (data.length < PAGE) break;
       }
       return buildPriceLookup(all);
+    },
+  });
+
+/**
+ * The engine's currency table, built from the ACTIVE pricing settings row.
+ *
+ * `pricing_settings` is versioned — reading "the first row" picks up historical
+ * versions with different buffers. Only `is_active` is authoritative.
+ */
+export const useRxCurrencies = () =>
+  useQuery<Record<string, EngineCurrency>>({
+    queryKey: ["rx-engine-currencies"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("pricing_settings") as any)
+        .select("fx_rates")
+        .eq("is_active", true)
+        .order("version", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return buildEngineCurrencies(data?.fx_rates ?? null);
     },
   });

@@ -90,6 +90,11 @@ const groupBySection = (rows: CatalogRow[]) => {
   return map;
 };
 
+const isLabSupplyRow = (row: CatalogRow) => {
+  const section = row.section?.trim().toLowerCase() ?? "";
+  return section === "lab" || section === "lab supplies";
+};
+
 const AssignedPricelistsSection = () => {
   const { identity } = usePortalIdentity();
   const assignedPricelistId = identity?.assignedPricelistId ?? null;
@@ -151,6 +156,17 @@ const AssignedPricelistsSection = () => {
 
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
 
+  const { data: canAccessLabPricing = false } = useQuery<boolean>({
+    queryKey: ["portal-can-access-lab-pricing"],
+    enabled: hasPricelist,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("can_access_customer_lab_pricing");
+      if (error) throw error;
+      return data === true;
+    },
+    staleTime: 5 * 60_000,
+  });
+
   const { data: rows = [], isLoading: rowsLoading, isError } = useQuery<MatrixRow[]>({
     queryKey: ["portal-assigned-pricelist-matrix", assignedPricelistId],
     enabled: hasPricelist,
@@ -173,7 +189,7 @@ const AssignedPricelistsSection = () => {
 
   const { data: stockRows = [], isLoading: stockLoading, isError: stockError } = useQuery<CatalogRow[]>({
     queryKey: ["portal-assigned-pricelist-catalog", "stock", assignedPricelistId],
-    enabled: hasPricelist,
+    enabled: hasPricelist && canAccessLabPricing,
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", { p_catalog_type: "stock" });
       if (error) throw error;
@@ -246,12 +262,19 @@ const AssignedPricelistsSection = () => {
 
   const addonsBySection = useMemo(() => groupBySection(addonRows), [addonRows]);
   const stockBySection = useMemo(() => groupBySection(stockRows), [stockRows]);
-  const suppliesBySection = useMemo(() => groupBySection(supplyRows), [supplyRows]);
+  // The RPC is authoritative. Keep the same presentation rule here as a
+  // defense in depth while a response is cached or a deployment is rolling
+  // out, so a Lab section never flashes into view for an untagged user.
+  const visibleSupplyRows = useMemo(
+    () => canAccessLabPricing ? supplyRows : supplyRows.filter((row) => !isLabSupplyRow(row)),
+    [canAccessLabPricing, supplyRows],
+  );
+  const suppliesBySection = useMemo(() => groupBySection(visibleSupplyRows), [visibleSupplyRows]);
 
   const rxLoading = structureLoading || rowsLoading || addonsLoading;
   const assignedPricelistName = pricelistDetails?.name?.trim() || null;
   const updatedAt = pricelistDetails?.updated_at ?? null;
-  const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || supplyRows.length > 0;
+  const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || visibleSupplyRows.length > 0;
 
   const { user } = useAuth();
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
@@ -285,7 +308,7 @@ const AssignedPricelistsSection = () => {
       });
     };
     addCatalogSection("Add-ons, Extras & Coatings", addonsBySection);
-    addCatalogSection("Stock Lenses", stockBySection);
+    if (canAccessLabPricing) addCatalogSection("Stock Lenses", stockBySection);
     addCatalogSection("Supplies", suppliesBySection);
 
     return toCsv(csvRows);
@@ -431,7 +454,7 @@ const AssignedPricelistsSection = () => {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <TabsList className="flex h-auto flex-wrap justify-start gap-1">
             <TabsTrigger value="rx">RX Lens Prices + Add-ons</TabsTrigger>
-            <TabsTrigger value="stock">Stock Lenses</TabsTrigger>
+            {canAccessLabPricing && <TabsTrigger value="stock">Stock Lenses</TabsTrigger>}
             <TabsTrigger value="supplies">Supplies</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-4">
@@ -566,16 +589,18 @@ const AssignedPricelistsSection = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="stock">
-          {renderCatalogTab(
-            "Stock Lenses",
-            "Semi-finished stock lens wholesale pricing, grouped by MF type.",
-            stockBySection,
-            stockLoading,
-            stockError,
-            "Your assigned pricelist doesn't have any stock lens prices published yet.",
-          )}
-        </TabsContent>
+        {canAccessLabPricing && (
+          <TabsContent value="stock">
+            {renderCatalogTab(
+              "Stock Lenses",
+              "Semi-finished stock lens wholesale pricing, grouped by MF type.",
+              stockBySection,
+              stockLoading,
+              stockError,
+              "Your assigned pricelist doesn't have any stock lens prices published yet.",
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="supplies">
           {renderCatalogTab(

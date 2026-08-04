@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
 import { isRxOrderableAddon, isRxOrderableLens, usePricelistScope } from "./hooks/useOrderableCatalog";
-import { useInnovationsCatalogAliases, useRxMatrixPrices } from "./hooks/useInnovationsCatalog";
+import { useInnovationsCatalogAliases, useRxCurrencies, useRxMatrixPrices } from "./hooks/useInnovationsCatalog";
 import { buildInnovationsCatalog, comboKey, type CatalogAlias } from "./embed/innovations-catalog";
 import { priceForAlias, type PriceLookup } from "./pricing/matrixPricing";
 import { buildEngineData, persistPayload, syntheticCartProductId, LensRef } from "./embed/rx-order-adapter";
@@ -104,8 +104,11 @@ export const RxOrderEmbed = ({
   );
   const priceLookupRef = useRef<PriceLookup | undefined>(priceLookup);
   priceLookupRef.current = priceLookup;
+  // Rates come from the active pricing_settings row, inverted in one place —
+  // that table stores BBD-per-foreign, the engine wants foreign-per-BBD (§2.8).
+  const { data: currencies, isLoading: currenciesLoading } = useRxCurrencies();
 
-  const ready = !lensesLoading && !addonsLoading && !accountsLoading && !aliasesLoading
+  const ready = !lensesLoading && !addonsLoading && !accountsLoading && !aliasesLoading && !currenciesLoading
     && (hasMountedEngine || effectiveAccountId == null || (scopeIsCurrent && !scopeLoading && !pricesLoading));
 
   const engineInput = useMemo(() => {
@@ -134,12 +137,12 @@ export const RxOrderEmbed = ({
     });
     const catalog = buildInnovationsCatalog(catalogAliases);
     return {
-      data: { ...cv.data, ...catalog.data },
+      data: { ...cv.data, ...catalog.data, ...(currencies ? { currencies } : {}) },
       lensIndex: cv.lensIndex,
       aliasIndex: catalog.aliasIndex,
       ambiguous: catalog.ambiguous,
     };
-  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent, catalogAliases]);
+  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent, catalogAliases, currencies]);
 
   useEffect(() => {
     // Settings gear (prototype/account-simulation controls) is admin-only.

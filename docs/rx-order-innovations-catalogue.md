@@ -181,7 +181,10 @@ rather than introducing a distinction.
   out by a factor of four, plausibly enough to ship unnoticed.
 - **Do not apply `fx_risk_buffer` to customer-facing quotes.** It exists to pad supplier
   cost conversion; on a sell price it silently marks foreign quotes up 2%.
-- Resolve the two `pricing_settings` rows disagreeing on `fx_risk_buffer` (0.02 vs 0).
+- ~~Resolve the two `pricing_settings` rows disagreeing on `fx_risk_buffer`.~~ Nothing to
+  resolve — there are three rows and `is_active` picks the answer. The active one is v3
+  "Classic Price Settings 2026" (`fx_rates {BBD:1, USD:2}`, `fx_risk_buffer 0`); the 0.02
+  is on v1, inactive since February. Read the active row, not the first row.
 - Restrict transactional currencies to BBD and USD; mark the rest indicative.
 
 ### 4.5 Price check on submission
