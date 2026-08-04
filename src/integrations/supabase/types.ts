@@ -5937,6 +5937,61 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_account_audit_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          customer_id: number
+          event_type: string
+          id: string
+          membership_id: string | null
+          metadata: Json
+          subject_user_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          customer_id: number
+          event_type: string
+          id?: string
+          membership_id?: string | null
+          metadata?: Json
+          subject_user_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          customer_id?: number
+          event_type?: string
+          id?: string
+          membership_id?: string | null
+          metadata?: Json
+          subject_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_account_audit_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "portal_account_audit_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_account_audit_events_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "portal_account_memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portal_account_memberships: {
         Row: {
           access_role: string
@@ -6013,6 +6068,41 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_membership_feature_overrides: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          id: string
+          membership_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled: boolean
+          feature_key: string
+          id?: string
+          membership_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          membership_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_membership_feature_overrides_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "portal_account_memberships"
             referencedColumns: ["id"]
           },
         ]
@@ -9723,6 +9813,18 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: boolean
       }
+      can_access_portal_account: {
+        Args: { p_customer_id: number; p_user_id?: string }
+        Returns: boolean
+      }
+      can_access_portal_account_feature: {
+        Args: {
+          p_customer_id: number
+          p_feature_key: string
+          p_user_id?: string
+        }
+        Returns: boolean
+      }
       cancel_integration_sync_job: {
         Args: { p_sync_job_id: string }
         Returns: undefined
@@ -9905,6 +10007,25 @@ export type Database = {
           sph_min: number
           supplier_id: string
           updated_at: string
+        }[]
+      }
+      get_portal_account_memberships: {
+        Args: { p_user_id?: string }
+        Returns: {
+          access_role: string
+          account_number: string
+          assigned_pricelist_id: number
+          can_access_pricing: boolean
+          can_access_statements: boolean
+          contact_id: string
+          customer_id: number
+          customer_name: string
+          feature_overrides: Json
+          is_default: boolean
+          membership_id: string
+          membership_status: string
+          payment_terms: string
+          portal_orders_use_bill_to_account: boolean
         }[]
       }
       get_portal_erp_account_number: { Args: never; Returns: string }
@@ -10119,6 +10240,14 @@ export type Database = {
         }[]
       }
       portal_assigned_pricelist_updated_at: { Args: never; Returns: string }
+      portal_membership_has_contact_tag: {
+        Args: {
+          p_customer_id: number
+          p_tag_names: string[]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       portal_pricing_currency_settings: {
         Args: never
         Returns: {
