@@ -219,6 +219,17 @@ const ENTITIES: Record<string, EntityConfig> = {
       "synced_at",
     ],
   },
+  // Lens Local's stock-lens catalogue, including the configurator axes. This
+  // is intentionally independent of Website Visible/WSPL: Store Variants
+  // needs every enabled semi-finished or finished candidate.
+  store_lenses: {
+    table: "innovations_store_lenses", conflictKey: "innovations_lens_id", required: "innovations_lens_id", scope: "supplies:write",
+    allow: ["innovations_lens_id", "name", "lens_state", "material", "lens_type", "option_name", "mf_type", "finish_type", "is_enabled", "synced_at"],
+  },
+  store_lens_power_rows: {
+    table: "innovations_store_lens_power_rows", conflictKey: "innovations_power_row_id", required: "innovations_power_row_id", scope: "supplies:write",
+    allow: ["innovations_power_row_id", "innovations_lens_id", "diameter", "sphere", "base", "cylinder", "add", "stock_on_hand", "right_opc", "left_opc", "synced_at"],
+  },
   // Physical stocked items (source: Innovations dbo.MiscItems, filtered to
   // "Stocked Item" checked and not Inactive — see docs/ERP_ITEM_SYNC_PLAN.md §7).
   // Replaces manual CSV entry into the Supplies catalog for items that already
@@ -269,7 +280,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-08-01.1-lens-aliases-and-rx-submissions";
+const VERSION = "2026-08-03.1-store-lens-variant-catalog";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
