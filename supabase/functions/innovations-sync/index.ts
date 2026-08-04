@@ -224,7 +224,7 @@ const ENTITIES: Record<string, EntityConfig> = {
   // needs every enabled semi-finished or finished candidate.
   store_lenses: {
     table: "innovations_store_lenses", conflictKey: "innovations_lens_id", required: "innovations_lens_id", scope: "supplies:write",
-    allow: ["innovations_lens_id", "name", "lens_state", "material", "lens_type", "option_name", "mf_type", "finish_type", "is_enabled", "synced_at"],
+    allow: ["innovations_lens_id", "name", "lens_state", "material_group", "material", "lens_type", "option_name", "mf_type", "manufacturer", "finish_type", "is_enabled", "synced_at"],
   },
   store_lens_power_rows: {
     table: "innovations_store_lens_power_rows", conflictKey: "innovations_power_row_id", required: "innovations_power_row_id", scope: "supplies:write",
