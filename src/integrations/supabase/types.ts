@@ -3798,7 +3798,9 @@ export type Database = {
           is_enabled: boolean
           lens_state: string
           lens_type: string | null
+          manufacturer: string | null
           material: string | null
+          material_group: string | null
           mf_type: string | null
           name: string
           option_name: string | null
@@ -3811,7 +3813,9 @@ export type Database = {
           is_enabled?: boolean
           lens_state: string
           lens_type?: string | null
+          manufacturer?: string | null
           material?: string | null
+          material_group?: string | null
           mf_type?: string | null
           name: string
           option_name?: string | null
@@ -3824,7 +3828,9 @@ export type Database = {
           is_enabled?: boolean
           lens_state?: string
           lens_type?: string | null
+          manufacturer?: string | null
           material?: string | null
+          material_group?: string | null
           mf_type?: string | null
           name?: string
           option_name?: string | null
