@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-04 — Portal Lab Pricelist Tag Resolution
+
+### Release Notes
+- Selecting **Is Lab** on the portal customer's CRM person or resolved company now unlocks Stock Lenses and Lab Supplies when the customer returns to the pricelist page.
+
+### Technical Changelog
+- Extended lab authorization to CRM companies resolved through `contacts.linked_customer_id`, removed the five-minute denied-access cache, and made failed tag-link replacement visible to the editor.
+
 ## 2026-07-30 — Live Helpdesk Conversations
 
 ### Release Notes

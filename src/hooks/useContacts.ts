@@ -193,7 +193,10 @@ export const useSetContactTags = () => {
   return useMutation({
     mutationFn: async ({ contactId, tagIds }: { contactId: string; tagIds: string[] }) => {
       // Delete existing
-      await (supabase.from("contact_tag_links") as any).delete().eq("contact_id", contactId);
+      const { error: deleteError } = await (supabase.from("contact_tag_links") as any)
+        .delete()
+        .eq("contact_id", contactId);
+      if (deleteError) throw deleteError;
       // Insert new
       if (tagIds.length > 0) {
         const rows = tagIds.map((tag_id) => ({ contact_id: contactId, tag_id }));

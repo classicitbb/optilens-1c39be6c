@@ -4,7 +4,7 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-07-14
+Last updated: 2026-08-04
 
 ---
 
@@ -39,6 +39,7 @@ Last updated: 2026-07-14
 - Wiki article renderer — shared renderer in place; preview and published views both use it
 - Customer assignment — list-page assign dialog is correct and stable
 - Auth guards — `/admin/**`, `/admin/moonshot/**`, `/ops/**` all behind `AdminProtectedRoute`
+- Portal Lab pricelist access — `Is Lab` resolves through person, parent, customer contact, or `contacts.linked_customer_id`; follow-up migration must be deployed before production verification
 
 ---
 

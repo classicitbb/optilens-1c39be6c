@@ -2,6 +2,12 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-08-04 — Portal Lab pricelist access
+
+- `AssignedPricelistsSection` treats `can_access_customer_lab_pricing` as mutable authorization state and rechecks it on mount and window focus; do not give a denied result a long stale time.
+- `useSetContactTags` must fail the mutation when removal of prior `contact_tag_links` fails, otherwise the Contacts editor can report a tag set that the database did not save.
+- The database decision includes the person, parent company, `customers.contact_id`, and company contacts whose `linked_customer_id` equals the resolved portal customer.
+
 ## 2026-07-30 — Live Helpdesk conversations
 
 - `useLiveHelpdeskTicketUpdates` joins one private `helpdesk:ticket:<ticket-id>` topic only while that conversation is open. Its broadcasts contain identifiers, then refresh only that ticket's messages, timeline, and summary queries.

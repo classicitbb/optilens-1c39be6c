@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-04
+- Area: customer portal assigned pricelists and Admin → Contacts tags
+- Impact: selecting **Is Lab** on a valid CRM company could leave Stock Lenses and Lab Supplies hidden, and an already-open portal could preserve the denied result for five minutes.
+- Root cause: authorization omitted the `contacts.linked_customer_id` customer relationship used by the CRM editor, while the client treated the false decision as fresh. The tag mutation also ignored an error while deleting prior links.
+- Resolution: include the resolved CRM-company relationship, recheck access on portal return/focus, and surface failed tag-link replacement.
+- Follow-up: deploy `20260804171342_fix_portal_lab_tag_resolution.sql` before validating production behavior.
+
 ## 2026-07-30
 - Area: customer portal Helpdesk, operator Helpdesk, and assistant handoff
 - Impact: ticket messages required a manual page refresh, so customers and operators could miss a new reply even while both were using the website.

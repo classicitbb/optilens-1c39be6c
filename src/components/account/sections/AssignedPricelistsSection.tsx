@@ -164,7 +164,12 @@ const AssignedPricelistsSection = () => {
       if (error) throw error;
       return data === true;
     },
-    staleTime: 5 * 60_000,
+    // This authorization can change while the portal is already open when an
+    // administrator updates the CRM contact's tags. Recheck on return instead
+    // of preserving a denied decision for five minutes.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
   });
 
   const { data: rows = [], isLoading: rowsLoading, isError } = useQuery<MatrixRow[]>({

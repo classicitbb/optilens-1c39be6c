@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-04 — Portal Lab Pricelist Tag Resolution
+
+### Release Notes
+- The **Is Lab** contact tag now enables Stock Lenses and Lab Supplies when it is assigned to the portal person, parent company, customer-linked contact, or CRM company resolved to that customer account.
+- An open portal rechecks this permission when the pricelist page is revisited or the browser regains focus.
+
 ## 2026-07-30 — Live Helpdesk Conversations
 
 ### Release Notes

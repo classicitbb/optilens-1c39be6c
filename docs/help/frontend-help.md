@@ -2,6 +2,11 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-08-04 — Lab pricelist access
+
+- In Admin → Contacts, select **Is Lab** on the portal person or their linked company and save the contact. When the customer returns to My Pricelists, Stock Lenses and the Lab Supplies section should appear.
+- If access remains hidden, confirm the contact is linked to the same customer account as the portal profile and confirm the tag save did not show an error.
+
 ## 2026-07-30 — Live Helpdesk conversations
 
 - When viewing an open ticket, new replies should appear without refreshing. If they do not, first check that the user is signed in and permitted to the ticket; the page deliberately does not subscribe to any other customer's conversation.
