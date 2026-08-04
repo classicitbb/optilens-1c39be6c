@@ -84,7 +84,9 @@ export const RxOrderForm = ({ quoteId, surface, account, actions }: RxOrderFormP
   const { user } = useAuth();
   const { data: quote, refetch: refetchQuote } = useQuoteRecord(quoteId);
   const { updateMutation } = useQuotes();
-  const { data: lines = [], addLineMutation, updateLineMutation, deleteLineMutation } = useQuoteLines(quoteId);
+  const { data: lines = [], addLineMutation, updateLineMutation, deleteLineMutation } = useQuoteLines(quoteId, {
+    customerSafe: surface !== "admin",
+  });
   const { data: frame, upsertMutation: upsertFrame } = useQuoteFrameDetails(quoteId);
   const { data: customerAccounts = [] } = useCustomerAccounts();
   const { data: clashRules = [] } = useClashRules();

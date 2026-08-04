@@ -239,19 +239,38 @@ export const useQuotes = () => {
   return { ...query, createMutation, updateMutation, deleteMutation };
 };
 
-export const useQuoteLines = (quoteId: string | undefined) => {
+export const useQuoteLines = (
+  quoteId: string | undefined,
+  options: { customerSafe?: boolean } = {},
+) => {
   const qc = useQueryClient();
+  const customerSafe = options.customerSafe === true;
 
   const query = useQuery<QuoteLine[]>({
     queryKey: ["quote-lines", quoteId],
     queryFn: async () => {
       if (!quoteId) return [];
-      const { data, error } = await (supabase.from("quote_lines") as any)
-        .select("*")
-        .eq("quote_id", quoteId)
-        .order("sort_order");
+      const request = customerSafe
+        ? (supabase.rpc as any)("get_customer_quote_lines", { p_quote_id: quoteId })
+        : (supabase.from("quote_lines") as any)
+            .select("*")
+            .eq("quote_id", quoteId)
+            .order("sort_order");
+      const { data, error } = await request;
       if (error) throw error;
-      return data as unknown as QuoteLine[];
+      return (data ?? []).map((line: Partial<QuoteLine>) => ({
+        unit_cost_landed_bbd: 0,
+        unit_base_price_bbd: line.unit_sell_price_bbd ?? 0,
+        price_override: false,
+        override_reason: null,
+        override_note: null,
+        profit_status: "",
+        threshold_percent: 0,
+        threshold_status: "",
+        gp_amount: 0,
+        gp_percent: 0,
+        ...line,
+      })) as QuoteLine[];
     },
     enabled: !!quoteId,
   });
@@ -260,7 +279,7 @@ export const useQuoteLines = (quoteId: string | undefined) => {
     mutationFn: async (line: Partial<QuoteLine> & { quote_id: string }) => {
       const { data, error } = await (supabase.from("quote_lines") as any)
         .insert(line as any)
-        .select("*")
+        .select("id,quote_id,line_type,product_id,sku,item_name,description_override,qty,unit_sell_price_bbd,group_key,parent_line_id,sort_order,line_note,needs_assistance,assistance_note,innovations_alias,created_at,updated_at")
         .single();
       if (error) throw error;
       return data as unknown as QuoteLine;
