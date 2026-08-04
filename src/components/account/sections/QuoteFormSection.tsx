@@ -20,10 +20,10 @@ const QuoteFormSection = () => {
   const location = useLocation();
   const [customerName, setCustomerName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const canSubmit = customerName.trim().length > 0 && notes.trim().length > 0;
   // Lazy initializer: seeds once from an "Add to Rx" navigation off the
   // pricelist page (state.prefillNote), then behaves as a normal textarea.
   const [notes, setNotes] = useState(() => (location.state as { prefillNote?: string } | null)?.prefillNote ?? "");
+  const canSubmit = customerName.trim().length > 0 && notes.trim().length > 0;
   const { data: quotes = [], isLoading } = useQuery({
     queryKey: ["customer-quotes", emulation?.userId ?? user?.id],
     enabled: !!user,
