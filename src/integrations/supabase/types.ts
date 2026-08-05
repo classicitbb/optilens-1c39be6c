@@ -9937,7 +9937,10 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_customer_command_center: { Args: never; Returns: Json }
+      get_customer_command_center: {
+        Args: { p_customer_id?: number }
+        Returns: Json
+      }
       get_customer_quote_lines: {
         Args: { p_quote_id: string }
         Returns: {
