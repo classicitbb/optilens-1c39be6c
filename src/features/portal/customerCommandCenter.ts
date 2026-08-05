@@ -100,8 +100,10 @@ const normalizeCommandCenter = (raw: any): CustomerCommandCenter => ({
   },
 });
 
-export const fetchCustomerCommandCenter = async (): Promise<CustomerCommandCenter> => {
-  const { data, error } = await (supabase.rpc as any)("get_customer_command_center");
+export const fetchCustomerCommandCenter = async (customerId?: number | null): Promise<CustomerCommandCenter> => {
+  const { data, error } = await (supabase.rpc as any)("get_customer_command_center", {
+    p_customer_id: customerId ?? null,
+  });
   if (!error && data) return normalizeCommandCenter(data);
 
   const message = String(error?.message ?? "");
@@ -121,12 +123,15 @@ export const fetchCustomerCommandCenter = async (): Promise<CustomerCommandCente
   if (cartDraftsResult.error) throw cartDraftsResult.error;
 
   const profile = profileResult.data;
-  const customerId = profile?.crm_customer_id ?? null;
+  // p_customer_id has no effect on this pre-migration fallback path — it
+  // only runs when the RPC itself is missing (schema cache lag), and that
+  // legacy path predates multi-account memberships entirely.
+  const resolvedCustomerId = customerId ?? profile?.crm_customer_id ?? null;
   const contactId = profile?.crm_contact_id ?? null;
   const [customerResult, balanceResult, statementResult, ticketsResult] = await Promise.all([
-    customerId ? (supabase as any).from("customers").select("name,assigned_pricelist_id").eq("id", customerId).maybeSingle() : Promise.resolve({ data: null, error: null }),
-    customerId ? (supabase as any).from("balances_public").select("*").eq("customer_id", customerId).maybeSingle() : Promise.resolve({ data: null, error: null }),
-    customerId ? (supabase as any).from("statements_public").select("*").eq("customer_id", customerId).order("period_end", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    resolvedCustomerId ? (supabase as any).from("customers").select("name,assigned_pricelist_id").eq("id", resolvedCustomerId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    resolvedCustomerId ? (supabase as any).from("balances_public").select("*").eq("customer_id", resolvedCustomerId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    resolvedCustomerId ? (supabase as any).from("statements_public").select("*").eq("customer_id", resolvedCustomerId).order("period_end", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null, error: null }),
     contactId
       ? (supabase as any).from("helpdesk_tickets").select("id,ticket_number,title,closed_at,created_at").eq("partner_contact_id", contactId).order("created_at", { ascending: false }).limit(8)
       : (supabase as any).from("helpdesk_tickets").select("id,ticket_number,title,closed_at,created_at").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(8),

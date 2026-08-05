@@ -14,7 +14,7 @@ import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const QuoteFormSection = () => {
   const { user } = useAuth();
-  const { emulation } = usePortalIdentity();
+  const { emulation, identity } = usePortalIdentity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -24,26 +24,31 @@ const QuoteFormSection = () => {
   // pricelist page (state.prefillNote), then behaves as a normal textarea.
   const [notes, setNotes] = useState(() => (location.state as { prefillNote?: string } | null)?.prefillNote ?? "");
   const canSubmit = customerName.trim().length > 0 && notes.trim().length > 0;
+  const activeCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : null;
   const { data: quotes = [], isLoading } = useQuery({
-    queryKey: ["customer-quotes", emulation?.userId ?? user?.id],
+    queryKey: ["customer-quotes", emulation?.userId ?? user?.id, activeCustomerId],
     enabled: !!user,
     queryFn: async () => {
       // The quotes_customer view is bound to the signed-in user server-side;
       // under admin emulation read the base table (admin RLS) for the target.
+      // Older quotes predate account_id (see 20260731010000_rx_order_form_schema.sql)
+      // so a NULL account_id still shows under whichever account is active,
+      // rather than silently disappearing from every account's list.
       const { data, error } = emulation
         ? await (supabase as any)
             .from("quotes")
-            .select("id,quote_number,status,quote_type,created_at,notes_customer")
+            .select("id,quote_number,status,quote_type,created_at,notes_customer,account_id")
             .eq("created_by", emulation.userId)
             .order("created_at", { ascending: false })
             .limit(20)
         : await (supabase as any)
             .from("quotes_customer")
-            .select("id,quote_number,status,quote_type,created_at,notes_customer")
+            .select("id,quote_number,status,quote_type,created_at,notes_customer,account_id")
             .order("created_at", { ascending: false })
             .limit(20);
       if (error) throw error;
-      return data as Array<{ id: string; quote_number: string; status: string; quote_type: string; created_at: string; notes_customer: string | null }>;
+      const rows = data as Array<{ id: string; quote_number: string; status: string; quote_type: string; created_at: string; notes_customer: string | null; account_id: number | null }>;
+      return activeCustomerId ? rows.filter((quote) => quote.account_id === null || quote.account_id === activeCustomerId) : rows;
     },
   });
 
@@ -58,6 +63,7 @@ const QuoteFormSection = () => {
         contact_email: user.email,
         notes_customer: notes.trim() || null,
         quote_number: "",
+        account_id: activeCustomerId,
       });
       if (error) {
         toast({ title: "Error", description: error.message || "Failed to submit quote request.", variant: "destructive" });

@@ -48,10 +48,11 @@ const Profile = () => {
   const { role, isAdmin } = useUserRole();
   const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
   const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
+  const activeCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : null;
   const commandCenterQuery = useQuery({
-    queryKey: ["customer-command-center", user?.id],
+    queryKey: ["customer-command-center", user?.id, activeCustomerId],
     enabled: Boolean(user),
-    queryFn: fetchCustomerCommandCenter,
+    queryFn: () => fetchCustomerCommandCenter(activeCustomerId),
   });
   const data = commandCenterQuery.data;
   const canViewStatements = canAccessFeature("statements");
@@ -76,7 +77,7 @@ const Profile = () => {
   // Website checkout orders plus active lab work — the full account, not just this site's cart.
   const totalActiveOrders = activeOrders.length + (liveOrdersQuery.data?.orders.length ?? 0);
   const currentBalance = Number(data?.balance?.current_balance ?? data?.latestStatement?.closing_balance ?? 0);
-  const displayName = data?.profile?.customerName || data?.profile?.organizationName || user?.email?.split("@")[0] || "Customer";
+  const displayName = identity?.customerName || data?.profile?.customerName || data?.profile?.organizationName || user?.email?.split("@")[0] || "Customer";
   const accessStatus = identity?.portalAccessStatus ?? data?.profile?.accessStatus ?? "pending_profile";
   const approvedAccessNoticeStorageKey = `cv.portal.approved-access-notice.dismissed:${effectiveUserId ?? user?.id ?? "anonymous"}`;
   const [isApprovedAccessNoticeDismissed, setIsApprovedAccessNoticeDismissed] = useState(false);
