@@ -9798,7 +9798,7 @@ export type Database = {
         Returns: number
       }
       can_access_customer_lab_pricing: {
-        Args: { p_user_id?: string }
+        Args: { p_customer_id?: number; p_user_id?: string }
         Returns: boolean
       }
       can_access_customer_portal_feature: {
@@ -10198,7 +10198,7 @@ export type Database = {
         Returns: string
       }
       portal_assigned_pricelist_addons: {
-        Args: never
+        Args: { p_customer_id?: number }
         Returns: {
           bbd_price: number
           catalog_type: string
@@ -10211,7 +10211,7 @@ export type Database = {
         }[]
       }
       portal_assigned_pricelist_catalog: {
-        Args: { p_catalog_type: string }
+        Args: { p_catalog_type: string; p_customer_id?: number }
         Returns: {
           bbd_price: number
           catalog_type: string
@@ -10231,7 +10231,7 @@ export type Database = {
         }[]
       }
       portal_assigned_pricelist_matrix: {
-        Args: never
+        Args: { p_customer_id?: number }
         Returns: {
           allocated_price_bbd: number
           category: string
@@ -10239,7 +10239,10 @@ export type Database = {
           treatment_type: string
         }[]
       }
-      portal_assigned_pricelist_updated_at: { Args: never; Returns: string }
+      portal_assigned_pricelist_updated_at: {
+        Args: { p_customer_id?: number }
+        Returns: string
+      }
       portal_membership_has_contact_tag: {
         Args: {
           p_customer_id: number
