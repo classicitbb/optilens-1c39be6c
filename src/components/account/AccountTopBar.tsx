@@ -161,7 +161,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                   }`}
                 />
               </Button>
-              <span className="max-w-28 truncate text-sm font-medium text-foreground">
+              <span className="max-w-[220px] truncate text-sm font-medium text-foreground">
                 {formattedDisplayName}
               </span>
               <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 rounded-full" asChild>

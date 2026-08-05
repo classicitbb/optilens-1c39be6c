@@ -157,10 +157,12 @@ const AssignedPricelistsSection = () => {
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
 
   const { data: canAccessLabPricing = false } = useQuery<boolean>({
-    queryKey: ["portal-can-access-lab-pricing"],
+    queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("can_access_customer_lab_pricing");
+      const { data, error } = await (supabase.rpc as any)("can_access_customer_lab_pricing", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return data === true;
     },
@@ -173,40 +175,50 @@ const AssignedPricelistsSection = () => {
   });
 
   const { data: rows = [], isLoading: rowsLoading, isError } = useQuery<MatrixRow[]>({
-    queryKey: ["portal-assigned-pricelist-matrix", assignedPricelistId],
+    queryKey: ["portal-assigned-pricelist-matrix", assignedPricelistId, identity?.crmCustomerId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_matrix");
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_matrix", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as MatrixRow[];
     },
   });
 
   const { data: addonRows = [], isLoading: addonsLoading } = useQuery<CatalogRow[]>({
-    queryKey: ["portal-assigned-pricelist-addons", assignedPricelistId],
+    queryKey: ["portal-assigned-pricelist-addons", assignedPricelistId, identity?.crmCustomerId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_addons");
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_addons", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as CatalogRow[];
     },
   });
 
   const { data: stockRows = [], isLoading: stockLoading, isError: stockError } = useQuery<CatalogRow[]>({
-    queryKey: ["portal-assigned-pricelist-catalog", "stock", assignedPricelistId],
+    queryKey: ["portal-assigned-pricelist-catalog", "stock", assignedPricelistId, identity?.crmCustomerId ?? null],
     enabled: hasPricelist && canAccessLabPricing,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", { p_catalog_type: "stock" });
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", {
+        p_catalog_type: "stock",
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as CatalogRow[];
     },
   });
 
   const { data: supplyRows = [], isLoading: suppliesLoading, isError: suppliesError } = useQuery<CatalogRow[]>({
-    queryKey: ["portal-assigned-pricelist-catalog", "buysell", assignedPricelistId],
+    queryKey: ["portal-assigned-pricelist-catalog", "buysell", assignedPricelistId, identity?.crmCustomerId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", { p_catalog_type: "buysell" });
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", {
+        p_catalog_type: "buysell",
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as CatalogRow[];
     },
@@ -238,7 +250,9 @@ const AssignedPricelistsSection = () => {
         };
       }
 
-      const { data: updatedAt } = await (supabase.rpc as any)("portal_assigned_pricelist_updated_at");
+      const { data: updatedAt } = await (supabase.rpc as any)("portal_assigned_pricelist_updated_at", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       return { name: null, updated_at: (updatedAt as string | null) ?? null };
     },
   });

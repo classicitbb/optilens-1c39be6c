@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Building2,
   CreditCard,
   ExternalLink,
   Eye,
@@ -355,7 +356,7 @@ const WebsitePortalsPage = () => {
       });
       const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
 
-      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }] = await Promise.all([
+      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }, { data: membershipRows, error: membershipError }] = await Promise.all([
         (supabase as any)
           .from("cart_items")
           .select("user_id,quantity")
@@ -369,11 +370,29 @@ const WebsitePortalsPage = () => {
           .from("user_presence")
           .select("user_id,status,last_heartbeat_at")
           .in("user_id", customerUserIds),
+        // Every account a login has been granted, not just their single
+        // default profiles.crm_customer_id pointer — a login may hold active
+        // memberships on several customer accounts (e.g. a manager across
+        // branches). Without this, a granted secondary account never shows up
+        // as "linked" here even though the grant succeeded.
+        (supabase as any)
+          .from("portal_account_memberships")
+          .select("user_id,customer_id")
+          .in("user_id", customerUserIds)
+          .eq("status", "active"),
       ]);
 
       if (cartError) throw cartError;
       if (alertError) throw alertError;
       if (presenceError) throw presenceError;
+      if (membershipError) throw membershipError;
+
+      const membershipCustomerIdsByUserId = new Map<string, Set<number>>();
+      for (const row of (membershipRows ?? []) as Array<{ user_id: string; customer_id: number }>) {
+        const set = membershipCustomerIdsByUserId.get(row.user_id) ?? new Set<number>();
+        set.add(row.customer_id);
+        membershipCustomerIdsByUserId.set(row.user_id, set);
+      }
 
       const cartCountByUser = ((cartRows ?? []) as Array<{ user_id: string; quantity: number }>).reduce<Record<string, number>>(
         (acc, row) => ({ ...acc, [row.user_id]: (acc[row.user_id] ?? 0) + Number(row.quantity ?? 0) }),
@@ -443,6 +462,9 @@ const WebsitePortalsPage = () => {
         if (portalUser.crmContactId) {
           const contactCustomerId = customerIdByContactId.get(portalUser.crmContactId);
           if (typeof contactCustomerId === "number") relatedCustomerIds.add(contactCustomerId);
+        }
+        for (const customerId of membershipCustomerIdsByUserId.get(portalUser.userId) ?? []) {
+          relatedCustomerIds.add(customerId);
         }
         for (const customerId of relatedCustomerIds) {
           const list = linkedPortalUsersByCustomerId.get(customerId) ?? [];
@@ -638,6 +660,30 @@ const WebsitePortalsPage = () => {
         quotes: (quotes ?? []) as PortalCustomerDetail["quotes"],
         tickets: (tickets ?? []) as PortalCustomerDetail["tickets"],
       } satisfies PortalCustomerDetail;
+    },
+  });
+
+  // Every account this login currently has access to — not just the single
+  // default profiles.crm_customer_id pointer shown above. A person may hold
+  // active memberships on several customer accounts (e.g. a manager across
+  // branches); this is the only place that surfaces the full list to staff.
+  const membershipsQuery = useQuery({
+    queryKey: ["website-portals-user-memberships", selectedCustomer?.userId],
+    enabled: !!selectedCustomer?.userId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_portal_account_memberships", {
+        p_user_id: selectedCustomer!.userId,
+      });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        membership_id: string;
+        customer_id: number;
+        customer_name: string;
+        account_number: string | null;
+        access_role: string;
+        membership_status: string;
+        is_default: boolean;
+      }>;
     },
   });
 
@@ -1572,6 +1618,43 @@ const WebsitePortalsPage = () => {
                       {formatMoney(detailQuery.data.cartItems.reduce((sum, item) => sum + item.product_price * item.quantity, 0))}
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shrink-0 shadow-none hover:shadow-none">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Building2 className="h-4 w-4" />
+                    Accounts this login can access
+                  </CardTitle>
+                  <CardDescription>Every customer account this person has been granted access to, and which one is their default.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {membershipsQuery.isLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading accounts…</p>
+                  ) : !membershipsQuery.data?.length ? (
+                    <p className="text-sm text-muted-foreground">No account memberships found for this login yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {membershipsQuery.data.map((membership) => (
+                        <div key={membership.membership_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {membership.customer_name}
+                              {membership.account_number ? <span className="text-muted-foreground"> · {membership.account_number}</span> : null}
+                            </p>
+                            <p className="text-xs capitalize text-muted-foreground">{membership.access_role} access</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {membership.is_default ? <Badge variant="outline">Default</Badge> : null}
+                            <Badge variant={membership.membership_status === "active" ? "default" : "secondary"} className="capitalize">
+                              {membership.membership_status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

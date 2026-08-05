@@ -31,13 +31,15 @@ type AccountNumberDuplicate = {
 
 const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
 const RECENT_MS = 24 * 60 * 60 * 1000;
-const SYNC_REQUEST_ENTITIES = ["customers", "contacts", "balances", "statements", "statement_lines"];
+const SYNC_REQUEST_ENTITIES = ["customers", "contacts", "balances", "statements", "statement_lines", "store_lenses", "store_lens_power_rows"];
 const ENTITY_LABELS: Record<string, string> = {
   customers: "Customers",
   contacts: "Contacts",
   balances: "Balances",
   statements: "Statements",
   statement_lines: "Statement lines",
+  store_lenses: "Store lens catalog",
+  store_lens_power_rows: "Store lens power rows",
 };
 
 export default function InnovationsSyncStatusCard() {
