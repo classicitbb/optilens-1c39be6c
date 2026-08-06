@@ -102,7 +102,16 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
   const customerMatches = useMemo(() => {
     const term = normalize(query);
     if (term.length < 2) return [];
-    return customers.filter((customer) => [customer.name, customer.email, customer.account_number].some((value) => normalize(value).includes(term))).slice(0, 8);
+    return customers
+      .filter((customer) =>
+        [
+          customer.name,
+          customer.email,
+          customer.account_number,
+          customer.innovations_customer_id != null ? String(customer.innovations_customer_id) : null,
+        ].some((value) => normalize(value).includes(term))
+      )
+      .slice(0, 8);
   }, [customers, query]);
   const contactCustomers = useMemo(() => {
     return resolveCompatibleCustomerAccounts(selectedContact, customers);

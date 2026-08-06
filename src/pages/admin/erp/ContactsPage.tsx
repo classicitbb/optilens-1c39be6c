@@ -817,16 +817,39 @@ const ContactsPage = ({
     if (countryFilter !== "all") list = list.filter((c) => c.country_code === countryFilter);
     if (debouncedSearch) {
       const s = debouncedSearch.toLowerCase();
-      list = list.filter(
-        (c) =>
-          c.name.toLowerCase().includes(s) ||
-          c.email.toLowerCase().includes(s) ||
-          c.phone.includes(s) ||
-          c.city.toLowerCase().includes(s)
-      );
+      list = list.filter((c) => {
+        // Resolve linked ERP account info for this contact so staff can find
+        // contacts by typing an account number or ERP account name.
+        const linked = c.linked_customer_id != null ? linkedCustomersById[c.linked_customer_id] : undefined;
+        return [
+          c.name,
+          c.email,
+          c.phone,
+          c.business_name,
+          c.salesperson,
+          c.city,
+          c.state,
+          c.country_code,
+          c.street,
+          c.street2,
+          c.zip,
+          c.tax_id,
+          c.website,
+          c.notes,
+          // ERP account fields resolved from linked_customer_id
+          linked?.account_number,
+          linked?.name,
+          // Raw innovations parent customer id so typing the numeric ID works
+          c.innovations_parent_customer_id != null ? String(c.innovations_parent_customer_id) : null,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(s);
+      });
     }
     return list;
-  }, [contacts, countryFilter, filter, debouncedSearch, showArchived]);
+  }, [contacts, countryFilter, filter, debouncedSearch, showArchived, linkedCustomersById]);
 
   const filteredImportedCustomers = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
@@ -1999,7 +2022,7 @@ const ContactsPage = ({
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
           <Input
-            placeholder={isErpAccountsMode ? "Search ERP accounts..." : "Search contacts..."}
+            placeholder={isErpAccountsMode ? "Search ERP accounts by name, account #, email…" : "Search by name, email, ERP ACC#, business name, phone, city, salesperson…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-8 text-xs"

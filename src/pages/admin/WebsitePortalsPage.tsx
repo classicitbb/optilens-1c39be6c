@@ -525,7 +525,26 @@ const WebsitePortalsPage = () => {
         return false;
       }
       if (!q) return true;
-      return [customer.fullName, customer.email, customer.organizationName, customer.phone]
+      // Build a searchable corpus that covers every field staff might type.
+      const primaryFields = [
+        customer.fullName,
+        customer.email,
+        customer.organizationName,
+        customer.phone,
+        customer.accountNumber,
+        customer.crmCustomerId != null ? String(customer.crmCustomerId) : null,
+        customer.crmContactId,
+      ];
+      // Also search across any linked portal users on the same account so
+      // typing a sub-user's name/email surfaces the parent account row.
+      const linkedFields = customer.linkedPortalUsers.flatMap((u) => [
+        u.fullName,
+        u.email,
+        u.organizationName,
+        u.phone,
+      ]);
+      return [...primaryFields, ...linkedFields]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(q);
@@ -1342,7 +1361,7 @@ const WebsitePortalsPage = () => {
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <div className="relative w-full md:w-1/2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="h-10 pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by account name, email, ERP ACC#, organization, phone…" className="h-10 pl-9" />
               </div>
               <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)} className="md:ml-auto">
                 <TabsList>

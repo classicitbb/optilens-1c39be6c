@@ -12,6 +12,7 @@ interface ContactOption {
   parent_id: string | null;
   business_name: string | null;
   email: string | null;
+  phone: string | null;
 }
 
 interface ContactPickerSelectProps {
@@ -41,7 +42,7 @@ const ContactPickerSelect = ({
     queryFn: async () => {
       let query = (supabase as any)
         .from("contacts")
-        .select("id,name,is_company,parent_id,business_name,email")
+        .select("id,name,is_company,parent_id,business_name,email,phone")
         .eq("is_archived", false)
         .order("is_company", { ascending: false })
         .order("name")
@@ -65,7 +66,8 @@ const ContactPickerSelect = ({
       (c) =>
         c.name.toLowerCase().includes(s) ||
         (c.business_name && c.business_name.toLowerCase().includes(s)) ||
-        (c.email && c.email.toLowerCase().includes(s))
+        (c.email && c.email.toLowerCase().includes(s)) ||
+        (c.phone && c.phone.toLowerCase().includes(s))
     );
   }, [contacts, search]);
 
