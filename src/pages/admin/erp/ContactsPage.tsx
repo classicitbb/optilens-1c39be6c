@@ -2720,7 +2720,7 @@ const ContactsPage = ({
                                   size="sm"
                                   variant="outline"
                                   className="h-8 text-xs"
-                                  onClick={() => accountSettingsCustomer && navigate(`/admin/website/portals?account=erp:${accountSettingsCustomer.id}`)}
+                                  onClick={() => accountSettingsCustomer && navigate(`/admin/website/portals?search=${encodeURIComponent(accountSettingsCustomer.account_number || accountSettingsCustomer.name)}&status=all&account=erp:${accountSettingsCustomer.id}&force_dialog=true`)}
                                   disabled={!accountSettingsCustomer}
                                 >
                                   <ExternalLink className="mr-1.5 h-3.5 w-3.5" />

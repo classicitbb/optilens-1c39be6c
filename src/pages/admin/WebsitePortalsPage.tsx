@@ -212,9 +212,9 @@ const WebsitePortalsPage = () => {
   const { user } = useAuth();
   const { users, resetPassword, inviteUser, createUser, emulatePortalUser, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>("active");
   const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>(() => (searchParams.get("status") as AccountStatusFilter) ?? "active");
   // Older deep links still open the requested account, but ordinary row clicks
   // keep their selection in component state and do not change the page URL.
   const legacySelectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
@@ -558,12 +558,12 @@ const WebsitePortalsPage = () => {
   // Normal row clicks open the contact editor directly without route navigation.
   useEffect(() => {
     if (!selectedAccountId || !selectedAccount || contactEditor) return;
-    if (selectedAccount.crmContactId) {
+    if (selectedAccount.crmContactId && searchParams.get("force_dialog") !== "true") {
       openContactEditor(selectedAccount.crmContactId, "portal-settings");
       return;
     }
     setAccountDialogOpen(true);
-  }, [contactEditor, selectedAccount, selectedAccountId]);
+  }, [contactEditor, selectedAccount, selectedAccountId, searchParams]);
 
   const detailQuery = useQuery({
     queryKey: ["website-portals-customer-detail", selectedCustomer?.userId, selectedAccount?.crmCustomerId, selectedAccount?.accountNumber],
