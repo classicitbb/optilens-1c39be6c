@@ -15,7 +15,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Copy, FileText, Search } from "lucide-react";
+import { Plus, Copy, FileText, Search, Trash2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import { format } from "date-fns";
@@ -30,7 +30,7 @@ const statusColors: Record<string, string> = {
 };
 
 const QuotationsListPage = () => {
-  const { data: quotes, isLoading, createMutation } = useQuotes();
+  const { data: quotes, isLoading, createMutation, deleteMutation } = useQuotes();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -56,6 +56,14 @@ const QuotationsListPage = () => {
         onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
       }
     );
+  };
+
+  const handleDelete = (quote: Quote) => {
+    if (!confirm(`Delete draft ${quote.quote_number}? This cannot be undone.`)) return;
+    deleteMutation.mutate(quote.id, {
+      onSuccess: () => toast({ title: "Draft deleted" }),
+      onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    });
   };
 
   const handleDuplicate = (quote: Quote) => {
@@ -217,6 +225,15 @@ const QuotationsListPage = () => {
                         title="Duplicate"
                       >
                         <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
+                      </button>
+                    )}
+                    {canEdit && q.status === "Draft" && (
+                      <button
+                        onClick={() => handleDelete(q)}
+                        className="p-1 rounded hover:bg-red-50"
+                        title="Delete draft"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
                       </button>
                     )}
                   </div>

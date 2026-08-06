@@ -15,7 +15,7 @@
 -- fix, so that is intentionally out of scope here.
 
 DROP FUNCTION IF EXISTS public.get_customer_command_center();
-CREATE FUNCTION public.get_customer_command_center(p_customer_id integer DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.get_customer_command_center(p_customer_id integer DEFAULT NULL)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER

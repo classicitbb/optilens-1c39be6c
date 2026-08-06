@@ -250,6 +250,12 @@ export async function persistPayload(
       threshold_percent: 48,
       ...computeLineProfit(amt, addon.cost, 1, "RX"),
       sort_order: i + 1,
+      // Supabase batches every row into one INSERT and fills a row missing a
+      // key that another row in the batch has with NULL, not the column
+      // default — so this must be explicit or it violates quote_lines'
+      // needs_assistance NOT NULL constraint whenever the Lens line above sets it.
+      needs_assistance: false,
+      assistance_note: null,
     });
   });
 

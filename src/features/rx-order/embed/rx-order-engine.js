@@ -9,1962 +9,1354 @@
 // Do not refactor this file for style; fidelity to the prototype is the point.
 // ══════════════════════════════════════════════════════════════════════════
 export function createRxOrderEngine(rootEl, ADAPTER) {
-  ADAPTER = ADAPTER || {};
-  const __docL = [],
-    __winL = [];
-  const docListen = (t, f, o) => {
-    document.addEventListener(t, f, o);
-    __docL.push([t, f, o]);
-  };
-  const winListen = (t, f, o) => {
-    window.addEventListener(t, f, o);
-    __winL.push([t, f, o]);
-  };
-  const $ = (s) => rootEl.querySelector(s),
-    $$ = (s) => Array.from(rootEl.querySelectorAll(s));
+ADAPTER = ADAPTER || {};
+const __docL=[], __winL=[];
+const docListen=(t,f,o)=>{ document.addEventListener(t,f,o); __docL.push([t,f,o]); };
+const winListen=(t,f,o)=>{ window.addEventListener(t,f,o); __winL.push([t,f,o]); };
+const $=s=>rootEl.querySelector(s), $$=s=>Array.from(rootEl.querySelectorAll(s));
 
-  ("use strict");
-  /* $ / $$ are provided by the embed wrapper, scoped to rootEl */
+"use strict";
+/* $ / $$ are provided by the embed wrapper, scoped to rootEl */
 
-  /* ---------- reference data ---------- */
-  const BRANCHES = [
-    {
-      id: "b1",
-      code: "BT",
-      name: "Bridgetown Optical — Broad St",
-      info: "Main account · #C-1042 · courier Tue & Fri",
-      cur: "BBD",
-      prices: true,
-    },
-    {
-      id: "b2",
-      code: "WC",
-      name: "Bridgetown Optical — Warrens",
-      info: "Branch · #C-1042-W · courier Wed",
-      cur: "BBD",
-      prices: true,
-    },
-    {
-      id: "b3",
-      code: "SP",
-      name: "Speightstown Eyecare",
-      info: "Linked account · #C-1188 · pricing not enabled",
-      cur: "XCD",
-      prices: false,
-    },
-  ];
-  const MATERIALS = [
-    { id: "1.50", n: "1.50 CR-39", up: 0 },
-    { id: "1.56", n: "1.56 Mid-index", up: 9 },
-    { id: "1.59", n: "1.59 Polycarbonate", up: 16 },
-    { id: "1.60", n: "1.60 High-index", up: 24 },
-    { id: "1.67", n: "1.67 High-index", up: 46 },
-    { id: "1.74", n: "1.74 Ultra high-index", up: 88 },
-  ];
-  const DESIGNS = [
-    { id: "sv-sph", n: "Single vision spherical", v: "sv", base: 22 },
-    { id: "sv-asph", n: "Single vision aspheric", v: "sv", base: 34 },
-    { id: "sv-free", n: "Single vision freeform", v: "sv", base: 52 },
-    { id: "sv-af", n: "Anti-fatigue", v: "sv", base: 66, needsAdd: true },
-    { id: "mf-ft28", n: "Bifocal FT28", v: "mf", base: 34 },
-    { id: "mf-rnd", n: "Bifocal round seg", v: "mf", base: 31 },
-    { id: "pg-std", n: "Progressive Standard", v: "mf", base: 62, prog: true },
-    { id: "pg-enh", n: "Progressive Enhanced HD", v: "mf", base: 94, prog: true },
-    { id: "pg-prem", n: "Progressive Premium freeform", v: "mf", base: 142, prog: true },
-  ];
-  const COLOURS = [
-    { id: "clear", n: "Clear", up: 0 },
-    { id: "ph-grey", n: "Photochromic Grey", up: 64 },
-    { id: "ph-brown", n: "Photochromic Brown", up: 64 },
-    { id: "ph-xtra", n: "Photochromic XTRActive Grey", up: 82 },
-    { id: "pol-grey", n: "Polarised Grey", up: 41 },
-    { id: "pol-brown", n: "Polarised Brown", up: 41 },
-  ];
-  /* the catalogue matrix — which material / design / colour combinations actually exist */
-  const MATRIX = {
-    "1.50": {
-      d: ["sv-sph", "sv-asph", "mf-ft28", "mf-rnd", "pg-std", "pg-enh"],
-      c: ["clear", "ph-grey", "ph-brown", "pol-grey", "pol-brown"],
-    },
-    1.56: { d: ["sv-sph", "sv-asph", "sv-af", "pg-std", "pg-enh"], c: ["clear", "ph-grey", "ph-brown"] },
-    1.59: {
-      d: ["sv-sph", "sv-asph", "sv-af", "pg-std", "pg-enh"],
-      c: ["clear", "ph-grey", "ph-brown", "ph-xtra", "pol-grey"],
-    },
-    "1.60": {
-      d: ["sv-asph", "sv-free", "sv-af", "pg-std", "pg-enh", "pg-prem"],
-      c: ["clear", "ph-grey", "ph-brown", "ph-xtra"],
-    },
-    1.67: { d: ["sv-asph", "sv-free", "pg-enh", "pg-prem"], c: ["clear", "ph-grey", "ph-brown"] },
-    1.74: { d: ["sv-asph", "sv-free", "pg-prem"], c: ["clear"] },
-  };
-  const COMBOS = (() => {
-    const out = [];
-    Object.entries(MATRIX).forEach(([m, v]) => v.d.forEach((d) => v.c.forEach((c) => out.push({ m, d, c }))));
-    return out;
-  })();
+/* ---------- reference data ---------- */
+const BRANCHES=[
+  {id:'b1',code:'BT',name:'Bridgetown Optical — Broad St',info:'Main account · #C-1042 · courier Tue & Fri',cur:'BBD',prices:true},
+  {id:'b2',code:'WC',name:'Bridgetown Optical — Warrens',info:'Branch · #C-1042-W · courier Wed',cur:'BBD',prices:true},
+  {id:'b3',code:'SP',name:'Speightstown Eyecare',info:'Linked account · #C-1188 · pricing not enabled',cur:'XCD',prices:false}
+];
+const MATERIALS=[
+  {id:'1.50',n:'1.50 CR-39',up:0},{id:'1.56',n:'1.56 Mid-index',up:9},
+  {id:'1.59',n:'1.59 Polycarbonate',up:16},{id:'1.60',n:'1.60 High-index',up:24},
+  {id:'1.67',n:'1.67 High-index',up:46},{id:'1.74',n:'1.74 Ultra high-index',up:88}
+];
+const DESIGNS=[
+  {id:'sv-sph', n:'Single vision spherical', v:'sv', base:22},
+  {id:'sv-asph',n:'Single vision aspheric',  v:'sv', base:34},
+  {id:'sv-free',n:'Single vision freeform',  v:'sv', base:52},
+  {id:'sv-af',  n:'Anti-fatigue',            v:'sv', base:66, needsAdd:true},
+  {id:'mf-ft28',n:'Bifocal FT28',            v:'mf', base:34},
+  {id:'mf-rnd', n:'Bifocal round seg',       v:'mf', base:31},
+  {id:'pg-std', n:'Progressive Standard',    v:'mf', base:62, prog:true},
+  {id:'pg-enh', n:'Progressive Enhanced HD', v:'mf', base:94, prog:true},
+  {id:'pg-prem',n:'Progressive Premium freeform', v:'mf', base:142, prog:true}
+];
+const COLOURS=[
+  {id:'clear',n:'Clear',up:0},
+  {id:'ph-grey',n:'Photochromic Grey',up:64},
+  {id:'ph-brown',n:'Photochromic Brown',up:64},
+  {id:'ph-xtra',n:'Photochromic XTRActive Grey',up:82},
+  {id:'pol-grey',n:'Polarised Grey',up:41},
+  {id:'pol-brown',n:'Polarised Brown',up:41}
+];
+/* the catalogue matrix — which material / design / colour combinations actually exist */
+const MATRIX={
+  '1.50':{d:['sv-sph','sv-asph','mf-ft28','mf-rnd','pg-std','pg-enh'], c:['clear','ph-grey','ph-brown','pol-grey','pol-brown']},
+  '1.56':{d:['sv-sph','sv-asph','sv-af','pg-std','pg-enh'],            c:['clear','ph-grey','ph-brown']},
+  '1.59':{d:['sv-sph','sv-asph','sv-af','pg-std','pg-enh'],            c:['clear','ph-grey','ph-brown','ph-xtra','pol-grey']},
+  '1.60':{d:['sv-asph','sv-free','sv-af','pg-std','pg-enh','pg-prem'], c:['clear','ph-grey','ph-brown','ph-xtra']},
+  '1.67':{d:['sv-asph','sv-free','pg-enh','pg-prem'],                  c:['clear','ph-grey','ph-brown']},
+  '1.74':{d:['sv-asph','sv-free','pg-prem'],                           c:['clear']}
+};
+const COMBOS=(()=>{ const out=[];
+  Object.entries(MATRIX).forEach(([m,v])=>v.d.forEach(d=>v.c.forEach(c=>out.push({m,d,c}))));
+  return out; })();
 
-  const TREAT = [
-    {
-      id: "ar-std",
-      c: "Anti-reflective",
-      n: "Standard AR",
-      d: "AR + hard coat, 12-month warranty",
-      p: 19,
-      grp: "ar",
-      pop: true,
-    },
-    {
-      id: "ar-prem",
-      c: "Anti-reflective",
-      n: "Premium AR",
-      d: "Hydrophobic + oleophobic, 24-month",
-      p: 34,
-      grp: "ar",
-      pop: true,
-    },
-    {
-      id: "ar-blue",
-      c: "Anti-reflective",
-      n: "Blue-cut AR",
-      d: "Filters high-energy visible light",
-      p: 44,
-      grp: "ar",
-      pop: true,
-    },
-    { id: "ar-fog", c: "Anti-reflective", n: "Anti-fog AR", d: "Permanent anti-fog top layer", p: 39, grp: "ar" },
-    { id: "ar-night", c: "Anti-reflective", n: "Night-drive AR", d: "Reduces headlight flare", p: 47, grp: "ar" },
-    { id: "hc-std", c: "Hard coats", n: "Hard coat", d: "Scratch resistance", p: 7, grp: "hc", pop: true },
-    { id: "hc-prem", c: "Hard coats", n: "Premium hard coat", d: "Higher abrasion rating", p: 12, grp: "hc" },
-    { id: "hc-static", c: "Hard coats", n: "Anti-static layer", d: "Repels dust", p: 9 },
-    { id: "mr-flash", c: "Mirror finishes", n: "Silver flash", d: "Light 20% mirror", p: 48, grp: "mr" },
-    { id: "mr-silver", c: "Mirror finishes", n: "Full silver mirror", d: "Full-coverage mirror", p: 66, grp: "mr" },
-    { id: "mr-gold", c: "Mirror finishes", n: "Gold mirror", d: "Warm-tone mirror", p: 58, grp: "mr" },
-    { id: "mr-blue", c: "Mirror finishes", n: "Blue mirror", d: "Cool-tone mirror", p: 58, grp: "mr" },
-    { id: "mr-green", c: "Mirror finishes", n: "Green mirror", d: "Neutral-tone mirror", p: 58, grp: "mr" },
-    { id: "tn-solid", c: "Tints", n: "Solid tint", d: "Any shade to 85%", p: 13, grp: "tn", pop: true },
-    { id: "tn-grad", c: "Tints", n: "Gradient tint", d: "Fades top to bottom", p: 17, grp: "tn" },
-    { id: "tn-dgrad", c: "Tints", n: "Double gradient", d: "Dark top and bottom", p: 21, grp: "tn" },
-    { id: "tn-fash", c: "Tints", n: "Fashion tint", d: "Light cosmetic tint to 25%", p: 15, grp: "tn" },
-    { id: "tn-uv", c: "Tints", n: "UV-blocking tint", d: "Tint with UV400 built in", p: 18, grp: "tn" },
-    { id: "sp-uv", c: "Specialty", n: "UV400 boost", d: "Full-spectrum UV block", p: 6 },
-    { id: "sp-oleo", c: "Specialty", n: "Oleophobic top", d: "Smudge resistance", p: 8 },
-    { id: "sp-engr", c: "Specialty", n: "Practice engraving", d: "Your mark on the lens", p: 9 },
-    {
-      id: "sp-thin",
-      c: "Specialty",
-      n: "Optimised thinning",
-      d: "Minimum edge and centre thickness",
-      p: 14,
-      rev: true,
-    },
-    { id: "sp-roll", c: "Specialty", n: "Roll & polish", d: "Edge finishing on high minus", p: 11, rev: true },
-    { id: "sp-lent", c: "Specialty", n: "Lenticular", d: "High-power reduced aperture", p: 38, rev: true },
-    { id: "sp-slab", c: "Specialty", n: "Slab-off", d: "Vertical imbalance correction", p: 44, rev: true },
-    { id: "sp-pris", c: "Specialty", n: "Prism thinning", d: "Cosmetic thickness reduction", p: 16 },
-    { id: "sp-back", c: "Specialty", n: "Back-surface AR only", d: "Rear-surface reflection control", p: 22 },
-    { id: "sp-match", c: "Specialty", n: "Tint matching to sample", d: "Match a supplied lens", p: 24, rev: true },
-  ];
-  const CLASH = [
-    ["mr-flash", "ar-fog", "Mirror finishes cannot take an anti-fog top layer"],
-    ["mr-silver", "ar-fog", "Mirror finishes cannot take an anti-fog top layer"],
-    ["mr-gold", "ar-fog", "Mirror finishes cannot take an anti-fog top layer"],
-    ["mr-blue", "ar-fog", "Mirror finishes cannot take an anti-fog top layer"],
-    ["mr-green", "ar-fog", "Mirror finishes cannot take an anti-fog top layer"],
-    ["mr-silver", "tn-grad", "A full mirror cannot sit over a gradient tint"],
-    ["mr-gold", "tn-grad", "A full mirror cannot sit over a gradient tint"],
-    ["sp-back", "ar-std", "Back-surface AR replaces a full AR coating"],
-    ["sp-back", "ar-prem", "Back-surface AR replaces a full AR coating"],
-    ["sp-back", "ar-blue", "Back-surface AR replaces a full AR coating"],
-  ];
-  /* rates are per 1 BBD — placeholders until the FX source is decided (fixed vs live feed) */
-  const CUR = {
-    BBD: { sym: "BBD $", rate: 1, n: "Barbados dollar" },
-    USD: { sym: "USD $", rate: 0.5, n: "US dollar" },
-    EUR: { sym: "EUR €", rate: 0.46, n: "Euro" },
-    CAD: { sym: "CAD $", rate: 0.68, n: "Canadian dollar" },
-    TTD: { sym: "TTD $", rate: 3.4, n: "Trinidad & Tobago dollar" },
-    JMD: { sym: "JMD $", rate: 78.5, n: "Jamaican dollar" },
-    XCD: { sym: "XCD $", rate: 1.35, n: "East Caribbean dollar" },
-    GYD: { sym: "GYD $", rate: 104.5, n: "Guyanese dollar" },
-  };
+const TREAT=[
+  {id:'ar-std', c:'Anti-reflective', n:'Standard AR', d:'AR + hard coat, 12-month warranty', p:19, grp:'ar', pop:true},
+  {id:'ar-prem',c:'Anti-reflective', n:'Premium AR',  d:'Hydrophobic + oleophobic, 24-month', p:34, grp:'ar', pop:true},
+  {id:'ar-blue',c:'Anti-reflective', n:'Blue-cut AR', d:'Filters high-energy visible light', p:44, grp:'ar', pop:true},
+  {id:'ar-fog', c:'Anti-reflective', n:'Anti-fog AR', d:'Permanent anti-fog top layer', p:39, grp:'ar'},
+  {id:'ar-night',c:'Anti-reflective',n:'Night-drive AR', d:'Reduces headlight flare', p:47, grp:'ar'},
+  {id:'hc-std', c:'Hard coats', n:'Hard coat', d:'Scratch resistance', p:7, grp:'hc', pop:true},
+  {id:'hc-prem',c:'Hard coats', n:'Premium hard coat', d:'Higher abrasion rating', p:12, grp:'hc'},
+  {id:'hc-static',c:'Hard coats', n:'Anti-static layer', d:'Repels dust', p:9},
+  {id:'mr-flash',c:'Mirror finishes', n:'Silver flash', d:'Light 20% mirror', p:48, grp:'mr'},
+  {id:'mr-silver',c:'Mirror finishes', n:'Full silver mirror', d:'Full-coverage mirror', p:66, grp:'mr'},
+  {id:'mr-gold',c:'Mirror finishes', n:'Gold mirror', d:'Warm-tone mirror', p:58, grp:'mr'},
+  {id:'mr-blue',c:'Mirror finishes', n:'Blue mirror', d:'Cool-tone mirror', p:58, grp:'mr'},
+  {id:'mr-green',c:'Mirror finishes', n:'Green mirror', d:'Neutral-tone mirror', p:58, grp:'mr'},
+  {id:'tn-solid',c:'Tints', n:'Solid tint', d:'Any shade to 85%', p:13, grp:'tn', pop:true},
+  {id:'tn-grad', c:'Tints', n:'Gradient tint', d:'Fades top to bottom', p:17, grp:'tn'},
+  {id:'tn-dgrad',c:'Tints', n:'Double gradient', d:'Dark top and bottom', p:21, grp:'tn'},
+  {id:'tn-fash', c:'Tints', n:'Fashion tint', d:'Light cosmetic tint to 25%', p:15, grp:'tn'},
+  {id:'tn-uv',   c:'Tints', n:'UV-blocking tint', d:'Tint with UV400 built in', p:18, grp:'tn'},
+  {id:'sp-uv',  c:'Specialty', n:'UV400 boost', d:'Full-spectrum UV block', p:6},
+  {id:'sp-oleo',c:'Specialty', n:'Oleophobic top', d:'Smudge resistance', p:8},
+  {id:'sp-engr',c:'Specialty', n:'Practice engraving', d:'Your mark on the lens', p:9},
+  {id:'sp-thin',c:'Specialty', n:'Optimised thinning', d:'Minimum edge and centre thickness', p:14, rev:true},
+  {id:'sp-roll',c:'Specialty', n:'Roll & polish', d:'Edge finishing on high minus', p:11, rev:true},
+  {id:'sp-lent',c:'Specialty', n:'Lenticular', d:'High-power reduced aperture', p:38, rev:true},
+  {id:'sp-slab',c:'Specialty', n:'Slab-off', d:'Vertical imbalance correction', p:44, rev:true},
+  {id:'sp-pris',c:'Specialty', n:'Prism thinning', d:'Cosmetic thickness reduction', p:16},
+  {id:'sp-back',c:'Specialty', n:'Back-surface AR only', d:'Rear-surface reflection control', p:22},
+  {id:'sp-match',c:'Specialty', n:'Tint matching to sample', d:'Match a supplied lens', p:24, rev:true}
+];
+const CLASH=[
+  ['mr-flash','ar-fog','Mirror finishes cannot take an anti-fog top layer'],
+  ['mr-silver','ar-fog','Mirror finishes cannot take an anti-fog top layer'],
+  ['mr-gold','ar-fog','Mirror finishes cannot take an anti-fog top layer'],
+  ['mr-blue','ar-fog','Mirror finishes cannot take an anti-fog top layer'],
+  ['mr-green','ar-fog','Mirror finishes cannot take an anti-fog top layer'],
+  ['mr-silver','tn-grad','A full mirror cannot sit over a gradient tint'],
+  ['mr-gold','tn-grad','A full mirror cannot sit over a gradient tint'],
+  ['sp-back','ar-std','Back-surface AR replaces a full AR coating'],
+  ['sp-back','ar-prem','Back-surface AR replaces a full AR coating'],
+  ['sp-back','ar-blue','Back-surface AR replaces a full AR coating']
+];
+/* rates are per 1 BBD — placeholders until the FX source is decided (fixed vs live feed) */
+const CUR={
+  BBD:{sym:'BBD $',rate:1,     n:'Barbados dollar'},
+  USD:{sym:'USD $',rate:.5,    n:'US dollar'},
+  EUR:{sym:'EUR €',rate:.46,   n:'Euro'},
+  CAD:{sym:'CAD $',rate:.68,   n:'Canadian dollar'},
+  TTD:{sym:'TTD $',rate:3.40,  n:'Trinidad & Tobago dollar'},
+  JMD:{sym:'JMD $',rate:78.50, n:'Jamaican dollar'},
+  XCD:{sym:'XCD $',rate:1.35,  n:'East Caribbean dollar'},
+  GYD:{sym:'GYD $',rate:104.5, n:'Guyanese dollar'}
+};
 
-  /* ---------- state ---------- */
-  const S = {
-    branch: null,
-    scope: "uncut",
-    vision: "sv",
-    purpose: "dist",
-    eyes: "pair",
-    m: "",
-    d: "",
-    c: "",
-    treat: new Set(),
-    cur: "USD",
-    pricesOn: true,
-    assists: new Set(),
-    file: null,
-    shapeOk: false,
-    shape: null,
-    shapeSrc: "",
-    stdShape: "",
-    shapeExpanded: false,
-    frameExpanded: false,
-    orderNo: "",
-    tintCfg: { colour: "Grey", density: 75, gradTop: 80, gradBottom: 10, finish: "Standard", match: false },
-    chemClips: [],
-    dismissed: new Set(),
-    warnOff: new Set(),
-    suggOff: false,
-    ownerReview: false,
-    revealAll: false,
-    prefilled: false,
-    fromDraft: false,
-    edTouched: false,
-    diamTouched: false,
-    collapsedSections: new Set(),
-    editingSections: new Set(),
-  };
+/* ---------- state ---------- */
+const S={branch:null,scope:'uncut',vision:'sv',purpose:'dist',eyes:'pair',
+  m:'',d:'',c:'', treat:new Set(), cur:'USD', pricesOn:true, assists:new Set(), file:null, shapeOk:false, notesConfirmed:false,
+  shape:null, shapeSrc:'', stdShape:'', shapeExpanded:false, frameExpanded:false, orderNo:'',
+  tintCfg:{colour:'Grey',density:75,gradTop:80,gradBottom:10,finish:'Standard',match:false},
+  chemClips:[],
+  dismissed:new Set(), warnOff:new Set(), suggOff:false, ownerReview:false,
+  revealAll:false, prefilled:false, fromDraft:false, edTouched:false, diamTouched:false,
+  collapsedSections:new Set(), editingSections:new Set()};
 
-  /* Assist tag raised automatically when the chosen lens has no price on the
+/* Assist tag raised automatically when the chosen lens has no price on the
    account's matrix. Constant so it can be added and removed idempotently. */
-  const UNPRICED_ASSIST = "Lens not priced on this account — quote requested";
+const UNPRICED_ASSIST='Lens not priced on this account — quote requested';
 
-  const money = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const q4 = (n) => Math.round(n * 4) / 4;
-  const isStep = (v) => Math.abs(v * 4 - Math.round(v * 4)) < 1e-9;
-  function sgn(n, dp) {
-    dp = dp || 2;
-    return (n < 0 ? "-" : "+") + Math.abs(n).toFixed(dp);
-  }
+const money=n=>n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const q4=n=>Math.round(n*4)/4;
+const isStep=v=>Math.abs(v*4-Math.round(v*4))<1e-9;
+function sgn(n,dp){dp=dp||2;return (n<0?'-':'+')+Math.abs(n).toFixed(dp);}
 
-  /* shorthand-aware numeric parse */
-  function parseNum(raw, shorthand) {
-    if (raw == null) return null;
-    let s = String(raw).trim();
-    if (!s) return null;
-    let neg = false;
-    if (/-\s*$/.test(s)) {
-      neg = true;
-      s = s.replace(/-\s*$/, "");
-    }
-    if (/^\s*-/.test(s)) {
-      neg = true;
-      s = s.replace(/^\s*-/, "");
-    }
-    const hadDot = s.includes(".");
-    s = s.replace(/^\s*\+/, "").replace(/[^0-9.]/g, "");
-    if (s === "") return null;
-    let n = parseFloat(s);
-    if (isNaN(n)) return null;
-    if (shorthand && !hadDot && /^\d+$/.test(s) && s.length >= 2) {
-      const v = n / 100;
-      if (isStep(v) && Math.abs(v) <= 25) n = v;
-    }
-    return neg ? -n : n;
+/* shorthand-aware numeric parse */
+function parseNum(raw,shorthand){
+  if(raw==null) return null;
+  let s=String(raw).trim(); if(!s) return null;
+  let neg=false;
+  if(/-\s*$/.test(s)){neg=true;s=s.replace(/-\s*$/,'');}
+  if(/^\s*-/.test(s)){neg=true;s=s.replace(/^\s*-/,'');}
+  const hadDot=s.includes('.');
+  s=s.replace(/^\s*\+/,'').replace(/[^0-9.]/g,'');
+  if(s==='') return null;
+  let n=parseFloat(s); if(isNaN(n)) return null;
+  if(shorthand && !hadDot && /^\d+$/.test(s) && s.length>=2){
+    const v=n/100;
+    if(isStep(v) && Math.abs(v)<=25) n=v;
   }
-  const rowEls = (eye) => $$(`tr[data-eye="${eye}"] input, tr[data-eye="${eye}"] select`);
-  function readRow(eye) {
-    const o = {};
-    rowEls(eye).forEach((i) => {
-      const f = i.dataset.f;
-      o[f] = f === "base" ? i.value || "" : parseNum(i.value, ["sph", "cyl", "add"].includes(f));
-    });
-    return o;
-  }
-  const cell = (eye, f) => $(`tr[data-eye="${eye}"] [data-f="${f}"]`);
-  const activeEyes = () => (S.eyes === "pair" ? ["od", "os"] : [S.eyes]);
-  const design = () => DESIGNS.find((x) => x.id === S.d);
-  const material = () => MATERIALS.find((x) => x.id === S.m);
-  const colour = () => COLOURS.find((x) => x.id === S.c);
-  const isProg = () => !!(design() && design().prog);
-  const needsAdd = () => S.vision === "mf" || !!(design() && design().needsAdd);
-  const needsHt = () => S.vision === "mf";
-  const needsNearPD = () => S.vision === "sv" && (S.purpose === "read" || S.purpose === "inter");
+  return neg?-n:n;
+}
+const rowEls=eye=>$$(`tr[data-eye="${eye}"] input, tr[data-eye="${eye}"] select`);
+function readRow(eye){
+  const o={};
+  rowEls(eye).forEach(i=>{
+    const f=i.dataset.f;
+    o[f]= f==='base' ? (i.value||'') : parseNum(i.value,['sph','cyl','add'].includes(f));
+  });
+  return o;
+}
+const cell=(eye,f)=>$(`tr[data-eye="${eye}"] [data-f="${f}"]`);
+const activeEyes=()=>S.eyes==='pair'?['od','os']:[S.eyes];
+const design=()=>DESIGNS.find(x=>x.id===S.d);
+const material=()=>MATERIALS.find(x=>x.id===S.m);
+const colour=()=>COLOURS.find(x=>x.id===S.c);
+const isProg=()=>!!(design()&&design().prog);
+const needsAdd=()=>S.vision==='mf'||!!(design()&&design().needsAdd);
+const needsHt=()=>S.vision==='mf';
+const needsNearPD=()=>S.vision==='sv'&&(S.purpose==='read'||S.purpose==='inter');
 
-  /* ---------- catalogue constraint ---------- */
-  function valid(cmb) {
-    const d = DESIGNS.find((x) => x.id === cmb.d);
-    return d && d.v === S.vision;
-  }
-  function options() {
-    const pool = COMBOS.filter(valid);
-    const okM = (c) => (!S.d || c.d === S.d) && (!S.c || c.c === S.c);
-    const okD = (c) => (!S.m || c.m === S.m) && (!S.c || c.c === S.c);
-    const okC = (c) => (!S.m || c.m === S.m) && (!S.d || c.d === S.d);
-    return {
-      mats: [...new Set(pool.filter(okM).map((c) => c.m))],
-      designs: [...new Set(pool.filter(okD).map((c) => c.d))],
-      cols: [...new Set(pool.filter(okC).map((c) => c.c))],
-      pool,
-    };
-  }
-  function repair() {
-    const pool = COMBOS.filter(valid);
-    let ok = pool.some((c) => (!S.m || c.m === S.m) && (!S.d || c.d === S.d) && (!S.c || c.c === S.c));
-    if (ok) return;
-    /* drop the oldest conflicting choice until valid again */
-    const order = ["c", "d", "m"];
-    for (const k of order) {
-      const bak = S[k];
-      S[k] = "";
-      if (pool.some((c) => (!S.m || c.m === S.m) && (!S.d || c.d === S.d) && (!S.c || c.c === S.c))) {
-        toast(
-          "Cleared " + { m: "material", d: "design", c: "colour" }[k] + " — that combination isn't on your pricelist",
-        );
-        return;
-      }
-      S[k] = bak;
+/* ---------- catalogue constraint ---------- */
+function valid(cmb){
+  const d=DESIGNS.find(x=>x.id===cmb.d);
+  return d && d.v===S.vision;
+}
+function options(){
+  const pool=COMBOS.filter(valid);
+  const okM=c=>(!S.d||c.d===S.d)&&(!S.c||c.c===S.c);
+  const okD=c=>(!S.m||c.m===S.m)&&(!S.c||c.c===S.c);
+  const okC=c=>(!S.m||c.m===S.m)&&(!S.d||c.d===S.d);
+  return {
+    mats:[...new Set(pool.filter(okM).map(c=>c.m))],
+    designs:[...new Set(pool.filter(okD).map(c=>c.d))],
+    cols:[...new Set(pool.filter(okC).map(c=>c.c))],
+    pool
+  };
+}
+function repair(){
+  const pool=COMBOS.filter(valid);
+  let ok=pool.some(c=>(!S.m||c.m===S.m)&&(!S.d||c.d===S.d)&&(!S.c||c.c===S.c));
+  if(ok) return;
+  /* drop the oldest conflicting choice until valid again */
+  const order=['c','d','m'];
+  for(const k of order){
+    const bak=S[k]; S[k]='';
+    if(pool.some(c=>(!S.m||c.m===S.m)&&(!S.d||c.d===S.d)&&(!S.c||c.c===S.c))){
+      toast('Cleared '+({m:'material',d:'design',c:'colour'}[k])+' — that combination isn\'t on your pricelist');
+      return;
     }
-    S.m = S.d = S.c = "";
+    S[k]=bak;
   }
-  /* ---------- filterable material/design/colour combo ----------
+  S.m=S.d=S.c='';
+}
+/* ---------- filterable material/design/colour combo ----------
    Type-to-search comboboxes: each narrows the other two (same catalogue logic as
    before) AND filters by whatever the user has typed, substring, case-insensitive. */
-  const COMBO_DEFS = {
-    m: { inputId: "material", listId: "materialList", all: MATERIALS, poolKey: "mats" },
-    d: { inputId: "design", listId: "designList", all: DESIGNS, poolKey: "designs" },
-    c: { inputId: "colour", listId: "colourList", all: COLOURS, poolKey: "cols" },
-  };
-  let comboActive = { m: -1, d: -1, c: -1 };
-  function comboFilteredItems(k, o) {
-    const def = COMBO_DEFS[k],
-      input = $("#" + def.inputId);
-    const items = def.all.filter((x) => o[def.poolKey].includes(x.id));
-    const q = input && document.activeElement === input ? input.value.trim().toLowerCase() : "";
-    return q ? items.filter((x) => x.n.toLowerCase().includes(q)) : items;
-  }
-  function renderComboList(k, o) {
-    const def = COMBO_DEFS[k],
-      list = $("#" + def.listId);
-    const items = comboFilteredItems(k, o);
-    if (comboActive[k] >= items.length) comboActive[k] = items.length - 1;
-    list.innerHTML = items.length
-      ? items
-          .map(
-            (x, i) =>
-              `<div class="cbopt ${S[k] === x.id ? "sel" : ""} ${i === comboActive[k] ? "act" : ""}" data-cid="${x.id}">${x.n}</div>`,
-          )
-          .join("")
-      : `<div class="cbnone">No matches</div>`;
-    $$("#" + def.listId + " .cbopt").forEach((el) =>
-      el.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        pickCombo(k, el.dataset.cid);
-      }),
-    );
-  }
-  function pickCombo(k, id) {
-    S[k] = id;
-    comboActive.m = comboActive.d = comboActive.c = -1;
-    /* set the picked input's own display text directly — fillLensSelects() only
+const COMBO_DEFS={
+  m:{inputId:'material',listId:'materialList',all:MATERIALS,poolKey:'mats'},
+  d:{inputId:'design', listId:'designList', all:DESIGNS, poolKey:'designs'},
+  c:{inputId:'colour', listId:'colourList', all:COLOURS, poolKey:'cols'}
+};
+/* Each list keeps a direct element reference (and its original parent, to
+   restore into) captured once here — once opened it moves to document.body
+   (see openCombo), so it can no longer be found via $()/$$(), which only
+   search inside rootEl. */
+Object.values(COMBO_DEFS).forEach(def=>{
+  def.listEl=$('#'+def.listId);
+  def.listHome=def.listEl.parentElement;
+});
+let comboActive={m:-1,d:-1,c:-1};
+function comboFilteredItems(k,o){
+  const def=COMBO_DEFS[k], input=$('#'+def.inputId);
+  const items=def.all.filter(x=>o[def.poolKey].includes(x.id));
+  const q=(input&&document.activeElement===input)?input.value.trim().toLowerCase():'';
+  return q?items.filter(x=>x.n.toLowerCase().includes(q)):items;
+}
+function renderComboList(k,o){
+  const def=COMBO_DEFS[k], list=def.listEl;
+  const items=comboFilteredItems(k,o);
+  if(comboActive[k]>=items.length) comboActive[k]=items.length-1;
+  list.innerHTML=items.length
+    ? items.map((x,i)=>`<div class="cbopt ${S[k]===x.id?'sel':''} ${i===comboActive[k]?'act':''}" data-cid="${x.id}">${x.n}</div>`).join('')
+    : `<div class="cbnone">No matches</div>`;
+  Array.from(list.querySelectorAll('.cbopt')).forEach(el=>el.addEventListener('mousedown',e=>{
+    e.preventDefault(); pickCombo(k,el.dataset.cid);
+  }));
+}
+function pickCombo(k,id){
+  S[k]=id; comboActive.m=comboActive.d=comboActive.c=-1;
+  /* set the picked input's own display text directly — fillLensSelects() only
      syncs inputs that AREN'T focused, and this one still is (mousedown on the
      option preventDefaults to avoid a blur, so keyboard flow keeps working). */
-    const def = COMBO_DEFS[k],
-      item = def.all.find((x) => x.id === id),
-      input = $("#" + def.inputId);
-    if (input) input.value = item ? item.n : "";
-    fillLensSelects();
-    render();
-    closeCombo(k);
-  }
-  function closeCombo(k) {
-    const l = $("#" + COMBO_DEFS[k].listId);
-    if (l) l.classList.remove("on");
-  }
-  function openCombo(k) {
-    Object.keys(COMBO_DEFS).forEach((x) => {
-      if (x !== k) closeCombo(x);
-    });
-    $("#" + COMBO_DEFS[k].listId).classList.add("on");
-    renderComboList(k, options());
-  }
-  function fillLensSelects() {
-    repair();
-    const o = options();
-    Object.entries(COMBO_DEFS).forEach(([k, def]) => {
-      const input = $("#" + def.inputId),
-        item = def.all.find((x) => x.id === S[k]);
-      if (document.activeElement !== input) input.value = item ? item.n : "";
-      if ($("#" + def.listId).classList.contains("on")) renderComboList(k, o);
-    });
-    $("#comboCount").textContent = o.pool.length + " valid combinations";
-    const nm = S.m && S.d && S.c ? `${material().n} · ${design().n} · ${colour().n}` : null;
-    $("#lensName").innerHTML = nm
-      ? `<b>${nm}</b><br><span style="opacity:.8">Named material → design → option, the way it prints on your pricelist.</span>`
-      : "Pick a material, design and colour to name the lens. Lists narrow each other — choose in whatever order suits you.";
-  }
+  const def=COMBO_DEFS[k], item=def.all.find(x=>x.id===id), input=$('#'+def.inputId);
+  if(input) input.value=item?item.n:'';
+  fillLensSelects(); render();
+  closeCombo(k);
+}
+function closeCombo(k){
+  const def=COMBO_DEFS[k], list=def.listEl;
+  if(!list) return;
+  list.classList.remove('on');
+  /* undo the portal move from openCombo so it's back inside rootEl (and gets
+     torn down normally) whenever it isn't actively showing. */
+  if(list.parentElement&&list.parentElement!==def.listHome) def.listHome.appendChild(list);
+}
+function closeAllCombos(){ Object.keys(COMBO_DEFS).forEach(closeCombo); }
+/* Every rule in this file — including position:fixed on .cblist itself — is
+   scoped as ".cv-rx-embed .cblist{...}" (by design: keeps the ported
+   prototype's styles from leaking into the host page). Portaling straight to
+   document.body escapes that selector's ancestry too, so the dropdown loses
+   ALL of its CSS the moment it moves — position reverts to the div default
+   (static), landing it in normal document flow instead of floating anywhere
+   near the field. A standalone ".cv-rx-embed" wrapper appended to body (not
+   nested in the form itself) keeps every rule matching AND, being a fresh
+   direct child of body, is never inside admin's own layout containers either
+   — one of which turns out to establish its own containing block for fixed
+   descendants (a transform, filter or CSS containment somewhere up that
+   tree), which is what made the dropdown land nowhere near the field and
+   still get clipped by that container's own overflow. */
+function comboPortalRoot(){
+  let p=document.getElementById('cvRxComboPortal');
+  if(!p){ p=document.createElement('div'); p.id='cvRxComboPortal'; p.className='cv-rx-embed'; document.body.appendChild(p); }
+  return p;
+}
+function positionComboList(k){
+  const def=COMBO_DEFS[k], wrap=$('#'+def.inputId).closest('.combo'), list=def.listEl;
+  if(!wrap||!list) return;
+  const r=wrap.getBoundingClientRect();
+  list.style.left=r.left+'px'; list.style.top=(r.bottom+4)+'px'; list.style.width=r.width+'px';
+}
+function openCombo(k){
+  Object.keys(COMBO_DEFS).forEach(x=>{ if(x!==k) closeCombo(x); });
+  const def=COMBO_DEFS[k], list=def.listEl, portal=comboPortalRoot();
+  if(list.parentElement!==portal) portal.appendChild(list);
+  positionComboList(k);
+  list.classList.add('on');
+  renderComboList(k,options());
+}
+function fillLensSelects(){
+  repair();
+  const o=options();
+  Object.entries(COMBO_DEFS).forEach(([k,def])=>{
+    const input=$('#'+def.inputId), item=def.all.find(x=>x.id===S[k]);
+    if(document.activeElement!==input) input.value=item?item.n:'';
+    if(def.listEl.classList.contains('on')) renderComboList(k,o);
+  });
+  $('#comboCount').textContent=o.pool.length+' valid combinations';
+  const nm=(S.m&&S.d&&S.c)?`${material().n} · ${design().n} · ${colour().n}`:null;
+  $('#lensName').innerHTML=nm
+    ? `<b>${nm}</b><br><span style="opacity:.8">Named material → design → option, the way it prints on your pricelist.</span>`
+    : 'Pick a material, design and colour to name the lens. Lists narrow each other — choose in whatever order suits you.';
+}
 
-  /* ---------- order number: 8 digits, sequential from 80000000 ---------- */
-  const ORDNO_KEY = "cv-rx-nextno";
-  function nextOrderNo() {
-    let n;
-    try {
-      n = parseInt(localStorage.getItem(ORDNO_KEY) || "80000000", 10);
-    } catch (e) {
-      n = 80000000;
-    }
-    if (!n || n < 80000000 || n > 99999999) n = 80000000;
-    try {
-      localStorage.setItem(ORDNO_KEY, String(n + 1));
-    } catch (e) {}
-    return String(n);
-  }
-  function newOrderNo() {
-    S.orderNo = (ADAPTER.orderNo && ADAPTER.orderNo()) || nextOrderNo();
-    const el = $("#ordNo");
-    if (el) el.innerHTML = "<span>Order</span> " + S.orderNo;
-    return S.orderNo;
-  }
+/* ---------- order number: 8 digits, sequential from 80000000 ---------- */
+const ORDNO_KEY='cv-rx-nextno';
+function nextOrderNo(){
+  let n;
+  try{ n=parseInt(localStorage.getItem(ORDNO_KEY)||'80000000',10); }catch(e){ n=80000000; }
+  if(!n||n<80000000||n>99999999) n=80000000;
+  try{ localStorage.setItem(ORDNO_KEY,String(n+1)); }catch(e){}
+  return String(n);
+}
+function newOrderNo(){
+  S.orderNo=(ADAPTER.orderNo&&ADAPTER.orderNo())||nextOrderNo();
+  const el=$('#ordNo');
+  if(el) el.innerHTML='<span>Order</span> '+S.orderNo;
+  return S.orderNo;
+}
 
-  /* ---------- frame measurement limits ---------- */
-  const LIMITS = {
-    fa: { max: 78, label: "A" },
-    fb: { max: 60, label: "B" },
-    fed: { max: 88, label: "ED" },
-    fdbl: { max: 30, label: "DBL" },
-  };
-  function limitErrors() {
-    const out = [];
-    Object.entries(LIMITS).forEach(([id, L]) => {
-      const v = parseNum($("#" + id).value);
-      if (v !== null && v > L.max)
-        out.push({ id, t: `${L.label} is ${v.toFixed(2)} mm — the maximum we can cut is ${L.max} mm.` });
-      if (v !== null && v <= 0) out.push({ id, t: `${L.label} must be greater than zero.` });
-    });
-    const ed = parseNum($("#fed").value),
-      a = parseNum($("#fa").value),
-      b = parseNum($("#fb").value);
-    if (ed !== null && a !== null && b !== null && ed < Math.max(a, b))
-      out.push({
-        id: "fed",
-        t: `ED ${ed.toFixed(2)} mm is smaller than the box — it can't be less than the larger of A and B.`,
-      });
-    return out;
-  }
+/* ---------- frame measurement limits ---------- */
+const LIMITS={ fa:{max:78,label:'A'}, fb:{max:60,label:'B'}, fed:{max:88,label:'ED'}, fdbl:{max:30,label:'DBL'} };
+function limitErrors(){
+  const out=[];
+  Object.entries(LIMITS).forEach(([id,L])=>{
+    const v=parseNum($('#'+id).value);
+    if(v!==null&&v>L.max) out.push({id,t:`${L.label} is ${v.toFixed(2)} mm — the maximum we can cut is ${L.max} mm.`});
+    if(v!==null&&v<=0) out.push({id,t:`${L.label} must be greater than zero.`});
+  });
+  const ed=parseNum($('#fed').value), a=parseNum($('#fa').value), b=parseNum($('#fb').value);
+  if(ed!==null&&a!==null&&b!==null&&ed<Math.max(a,b))
+    out.push({id:'fed',t:`ED ${ed.toFixed(2)} mm is smaller than the box — it can't be less than the larger of A and B.`});
+  return out;
+}
 
-  /* ---------- frame maths ---------- */
-  function calcED() {
-    const a = parseNum($("#fa").value),
-      b = parseNum($("#fb").value);
-    if (a === null || b === null) return null;
-    return Math.ceil(Math.sqrt(a * a + b * b) * 10) / 10;
+/* ---------- frame maths ---------- */
+function calcED(){
+  const a=parseNum($('#fa').value), b=parseNum($('#fb').value);
+  if(a===null||b===null) return null;
+  return Math.ceil(Math.sqrt(a*a+b*b)*10)/10;
+}
+function syncED(){
+  const fed=$('#fed'), fld=fed.closest('.field');
+  /* A real outline is present → ED is a measurement, not an opinion. Locked. */
+  const m=(typeof liveMetrics==='function')?liveMetrics():null;
+  if(m){
+    fed.value=m.ed.toFixed(2);
+    fed.readOnly=true; fed.style.cursor='not-allowed';
+    fld.classList.add('auto');
+    /* calculated/locked — keyboard flow (Tab and Enter-to-advance) hops from B straight to DBL */
+    fed.tabIndex=-1;
+    $('#edHint').innerHTML=`From the shape · axis ${m.edAxis.toFixed(1)}° <span style="opacity:.6">🔒 locked</span>`;
+    return;
   }
-  function syncED() {
-    const fed = $("#fed"),
-      fld = fed.closest(".field");
-    /* A real outline is present → ED is a measurement, not an opinion. Locked. */
-    const m = typeof liveMetrics === "function" ? liveMetrics() : null;
-    if (m) {
-      fed.value = m.ed.toFixed(2);
-      fed.readOnly = true;
-      fed.style.cursor = "not-allowed";
-      fld.classList.add("auto");
-      /* calculated/locked — keyboard flow (Tab and Enter-to-advance) hops from B straight to DBL */
-      fed.tabIndex = -1;
-      $("#edHint").innerHTML =
-        `From the shape · axis ${m.edAxis.toFixed(1)}° <span style="opacity:.6">🔒 locked</span>`;
-      return;
-    }
-    fed.readOnly = false;
-    fed.style.cursor = "";
-    const ed = calcED();
-    if (ed === null) {
-      $("#edHint").textContent = "Auto from A and B — editable";
-      fed.tabIndex = -1;
-      return;
-    }
-    if (!S.edTouched) fed.value = ed.toFixed(1);
-    $("#edHint").textContent = S.edTouched
-      ? `Calculated ${ed.toFixed(1)} — you've overridden it`
-      : `Estimated √(A²+B²) = ${ed.toFixed(1)} mm — pick a shape for a true ED`;
-    fld.classList.toggle("auto", !S.edTouched);
-    /* still on the auto estimate → skip it in keyboard flow; once the user has typed
+  fed.readOnly=false; fed.style.cursor='';
+  const ed=calcED();
+  if(ed===null){ $('#edHint').textContent='Auto from A and B — editable'; fed.tabIndex=-1; return; }
+  if(!S.edTouched) fed.value=ed.toFixed(1);
+  $('#edHint').textContent=S.edTouched?`Calculated ${ed.toFixed(1)} — you've overridden it`:`Estimated √(A²+B²) = ${ed.toFixed(1)} mm — pick a shape for a true ED`;
+  fld.classList.toggle('auto',!S.edTouched);
+  /* still on the auto estimate → skip it in keyboard flow; once the user has typed
      their own value (edTouched) it becomes a normal tab stop */
-    fed.tabIndex = S.edTouched ? 0 : -1;
-  }
-  function suggestDiam() {
-    const a = parseNum($("#fa").value),
-      dbl = parseNum($("#fdbl").value),
-      ed = parseNum($("#fed").value);
-    const pds = activeEyes()
-      .map((e) => readRow(e).pd)
-      .filter((v) => v !== null);
-    if (a === null || dbl === null || ed === null || !pds.length) return null;
-    const pd = Math.min(...pds);
-    const dec = Math.abs((a + dbl) / 2 - pd);
-    return Math.ceil(ed + 2 * dec + 2);
-  }
-  function fillDiam() {
-    const s = suggestDiam();
-    const sizes = [60, 65, 70, 75, 80];
-    const pick = s ? sizes.find((x) => x >= s) || 80 : null;
-    const cur = $("#diam").value;
-    $("#diam").innerHTML =
-      (pick
-        ? `<option value="auto">Auto — ${pick} mm suggested</option>`
-        : '<option value="auto">Auto — lab decides</option>') +
-      sizes.map((x) => `<option value="${x}">${x} mm${x >= 75 ? " — oversize" : ""}</option>`).join("");
-    $("#diam").value = S.diamTouched && cur ? cur : "auto";
-    $("#diamHint").textContent = s
-      ? `Min blank ≈ ED ${parseNum($("#fed").value).toFixed(1)} + 2 × decentration + 2 mm = ${s} mm → ${pick} mm blank`
-      : "Enter A, DBL, ED and a PD for a suggestion.";
-    return pick;
-  }
-  function effDiam() {
-    const v = $("#diam").value;
-    if (v === "auto") {
-      const s = suggestDiam();
-      const sizes = [60, 65, 70, 75, 80];
-      return s ? sizes.find((x) => x >= s) || 80 : 70;
-    }
-    return parseInt(v, 10) || 70;
-  }
+  fed.tabIndex=S.edTouched?0:-1;
+}
+function suggestDiam(){
+  const a=parseNum($('#fa').value), dbl=parseNum($('#fdbl').value), ed=parseNum($('#fed').value);
+  const pds=activeEyes().map(e=>readRow(e).pd).filter(v=>v!==null);
+  if(a===null||dbl===null||ed===null||!pds.length) return null;
+  const pd=Math.min(...pds);
+  const dec=Math.abs((a+dbl)/2-pd);
+  return Math.ceil(ed+2*dec+2);
+}
+function fillDiam(){
+  const s=suggestDiam();
+  const sizes=[60,65,70,75,80];
+  const pick=s?sizes.find(x=>x>=s)||80:null;
+  const cur=$('#diam').value;
+  $('#diam').innerHTML=(pick?`<option value="auto">Auto — ${pick} mm suggested</option>`:'<option value="auto">Auto — lab decides</option>')
+    +sizes.map(x=>`<option value="${x}">${x} mm${x>=75?' — oversize':''}</option>`).join('');
+  $('#diam').value=S.diamTouched&&cur?cur:'auto';
+  $('#diamHint').textContent=s
+    ? `Min blank ≈ ED ${parseNum($('#fed').value).toFixed(1)} + 2 × decentration + 2 mm = ${s} mm → ${pick} mm blank`
+    : 'Enter A, DBL, ED and a PD for a suggestion.';
+  return pick;
+}
+function effDiam(){
+  const v=$('#diam').value;
+  if(v==='auto'){ const s=suggestDiam(); const sizes=[60,65,70,75,80]; return s?(sizes.find(x=>x>=s)||80):70; }
+  return parseInt(v,10)||70;
+}
 
-  /* ---------- normalisation ---------- */
-  function normalise(inp) {
-    if (!inp.dataset || !inp.dataset.f) return;
-    const f = inp.dataset.f;
-    if (f === "base") return;
-    if (inp.value.trim() === "") {
-      return;
-    }
-    let v = parseNum(inp.value, ["sph", "cyl", "add"].includes(f));
-    if (v === null) {
-      inp.value = "";
-      return;
-    }
-    if (f === "sph") {
-      inp.value = sgn(q4(Math.max(-25, Math.min(18, v))));
-    } else if (f === "cyl") {
-      inp.value = sgn(-Math.abs(q4(v)));
-    } else if (f === "add") {
-      inp.value = sgn(Math.min(4.5, Math.max(0.25, q4(Math.abs(v)))));
-    } else if (f === "axis") {
-      let a = Math.round(v);
-      a = ((a % 180) + 180) % 180;
-      if (a === 0) a = 180;
-      inp.value = String(a);
-    } else if (f === "prism") {
-      inp.value = Math.abs(q4(v)).toFixed(2);
-    } else if (f === "pd" || f === "npd") {
-      v = Math.abs(v);
-      if (v >= 45) {
-        const h = Math.round((v / 2) * 2) / 2;
-        ["od", "os"].forEach((e) => {
-          const c = cell(e, f);
-          if (c) c.value = h.toFixed(1);
-        });
-        toast("Binocular " + v.toFixed(1) + " split to " + h.toFixed(1) + " / " + h.toFixed(1));
-      } else inp.value = (Math.round(v * 2) / 2).toFixed(1);
-    } else if (f === "ht") {
-      inp.value = (Math.round(Math.abs(v) * 2) / 2).toFixed(1);
-    }
-    render();
+/* ---------- normalisation ---------- */
+function normalise(inp){
+  if(!inp.dataset||!inp.dataset.f) return;
+  const f=inp.dataset.f;
+  if(f==='base') return;
+  if(inp.value.trim()===''){ return; }
+  let v=parseNum(inp.value,['sph','cyl','add'].includes(f));
+  if(v===null){ inp.value=''; return; }
+  if(f==='sph'){ inp.value=sgn(q4(Math.max(-25,Math.min(18,v)))); }
+  else if(f==='cyl'){ inp.value=sgn(-Math.abs(q4(v))); }
+  else if(f==='add'){ inp.value=sgn(Math.min(4.5,Math.max(.25,q4(Math.abs(v))))); }
+  else if(f==='axis'){ let a=Math.round(v); a=((a%180)+180)%180; if(a===0)a=180; inp.value=String(a); }
+  else if(f==='prism'){ inp.value=Math.abs(q4(v)).toFixed(2); }
+  else if(f==='pd'||f==='npd'){
+    v=Math.abs(v);
+    if(v>=45){ const h=Math.round(v/2*2)/2;
+      ['od','os'].forEach(e=>{const c=cell(e,f); if(c) c.value=h.toFixed(1);});
+      toast('Binocular '+v.toFixed(1)+' split to '+h.toFixed(1)+' / '+h.toFixed(1));
+    } else inp.value=(Math.round(v*2)/2).toFixed(1);
   }
+  else if(f==='ht'){ inp.value=(Math.round(Math.abs(v)*2)/2).toFixed(1); }
+  render();
+}
 
-  /* ---------- treatments ---------- */
-  function clashOf(id) {
-    const t = TREAT.find((x) => x.id === id);
-    if (!t) return null;
-    if (t.grp) {
-      const o = TREAT.find((x) => x.grp === t.grp && x.id !== id && S.treat.has(x.id));
-      if (o) return "Replaces " + o.n;
-    }
-    for (const [a, b, w] of CLASH) {
-      if (a === id && S.treat.has(b)) return w;
-      if (b === id && S.treat.has(a)) return w;
-    }
-    if (/^tn-(solid|grad|dgrad)$/.test(id) && /^ph-/.test(S.c)) return "Cannot tint a photochromic lens";
-    return null;
+/* ---------- plus-cylinder entry ----------
+   Some prescribers write in plus-cyl form. The main table above always works
+   in minus-cyl (Innovations/production need it that way); this is a small,
+   separate "as prescribed" capture that transposes into the main table
+   instead of changing how the main table itself behaves. Transposition:
+   sph' = sph + cyl, cyl' = -cyl, axis' = axis ± 90 (normalised to 1-180). */
+function normalisePlus(inp){
+  if(!inp.dataset||!inp.dataset.pf) return;
+  const f=inp.dataset.pf;
+  if(inp.value.trim()===''){ syncPlusCylToMain(); return; }
+  let v=parseNum(inp.value,f!=='axis');
+  if(v===null){ inp.value=''; syncPlusCylToMain(); return; }
+  if(f==='sph'){ inp.value=sgn(q4(Math.max(-25,Math.min(18,v)))); }
+  else if(f==='cyl'){ inp.value=sgn(Math.abs(q4(v))); }
+  else if(f==='axis'){ let a=Math.round(v); a=((a%180)+180)%180; if(a===0)a=180; inp.value=String(a); }
+  syncPlusCylToMain();
+}
+function syncPlusCylToMain(){
+  if(!$('#plusCylOn').checked) return;
+  ['od','os'].forEach(e=>{
+    const sphP=parseNum($('#pc-'+e+'-sph').value,true);
+    const cylP=parseNum($('#pc-'+e+'-cyl').value,true);
+    const axisP=parseNum($('#pc-'+e+'-axis').value,false);
+    if(sphP===null||cylP===null||axisP===null) return;
+    const sphM=q4(sphP+cylP), cylM=-Math.abs(q4(cylP));
+    let axisM=Math.round(axisP)+90; axisM=((axisM%180)+180)%180; if(axisM===0) axisM=180;
+    const sphEl=cell(e,'sph'), cylEl=cell(e,'cyl'), axisEl=cell(e,'axis');
+    if(sphEl) sphEl.value=sgn(sphM);
+    if(cylEl) cylEl.value=sgn(cylM);
+    if(axisEl) axisEl.value=String(axisM);
+  });
+  render();
+}
+
+/* ---------- treatments ---------- */
+function clashOf(id){
+  const t=TREAT.find(x=>x.id===id); if(!t) return null;
+  if(t.grp){ const o=TREAT.find(x=>x.grp===t.grp&&x.id!==id&&S.treat.has(x.id));
+    if(o) return 'Replaces '+o.n; }
+  for(const [a,b,w] of CLASH){ if(a===id&&S.treat.has(b)) return w; if(b===id&&S.treat.has(a)) return w; }
+  if(/^tn-(solid|grad|dgrad)$/.test(id)&&/^ph-/.test(S.c)) return 'Cannot tint a photochromic lens';
+  return null;
+}
+function toggleTreat(id){
+  const t=TREAT.find(x=>x.id===id); if(!t) return;
+  if(S.treat.has(id)) S.treat.delete(id);
+  else{
+    if(t.grp) TREAT.filter(x=>x.grp===t.grp).forEach(x=>S.treat.delete(x.id));
+    const bad=clashOf(id);
+    if(bad&&!bad.startsWith('Replaces')){ toast(bad); return; }
+    S.treat.add(id);
   }
-  function toggleTreat(id) {
-    const t = TREAT.find((x) => x.id === id);
-    if (!t) return;
-    if (S.treat.has(id)) S.treat.delete(id);
-    else {
-      if (t.grp) TREAT.filter((x) => x.grp === t.grp).forEach((x) => S.treat.delete(x.id));
-      const bad = clashOf(id);
-      if (bad && !bad.startsWith("Replaces")) {
-        toast(bad);
-        return;
-      }
-      S.treat.add(id);
-    }
-    buildPopular();
-    buildTreatList();
-    render();
-  }
-  function buildPopular() {
-    $("#popOpts").innerHTML = TREAT.filter((t) => t.pop)
-      .map((t) => {
-        const sel = S.treat.has(t.id),
-          bad = sel ? null : clashOf(t.id);
-        const hard = !!bad && !bad.startsWith("Replaces");
-        return `<div class="opt ${sel ? "sel" : ""} ${hard ? "dis" : ""}" data-tid="${t.id}" tabindex="0" title="${bad || ""}">
-      <div class="on">${t.n}</div><div class="od">${bad || t.d}</div></div>`;
-      })
-      .join("");
-    $$("#popOpts .opt").forEach((el) => {
-      el.addEventListener("click", () => toggleTreat(el.dataset.tid));
-      el.addEventListener("keydown", (e) => optKey(e, "#popOpts .opt"));
+  buildPopular(); buildTreatList(); render();
+}
+function buildPopular(){
+  $('#popOpts').innerHTML=TREAT.filter(t=>t.pop).map(t=>{
+    const sel=S.treat.has(t.id), bad=sel?null:clashOf(t.id);
+    const hard=!!bad&&!bad.startsWith('Replaces');
+    return `<div class="opt ${sel?'sel':''} ${hard?'dis':''}" data-tid="${t.id}" tabindex="0" title="${bad||''}">
+      <div class="on">${t.n}</div><div class="od">${bad||t.d}</div></div>`;
+  }).join('');
+  $$('#popOpts .opt').forEach(el=>{
+    el.addEventListener('click',()=>toggleTreat(el.dataset.tid));
+    el.addEventListener('keydown',e=>optKey(e,'#popOpts .opt'));
+  });
+}
+function optKey(e,sel){
+  const list=$$(sel), i=list.indexOf(e.currentTarget);
+  if(e.key===' '||e.key==='Enter'){ e.preventDefault(); e.currentTarget.click(); }
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){ e.preventDefault(); (list[i+1]||list[0]).focus(); }
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ e.preventDefault(); (list[i-1]||list[list.length-1]).focus(); }
+}
+function buildTreatList(){
+  const term=($('#treatSearch').value||'').toLowerCase();
+  let html='';
+  [...new Set(TREAT.map(t=>t.c))].forEach(c=>{
+    const items=TREAT.filter(t=>t.c===c&&(!term||(t.n+' '+t.d).toLowerCase().includes(term)));
+    if(!items.length) return;
+    html+=`<div class="tcat">${c}</div>`;
+    items.forEach(t=>{
+      const sel=S.treat.has(t.id), bad=sel?null:clashOf(t.id);
+      const hard=!!bad&&!bad.startsWith('Replaces');
+      html+=`<label class="trow ${sel?'sel':''} ${hard?'dis':''}" data-tid="${t.id}">
+        <input type="checkbox" ${sel?'checked':''} ${hard?'disabled':''}>
+        <span style="min-width:0"><span class="tn">${t.n}${t.rev?' <span class="badge-rev">owner review</span>':''}</span>
+        <span class="td">${t.d}</span>${bad?`<span class="tw">${bad}</span>`:''}</span></label>`;
     });
-  }
-  function optKey(e, sel) {
-    const list = $$(sel),
-      i = list.indexOf(e.currentTarget);
-    if (e.key === " " || e.key === "Enter") {
-      e.preventDefault();
-      e.currentTarget.click();
-    }
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-      e.preventDefault();
-      (list[i + 1] || list[0]).focus();
-    }
-    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-      e.preventDefault();
-      (list[i - 1] || list[list.length - 1]).focus();
-    }
-  }
-  function buildTreatList() {
-    const term = ($("#treatSearch").value || "").toLowerCase();
-    let html = "";
-    [...new Set(TREAT.map((t) => t.c))].forEach((c) => {
-      const items = TREAT.filter((t) => t.c === c && (!term || (t.n + " " + t.d).toLowerCase().includes(term)));
-      if (!items.length) return;
-      html += `<div class="tcat">${c}</div>`;
-      items.forEach((t) => {
-        const sel = S.treat.has(t.id),
-          bad = sel ? null : clashOf(t.id);
-        const hard = !!bad && !bad.startsWith("Replaces");
-        html += `<label class="trow ${sel ? "sel" : ""} ${hard ? "dis" : ""}" data-tid="${t.id}">
-        <input type="checkbox" ${sel ? "checked" : ""} ${hard ? "disabled" : ""}>
-        <span style="min-width:0"><span class="tn">${t.n}${t.rev ? ' <span class="badge-rev">owner review</span>' : ""}</span>
-        <span class="td">${t.d}</span>${bad ? `<span class="tw">${bad}</span>` : ""}</span></label>`;
-      });
-    });
-    $("#treatList").innerHTML = html || '<div class="dr-empty">No treatments match that search.</div>';
-    $$("#treatList .trow").forEach((el) =>
-      el.addEventListener("click", (e) => {
-        e.preventDefault();
-        if (!el.classList.contains("dis")) toggleTreat(el.dataset.tid);
-      }),
-    );
-    $("#treatCount").textContent = S.treat.size + " selected";
-  }
-  function renderChips() {
-    const box = $("#treatChips");
-    box.innerHTML = S.treat.size
-      ? Array.from(S.treat)
-          .map((id) => {
-            const t = TREAT.find((x) => x.id === id);
-            return t ? `<span class="tchip">${t.n}<button data-rm="${id}">✕</button></span>` : "";
-          })
-          .join("")
-      : '<span class="chipnone">No treatments selected — the lens ships uncoated.</span>';
-    $$("#treatChips button").forEach((b) => b.addEventListener("click", () => toggleTreat(b.dataset.rm)));
-  }
+  });
+  $('#treatList').innerHTML=html||'<div class="dr-empty">No treatments match that search.</div>';
+  $$('#treatList .trow').forEach(el=>el.addEventListener('click',e=>{
+    e.preventDefault(); if(!el.classList.contains('dis')) toggleTreat(el.dataset.tid);
+  }));
+  $('#treatCount').textContent=S.treat.size+' selected';
+}
+function renderChips(){
+  const box=$('#treatChips');
+  box.innerHTML=S.treat.size
+    ? Array.from(S.treat).map(id=>{const t=TREAT.find(x=>x.id===id);return t?`<span class="tchip">${t.n}<button data-rm="${id}">✕</button></span>`:'';}).join('')
+    : '<span class="chipnone">No treatments selected — the lens ships uncoated.</span>';
+  $$('#treatChips button').forEach(b=>b.addEventListener('click',()=>toggleTreat(b.dataset.rm)));
+}
 
-  /* ---------- tint configurator ---------- */
-  const TINT_COLOURS = ["Grey", "Brown", "Green", "Blue", "Rose", "Amber", "Custom — see notes"];
-  function tintSelected() {
-    return ["tn-solid", "tn-grad", "tn-dgrad", "tn-fash", "tn-uv"].find((id) => S.treat.has(id));
-  }
-  function renderTintCfg() {
-    const box = $("#tintCfg"),
-      id = tintSelected();
-    if (!id) {
-      box.innerHTML = "";
-      return;
-    }
-    const t = TREAT.find((x) => x.id === id),
-      grad = /grad/.test(id);
-    const c = S.tintCfg;
-    box.innerHTML = `
+/* ---------- tint configurator ---------- */
+const TINT_COLOURS=['Grey','Brown','Green','Blue','Rose','Amber','Custom — see notes'];
+function tintSelected(){ return ['tn-solid','tn-grad','tn-dgrad','tn-fash','tn-uv'].find(id=>S.treat.has(id)); }
+function renderTintCfg(){
+  const box=$('#tintCfg'), id=tintSelected();
+  if(!id){ box.innerHTML=''; return; }
+  const t=TREAT.find(x=>x.id===id), grad=/grad/.test(id);
+  const c=S.tintCfg;
+  box.innerHTML=`
     <div class="callout" style="margin-top:12px;display:block">
       <div style="font-weight:650;font-size:13px;margin-bottom:10px">${t.n} — configuration</div>
       <div class="grid g3">
         <div class="field"><label>Colour</label>
-          <select id="tintColour">${TINT_COLOURS.map((x) => `<option ${c.colour === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>
-        ${
-          grad
-            ? `
+          <select id="tintColour">${TINT_COLOURS.map(x=>`<option ${c.colour===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        ${grad?`
         <div class="field"><label>Density at top <span class="opt-tag">%</span></label>
           <input type="text" inputmode="numeric" id="tintTop" value="${c.gradTop}"></div>
         <div class="field"><label>Density at bottom <span class="opt-tag">%</span></label>
           <input type="text" inputmode="numeric" id="tintBottom" value="${c.gradBottom}"></div>`
-            : `<div class="field"><label>Density <span class="opt-tag">% — max 85</span></label>
+        :`<div class="field"><label>Density <span class="opt-tag">% — max 85</span></label>
           <input type="text" inputmode="numeric" id="tintDensity" value="${c.density}"></div>
           <div class="field"><label>Finish</label>
-            <select id="tintFinish">${["Standard", "UV-stable", "Fade-resistant"].map((x) => `<option ${c.finish === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>`
-        }
+            <select id="tintFinish">${['Standard','UV-stable','Fade-resistant'].map(x=>`<option ${c.finish===x?'selected':''}>${x}</option>`).join('')}</select></div>`}
       </div>
-      <label class="confirmrow" style="margin-top:10px"><input type="checkbox" id="tintMatch" ${c.match ? "checked" : ""}>
+      <label class="confirmrow" style="margin-top:10px"><input type="checkbox" id="tintMatch" ${c.match?'checked':''}>
         <span>Match to a sample lens I'm sending in <span class="badge-rev" style="margin-left:5px">owner review</span></span></label>
     </div>`;
-    const bind = (sel, key, num) => {
-      const el = $(sel);
-      if (el)
-        el.addEventListener("input", (e) => {
-          S.tintCfg[key] = num ? Math.max(0, Math.min(85, parseInt(e.target.value, 10) || 0)) : e.target.value;
-          render();
-        });
-    };
-    bind("#tintColour", "colour");
-    bind("#tintDensity", "density", true);
-    bind("#tintTop", "gradTop", true);
-    bind("#tintBottom", "gradBottom", true);
-    bind("#tintFinish", "finish");
-    const mt = $("#tintMatch");
-    if (mt)
-      mt.addEventListener("change", (e) => {
-        S.tintCfg.match = e.target.checked;
-        render();
-      });
-  }
+  const bind=(sel,key,num)=>{ const el=$(sel); if(el) el.addEventListener('input',e=>{
+    S.tintCfg[key]= num ? Math.max(0,Math.min(85, parseInt(e.target.value,10)||0)) : e.target.value; render(); }); };
+  bind('#tintColour','colour'); bind('#tintDensity','density',true);
+  bind('#tintTop','gradTop',true); bind('#tintBottom','gradBottom',true); bind('#tintFinish','finish');
+  const mt=$('#tintMatch'); if(mt) mt.addEventListener('change',e=>{ S.tintCfg.match=e.target.checked; render(); });
+}
 
-  /* ---------- Chemistrie configurator ----------
+/* ---------- Chemistrie configurator ----------
    Option list and prices are a first pass — confirm against the Chemistrie page.
    Up to 3 clips per order, each with its own type/colour/magnet/bridge/crystal. */
-  const CHEM_TYPES = [
-    { id: "sun", n: "Chemistrie Sun", d: "Magnetic sunlens overlay", p: 96 },
-    { id: "blue", n: "Chemistrie Blue", d: "Blue-light filtering overlay", p: 78 },
-    { id: "readers", n: "Chemistrie Readers", d: "Magnetic near-add overlay", p: 84 },
-    { id: "drive", n: "Chemistrie Drive", d: "Contrast-boosting driving overlay", p: 104 },
-  ];
-  const CHEM_COLOURS = ["Grey", "Brown", "Green", "G15", "Rose"];
-  const CHEM_MIRRORS = [
-    { id: "none", n: "No mirror", p: 0 },
-    { id: "silver", n: "Silver", p: 26 },
-    { id: "blue", n: "Blue", p: 26 },
-    { id: "gold", n: "Gold", p: 26 },
-    { id: "green", n: "Green", p: 26 },
-    { id: "red", n: "Red flash", p: 30 },
-  ];
-  const CHEM_MAGNETS = ["Black", "Silver", "Gold", "Gunmetal"];
-  const CHEM_BRIDGES = ["Black", "Tortoise", "Crystal clear", "Matte black"];
-  const CHEM_CRYSTALS = [
-    { id: "none", n: "None", p: 0 },
-    { id: "clear", n: "Clear crystal", p: 18 },
-    { id: "black", n: "Black diamond", p: 22 },
-    { id: "rosegold", n: "Rose gold", p: 22 },
-    { id: "ab", n: "Aurora borealis", p: 26 },
-  ];
-  const CHEM_MAX_CLIPS = 3;
-  let chemClipSeq = 0;
-  function newChemClip() {
-    const used = new Set(S.chemClips.map((c) => c.type));
-    const free = CHEM_TYPES.find((t) => !used.has(t.id));
-    return {
-      id: "clip" + ++chemClipSeq,
-      type: (free || CHEM_TYPES[0]).id,
-      colour: "Grey",
-      mirror: "none",
-      polarised: false,
-      add: "",
-      magnet: "Black",
-      bridge: "Black",
-      crystal: "none",
-    };
-  }
-  function chemClipKey(c) {
-    return [c.type, c.colour, c.mirror, c.polarised, c.add, c.magnet, c.bridge, c.crystal].join("|");
-  }
-  function chemDuplicateIds() {
-    const seen = new Map(),
-      dupes = new Set();
-    S.chemClips.forEach((c) => {
-      const k = chemClipKey(c);
-      if (seen.has(k)) {
-        dupes.add(c.id);
-        dupes.add(seen.get(k));
-      } else seen.set(k, c.id);
-    });
-    return dupes;
-  }
-  function chemClipCardHTML(c, i) {
-    const t = CHEM_TYPES.find((x) => x.id === c.type) || CHEM_TYPES[0];
-    const dupes = chemDuplicateIds();
-    return `
-    <div class="callout ${dupes.has(c.id) ? "gold" : ""}" style="margin-top:12px;display:block">
+const CHEM_TYPES=[
+  {id:'sun',    n:'Chemistrie Sun',    d:'Magnetic sunlens overlay',            p:96},
+  {id:'blue',   n:'Chemistrie Blue',   d:'Blue-light filtering overlay',        p:78},
+  {id:'readers',n:'Chemistrie Readers',d:'Magnetic near-add overlay',           p:84},
+  {id:'drive',  n:'Chemistrie Drive',  d:'Contrast-boosting driving overlay',   p:104}
+];
+const CHEM_COLOURS=['Grey','Brown','Green','G15','Rose'];
+const CHEM_MIRRORS=[{id:'none',n:'No mirror',p:0},{id:'silver',n:'Silver',p:26},{id:'blue',n:'Blue',p:26},
+  {id:'gold',n:'Gold',p:26},{id:'green',n:'Green',p:26},{id:'red',n:'Red flash',p:30}];
+const CHEM_MAGNETS=['Black','Silver','Gold','Gunmetal'];
+const CHEM_BRIDGES=['Black','Tortoise','Crystal clear','Matte black'];
+const CHEM_CRYSTALS=[{id:'none',n:'None',p:0},{id:'clear',n:'Clear crystal',p:18},
+  {id:'black',n:'Black diamond',p:22},{id:'rosegold',n:'Rose gold',p:22},{id:'ab',n:'Aurora borealis',p:26}];
+const CHEM_MAX_CLIPS=3;
+let chemClipSeq=0;
+function newChemClip(){
+  const used=new Set(S.chemClips.map(c=>c.type));
+  const free=CHEM_TYPES.find(t=>!used.has(t.id));
+  return {id:'clip'+(++chemClipSeq),type:(free||CHEM_TYPES[0]).id,colour:'Grey',mirror:'none',
+    polarised:false,add:'',magnet:'Black',bridge:'Black',crystal:'none'};
+}
+function chemClipKey(c){ return [c.type,c.colour,c.mirror,c.polarised,c.add,c.magnet,c.bridge,c.crystal].join('|'); }
+function chemDuplicateIds(){
+  const seen=new Map(), dupes=new Set();
+  S.chemClips.forEach(c=>{ const k=chemClipKey(c); if(seen.has(k)){ dupes.add(c.id); dupes.add(seen.get(k)); } else seen.set(k,c.id); });
+  return dupes;
+}
+function chemClipCardHTML(c,i){
+  const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
+  const dupes=chemDuplicateIds();
+  return `
+    <div class="callout ${dupes.has(c.id)?'gold':''}" style="margin-top:12px;display:block">
       <div class="blk" style="margin-bottom:8px;justify-content:space-between">
-        <span>Clip ${i + 1} of ${S.chemClips.length} · layer type</span>
-        ${S.chemClips.length > 1 ? `<button type="button" class="iconbtn sm" data-rmclip="${c.id}" title="Remove this clip">✕</button>` : ""}
+        <span>Clip ${i+1} of ${S.chemClips.length} · layer type</span>
+        ${S.chemClips.length>1?`<button type="button" class="iconbtn sm" data-rmclip="${c.id}" title="Remove this clip">✕</button>`:''}
       </div>
-      <div class="opts">${CHEM_TYPES.map(
-        (x) => `
-        <div class="opt ${c.type === x.id ? "sel" : ""}" data-clip="${c.id}" data-chem="${x.id}" tabindex="0">
-          <div class="on">${x.n}</div><div class="od">${x.d}</div></div>`,
-      ).join("")}</div>
+      <div class="opts">${CHEM_TYPES.map(x=>`
+        <div class="opt ${c.type===x.id?'sel':''}" data-clip="${c.id}" data-chem="${x.id}" tabindex="0">
+          <div class="on">${x.n}</div><div class="od">${x.d}</div></div>`).join('')}</div>
       <div class="grid g3" style="margin-top:13px">
-        ${
-          t.id !== "readers"
-            ? `
+        ${t.id!=='readers'?`
         <div class="field"><label>Lens colour</label>
-          <select data-clip="${c.id}" data-field="colour">${CHEM_COLOURS.map((x) => `<option ${c.colour === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+          <select data-clip="${c.id}" data-field="colour">${CHEM_COLOURS.map(x=>`<option ${c.colour===x?'selected':''}>${x}</option>`).join('')}</select></div>
         <div class="field"><label>Mirror finish</label>
-          <select data-clip="${c.id}" data-field="mirror">${CHEM_MIRRORS.map((x) => `<option value="${x.id}" ${c.mirror === x.id ? "selected" : ""}>${x.n}</option>`).join("")}</select></div>`
-            : ""
-        }
-        ${
-          t.id === "sun" || t.id === "drive"
-            ? `
+          <select data-clip="${c.id}" data-field="mirror">${CHEM_MIRRORS.map(x=>`<option value="${x.id}" ${c.mirror===x.id?'selected':''}>${x.n}</option>`).join('')}</select></div>`:''}
+        ${t.id==='sun'||t.id==='drive'?`
         <div class="field"><label>Polarised</label>
-          <select data-clip="${c.id}" data-field="polarised"><option value="no" ${!c.polarised ? "selected" : ""}>No</option><option value="yes" ${c.polarised ? "selected" : ""}>Yes</option></select></div>`
-            : ""
-        }
-        ${
-          t.id === "readers"
-            ? `
+          <select data-clip="${c.id}" data-field="polarised"><option value="no" ${!c.polarised?'selected':''}>No</option><option value="yes" ${c.polarised?'selected':''}>Yes</option></select></div>`:''}
+        ${t.id==='readers'?`
         <div class="field"><label>Near add <span class="req">*</span></label>
-          <input type="text" inputmode="decimal" data-clip="${c.id}" data-field="add" value="${c.add || ""}" placeholder="+2.00"></div>`
-            : ""
-        }
+          <input type="text" inputmode="decimal" data-clip="${c.id}" data-field="add" value="${c.add||''}" placeholder="+2.00"></div>`:''}
       </div>
       <div class="blk" style="margin:13px 0 8px">Clip hardware</div>
       <div class="grid g3">
         <div class="field"><label>Magnet colour</label>
-          <select data-clip="${c.id}" data-field="magnet">${CHEM_MAGNETS.map((x) => `<option ${c.magnet === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+          <select data-clip="${c.id}" data-field="magnet">${CHEM_MAGNETS.map(x=>`<option ${c.magnet===x?'selected':''}>${x}</option>`).join('')}</select></div>
         <div class="field"><label>Bridge colour</label>
-          <select data-clip="${c.id}" data-field="bridge">${CHEM_BRIDGES.map((x) => `<option ${c.bridge === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+          <select data-clip="${c.id}" data-field="bridge">${CHEM_BRIDGES.map(x=>`<option ${c.bridge===x?'selected':''}>${x}</option>`).join('')}</select></div>
         <div class="field"><label>Crystal colour <span class="opt-tag">optional accent</span></label>
-          <select data-clip="${c.id}" data-field="crystal">${CHEM_CRYSTALS.map((x) => `<option value="${x.id}" ${c.crystal === x.id ? "selected" : ""}>${x.n}</option>`).join("")}</select></div>
+          <select data-clip="${c.id}" data-field="crystal">${CHEM_CRYSTALS.map(x=>`<option value="${x.id}" ${c.crystal===x.id?'selected':''}>${x.n}</option>`).join('')}</select></div>
       </div>
-      ${dupes.has(c.id) ? `<p class="hint" style="margin-top:9px;color:hsl(38 70% 30%)">⚠ Identical to another clip on this order — change an option here or remove one.</p>` : ""}
+      ${dupes.has(c.id)?`<p class="hint" style="margin-top:9px;color:hsl(38 70% 30%)">⚠ Identical to another clip on this order — change an option here or remove one.</p>`:''}
       <p class="hint" style="margin-top:9px">Cut to the same shape as the main order — the frame trace or standard shape above is reused, so it clips flush.</p>
     </div>`;
-  }
-  function renderChemCfg() {
-    const box = $("#chemCfg"),
-      on = S.chemClips.length > 0;
-    $("#chemToggle").classList.toggle("sel", on);
-    $("#chemOn").checked = on;
-    if (!on) {
-      box.innerHTML = "";
-      return;
-    }
-    const canAdd = S.chemClips.length < CHEM_MAX_CLIPS;
-    box.innerHTML =
-      S.chemClips.map((c, i) => chemClipCardHTML(c, i)).join("") +
-      `<div style="margin-top:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        ${
-          canAdd
-            ? `<button type="button" class="linkbtn" id="chemAddClip">+ Add another clip</button>`
-            : `<span class="hint" style="margin:0">Maximum of 3 clips per order.</span>`
-        }
+}
+function renderChemCfg(){
+  const box=$('#chemCfg'), on=S.chemClips.length>0;
+  $('#chemToggle').classList.toggle('sel',on);
+  $('#chemOn').checked=on;
+  if(!on){ box.innerHTML=''; return; }
+  const canAdd=S.chemClips.length<CHEM_MAX_CLIPS;
+  box.innerHTML=S.chemClips.map((c,i)=>chemClipCardHTML(c,i)).join('')
+    + `<div style="margin-top:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${canAdd?`<button type="button" class="linkbtn" id="chemAddClip">+ Add another clip</button>`
+                :`<span class="hint" style="margin:0">Maximum of 3 clips per order.</span>`}
         <span class="clipcount">${S.chemClips.length} / ${CHEM_MAX_CLIPS} clips</span>
       </div>`;
-    $$("#chemCfg [data-chem]").forEach((el) =>
-      el.addEventListener("click", () => {
-        const clip = S.chemClips.find((x) => x.id === el.dataset.clip);
-        if (clip) {
-          clip.type = el.dataset.chem;
-          render();
-        }
-      }),
-    );
-    $$("#chemCfg [data-field]").forEach((el) => {
-      el.addEventListener("input", (e) => {
-        const clip = S.chemClips.find((x) => x.id === el.dataset.clip);
-        if (!clip) return;
-        const f = el.dataset.field;
-        clip[f] = f === "polarised" ? e.target.value === "yes" : e.target.value;
-        render();
-      });
+  $$('#chemCfg [data-chem]').forEach(el=>el.addEventListener('click',()=>{
+    const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(clip){ clip.type=el.dataset.chem; render(); }
+  }));
+  $$('#chemCfg [data-field]').forEach(el=>{
+    el.addEventListener('input',e=>{
+      const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(!clip) return;
+      const f=el.dataset.field;
+      clip[f]=f==='polarised'?(e.target.value==='yes'):e.target.value;
+      render();
     });
-    $$("#chemCfg [data-rmclip]").forEach((b) =>
-      b.addEventListener("click", () => {
-        S.chemClips = S.chemClips.filter((c) => c.id !== b.dataset.rmclip);
-        render();
-        toast("Clip removed");
-      }),
-    );
-    const addBtn = $("#chemAddClip");
-    if (addBtn)
-      addBtn.addEventListener("click", () => {
-        if (S.chemClips.length >= CHEM_MAX_CLIPS) return;
-        S.chemClips.push(newChemClip());
-        render();
-        toast("Clip " + S.chemClips.length + " added — configure it below");
-      });
-  }
-  function chemPriceLines() {
-    return S.chemClips.map((c, i) => {
-      const t = CHEM_TYPES.find((x) => x.id === c.type) || CHEM_TYPES[0];
-      let v = t.p,
-        bits = [t.n];
-      if (t.id !== "readers") {
-        const mir = CHEM_MIRRORS.find((x) => x.id === c.mirror);
-        if (mir && mir.p) {
-          v += mir.p;
-          bits.push(mir.n + " mirror");
-        }
-        if (c.colour) bits.push(c.colour);
-      }
-      if ((t.id === "sun" || t.id === "drive") && c.polarised) {
-        v += 34;
-        bits.push("polarised");
-      }
-      if (c.magnet && c.magnet !== "Black") bits.push(c.magnet + " magnet");
-      if (c.bridge && c.bridge !== "Black") bits.push(c.bridge + " bridge");
-      const cr = CHEM_CRYSTALS.find((x) => x.id === c.crystal);
-      if (cr && cr.id !== "none") {
-        v += cr.p || 0;
-        bits.push(cr.n);
-      }
-      return {
-        n: "Chemistrie layer" + (S.chemClips.length > 1 ? " " + (i + 1) : ""),
-        i: bits.join(" · "),
-        v,
-        rm: { type: "chem", id: c.id },
-      };
-    });
-  }
-
-  /* ---------- suggestions ---------- */
-  function suggestions() {
-    if (S.suggOff) return [];
-    const out = [],
-      eyes = activeEyes().map(readRow);
-    const maxSph = Math.max(...eyes.map((r) => Math.abs(r.sph || 0)), 0);
-    const maxCyl = Math.max(...eyes.map((r) => Math.abs(r.cyl || 0)), 0);
-    const aniso = eyes.length === 2 ? Math.abs((eyes[0].sph || 0) - (eyes[1].sph || 0)) : 0;
-    if (maxSph >= 6 || maxCyl >= 4)
-      out.push({ id: "sp-thin", why: `Power reaches ${maxSph.toFixed(2)} — thinning keeps the edge wearable` });
-    if (maxSph >= 8) out.push({ id: "sp-roll", why: "High minus edge will show without polishing" });
-    if (maxSph >= 12)
-      out.push({ id: "sp-lent", why: "Beyond ±12.00 a lenticular carrier is usually the only producible option" });
-    if (aniso >= 2 && S.vision === "mf")
-      out.push({ id: "sp-slab", why: `${aniso.toFixed(2)} difference between eyes causes vertical imbalance at near` });
-    return out.filter((s) => !S.dismissed.has(s.id) && !S.treat.has(s.id));
-  }
-  function renderSuggestions() {
-    const box = $("#suggBlock"),
-      list = suggestions();
-    const acc = TREAT.filter((t) => t.rev && S.treat.has(t.id));
-    S.ownerReview = acc.length > 0;
-    if (!list.length && !acc.length) {
-      box.classList.add("hide");
-      box.innerHTML = "";
-      return;
+  });
+  $$('#chemCfg [data-rmclip]').forEach(b=>b.addEventListener('click',()=>{
+    S.chemClips=S.chemClips.filter(c=>c.id!==b.dataset.rmclip); render();
+    toast('Clip removed');
+  }));
+  const addBtn=$('#chemAddClip');
+  if(addBtn) addBtn.addEventListener('click',()=>{
+    if(S.chemClips.length>=CHEM_MAX_CLIPS) return;
+    S.chemClips.push(newChemClip()); render();
+    toast('Clip '+S.chemClips.length+' added — configure it below');
+  });
+}
+function chemPriceLines(){
+  return S.chemClips.map((c,i)=>{
+    const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
+    let v=t.p, bits=[t.n];
+    if(t.id!=='readers'){
+      const mir=CHEM_MIRRORS.find(x=>x.id===c.mirror);
+      if(mir&&mir.p){ v+=mir.p; bits.push(mir.n+' mirror'); }
+      if(c.colour) bits.push(c.colour);
     }
-    box.classList.remove("hide");
-    let html = "";
-    if (list.length) {
-      html += `<div class="sugg"><button class="sx" id="suggX" title="Dismiss all suggestions">✕</button>
+    if((t.id==='sun'||t.id==='drive')&&c.polarised){ v+=34; bits.push('polarised'); }
+    if(c.magnet&&c.magnet!=='Black') bits.push(c.magnet+' magnet');
+    if(c.bridge&&c.bridge!=='Black') bits.push(c.bridge+' bridge');
+    const cr=CHEM_CRYSTALS.find(x=>x.id===c.crystal);
+    if(cr&&cr.id!=='none'){ v+=cr.p||0; bits.push(cr.n); }
+    return {n:'Chemistrie layer'+(S.chemClips.length>1?' '+(i+1):''), i:bits.join(' · '), v, rm:{type:'chem',id:c.id}};
+  });
+}
+
+/* ---------- suggestions ---------- */
+function suggestions(){
+  if(S.suggOff) return [];
+  const out=[], eyes=activeEyes().map(readRow);
+  const maxSph=Math.max(...eyes.map(r=>Math.abs(r.sph||0)),0);
+  const maxCyl=Math.max(...eyes.map(r=>Math.abs(r.cyl||0)),0);
+  const aniso=eyes.length===2?Math.abs((eyes[0].sph||0)-(eyes[1].sph||0)):0;
+  if(maxSph>=6||maxCyl>=4) out.push({id:'sp-thin',why:`Power reaches ${maxSph.toFixed(2)} — thinning keeps the edge wearable`});
+  if(maxSph>=8) out.push({id:'sp-roll',why:'High minus edge will show without polishing'});
+  if(maxSph>=12) out.push({id:'sp-lent',why:'Beyond ±12.00 a lenticular carrier is usually the only producible option'});
+  if(aniso>=2&&S.vision==='mf') out.push({id:'sp-slab',why:`${aniso.toFixed(2)} difference between eyes causes vertical imbalance at near`});
+  return out.filter(s=>!S.dismissed.has(s.id)&&!S.treat.has(s.id));
+}
+function renderSuggestions(){
+  const box=$('#suggBlock'), list=suggestions();
+  const acc=TREAT.filter(t=>t.rev&&S.treat.has(t.id));
+  S.ownerReview=acc.length>0;
+  if(!list.length&&!acc.length){ box.classList.add('hide'); box.innerHTML=''; return; }
+  box.classList.remove('hide');
+  let html='';
+  if(list.length){
+    html+=`<div class="sugg"><button class="sx" id="suggX" title="Dismiss all suggestions">✕</button>
       <h4>⚡ Suggested for this prescription</h4>
       <div class="sd">Based on the powers entered. Anything added here needs owner sign-off before production.</div>`;
-      list.forEach((s) => {
-        const t = TREAT.find((x) => x.id === s.id);
-        html += `<div class="sitem"><span style="min-width:0"><span class="sn">${t.n}</span><span class="sr">${s.why}</span></span>
+    list.forEach(s=>{ const t=TREAT.find(x=>x.id===s.id);
+      html+=`<div class="sitem"><span style="min-width:0"><span class="sn">${t.n}</span><span class="sr">${s.why}</span></span>
         <button class="btn btn-primary" data-add="${t.id}">Add</button>
-        <button class="btn btn-ghost" data-skip="${t.id}">Skip</button></div>`;
-      });
-      html += "</div>";
-    }
-    if (acc.length)
-      html += `<div class="callout gold" style="margin-top:${list.length ? "11px" : "0"}"><span class="ci">⚑</span>
-    <span><b>Owner review required.</b> ${acc.map((t) => t.n).join(", ")} ${acc.length > 1 ? "are" : "is"} priced provisionally. The order still submits and locks at this quote — production starts once an owner approves.</span></div>`;
-    box.innerHTML = html;
-    $$("#suggBlock [data-add]").forEach((b) => b.addEventListener("click", () => toggleTreat(b.dataset.add)));
-    $$("#suggBlock [data-skip]").forEach((b) =>
-      b.addEventListener("click", () => {
-        S.dismissed.add(b.dataset.skip);
-        render();
-      }),
-    );
-    const x = $("#suggX");
-    if (x)
-      x.addEventListener("click", () => {
-        S.suggOff = true;
-        render();
-        toast("Suggestions hidden for this order");
-      });
+        <button class="btn btn-ghost" data-skip="${t.id}">Skip</button></div>`; });
+    html+='</div>';
   }
+  if(acc.length) html+=`<div class="callout gold" style="margin-top:${list.length?'11px':'0'}"><span class="ci">⚑</span>
+    <span><b>Owner review required.</b> ${acc.map(t=>t.n).join(', ')} ${acc.length>1?'are':'is'} priced provisionally. The order still submits and locks at this quote — production starts once an owner approves.</span></div>`;
+  box.innerHTML=html;
+  $$('#suggBlock [data-add]').forEach(b=>b.addEventListener('click',()=>toggleTreat(b.dataset.add)));
+  $$('#suggBlock [data-skip]').forEach(b=>b.addEventListener('click',()=>{S.dismissed.add(b.dataset.skip);render();}));
+  const x=$('#suggX'); if(x) x.addEventListener('click',()=>{S.suggOff=true;render();toast('Suggestions hidden for this order');});
+}
 
-  /* ---------- pricing ---------- */
-  function price() {
-    const lines = [];
-    if (!(S.m && S.d && S.c)) return { lines, sub: 0, ready: false, unpriced: false };
-    const d = design(),
-      m = material(),
-      c = colour();
-    /* An adapter that answers null means the combination has no price on this
+/* ---------- pricing ---------- */
+function price(){
+  const lines=[];
+  if(!(S.m&&S.d&&S.c)) return {lines,sub:0,ready:false,unpriced:false};
+  const d=design(), m=material(), c=colour();
+  /* An adapter that answers null means the combination has no price on this
      account's matrix — "not offered". That is NOT the same as costing zero, and
      collapsing the two would let a $0.00 order through. Without an adapter at
      all (the standalone prototype) the synthetic base+upcharge still applies. */
-    const quoted = ADAPTER.lensPrice ? ADAPTER.lensPrice(S.m, S.d, S.c) : undefined;
-    const unpriced = !!ADAPTER.lensPrice && quoted == null;
-    lines.push({
-      n: d.n,
-      i: `${m.n} · ${c.n}`,
-      v: unpriced ? 0 : (quoted ?? d.base + m.up),
-      unpriced,
-    }); /* the lens itself — not removable from the quote */
-    /* colour upcharge is a flat add-on regardless of material/design, so it already
+  const quoted=ADAPTER.lensPrice?ADAPTER.lensPrice(S.m,S.d,S.c):undefined;
+  const unpriced=!!ADAPTER.lensPrice&&quoted==null;
+  lines.push({n:d.n,i:`${m.n} · ${c.n}`,v:unpriced?0:(quoted??(d.base+m.up)),unpriced}); /* the lens itself — not removable from the quote */
+  /* colour upcharge is a flat add-on regardless of material/design, so it already
      equals the delta vs Clear (which is always up:0 and simply shows no line) —
      the label now says so explicitly, per feedback asking "how much extra is it". */
-    if (c.up) lines.push({ n: c.n, i: "Extra over Clear · same material & design", v: c.up });
-    Array.from(S.treat).forEach((id) => {
-      const t = TREAT.find((x) => x.id === id);
-      if (t) {
-        let detail = t.c;
-        if (/^tn-/.test(id)) {
-          detail =
-            S.tintCfg.colour +
-            (/grad/.test(id) ? ` · ${S.tintCfg.gradTop}→${S.tintCfg.gradBottom}%` : ` · ${S.tintCfg.density}%`);
-        }
-        lines.push({
-          n: t.n,
-          i: detail,
-          v: t.p + (/^tn-/.test(id) && S.tintCfg.match ? 9 : 0),
-          rm: { type: "treat", id },
-        });
-      }
-    });
-    chemPriceLines().forEach((l) => lines.push(l));
-    const eyes = activeEyes().map(readRow);
-    const prism = Math.max(...eyes.map((r) => r.prism || 0), 0);
-    if (prism > 0) lines.push({ n: "Prism", i: prism.toFixed(2) + "Δ ground in", v: 16 + prism * 4 });
-    const dia = effDiam();
-    if (dia >= 75) lines.push({ n: "Oversize blank", i: dia + " mm", v: dia >= 80 ? 32 : 22 });
-    const hi = Math.max(...eyes.map((r) => Math.abs(r.sph || 0)), 0);
-    if (hi > 6) lines.push({ n: "High-power surfacing", i: "beyond ±6.00", v: 18 });
-    if (S.scope !== "uncut") {
-      const mt = $("#mount").value,
-        base = mt === "rimless" ? 42 : mt === "supra" ? 31 : 17;
-      lines.push({
-        n: S.scope === "remote" ? "Remote edge to trace" : "Glazing & mounting",
-        i: mt === "rimless" ? "Rimless drill mount" : mt === "supra" ? "Supra / nylon" : "Full rim",
-        v: S.scope === "remote" ? base + 6 : base,
-      });
-    }
-    let sub = lines.reduce((a, l) => a + l.v, 0);
-    if (S.eyes !== "pair") {
-      sub *= 0.55;
-      lines.forEach((l) => (l.v *= 0.55));
-    }
-    if ($("#service").value === "pri") {
-      const f = sub * 0.15;
-      lines.push({ n: "Priority service", i: "3 working days", v: f });
-      sub += f;
-    }
-    return { lines, sub, ready: true, unpriced };
+  if(c.up) lines.push({n:c.n,i:'Extra over Clear · same material & design',v:c.up});
+  Array.from(S.treat).forEach(id=>{const t=TREAT.find(x=>x.id===id); if(t){
+    let detail=t.c;
+    if(/^tn-/.test(id)){ detail=S.tintCfg.colour+(/grad/.test(id)?` · ${S.tintCfg.gradTop}→${S.tintCfg.gradBottom}%`:` · ${S.tintCfg.density}%`); }
+    lines.push({n:t.n,i:detail,v:t.p + (/^tn-/.test(id)&&S.tintCfg.match?9:0),rm:{type:'treat',id}});
+  }});
+  chemPriceLines().forEach(l=>lines.push(l));
+  const eyes=activeEyes().map(readRow);
+  const prism=Math.max(...eyes.map(r=>r.prism||0),0);
+  if(prism>0) lines.push({n:'Prism',i:prism.toFixed(2)+'Δ ground in',v:16+prism*4});
+  const dia=effDiam();
+  if(dia>=75) lines.push({n:'Oversize blank',i:dia+' mm',v:dia>=80?32:22});
+  const hi=Math.max(...eyes.map(r=>Math.abs(r.sph||0)),0);
+  if(hi>6) lines.push({n:'High-power surfacing',i:'beyond ±6.00',v:18});
+  if(S.scope!=='uncut'){
+    const mt=$('#mount').value, base=mt==='rimless'?42:(mt==='supra'?31:17);
+    lines.push({n:S.scope==='remote'?'Remote edge to trace':'Glazing & mounting',
+      i:mt==='rimless'?'Rimless drill mount':(mt==='supra'?'Supra / nylon':'Full rim'),
+      v:S.scope==='remote'?base+6:base});
   }
+  let sub=lines.reduce((a,l)=>a+l.v,0);
+  if(S.eyes!=='pair'){ sub*=.55; lines.forEach(l=>l.v*=.55); }
+  if($('#service').value==='pri'){ const f=sub*.15; lines.push({n:'Priority service',i:'3 working days',v:f}); sub+=f; }
+  return {lines,sub,ready:true,unpriced};
+}
 
-  /* ---------- section validity ---------- */
-  function secValid() {
-    const eyes = activeEyes(),
-      rows = eyes.map((e) => ({ e, r: readRow(e) }));
-    const num = (id) => parseNum($("#" + id).value);
-    const patient = !!$("#pfirst").value.trim() && !!$("#plast").value.trim();
-    const frame =
-      !!$("#fname").value.trim() &&
-      num("fa") !== null &&
-      num("fb") !== null &&
-      num("fed") !== null &&
-      num("fdbl") !== null &&
-      limitErrors().length === 0 &&
-      (!S.shape || S.shapeOk) &&
-      (S.scope !== "remote" || !!S.file);
-    const lens = !!(S.m && S.d && S.c);
-    const rxOk =
-      rows.every((x) => x.r.sph !== null && Math.abs(x.r.sph) <= 25) &&
-      rows.every((x) => !x.r.cyl || x.r.cyl === 0 || (x.r.axis !== null && x.r.axis >= 1 && x.r.axis <= 180)) &&
-      (!needsAdd() || rows.every((x) => x.r.add !== null && x.r.add >= 0.25 && x.r.add <= 4.5)) &&
-      rows.every((x) => x.r.pd !== null && x.r.pd >= 20 && x.r.pd <= 45) &&
-      (!needsNearPD() || rows.every((x) => x.r.npd !== null && x.r.npd >= 18 && x.r.npd <= 45)) &&
-      (!needsHt() || rows.every((x) => x.r.ht !== null && x.r.ht >= (isProg() ? 14 : 12) && x.r.ht <= 35)) &&
-      errors().length === 0;
-    return {
-      "sec-patient": patient,
-      "sec-frame": frame,
-      "sec-lens": lens,
-      "sec-rx": rxOk,
-      "sec-treat": true,
-      "sec-notes": true,
-    };
+/* ---------- section validity ---------- */
+function secValid(){
+  const eyes=activeEyes(), rows=eyes.map(e=>({e,r:readRow(e)}));
+  const num=id=>parseNum($('#'+id).value);
+  const patient=!!$('#pfirst').value.trim()&&!!$('#plast').value.trim();
+  const frame=!!$('#fname').value.trim()&&!!$('#mount').value&&num('fa')!==null&&num('fb')!==null&&num('fed')!==null&&num('fdbl')!==null
+    &&limitErrors().length===0
+    &&(!S.shape||S.shapeOk)
+    &&(S.scope!=='remote'||!!S.file);
+  const lens=!!(S.m&&S.d&&S.c);
+  const rxOk=rows.every(x=>x.r.sph!==null&&Math.abs(x.r.sph)<=25)
+    &&rows.every(x=>!x.r.cyl||x.r.cyl===0||(x.r.axis!==null&&x.r.axis>=1&&x.r.axis<=180))
+    &&(!needsAdd()||rows.every(x=>x.r.add!==null&&x.r.add>=.25&&x.r.add<=4.5))
+    &&rows.every(x=>x.r.pd!==null&&x.r.pd>=20&&x.r.pd<=45)
+    &&(!needsNearPD()||rows.every(x=>x.r.npd!==null&&x.r.npd>=18&&x.r.npd<=45))
+    &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35))
+    &&errors().length===0;
+  return {'sec-patient':patient,'sec-frame':frame,'sec-lens':lens,'sec-rx':rxOk,'sec-treat':true,'sec-notes':true};
+}
+const SECTION_IDS=['sec-patient','sec-frame','sec-lens','sec-rx','sec-treat','sec-notes'];
+const selectLabel=id=>{
+  const el=$('#'+id);
+  return el?.selectedOptions?.[0]?.textContent?.trim()||el?.value||'';
+};
+function sectionHasCapturedData(id){
+  if(id==='sec-patient'||id==='sec-frame'||id==='sec-lens'||id==='sec-rx') return true;
+  if(id==='sec-treat') return S.treat.size>0||S.chemClips.length>0;
+  return !!$('#notes').value.trim()||$('#service').value!=='std'||$('#delivery').selectedIndex!==0||S.notesConfirmed;
+}
+/* sec-rx and sec-treat need real line breaks (values crammed onto one line
+   were unreadable) — those two return HTML and are rendered via innerHTML;
+   everything else stays plain text since patient/frame names are free-typed. */
+function sectionSummary(id){
+  if(id==='sec-patient'){
+    const ref=$('#ref').value.trim();
+    return [$('#pfirst').value.trim()+' '+$('#plast').value.trim(),ref&&'Ref '+ref].filter(Boolean).join(' · ');
   }
-  const SECTION_IDS = ["sec-patient", "sec-frame", "sec-lens", "sec-rx", "sec-treat", "sec-notes"];
-  const selectLabel = (id) => {
-    const el = $("#" + id);
-    return el?.selectedOptions?.[0]?.textContent?.trim() || el?.value || "";
-  };
-  function sectionHasCapturedData(id) {
-    if (id === "sec-patient" || id === "sec-frame" || id === "sec-lens" || id === "sec-rx") return true;
-    if (id === "sec-treat") return S.treat.size > 0 || S.chemClips.length > 0;
-    return !!$("#notes").value.trim() || $("#service").value !== "std" || $("#delivery").selectedIndex !== 0;
+  if(id==='sec-frame') return [$('#fname').value.trim(),`${$('#fa').value} × ${$('#fb').value} mm`, `DBL ${$('#fdbl').value} mm`,S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
+  if(id==='sec-lens') return [material()?.n,design()?.n,colour()?.n].filter(Boolean).join(' · ');
+  if(id==='sec-rx') return activeEyes().map(e=>{
+    const r=readRow(e), parts=[r.sph!==null?'Sph '+sgn(r.sph):'',r.cyl?'Cyl '+sgn(r.cyl):'',r.axis!==null?'Axis '+r.axis:'',r.pd!==null?'PD '+r.pd:''].filter(Boolean);
+    return `<b>${e.toUpperCase()}</b> ${parts.join(' · ')}`;
+  }).join('<br>');
+  if(id==='sec-treat'){
+    const items=Array.from(S.treat).map(tid=>{
+      const t=TREAT.find(x=>x.id===tid); if(!t) return '';
+      const detail=/^tn-/.test(tid)
+        ? S.tintCfg.colour+(/grad/.test(tid)?` · ${S.tintCfg.gradTop}→${S.tintCfg.gradBottom}%`:` · ${S.tintCfg.density}%`)
+        : t.d;
+      return `<b>${t.n}</b> — ${detail}`;
+    }).filter(Boolean);
+    if(S.chemClips.length) items.push(`<b>Chemistrie</b> — ${S.chemClips.length} clip${S.chemClips.length>1?'s':''}`);
+    return items.join('<br>');
   }
-  function sectionSummary(id) {
-    if (id === "sec-patient") {
-      const ref = $("#ref").value.trim();
-      return [$("#pfirst").value.trim() + " " + $("#plast").value.trim(), ref && "Ref " + ref]
-        .filter(Boolean)
-        .join(" · ");
+  return [selectLabel('service'),selectLabel('delivery'),$('#notes').value.trim()&&'Lab notes added'].filter(Boolean).join(' · ');
+}
+const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-rx','sec-treat']);
+function syncSectionCollapse(V){
+  const justCollapsed=[];
+  SECTION_IDS.forEach(id=>{
+    const section=$('#'+id); if(!section) return;
+    const complete=!!V[id]&&sectionHasCapturedData(id);
+    const wasCollapsed=S.collapsedSections.has(id);
+    if(!complete){ S.collapsedSections.delete(id); S.editingSections.delete(id); }
+    else if(!S.editingSections.has(id)&&!section.contains(document.activeElement)) S.collapsedSections.add(id);
+    const collapsed=S.collapsedSections.has(id);
+    if(collapsed&&!wasCollapsed) justCollapsed.push(section);
+    section.classList.toggle('section-collapsed',collapsed);
+    const summary=section.querySelector('.section-summary');
+    const multiline=MULTILINE_SUMMARY_SECTIONS.has(id);
+    if(summary){
+      summary.classList.toggle('multiline',multiline);
+      const text=collapsed?sectionSummary(id):'';
+      if(multiline) summary.innerHTML=text; else summary.textContent=text;
     }
-    if (id === "sec-frame")
-      return [
-        $("#fname").value.trim(),
-        `${$("#fa").value} × ${$("#fb").value} mm`,
-        `DBL ${$("#fdbl").value} mm`,
-        S.scope === "remote" ? "Remote edge" : S.scope === "glaze" ? "Full glaze" : "Uncut",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-    if (id === "sec-lens") return [material()?.n, design()?.n, colour()?.n].filter(Boolean).join(" · ");
-    if (id === "sec-rx")
-      return activeEyes()
-        .map((e) => {
-          const r = readRow(e),
-            parts = [
-              r.sph !== null ? sgn(r.sph) : "",
-              r.cyl ? sgn(r.cyl) : "",
-              r.axis !== null ? "×" + r.axis : "",
-              r.pd !== null ? "PD " + r.pd : "",
-            ].filter(Boolean);
-          return e.toUpperCase() + " " + parts.join(" ");
-        })
-        .join(" · ");
-    if (id === "sec-treat") {
-      const treatments = TREAT.filter((t) => S.treat.has(t.id)).map((t) => t.n);
-      if (S.chemClips.length) treatments.push("Chemistrie layer");
-      return treatments.join(" · ");
-    }
-    return [selectLabel("service"), selectLabel("delivery"), $("#notes").value.trim() && "Lab notes added"]
-      .filter(Boolean)
-      .join(" · ");
+  });
+  /* A section finishing and folding shut (see the animated .card-b/.section-summary
+     rules in rx-order.css) removes a chunk of page height from under the user
+     without moving the scroll position to compensate — the page silently
+     jumps and their place is lost. Bring the collapsed section itself back to
+     a stable spot once the animation has had a moment to run. Only for a
+     single section completing in the ordinary course of filling the form —
+     a prefill/draft-restore can collapse several sections in the same pass,
+     and repeatedly yanking the scroll position around for that would be
+     worse, not better. */
+  if(justCollapsed.length===1){
+    const section=justCollapsed[0];
+    setTimeout(()=>{ section.scrollIntoView({behavior:'smooth',block:'start'}); },260);
   }
-  function syncSectionCollapse(V) {
-    SECTION_IDS.forEach((id) => {
-      const section = $("#" + id);
-      if (!section) return;
-      const complete = !!V[id] && sectionHasCapturedData(id);
-      if (!complete) {
-        S.collapsedSections.delete(id);
-        S.editingSections.delete(id);
-      } else if (!S.editingSections.has(id) && !section.contains(document.activeElement)) S.collapsedSections.add(id);
-      const collapsed = S.collapsedSections.has(id);
-      section.classList.toggle("section-collapsed", collapsed);
-      const summary = section.querySelector(".section-summary");
-      if (summary) summary.textContent = collapsed ? sectionSummary(id) : "";
-    });
+}
+function openSection(id){
+  const section=$('#'+id); if(!section) return;
+  S.collapsedSections.delete(id); S.editingSections.add(id); render();
+  section.scrollIntoView?.({behavior:'smooth',block:'start'});
+  setTimeout(()=>{
+    const field=section.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled])');
+    if(field) field.focus();
+  },0);
+}
+function errors(){
+  const out=[];
+  activeEyes().forEach(e=>{
+    const r=readRow(e), E=e.toUpperCase();
+    if(r.sph!==null&&(r.sph>18||r.sph<-25)) out.push({t:`${E} sphere is outside the producible range (+18.00 to -25.00).`,e,f:'sph'});
+    if(r.cyl!==null&&Math.abs(r.cyl)>8) out.push({t:`${E} cylinder beyond -8.00 needs a lab consult.`,e,f:'cyl'});
+    if(r.add!==null&&r.add>4.5) out.push({t:`${E} add above +4.50 is not producible.`,e,f:'add'});
+    if(r.prism&&r.prism>0&&!r.base) out.push({t:`${E} prism needs a base direction.`,e,f:'base'});
+    if(needsHt()&&isProg()&&r.ht!==null&&r.ht<14) out.push({t:`${E} fitting height ${r.ht.toFixed(1)} mm — progressives cannot be cut below 14 mm.`,e,f:'ht'});
+    if(needsNearPD()&&r.npd!==null&&r.pd!==null&&r.npd>r.pd) out.push({t:`${E} near PD is wider than distance PD — check the measurement.`,e,f:'npd'});
+  });
+  return out;
+}
+function warnings(){
+  const out=[];
+  if(S.eyes==='pair'){
+    const a=readRow('od').sph, b=readRow('os').sph;
+    if(a!==null&&b!==null&&a*b<0&&!S.warnOff.has('sign'))
+      out.push({id:'sign',t:`Right eye is ${sgn(a)} and left is ${sgn(b)} — opposing signs. Unusual but not impossible; dismiss if intended.`});
   }
-  function openSection(id) {
-    const section = $("#" + id);
-    if (!section) return;
-    S.collapsedSections.delete(id);
-    S.editingSections.add(id);
-    render();
-    section.scrollIntoView?.({ behavior: "smooth", block: "start" });
-    setTimeout(() => {
-      const field = section.querySelector("input:not([disabled]),select:not([disabled]),textarea:not([disabled])");
-      if (field) field.focus();
-    }, 0);
-  }
-  function errors() {
-    const out = [];
-    activeEyes().forEach((e) => {
-      const r = readRow(e),
-        E = e.toUpperCase();
-      if (r.sph !== null && (r.sph > 18 || r.sph < -25))
-        out.push({ t: `${E} sphere is outside the producible range (+18.00 to -25.00).`, e, f: "sph" });
-      if (r.cyl !== null && Math.abs(r.cyl) > 8)
-        out.push({ t: `${E} cylinder beyond -8.00 needs a lab consult.`, e, f: "cyl" });
-      if (r.add !== null && r.add > 4.5) out.push({ t: `${E} add above +4.50 is not producible.`, e, f: "add" });
-      if (r.prism && r.prism > 0 && !r.base) out.push({ t: `${E} prism needs a base direction.`, e, f: "base" });
-      if (needsHt() && isProg() && r.ht !== null && r.ht < 14)
-        out.push({
-          t: `${E} fitting height ${r.ht.toFixed(1)} mm — progressives cannot be cut below 14 mm.`,
-          e,
-          f: "ht",
-        });
-      if (needsNearPD() && r.npd !== null && r.pd !== null && r.npd > r.pd)
-        out.push({ t: `${E} near PD is wider than distance PD — check the measurement.`, e, f: "npd" });
-    });
-    return out;
-  }
-  function warnings() {
-    const out = [];
-    if (S.eyes === "pair") {
-      const a = readRow("od").sph,
-        b = readRow("os").sph;
-      if (a !== null && b !== null && a * b < 0 && !S.warnOff.has("sign"))
-        out.push({
-          id: "sign",
-          t: `Right eye is ${sgn(a)} and left is ${sgn(b)} — opposing signs. Unusual but not impossible; dismiss if intended.`,
-        });
-    }
-    return out;
-  }
-  function prompts() {
-    const out = [];
-    activeEyes().forEach((e) => {
-      const r = readRow(e);
-      if (r.axis !== null && (!r.cyl || r.cyl === 0))
-        out.push({ e, t: `${e.toUpperCase()} has an axis but no cylinder — is the cylinder missing?` });
-    });
-    return out;
-  }
+  return out;
+}
+function prompts(){
+  const out=[];
+  activeEyes().forEach(e=>{
+    const r=readRow(e);
+    if(r.axis!==null&&(!r.cyl||r.cyl===0)) out.push({e,t:`${e.toUpperCase()} has an axis but no cylinder — is the cylinder missing?`});
+  });
+  return out;
+}
 
-  /* ---------- render ---------- */
-  let lastTotal = null;
-  function render() {
-    /* conditional fields */
-    $$(".c-add").forEach((el) => el.classList.toggle("hide", !needsAdd()));
-    $$(".c-ht").forEach((el) => el.classList.toggle("hide", !needsHt()));
-    $$(".c-npd").forEach((el) => el.classList.toggle("hide", !needsNearPD()));
-    $("#corridorField").classList.toggle("hide", !isProg());
-    $("#purposeBlock").classList.toggle("hide", S.vision !== "sv");
-    $("#purposeNote").textContent =
-      S.purpose === "dist"
-        ? "Distance Rx — distance PD only."
-        : S.purpose === "read"
-          ? "Reading Rx — near PD collected instead of fitting height."
-          : "Intermediate Rx — near PD collected; note the working distance below.";
-    ["od", "os"].forEach((e) => {
-      const on = activeEyes().includes(e);
-      $(`tr[data-eye="${e}"]`).classList.toggle("off", !on);
-      rowEls(e).forEach((i) => (i.disabled = !on));
-    });
-    syncED();
-    fillDiam();
-    if (typeof updatePreview === "function") updatePreview();
-    if (typeof collapseFrame === "function") collapseFrame();
+/* ---------- render ---------- */
+let lastTotal=null;
+function render(){
+  /* conditional fields */
+  $$('.c-add').forEach(el=>el.classList.toggle('hide',!needsAdd()));
+  /* height is retained (not hidden) for single vision too — it just means
+     something different per lens type, so the header relabels instead. */
+  $$('.c-ht').forEach(el=>el.classList.remove('hide'));
+  $('#htLabel').textContent=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
+  $$('.c-npd').forEach(el=>el.classList.toggle('hide',!needsNearPD()));
+  $('#corridorField').classList.toggle('hide',!isProg());
+  $('#purposeBlock').classList.toggle('hide',S.vision!=='sv');
+  $('#purposeNote').textContent=S.purpose==='dist'?'Distance Rx — distance PD only.'
+    :S.purpose==='read'?'Reading Rx — near PD collected instead of fitting height.'
+    :'Intermediate Rx — near PD collected; note the working distance below.';
+  ['od','os'].forEach(e=>{
+    const on=activeEyes().includes(e);
+    $(`tr[data-eye="${e}"]`).classList.toggle('off',!on);
+    rowEls(e).forEach(i=>i.disabled=!on);
+  });
+  syncED(); fillDiam();
+  if(typeof updatePreview==='function') updatePreview();
+  if(typeof collapseFrame==='function') collapseFrame();
 
-    /* frame measurement limits */
-    const lim = limitErrors();
-    Object.keys(LIMITS).forEach((id) =>
-      $("#" + id)
-        .closest(".field")
-        .classList.remove("invalid"),
-    );
-    lim.forEach((e) =>
-      $("#" + e.id)
-        .closest(".field")
-        .classList.add("invalid"),
-    );
-    let lb = $("#limitBox");
-    if (lim.length) {
-      if (!lb) {
-        lb = document.createElement("div");
-        lb.id = "limitBox";
-        lb.style.marginTop = "12px";
-        $("#fa").closest(".card-b").appendChild(lb);
-      }
-      lb.innerHTML = `<div class="callout gold"><span class="ci">⚠</span><span>${lim.map((e) => `<div>${e.t}</div>`).join("")}</span></div>`;
-    } else if (lb) lb.remove();
+  /* frame measurement limits */
+  const lim=limitErrors();
+  Object.keys(LIMITS).forEach(id=>$('#'+id).closest('.field').classList.remove('invalid'));
+  lim.forEach(e=>$('#'+e.id).closest('.field').classList.add('invalid'));
+  let lb=$('#limitBox');
+  if(lim.length){
+    if(!lb){ lb=document.createElement('div'); lb.id='limitBox'; lb.style.marginTop='12px';
+      $('#fa').closest('.card-b').appendChild(lb); }
+    lb.innerHTML=`<div class="callout gold"><span class="ci">⚠</span><span>${lim.map(e=>`<div>${e.t}</div>`).join('')}</span></div>`;
+  } else if(lb) lb.remove();
 
-    /* quote */
-    const c = CUR[S.cur],
-      { lines, sub, ready, unpriced } = price(),
-      conv = (n) => n * c.rate,
-      total = conv(sub);
-    const show = S.pricesOn;
-    $("#qLines").innerHTML = !ready
-      ? '<div class="qempty">No lens chosen yet — the quote fills in as you select.</div>'
-      : lines
-          .map(
-            (l) =>
-              `<div class="qline ${show ? "" : "masked"}"><span class="qn"><b>${l.n}</b><i>${l.i}</i></span><span class="qv">${l.unpriced ? "on request" : show ? money(conv(l.v)) : "••••"}</span>${l.rm ? `<button type="button" class="qline-rm" data-rmtype="${l.rm.type}" data-rmid="${l.rm.id}" title="Remove from order">✕</button>` : ""}</div>`,
-          )
-          .join("");
-    /* A total of 0.00 beside an "on request" line reads as free. Say what it is. */
-    const onRequest = show && unpriced;
-    $("#qSubtotal").textContent = onRequest ? "on request" : show ? c.sym + " " + money(conv(sub)) : "——";
-    $("#qTotal").textContent = onRequest ? "on request" : show ? c.sym + " " + money(total) : "——";
-    $("#qCur").textContent = show ? c.sym : "";
-    $("#curChip").textContent = c.sym;
-    $("#qLabel").textContent = show ? "Live quote · " + S.cur : "Order summary";
-    $("#mCur").textContent = show ? "order total" : "Pricing not shown on this account";
-    /* Only BBD and USD are transactional; anything else is a courtesy conversion
+  /* quote */
+  const c=CUR[S.cur], {lines,sub,ready,unpriced}=price(), conv=n=>n*c.rate, total=conv(sub);
+  const show=S.pricesOn;
+  $('#qLines').innerHTML=!ready
+    ? '<div class="qempty">No lens chosen yet — the quote fills in as you select.</div>'
+    : lines.map(l=>`<div class="qline ${show?'':'masked'}"><span class="qn"><span class="qn-name"><b>${l.n}</b>${l.rm?`<button type="button" class="qline-rm" data-rmtype="${l.rm.type}" data-rmid="${l.rm.id}" title="Remove from order">✕</button>`:''}</span><i>${l.i}</i></span><span class="qv">${l.unpriced?'on request':(show?money(conv(l.v)):'••••')}</span></div>`).join('');
+  /* A total of 0.00 beside an "on request" line reads as free. Say what it is. */
+  const onRequest=show&&unpriced;
+  $('#qSubtotal').textContent=onRequest?'on request':(show?c.sym+' '+money(conv(sub)):'——');
+  /* Only BBD and USD are transactional; anything else is a courtesy conversion
      and must say so, or a customer will treat it as the price they will pay. */
-    const indicative = !!c.indicative;
-    $("#qSub").textContent = !show
-      ? "confirmed with you before production"
-      : !ready
-        ? "choose a lens to start pricing"
-        : unpriced
-          ? "this lens is not on your pricelist — save as a draft and we will quote it"
-          : (S.eyes === "pair" ? "per pair" : S.eyes === "od" ? "right lens only" : "left lens only") +
-            (indicative ? ` · ${S.cur} shown for guidance, billed in USD` : " · updates as you type");
-    const amt = $("#qAmt");
-    amt.textContent = onRequest ? "on request" : show ? money(total) : "——";
-    $("#mAmt").textContent = onRequest ? "on request" : show ? c.sym + " " + money(total) : "——";
-    if (show && lastTotal !== null && Math.abs(total - lastTotal) > 0.001) {
-      amt.classList.remove("pulse");
-      void amt.offsetWidth;
-      amt.classList.add("pulse");
-    }
-    lastTotal = total;
-    let np = $("#noPricingNote");
-    if (!show) {
-      if (!np) {
-        np = document.createElement("div");
-        np.id = "noPricingNote";
-        np.className = "nopricing";
-        $("#qLines").parentElement.insertBefore(np, $("#qLines"));
-      }
-      np.innerHTML =
-        "<b>Pricing isn't enabled on this account.</b><br>You can complete and submit this order as normal — we confirm the price with you before production, and it appears on your invoice.";
-    } else if (np) np.remove();
+  const indicative=!!c.indicative;
+  /* an indicative display currency isn't what actually bills — show the real
+     USD amount alongside it so it matches what checkout will charge. */
+  const usdNote=indicative&&CUR.USD?` (USD ${money(sub*CUR.USD.rate)})`:'';
+  $('#qTotal').textContent=onRequest?'on request':(show?c.sym+' '+money(total)+usdNote:'——');
+  $('#qCur').textContent=show?c.sym:''; $('#curChip').textContent=c.sym;
+  $('#qLabel').textContent=show?'Live quote · '+S.cur:'Order summary';
+  $('#mCur').textContent=show?'order total':'Pricing not shown on this account';
+  $('#qSub').textContent=!show?'confirmed with you before production'
+    :(!ready?'choose a lens to start pricing'
+      :unpriced?'this lens is not on your pricelist — save as a draft and we will quote it'
+      :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))
+        +(indicative?` · ${S.cur} shown for guidance, billed in USD`:' · updates as you type'));
+  const amt=$('#qAmt'); amt.textContent=onRequest?'on request':(show?money(total):'——');
+  $('#mAmt').textContent=onRequest?'on request':(show?c.sym+' '+money(total):'——');
+  if(show&&lastTotal!==null&&Math.abs(total-lastTotal)>.001){amt.classList.remove('pulse');void amt.offsetWidth;amt.classList.add('pulse');}
+  lastTotal=total;
+  let np=$('#noPricingNote');
+  if(!show){
+    if(!np){ np=document.createElement('div'); np.id='noPricingNote'; np.className='nopricing';
+      $('#qLines').parentElement.insertBefore(np,$('#qLines')); }
+    np.innerHTML='<b>Pricing isn\'t enabled on this account.</b><br>You can complete and submit this order as normal — we confirm the price with you before production, and it appears on your invoice.';
+  } else if(np) np.remove();
 
-    renderSuggestions();
-    renderChips();
-    if (typeof renderTintCfg === "function") renderTintCfg();
-    if (typeof renderChemCfg === "function") renderChemCfg();
-    const advS = $("#advSummary");
-    if (advS)
-      advS.textContent = effDiam() + " mm blank" + (isProg() ? " · " + $("#corridor").value + " mm corridor" : "");
-    $("#qFlag").classList.toggle("hide", !S.ownerReview);
-    $("#qFlagTxt").textContent = "Owner review required before production — quote still locks at submit.";
+  renderSuggestions(); renderChips();
+  if(typeof renderTintCfg==='function') renderTintCfg();
+  if(typeof renderChemCfg==='function') renderChemCfg();
+  const advS=$('#advSummary');
+  if(advS) advS.textContent = effDiam()+' mm blank'+(isProg()?' · '+$('#corridor').value+' mm corridor':'');
+  $('#qFlag').classList.toggle('hide',!S.ownerReview);
+  $('#qFlagTxt').textContent='Owner review required before production — quote still locks at submit.';
 
-    /* errors, warnings, prompts */
-    $$(".rxtable td").forEach((td) => td.classList.remove("cellerr"));
-    const errs = errors();
-    errs.forEach((x) => {
-      const el = cell(x.e, x.f);
-      if (el) el.parentElement.classList.add("cellerr");
-    });
-    const warns = warnings();
-    $("#rxErrors").innerHTML = [
-      errs.length
-        ? `<div class="callout gold"><span class="ci">⚠</span><span>${errs.map((x) => `<div>${x.t}</div>`).join("")}</span></div>`
-        : "",
-      warns
-        .map(
-          (w) =>
-            `<div class="callout" style="margin-top:8px"><span class="ci">ⓘ</span><span>${w.t}</span><button class="cx" data-warn="${w.id}">✕</button></div>`,
-        )
-        .join(""),
-    ].join("");
-    $$("#rxErrors [data-warn]").forEach((b) =>
-      b.addEventListener("click", () => {
-        S.warnOff.add(b.dataset.warn);
-        render();
-      }),
-    );
-    $("#rxPrompts").innerHTML = prompts()
-      .map(
-        (p) => `<div class="prompt"><span>❓</span><span style="flex:1">${p.t}</span>
+  /* errors, warnings, prompts */
+  $$('.rxtable td').forEach(td=>td.classList.remove('cellerr'));
+  const errs=errors();
+  errs.forEach(x=>{const el=cell(x.e,x.f); if(el) el.parentElement.classList.add('cellerr');});
+  const warns=warnings();
+  $('#rxErrors').innerHTML=[
+    errs.length?`<div class="callout gold"><span class="ci">⚠</span><span>${errs.map(x=>`<div>${x.t}</div>`).join('')}</span></div>`:'',
+    warns.map(w=>`<div class="callout" style="margin-top:8px"><span class="ci">ⓘ</span><span>${w.t}</span><button class="cx" data-warn="${w.id}">✕</button></div>`).join('')
+  ].join('');
+  $$('#rxErrors [data-warn]').forEach(b=>b.addEventListener('click',()=>{S.warnOff.add(b.dataset.warn);render();}));
+  $('#rxPrompts').innerHTML=prompts().map(p=>`<div class="prompt"><span>❓</span><span style="flex:1">${p.t}</span>
     <button class="btn btn-primary" data-pcyl="${p.e}">Add cylinder</button>
-    <button class="btn btn-ghost" data-pax="${p.e}">Remove axis</button></div>`,
-      )
-      .join("");
-    $$("#rxPrompts [data-pcyl]").forEach((b) =>
-      b.addEventListener("click", () => {
-        const el = cell(b.dataset.pcyl, "cyl");
-        el.focus();
-        el.select();
-      }),
-    );
-    $$("#rxPrompts [data-pax]").forEach((b) =>
-      b.addEventListener("click", () => {
-        cell(b.dataset.pax, "axis").value = "";
-        render();
-      }),
-    );
+    <button class="btn btn-ghost" data-pax="${p.e}">Remove axis</button></div>`).join('');
+  $$('#rxPrompts [data-pcyl]').forEach(b=>b.addEventListener('click',()=>{const el=cell(b.dataset.pcyl,'cyl'); el.focus(); el.select();}));
+  $$('#rxPrompts [data-pax]').forEach(b=>b.addEventListener('click',()=>{cell(b.dataset.pax,'axis').value='';render();}));
 
-    /* progressive disclosure */
-    const V = secValid(),
-      ids = SECTION_IDS;
-    let gate = true,
-      firstLocked = null;
-    ids.forEach((id) => {
-      const el = $("#" + id),
-        show = S.revealAll || gate;
-      if (show && el.classList.contains("hide")) el.classList.add("reveal");
-      el.classList.toggle("hide", !show);
-      el.classList.toggle("ok", !!V[id]);
-      if (!V[id] && gate && !firstLocked) firstLocked = id;
-      if (!V[id]) gate = false;
-    });
-    const cue = $("#nextCue");
-    if (!S.revealAll && firstLocked && firstLocked !== "sec-notes") {
-      const names = {
-        "sec-patient": "Frame & measurements",
-        "sec-frame": "Lens selection",
-        "sec-lens": "Prescription",
-        "sec-rx": "Coatings & treatments",
-        "sec-treat": "Delivery & notes",
-      };
-      cue.classList.remove("hide");
-      cue.innerHTML = `<span class="lk">🔒</span><span>Finish <b>${$("#" + firstLocked + " h2").textContent}</b> and <b>${names[firstLocked]}</b> opens next.</span>`;
-    } else cue.classList.add("hide");
+  /* progressive disclosure */
+  const V=secValid(), ids=SECTION_IDS;
+  let gate=true, firstLocked=null;
+  ids.forEach(id=>{
+    const el=$('#'+id), show=S.revealAll||gate;
+    if(show&&el.classList.contains('hide')) el.classList.add('reveal');
+    el.classList.toggle('hide',!show);
+    el.classList.toggle('ok',!!V[id]);
+    if(!V[id]&&gate&&!firstLocked) firstLocked=id;
+    if(!V[id]) gate=false;
+  });
+  const cue=$('#nextCue');
+  if(!S.revealAll&&firstLocked&&firstLocked!=='sec-notes'){
+    const names={'sec-patient':'Frame & measurements','sec-frame':'Lens selection','sec-lens':'Prescription','sec-rx':'Coatings & treatments','sec-treat':'Delivery & notes'};
+    cue.classList.remove('hide');
+    cue.innerHTML=`<span class="lk">🔒</span><span>Finish <b>${$('#'+firstLocked+' h2').textContent}</b> and <b>${names[firstLocked]}</b> opens next.</span>`;
+  } else cue.classList.add('hide');
 
-    syncSectionCollapse(V);
+  syncSectionCollapse(V);
 
-    /* checklist */
-    const checks = [
-      { t: "Patient name", ok: V["sec-patient"], go: "#sec-patient" },
-      { t: "Job type & frame measurements", ok: V["sec-frame"], go: "#sec-frame" },
-      { t: "Material, design & colour", ok: V["sec-lens"], go: "#sec-lens" },
-      { t: "Prescription complete & valid", ok: V["sec-rx"], go: "#sec-rx" },
-    ];
-    $("#vList").innerHTML = checks
-      .map(
-        (k) =>
-          `<li class="${k.ok ? "ok" : ""}" data-go="${k.go}"><span class="vi">✓</span><span class="vt">${k.t}</span></li>`,
-      )
-      .join("");
-    $$("#vList li").forEach((li) =>
-      li.addEventListener("click", () => {
-        const t = rootEl.querySelector(li.dataset.go);
-        if (t && !t.classList.contains("hide")) t.scrollIntoView({ behavior: "smooth", block: "start" });
-      }),
-    );
-    $("#vBar").style.width = Math.round((checks.filter((k) => k.ok).length / checks.length) * 100) + "%";
-    const valid = checks.every((k) => k.ok);
-    /* An unpriced combination cannot go to the cart — there is no price to charge,
+  /* checklist */
+  const checks=[
+    {t:'Patient name',ok:V['sec-patient'],go:'#sec-patient'},
+    {t:'Job type & frame measurements',ok:V['sec-frame'],go:'#sec-frame'},
+    {t:'Material, design & colour',ok:V['sec-lens'],go:'#sec-lens'},
+    {t:'Prescription complete & valid',ok:V['sec-rx'],go:'#sec-rx'}
+  ];
+  $('#vList').innerHTML=checks.map(k=>`<li class="${k.ok?'ok':''}" data-go="${k.go}"><span class="vi">✓</span><span class="vt">${k.t}</span></li>`).join('');
+  $$('#vList li').forEach(li=>li.addEventListener('click',()=>{const t=rootEl.querySelector(li.dataset.go); if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});}));
+  $('#vBar').style.width=Math.round(checks.filter(k=>k.ok).length/checks.length*100)+'%';
+  const valid=checks.every(k=>k.ok);
+  /* An unpriced combination cannot go to the cart — there is no price to charge,
      so the only route is a draft we quote back. Flagged for assistance so it
      reaches the same follow-up queue as any other help request. The mutation
      sits above the assist-list render below, so it lands in this same pass. */
-    const { unpriced: noPrice } = price();
-    if (noPrice) S.assists.add(UNPRICED_ASSIST);
-    else S.assists.delete(UNPRICED_ASSIST);
-    ["#submitBtn", "#submitBtn2"].forEach((s) => {
-      const b = $(s);
-      b.disabled = !valid || noPrice;
-      b.title = noPrice ? "This lens is not priced on your account — save it as a draft and we will quote it." : "";
-    });
+  const {unpriced:noPrice}=price();
+  if(noPrice) S.assists.add(UNPRICED_ASSIST); else S.assists.delete(UNPRICED_ASSIST);
+  ['#submitBtn','#submitBtn2'].forEach(s=>{
+    const b=$(s);
+    b.disabled=!valid||noPrice;
+    b.title=noPrice?'This lens is not priced on your account — save it as a draft and we will quote it.':'';
+  });
 
-    markNeeded();
-    buildSteps(V);
-    $("#assistList").classList.toggle("on", S.assists.size > 0);
-    $("#assistTags").innerHTML = Array.from(S.assists)
-      .map((a) => `<span class="atag">⚑ ${a}<button data-rm="${a}">✕</button></span>`)
-      .join("");
-    $$("#assistTags button").forEach((b) =>
-      b.addEventListener("click", () => {
-        S.assists.delete(b.dataset.rm);
-        $$(".field.assist").forEach((f) => {
-          if (f.querySelector('[data-assist="' + b.dataset.rm + '"]')) f.classList.remove("assist");
-        });
-        render();
-      }),
-    );
+  markNeeded(V);
+  buildSteps(V);
+  $('#assistList').classList.toggle('on',S.assists.size>0);
+  $('#assistTags').innerHTML=Array.from(S.assists).map(a=>`<span class="atag">⚑ ${a}<button data-rm="${a}">✕</button></span>`).join('');
+  $$('#assistTags button').forEach(b=>b.addEventListener('click',()=>{
+    S.assists.delete(b.dataset.rm);
+    $$('.field.assist').forEach(f=>{if(f.querySelector('[data-assist="'+b.dataset.rm+'"]')) f.classList.remove('assist');});
+    render();
+  }));
+}
+/* ---------- skipped-mandatory beacon ----------
+   Prefilled/restored forms open every section at once (S.revealAll), so the
+   user can jump around and miss something — that always qualifies. In the
+   normal step-by-step flow a section only becomes reachable once everything
+   before it validates, so arriving at a fresh section empty is expected, not
+   "overlooked" — no beacon for that. But a user can jump BACK (the pencil
+   "Edit" icon) to an earlier, already-completed section and blank something
+   out while later sections still hold their data; that's the real "other
+   areas are filled and this one got skipped" case, so a field also qualifies
+   whenever some section after its own is currently valid or holds data —
+   proof the user got past this point before. */
+function requiredFields(){
+  const out=[];
+  const add=(el,why)=>{ if(el) out.push({el,why}); };
+  add($('#pfirst'),'Patient first name'); add($('#plast'),'Patient last name');
+  add($('#fname'),'Frame name'); add($('#fa'),'A measurement'); add($('#fb'),'B measurement');
+  add($('#fed'),'Effective diameter'); add($('#fdbl'),'DBL');
+  add($('#material'),'Material'); add($('#design'),'Lens design'); add($('#colour'),'Lens colour option');
+  activeEyes().forEach(e=>{
+    const r=readRow(e), E=e.toUpperCase();
+    add(cell(e,'sph'),E+' sphere');
+    add(cell(e,'pd'),E+' distance PD');
+    if(r.cyl&&r.cyl!==0) add(cell(e,'axis'),E+' axis');
+    if(needsAdd()) add(cell(e,'add'),E+' add');
+    if(needsHt()) add(cell(e,'ht'),E+' fitting height');
+    if(needsNearPD()) add(cell(e,'npd'),E+' near PD');
+  });
+  return out;
+}
+function markNeeded(V){
+  $$('.needed').forEach(el=>el.classList.remove('needed'));
+  let cue=$('#needCue');
+  const missing=requiredFields().filter(f=>{
+    if(f.el.disabled||f.el.value.trim()!=='') return false;
+    const sec=f.el.closest('section');
+    if(!sec||sec.classList.contains('hide')) return false;
+    if(S.revealAll) return true;
+    const idx=SECTION_IDS.indexOf(sec.id);
+    /* sectionHasCapturedData() is only a meaningful signal on its own for
+       sec-treat/sec-notes — they're always "valid" (optional) whether or not
+       they hold anything. For the other sections validity IS the data check;
+       using sectionHasCapturedData for those too would read true unconditionally
+       and false-positive on a still-blank form. */
+    const hasProgress=id=>(id==='sec-treat'||id==='sec-notes')?sectionHasCapturedData(id):!!V[id];
+    return idx>=0&&SECTION_IDS.slice(idx+1).some(hasProgress);
+  });
+  missing.forEach(f=>{
+    const host=f.el.closest('td')||f.el.closest('.field');
+    if(host) host.classList.add('needed');
+  });
+  if(!missing.length){ if(cue) cue.remove(); return; }
+  if(!cue){
+    cue=document.createElement('div'); cue.id='needCue'; cue.className='needcue';
+    const col=$('.col'); col.insertBefore(cue,col.firstChild);
   }
-  /* ---------- skipped-mandatory beacon ----------
-   Only active when the form arrived prefilled or restored from a draft, i.e. every
-   section is open at once and the user can jump around and miss something. */
-  function requiredFields() {
-    const out = [];
-    const add = (el, why) => {
-      if (el) out.push({ el, why });
-    };
-    add($("#pfirst"), "Patient first name");
-    add($("#plast"), "Patient last name");
-    add($("#fname"), "Frame name");
-    add($("#fa"), "A measurement");
-    add($("#fb"), "B measurement");
-    add($("#fed"), "Effective diameter");
-    add($("#fdbl"), "DBL");
-    add($("#material"), "Material");
-    add($("#design"), "Lens design");
-    add($("#colour"), "Lens colour option");
-    activeEyes().forEach((e) => {
-      const r = readRow(e),
-        E = e.toUpperCase();
-      add(cell(e, "sph"), E + " sphere");
-      add(cell(e, "pd"), E + " distance PD");
-      if (r.cyl && r.cyl !== 0) add(cell(e, "axis"), E + " axis");
-      if (needsAdd()) add(cell(e, "add"), E + " add");
-      if (needsHt()) add(cell(e, "ht"), E + " fitting height");
-      if (needsNearPD()) add(cell(e, "npd"), E + " near PD");
-    });
-    return out;
-  }
-  function markNeeded() {
-    $$(".needed").forEach((el) => el.classList.remove("needed"));
-    let cue = $("#needCue");
-    if (!S.revealAll) {
-      if (cue) cue.remove();
-      return;
-    }
-    const missing = requiredFields().filter(
-      (f) =>
-        !f.el.disabled &&
-        f.el.value.trim() === "" &&
-        f.el.closest("section") &&
-        !f.el.closest("section").classList.contains("hide"),
-    );
-    missing.forEach((f) => {
-      const host = f.el.closest("td") || f.el.closest(".field");
-      if (host) host.classList.add("needed");
-    });
-    if (!missing.length) {
-      if (cue) cue.remove();
-      return;
-    }
-    if (!cue) {
-      cue = document.createElement("div");
-      cue.id = "needCue";
-      cue.className = "needcue";
-      const col = $(".col");
-      col.insertBefore(cue, col.firstChild);
-    }
-    cue.innerHTML = `<span>✹</span><span><b>${missing.length} required field${missing.length > 1 ? "s" : ""} still to fill</b> — they're glowing green: ${missing
-      .slice(0, 3)
-      .map((m) => m.why)
-      .join(", ")}${missing.length > 3 ? ` and ${missing.length - 3} more` : ""}.</span>
+  cue.innerHTML=`<span>✹</span><span><b>${missing.length} required field${missing.length>1?'s':''} still to fill</b> — they're glowing green: ${missing.slice(0,3).map(m=>m.why).join(', ')}${missing.length>3?` and ${missing.length-3} more`:''}.</span>
     <button class="btn btn-ghost" id="needJump">Go to first</button>`;
-    $("#needJump").addEventListener("click", () => {
-      const t = missing[0].el;
-      t.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => {
-        t.focus();
-        if (t.select)
-          try {
-            t.select();
-          } catch (e) {}
-      }, 420);
-    });
-  }
+  $('#needJump').addEventListener('click',()=>{
+    const t=missing[0].el;
+    t.scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(()=>{ t.focus(); if(t.select) try{t.select();}catch(e){} },420);
+  });
+}
 
-  function buildSteps(V) {
-    const secs = $$(".card[data-step]");
-    const stepButtons = secs
-      .map((s, i) => {
-        const locked = s.classList.contains("hide");
-        return `<button class="step ${V[s.id] ? "done" : ""} ${locked ? "locked" : ""}" data-go="#${s.id}"><span class="n">${V[s.id] ? "✓" : locked ? "🔒" : i + 1}</span>${s.dataset.step}</button>`;
-      })
-      .join("");
-    const currencyOptions = Object.entries(CUR)
-      .map(
-        ([code, c]) =>
-          `<option value="${code}" ${S.cur === code ? "selected" : ""}>${c.sym}${c.indicative ? " · indicative" : ""}</option>`,
-      )
-      .join("");
-    const settings = rootEl.classList.contains("no-gear")
-      ? ""
-      : `<button class="iconbtn sm" data-step-action="settings" title="Order settings" aria-label="Order settings">⚙</button>`;
-    $("#steps").innerHTML =
-      `<div class="step-list">${stepButtons}</div><div class="step-actions" aria-label="Order actions">
-    <span class="ordno"><span>Order</span> ${S.orderNo || "—"}</span>
+function buildSteps(V){
+  const secs=$$('.card[data-step]');
+  const stepButtons=secs.map((s,i)=>{
+    const locked=s.classList.contains('hide');
+    return `<button class="step ${V[s.id]?'done':''} ${locked?'locked':''}" data-go="#${s.id}"><span class="n">${V[s.id]?'✓':(locked?'🔒':i+1)}</span>${s.dataset.step}</button>`;
+  }).join('');
+  const currencyOptions=Object.entries(CUR).map(([code,c])=>`<option value="${code}" ${S.cur===code?'selected':''}>${c.sym}${c.indicative?' · indicative':''}</option>`).join('');
+  /* Coach/settings live on the pagehead (top of page) only — the sticky rail
+     carries just order identity + actions, not a second copy of every icon. */
+  $('#steps').innerHTML=`<div class="step-list">${stepButtons}</div><div class="step-actions" aria-label="Order actions">
+    <span class="ordno"><span>Order</span> ${S.orderNo||'—'}</span>
     <button class="btn btn-ghost btn-sm" data-step-action="save-draft">Save draft</button>
-    <button class="chip btnchip" data-step-action="branch-picker"><span class="dot"></span>Ordering for <b>${S.branch ? S.branch.name.replace("Bridgetown Optical — ", "") : "—"}</b> <span style="opacity:.5">▾</span></button>
+    <button class="chip btnchip" data-step-action="branch-picker"><span class="dot"></span>Ordering for <b>${S.branch?S.branch.name.replace('Bridgetown Optical — ',''):'—'}</b> <span style="opacity:.5">▾</span></button>
     <select class="step-currency" data-step-currency aria-label="Display currency">${currencyOptions}</select>
-    <button class="iconbtn sm" data-step-action="coach" title="Order coach" aria-label="Order coach">?</button>
-    ${settings}
   </div>`;
-    $$(".step").forEach((b) =>
-      b.addEventListener("click", () => {
-        const t = rootEl.querySelector(b.dataset.go);
-        if (t && !t.classList.contains("hide")) openSection(t.id);
-      }),
-    );
-    $$("#steps [data-step-action]").forEach((b) =>
-      b.addEventListener("click", (e) => {
-        const action = b.dataset.stepAction;
-        if (action === "save-draft") $("#saveDraft").click();
-        if (action === "branch-picker") $("#branchChip").click();
-        if (action === "coach") $("#coachBtn").click();
-        if (action === "settings") {
-          e.stopPropagation();
-          $("#gearBtn").click();
-        }
-      }),
-    );
-    const currency = $("#steps [data-step-currency]");
-    if (currency)
-      currency.addEventListener("change", (e) => {
-        $("#curSim").value = e.target.value;
-        $("#curSim").dispatchEvent(new Event("change", { bubbles: true }));
-      });
-  }
+  $$('.step').forEach(b=>b.addEventListener('click',()=>{
+    const t=rootEl.querySelector(b.dataset.go);
+    if(t&&!t.classList.contains('hide')) openSection(t.id);
+  }));
+  $$('#steps [data-step-action]').forEach(b=>b.addEventListener('click',()=>{
+    const action=b.dataset.stepAction;
+    if(action==='save-draft') $('#saveDraft').click();
+    if(action==='branch-picker') $('#branchChip').click();
+  }));
+  const currency=$('#steps [data-step-currency]');
+  if(currency) currency.addEventListener('change',e=>{
+    $('#curSim').value=e.target.value;
+    $('#curSim').dispatchEvent(new Event('change',{bubbles:true}));
+  });
+}
 
-  /* ---------- segmented ---------- */
-  function seg(id, key, after) {
-    $$("#" + id + " button").forEach((b) =>
-      b.addEventListener("click", () => {
-        $$("#" + id + " button").forEach((x) => x.setAttribute("aria-pressed", x === b));
-        S[key] = b.dataset[key];
-        if (after) after();
-        render();
-      }),
-    );
-  }
-  seg("scopeSeg", "scope", () => {
-    const remote = S.scope === "remote";
-    $("#traceBlock").classList.toggle("hide", !remote);
-    /* standard shapes are for uncut and full glaze; on remote edge they're behind a button */
-    $("#shapeBlock").classList.toggle("hide", remote && !S.stdShapesOpen);
-    $("#stdShapeCta").classList.toggle("hide", !remote || S.stdShapesOpen);
-    $("#shapeBlkLabel").innerHTML = remote
-      ? 'Standard shape <span class="opt-tag">fallback — the uploaded trace normally governs</span>'
-      : 'Standard shape <span class="opt-tag">gives a live preview and a true ED</span>';
-    if (!remote) S.stdShapesOpen = false;
-    $("#fsourceField").classList.toggle("hide", remote);
-    $("#scopeNote").innerHTML =
-      S.scope === "uncut"
-        ? "Uncut Rx lenses supplied to your lab — you edge and fit. We still need the frame details below so we can confirm the blank will cut out."
-        : remote
-          ? "You trace the frame and send us the file; we cut, edge and finish to shape and ship glazing-ready lenses. The frame never leaves your practice."
-          : "Send us the frame and we edge, mount and return it dispense-ready.";
-  });
-  seg("visionSeg", "vision", () => {
-    S.d = "";
-    fillLensSelects();
-  });
-  seg("purposeSeg", "purpose");
-  seg("eyeSeg", "eyes");
+/* ---------- segmented ---------- */
+function seg(id,key,after){
+  $$('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{
+    $$('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    S[key]=b.dataset[key];
+    if(after) after(); render();
+  }));
+}
+seg('scopeSeg','scope',()=>{
+  const remote=S.scope==='remote';
+  $('#traceBlock').classList.toggle('hide',!remote);
+  /* standard shapes are for uncut and full glaze; on remote edge they're behind a button */
+  $('#shapeBlock').classList.toggle('hide', remote && !S.stdShapesOpen);
+  $('#stdShapeCta').classList.toggle('hide', !remote || S.stdShapesOpen);
+  $('#shapeBlkLabel').innerHTML = remote
+    ? 'Standard shape <span class="opt-tag">fallback — the uploaded trace normally governs</span>'
+    : 'Standard shape <span class="opt-tag">gives a live preview and a true ED</span>';
+  if(!remote) S.stdShapesOpen=false;
+  $('#fsourceField').classList.toggle('hide',remote);
+  $('#scopeNote').innerHTML=
+    S.scope==='uncut'?'Uncut Rx lenses supplied to your lab — you edge and fit. We still need the frame details below so we can confirm the blank will cut out.'
+    :remote?'You trace the frame and send us the file; we cut, edge and finish to shape and ship glazing-ready lenses. The frame never leaves your practice.'
+    :'Send us the frame and we edge, mount and return it dispense-ready.';
+});
+seg('visionSeg','vision',()=>{ S.d=''; fillLensSelects(); });
+seg('purposeSeg','purpose');
+seg('eyeSeg','eyes');
 
-  /* ---------- lens selects ---------- */
-  Object.entries(COMBO_DEFS).forEach(([k, def]) => {
-    const input = $("#" + def.inputId);
-    input.addEventListener("focus", () => {
-      input.select();
-      openCombo(k);
-    });
-    input.addEventListener("click", () => openCombo(k));
-    input.addEventListener("input", () => {
-      comboActive[k] = 0;
-      openCombo(k);
-    });
-    input.addEventListener("keydown", (e) => {
-      if (!["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(e.key)) return;
-      e.stopPropagation();
-      const items = comboFilteredItems(k, options());
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        if (!items.length) return;
-        comboActive[k] = Math.min((comboActive[k] < 0 ? -1 : comboActive[k]) + 1, items.length - 1);
-        renderComboList(k, options());
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        if (!items.length) return;
-        comboActive[k] = Math.max(comboActive[k] - 1, 0);
-        renderComboList(k, options());
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        const pick = comboActive[k] >= 0 ? items[comboActive[k]] : items.length === 1 ? items[0] : null;
-        if (pick) pickCombo(k, pick.id);
-        else input.blur();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        const item = COMBO_DEFS[k].all.find((x) => x.id === S[k]);
-        input.value = item ? item.n : "";
-        closeCombo(k);
-        input.blur();
-      }
-    });
-    input.addEventListener("blur", () => {
-      setTimeout(() => {
-        closeCombo(k);
-        const item = COMBO_DEFS[k].all.find((x) => x.id === S[k]);
-        input.value = item ? item.n : "";
-      }, 120);
-    });
-    input
-      .closest(".combo")
-      .querySelector(".cbtog")
-      .addEventListener("click", (e) => {
-        e.preventDefault();
-        if ($("#" + def.listId).classList.contains("on")) closeCombo(k);
-        else {
-          input.focus();
-          openCombo(k);
-        }
-      });
-  });
-  docListen("click", (e) => {
-    if (!e.target.closest(".combo")) Object.keys(COMBO_DEFS).forEach(closeCombo);
-  });
-
-  /* ---------- Rx tools ---------- */
-  $("#copyOD").addEventListener("click", () => {
-    const a = rowEls("od"),
-      b = rowEls("os");
-    a.forEach((s, i) => {
-      b[i].value = s.value;
-    });
-    render();
-    toast("Copied OD values to OS");
-  });
-  $("#clearRx").addEventListener("click", () => {
-    $$(".rxtable input").forEach((i) => (i.value = ""));
-    $$(".rxtable select").forEach((s) => (s.value = ""));
-    S.dismissed.clear();
-    S.warnOff.clear();
-    render();
-  });
-
-  /* ---------- select-all on first focus ---------- */
-  let armed = null;
-  docListen(
-    "mousedown",
-    (e) => {
-      if (e.target.matches("input[inputmode]") && document.activeElement !== e.target) armed = e.target;
-    },
-    true,
-  );
-  docListen(
-    "focus",
-    (e) => {
-      if (e.target.matches && e.target.matches("input[inputmode]"))
-        setTimeout(() => {
-          try {
-            e.target.select();
-          } catch (err) {}
-        }, 0);
-    },
-    true,
-  );
-  docListen(
-    "mouseup",
-    (e) => {
-      if (armed === e.target) {
-        e.preventDefault();
-        armed = null;
-      }
-    },
-    true,
-  );
-
-  /* ---------- keyboard flow ---------- */
-  function focusables() {
-    return $$("input,select,textarea").filter(
-      (el) =>
-        !el.disabled &&
-        el.tabIndex !== -1 &&
-        el.offsetParent !== null &&
-        !el.closest("#annoUI") &&
-        !el.closest(".sdraw") &&
-        !el.closest(".scrim") &&
-        el.type !== "file",
-    );
-  }
-  docListen("keydown", (e) => {
-    if (e.key !== "Enter") return;
-    const t = e.target;
-    if (!t.matches("input,select") || t.closest("#annoUI") || t.closest(".sdraw")) return;
-    e.preventDefault();
-    if (t.dataset.f) normalise(t);
-    const list = focusables(),
-      n = list[list.indexOf(t) + 1];
-    if (n) {
-      n.focus();
-      if (n.select)
-        try {
-          n.select();
-        } catch (err) {}
+/* ---------- lens selects ---------- */
+Object.entries(COMBO_DEFS).forEach(([k,def])=>{
+  const input=$('#'+def.inputId);
+  input.addEventListener('focus',()=>{ input.select(); openCombo(k); });
+  input.addEventListener('click',()=>openCombo(k));
+  input.addEventListener('input',()=>{ comboActive[k]=0; openCombo(k); });
+  input.addEventListener('keydown',e=>{
+    if(!['ArrowDown','ArrowUp','Enter','Escape'].includes(e.key)) return;
+    e.stopPropagation();
+    const items=comboFilteredItems(k,options());
+    if(e.key==='ArrowDown'){ e.preventDefault(); if(!items.length) return;
+      comboActive[k]=Math.min((comboActive[k]<0?-1:comboActive[k])+1,items.length-1); renderComboList(k,options()); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); if(!items.length) return;
+      comboActive[k]=Math.max(comboActive[k]-1,0); renderComboList(k,options()); }
+    else if(e.key==='Enter'){
+      e.preventDefault();
+      const pick=comboActive[k]>=0?items[comboActive[k]]:(items.length===1?items[0]:null);
+      if(pick) pickCombo(k,pick.id); else input.blur();
+    } else if(e.key==='Escape'){
+      e.preventDefault();
+      const item=COMBO_DEFS[k].all.find(x=>x.id===S[k]); input.value=item?item.n:'';
+      closeCombo(k); input.blur();
     }
   });
-  docListen(
-    "blur",
-    (e) => {
-      if (e.target.dataset && e.target.dataset.f) normalise(e.target);
-    },
-    true,
-  );
-  $("#fed").addEventListener("input", () => {
-    S.edTouched = $("#fed").value.trim() !== "";
+  input.addEventListener('blur',()=>{
+    setTimeout(()=>{
+      closeCombo(k);
+      const item=COMBO_DEFS[k].all.find(x=>x.id===S[k]);
+      input.value=item?item.n:'';
+    },120);
   });
-  $("#diam").addEventListener("change", () => {
-    S.diamTouched = true;
-    render();
+  /* always opens, never toggles closed — a second click landing on the
+     button while it's already open used to close-then-reopen in the same
+     gesture (the input's own focus/click handlers fire too), which read as
+     the dropdown flickering. Calling openCombo directly (rather than relying
+     on input.focus() to fire a 'focus' event) also covers the case where the
+     input already has focus from before — focus() is then a no-op that
+     fires nothing, which left the button doing nothing at all. */
+  input.closest('.combo').querySelector('.cbtog').addEventListener('click',e=>{
+    e.preventDefault();
+    input.focus();
+    openCombo(k);
   });
+});
+docListen('click',e=>{
+  /* the open list itself is portaled onto document.body while open (see
+     openCombo), so it's no longer a descendant of .combo — check for it
+     separately or a click inside it (e.g. on "No matches", not an option)
+     would look like an outside click and close it out from under the user. */
+  if(e.target.closest('.combo')||e.target.closest('.cblist')) return;
+  closeAllCombos();
+});
+/* fixed-position .cblist no longer scrolls with its input, so close rather
+   than leave it floating over the wrong spot — but not for scrolling the
+   list's OWN results (a capture-phase window listener sees that scroll too),
+   or the list would slam shut the moment you tried to scroll through it. */
+winListen('scroll',e=>{ if(e.target&&e.target.closest&&e.target.closest('.cblist')) return; closeAllCombos(); },true);
+winListen('resize',closeAllCombos);
 
-  /* ---------- treatments drawer ---------- */
-  $("#openTreat").addEventListener("click", () => {
-    buildTreatList();
-    $("#treatDrawer").classList.add("on");
-  });
-  $("#treatClose").addEventListener("click", () => $("#treatDrawer").classList.remove("on"));
-  $("#treatDone").addEventListener("click", () => $("#treatDrawer").classList.remove("on"));
-  $("#treatSearch").addEventListener("input", buildTreatList);
+/* ---------- Rx tools ---------- */
+$('#copyOD').addEventListener('click',()=>{
+  const a=rowEls('od'), b=rowEls('os');
+  a.forEach((s,i)=>{ b[i].value=s.value; });
+  render(); toast('Copied OD values to OS');
+});
+$('#clearRx').addEventListener('click',()=>{ $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value=''); S.dismissed.clear(); S.warnOff.clear();
+  $('#plusCylOn').checked=false; $('#plusCylBlock').classList.add('hide'); render(); });
 
-  /* ---------- coach ---------- */
-  const COACH = {
-    patient: {
-      h: "Patient Name & Order Number",
-      b: `<p>First and last name are separate so the lab can sort, search and print jobs consistently.</p>
-    <p>Your order reference is optional — leave it blank and we'll use our own job number.</p>`,
-    },
-    frame: {
-      h: "Frame & measurements",
-      b: `<p>Job type sits here because it decides what we do with the frame:</p>
+/* ---------- select-all on first focus ---------- */
+let armed=null;
+docListen('mousedown',e=>{ if(e.target.matches('input[inputmode]')&&document.activeElement!==e.target) armed=e.target; },true);
+docListen('focus',e=>{ if(e.target.matches&&e.target.matches('input[inputmode]')) setTimeout(()=>{try{e.target.select();}catch(err){}},0); },true);
+docListen('mouseup',e=>{ if(armed===e.target){ e.preventDefault(); armed=null; } },true);
+
+/* ---------- keyboard flow ---------- */
+function focusables(){
+  return $$('input,select,textarea').filter(el=>!el.disabled&&el.tabIndex!==-1&&el.offsetParent!==null&&!el.closest('#annoUI')&&!el.closest('.sdraw')&&!el.closest('.scrim')&&el.type!=='file');
+}
+docListen('keydown',e=>{
+  if(e.key!=='Enter') return;
+  const t=e.target;
+  if(!t.matches('input,select')||t.closest('#annoUI')||t.closest('.sdraw')) return;
+  e.preventDefault();
+  if(t.dataset.f) normalise(t);
+  if(t.dataset.pf) normalisePlus(t);
+  const list=focusables(), n=list[list.indexOf(t)+1];
+  if(n){ n.focus(); if(n.select) try{n.select();}catch(err){} }
+});
+docListen('blur',e=>{
+  if(e.target.dataset&&e.target.dataset.f) normalise(e.target);
+  if(e.target.dataset&&e.target.dataset.pf) normalisePlus(e.target);
+},true);
+$('#fed').addEventListener('input',()=>{ S.edTouched=$('#fed').value.trim()!==''; });
+$('#diam').addEventListener('change',()=>{ S.diamTouched=true; render(); });
+$('#plusCylOn').addEventListener('change',e=>{
+  $('#plusCylBlock').classList.toggle('hide',!e.target.checked);
+  if(e.target.checked) syncPlusCylToMain(); else render();
+});
+
+/* ---------- treatments drawer ---------- */
+$('#openTreat').addEventListener('click',()=>{ buildTreatList(); $('#treatDrawer').classList.add('on'); });
+$('#treatClose').addEventListener('click',()=>$('#treatDrawer').classList.remove('on'));
+$('#treatDone').addEventListener('click',()=>$('#treatDrawer').classList.remove('on'));
+$('#treatSearch').addEventListener('input',buildTreatList);
+
+/* ---------- coach ---------- */
+const COACH={
+  patient:{h:'Patient & order',b:`<p>First and last name are separate so the lab can sort, search and print jobs consistently.</p>
+    <p>Your order reference is optional — leave it blank and we'll use our own job number.</p>`},
+  frame:{h:'Frame & measurements',b:`<p>Job type sits here because it decides what we do with the frame:</p>
     <ul><li><b>Uncut Rx lenses</b> — we surface and ship uncut blanks. Frame details still needed so we can confirm the blank cuts out.</li>
     <li><b>Remote edge</b> — you trace, we cut to shape. Frame stays with you.</li>
     <li><b>Full glaze</b> — send us the frame, we return it dispense-ready.</li></ul>
     <p><b>ED</b> auto-calculates as √(A² + B²) and stays editable — override it if your tracer reports a different effective diameter.</p>
-    <p>On remote edge jobs we still want frame name, A, B and DBL in case the trace file is corrupt or unreadable.</p>`,
-    },
-    lens: {
-      h: "Lens selection",
-      b: `<p>Material, design and colour narrow each other. Pick them in any order — if a choice makes the combination impossible, the conflicting selection clears and tells you why.</p>
+    <p>On remote edge jobs we still want frame name, A, B and DBL in case the trace file is corrupt or unreadable.</p>`},
+  lens:{h:'Lens selection',b:`<p>Material, design and colour narrow each other. Pick them in any order — if a choice makes the combination impossible, the conflicting selection clears and tells you why.</p>
     <p>Only combinations that exist on your pricelist are offered, so you can't build a lens we don't sell.</p>
-    <p><b>Blank diameter</b> is suggested from ED, decentration and PD: min blank ≈ ED + 2 × decentration + 2 mm. Override it if you know better.</p>`,
-    },
-    rx: {
-      h: "Prescription",
-      b: `<p>Shorthand entry — the last two digits become decimals when the result lands on a 0.25 step:</p>
+    <p><b>Blank diameter</b> is suggested from ED, decentration and PD: min blank ≈ ED + 2 × decentration + 2 mm. Override it if you know better.</p>`},
+  rx:{h:'Prescription',b:`<p>Shorthand entry — the last two digits become decimals when the result lands on a 0.25 step:</p>
     <ul><li><code>25</code> → 0.25 · <code>50</code> → 0.50 · <code>125</code> → 1.25 · <code>350</code> → 3.50 · <code>1050</code> → 10.50</li>
     <li>Single digits stay whole: <code>2</code> → 2.00</li>
     <li>Anything that wouldn't land on a step reads as whole diopters: <code>18</code> → 18.00</li></ul>
     <p>Cylinder always resolves to minus, whether you type <code>1-</code>, <code>-1</code> or <code>1.00</code>. Axis over 180 wraps to its polar opposite. A binocular PD splits across both eyes.</p>
-    <p>Opposing signs between eyes raise a dismissible warning. An axis with no cylinder asks whether the cylinder is missing.</p>`,
-    },
-    treat: {
-      h: "Coatings & treatments",
-      b: `<p>Six popular choices cover most jobs; <b>Browse all treatments</b> opens the full catalogue.</p>
+    <p>Opposing signs between eyes raise a dismissible warning. An axis with no cylinder asks whether the cylinder is missing.</p>`},
+  treat:{h:'Coatings & treatments',b:`<p>Six popular choices cover most jobs; <b>Browse all treatments</b> opens the full catalogue.</p>
     <p>Prices don't clutter the options — they appear in the live quote as you select, so the running total is the single source of truth.</p>
-    <p>Specialty work is suggested automatically when your powers call for it, and carries an owner review. Dismiss the whole suggestion block with the ✕ if you don't want it.</p>`,
-    },
-    delivery: {
-      h: "Delivery & notes",
-      b: `<p>Priority adds 15% and pulls the job to three working days.</p>
-    <p>Notes reach the surfacing bench directly.</p>`,
-    },
-  };
-  function openCoach(k) {
-    const c = COACH[k] || COACH.patient;
-    let html = `<div class="coach-cur"><div class="cl">You're on</div><div style="font-weight:600;margin-top:3px">${c.h}</div></div><div class="coachsec">${c.b}</div>
+    <p>Specialty work is suggested automatically when your powers call for it, and carries an owner review. Dismiss the whole suggestion block with the ✕ if you don't want it.</p>`},
+  delivery:{h:'Delivery & notes',b:`<p>Priority adds 15% and pulls the job to three working days.</p>
+    <p>Notes reach the surfacing bench directly.</p>`}
+};
+function openCoach(k){
+  const c=COACH[k]||COACH.patient;
+  let html=`<div class="coach-cur"><div class="cl">You're on</div><div style="font-weight:600;margin-top:3px">${c.h}</div></div><div class="coachsec">${c.b}</div>
     <hr style="border:0;border-top:1px solid var(--border-soft);margin:16px 0">
     <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--muted-fg);margin-bottom:9px">Other steps</div>`;
-    Object.entries(COACH).forEach(([kk, v]) => {
-      if (kk !== k)
-        html += `<button class="linkbtn" style="display:block;width:100%;text-align:left;margin-bottom:6px" data-coachgo="${kk}">${v.h}</button>`;
-    });
-    $("#coachBody").innerHTML = html;
-    $$("#coachBody [data-coachgo]").forEach((b) => b.addEventListener("click", () => openCoach(b.dataset.coachgo)));
-    $("#coachDrawer").classList.add("on");
-  }
-  $$(".coach-open").forEach((b) => b.addEventListener("click", () => openCoach(b.dataset.coach)));
-  $("#coachBtn").addEventListener("click", () => openCoach("patient"));
-  $("#coachClose").addEventListener("click", () => $("#coachDrawer").classList.remove("on"));
-  $("#coachFlag").addEventListener("click", () => {
-    S.assists.add("General help requested");
-    render();
-    $("#coachDrawer").classList.remove("on");
-    toast("Flagged — save this as a draft and we'll come back to you");
-  });
+  Object.entries(COACH).forEach(([kk,v])=>{ if(kk!==k) html+=`<button class="linkbtn" style="display:block;width:100%;text-align:left;margin-bottom:6px" data-coachgo="${kk}">${v.h}</button>`; });
+  $('#coachBody').innerHTML=html;
+  $$('#coachBody [data-coachgo]').forEach(b=>b.addEventListener('click',()=>openCoach(b.dataset.coachgo)));
+  $('#coachDrawer').classList.add('on');
+}
+$$('.coach-open').forEach(b=>b.addEventListener('click',()=>openCoach(b.dataset.coach)));
+$('#coachBtn').addEventListener('click',()=>openCoach('patient'));
+$('#coachClose').addEventListener('click',()=>$('#coachDrawer').classList.remove('on'));
+$('#coachFlag').addEventListener('click',()=>{
+  S.assists.add('General help requested'); render(); $('#coachDrawer').classList.remove('on');
+  toast('Flagged — save this as a draft and we\'ll come back to you');
+});
 
-  /* ---------- assistance ---------- */
-  docListen("click", (e) => {
-    const b = e.target.closest("[data-assist]");
-    if (!b) return;
-    e.preventDefault();
-    const l = b.dataset.assist,
-      f = b.closest(".field");
-    if (S.assists.has(l)) {
-      S.assists.delete(l);
-      f && f.classList.remove("assist");
-      toast("Assistance flag removed");
-    } else {
-      S.assists.add(l);
-      f && f.classList.add("assist");
-      toast("Flagged for assistance — save as a draft and we'll follow up");
-    }
-    render();
-  });
+/* ---------- assistance ---------- */
+docListen('click',e=>{
+  const b=e.target.closest('[data-assist]'); if(!b) return;
+  e.preventDefault();
+  const l=b.dataset.assist, f=b.closest('.field');
+  if(S.assists.has(l)){S.assists.delete(l); f&&f.classList.remove('assist'); toast('Assistance flag removed');}
+  else {S.assists.add(l); f&&f.classList.add('assist'); toast('Flagged for assistance — save as a draft and we\'ll follow up');}
+  render();
+});
 
-  /* ---------- clear helpers ---------- */
-  const SECFIELDS = {
-    patient: ["pfirst", "plast", "ref"],
-    frame: ["fname", "fa", "fb", "fed", "fdbl", "ftemple"],
-    lens: [],
-    rx: [],
-    treat: [],
-    notes: ["notes"],
-  };
-  function clearSection(k) {
-    (SECFIELDS[k] || []).forEach((id) => {
-      const el = $("#" + id);
-      if (el) el.value = "";
-    });
-    if (k === "frame") {
-      S.file = null;
-      S.shapeOk = false;
-      S.edTouched = false;
-      S.shape = null;
-      S.stdShape = "";
-      S.shapeSrc = "";
-      $("#fileList").innerHTML = "";
-      $("#shapePreview").innerHTML = "";
-      $("#fileInput").value = "";
-      $("#drop").classList.remove("hide");
-      buildShapePick();
+/* ---------- clear helpers ---------- */
+const SECFIELDS={
+  patient:['pfirst','plast','ref'],
+  frame:['fname','fa','fb','fed','fdbl','ftemple'],
+  lens:[], rx:[], treat:[], notes:['notes']
+};
+function clearSection(k){
+  (SECFIELDS[k]||[]).forEach(id=>{const el=$('#'+id); if(el) el.value='';});
+  if(k==='frame'){ S.file=null; S.shapeOk=false; S.edTouched=false; S.shape=null; S.stdShape=''; S.shapeSrc='';
+    $('#mount').value=''; $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#fileInput').value=''; $('#drop').classList.remove('hide'); buildShapePick(); }
+  if(k==='lens'){ S.m=S.d=S.c=''; S.diamTouched=false; fillLensSelects(); }
+  if(k==='rx'){ $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value=''); S.warnOff.clear();
+    $('#plusCylOn').checked=false; $('#plusCylBlock').classList.add('hide'); }
+  if(k==='treat'){ S.treat.clear(); S.dismissed.clear(); S.suggOff=false; buildPopular(); buildTreatList(); }
+  if(k==='notes'){ S.notesConfirmed=false; $('#notesConfirmed').checked=false; }
+  render(); toast('Cleared '+k+' section');
+}
+$$('.clear-sec').forEach(b=>b.addEventListener('click',()=>clearSection(b.dataset.sec)));
+$$('[data-edit-section]').forEach(b=>b.addEventListener('click',()=>openSection(b.dataset.editSection)));
+docListen('focusout',e=>{
+  const section=e.target.closest?.('.card[data-step]');
+  if(!section) return;
+  setTimeout(()=>{
+    if(!section.contains(document.activeElement)){
+      S.editingSections.delete(section.id);
+      render();
     }
-    if (k === "lens") {
-      S.m = S.d = S.c = "";
-      S.diamTouched = false;
-      fillLensSelects();
-    }
-    if (k === "rx") {
-      $$(".rxtable input").forEach((i) => (i.value = ""));
-      $$(".rxtable select").forEach((s) => (s.value = ""));
-      S.warnOff.clear();
-    }
-    if (k === "treat") {
-      S.treat.clear();
-      S.dismissed.clear();
-      S.suggOff = false;
-      buildPopular();
-      buildTreatList();
-    }
-    render();
-    toast("Cleared " + k + " section");
-  }
-  $$(".clear-sec").forEach((b) => b.addEventListener("click", () => clearSection(b.dataset.sec)));
-  $$("[data-edit-section]").forEach((b) => b.addEventListener("click", () => openSection(b.dataset.editSection)));
-  docListen("focusout", (e) => {
-    const section = e.target.closest?.(".card[data-step]");
-    if (!section) return;
-    setTimeout(() => {
-      if (!section.contains(document.activeElement)) {
-        S.editingSections.delete(section.id);
-        render();
-      }
-    }, 0);
-  });
-  function clearAll() {
-    Object.keys(SECFIELDS).forEach((k) => {
-      (SECFIELDS[k] || []).forEach((id) => {
-        const el = $("#" + id);
-        if (el) el.value = "";
-      });
-    });
-    $$(".rxtable input").forEach((i) => (i.value = ""));
-    $$(".rxtable select").forEach((s) => (s.value = ""));
-    S.m = S.d = S.c = "";
-    S.treat.clear();
-    S.assists.clear();
-    S.dismissed.clear();
-    S.warnOff.clear();
-    S.file = null;
-    S.shapeOk = false;
-    S.suggOff = false;
-    S.edTouched = false;
-    S.diamTouched = false;
-    S.shape = null;
-    S.stdShape = "";
-    S.shapeSrc = "";
-    S.shapeExpanded = false;
-    S.frameExpanded = false;
-    S.stdShapesOpen = false;
-    S.rebuiltFrom = null;
-    S.chemClips = [];
-    if (typeof buildShapePick === "function") buildShapePick();
-    if (typeof newOrderNo === "function") newOrderNo();
-    S.revealAll = false;
-    S.prefilled = false;
-    S.fromDraft = false;
-    S.collapsedSections.clear();
-    S.editingSections.clear();
-    $("#fileList").innerHTML = "";
-    $("#shapePreview").innerHTML = "";
-    $("#drop").classList.remove("hide");
-    $("#prefillChip").classList.add("hide");
-    $("#draftBanner").classList.add("hide");
-    $$(".field.assist").forEach((f) => f.classList.remove("assist"));
-    fillLensSelects();
-    buildPopular();
-    buildTreatList();
-    render();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-  /* ---------- OMA TRACE DEMO SAMPLE ---------- */
-  const SAMPLE_OMA_1471 = `REQ=FIL
+  },0);
+});
+function clearAll(){
+  Object.keys(SECFIELDS).forEach(k=>{(SECFIELDS[k]||[]).forEach(id=>{const el=$('#'+id); if(el) el.value='';});});
+  $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value='');
+  S.m=S.d=S.c=''; S.treat.clear(); S.assists.clear(); S.dismissed.clear(); S.warnOff.clear();
+  S.file=null; S.shapeOk=false; S.suggOff=false; S.edTouched=false; S.diamTouched=false;
+  S.shape=null; S.stdShape=''; S.shapeSrc=''; S.shapeExpanded=false; S.frameExpanded=false;
+  S.stdShapesOpen=false; S.rebuiltFrom=null; S.chemClips=[]; S.notesConfirmed=false;
+  $('#mount').value=''; $('#notesConfirmed').checked=false;
+  $('#plusCylOn').checked=false; $('#plusCylBlock').classList.add('hide');
+  if(typeof buildShapePick==='function') buildShapePick();
+  if(typeof newOrderNo==='function') newOrderNo();
+  S.revealAll=false; S.prefilled=false; S.fromDraft=false;
+  S.collapsedSections.clear(); S.editingSections.clear();
+  $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#drop').classList.remove('hide'); $('#prefillChip').classList.add('hide');
+  $('#draftBanner').classList.add('hide');
+  $$('.field.assist').forEach(f=>f.classList.remove('assist'));
+  fillLensSelects(); buildPopular(); buildTreatList(); render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+/* ---------- OMA TRACE DEMO SAMPLE ---------- */
+const SAMPLE_OMA_1471 = `REQ=FIL
 JOB="1471"
 BEVC=1.88;1.88
 BSIZ=0.0;0.0
@@ -2099,227 +1491,196 @@ R=2430;2432;2435;2438;2440;2443;2446;2449;2453;2457;2460;2464;2466;2470;2473
 R=2478;2483;2487;2491;2495
 ZFMT=0`;
 
-  /* ==========================================================================
+/* ==========================================================================
    OMA TRACE FILE PARSER & SHAPE RENDERER
    ========================================================================== */
 
-  /**
-   * @typedef {Object} OMAPayload
-   * @property {string} name - File name (e.g. 1471.oma)
-   * @property {number} size - File size in bytes
-   * @property {string} rawText - Exact raw OMA string content for surfacing API transmission
-   * @property {Object} omaData - Parsed OMA header and polar radii vectors
-   * @property {number} omaData.hbox - Frame A measurement
-   * @property {number} omaData.vbox - Frame B measurement
-   * @property {number} omaData.dbl - Frame DBL measurement
-   * @property {number} omaData.ed - Effective Diameter
-   * @property {Object} omaData.points - { R: Array<number>, L: Array<number> } polar radii in mm
-   */
+/**
+ * @typedef {Object} OMAPayload
+ * @property {string} name - File name (e.g. 1471.oma)
+ * @property {number} size - File size in bytes
+ * @property {string} rawText - Exact raw OMA string content for surfacing API transmission
+ * @property {Object} omaData - Parsed OMA header and polar radii vectors
+ * @property {number} omaData.hbox - Frame A measurement
+ * @property {number} omaData.vbox - Frame B measurement
+ * @property {number} omaData.dbl - Frame DBL measurement
+ * @property {number} omaData.ed - Effective Diameter
+ * @property {Object} omaData.points - { R: Array<number>, L: Array<number> } polar radii in mm
+ */
 
-  /**
-   * Parses raw OMA text format (.oma, .tr, .vca) into structured metadata & polar points.
-   *
-   * @param {string} text - Raw OMA file text
-   * @returns {Object|null} Structured OMA data object
-   */
-  function parseOMA(text) {
-    if (!text) return null;
-    const lines = text.split(/\r?\n/);
-    const data = {
-      job: "",
-      hbox: null,
-      vbox: null,
-      dbl: null,
-      ed: null,
-      points: { R: [], L: [] },
-      rawText: text,
-    };
+/**
+ * Parses raw OMA text format (.oma, .tr, .vca) into structured metadata & polar points.
+ * 
+ * @param {string} text - Raw OMA file text
+ * @returns {Object|null} Structured OMA data object
+ */
+function parseOMA(text) {
+  if (!text) return null;
+  const lines = text.split(/\r?\n/);
+  const data = {
+    job: '',
+    hbox: null,
+    vbox: null,
+    dbl: null,
+    ed: null,
+    points: { R: [], L: [] },
+    rawText: text
+  };
 
-    let currentSide = "R";
-    data.angles = { R: [], L: [] };
-    data.circ = null;
-    data.edAxis = { R: null, L: null };
-    /* mirroredL = we invented the left from the right, so the RENDERER must flip it.
+  let currentSide = 'R';
+  data.angles = { R: [], L: [] };
+  data.circ = null; data.edAxis = { R: null, L: null };
+  /* mirroredL = we invented the left from the right, so the RENDERER must flip it.
      When the file supplies genuine left radii they are ALREADY the mirrored outline
      (r_L(θ) = r_R(180°−θ)) — flipping those again is what made both eyes look identical. */
-    data.mirroredL = false;
+  data.mirroredL = false;
 
-    for (let line of lines) {
-      line = line.trim();
-      if (!line || !line.includes("=")) continue;
+  for (let line of lines) {
+    line = line.trim();
+    if (!line || !line.includes('=')) continue;
 
-      const parts = line.split("=");
-      const key = parts[0].trim().toUpperCase();
-      const val = parts.slice(1).join("=").trim();
+    const parts = line.split('=');
+    const key = parts[0].trim().toUpperCase();
+    const val = parts.slice(1).join('=').trim();
 
-      if (key === "JOB" || key === "FNAM") {
-        if (!data.job) data.job = val.replace(/^"|"$/g, "");
-      } else if (key === "HBOX") {
-        const p = val.split(";").map((v) => parseFloat(v));
-        data.hbox = p[0] || p[1] || null;
-      } else if (key === "VBOX") {
-        const p = val.split(";").map((v) => parseFloat(v));
-        data.vbox = p[0] || p[1] || null;
-      } else if (key === "DBL") {
-        data.dbl = parseFloat(val) || null;
-      } else if (key === "CIRC") {
-        const p = val.split(";").map((v) => parseFloat(v));
-        data.circ = p[0] || p[1] || null;
-      } else if (key === "FED" || key === ".ED") {
-        const p = val.split(";").map((v) => parseFloat(v));
-        data.ed = p[0] || p[1] || null;
-      } else if (key === "FEDAX" || key === ".AX") {
-        const p = val.split(";").map((v) => parseFloat(v));
-        if (!isNaN(p[0])) data.edAxis.R = p[0];
-        if (!isNaN(p[1])) data.edAxis.L = p[1];
-      } else if (key === "TRCFMT") {
-        const fmt = val.split(";");
-        /* TRCFMT=1;1000;U;R;F  →  field 3 is the side this block describes */
-        if (fmt.length >= 4) currentSide = (fmt[3] || "R").toUpperCase();
-        if (currentSide !== "R" && currentSide !== "L") currentSide = "R";
-      } else if (key === "R") {
-        val
-          .split(";")
-          .map((v) => parseInt(v, 10))
-          .filter((v) => !isNaN(v))
-          .forEach((r) => data.points[currentSide].push(r / 100.0)); /* hundredths of a mm */
-      } else if (key === "A") {
-        val
-          .split(";")
-          .map((v) => parseInt(v, 10))
-          .filter((v) => !isNaN(v))
-          .forEach((a) => data.angles[currentSide].push(a / 100.0)); /* hundredths of a degree */
-      }
+    if (key === 'JOB' || key === 'FNAM') {
+      if (!data.job) data.job = val.replace(/^"|"$/g, '');
+    } else if (key === 'HBOX') {
+      const p = val.split(';').map(v => parseFloat(v));
+      data.hbox = p[0] || p[1] || null;
+    } else if (key === 'VBOX') {
+      const p = val.split(';').map(v => parseFloat(v));
+      data.vbox = p[0] || p[1] || null;
+    } else if (key === 'DBL') {
+      data.dbl = parseFloat(val) || null;
+    } else if (key === 'CIRC') {
+      const p = val.split(';').map(v => parseFloat(v));
+      data.circ = p[0] || p[1] || null;
+    } else if (key === 'FED' || key === '.ED') {
+      const p = val.split(';').map(v => parseFloat(v));
+      data.ed = p[0] || p[1] || null;
+    } else if (key === 'FEDAX' || key === '.AX') {
+      const p = val.split(';').map(v => parseFloat(v));
+      if (!isNaN(p[0])) data.edAxis.R = p[0];
+      if (!isNaN(p[1])) data.edAxis.L = p[1];
+    } else if (key === 'TRCFMT') {
+      const fmt = val.split(';');
+      /* TRCFMT=1;1000;U;R;F  →  field 3 is the side this block describes */
+      if (fmt.length >= 4) currentSide = (fmt[3] || 'R').toUpperCase();
+      if (currentSide !== 'R' && currentSide !== 'L') currentSide = 'R';
+    } else if (key === 'R') {
+      val.split(';').map(v => parseInt(v, 10)).filter(v => !isNaN(v))
+        .forEach(r => data.points[currentSide].push(r / 100.0));   /* hundredths of a mm */
+    } else if (key === 'A') {
+      val.split(';').map(v => parseInt(v, 10)).filter(v => !isNaN(v))
+        .forEach(a => data.angles[currentSide].push(a / 100.0));   /* hundredths of a degree */
     }
-
-    /* only synthesise a side when the file genuinely lacks it */
-    if (data.points.R.length && !data.points.L.length) {
-      data.points.L = data.points.R.slice();
-      data.angles.L = data.angles.R.slice();
-      data.mirroredL = true;
-    } else if (data.points.L.length && !data.points.R.length) {
-      data.points.R = data.points.L.slice();
-      data.angles.R = data.angles.L.slice();
-      data.mirroredL = true; /* one real side, one mirrored — flip the copy at render time */
-      data.sourceSide = "L";
-    }
-
-    return data;
   }
 
-  /* ---- geometry helpers shared by traced files and standard shapes ---- */
-
-  /** polar radii (+ optional explicit angles) → cartesian outline, boxing centre at 0,0, y up */
-  function radiiToXY(radii, angles) {
-    const n = radii.length,
-      out = [];
-    for (let i = 0; i < n; i++) {
-      const deg = angles && angles.length === n ? angles[i] : (i * 360) / n;
-      const t = (deg * Math.PI) / 180;
-      out.push({ x: radii[i] * Math.cos(t), y: radii[i] * Math.sin(t) });
-    }
-    return out;
-  }
-  /** half-extents of an outline, so it can be rescaled to any A / B */
-  function outlineBox(pts) {
-    let minX = Infinity,
-      maxX = -Infinity,
-      minY = Infinity,
-      maxY = -Infinity;
-    pts.forEach((p) => {
-      minX = Math.min(minX, p.x);
-      maxX = Math.max(maxX, p.x);
-      minY = Math.min(minY, p.y);
-      maxY = Math.max(maxY, p.y);
-    });
-    return { minX, maxX, minY, maxY, w: maxX - minX, h: maxY - minY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
-  }
-  /** rescale an outline so its bounding box is exactly A × B, recentred on the boxing centre */
-  function scaleOutline(pts, A, B) {
-    const b = outlineBox(pts);
-    if (!b.w || !b.h) return pts.slice();
-    const sx = A / b.w,
-      sy = B / b.h;
-    return pts.map((p) => ({ x: (p.x - b.cx) * sx, y: (p.y - b.cy) * sy }));
-  }
-  /** true ED (2 × longest radius from boxing centre), its axis, and the circumference */
-  function shapeMetrics(pts) {
-    let maxR = 0,
-      axis = 0,
-      circ = 0;
-    for (let i = 0; i < pts.length; i++) {
-      const p = pts[i],
-        r = Math.hypot(p.x, p.y);
-      if (r > maxR) {
-        maxR = r;
-        axis = (Math.atan2(p.y, p.x) * 180) / Math.PI;
-      }
-      const q = pts[(i + 1) % pts.length];
-      circ += Math.hypot(q.x - p.x, q.y - p.y);
-    }
-    axis = ((axis % 180) + 180) % 180;
-    return { ed: maxR * 2, edAxis: axis, circ };
-  }
-  /** outline → SVG path data (screen coords: y flipped, optional horizontal mirror) */
-  function outlinePath(pts, mirror) {
-    return (
-      pts.map((p, i) => `${i ? "L" : "M"}${(mirror ? -p.x : p.x).toFixed(2)},${(-p.y).toFixed(2)}`).join(" ") + " Z"
-    );
+  /* only synthesise a side when the file genuinely lacks it */
+  if (data.points.R.length && !data.points.L.length) {
+    data.points.L = data.points.R.slice();
+    data.angles.L = data.angles.R.slice();
+    data.mirroredL = true;
+  } else if (data.points.L.length && !data.points.R.length) {
+    data.points.R = data.points.L.slice();
+    data.angles.R = data.angles.L.slice();
+    data.mirroredL = true;   /* one real side, one mirrored — flip the copy at render time */
+    data.sourceSide = 'L';
   }
 
-  /**
-   * Generates high-precision SVG string representing true 2D frame shape.
-   * Renders dual-eye (Right & Left) optical outline with blueprint grid & dimensions.
-   *
-   * @param {Object} omaData - Parsed OMA data
-   * @param {Object} opts - Render options { showDimensions: boolean }
-   * @returns {string} SVG HTML markup
-   */
-  function generateOMASVG(omaData, opts = {}) {
-    if (!omaData) return "";
-    const g = shapeGeometry(omaData);
-    if (!g) return "";
-    const { a, b, dbl, ptsR, ptsL, mirrorL, ghost } = g;
-    const showDims = opts.showDimensions !== false;
+  return data;
+}
 
-    const pathR = outlinePath(ptsR, false);
-    const pathL = outlinePath(ptsL, mirrorL);
+/* ---- geometry helpers shared by traced files and standard shapes ---- */
 
-    /* Dispenser's view: the patient's RIGHT lens sits on the LEFT of the screen.
+/** polar radii (+ optional explicit angles) → cartesian outline, boxing centre at 0,0, y up */
+function radiiToXY(radii, angles) {
+  const n = radii.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const deg = (angles && angles.length === n) ? angles[i] : (i * 360 / n);
+    const t = deg * Math.PI / 180;
+    out.push({ x: radii[i] * Math.cos(t), y: radii[i] * Math.sin(t) });
+  }
+  return out;
+}
+/** half-extents of an outline, so it can be rescaled to any A / B */
+function outlineBox(pts) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  pts.forEach(p => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
+  return { minX, maxX, minY, maxY, w: maxX - minX, h: maxY - minY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
+}
+/** rescale an outline so its bounding box is exactly A × B, recentred on the boxing centre */
+function scaleOutline(pts, A, B) {
+  const b = outlineBox(pts);
+  if (!b.w || !b.h) return pts.slice();
+  const sx = A / b.w, sy = B / b.h;
+  return pts.map(p => ({ x: (p.x - b.cx) * sx, y: (p.y - b.cy) * sy }));
+}
+/** true ED (2 × longest radius from boxing centre), its axis, and the circumference */
+function shapeMetrics(pts) {
+  let maxR = 0, axis = 0, circ = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i], r = Math.hypot(p.x, p.y);
+    if (r > maxR) { maxR = r; axis = Math.atan2(p.y, p.x) * 180 / Math.PI; }
+    const q = pts[(i + 1) % pts.length];
+    circ += Math.hypot(q.x - p.x, q.y - p.y);
+  }
+  axis = ((axis % 180) + 180) % 180;
+  return { ed: maxR * 2, edAxis: axis, circ };
+}
+/** outline → SVG path data (screen coords: y flipped, optional horizontal mirror) */
+function outlinePath(pts, mirror) {
+  return pts.map((p, i) =>
+    `${i ? 'L' : 'M'}${((mirror ? -p.x : p.x)).toFixed(2)},${(-p.y).toFixed(2)}`).join(' ') + ' Z';
+}
+
+/**
+ * Generates high-precision SVG string representing true 2D frame shape.
+ * Renders dual-eye (Right & Left) optical outline with blueprint grid & dimensions.
+ * 
+ * @param {Object} omaData - Parsed OMA data
+ * @param {Object} opts - Render options { showDimensions: boolean }
+ * @returns {string} SVG HTML markup
+ */
+function generateOMASVG(omaData, opts = {}) {
+  if (!omaData) return '';
+  const g = shapeGeometry(omaData);
+  if (!g) return '';
+  const { a, b, dbl, ptsR, ptsL, mirrorL, ghost } = g;
+  const showDims = opts.showDimensions !== false;
+
+  const pathR = outlinePath(ptsR, false);
+  const pathL = outlinePath(ptsL, mirrorL);
+
+  /* Dispenser's view: the patient's RIGHT lens sits on the LEFT of the screen.
      All type is sized in USER UNITS (mm), never CSS px — a 10px rule here would be 10 mm tall. */
-    const shift = a / 2 + dbl / 2;
-    const padX = 16,
-      padTop = showDims ? 20 : 9,
-      padBot = 9;
-    const totalW = a * 2 + dbl + padX * 2;
-    const totalH = b + padTop + padBot;
-    const minX = -totalW / 2,
-      minY = -(b / 2) - padTop;
-    const half = b / 2;
-    const fs = Math.max(2.3, a * 0.058); /* dimension type */
-    const fsL = Math.max(3.2, a * 0.085); /* R / L corner type */
-    const tick = fs * 0.8;
-    const yA = -half - fs * 1.5; /* A + DBL dimension row */
-    const dim = "hsl(188 62% 32%)";
+  const shift = (a / 2) + (dbl / 2);
+  const padX = 16, padTop = showDims ? 20 : 9, padBot = 9;
+  const totalW = a * 2 + dbl + padX * 2;
+  const totalH = b + padTop + padBot;
+  const minX = -totalW / 2, minY = -(b / 2) - padTop;
+  const half = b / 2;
+  const fs = Math.max(2.3, a * 0.058);          /* dimension type */
+  const fsL = Math.max(3.2, a * 0.085);         /* R / L corner type */
+  const tick = fs * 0.8;
+  const yA = -half - fs * 1.5;                  /* A + DBL dimension row */
+  const dim = 'hsl(188 62% 32%)';
 
-    const eye = (path, xoff) => `
+  const eye = (path, xoff) => `
       <g transform="translate(${xoff.toFixed(2)}, 0)">
-        <path d="${path}" fill="hsl(213 66% 13% / .04)" stroke="#111827" stroke-width="${(a * 0.022).toFixed(2)}" stroke-linejoin="round"/>
-        <line x1="${-fs}" y1="0" x2="${fs}" y2="0" stroke="hsl(213 20% 60%)" stroke-width="${(a * 0.012).toFixed(2)}"/>
-        <line x1="0" y1="${-fs}" x2="0" y2="${fs}" stroke="hsl(213 20% 60%)" stroke-width="${(a * 0.012).toFixed(2)}"/>
-        ${
-          showDims
-            ? `
-        <line x1="${-a / 2}" y1="${yA}" x2="${a / 2}" y2="${yA}" stroke="${dim}" stroke-width="${(a * 0.008).toFixed(2)}" opacity=".55"/>
-        <line x1="${-a / 2}" y1="${yA - tick / 2}" x2="${-a / 2}" y2="${yA + tick / 2}" stroke="${dim}" stroke-width="${(a * 0.008).toFixed(2)}" opacity=".55"/>
-        <line x1="${a / 2}" y1="${yA - tick / 2}" x2="${a / 2}" y2="${yA + tick / 2}" stroke="${dim}" stroke-width="${(a * 0.008).toFixed(2)}" opacity=".55"/>
-        <text x="0" y="${yA - fs * 0.6}" text-anchor="middle" fill="${dim}" font-size="${fs.toFixed(2)}"
-              font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600">A ${a.toFixed(2)}</text>`
-            : ""
-        }
+        <path d="${path}" fill="hsl(213 66% 13% / .04)" stroke="#111827" stroke-width="${(a*0.022).toFixed(2)}" stroke-linejoin="round"/>
+        <line x1="${-fs}" y1="0" x2="${fs}" y2="0" stroke="hsl(213 20% 60%)" stroke-width="${(a*0.012).toFixed(2)}"/>
+        <line x1="0" y1="${-fs}" x2="0" y2="${fs}" stroke="hsl(213 20% 60%)" stroke-width="${(a*0.012).toFixed(2)}"/>
+        ${showDims ? `
+        <line x1="${-a/2}" y1="${yA}" x2="${a/2}" y2="${yA}" stroke="${dim}" stroke-width="${(a*0.008).toFixed(2)}" opacity=".55"/>
+        <line x1="${-a/2}" y1="${yA-tick/2}" x2="${-a/2}" y2="${yA+tick/2}" stroke="${dim}" stroke-width="${(a*0.008).toFixed(2)}" opacity=".55"/>
+        <line x1="${a/2}" y1="${yA-tick/2}" x2="${a/2}" y2="${yA+tick/2}" stroke="${dim}" stroke-width="${(a*0.008).toFixed(2)}" opacity=".55"/>
+        <text x="0" y="${yA - fs*0.6}" text-anchor="middle" fill="${dim}" font-size="${fs.toFixed(2)}"
+              font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600">A ${a.toFixed(2)}</text>` : ''}
       </g>`;
 
-    return `
+  return `
     <svg class="oma-svg-preview" viewBox="${minX.toFixed(2)} ${minY.toFixed(2)} ${totalW.toFixed(2)} ${totalH.toFixed(2)}"
          xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block">
       <defs><pattern id="omaGrid" width="5" height="5" patternUnits="userSpaceOnUse">
@@ -2328,67 +1689,55 @@ ZFMT=0`;
       <rect x="${minX}" y="${minY}" width="${totalW}" height="${totalH}" fill="url(#omaGrid)"/>
       ${eye(pathR, -shift)}
       ${eye(pathL, shift)}
-      ${
-        showDims
-          ? `
-        <line x1="${-dbl / 2}" y1="${yA}" x2="${dbl / 2}" y2="${yA}" stroke="${dim}" stroke-width="${(a * 0.008).toFixed(2)}" opacity=".55"/>
-        <text x="0" y="${yA - fs * 0.6}" text-anchor="middle" fill="${dim}" font-size="${fs.toFixed(2)}"
+      ${showDims ? `
+        <line x1="${-dbl/2}" y1="${yA}" x2="${dbl/2}" y2="${yA}" stroke="${dim}" stroke-width="${(a*0.008).toFixed(2)}" opacity=".55"/>
+        <text x="0" y="${yA - fs*0.6}" text-anchor="middle" fill="${dim}" font-size="${fs.toFixed(2)}"
               font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600">DBL ${dbl.toFixed(2)}</text>
-        <text x="${(-shift - a / 2 - fs * 0.7).toFixed(2)}" y="0" text-anchor="middle" fill="${dim}" font-size="${fs.toFixed(2)}"
+        <text x="${(-shift - a/2 - fs*0.7).toFixed(2)}" y="0" text-anchor="middle" fill="${dim}" font-size="${fs.toFixed(2)}"
               font-family="ui-sans-serif,system-ui,sans-serif" font-weight="600"
-              transform="rotate(-90 ${(-shift - a / 2 - fs * 0.7).toFixed(2)} 0)">B ${b.toFixed(2)}</text>`
-          : ""
-      }
-      <text x="${(minX + fsL * 0.5).toFixed(2)}" y="${(minY + fsL * 1.05).toFixed(2)}" fill="hsl(213 40% 34%)"
+              transform="rotate(-90 ${(-shift - a/2 - fs*0.7).toFixed(2)} 0)">B ${b.toFixed(2)}</text>` : ''}
+      <text x="${(minX + fsL*0.5).toFixed(2)}" y="${(minY + fsL*1.05).toFixed(2)}" fill="hsl(213 40% 34%)"
             font-size="${fsL.toFixed(2)}" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="800" letter-spacing="0.3">R</text>
-      <text x="${(minX + totalW - fsL * 0.5).toFixed(2)}" y="${(minY + fsL * 1.05).toFixed(2)}" text-anchor="end" fill="hsl(213 40% 34%)"
+      <text x="${(minX + totalW - fsL*0.5).toFixed(2)}" y="${(minY + fsL*1.05).toFixed(2)}" text-anchor="end" fill="hsl(213 40% 34%)"
             font-size="${fsL.toFixed(2)}" font-family="ui-sans-serif,system-ui,sans-serif" font-weight="800" letter-spacing="0.3">L</text>
-      ${
-        ghost
-          ? `<text x="0" y="${(half + padBot * 0.7).toFixed(2)}" text-anchor="middle" fill="${dim}" opacity=".75"
-            font-size="${(fs * 0.85).toFixed(2)}" font-family="ui-sans-serif,system-ui,sans-serif">placeholder scale — enter A and B</text>`
-          : ""
-      }
+      ${ghost ? `<text x="0" y="${(half + padBot*0.7).toFixed(2)}" text-anchor="middle" fill="${dim}" opacity=".75"
+            font-size="${(fs*0.85).toFixed(2)}" font-family="ui-sans-serif,system-ui,sans-serif">placeholder scale — enter A and B</text>` : ''}
     </svg>`;
-  }
+}
 
-  /**
-   * Single source of truth for "what shape are we drawing, at what size".
-   * Rescales the stored outline to whatever A / B are currently typed, so the preview
-   * and the ED both track the form live.
-   */
-  function shapeGeometry(omaData) {
-    if (!omaData || !omaData.points || !omaData.points.R.length) return null;
-    const typedA = parseNum($("#fa").value),
-      typedB = parseNum($("#fb").value),
-      typedD = parseNum($("#fdbl").value);
-    const ghost = typedA === null || typedB === null;
-    const a = typedA !== null ? typedA : omaData.hbox || 52;
-    const b = typedB !== null ? typedB : omaData.vbox || 38;
-    const dbl = typedD !== null ? typedD : omaData.dbl || 17;
+/**
+ * Single source of truth for "what shape are we drawing, at what size".
+ * Rescales the stored outline to whatever A / B are currently typed, so the preview
+ * and the ED both track the form live.
+ */
+function shapeGeometry(omaData) {
+  if (!omaData || !omaData.points || !omaData.points.R.length) return null;
+  const typedA = parseNum($('#fa').value), typedB = parseNum($('#fb').value), typedD = parseNum($('#fdbl').value);
+  const ghost = typedA === null || typedB === null;
+  const a = typedA !== null ? typedA : (omaData.hbox || 52);
+  const b = typedB !== null ? typedB : (omaData.vbox || 38);
+  const dbl = typedD !== null ? typedD : (omaData.dbl || 17);
 
-    const rawR = radiiToXY(omaData.points.R, omaData.angles && omaData.angles.R);
-    const rawL = radiiToXY(
-      omaData.points.L.length ? omaData.points.L : omaData.points.R,
-      omaData.angles && (omaData.angles.L.length ? omaData.angles.L : omaData.angles.R),
-    );
-    const ptsR = scaleOutline(rawR, a, b);
-    const ptsL = scaleOutline(rawL, a, b);
-    const m = shapeMetrics(ptsR);
-    return { a, b, dbl, ptsR, ptsL, mirrorL: !!omaData.mirroredL, ghost, metrics: m };
-  }
+  const rawR = radiiToXY(omaData.points.R, omaData.angles && omaData.angles.R);
+  const rawL = radiiToXY(omaData.points.L.length ? omaData.points.L : omaData.points.R,
+                         omaData.angles && (omaData.angles.L.length ? omaData.angles.L : omaData.angles.R));
+  const ptsR = scaleOutline(rawR, a, b);
+  const ptsL = scaleOutline(rawL, a, b);
+  const m = shapeMetrics(ptsR);
+  return { a, b, dbl, ptsR, ptsL, mirrorL: !!omaData.mirroredL, ghost, metrics: m };
+}
 
-  /* ============================================================
+/* ============================================================
    STANDARD SHAPE LIBRARY
    Real traced outlines, not approximations — embedded as raw .oma text
    (STD_OMA_RECT/ROUND/AVIATOR/CATEYE above) so they always parse correctly,
    regardless of how this HTML file is opened. #libInput/seedLibFromFiles are
    kept only as a manual fallback if the embedded data ever needs replacing.
    ============================================================ */
-  const SHAPE_LIB_KEY = "cv-shape-lib-v2";
-  /* Hard-coded so the four standard shapes always work — no fetch(), no file picker,
+const SHAPE_LIB_KEY = 'cv-shape-lib-v2';
+/* Hard-coded so the four standard shapes always work — no fetch(), no file picker,
    no dependency on how this HTML file is opened (file://, http, emailed, whatever). */
-  const STD_OMA_RECT = `REQ=FIL
+const STD_OMA_RECT = `REQ=FIL
 JOB="1506"
 FNAM=1506
 CIRC=163.46;163.47
@@ -2551,7 +1900,7 @@ R=2804;2801;2801;2801;2799;2798;2797;2796;2796;2796;2795;2794;2793;2793;2793
 R=2792;2791;2791;2791;2790;2791;2790;2791;2792;2793
 ZFMT=0
 `;
-  const STD_OMA_ROUND = `REQ=FIL
+const STD_OMA_ROUND = `REQ=FIL
 JOB="1287"
 BEVC=5.38;5.38
 BSIZ=0.0;0.0
@@ -2686,7 +2035,7 @@ R=2405;2407;2409;2412;2414;2416;2418;2420;2421;2422;2424;2427;2428;2430;2433
 R=2436;2439;2441;2442;2445
 ZFMT=0
 `;
-  const STD_OMA_AVIATOR = `REQ=FIL
+const STD_OMA_AVIATOR = `REQ=FIL
 JOB="1505"
 FNAM=1505
 CIRC=162.19;162.03
@@ -2841,7 +2190,7 @@ Z=1;1;2;2;1;1;0;1;2;3;4;6;9;11;14;17;20;25;29;34;39;45;50;56;63;69;76;82;88;95
 Z=101;108;115;121;126;130;134;138;141;144;146;148;150;151;155;157;156;157;156
 Z=155;154;153;151;150;148;147;144;142;141;139;138;137;136;136;136;136;137;138
 `;
-  const STD_OMA_CATEYE = `REQ=FIL
+const STD_OMA_CATEYE = `REQ=FIL
 JOB="1504"
 FNAM=1504
 BEVM=0.00;0.00
@@ -3152,237 +2501,171 @@ A=35268;35304;35340;35376;35412;35448;35484;35520;35556;35592;35628;35664;35700
 A=35736;35772;35808;35844;35880;35916;35952;35988
 ZFMT=0
 `;
-  const STD_SHAPES = [
-    { id: "rect", n: "Rectangle", file: "1506.oma", raw: STD_OMA_RECT },
-    { id: "round", n: "Round", file: "1287.oma", raw: STD_OMA_ROUND },
-    { id: "aviator", n: "Aviator", file: "1505.oma", raw: STD_OMA_AVIATOR },
-    { id: "cateye", n: "Cat eye", file: "1504.oma", raw: STD_OMA_CATEYE },
-  ];
-  let SHAPELIB = {};
+const STD_SHAPES = [
+  { id:'rect',    n:'Rectangle', file:'1506.oma', raw:STD_OMA_RECT },
+  { id:'round',   n:'Round',     file:'1287.oma', raw:STD_OMA_ROUND },
+  { id:'aviator', n:'Aviator',   file:'1505.oma', raw:STD_OMA_AVIATOR },
+  { id:'cateye',  n:'Cat eye',   file:'1504.oma', raw:STD_OMA_CATEYE }
+];
+let SHAPELIB = {};
 
-  /** shrink a 1000-point trace to 240 points — smooth on screen, small enough to store and ship */
-  function compactShape(oma, n) {
-    n = n || 240;
-    const idx = [],
-      N = oma.points.R.length;
-    for (let i = 0; i < n; i++) idx.push(Math.round((i * N) / n) % N);
-    const pick = (arr) => (arr && arr.length === N ? idx.map((i) => +arr[i].toFixed(2)) : []);
-    return {
-      job: oma.job,
-      hbox: oma.hbox,
-      vbox: oma.vbox,
-      dbl: oma.dbl,
-      ed: oma.ed,
-      circ: oma.circ,
-      edAxis: oma.edAxis,
-      mirroredL: oma.mirroredL,
-      points: { R: pick(oma.points.R), L: pick(oma.points.L) },
-      angles: { R: pick(oma.angles.R), L: pick(oma.angles.L) },
-    };
-  }
-  function saveLib() {
-    try {
-      localStorage.setItem(SHAPE_LIB_KEY, JSON.stringify(SHAPELIB));
-    } catch (e) {}
-  }
-  function loadLib() {
-    try {
-      SHAPELIB = JSON.parse(localStorage.getItem(SHAPE_LIB_KEY) || "{}");
-    } catch (e) {
-      SHAPELIB = {};
-    }
-  }
+/** shrink a 1000-point trace to 240 points — smooth on screen, small enough to store and ship */
+function compactShape(oma, n) {
+  n = n || 240;
+  const idx = [], N = oma.points.R.length;
+  for (let i = 0; i < n; i++) idx.push(Math.round(i * N / n) % N);
+  const pick = arr => (arr && arr.length === N) ? idx.map(i => +arr[i].toFixed(2)) : [];
+  return {
+    job: oma.job, hbox: oma.hbox, vbox: oma.vbox, dbl: oma.dbl, ed: oma.ed,
+    circ: oma.circ, edAxis: oma.edAxis, mirroredL: oma.mirroredL,
+    points: { R: pick(oma.points.R), L: pick(oma.points.L) },
+    angles: { R: pick(oma.angles.R), L: pick(oma.angles.L) }
+  };
+}
+function saveLib(){ try{ localStorage.setItem(SHAPE_LIB_KEY, JSON.stringify(SHAPELIB)); }catch(e){} }
+function loadLib(){ try{ SHAPELIB = JSON.parse(localStorage.getItem(SHAPE_LIB_KEY) || '{}'); }catch(e){ SHAPELIB = {}; } }
 
-  function autoLoadLib() {
-    /* parsed straight from the STD_OMA_* constants above — no fetch, no CORS/file://
+function autoLoadLib(){
+  /* parsed straight from the STD_OMA_* constants above — no fetch, no CORS/file://
      restriction, works identically whether this page is opened from disk, hosted,
      or emailed as a single file. */
-    if (Object.keys(SHAPELIB).length === STD_SHAPES.length) {
-      buildShapePick();
-      return;
-    }
-    let got = 0;
-    for (const s of STD_SHAPES) {
-      if (SHAPELIB[s.id]) {
-        got++;
-        continue;
-      }
-      try {
-        const parsed = parseOMA(s.raw);
-        if (parsed && parsed.points.R.length) {
-          SHAPELIB[s.id] = compactShape(parsed);
-          got++;
-        }
-      } catch (e) {
-        /* shouldn't happen — data is embedded, not fetched */
-      }
-    }
-    if (got) saveLib();
-    buildShapePick();
+  if (Object.keys(SHAPELIB).length === STD_SHAPES.length) { buildShapePick(); return; }
+  let got = 0;
+  for (const s of STD_SHAPES) {
+    if (SHAPELIB[s.id]) { got++; continue; }
+    try {
+      const parsed = parseOMA(s.raw);
+      if (parsed && parsed.points.R.length) { SHAPELIB[s.id] = compactShape(parsed); got++; }
+    } catch(e) { /* shouldn't happen — data is embedded, not fetched */ }
   }
-  function seedLibFromFiles(files) {
-    let n = 0;
-    const pending = Array.from(files).length;
-    Array.from(files).forEach((f) => {
-      const match = STD_SHAPES.find(
-        (s) =>
-          f.name.toLowerCase() === s.file.toLowerCase() ||
-          f.name.replace(/\.\w+$/, "") === s.file.replace(/\.\w+$/, ""),
-      );
-      const rd = new FileReader();
-      rd.onload = () => {
-        const parsed = parseOMA(rd.result);
-        if (match && parsed && parsed.points.R.length) {
-          SHAPELIB[match.id] = compactShape(parsed);
-          n++;
-        }
-        if (--files.__left === 0 || true) {
-          saveLib();
-          buildShapePick();
-        }
-        if (n) toast(n + " standard shape" + (n > 1 ? "s" : "") + " loaded and cached on this machine");
-      };
-      rd.readAsText(f);
-    });
-    if (!pending) toast("No files selected");
-  }
+  if (got) saveLib();
+  buildShapePick();
+}
+function seedLibFromFiles(files){
+  let n = 0;
+  const pending = Array.from(files).length;
+  Array.from(files).forEach(f => {
+    const match = STD_SHAPES.find(s => f.name.toLowerCase() === s.file.toLowerCase()
+      || f.name.replace(/\.\w+$/,'') === s.file.replace(/\.\w+$/,''));
+    const rd = new FileReader();
+    rd.onload = () => {
+      const parsed = parseOMA(rd.result);
+      if (match && parsed && parsed.points.R.length) { SHAPELIB[match.id] = compactShape(parsed); n++; }
+      if (--files.__left === 0 || true) { saveLib(); buildShapePick(); }
+      if (n) toast(n + ' standard shape' + (n>1?'s':'') + ' loaded and cached on this machine');
+    };
+    rd.readAsText(f);
+  });
+  if (!pending) toast('No files selected');
+}
 
-  function shapeThumb(id, size) {
-    size = size || 46;
-    const lib = SHAPELIB[id];
-    if (!lib)
-      return `<svg width="${size}" height="${size * 0.7}" viewBox="0 0 100 70"><rect x="6" y="10" width="88" height="50" rx="14" fill="none" stroke="hsl(213 20% 78%)" stroke-width="3" stroke-dasharray="5 5"/></svg>`;
-    const pts = scaleOutline(radiiToXY(lib.points.R, lib.angles.R), 92, 62);
-    return `<svg width="${size}" height="${size * 0.7}" viewBox="-50 -35 100 70">
-    <path d="${outlinePath(pts, false)}" fill="hsl(213 66% 13% / .06)" stroke="hsl(213 66% 13%)" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
-  }
-  function buildShapePick() {
-    const box = $("#shapePick");
-    const ready = STD_SHAPES.filter((s) => SHAPELIB[s.id]).length;
-    box.innerHTML =
-      STD_SHAPES.map(
-        (s) => `
-    <div class="sp ${S.stdShape === s.id ? "sel" : ""} " data-sid="${s.id}" tabindex="0" title="${s.file}">
+function shapeThumb(id, size){
+  size = size || 46;
+  const lib = SHAPELIB[id];
+  if (!lib) return `<svg width="${size}" height="${size*0.7}" viewBox="0 0 100 70"><rect x="6" y="10" width="88" height="50" rx="14" fill="none" stroke="hsl(213 20% 78%)" stroke-width="3" stroke-dasharray="5 5"/></svg>`;
+  const pts = scaleOutline(radiiToXY(lib.points.R, lib.angles.R), 92, 62);
+  return `<svg width="${size}" height="${size*0.7}" viewBox="-50 -35 100 70">
+    <path d="${outlinePath(pts,false)}" fill="hsl(213 66% 13% / .06)" stroke="hsl(213 66% 13%)" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
+}
+function buildShapePick(){
+  const box = $('#shapePick');
+  const ready = STD_SHAPES.filter(s => SHAPELIB[s.id]).length;
+  box.innerHTML = STD_SHAPES.map(s => `
+    <div class="sp ${S.stdShape===s.id?'sel':''} " data-sid="${s.id}" tabindex="0" title="${s.file}">
       ${shapeThumb(s.id)}
       <div class="spn">${s.n}</div>
-      <div class="spf">${SHAPELIB[s.id] ? s.file : "not loaded"}</div>
-    </div>`,
-      ).join("") +
-      (S.stdShape
-        ? `<div class="sp" data-sid="" tabindex="0" style="display:grid;place-items:center">
-        <div style="font-size:19px;opacity:.4">✕</div><div class="spn">Clear</div><div class="spf">no shape</div></div>`
-        : "");
-    $$("#shapePick .sp").forEach((el) => {
-      el.addEventListener("click", () => pickStdShape(el.dataset.sid));
-      el.addEventListener("keydown", (e) => {
-        if (e.key === " " || e.key === "Enter") {
-          e.preventDefault();
-          el.click();
-        }
-      });
-    });
-    $("#shapeHint").innerHTML =
-      ready === STD_SHAPES.length
-        ? "Real traced outlines. The preview and the ED rescale live to the A, B and DBL you type."
-        : `<b>${ready} of ${STD_SHAPES.length} shapes loaded.</b> That shouldn't happen — the outlines are built into this page.
+      <div class="spf">${SHAPELIB[s.id] ? '' : 'not loaded'}</div>
+    </div>`).join('')
+    + (S.stdShape ? `<div class="sp" data-sid="" tabindex="0" style="display:grid;place-items:center">
+        <div style="font-size:19px;opacity:.4">✕</div><div class="spn">Clear</div></div>` : '');
+  $$('#shapePick .sp').forEach(el => {
+    el.addEventListener('click', () => pickStdShape(el.dataset.sid));
+    el.addEventListener('keydown', e => { if(e.key===' '||e.key==='Enter'){ e.preventDefault(); el.click(); } });
+  });
+  $('#shapeHint').innerHTML = ready === STD_SHAPES.length
+    ? 'Real traced outlines. The preview and the ED rescale live to the A, B and DBL you type.'
+    : `<b>${ready} of ${STD_SHAPES.length} shapes loaded.</b> That shouldn't happen — the outlines are built into this page.
        <button class="linkbtn" id="seedLib" style="padding:4px 10px">Load from a file instead</button> as a fallback.`;
-    const sb = $("#seedLib");
-    if (sb) sb.addEventListener("click", () => $("#libInput").click());
+  const sb = $('#seedLib');
+  if (sb) sb.addEventListener('click', () => $('#libInput').click());
+}
+function pickStdShape(id){
+  if (!id) {
+    S.stdShape=''; S.shape=null; buildShapePick(); render(); toast('Shape cleared');
+    /* standard shape cleared — the trace dropzone is relevant again on remote edge */
+    $('#traceBlock').classList.toggle('hide', S.scope!=='remote');
+    return;
   }
-  function pickStdShape(id) {
-    if (!id) {
-      S.stdShape = "";
-      S.shape = null;
-      buildShapePick();
-      render();
-      toast("Shape cleared");
-      return;
-    }
-    if (!SHAPELIB[id]) {
-      toast("That shape isn't loaded yet — use Load shape library");
-      return;
-    }
-    if (S.file && !confirm("Replace the uploaded trace with the standard shape?")) return;
-    S.stdShape = id;
-    S.shape = SHAPELIB[id];
-    S.shapeSrc = "standard";
-    const meta = STD_SHAPES.find((s) => s.id === id);
-    /* DBL is a real frame measurement — don't auto-fill it from a generic standard
+  if (!SHAPELIB[id]) { toast('That shape isn\'t loaded yet — use Load shape library'); return; }
+  if (S.file && !confirm('Replace the uploaded trace with the standard shape?')) return;
+  S.stdShape = id; S.shape = SHAPELIB[id]; S.shapeSrc = 'standard';
+  const meta = STD_SHAPES.find(s=>s.id===id);
+  /* DBL is a real frame measurement — don't auto-fill it from a generic standard
      shape, wait for the optician to type/measure it. */
-    buildShapePick();
-    render();
-    toast(meta.n + " selected — resize it by typing A and B");
-  }
+  buildShapePick(); render();
+  /* a standard shape now stands in for the trace — collapse the upload
+     dropzone so it doesn't look like a trace is still expected too. */
+  $('#traceBlock').classList.add('hide');
+  toast(meta.n + ' selected — resize it by typing A and B');
+}
 
-  /** the shape currently in play, from either source */
-  function activeShape() {
-    return S.shape || null;
-  }
+/** the shape currently in play, from either source */
+function activeShape(){ return S.shape || null; }
 
-  /** live ED straight off the outline — this is what locks the ED field */
-  function liveMetrics() {
-    const g = shapeGeometry(activeShape());
-    return g ? g.metrics : null;
-  }
+/** live ED straight off the outline — this is what locks the ED field */
+function liveMetrics(){
+  const g = shapeGeometry(activeShape());
+  return g ? g.metrics : null;
+}
 
-  function updatePreview() {
-    const sh = activeShape();
-    const pb = $("#previewBlock");
-    if (!sh) {
-      if (S.file) {
-        /* a file is attached but yielded no usable outline — say so rather than show nothing */
-        pb.classList.remove("hide");
-        $("#shapePreview").innerHTML = `<div class="callout gold"><span class="ci">⚠</span><span>
+function updatePreview(){
+  const sh = activeShape();
+  const pb = $('#previewBlock');
+  if (!sh) {
+    if (S.file) {  /* a file is attached but yielded no usable outline — say so rather than show nothing */
+      pb.classList.remove('hide');
+      $('#shapePreview').innerHTML = `<div class="callout gold"><span class="ci">⚠</span><span>
         <b>${S.file.name}</b> attached, but no trace points could be read from it. The lab can still work from the
         box measures below — or re-export the trace and upload again.</span></div>`;
-        return;
-      }
-      pb.classList.add("hide");
-      $("#shapePreview").innerHTML = "";
       return;
     }
-    pb.classList.remove("hide");
-    const g = shapeGeometry(sh);
-    if (!g) {
-      pb.classList.add("hide");
-      return;
-    }
-    const m = g.metrics;
+    pb.classList.add('hide'); $('#shapePreview').innerHTML=''; return;
+  }
+  pb.classList.remove('hide');
+  const g = shapeGeometry(sh);
+  if (!g) { pb.classList.add('hide'); return; }
+  const m = g.metrics;
 
-    /* verified → collapse to a one-line strip so it stops eating the form */
-    if (S.shapeOk && !S.shapeExpanded) {
-      const thumb = S.shapeSrc === "standard" && S.stdShape ? shapeThumb(S.stdShape, 40) : miniThumb(g);
-      $("#shapePreview").innerHTML = `
+  /* verified → collapse to a one-line strip so it stops eating the form */
+  if (S.shapeOk && !S.shapeExpanded) {
+    const thumb = S.shapeSrc==='standard' && S.stdShape ? shapeThumb(S.stdShape, 40) : miniThumb(g);
+    $('#shapePreview').innerHTML = `
       <div class="shapemini">
         <div class="mini-art">${thumb}</div>
         <div style="min-width:0">
-          <div class="mini-t">✓ Shape verified${sh.job ? " — " + sh.job : ""}</div>
+          <div class="mini-t">✓ Shape verified${sh.job?' — '+sh.job:''}</div>
           <div class="mini-d">A ${g.a.toFixed(2)} · B ${g.b.toFixed(2)} · ED ${m.ed.toFixed(2)} · DBL ${g.dbl.toFixed(2)} mm</div>
         </div>
         <button class="btn btn-ghost btn-sm" id="shapeEdit" style="margin-left:auto">Change</button>
       </div>`;
-      $("#shapeEdit").addEventListener("click", () => {
-        S.shapeExpanded = true;
-        updatePreview();
-      });
-      return;
-    }
-    const src =
-      S.shapeSrc === "standard"
-        ? (STD_SHAPES.find((s) => s.id === S.stdShape) || {}).n + " — standard shape"
-        : "Traced file" + (sh.job ? " · " + sh.job : "");
-    const single = sh.mirroredL;
-    $("#shapePreview").innerHTML = `
+    $('#shapeEdit').addEventListener('click',()=>{ S.shapeExpanded=true; updatePreview(); });
+    return;
+  }
+  const src = S.shapeSrc === 'standard'
+    ? (STD_SHAPES.find(s=>s.id===S.stdShape)||{}).n + ' — standard shape'
+    : 'Traced file' + (sh.job ? ' · ' + sh.job : '');
+  const single = sh.mirroredL;
+  $('#shapePreview').innerHTML = `
     <div class="shapebox">
       <div class="shapebox-header" style="display:flex;align-items:center;gap:10px">
         <div style="min-width:0">
-          <div class="sb-t">Shape verification${sh.job ? " — " + sh.job : ""}</div>
-          <div class="sb-d">${src}${single ? " · one side supplied, other side mirrored" : " · both sides from the trace"}</div>
+          <div class="sb-t">Shape verification${sh.job?' — '+sh.job:''}</div>
+          <div class="sb-d">${src}${single?' · one side supplied, other side mirrored':' · both sides from the trace'}</div>
         </div>
         <span class="needbadge" style="margin-left:auto;background:var(--teal-soft);border-color:hsl(188 71% 36% / .3);color:var(--teal)">
           ${sh.points.R.length} points</span>
       </div>
-      <div class="pv-canvas ${g.ghost ? "ghost" : ""}">${generateOMASVG(sh, { showDimensions: true })}</div>
+      <div class="pv-canvas ${g.ghost?'ghost':''}">${generateOMASVG(sh,{showDimensions:true})}</div>
       <div class="pv-stats">
         <div class="pv-stat"><div class="k">A width</div><div class="v">${g.a.toFixed(2)} mm</div></div>
         <div class="pv-stat"><div class="k">B height</div><div class="v">${g.b.toFixed(2)} mm</div></div>
@@ -3391,344 +2674,232 @@ ZFMT=0
         <div class="pv-stat"><div class="k">DBL gap</div><div class="v">${g.dbl.toFixed(2)} mm</div></div>
         <div class="pv-stat"><div class="k">Circumference</div><div class="v">${m.circ.toFixed(1)} mm</div></div>
       </div>
-      <label class="confirmrow"><input type="checkbox" id="shapeConfirm" ${S.shapeOk ? "checked" : ""}>
-        <span>This is the correct shape for the frame in hand</span></label>
+      <button type="button" class="confirmrow" id="shapeConfirm" aria-pressed="${S.shapeOk?'true':'false'}">
+        <span class="cri">✓</span><span>This is the correct shape for the frame in hand</span></button>
       <div class="pv-note">Right lens shown left, as you face the patient. ED is measured from the boxing centre of the
         outline at the current A and B, so it is the field's source of truth and can't be typed over.
-        Tick the box to collapse this panel.</div>
+        Confirm it to collapse this panel.</div>
     </div>`;
-    const cb = $("#shapeConfirm");
-    if (cb)
-      cb.addEventListener("change", (e) => {
-        S.shapeOk = e.target.checked;
-        S.shapeExpanded = false; /* verifying collapses it to the mini strip */
-        render();
-      });
-  }
-  /** Once the shape is verified the whole frame block folds to a one-line summary. */
-  function collapseFrame() {
-    const done = !!activeShape() && S.shapeOk && !S.frameExpanded;
-    const fs = $("#frameSummary"),
-      fd = $("#frameDetail"),
-      sb = $("#shapeBlock");
-    fd.classList.toggle("hide", done);
-    if (done) sb.classList.add("hide");
-    fs.classList.toggle("hide", !done);
-    if (!done) {
-      fs.innerHTML = "";
-      return;
-    }
-    const g = shapeGeometry(activeShape()),
-      m = g.metrics;
-    const mount = $("#mount").options[$("#mount").selectedIndex].text;
-    fs.innerHTML = `
+  const cb = $('#shapeConfirm');
+  if (cb) cb.addEventListener('click', () => {
+    S.shapeOk = !S.shapeOk;
+    S.shapeExpanded = false;          /* verifying collapses it to the mini strip */
+    render();
+  });
+}
+/** Once the shape is verified the whole frame block folds to a one-line summary. */
+function collapseFrame(){
+  const done = !!activeShape() && S.shapeOk && !S.frameExpanded;
+  const fs = $('#frameSummary'), fd = $('#frameDetail'), sb = $('#shapeBlock');
+  fd.classList.toggle('hide', done);
+  if (done) sb.classList.add('hide');
+  fs.classList.toggle('hide', !done);
+  if (!done) { fs.innerHTML=''; return; }
+  const g = shapeGeometry(activeShape()), m = g.metrics;
+  const mount = $('#mount').options[$('#mount').selectedIndex].text;
+  fs.innerHTML = `
     <div class="summary">
       <div style="min-width:0">
-        <div class="st">✓ ${$("#fname").value || "Frame"} — ${mount}</div>
+        <div class="st">✓ ${$('#fname').value || 'Frame'} — ${mount}</div>
         <div class="sd">A ${g.a.toFixed(2)} · B ${g.b.toFixed(2)} · ED ${m.ed.toFixed(2)} @ ${m.edAxis.toFixed(1)}°
-          · DBL ${g.dbl.toFixed(2)}${$("#ftemple").value ? " · Temple " + $("#ftemple").value : ""} mm</div>
+          · DBL ${g.dbl.toFixed(2)}${$('#ftemple').value?' · Temple '+$('#ftemple').value:''} mm</div>
       </div>
       <button class="btn btn-ghost btn-sm" id="frameEdit">Edit frame</button>
     </div>`;
-    $("#frameEdit").addEventListener("click", () => {
-      S.frameExpanded = true;
-      S.shapeExpanded = true;
-      render();
-      $("#frameDetail").scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }
+  $('#frameEdit').addEventListener('click',()=>{
+    S.frameExpanded=true; S.shapeExpanded=true; render();
+    $('#frameDetail').scrollIntoView({behavior:'smooth',block:'center'});
+  });
+}
 
-  /** small outline chip used by the collapsed strip */
-  function miniThumb(g) {
-    const pts = scaleOutline(g.ptsR, 92, 62);
-    return `<svg width="40" height="28" viewBox="-50 -35 100 70">
-    <path d="${outlinePath(pts, false)}" fill="hsl(213 66% 13% / .07)" stroke="hsl(213 66% 13%)" stroke-width="3" stroke-linejoin="round"/></svg>`;
-  }
+/** small outline chip used by the collapsed strip */
+function miniThumb(g){
+  const pts = scaleOutline(g.ptsR, 92, 62);
+  return `<svg width="40" height="28" viewBox="-50 -35 100 70">
+    <path d="${outlinePath(pts,false)}" fill="hsl(213 66% 13% / .07)" stroke="hsl(213 66% 13%)" stroke-width="3" stroke-linejoin="round"/></svg>`;
+}
 
-  /* ---------- order payload — one bundle for draft, cart and reorder ---------- */
-  function buildPayload() {
-    const sh = activeShape(),
-      g = sh ? shapeGeometry(sh) : null;
-    const rows = {};
-    ["od", "os"].forEach((e) => {
-      if (activeEyes().includes(e)) rows[e] = readRow(e);
-    });
-    const c = CUR[S.cur],
-      p = price();
-    return {
-      schema: "cv.rxorder/1",
-      orderNo: S.orderNo,
-      rebuiltFrom: S.rebuiltFrom || null,
-      createdAt: new Date().toISOString(),
-      account: S.branch ? { id: S.branch.id, name: S.branch.name, currency: S.cur, pricesVisible: S.pricesOn } : null,
-      reference: $("#ref").value || null,
-      patient: { first: $("#pfirst").value, last: $("#plast").value },
-      job: { scope: S.scope, eyes: S.eyes, vision: S.vision, purpose: S.purpose },
-      frame: {
-        name: $("#fname").value,
-        mount: $("#mount").value,
-        source: $("#fsource").value,
-        a: parseNum($("#fa").value),
-        b: parseNum($("#fb").value),
-        ed: parseNum($("#fed").value),
-        dbl: parseNum($("#fdbl").value),
-        temple: parseNum($("#ftemple").value),
-      },
-      shape: sh
-        ? {
-            source: S.shapeSrc,
-            standardId: S.stdShape || null,
-            file: S.file ? S.file.name : null,
-            job: sh.job || null,
-            mirroredFrom: sh.mirroredL ? "right" : null,
-            pointCount: sh.points.R.length,
-            nativeBox: { a: sh.hbox, b: sh.vbox, dbl: sh.dbl, ed: sh.ed },
-            computed: {
-              ed: +g.metrics.ed.toFixed(2),
-              edAxis: +g.metrics.edAxis.toFixed(2),
-              circ: +g.metrics.circ.toFixed(2),
-            },
-            confirmed: S.shapeOk,
-            radii: { R: sh.points.R, L: sh.points.L },
-            angles: { R: sh.angles.R, L: sh.angles.L },
-          }
-        : null,
-      lens: {
-        material: S.m,
-        design: S.d,
-        colour: S.c,
-        diameter: effDiam(),
-        corridor: $("#corridor").value,
-        baseCurve: $("#basecurve").value,
-      },
-      rx: rows,
-      treatments: Array.from(S.treat),
-      tintConfig: tintSelected() ? { treatment: tintSelected(), ...S.tintCfg } : null,
-      chemistrie: S.chemClips.length ? S.chemClips.map((c) => ({ ...c })) : null,
-      ownerReview: S.ownerReview,
-      assistance: Array.from(S.assists),
-      delivery: { service: $("#service").value, method: $("#delivery").value, notes: $("#notes").value },
-      quote: S.pricesOn
-        ? {
-            currency: S.cur,
-            symbol: c.sym,
-            rate: c.rate,
-            lines: p.lines.map((l) => ({ label: l.n, detail: l.i, amount: +(l.v * c.rate).toFixed(2) })),
-            total: +(p.sub * c.rate).toFixed(2),
-            lockedAt: new Date().toISOString(),
-          }
-        : { currency: S.cur, hidden: true, reason: "pricing not enabled on account" },
-    };
-  }
-  function payloadSize(p) {
-    return (new Blob([JSON.stringify(p)]).size / 1024).toFixed(1) + " KB";
-  }
-  function showPayload() {
-    const p = buildPayload();
-    const j = JSON.stringify(p, null, 2);
-    $("#payloadBody").innerHTML = `<p class="hint" style="margin:0 0 10px">
+/* ---------- order payload — one bundle for draft, cart and reorder ---------- */
+function buildPayload(){
+  const sh = activeShape(), g = sh ? shapeGeometry(sh) : null;
+  const rows = {};
+  ['od','os'].forEach(e => { if (activeEyes().includes(e)) rows[e] = readRow(e); });
+  const c = CUR[S.cur], p = price();
+  return {
+    schema: 'cv.rxorder/1',
+    orderNo: S.orderNo,
+    rebuiltFrom: S.rebuiltFrom || null,
+    createdAt: new Date().toISOString(),
+    account: S.branch ? { id:S.branch.id, name:S.branch.name, currency:S.cur, pricesVisible:S.pricesOn } : null,
+    reference: $('#ref').value || null,
+    patient: { first:$('#pfirst').value, last:$('#plast').value },
+    job: { scope:S.scope, eyes:S.eyes, vision:S.vision, purpose:S.purpose },
+    frame: {
+      name:$('#fname').value, mount:$('#mount').value, source:$('#fsource').value,
+      a:parseNum($('#fa').value), b:parseNum($('#fb').value), ed:parseNum($('#fed').value),
+      dbl:parseNum($('#fdbl').value), temple:parseNum($('#ftemple').value)
+    },
+    shape: sh ? {
+      source:S.shapeSrc, standardId:S.stdShape||null, file:S.file?S.file.name:null,
+      job:sh.job||null, mirroredFrom: sh.mirroredL ? 'right' : null,
+      pointCount: sh.points.R.length,
+      nativeBox: { a:sh.hbox, b:sh.vbox, dbl:sh.dbl, ed:sh.ed },
+      computed: { ed:+g.metrics.ed.toFixed(2), edAxis:+g.metrics.edAxis.toFixed(2), circ:+g.metrics.circ.toFixed(2) },
+      confirmed: S.shapeOk,
+      radii: { R: sh.points.R, L: sh.points.L },
+      angles:{ R: sh.angles.R, L: sh.angles.L }
+    } : null,
+    lens: { material:S.m, design:S.d, colour:S.c, diameter:effDiam(),
+            corridor:$('#corridor').value, baseCurve:$('#basecurve').value },
+    rx: rows,
+    treatments: Array.from(S.treat),
+    tintConfig: tintSelected() ? { treatment:tintSelected(), ...S.tintCfg } : null,
+    chemistrie: S.chemClips.length ? S.chemClips.map(c=>({ ...c })) : null,
+    ownerReview: S.ownerReview,
+    assistance: Array.from(S.assists),
+    delivery: { service:$('#service').value, method:$('#delivery').value, notes:$('#notes').value },
+    quote: S.pricesOn ? { currency:S.cur, symbol:c.sym, rate:c.rate,
+      lines:p.lines.map(l=>({ label:l.n, detail:l.i, amount:+(l.v*c.rate).toFixed(2) })),
+      total:+(p.sub*c.rate).toFixed(2), lockedAt:new Date().toISOString() }
+      : { currency:S.cur, hidden:true, reason:'pricing not enabled on account' }
+  };
+}
+function payloadSize(p){ return (new Blob([JSON.stringify(p)]).size/1024).toFixed(1)+' KB'; }
+function showPayload(){
+  const p = buildPayload();
+  const j = JSON.stringify(p, null, 2);
+  $('#payloadBody').innerHTML = `<p class="hint" style="margin:0 0 10px">
       This is the bundle that travels with the order — saved as a draft, carried into the cart, and replayed from order history.
-      Size <b>${payloadSize(p)}</b> including ${p.shape ? p.shape.pointCount + " shape points per side" : "no shape"}.</p>
-    <pre style="font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:hsl(43 25% 97%);border:1px solid var(--border-soft);border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-word">${j.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch])}</pre>`;
-    $("#payloadDrawer").classList.add("on");
-  }
-  function stashOrder(kind) {
-    const p = buildPayload();
-    try {
-      const hist = JSON.parse(localStorage.getItem("cv-rx-history") || "[]");
-      hist.unshift({
-        kind,
-        at: p.createdAt,
-        label: (p.patient.first + " " + p.patient.last).trim() || "Unnamed",
-        payload: p,
-      });
-      localStorage.setItem("cv-rx-history", JSON.stringify(hist.slice(0, 10)));
-    } catch (e) {}
-    return p;
-  }
-  function restorePayload(p) {
-    if (!p) return;
-    S.scope = p.job.scope;
-    S.eyes = p.job.eyes;
-    S.vision = p.job.vision;
-    S.purpose = p.job.purpose;
-    ["scopeSeg:scope", "eyeSeg:eyes", "visionSeg:vision", "purposeSeg:purpose"].forEach((pair) => {
-      const [id, key] = pair.split(":");
-      $$("#" + id + " button").forEach((b) => b.setAttribute("aria-pressed", b.dataset[key] === S[key]));
-    });
-    $("#ref").value = p.reference || "";
-    $("#pfirst").value = p.patient.first || "";
-    $("#plast").value = p.patient.last || "";
-    $("#fname").value = p.frame.name || "";
-    $("#mount").value = p.frame.mount || "full";
-    ["a", "b", "ed", "dbl", "temple"].forEach((k, i) => {
-      const el = $(["#fa", "#fb", "#fed", "#fdbl", "#ftemple"][i]);
-      el.value = p.frame[k] != null ? p.frame[k] : "";
-    });
-    if (p.shape) {
-      S.shape = {
-        job: p.shape.job,
-        hbox: p.shape.nativeBox.a,
-        vbox: p.shape.nativeBox.b,
-        dbl: p.shape.nativeBox.dbl,
-        ed: p.shape.nativeBox.ed,
-        mirroredL: !!p.shape.mirroredFrom,
-        edAxis: { R: null, L: null },
-        points: p.shape.radii,
-        angles: p.shape.angles,
-      };
-      S.shapeSrc = p.shape.source;
-      S.stdShape = p.shape.standardId || "";
-      S.shapeOk = !!p.shape.confirmed;
-    } else {
-      S.shape = null;
-      S.stdShape = "";
-    }
-    S.m = p.lens.material;
-    S.d = p.lens.design;
-    S.c = p.lens.colour;
-    fillLensSelects();
-    S.treat = new Set(p.treatments || []);
-    S.assists = new Set(p.assistance || []);
-    Object.entries(p.rx || {}).forEach(([e, r]) => {
-      rowEls(e).forEach((i) => {
-        const v = r[i.dataset.f];
-        i.value = v === null || v === undefined ? "" : v;
-      });
-    });
-    $("#service").value = p.delivery.service || "std";
-    $("#notes").value = p.delivery.notes || "";
-    S.revealAll = true;
-    /* a rebuilt order is a NEW order — fresh number, with a pointer back to the original */
-    S.rebuiltFrom = p.orderNo || null;
-    newOrderNo();
-    $('#scopeSeg button[data-scope="' + S.scope + '"]').click();
-    buildShapePick();
-    buildPopular();
-    buildTreatList();
-    render();
-  }
-
-  /* ---------- file + shape ---------- */
-  $("#drop").addEventListener("click", () => $("#fileInput").click());
-  $("#drop").addEventListener("dragover", (e) => {
-    e.preventDefault();
-    $("#drop").classList.add("hot");
+      Size <b>${payloadSize(p)}</b> including ${p.shape? p.shape.pointCount+' shape points per side':'no shape'}.</p>
+    <pre style="font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:hsl(43 25% 97%);border:1px solid var(--border-soft);border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-word">${j.replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</pre>`;
+  $('#payloadDrawer').classList.add('on');
+}
+function stashOrder(kind){
+  const p = buildPayload();
+  try{
+    const hist = JSON.parse(localStorage.getItem('cv-rx-history')||'[]');
+    hist.unshift({ kind, at:p.createdAt, label:(p.patient.first+' '+p.patient.last).trim()||'Unnamed', payload:p });
+    localStorage.setItem('cv-rx-history', JSON.stringify(hist.slice(0,10)));
+  }catch(e){}
+  return p;
+}
+function restorePayload(p){
+  if(!p) return;
+  S.scope=p.job.scope; S.eyes=p.job.eyes; S.vision=p.job.vision; S.purpose=p.job.purpose;
+  ['scopeSeg:scope','eyeSeg:eyes','visionSeg:vision','purposeSeg:purpose'].forEach(pair=>{
+    const [id,key]=pair.split(':');
+    $$('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed', b.dataset[key]===S[key]));
   });
-  $("#drop").addEventListener("dragleave", () => $("#drop").classList.remove("hot"));
-  $("#drop").addEventListener("drop", (e) => {
-    e.preventDefault();
-    $("#drop").classList.remove("hot");
-    takeFile(e.dataTransfer.files[0]);
+  $('#ref').value=p.reference||''; $('#pfirst').value=p.patient.first||''; $('#plast').value=p.patient.last||'';
+  $('#fname').value=p.frame.name||''; $('#mount').value=p.frame.mount||'full';
+  ['a','b','ed','dbl','temple'].forEach((k,i)=>{
+    const el=$(['#fa','#fb','#fed','#fdbl','#ftemple'][i]);
+    el.value = p.frame[k]!=null ? p.frame[k] : '';
   });
-  $("#fileInput").addEventListener("change", (e) => takeFile(e.target.files[0]));
+  if(p.shape){
+    S.shape={ job:p.shape.job, hbox:p.shape.nativeBox.a, vbox:p.shape.nativeBox.b, dbl:p.shape.nativeBox.dbl,
+      ed:p.shape.nativeBox.ed, mirroredL:!!p.shape.mirroredFrom, edAxis:{R:null,L:null},
+      points:p.shape.radii, angles:p.shape.angles };
+    S.shapeSrc=p.shape.source; S.stdShape=p.shape.standardId||''; S.shapeOk=!!p.shape.confirmed;
+  } else { S.shape=null; S.stdShape=''; }
+  S.m=p.lens.material; S.d=p.lens.design; S.c=p.lens.colour; fillLensSelects();
+  S.treat=new Set(p.treatments||[]); S.assists=new Set(p.assistance||[]);
+  Object.entries(p.rx||{}).forEach(([e,r])=>{
+    rowEls(e).forEach(i=>{ const v=r[i.dataset.f]; i.value=(v===null||v===undefined)?'':v; });
+  });
+  $('#service').value=p.delivery.service||'std'; $('#notes').value=p.delivery.notes||'';
+  S.revealAll=true;
+  /* a rebuilt order is a NEW order — fresh number, with a pointer back to the original */
+  S.rebuiltFrom=p.orderNo||null; newOrderNo();
+  $('#scopeSeg button[data-scope="'+S.scope+'"]').click();
+  buildShapePick(); buildPopular(); buildTreatList(); render();
+}
 
-  /**
-   * Handles trace file reading, OMA parsing, field auto-populating, and preview rendering.
-   *
-   * @param {File} f - Uploaded trace file
-   */
-  function takeFile(f) {
-    if (!f) return;
-    if (!/\.(oma|tr|vca)$/i.test(f.name)) {
-      toast("Trace files only — .oma, .tr or .vca");
-      return;
+/* ---------- file + shape ---------- */
+$('#drop').addEventListener('click',()=>$('#fileInput').click());
+$('#drop').addEventListener('dragover',e=>{e.preventDefault();$('#drop').classList.add('hot');});
+$('#drop').addEventListener('dragleave',()=>$('#drop').classList.remove('hot'));
+$('#drop').addEventListener('drop',e=>{e.preventDefault();$('#drop').classList.remove('hot');takeFile(e.dataTransfer.files[0]);});
+$('#fileInput').addEventListener('change',e=>takeFile(e.target.files[0]));
+
+/**
+ * Handles trace file reading, OMA parsing, field auto-populating, and preview rendering.
+ * 
+ * @param {File} f - Uploaded trace file
+ */
+function takeFile(f) {
+  if (!f) return;
+  if (!/\.(oma|tr|vca)$/i.test(f.name)) { toast('Trace files only — .oma, .tr or .vca'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const omaData = parseOMA(text);
+
+    S.file = {
+      name: f.name,
+      size: f.size,
+      rawText: text,
+      omaData: omaData
+    };
+    S.shapeOk = false;
+
+    if (omaData) {
+      if (omaData.hbox) { $('#fa').value = omaData.hbox.toFixed(2); S.edTouched = false; }
+      if (omaData.vbox) { $('#fb').value = omaData.vbox.toFixed(2); S.edTouched = false; }
+      if (omaData.ed) { $('#fed').value = omaData.ed.toFixed(2); S.edTouched = true; }
+      /* DBL waits for the optician to enter it — not auto-filled from the trace. */
+      if (omaData.job) { $('#fname').value = omaData.job; }
+
     }
+    /* set the shape BEFORE syncED/render so the preview and the locked ED both see it */
+    if (omaData && omaData.points && omaData.points.R.length) {
+      S.shape = omaData; S.shapeSrc = 'trace'; S.stdShape = ''; S.shapeOk = false; S.edTouched = false;
+    }
+    syncED(); fillDiam();
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const text = e.target.result;
-      const omaData = parseOMA(text);
-
-      S.file = {
-        name: f.name,
-        size: f.size,
-        rawText: text,
-        omaData: omaData,
-      };
-      S.shapeOk = false;
-
-      if (omaData) {
-        if (omaData.hbox) {
-          $("#fa").value = omaData.hbox.toFixed(2);
-          S.edTouched = false;
-        }
-        if (omaData.vbox) {
-          $("#fb").value = omaData.vbox.toFixed(2);
-          S.edTouched = false;
-        }
-        if (omaData.ed) {
-          $("#fed").value = omaData.ed.toFixed(2);
-          S.edTouched = true;
-        }
-        /* DBL waits for the optician to enter it — not auto-filled from the trace. */
-        if (omaData.job) {
-          $("#fname").value = omaData.job;
-        }
-      }
-      /* set the shape BEFORE syncED/render so the preview and the locked ED both see it */
-      if (omaData && omaData.points && omaData.points.R.length) {
-        S.shape = omaData;
-        S.shapeSrc = "trace";
-        S.stdShape = "";
-        S.shapeOk = false;
-        S.edTouched = false;
-      }
-      syncED();
-      fillDiam();
-
-      $("#drop").classList.add("hide");
-      $("#fileList").innerHTML = `<div class="filerow"><div class="fi">${f.name.split(".").pop().toUpperCase()}</div>
-      <div><div class="fn">${f.name}</div><div class="fs">${(f.size / 1024).toFixed(1)} KB · ${omaData ? "OMA points parsed" : "trace attached"}</div></div>
+    $('#drop').classList.add('hide');
+    $('#fileList').innerHTML = `<div class="filerow"><div class="fi">${f.name.split('.').pop().toUpperCase()}</div>
+      <div><div class="fn">${f.name}</div><div class="fs">${(f.size / 1024).toFixed(1)} KB · ${omaData ? 'OMA points parsed' : 'trace attached'}</div></div>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
         <button type="button" class="btn btn-ghost btn-sm" id="changeFile">Upload new</button>
         <button type="button" class="btn btn-ghost btn-sm" id="rmFile" style="color:var(--danger)">Remove trace</button>
       </div></div>`;
 
-      $("#rmFile").addEventListener("click", () => {
-        S.file = null;
-        S.shapeOk = false;
-        $("#fileList").innerHTML = "";
-        $("#shapePreview").innerHTML = "";
-        $("#fileInput").value = "";
-        $("#drop").classList.remove("hide");
-        render();
-        toast("Trace removed");
-      });
-      $("#changeFile").addEventListener("click", () => {
-        $("#fileInput").click();
-      });
+    $('#rmFile').addEventListener('click', () => {
+      S.file = null; S.shapeOk = false; $('#fileList').innerHTML = ''; $('#shapePreview').innerHTML = ''; $('#fileInput').value = '';
+      $('#drop').classList.remove('hide'); render(); toast('Trace removed');
+    });
+    $('#changeFile').addEventListener('click', () => { $('#fileInput').click(); });
 
-      render();
-      updatePreview();
-      if (!S.shape) toast("File attached, but no trace points could be read from it");
-      else
-        toast(`Trace loaded: A ${$("#fa").value}, B ${$("#fb").value}, ED ${$("#fed").value}, DBL ${$("#fdbl").value}`);
-    };
-    reader.readAsText(f);
+    render(); updatePreview();
+    if (!S.shape) toast('File attached, but no trace points could be read from it');
+    else toast(`Trace loaded: A ${$('#fa').value}, B ${$('#fb').value}, ED ${$('#fed').value}, DBL ${$('#fdbl').value}`);
+  };
+  reader.readAsText(f);
+}
+
+/**
+ * Renders inline tiny shape thumbnail & sets up desktop hover enlargement popover.
+ * 
+ * @param {Object} omaData - Parsed OMA object
+ */
+function showShape(omaData) {
+  if (!omaData) {
+    $('#shapePreview').innerHTML = '';
+    return;
   }
 
-  /**
-   * Renders inline tiny shape thumbnail & sets up desktop hover enlargement popover.
-   *
-   * @param {Object} omaData - Parsed OMA object
-   */
-  function showShape(omaData) {
-    if (!omaData) {
-      $("#shapePreview").innerHTML = "";
-      return;
-    }
+  const a = omaData.hbox || parseNum($('#fa').value) || 52.68;
+  const b = omaData.vbox || parseNum($('#fb').value) || 43.59;
+  const ed = omaData.ed || parseNum($('#fed').value) || 62.24;
+  const dbl = omaData.dbl || parseNum($('#fdbl').value) || 17.37;
+  const name = omaData.job || $('#fname').value || '1471';
 
-    const a = omaData.hbox || parseNum($("#fa").value) || 52.68;
-    const b = omaData.vbox || parseNum($("#fb").value) || 43.59;
-    const ed = omaData.ed || parseNum($("#fed").value) || 62.24;
-    const dbl = omaData.dbl || parseNum($("#fdbl").value) || 17.37;
-    const name = omaData.job || $("#fname").value || "1471";
+  const tinySvg = generateOMASVG(omaData, { showDimensions: true });
+  const popSvg = generateOMASVG(omaData, { showDimensions: true });
 
-    const tinySvg = generateOMASVG(omaData, { showDimensions: true });
-    const popSvg = generateOMASVG(omaData, { showDimensions: true });
-
-    $("#shapePreview").innerHTML = `
+  $('#shapePreview').innerHTML = `
     <div class="shapebox">
       <div class="shapebox-header">
         <div style="min-width:0">
@@ -3743,22 +2914,22 @@ ZFMT=0
           <div class="tiny-hint">🔍 Hover to enlarge</div>
         </div>
         <div style="flex:1;min-width:200px">
-          <label class="confirmrow"><input type="checkbox" id="shapeConfirm" ${S.shapeOk ? "checked" : ""}><span>This trace matches the physical frame</span></label>
+          <label class="confirmrow"><input type="checkbox" id="shapeConfirm" ${S.shapeOk ? 'checked' : ''}><span>This trace matches the physical frame</span></label>
           <div class="hint" style="margin-top:6px">Shape generated directly from OMA polar radii vectors. Desktop users can hover thumbnail to magnify.</div>
         </div>
       </div>
     </div>
   `;
 
-    let pop = $("#omaHoverPop");
-    if (!pop) {
-      pop = document.createElement("div");
-      pop.id = "omaHoverPop";
-      pop.className = "oma-popover";
-      rootEl.appendChild(pop);
-    }
+  let pop = $('#omaHoverPop');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'omaHoverPop';
+    pop.className = 'oma-popover';
+    rootEl.appendChild(pop);
+  }
 
-    pop.innerHTML = `
+  pop.innerHTML = `
     <div class="oma-pop-head">
       <div>
         <h4>Traced Shape Verification — ${name}</h4>
@@ -3777,272 +2948,187 @@ ZFMT=0
     </div>
   `;
 
-    const tiny = $("#tinyPreview");
-    if (tiny) {
-      tiny.addEventListener("mouseenter", (e) => {
-        pop.classList.add("on");
-        positionPop(e);
-      });
-      tiny.addEventListener("mousemove", (e) => {
-        positionPop(e);
-      });
-      tiny.addEventListener("mouseleave", () => {
-        pop.classList.remove("on");
-      });
-    }
-
-    function positionPop(e) {
-      const popW = pop.offsetWidth || 520;
-      const popH = pop.offsetHeight || 380;
-      let x = e.clientX + 20;
-      let y = e.clientY;
-
-      if (x + popW > window.innerWidth - 15) {
-        x = e.clientX - popW - 20;
-      }
-      if (y + popH / 2 > window.innerHeight - 15) {
-        y = window.innerHeight - popH / 2 - 15;
-      }
-      if (y - popH / 2 < 15) {
-        y = popH / 2 + 15;
-      }
-      pop.style.left = Math.max(10, x) + "px";
-      pop.style.top = Math.max(10, y) + "px";
-    }
-
-    $("#shapeConfirm").addEventListener("change", (e) => {
-      S.shapeOk = e.target.checked;
-      render();
+  const tiny = $('#tinyPreview');
+  if (tiny) {
+    tiny.addEventListener('mouseenter', (e) => {
+      pop.classList.add('on');
+      positionPop(e);
+    });
+    tiny.addEventListener('mousemove', (e) => {
+      positionPop(e);
+    });
+    tiny.addEventListener('mouseleave', () => {
+      pop.classList.remove('on');
     });
   }
 
-  /* ---------- branch ---------- */
-  let branchQuery = "";
-  function renderBranches() {
-    const q = branchQuery.trim().toLowerCase();
-    const list = q
-      ? BRANCHES.filter((b) => (b.name + " " + b.info + " " + (b.code || "")).toLowerCase().includes(q))
-      : BRANCHES;
-    $("#branchList").innerHTML = list.length
-      ? list
-          .map(
-            (b) => `<button class="branch ${S.branch && S.branch.id === b.id ? "cur" : ""}" data-b="${b.id}">
-    <span class="bi">${b.code}</span><span><span class="bn">${b.name}</span><span class="bd">${b.info}</span></span>
-    ${S.branch && S.branch.id === b.id ? '<span class="bt">Current</span>' : ""}</button>`,
-          )
-          .join("")
-      : '<p class="chipnone" style="padding:22px 4px;text-align:center">No accounts match your search.</p>';
-    $$("#branchList .branch").forEach((el) =>
-      el.addEventListener("click", () => {
-        const b = BRANCHES.find((x) => x.id === el.dataset.b),
-          changing = S.branch && S.branch.id !== b.id;
-        if (changing && !confirm("Move this order to " + b.name + "?\n\nPricing, currency and delivery may differ."))
-          return;
-        S.branch = b;
-        if (ADAPTER.onBranchChange) ADAPTER.onBranchChange(b.id);
-        $("#branchName").textContent = b.name.replace("Bridgetown Optical — ", "");
-        /* currency and price visibility follow the account */
-        S.cur = b.cur || "USD";
-        S.pricesOn = b.prices !== false;
-        $("#curSim").value = S.cur;
-        $("#pricesOn").checked = S.pricesOn;
-        $("#branchScrim").classList.remove("on");
-        if (changing)
-          toast("Order now placed against " + b.name + (S.pricesOn ? "" : " — pricing not enabled on that account"));
-        render();
-      }),
-    );
-  }
-  function openBranchPicker() {
-    branchQuery = "";
-    const s = $("#branchSearch");
-    if (s) s.value = "";
-    renderBranches();
-    $("#branchScrim").classList.add("on");
-    if (s) setTimeout(() => s.focus(), 50);
-  }
-  $("#branchChip").addEventListener("click", openBranchPicker);
-  $("#reopenBranch").addEventListener("click", openBranchPicker);
-  $("#branchSearch").addEventListener("input", (e) => {
-    branchQuery = e.target.value;
-    renderBranches();
-  });
+  function positionPop(e) {
+    const popW = pop.offsetWidth || 520;
+    const popH = pop.offsetHeight || 380;
+    let x = e.clientX + 20;
+    let y = e.clientY;
 
-  /* ---------- toast ---------- */
-  function toast(m) {
-    const t = $("#toast");
-    $("#toastMsg").textContent = m;
-    t.classList.add("on");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => t.classList.remove("on"), 2800);
-  }
-  window.__toast = toast;
-
-  /* ---------- prefill / draft / demo ---------- */
-  function applyLens(m, d, c) {
-    S.m = m;
-    S.d = d;
-    S.c = c;
-    fillLensSelects();
-  }
-  $("#btnPrefill").addEventListener("click", () => {
-    S.vision = "mf";
-    $$("#visionSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.vision === "mf"));
-    applyLens("1.60", "pg-enh", "ph-grey");
-    S.prefilled = true;
-    S.revealAll = true;
-    const chip = $("#prefillChip");
-    chip.classList.remove("hide");
-    chip.textContent = "↩ Prefilled from your pricelist · " + material().n + " · " + design().n + " · " + colour().n;
-    render();
-    toast("Lens prefilled from the price you clicked — everything stays swappable");
-  });
-  $("#btnDraft").addEventListener("click", () => {
-    fillDemo(true);
-    S.fromDraft = true;
-    S.revealAll = true;
-    $("#draftBanner").classList.remove("hide");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    render();
-    toast("Draft restored into the Rx order form");
-  });
-  $("#btnTraceDemo").addEventListener("click", () => {
-    const omaData = parseOMA(SAMPLE_OMA_1471);
-    S.file = {
-      name: "1471.oma",
-      size: 8681,
-      rawText: SAMPLE_OMA_1471,
-      omaData: omaData,
-    };
-    S.scope = "remote";
-    $$("#scopeSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.scope === "remote"));
-    $("#traceBlock").classList.remove("hide");
-    $("#fsourceField").classList.add("hide");
-
-    if (omaData) {
-      if (omaData.hbox) $("#fa").value = omaData.hbox.toFixed(2);
-      if (omaData.vbox) $("#fb").value = omaData.vbox.toFixed(2);
-      if (omaData.ed) $("#fed").value = omaData.ed.toFixed(2);
-      /* DBL waits for the optician to enter it — not auto-filled from the trace. */
-      if (omaData.job) $("#fname").value = omaData.job;
+    if (x + popW > window.innerWidth - 15) {
+      x = e.clientX - popW - 20;
     }
+    if (y + popH / 2 > window.innerHeight - 15) {
+      y = window.innerHeight - popH / 2 - 15;
+    }
+    if (y - popH / 2 < 15) {
+      y = popH / 2 + 15;
+    }
+    pop.style.left = Math.max(10, x) + 'px';
+    pop.style.top = Math.max(10, y) + 'px';
+  }
 
-    $("#drop").classList.add("hide");
-    $("#fileList").innerHTML = `<div class="filerow"><div class="fi">OMA</div>
+  $('#shapeConfirm').addEventListener('change', e => {
+    S.shapeOk = e.target.checked;
+    render();
+  });
+}
+
+/* ---------- branch ---------- */
+let branchQuery='';
+function renderBranches(){
+  const q=branchQuery.trim().toLowerCase();
+  const list=q?BRANCHES.filter(b=>(b.name+' '+b.info+' '+(b.code||'')).toLowerCase().includes(q)):BRANCHES;
+  $('#branchList').innerHTML=list.length?list.map(b=>`<button class="branch ${S.branch&&S.branch.id===b.id?'cur':''}" data-b="${b.id}">
+    <span class="bi">${b.code}</span><span><span class="bn">${b.name}</span><span class="bd">${b.info}</span></span>
+    ${S.branch&&S.branch.id===b.id?'<span class="bt">Current</span>':''}</button>`).join('')
+    :'<p class="chipnone" style="padding:22px 4px;text-align:center">No accounts match your search.</p>';
+  $$('#branchList .branch').forEach(el=>el.addEventListener('click',()=>{
+    const b=BRANCHES.find(x=>x.id===el.dataset.b), changing=S.branch&&S.branch.id!==b.id;
+    if(changing&&!confirm('Move this order to '+b.name+'?\n\nPricing, currency and delivery may differ.')) return;
+    S.branch=b; if(ADAPTER.onBranchChange) ADAPTER.onBranchChange(b.id); $('#branchName').textContent=b.name.replace('Bridgetown Optical — ','');
+    /* currency and price visibility follow the account */
+    S.cur=b.cur||'USD'; S.pricesOn=b.prices!==false;
+    $('#curSim').value=S.cur; $('#pricesOn').checked=S.pricesOn;
+    $('#branchScrim').classList.remove('on');
+    if(changing) toast('Order now placed against '+b.name+(S.pricesOn?'':' — pricing not enabled on that account'));
+    render();
+  }));
+}
+function openBranchPicker(){
+  branchQuery=''; const s=$('#branchSearch'); if(s) s.value='';
+  renderBranches();
+  $('#branchScrim').classList.add('on');
+  if(s) setTimeout(()=>s.focus(),50);
+}
+$('#branchChip').addEventListener('click',openBranchPicker);
+$('#reopenBranch').addEventListener('click',openBranchPicker);
+$('#branchSearch').addEventListener('input',e=>{ branchQuery=e.target.value; renderBranches(); });
+
+/* ---------- toast ---------- */
+function toast(m){const t=$('#toast');$('#toastMsg').textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2800);}
+window.__toast=toast;
+
+/* ---------- prefill / draft / demo ---------- */
+function applyLens(m,d,c){ S.m=m; S.d=d; S.c=c; fillLensSelects(); }
+$('#btnPrefill').addEventListener('click',()=>{
+  S.vision='mf'; $$('#visionSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vision==='mf'));
+  applyLens('1.60','pg-enh','ph-grey');
+  S.prefilled=true; S.revealAll=true;
+  const chip=$('#prefillChip'); chip.classList.remove('hide');
+  chip.textContent='↩ Prefilled from your pricelist · '+material().n+' · '+design().n+' · '+colour().n;
+  render(); toast('Lens prefilled from the price you clicked — everything stays swappable');
+});
+$('#btnDraft').addEventListener('click',()=>{
+  fillDemo(true); S.fromDraft=true; S.revealAll=true;
+  $('#draftBanner').classList.remove('hide');
+  window.scrollTo({top:0,behavior:'smooth'});
+  render(); toast('Draft restored into the Rx order form');
+});
+$('#btnTraceDemo').addEventListener('click',()=>{
+  const omaData = parseOMA(SAMPLE_OMA_1471);
+  S.file = {
+    name: '1471.oma',
+    size: 8681,
+    rawText: SAMPLE_OMA_1471,
+    omaData: omaData
+  };
+  S.scope = 'remote';
+  $$('#scopeSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.scope==='remote'));
+  $('#traceBlock').classList.remove('hide');
+  $('#fsourceField').classList.add('hide');
+
+  if (omaData) {
+    if (omaData.hbox) $('#fa').value = omaData.hbox.toFixed(2);
+    if (omaData.vbox) $('#fb').value = omaData.vbox.toFixed(2);
+    if (omaData.ed) $('#fed').value = omaData.ed.toFixed(2);
+    /* DBL waits for the optician to enter it — not auto-filled from the trace. */
+    if (omaData.job) $('#fname').value = omaData.job;
+  }
+
+  $('#drop').classList.add('hide');
+  $('#fileList').innerHTML = `<div class="filerow"><div class="fi">OMA</div>
     <div><div class="fn">1471.oma</div><div class="fs">8.7 KB · sample OMA trace loaded</div></div>
     <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
       <button type="button" class="btn btn-ghost btn-sm" id="changeFile">Upload new</button>
       <button type="button" class="btn btn-ghost btn-sm" id="rmFile" style="color:var(--danger)">Remove trace</button>
     </div></div>`;
 
-    $("#rmFile").addEventListener("click", () => {
-      S.file = null;
-      S.shapeOk = false;
-      $("#fileList").innerHTML = "";
-      $("#shapePreview").innerHTML = "";
-      $("#fileInput").value = "";
-      $("#drop").classList.remove("hide");
-      render();
-      toast("Trace removed");
-    });
-    $("#changeFile").addEventListener("click", () => {
-      $("#fileInput").click();
-    });
-
-    S.revealAll = true;
-    syncED();
-    fillDiam();
-    showShape(omaData);
-    render();
-    toast("Loaded 1471.oma trace sample — shape & dimensions auto-populated");
+  $('#rmFile').addEventListener('click',()=>{
+    S.file=null; S.shapeOk=false; $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#fileInput').value='';
+    $('#drop').classList.remove('hide'); render(); toast('Trace removed');
   });
-  $("#btnClearAll").addEventListener("click", () => {
-    if (confirm("Clear the whole form?")) {
-      clearAll();
-      toast("Form cleared");
-    }
-  });
-  $("#discardDraft").addEventListener("click", () => {
-    if (confirm("Discard this draft and clear the form?")) {
-      clearAll();
-      toast("Draft discarded");
-    }
-  });
-  function fillDemo(quiet) {
-    S.vision = "mf";
-    $$("#visionSeg button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.vision === "mf"));
-    applyLens("1.60", "pg-enh", "clear");
-    $("#pfirst").value = "Marcus";
-    $("#plast").value = "Grant";
-    $("#ref").value = "JOB-2291";
-    $("#fname").value = "Ray-Ban RB5154";
-    $("#fa").value = "52";
-    $("#fb").value = "38";
-    $("#fdbl").value = "18";
-    $("#ftemple").value = "140";
-    S.edTouched = false;
-    const v = {
-      od: { sph: "-325", cyl: "1-", axis: "175", add: "2", prism: "", base: "", pd: "64", npd: "", ht: "22" },
-      os: { sph: "-275", cyl: "-075", axis: "185", add: "2", prism: "", base: "", pd: "", npd: "", ht: "22" },
-    };
-    ["od", "os"].forEach((e) =>
-      rowEls(e).forEach((i) => {
-        if (i.dataset.f in v[e]) i.value = v[e][i.dataset.f];
-      }),
-    );
-    S.revealAll = true;
-    $$(".rxtable input").forEach((i) => {
-      if (i.value) normalise(i);
-    });
-    render();
-    if (!quiet) toast("Demo filled — watch -325, 1-, 185 and 64 normalise");
-  }
-  $("#btnDemo").addEventListener("click", () => fillDemo(false));
+  $('#changeFile').addEventListener('click',()=>{ $('#fileInput').click(); });
 
-  /* ---------- draft / print / submit ---------- */
-  ["#saveDraft", "#saveDraft2", "#saveDraft3"].forEach((s) =>
-    $(s).addEventListener("click", () => {
-      const n = S.assists.size,
-        p = stashOrder("draft");
-      Promise.resolve(ADAPTER.onDraftSaved?.(p))
-        .then(() => {
-          toast(
-            "Draft saved (" +
-              payloadSize(p) +
-              " bundle" +
-              (p.shape ? ", shape included" : "") +
-              ")" +
-              (n ? ` · ${n} flagged for assistance` : "") +
-              " · resumable from Saved Drafts",
-          );
-        })
-        .catch((error) => {
-          toast("Draft could not be saved to your account" + (error?.message ? `: ${error.message}` : ""));
-        });
-    }),
-  );
+  S.revealAll = true;
+  syncED();
+  fillDiam();
+  showShape(omaData);
+  render();
+  toast('Loaded 1471.oma trace sample — shape & dimensions auto-populated');
+});
+$('#btnClearAll').addEventListener('click',()=>{ if(confirm('Clear the whole form?')) { clearAll(); toast('Form cleared'); } });
+$('#discardDraft').addEventListener('click',()=>{ if(confirm('Discard this draft and clear the form?')){ clearAll(); toast('Draft discarded'); } });
+function fillDemo(quiet){
+  S.vision='mf'; $$('#visionSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vision==='mf'));
+  applyLens('1.60','pg-enh','clear');
+  $('#pfirst').value='Marcus'; $('#plast').value='Grant'; $('#ref').value='JOB-2291';
+  $('#fname').value='Ray-Ban RB5154'; $('#mount').value='full'; $('#fa').value='52'; $('#fb').value='38'; $('#fdbl').value='18'; $('#ftemple').value='140';
+  S.edTouched=false;
+  const v={od:{sph:'-325',cyl:'1-',axis:'175',add:'2',prism:'',base:'',pd:'64',npd:'',ht:'22'},
+           os:{sph:'-275',cyl:'-075',axis:'185',add:'2',prism:'',base:'',pd:'',npd:'',ht:'22'}};
+  ['od','os'].forEach(e=>rowEls(e).forEach(i=>{ if(i.dataset.f in v[e]) i.value=v[e][i.dataset.f]; }));
+  S.revealAll=true;
+  $$('.rxtable input').forEach(i=>{ if(i.value) normalise(i); });
+  render();
+  if(!quiet) toast('Demo filled — watch -325, 1-, 185 and 64 normalise');
+}
+$('#btnDemo').addEventListener('click',()=>fillDemo(false));
 
-  $("#printBtn").addEventListener("click", () => {
-    const c = CUR[S.cur],
-      { sub } = price();
-    const rows = activeEyes().map((e) => ({ e, r: readRow(e) }));
-    const tr = Array.from(S.treat)
-      .map((id) => (TREAT.find((x) => x.id === id) || {}).n)
-      .filter(Boolean);
-    const f = (v) => (v === null || v === undefined || v === "" ? "—" : v);
-    const rx = rows
-      .map(
-        ({ e, r }) => `<tr><th>${e.toUpperCase()}</th>
-    <td>${r.sph !== null ? sgn(r.sph) : "—"}</td><td>${r.cyl !== null ? sgn(r.cyl) : "—"}</td><td>${f(r.axis)}</td>
-    ${needsAdd() ? `<td>${r.add !== null ? sgn(r.add) : "—"}</td>` : ""}
-    <td>${r.prism ? r.prism.toFixed(2) : "—"}</td><td>${f(r.base)}</td>
-    <td>${r.pd !== null ? r.pd.toFixed(1) : "—"}</td>
-    ${needsNearPD() ? `<td>${r.npd !== null ? r.npd.toFixed(1) : "—"}</td>` : ""}
-    ${needsHt() ? `<td>${r.ht !== null ? r.ht.toFixed(1) : "—"}</td>` : ""}</tr>`,
-      )
-      .join("");
-    const lensNm = S.m && S.d && S.c ? `${material().n} · ${design().n} · ${colour().n}` : "—";
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rx Order — ${$("#pfirst").value} ${$("#plast").value}</title>
+/* ---------- draft / print / submit ---------- */
+['#saveDraft','#saveDraft2','#saveDraft3'].forEach(s=>$(s).addEventListener('click',()=>{
+  const n=S.assists.size, p=stashOrder('draft');
+  Promise.resolve(ADAPTER.onDraftSaved?.(p)).then(()=>{
+    toast('Draft saved ('+payloadSize(p)+' bundle'+(p.shape?', shape included':'')+')'
+      +(n?` · ${n} flagged for assistance`:'')+' · resumable from Saved Drafts');
+  }).catch(error=>{
+    toast('Draft could not be saved to your account'+(error?.message?`: ${error.message}`:''));
+  });
+}));
+
+$('#printBtn').addEventListener('click',()=>{
+  const c=CUR[S.cur], {sub}=price();
+  const rows=activeEyes().map(e=>({e,r:readRow(e)}));
+  const tr=Array.from(S.treat).map(id=>(TREAT.find(x=>x.id===id)||{}).n).filter(Boolean);
+  const f=v=>(v===null||v===undefined||v==='')?'—':v;
+  const htLbl=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
+  const rx=rows.map(({e,r})=>`<tr><th>${e.toUpperCase()}</th>
+    <td>${r.sph!==null?sgn(r.sph):'—'}</td><td>${r.cyl!==null?sgn(r.cyl):'—'}</td><td>${f(r.axis)}</td>
+    ${needsAdd()?`<td>${r.add!==null?sgn(r.add):'—'}</td>`:''}
+    <td>${r.pd!==null?r.pd.toFixed(1):'—'}</td>
+    ${needsNearPD()?`<td>${r.npd!==null?r.npd.toFixed(1):'—'}</td>`:''}
+    <td>${r.ht!==null?r.ht.toFixed(1):'—'}</td>
+    <td>${r.prism?r.prism.toFixed(2):'—'}</td><td>${f(r.base)}</td></tr>`).join('');
+  const plusCylOn=$('#plusCylOn').checked;
+  const pcRows=plusCylOn?activeEyes().map(e=>{
+    const sph=$('#pc-'+e+'-sph').value||'—', cyl=$('#pc-'+e+'-cyl').value||'—', axis=$('#pc-'+e+'-axis').value||'—';
+    return `<tr><th>${e.toUpperCase()}</th><td>${sph}</td><td>${cyl}</td><td>${axis}</td></tr>`;
+  }).join(''):'';
+  const lensNm=(S.m&&S.d&&S.c)?`${material().n} · ${design().n} · ${colour().n}`:'—';
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rx Order — ${$('#pfirst').value} ${$('#plast').value}</title>
   <style>body{font:13px/1.55 ui-sans-serif,system-ui,Segoe UI,Arial;color:#0B1E35;margin:34px;max-width:760px}
   .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0B1E35;padding-bottom:12px;margin-bottom:18px}
   .hd h1{margin:0;font-size:19px}.hd .s{font-size:12px;color:#557;margin-top:3px}
@@ -4056,346 +3142,478 @@ ZFMT=0
   .sig{margin-top:34px;display:flex;gap:40px}.sig div{flex:1;border-top:1px solid #99a;padding-top:6px;font-size:11px;color:#557}
   .ft{margin-top:26px;font-size:10.5px;color:#889;text-align:center}
   @media print{body{margin:14mm}}</style></head><body>
-  <div class="hd"><div><h1>Rx Order Sheet</h1><div class="s"><b style="font-size:14px">No. ${S.orderNo}</b> · ${$("#ref").value ? "Ref " + $("#ref").value + " · " : ""}${new Date().toLocaleDateString()} · ${S.scope === "uncut" ? "Uncut Rx lenses" : S.scope === "remote" ? "Remote edge" : "Full glaze"}</div></div>
-  <div class="biz"><b>${S.branch ? S.branch.name : "—"}</b>${S.branch ? S.branch.info : ""}<br>Classic Visions Rx Laboratory</div></div>
-  <h2>Patient</h2><div class="kv"><span>Name</span><div>${$("#pfirst").value} ${$("#plast").value}</div>
-  <span>Eyes supplied</span><div>${S.eyes === "pair" ? "Pair (OD + OS)" : S.eyes === "od" ? "Right lens only" : "Left lens only"}</div></div>
-  <h2>Prescription</h2><table><thead><tr><th></th><th>Sphere</th><th>Cyl</th><th>Axis</th>${needsAdd() ? "<th>Add</th>" : ""}<th>Prism</th><th>Base</th><th>Dist PD</th>${needsNearPD() ? "<th>Near PD</th>" : ""}${needsHt() ? "<th>Fit ht</th>" : ""}</tr></thead><tbody>${rx}</tbody></table>
-  ${(function () {
-    const sh = activeShape();
-    if (!sh) return "";
-    const g = shapeGeometry(sh);
-    if (!g) return "";
-    const m = g.metrics;
-    const src =
-      S.shapeSrc === "standard"
-        ? (STD_SHAPES.find((s) => s.id === S.stdShape) || {}).n + " — standard shape"
-        : "Traced" + (sh.job ? " · " + sh.job : "");
+  <div class="hd"><div><h1>Rx Order Sheet</h1><div class="s"><b style="font-size:14px">No. ${S.orderNo}</b> · ${$('#ref').value?'Ref '+$('#ref').value+' · ':''}${new Date().toLocaleDateString()} · ${S.scope==='uncut'?'Uncut Rx lenses':S.scope==='remote'?'Remote edge':'Full glaze'}</div></div>
+  <div class="biz"><b>${S.branch?S.branch.name:'—'}</b>${S.branch?S.branch.info:''}<br>Classic Visions Rx Laboratory</div></div>
+  <h2>Patient</h2><div class="kv"><span>Name</span><div>${$('#pfirst').value} ${$('#plast').value}</div>
+  <span>Eyes supplied</span><div>${S.eyes==='pair'?'Pair (OD + OS)':S.eyes==='od'?'Right lens only':'Left lens only'}</div></div>
+  <h2>Prescription</h2><table><thead><tr><th></th><th>Sphere</th><th>Cyl</th><th>Axis</th>${needsAdd()?'<th>Add</th>':''}<th>Dist PD</th>${needsNearPD()?'<th>Near PD</th>':''}<th>${htLbl}</th><th>Prism</th><th>Base</th></tr></thead><tbody>${rx}</tbody></table>
+  ${pcRows?`<div style="margin-top:8px;font-size:11px;color:#557">As prescribed — plus cylinder form; converted to minus cylinder above for production.</div>
+  <table style="margin-top:4px"><thead><tr><th></th><th>Sphere</th><th>Cyl</th><th>Axis</th></tr></thead><tbody>${pcRows}</tbody></table>`:''}
+  ${(function(){
+    const sh=activeShape(); if(!sh) return '';
+    const g=shapeGeometry(sh); if(!g) return '';
+    const m=g.metrics;
+    const src=S.shapeSrc==='standard'?((STD_SHAPES.find(s=>s.id===S.stdShape)||{}).n+' — standard shape')
+      :('Traced'+(sh.job?' · '+sh.job:''));
     return `<h2>Frame shape</h2>
       <div style="border:1px solid #ccd;border-radius:6px;padding:8px;background:#fbfaf7;max-width:430px">
-        ${generateOMASVG(sh, { showDimensions: true })}
+        ${generateOMASVG(sh,{showDimensions:true})}
       </div>
       <div class="kv" style="margin-top:8px">
-        <span>Shape source</span><div>${src} · ${sh.points.R.length} points${sh.mirroredL ? " · second side mirrored" : ""}</div>
+        <span>Shape source</span><div>${src} · ${sh.points.R.length} points${sh.mirroredL?' · second side mirrored':''}</div>
         <span>Measured</span><div>A ${g.a.toFixed(2)} · B ${g.b.toFixed(2)} · ED ${m.ed.toFixed(2)} @ ${m.edAxis.toFixed(1)}° · DBL ${g.dbl.toFixed(2)} · Circ ${m.circ.toFixed(1)} mm</div>
-        <span>Verified</span><div>${S.shapeOk ? "Confirmed by the dispenser" : "NOT confirmed"}</div>
+        <span>Verified</span><div>${S.shapeOk?'Confirmed by the dispenser':'NOT confirmed'}</div>
       </div>`;
   })()}
   <h2>Lens</h2><div class="kv"><span>Lens</span><div>${lensNm}</div>
   <span>Blank</span><div>${effDiam()} mm</div>
-  <span>Treatments</span><div>${tr.length ? tr.join(", ") : "None"}</div>
-  <span>Frame</span><div>${$("#fname").value || "—"} · A ${$("#fa").value || "—"} B ${$("#fb").value || "—"} ED ${$("#fed").value || "—"} DBL ${$("#fdbl").value || "—"} Temple ${$("#ftemple").value || "—"} · ${$("#mount").options[$("#mount").selectedIndex].text}</div>
-  <span>Service</span><div>${$("#service").options[$("#service").selectedIndex].text} · ${$("#delivery").value}</div>
-  ${$("#notes").value ? `<span>Notes</span><div>${$("#notes").value.replace(/</g, "&lt;")}</div>` : ""}</div>
-  ${
-    S.pricesOn
-      ? `<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub * c.rate)}</span></div>`
-      : `<div class="tot" style="font-size:12.5px;font-weight:500;color:#557"><span>Pricing not enabled on this account</span><span>Confirmed before production</span></div>`
-  }
-  ${S.ownerReview ? '<p style="font-size:11.5px;color:#8a6a20;margin-top:10px">⚑ Contains specialty work pending owner review.</p>' : ""}
+  <span>Treatments</span><div>${tr.length?tr.join(', '):'None'}</div>
+  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} Temple ${$('#ftemple').value||'—'} · ${$('#mount').options[$('#mount').selectedIndex].text}</div>
+  <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${$('#delivery').value}</div>
+  ${$('#notes').value?`<span>Notes</span><div>${$('#notes').value.replace(/</g,'&lt;')}</div>`:''}</div>
+  ${S.pricesOn?`<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub*c.rate)}</span></div>`
+    :`<div class="tot" style="font-size:12.5px;font-weight:500;color:#557"><span>Pricing not enabled on this account</span><span>Confirmed before production</span></div>`}
+  ${S.ownerReview?'<p style="font-size:11.5px;color:#8a6a20;margin-top:10px">⚑ Contains specialty work pending owner review.</p>':''}
   <div class="sig"><div>Dispenser signature</div><div>Date received at lab</div></div>
   <div class="ft">Classic Visions Rx Laboratory · Barbados · prototype document</div>
   <script>window.onload=function(){setTimeout(function(){window.print();},250);}<\/script></body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) {
-      toast("Allow pop-ups to print the order sheet");
-      return;
-    }
-    w.document.write(html);
-    w.document.close();
-  });
+  const w=window.open('','_blank');
+  if(!w){ toast('Allow pop-ups to print the order sheet'); return; }
+  w.document.write(html); w.document.close();
+});
 
-  let submitInFlight = false;
-  async function submit() {
-    if (submitInFlight) return;
-    const V = secValid();
-    if (!(V["sec-patient"] && V["sec-frame"] && V["sec-lens"] && V["sec-rx"])) return;
-    const c = CUR[S.cur],
-      { sub } = price();
-    const rows = activeEyes().map((e) => ({ e, r: readRow(e) }));
-    const fmt = (r) => `${r.sph !== null ? sgn(r.sph) : "—"} / ${r.cyl !== null ? sgn(r.cyl) : "—"} × ${r.axis ?? "—"}`;
-    const tr = Array.from(S.treat)
-      .map((id) => (TREAT.find((x) => x.id === id) || {}).n)
-      .filter(Boolean);
-    $("#mSum").innerHTML = `
+let submitInFlight=false;
+async function submit(){
+  if(submitInFlight) return;
+  const V=secValid();
+  if(!(V['sec-patient']&&V['sec-frame']&&V['sec-lens']&&V['sec-rx'])) return;
+  const c=CUR[S.cur], {sub}=price();
+  const rows=activeEyes().map(e=>({e,r:readRow(e)}));
+  const fmt=r=>`${r.sph!==null?sgn(r.sph):'—'} / ${r.cyl!==null?sgn(r.cyl):'—'} × ${r.axis??'—'}`;
+  const tr=Array.from(S.treat).map(id=>(TREAT.find(x=>x.id===id)||{}).n).filter(Boolean);
+  $('#mSum').innerHTML=`
     <div class="r"><span>Order number</span><b>${S.orderNo}</b></div>
-    <div class="r"><span>Store</span><b>${S.branch ? S.branch.name : "—"}</b></div>
+    <div class="r"><span>Store</span><b>${S.branch?S.branch.name:'—'}</b></div>
     <div class="r"><span>Lens</span><b>${material().n} · ${design().n} · ${colour().n}</b></div>
-    ${rows.map(({ e, r }) => `<div class="r"><span>${e.toUpperCase()}</span><b>${fmt(r)}</b></div>`).join("")}
-    <div class="r"><span>Treatments</span><b>${tr.length ? tr.join(", ") : "None"}</b></div>
-    <div class="r"><span>Job</span><b>${S.scope === "uncut" ? "Uncut Rx lenses" : S.scope === "remote" ? "Remote edge" : "Full glaze"} · ${S.eyes === "pair" ? "pair" : S.eyes === "od" ? "right only" : "left only"}</b></div>
-    ${S.ownerReview ? '<div class="r"><span>Flag</span><b style="color:hsl(38 70% 30%)">Owner review before production</b></div>' : ""}
-    <div class="r" style="border-top:1px solid var(--border-soft);margin-top:6px;padding-top:8px"><span>${S.pricesOn ? "Locked price" : "Price"}</span><b>${S.pricesOn ? c.sym + " " + money(sub * c.rate) : "Confirmed with you before production"}</b></div>`;
-    $("#scrim .mhead p").textContent = S.pricesOn
-      ? "Price is now locked at this quote and will be honoured through checkout."
-      : "Your order is in the cart. Pricing isn't enabled on this account, so we confirm the price with you before production.";
-    submitInFlight = true;
-    try {
-      const __p = stashOrder("submitted");
-      if (ADAPTER.onSubmitted) await ADAPTER.onSubmitted(__p);
-      $("#scrim").classList.add("on");
-    } catch (err) {
-      console.error("Rx order submission could not be persisted", err);
-      toast("Could not save the order and add it to the cart. Please try again.");
-    } finally {
-      submitInFlight = false;
-    }
-  }
-  $("#submitBtn").addEventListener("click", () => {
-    void submit();
-  });
-  $("#submitBtn2").addEventListener("click", () => {
-    void submit();
-  });
-  $$("#scrim .choice").forEach((b) =>
-    b.addEventListener("click", () => {
-      const n = b.dataset.next;
-      $("#scrim").classList.remove("on");
-      if (n === "another")
-        setTimeout(() => {
-          clearAll();
-          toast("New blank Rx order · previous job is in your cart");
-        }, 260);
-      else if (n === "duplicate") toast("Prototype: cart now holds 2 copies of this Rx — edit either with the pencil");
-      else if (n === "checkout") {
-        if (ADAPTER.onCheckout) ADAPTER.onCheckout();
-        else toast("Checkout wiring not enabled on this surface");
-      } else {
-        if (ADAPTER.onStore) ADAPTER.onStore();
-        else toast("Store return not enabled on this surface");
-      }
-    }),
-  );
-  $("#scrim").addEventListener("click", (e) => {
-    if (e.target === $("#scrim")) $("#scrim").classList.remove("on");
-  });
-  docListen("keydown", (e) => {
-    if (e.key !== "Escape") return;
-    $("#scrim").classList.remove("on");
-    $("#treatDrawer").classList.remove("on");
-    $("#coachDrawer").classList.remove("on");
-  });
+    ${rows.map(({e,r})=>`<div class="r"><span>${e.toUpperCase()}</span><b>${fmt(r)}</b></div>`).join('')}
+    <div class="r"><span>Treatments</span><b>${tr.length?tr.join(', '):'None'}</b></div>
+    <div class="r"><span>Job</span><b>${S.scope==='uncut'?'Uncut Rx lenses':S.scope==='remote'?'Remote edge':'Full glaze'} · ${S.eyes==='pair'?'pair':S.eyes==='od'?'right only':'left only'}</b></div>
+    ${S.ownerReview?'<div class="r"><span>Flag</span><b style="color:hsl(38 70% 30%)">Owner review before production</b></div>':''}
+    <div class="r" style="border-top:1px solid var(--border-soft);margin-top:6px;padding-top:8px"><span>${S.pricesOn?'Locked price':'Price'}</span><b>${S.pricesOn?c.sym+' '+money(sub*c.rate):'Confirmed with you before production'}</b></div>`;
+  $('#scrim .mhead p').textContent=S.pricesOn
+    ? 'Price is now locked at this quote and will be honoured through checkout.'
+    : 'Your order is in the cart. Pricing isn\'t enabled on this account, so we confirm the price with you before production.';
+  submitInFlight=true;
+  try{
+    const __p=stashOrder('submitted');
+    if(ADAPTER.onSubmitted) await ADAPTER.onSubmitted(__p);
+    $('#scrim').classList.add('on');
+  }catch(err){
+    console.error('Rx order submission could not be persisted',err);
+    toast('Could not save the order and add it to the cart. Please try again.');
+  }finally{ submitInFlight=false; }
+}
+$('#submitBtn').addEventListener('click',()=>{void submit();});
+$('#submitBtn2').addEventListener('click',()=>{void submit();});
+$$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
+  const n=b.dataset.next; $('#scrim').classList.remove('on');
+  if(n==='another') setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
+  else if(n==='duplicate') toast('Prototype: cart now holds 2 copies of this Rx — edit either with the pencil');
+  else if(n==='checkout'){ if(ADAPTER.onCheckout) ADAPTER.onCheckout(); else toast('Checkout wiring not enabled on this surface'); }
+  else { if(ADAPTER.onStore) ADAPTER.onStore(); else toast('Store return not enabled on this surface'); }
+}));
+$('#scrim').addEventListener('click',e=>{ if(e.target===$('#scrim')) $('#scrim').classList.remove('on'); });
+docListen('keydown',e=>{ if(e.key!=='Escape') return;
+  $('#scrim').classList.remove('on'); $('#treatDrawer').classList.remove('on'); $('#coachDrawer').classList.remove('on'); });
 
-  /* ---------- wiring ---------- */
-  docListen("input", (e) => {
-    /* checkboxes/radios fire 'input' before 'change' — re-rendering here would
+/* ---------- wiring ---------- */
+docListen('input',e=>{
+  /* checkboxes/radios fire 'input' before 'change' — re-rendering here would
      re-sync the checkbox to the still-stale state and swallow the pending
      'change' event (that was the Chemistrie-checkbox-doesn't-open-anything bug).
      Let their dedicated 'change' handlers own the render instead. */
-    if (e.target.type === "checkbox" || e.target.type === "radio") return;
-    if (e.target.closest(".wrap")) render();
-  });
-  docListen("change", (e) => {
-    if (e.target.id === "curSim") S.cur = e.target.value;
-    if (e.target.id === "pricesOn") {
-      S.pricesOn = e.target.checked;
-      toast(S.pricesOn ? "Prices visible — quote panel restored" : "Prices hidden — ordering and checkout still work");
-    }
-    render();
-  });
+  if(e.target.type==='checkbox'||e.target.type==='radio') return;
+  if(e.target.closest('.wrap')) render();
+});
+docListen('change',e=>{
+  if(e.target.id==='curSim') S.cur=e.target.value;
+  if(e.target.id==='pricesOn'){ S.pricesOn=e.target.checked;
+    toast(S.pricesOn?'Prices visible — quote panel restored':'Prices hidden — ordering and checkout still work'); }
+  render();
+});
 
-  $("#chemOn").addEventListener("change", (e) => {
-    if (e.target.checked) {
-      if (!S.chemClips.length) S.chemClips = [newChemClip()];
-    } else {
-      S.chemClips = [];
-    }
-    render();
-    toast(e.target.checked ? "Chemistrie layer added — configure it below" : "Chemistrie layer removed");
+$('#notesConfirmed').addEventListener('change',e=>{
+  S.notesConfirmed=e.target.checked; render();
+});
+/* patient and frame names print on lab tickets — the lab standardises on caps. */
+['pfirst','plast','fname'].forEach(id=>{
+  const el=$('#'+id);
+  el.addEventListener('input',()=>{
+    const pos=el.selectionStart;
+    el.value=el.value.toUpperCase();
+    el.setSelectionRange(pos,pos);
   });
+});
+$('#chemOn').addEventListener('change',e=>{
+  if(e.target.checked){ if(!S.chemClips.length) S.chemClips=[newChemClip()]; }
+  else { S.chemClips=[]; }
+  render();
+  toast(e.target.checked?'Chemistrie layer added — configure it below':'Chemistrie layer removed');
+});
 
-  /* remove a treatment or Chemistrie clip straight from the live quote — the base
+/* remove a treatment or Chemistrie clip straight from the live quote — the base
    lens line (material · design · colour) has no rm data, so it can't be removed here. */
-  $("#qLines").addEventListener("click", (e) => {
-    const b = e.target.closest(".qline-rm");
-    if (!b) return;
-    const { rmtype, rmid } = b.dataset;
-    if (rmtype === "treat") {
-      toggleTreat(rmid);
-      toast("Removed from the order");
-    } else if (rmtype === "chem") {
-      S.chemClips = S.chemClips.filter((c) => c.id !== rmid);
-      render();
-      toast("Clip removed");
-    }
-  });
+$('#qLines').addEventListener('click',e=>{
+  const b=e.target.closest('.qline-rm'); if(!b) return;
+  const {rmtype,rmid}=b.dataset;
+  if(rmtype==='treat'){ toggleTreat(rmid); toast('Removed from the order'); }
+  else if(rmtype==='chem'){ S.chemClips=S.chemClips.filter(c=>c.id!==rmid); render(); toast('Clip removed'); }
+});
 
-  /* ---------- settings gear ---------- */
-  $("#gearBtn").addEventListener("click", (e) => {
-    e.stopPropagation();
-    const m = $("#gearMenu"),
-      open = !m.classList.contains("on");
-    m.classList.toggle("on", open);
-    $("#gearBtn").setAttribute("aria-expanded", String(open));
-  });
-  docListen("click", (e) => {
-    if (!e.target.closest(".gearwrap")) $("#gearMenu").classList.remove("on");
-  });
-  $("#gearMenu").addEventListener("click", (e) => {
-    if (e.target.closest(".linkbtn")) $("#gearMenu").classList.remove("on");
-  });
+/* ---------- settings gear ---------- */
+$('#gearBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  const m=$('#gearMenu'), open=!m.classList.contains('on');
+  m.classList.toggle('on',open);
+  $('#gearBtn').setAttribute('aria-expanded',String(open));
+});
+docListen('click',e=>{
+  if(!e.target.closest('.gearwrap')) $('#gearMenu').classList.remove('on');
+});
+$('#gearMenu').addEventListener('click',e=>{ if(e.target.closest('.linkbtn')) $('#gearMenu').classList.remove('on'); });
 
-  /* ---------- standard shapes on remote edge ---------- */
-  $("#openStdShapes").addEventListener("click", () => {
-    S.stdShapesOpen = true;
-    $('#scopeSeg button[data-scope="remote"]').click();
-    $("#shapeBlock").scrollIntoView({ behavior: "smooth", block: "center" });
-    toast("Standard shapes available — the uploaded trace still takes precedence if you add one");
-  });
+/* ---------- annotate mode (reviewer feedback capture) ----------
+   Prototype-only tool: click any element on the form to leave a timestamped
+   note (priority: must change / prefer / idea), then export everything as
+   rx-order-form-FEEDBACK.md. Notes persist to localStorage so the list and
+   export survive a reload, but the on-screen pins need a live DOM reference,
+   so pins only render for notes captured in the current page session. */
+const ANNO_KEY='cv-rx-anno-notes';
+function loadAnnoNotes(){ try{ return JSON.parse(localStorage.getItem(ANNO_KEY)||'[]'); }catch(e){ return []; } }
+function saveAnnoNotes(){ try{ localStorage.setItem(ANNO_KEY, JSON.stringify(annoNotes.map(({el,...rest})=>rest))); }catch(e){} }
+let annoOn=false, annoNotes=loadAnnoNotes(), annoEditId=null, annoPendingEl=null, annoPinsRaf=null;
 
-  /* ---------- shape library + payload wiring ---------- */
-  $("#libInput").addEventListener("change", (e) => {
-    seedLibFromFiles(e.target.files);
-    e.target.value = "";
+function escAnno(s){ return String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
+function priLabel(p){ return p==='must'?'Must change':p==='idea'?'Idea':"I'd prefer"; }
+function annoLabel(el){
+  if(!el) return 'General note';
+  const aria=el.getAttribute&&el.getAttribute('aria-label');
+  if(aria&&aria.trim()) return aria.trim();
+  if(el.id){ const lab=$$('label').find(l=>l.htmlFor===el.id); if(lab&&lab.textContent.trim()) return lab.textContent.trim(); }
+  const fieldLab=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+  if(fieldLab&&fieldLab.textContent.trim()) return fieldLab.textContent.trim().replace(/\s+/g,' ');
+  const hint=el.getAttribute&&(el.getAttribute('placeholder')||el.getAttribute('title'));
+  if(hint&&hint.trim()) return hint.trim();
+  const txt=(el.textContent||'').trim().replace(/\s+/g,' ');
+  if(txt) return txt.length<=70?txt:txt.slice(0,67)+'…';
+  if(el.id) return '#'+el.id;
+  const cls=(typeof el.className==='string'?el.className:'').trim().split(/\s+/).filter(Boolean).slice(0,2).join('.');
+  return el.tagName.toLowerCase()+(cls?'.'+cls:'');
+}
+function annoSelector(el){
+  if(!el) return '';
+  const parts=[]; let n=el, depth=0;
+  while(n&&n!==rootEl&&n.nodeType===1&&depth<6){
+    let seg=n.tagName.toLowerCase();
+    if(n.id){ parts.unshift(seg+'#'+n.id); break; }
+    const cls=(typeof n.className==='string'?n.className:'').trim().split(/\s+/).filter(Boolean).slice(0,2);
+    if(cls.length) seg+='.'+cls.join('.');
+    parts.unshift(seg); n=n.parentElement; depth++;
+  }
+  return parts.join(' > ');
+}
+function updateAnnoCounts(){
+  const n=annoNotes.length;
+  $('#annoCount').textContent=n?'('+n+')':'';
+  $('#abCount').textContent=String(n);
+  $('#drCount').textContent=n===1?'1 note':n+' notes';
+}
+function hideAnnoHi(){ $('#annoHi').style.display='none'; }
+function showAnnoHi(el){
+  const hi=$('#annoHi'), r=el.getBoundingClientRect();
+  hi.style.display='block'; hi.style.left=r.left+'px'; hi.style.top=r.top+'px';
+  hi.style.width=r.width+'px'; hi.style.height=r.height+'px';
+}
+function positionAnnoPopup(el){
+  const pop=$('#annoPop'), vw=window.innerWidth, vh=window.innerHeight, w=330, pad=12;
+  let top,left;
+  if(el&&el.getBoundingClientRect){ const r=el.getBoundingClientRect(); top=r.bottom+10; left=r.left; }
+  else { top=vh/2-140; left=vw/2-165; }
+  left=Math.max(pad,Math.min(left,vw-w-pad));
+  top=Math.max(pad,Math.min(top,vh-340));
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+}
+function openAnnoPopup(el,existingNote){
+  annoEditId=existingNote?existingNote.id:null;
+  annoPendingEl=existingNote?null:el;
+  $('#apEl').textContent=existingNote?existingNote.label:annoLabel(el);
+  $('#apText').value=existingNote?existingNote.text:'';
+  const pri=existingNote?existingNote.priority:'prefer';
+  $$('#apPri button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.p===pri)));
+  $('#apDel').style.display=existingNote?'':'none';
+  positionAnnoPopup((existingNote&&existingNote.el)||el);
+  hideAnnoHi();
+  $('#annoPop').classList.add('on');
+  setTimeout(()=>{ const t=$('#apText'); t.focus(); t.select(); },10);
+}
+function closeAnnoPop(){ $('#annoPop').classList.remove('on'); annoEditId=null; annoPendingEl=null; }
+function renderPins(){
+  const layer=$('#annoLayer'); layer.innerHTML='';
+  let i=0;
+  annoNotes.forEach(n=>{
+    if(!n.el||!n.el.isConnected) return;
+    i++;
+    const r=n.el.getBoundingClientRect();
+    const pin=document.createElement('button');
+    pin.type='button';
+    pin.className='pin'+(n.priority==='must'?' p-must':n.priority==='idea'?' p-idea':'');
+    pin.style.left=(r.left+r.width/2-11)+'px';
+    pin.style.top=(r.top-11)+'px';
+    pin.textContent=String(i);
+    pin.title=n.label;
+    pin.addEventListener('click',e=>{ e.stopPropagation(); openAnnoPopup(pin,n); });
+    layer.appendChild(pin);
   });
-  $("#btnPayload").addEventListener("click", showPayload);
-  $("#payloadClose").addEventListener("click", () => $("#payloadDrawer").classList.remove("on"));
-  $("#payloadCopy").addEventListener("click", async () => {
-    const j = JSON.stringify(buildPayload(), null, 2);
-    try {
-      await navigator.clipboard.writeText(j);
-      toast("Payload JSON copied");
-    } catch (e) {
-      toast("Copy blocked by the browser");
-    }
+}
+function scheduleRenderPins(){
+  if(!annoOn||annoPinsRaf) return;
+  annoPinsRaf=requestAnimationFrame(()=>{ annoPinsRaf=null; renderPins(); });
+}
+function renderAnnoDrawerList(){
+  const body=$('#drBody');
+  if(!annoNotes.length){
+    body.innerHTML='<p class="dr-empty">No notes yet. Turn on Annotate mode from the gear menu, then click anything on the form you\'d like changed.</p>';
+    return;
+  }
+  body.innerHTML=annoNotes.map((n,i)=>`<div class="note${n.priority==='must'?' must':n.priority==='idea'?' idea':''}" data-id="${n.id}">
+      <div class="nh"><span class="nn">${i+1}</span><span class="nl">${escAnno(n.label)}</span><span class="np">${priLabel(n.priority)}</span></div>
+      <div class="nt">${escAnno(n.text)}</div>
+    </div>`).join('');
+}
+function buildAnnoMarkdown(){
+  const ord={must:0,prefer:1,idea:2};
+  const sorted=[...annoNotes].sort((a,b)=>(ord[a.priority]??1)-(ord[b.priority]??1));
+  const lines=['# Rx order form — reviewer feedback','',`Captured ${new Date().toLocaleString()} · ${annoNotes.length} note${annoNotes.length===1?'':'s'}`,''];
+  sorted.forEach((n,i)=>{
+    lines.push(`## ${i+1}. ${priLabel(n.priority)} — ${n.label}`);
+    if(n.selector) lines.push(`*Element:* \`${n.selector}\``);
+    lines.push('',n.text,'');
   });
-  $("#btnReorder").addEventListener("click", () => {
-    let hist = [];
-    try {
-      hist = JSON.parse(localStorage.getItem("cv-rx-history") || "[]");
-    } catch (e) {}
-    if (!hist.length) {
-      toast("No order history yet — submit or save a draft first");
-      return;
-    }
-    const h = hist[0];
-    restorePayload(h.payload);
-    $("#draftBanner").classList.remove("hide");
-    $("#draftBanner").querySelector("span:nth-child(2)").innerHTML =
-      `<b>Rebuilt from order history</b> — ${h.label}, ${h.kind} on ${new Date(h.at).toLocaleString()}. Everything is editable; the quote reprices at today's rates.`;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    toast("Order rebuilt from history — shape, Rx and treatments restored");
-  });
+  return lines.join('\n');
+}
+function setAnnoMode(on){
+  annoOn=!!on;
+  rootEl.classList.toggle('anno-on',annoOn);
+  $('#annoBar').classList.toggle('on',annoOn);
+  $('#gearMenu').classList.remove('on');
+  if(annoOn){ renderPins(); toast('Annotate mode on — click anything you\'d like changed'); }
+  else { hideAnnoHi(); closeAnnoPop(); }
+}
+$('#annoToggle').addEventListener('click',()=>setAnnoMode(!annoOn));
+$('#abExit').addEventListener('click',()=>setAnnoMode(false));
+$('#abGeneral').addEventListener('click',()=>openAnnoPopup(null,null));
+$('#abList').addEventListener('click',()=>{ renderAnnoDrawerList(); $('#annoDrawer').classList.add('on'); });
+$('#drClose').addEventListener('click',()=>$('#annoDrawer').classList.remove('on'));
+$('#drBody').addEventListener('click',e=>{
+  const card=e.target.closest('.note'); if(!card) return;
+  const n=annoNotes.find(x=>x.id===card.dataset.id); if(!n) return;
+  $('#annoDrawer').classList.remove('on');
+  openAnnoPopup(n.el||null,n);
+});
+$('#drCopy').addEventListener('click',async()=>{
+  if(!annoNotes.length){ toast('No notes to copy yet'); return; }
+  try{ await navigator.clipboard.writeText(buildAnnoMarkdown()); toast('Feedback copied as markdown'); }
+  catch(e){ toast('Copy blocked by the browser'); }
+});
+$('#drDownload').addEventListener('click',()=>{
+  if(!annoNotes.length){ toast('No notes to download yet'); return; }
+  const blob=new Blob([buildAnnoMarkdown()],{type:'text/markdown'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='rx-order-form-FEEDBACK.md';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('Downloaded rx-order-form-FEEDBACK.md');
+});
+$('#drClear').addEventListener('click',()=>{
+  if(!annoNotes.length) return;
+  if(!confirm('Clear all annotate notes? This can\'t be undone.')) return;
+  annoNotes.length=0; saveAnnoNotes(); updateAnnoCounts(); renderPins(); renderAnnoDrawerList();
+  toast('Notes cleared');
+});
+$('#apPri').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-p]'); if(!b) return;
+  $$('#apPri button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+});
+$('#apCancel').addEventListener('click',closeAnnoPop);
+$('#apSave').addEventListener('click',()=>{
+  const text=$('#apText').value.trim();
+  if(!text){ toast('Add a note before saving'); return; }
+  const priBtn=$$('#apPri button').find(b=>b.getAttribute('aria-pressed')==='true');
+  const priority=priBtn?priBtn.dataset.p:'prefer';
+  if(annoEditId){
+    const n=annoNotes.find(x=>x.id===annoEditId);
+    if(n){ n.text=text; n.priority=priority; n.updatedAt=new Date().toISOString(); }
+  } else {
+    annoNotes.push({
+      id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+      label:annoLabel(annoPendingEl), selector:annoSelector(annoPendingEl),
+      text, priority, at:new Date().toISOString(), el:annoPendingEl||null
+    });
+  }
+  saveAnnoNotes(); updateAnnoCounts(); closeAnnoPop();
+  if(annoOn) renderPins();
+  toast('Note saved');
+});
+$('#apDel').addEventListener('click',()=>{
+  if(!annoEditId) return;
+  if(!confirm('Delete this note?')) return;
+  const idx=annoNotes.findIndex(x=>x.id===annoEditId);
+  if(idx>-1) annoNotes.splice(idx,1);
+  saveAnnoNotes(); updateAnnoCounts(); closeAnnoPop();
+  if(annoOn) renderPins();
+  renderAnnoDrawerList();
+  toast('Note deleted');
+});
+rootEl.addEventListener('mousemove',e=>{
+  if(!annoOn) return;
+  if(e.target.closest('#annoUI')||e.target.closest('.gearwrap')){ hideAnnoHi(); return; }
+  showAnnoHi(e.target);
+});
+rootEl.addEventListener('mouseleave',()=>{ if(annoOn) hideAnnoHi(); });
+rootEl.addEventListener('click',e=>{
+  if(!annoOn) return;
+  if(e.target.closest('#annoUI')||e.target.closest('.gearwrap')) return;
+  e.preventDefault(); e.stopPropagation();
+  openAnnoPopup(e.target,null);
+},true);
+docListen('keydown',e=>{
+  if(e.key!=='Escape') return;
+  if($('#annoPop').classList.contains('on')){ closeAnnoPop(); return; }
+  if($('#annoDrawer').classList.contains('on')){ $('#annoDrawer').classList.remove('on'); return; }
+  if(annoOn) setAnnoMode(false);
+});
+winListen('scroll',scheduleRenderPins,true);
+winListen('resize',scheduleRenderPins);
+updateAnnoCounts();
 
-  /* ---------- keep the sticky quote panel clear of the sticky step rail ----------
+/* ---------- standard shapes on remote edge ---------- */
+$('#openStdShapes').addEventListener('click',()=>{
+  S.stdShapesOpen=true;
+  $('#scopeSeg button[data-scope="remote"]').click();
+  $('#shapeBlock').scrollIntoView({behavior:'smooth',block:'center'});
+  toast('Standard shapes available — the uploaded trace still takes precedence if you add one');
+});
+
+/* ---------- shape library + payload wiring ---------- */
+$('#libInput').addEventListener('change',e=>{ seedLibFromFiles(e.target.files); e.target.value=''; });
+$('#btnPayload').addEventListener('click',showPayload);
+$('#payloadClose').addEventListener('click',()=>$('#payloadDrawer').classList.remove('on'));
+$('#payloadCopy').addEventListener('click',async()=>{
+  const j=JSON.stringify(buildPayload(),null,2);
+  try{ await navigator.clipboard.writeText(j); toast('Payload JSON copied'); }
+  catch(e){ toast('Copy blocked by the browser'); }
+});
+$('#btnReorder').addEventListener('click',()=>{
+  let hist=[]; try{ hist=JSON.parse(localStorage.getItem('cv-rx-history')||'[]'); }catch(e){}
+  if(!hist.length){ toast('No order history yet — submit or save a draft first'); return; }
+  const h=hist[0];
+  restorePayload(h.payload);
+  $('#draftBanner').classList.remove('hide');
+  $('#draftBanner').querySelector('span:nth-child(2)').innerHTML=
+    `<b>Rebuilt from order history</b> — ${h.label}, ${h.kind} on ${new Date(h.at).toLocaleString()}. Everything is editable; the quote reprices at today's rates.`;
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('Order rebuilt from history — shape, Rx and treatments restored');
+});
+
+/* ---------- keep the sticky quote panel clear of the sticky step rail ----------
    .steps' sticky top offset depends on the host surface (see .has-fixed-header
    in the CSS) and its rendered height varies (it can wrap to two rows on
    narrower desktop widths), so a fixed top offset on .quote either left a gap
    or let it slide underneath the step rail depending on viewport width.
    Reading .steps' own computed offset and pushing .quote's sticky top just
    past it keeps a consistent gap at any width/surface, and never overlaps. */
-  function syncQuoteStickyTop() {
-    const steps = $(".steps"),
-      quote = $(".quote");
-    if (!steps || !quote) return;
-    if (window.innerWidth <= 1080) {
-      quote.style.top = "";
-      return;
-    } // matches the .quote{position:static} breakpoint
-    const stepsTop = parseFloat(getComputedStyle(steps).top) || 0; // matches .steps{top:...} in CSS
-    quote.style.top = stepsTop + steps.offsetHeight + 8 + "px";
-  }
-  winListen("resize", syncQuoteStickyTop);
-  winListen("load", syncQuoteStickyTop);
+function syncQuoteStickyTop(){
+  const steps=$('.steps'), quote=$('.quote');
+  if(!steps||!quote) return;
+  if(window.innerWidth<=1080){ quote.style.top=''; return; } // matches the .quote{position:static} breakpoint
+  const stepsTop=parseFloat(getComputedStyle(steps).top)||0; // matches .steps{top:...} in CSS
+  quote.style.top=(stepsTop+steps.offsetHeight+8)+'px';
+}
+winListen('resize',syncQuoteStickyTop);
+winListen('load',syncQuoteStickyTop);
 
-  /* ---------- adapter data (live catalog/accounts replace the prototype statics) ---------- */
-  function applyAdapterData() {
-    const D = ADAPTER.data;
-    if (!D) return;
-    const swap = (arr, next) => {
-      if (Array.isArray(next) && next.length) {
-        arr.length = 0;
-        next.forEach((x) => arr.push(x));
-      }
-    };
-    swap(BRANCHES, D.branches);
-    swap(MATERIALS, D.materials);
-    swap(DESIGNS, D.designs);
-    swap(COLOURS, D.colours);
-    swap(TREAT, D.treatments);
-    swap(CLASH, D.clashes);
-    if (D.matrix && Object.keys(D.matrix).length) {
-      Object.keys(MATRIX).forEach((k) => delete MATRIX[k]);
-      Object.assign(MATRIX, D.matrix);
-    }
-    COMBOS.length = 0;
-    if (Array.isArray(D.combos) && D.combos.length) {
-      D.combos.forEach((x) => COMBOS.push(x));
-    } else Object.entries(MATRIX).forEach(([m, v]) => v.d.forEach((d) => v.c.forEach((c) => COMBOS.push({ m, d, c }))));
-    if (D.currencies && Object.keys(D.currencies).length) {
-      Object.keys(CUR).forEach((k) => delete CUR[k]);
-      Object.assign(CUR, D.currencies);
-      /* The gear's currency list is static markup and offers codes the live table
+/* ---------- adapter data (live catalog/accounts replace the prototype statics) ---------- */
+function applyAdapterData(){
+  const D=ADAPTER.data; if(!D) return;
+  const swap=(arr,next)=>{ if(Array.isArray(next)&&next.length){ arr.length=0; next.forEach(x=>arr.push(x)); } };
+  swap(BRANCHES,D.branches); swap(MATERIALS,D.materials); swap(DESIGNS,D.designs);
+  swap(COLOURS,D.colours); swap(TREAT,D.treatments); swap(CLASH,D.clashes);
+  if(D.matrix&&Object.keys(D.matrix).length){
+    Object.keys(MATRIX).forEach(k=>delete MATRIX[k]); Object.assign(MATRIX,D.matrix);
+  }
+  COMBOS.length=0;
+  if(Array.isArray(D.combos)&&D.combos.length){ D.combos.forEach(x=>COMBOS.push(x)); }
+  else Object.entries(MATRIX).forEach(([m,v])=>v.d.forEach(d=>v.c.forEach(c=>COMBOS.push({m,d,c}))));
+  if(D.currencies&&Object.keys(D.currencies).length){
+    Object.keys(CUR).forEach(k=>delete CUR[k]); Object.assign(CUR,D.currencies);
+    /* The gear's currency list is static markup and offers codes the live table
        may not have (CAD, GYD). Selecting one of those reads .rate off undefined
        and takes the quote down, so rebuild the options from the table itself. */
-      const sim = $("#curSim");
-      if (sim) {
-        sim.innerHTML = Object.entries(CUR)
-          .map(([code, c]) => `<option value="${code}">${c.sym}${c.indicative ? " · indicative" : ""}</option>`)
-          .join("");
-        if (!CUR[S.cur]) S.cur = Object.keys(CUR)[0];
-        sim.value = S.cur;
-      }
+    const sim=$('#curSim');
+    if(sim){
+      sim.innerHTML=Object.entries(CUR)
+        .map(([code,c])=>`<option value="${code}">${c.sym}${c.indicative?' · indicative':''}</option>`).join('');
+      if(!CUR[S.cur]) S.cur=Object.keys(CUR)[0];
+      sim.value=S.cur;
     }
   }
+}
 
-  /* ---------- init ---------- */
-  applyAdapterData();
-  newOrderNo();
-  loadLib();
-  autoLoadLib();
-  fillLensSelects();
-  buildPopular();
-  buildTreatList();
-  $('#scopeSeg button[data-scope="uncut"]').click();
-  renderBranches();
-  if (ADAPTER.lockedBranchId) {
-    const el = $$("#branchList .branch").find((b) => b.dataset.b === String(ADAPTER.lockedBranchId));
-    if (el) el.click();
-    const chip = $("#branchChip");
-    if (chip) chip.style.pointerEvents = "none";
-  } else if (
-    ADAPTER.defaultBranchId &&
-    $$("#branchList .branch").find((b) => b.dataset.b === String(ADAPTER.defaultBranchId))
-  ) {
-    // Preselected, not locked — the picker (chip, gear "Store picker") stays open to switching accounts.
-    $$("#branchList .branch")
-      .find((b) => b.dataset.b === String(ADAPTER.defaultBranchId))
-      .click();
-  } else {
-    $("#branchScrim").classList.add("on");
-  }
-  /* Arriving from the Lens Assistant: replay a partial payload, then flag the
+/* ---------- init ---------- */
+applyAdapterData();
+newOrderNo();
+loadLib(); autoLoadLib();
+fillLensSelects(); buildPopular(); buildTreatList();
+$('#scopeSeg button[data-scope="uncut"]').click();
+renderBranches();
+if(ADAPTER.lockedBranchId){
+  const el=$$('#branchList .branch').find(b=>b.dataset.b===String(ADAPTER.lockedBranchId));
+  if(el) el.click();
+  const chip=$('#branchChip'); if(chip) chip.style.pointerEvents='none';
+} else if(ADAPTER.defaultBranchId && $$('#branchList .branch').find(b=>b.dataset.b===String(ADAPTER.defaultBranchId))){
+  // Preselected, not locked — the picker (chip, gear "Store picker") stays open to switching accounts.
+  $$('#branchList .branch').find(b=>b.dataset.b===String(ADAPTER.defaultBranchId)).click();
+} else {
+  $('#branchScrim').classList.add('on');
+}
+/* Arriving from the Lens Assistant: replay a partial payload, then flag the
    form as prefilled so the skipped-mandatory beacon glows what's still missing. */
-  if (ADAPTER.prefill) {
-    restorePayload(ADAPTER.prefill);
-    S.fromDraft = true;
-    const banner = $("#draftBanner");
-    if (banner) {
-      banner.classList.remove("hide");
-      if (ADAPTER.prefillBanner) banner.querySelector("span:nth-child(2)").innerHTML = ADAPTER.prefillBanner;
-    }
+if(ADAPTER.prefill){
+  restorePayload(ADAPTER.prefill);
+  S.fromDraft=true;
+  const banner=$('#draftBanner');
+  if(banner){
+    banner.classList.remove('hide');
+    if(ADAPTER.prefillBanner) banner.querySelector('span:nth-child(2)').innerHTML=ADAPTER.prefillBanner;
   }
-  render();
-  syncQuoteStickyTop();
+}
+render();
+syncQuoteStickyTop();
 
-  return {
-    destroy() {
-      __docL.forEach(([t, f, o]) => document.removeEventListener(t, f, o));
-      __winL.forEach(([t, f, o]) => window.removeEventListener(t, f, o));
-    },
-    refreshData() {
-      applyAdapterData();
-      repair();
-      fillLensSelects();
-      buildPopular();
-      buildTreatList();
-      renderBranches();
-      render();
-    },
-    getPayload: buildPayload,
-    restorePayload,
-    clearAll,
-    state: S,
-  };
+return {
+  destroy(){
+    __docL.forEach(([t,f,o])=>document.removeEventListener(t,f,o));
+    __winL.forEach(([t,f,o])=>window.removeEventListener(t,f,o));
+    /* the combo portal root (see comboPortalRoot) lives outside rootEl, so
+       hostRef.current.innerHTML="" won't reach it — drop it explicitly, list
+       and all, or it (and whichever list was open) leaks as an orphaned node. */
+    const comboPortal=document.getElementById('cvRxComboPortal');
+    if(comboPortal) comboPortal.remove();
+  },
+  refreshData(){ applyAdapterData(); repair(); fillLensSelects(); buildPopular(); buildTreatList(); renderBranches(); render(); },
+  getPayload: buildPayload,
+  restorePayload,
+  clearAll,
+  state: S,
+};
 }

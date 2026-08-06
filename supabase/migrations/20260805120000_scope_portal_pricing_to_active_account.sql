@@ -12,7 +12,7 @@
 -- working exactly as before.
 
 DROP FUNCTION IF EXISTS public.can_access_customer_lab_pricing(uuid);
-CREATE FUNCTION public.can_access_customer_lab_pricing(
+CREATE OR REPLACE FUNCTION public.can_access_customer_lab_pricing(
   p_user_id uuid DEFAULT auth.uid(),
   p_customer_id integer DEFAULT NULL
 )
@@ -82,7 +82,7 @@ REVOKE ALL ON FUNCTION public.can_access_customer_lab_pricing(uuid, integer) FRO
 GRANT EXECUTE ON FUNCTION public.can_access_customer_lab_pricing(uuid, integer) TO authenticated, service_role;
 
 DROP FUNCTION IF EXISTS public.portal_assigned_pricelist_matrix();
-CREATE FUNCTION public.portal_assigned_pricelist_matrix(p_customer_id integer DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.portal_assigned_pricelist_matrix(p_customer_id integer DEFAULT NULL)
 RETURNS TABLE (
   category text,
   material_index text,
@@ -163,7 +163,7 @@ REVOKE ALL ON FUNCTION public.portal_assigned_pricelist_matrix(integer) FROM PUB
 GRANT EXECUTE ON FUNCTION public.portal_assigned_pricelist_matrix(integer) TO authenticated;
 
 DROP FUNCTION IF EXISTS public.portal_assigned_pricelist_updated_at();
-CREATE FUNCTION public.portal_assigned_pricelist_updated_at(p_customer_id integer DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.portal_assigned_pricelist_updated_at(p_customer_id integer DEFAULT NULL)
 RETURNS timestamptz
 LANGUAGE plpgsql
 STABLE
@@ -204,7 +204,7 @@ REVOKE ALL ON FUNCTION public.portal_assigned_pricelist_updated_at(integer) FROM
 GRANT EXECUTE ON FUNCTION public.portal_assigned_pricelist_updated_at(integer) TO authenticated;
 
 DROP FUNCTION IF EXISTS public.portal_assigned_pricelist_addons();
-CREATE FUNCTION public.portal_assigned_pricelist_addons(p_customer_id integer DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.portal_assigned_pricelist_addons(p_customer_id integer DEFAULT NULL)
 RETURNS TABLE (
   section text,
   display_description text,
@@ -296,7 +296,7 @@ REVOKE ALL ON FUNCTION public.portal_assigned_pricelist_addons(integer) FROM PUB
 GRANT EXECUTE ON FUNCTION public.portal_assigned_pricelist_addons(integer) TO authenticated;
 
 DROP FUNCTION IF EXISTS public.portal_assigned_pricelist_catalog(text);
-CREATE FUNCTION public.portal_assigned_pricelist_catalog(p_catalog_type text, p_customer_id integer DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.portal_assigned_pricelist_catalog(p_catalog_type text, p_customer_id integer DEFAULT NULL)
 RETURNS TABLE (
   section text,
   display_description text,
