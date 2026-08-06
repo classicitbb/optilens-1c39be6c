@@ -50,6 +50,7 @@ import {
 import { describePortalFeatureOverrideError } from "@/lib/portalFeatureOverrideErrors";
 import { detectFeatureOverrideConflicts } from "@/lib/portalFeatureConflicts";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
+import { paginate } from "@/lib/pagination";
 
 interface PortalCustomerListItem {
   userId: string;
@@ -157,6 +158,7 @@ interface ContactLookupRow {
 }
 
 const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices", "lens-assistant"] as const;
+const PORTAL_ACCOUNTS_PAGE_SIZE = 100;
 
 const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   quotes: "Quotes",
@@ -214,6 +216,7 @@ const WebsitePortalsPage = () => {
   const { data: pricelistVersions = [] } = usePricelistVersions();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [accountsPage, setAccountsPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>(() => (searchParams.get("status") as AccountStatusFilter) ?? "active");
   // Older deep links still open the requested account, but ordinary row clicks
   // keep their selection in component state and do not change the page URL.
@@ -268,6 +271,7 @@ const WebsitePortalsPage = () => {
 
       const erpCustomerRows = (erpCustomers ?? []) as Array<Record<string, any>>;
       const erpCustomerIds = erpCustomerRows.map((customer) => Number(customer.id)).filter(Number.isFinite);
+      const erpCustomerIdSet = new Set(erpCustomerIds);
       const innovationsCustomerIds = erpCustomerRows
         .map((customer) => Number(customer.innovations_customer_id))
         .filter(Number.isFinite);
@@ -320,7 +324,7 @@ const WebsitePortalsPage = () => {
         if (typeof contact.id === "string") resolvedContactById.set(contact.id, contact);
       }
       const resolveCustomerIdForContact = (contact: ContactLookupRow) => {
-        if (typeof contact.linked_customer_id === "number" && erpCustomerIds.includes(contact.linked_customer_id)) return contact.linked_customer_id;
+        if (typeof contact.linked_customer_id === "number" && erpCustomerIdSet.has(contact.linked_customer_id)) return contact.linked_customer_id;
         if (typeof contact.innovations_parent_customer_id === "number") {
           const customerId = customerIdByInnovationsId.get(contact.innovations_parent_customer_id);
           if (typeof customerId === "number") return customerId;
@@ -394,10 +398,10 @@ const WebsitePortalsPage = () => {
         membershipCustomerIdsByUserId.set(row.user_id, set);
       }
 
-      const cartCountByUser = ((cartRows ?? []) as Array<{ user_id: string; quantity: number }>).reduce<Record<string, number>>(
-        (acc, row) => ({ ...acc, [row.user_id]: (acc[row.user_id] ?? 0) + Number(row.quantity ?? 0) }),
-        {},
-      );
+      const cartCountByUser: Record<string, number> = {};
+      for (const row of (cartRows ?? []) as Array<{ user_id: string; quantity: number }>) {
+        cartCountByUser[row.user_id] = (cartCountByUser[row.user_id] ?? 0) + Number(row.quantity ?? 0);
+      }
 
       const openAlertByUser = new Set(((alertRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id));
       const presenceByUser = new Map(((presenceRows ?? []) as Array<{ user_id: string; status: string; last_heartbeat_at: string }>).map((row) => [row.user_id, row]));
@@ -550,6 +554,14 @@ const WebsitePortalsPage = () => {
         .includes(q);
     });
   }, [customersQuery.data, search, statusFilter]);
+  const accountsPagination = useMemo(
+    () => paginate(accounts, accountsPage, PORTAL_ACCOUNTS_PAGE_SIZE),
+    [accounts, accountsPage],
+  );
+  useEffect(() => {
+    if (accountsPage !== accountsPagination.page) setAccountsPage(accountsPagination.page);
+  }, [accountsPage, accountsPagination.page]);
+  useEffect(() => setAccountsPage(1), [search, statusFilter]);
 
   const accountCounts = useMemo(() => {
     const allAccounts = customersQuery.data ?? [];
@@ -1388,7 +1400,7 @@ const WebsitePortalsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {accounts.map((account) => {
+                  {accountsPagination.items.map((account) => {
                     const user = account.portalUser;
                     const linkedLoginCount = account.linkedPortalUsers.length;
                     return (
@@ -1483,6 +1495,16 @@ const WebsitePortalsPage = () => {
                 </tbody>
               </table>
             </div>
+            {accountsPagination.pageCount > 1 ? (
+              <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground">
+                <span>Showing {accountsPagination.start}–{accountsPagination.end} of {accounts.length}</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="h-7" disabled={accountsPagination.page === 1} onClick={() => setAccountsPage((page) => page - 1)}>Previous</Button>
+                  <span>Page {accountsPagination.page} of {accountsPagination.pageCount}</span>
+                  <Button variant="outline" size="sm" className="h-7" disabled={accountsPagination.page === accountsPagination.pageCount} onClick={() => setAccountsPage((page) => page + 1)}>Next</Button>
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
