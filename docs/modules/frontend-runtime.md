@@ -2,6 +2,12 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-08-06 — Header launcher shortcuts
+
+- `navigationRegistry.ts` declares Activities and Rx Order Form as launcher shortcuts while retaining their CRM and Website `appKey` permissions.
+- `AppLauncher` resolves shortcut keys to the canonical `/admin/crm/activities` and `/admin/website/quotations/new-rx` routes. Do not introduce duplicate pages or alternate route implementations for these tiles.
+- `admin.crm.activities` is registered as an active admin route so every launcher destination has the required route metadata and authorization decision.
+
 ## 2026-08-06 — Quote request Helpdesk handoff
 
 - `QuoteFormSection` submits through `submit_customer_quote_request`; do not restore separate client inserts into `quotes` and `helpdesk_tickets`, because the RPC owns atomic creation and authorization.

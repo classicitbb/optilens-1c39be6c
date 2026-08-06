@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-06 — Missing header launcher shortcuts
+- Area: Admin header app launcher
+- Impact: staff had to navigate through CRM or Website sidebars to reach Activities or the Rx Order Form.
+- Resolution: added direct, permission-aware launcher tiles that open the existing canonical admin pages.
+- Regression prevention: keep both shortcuts registry-driven and covered by the admin Rx route-accessibility integration test.
+
 ## 2026-08-06
 - Area: customer portal Quote Requests and Helpdesk
 - Impact: submitting a quote created only an editable quotation row, so the request was absent from the Helpdesk queue and follow-up replies had no shared conversation.

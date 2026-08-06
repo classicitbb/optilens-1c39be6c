@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-06 — Header Launcher Shortcuts
+
+### Release Notes
+- Staff can open Activities and the Rx Order Form directly from the header app launcher.
+
+### Technical Changelog
+- Added permission-aware launcher shortcuts backed by the canonical admin routes, plus route-registry and regression-test coverage.
+
 ## 2026-08-06 — Quote Requests Routed Through Helpdesk
 
 ### Release Notes

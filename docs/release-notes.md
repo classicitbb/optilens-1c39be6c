@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-06 — Header Launcher Shortcuts
+
+### Release Notes
+- **Activities** and **Rx Order Form** now appear in the header app launcher for staff with access to their owning CRM or Website app.
+- Selecting either shortcut opens the existing page directly; CRM and Website navigation remain unchanged.
+
 ## 2026-08-06 — Quote Requests Routed Through Helpdesk
 
 ### Release Notes

@@ -3,14 +3,14 @@
   "releaseDateTimeUtc": "2026-08-06T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Sending a request from **Quote Requests** creates a Helpdesk ticket automatically and shows the complete request as locked, submitted history.",
-    "Use **View conversation** for corrections, questions, and support replies. Older requests remain visible and are labeled when they predate Helpdesk linking."
+    "**Activities** and **Rx Order Form** now appear in the header app launcher for staff with access to their owning CRM or Website app.",
+    "Selecting either shortcut opens the existing page directly; CRM and Website navigation remain unchanged."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Quote Requests Routed Through Helpdesk."
+      "notes": "Updated as part of Header Launcher Shortcuts."
     }
   ],
   "migrationNotes": [

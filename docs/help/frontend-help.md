@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-08-06 — Header launcher shortcuts
+
+- Open the grid icon in the admin header, then select **Activities** to go directly to CRM follow-ups and scheduled work.
+- Select **Rx Order Form** to start an admin Rx quotation without first opening Website → Quotations.
+- A shortcut is hidden when the signed-in staff member does not have access to its owning CRM or Website app.
+
 ## 2026-08-06 — Quote requests and replies
 
 - A customer sends the original product and quantity details once from **Quote Requests**. The sent request cannot be edited afterward.
