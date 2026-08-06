@@ -118,6 +118,7 @@ export const useRunLeadSequence = () => {
   return useMutation({
     mutationFn: async (contactIds: string[]) => {
       if (contactIds.length === 0) return;
+      const { data: { user } } = await supabase.auth.getUser();
 
       for (const step of DEFAULT_SEQUENCE) {
         const compliance = validateTargetingInput(step.prompt);
@@ -146,7 +147,8 @@ export const useRunLeadSequence = () => {
             .insert({
               contact_id: contactId,
               activity_type: `Sequence step ${step.step}: ${step.channel}`,
-              status: "open",
+              status: "planned",
+              owner_id: user?.id ?? null,
               due_at: dueAt,
               type: allowedActivityTypes.has(step.channel) ? step.channel : "note",
               content: `${step.prompt} (channel: ${step.channel}, sequence: default-5-step)`,

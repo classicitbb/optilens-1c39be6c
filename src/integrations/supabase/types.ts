@@ -143,9 +143,12 @@ export type Database = {
           due_at: string | null
           id: string
           opportunity_id: string | null
+          owner_id: string | null
+          priority: string
           status: string | null
           task_channel: Database["public"]["Enums"]["activity_task_channel"]
           type: string
+          updated_at: string
         }
         Insert: {
           activity_type?: string | null
@@ -157,9 +160,12 @@ export type Database = {
           due_at?: string | null
           id?: string
           opportunity_id?: string | null
+          owner_id?: string | null
+          priority?: string
           status?: string | null
           task_channel?: Database["public"]["Enums"]["activity_task_channel"]
           type?: string
+          updated_at?: string
         }
         Update: {
           activity_type?: string | null
@@ -171,9 +177,12 @@ export type Database = {
           due_at?: string | null
           id?: string
           opportunity_id?: string | null
+          owner_id?: string | null
+          priority?: string
           status?: string | null
           task_channel?: Database["public"]["Enums"]["activity_task_channel"]
           type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -7218,6 +7227,7 @@ export type Database = {
           gp_amount: number
           gp_percent: number
           grand_total: number
+          helpdesk_ticket_id: string | null
           id: string
           lead_time_days: number | null
           notes_customer: string | null
@@ -7243,6 +7253,7 @@ export type Database = {
           gp_amount?: number
           gp_percent?: number
           grand_total?: number
+          helpdesk_ticket_id?: string | null
           id?: string
           lead_time_days?: number | null
           notes_customer?: string | null
@@ -7268,6 +7279,7 @@ export type Database = {
           gp_amount?: number
           gp_percent?: number
           grand_total?: number
+          helpdesk_ticket_id?: string | null
           id?: string
           lead_time_days?: number | null
           notes_customer?: string | null
@@ -7282,6 +7294,13 @@ export type Database = {
           valid_until?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quotes_helpdesk_ticket_id_fkey"
+            columns: ["helpdesk_ticket_id"]
+            isOneToOne: true
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotes_account_id_fkey"
             columns: ["account_id"]
@@ -9473,6 +9492,7 @@ export type Database = {
           currency: string | null
           customer_name: string | null
           grand_total: number | null
+          helpdesk_ticket_id: string | null
           id: string | null
           lead_time_days: number | null
           notes_customer: string | null
@@ -9493,6 +9513,7 @@ export type Database = {
           currency?: string | null
           customer_name?: string | null
           grand_total?: number | null
+          helpdesk_ticket_id?: string | null
           id?: string | null
           lead_time_days?: number | null
           notes_customer?: string | null
@@ -9513,6 +9534,7 @@ export type Database = {
           currency?: string | null
           customer_name?: string | null
           grand_total?: number | null
+          helpdesk_ticket_id?: string | null
           id?: string | null
           lead_time_days?: number | null
           notes_customer?: string | null
@@ -10329,6 +10351,155 @@ export type Database = {
           sender_user_id: string
           sent_at: string
           ticket_id: string
+        }[]
+      }
+      activity_participants: {
+        Row: {
+          activity_id: string
+          added_by: string | null
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          added_by?: string | null
+          created_at?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          added_by?: string | null
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_participants_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_automations: {
+        Row: {
+          activity_id: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          recipe: string
+          trigger_state: string
+        }
+        Insert: {
+          activity_id: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          recipe: string
+          trigger_state?: string
+        }
+        Update: {
+          activity_id?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          recipe?: string
+          trigger_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_automations_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_automation_runs: {
+        Row: {
+          activity_id: string
+          approved_at: string | null
+          approved_by: string | null
+          automation_id: string
+          created_at: string
+          error: string | null
+          executed_at: string | null
+          id: string
+          idempotency_key: string
+          proposed_action: Json
+          result: Json | null
+          status: string
+          trigger_state: string
+        }
+        Insert: {
+          activity_id: string
+          approved_at?: string | null
+          approved_by?: string | null
+          automation_id: string
+          created_at?: string
+          error?: string | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key: string
+          proposed_action: Json
+          result?: Json | null
+          status?: string
+          trigger_state: string
+        }
+        Update: {
+          activity_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          automation_id?: string
+          created_at?: string
+          error?: string | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          proposed_action?: Json
+          result?: Json | null
+          status?: string
+          trigger_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_automation_runs_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "activity_automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submit_customer_quote_request: {
+        Args: {
+          p_account_id?: number
+          p_customer_name: string
+          p_request_details: string
+        }
+        Returns: {
+          quote_id: string
+          quote_number: string
+          ticket_id: string
+          ticket_number: string
         }[]
       }
       set_custom_price: {

@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-08-06 — Quote requests and replies
+
+- A customer sends the original product and quantity details once from **Quote Requests**. The sent request cannot be edited afterward.
+- Open **View conversation** beside the request to send corrections or additional details. Staff replies and customer replies remain in the linked Helpdesk ticket.
+- A **Legacy request · No Helpdesk conversation** label means the request predates ticket linking; it remains visible but has no fabricated conversation.
+
 ## 2026-08-04 — Multiple accounts on one login
 
 - Customers with more than one active company account use the account selector beside **My Account**. Customers with one account do not see the selector.

@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-06
+- Area: customer portal Quote Requests and Helpdesk
+- Impact: submitting a quote created only an editable quotation row, so the request was absent from the Helpdesk queue and follow-up replies had no shared conversation.
+- Root cause: `QuoteFormSection` inserted directly into `quotes` without a transactional Helpdesk handoff or canonical record link.
+- Resolution: atomically create and link the quote, ticket, and creation event; render the immutable request with ticket status and route all replies through the existing Helpdesk detail screen.
+- Regression prevention: keep STOCK requests customer-immutable, preserve RX draft editing, and never split quote and ticket creation across browser writes.
+
 ## 2026-08-04 — Multi-account portal access
 - Area: customer portal identity, live account data, and Deploy access
 - Impact: one login could point to only one `profiles.crm_customer_id`; linking another customer replaced the first and the browser could not select a deliberate account context.

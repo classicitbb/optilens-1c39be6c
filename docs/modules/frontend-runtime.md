@@ -2,6 +2,12 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-08-06 — Quote request Helpdesk handoff
+
+- `QuoteFormSection` submits through `submit_customer_quote_request`; do not restore separate client inserts into `quotes` and `helpdesk_tickets`, because the RPC owns atomic creation and authorization.
+- `quotes.helpdesk_ticket_id` is the canonical conversation link. The quote list reads linked ticket state through normal Helpdesk RLS and routes replies to `/profile/helpdesk/:ticketId`.
+- Customer UPDATE permission remains available only for RX drafts. Submitted STOCK request text is read-only in the portal; follow-up content belongs in `helpdesk_ticket_messages`.
+
 ## 2026-08-04 — Multi-account portal access
 
 - `usePortalIdentity` is the compatibility interface over `portal_account_memberships`; `profiles.crm_customer_id` remains only the default/legacy pointer during rollout.

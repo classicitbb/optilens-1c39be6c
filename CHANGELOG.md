@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-06 — Quote Requests Routed Through Helpdesk
+
+### Release Notes
+- Customer quote requests now create a linked Helpdesk ticket, preserve the sent request as read-only history, and direct every follow-up reply into that ticket conversation.
+
+### Technical Changelog
+- Added an atomic authenticated quote-request RPC, canonical quote-to-ticket relationship, STOCK-request immutability for customers, ticket status/link rendering, and focused portal regression coverage.
+
 ## 2026-08-04 — Multi-account Portal Access
 
 ### Release Notes

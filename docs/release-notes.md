@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-06 — Quote Requests Routed Through Helpdesk
+
+### Release Notes
+- Sending a request from **Quote Requests** creates a Helpdesk ticket automatically and shows the complete request as locked, submitted history.
+- Use **View conversation** for corrections, questions, and support replies. Older requests remain visible and are labeled when they predate Helpdesk linking.
+
 ## 2026-08-04 — Multi-account Portal Access
 
 ### Release Notes

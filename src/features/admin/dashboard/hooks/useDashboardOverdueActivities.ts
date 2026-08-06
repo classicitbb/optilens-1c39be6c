@@ -17,8 +17,8 @@ export const useDashboardOverdueActivities = () => {
       const now = new Date().toISOString();
       const { data, error } = await (supabase.from("activities") as any)
         .select("id,activity_type,status,due_at,opportunities(title),contacts(name)")
+        .not("status", "in", "(completed,cancelled)")
         .lt("due_at", now)
-        .neq("status", "completed")
         .order("due_at", { ascending: true })
         .limit(10);
 

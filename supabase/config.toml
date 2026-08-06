@@ -13,6 +13,8 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = true
   [functions.crm-draft-outreach]
     verify_jwt = true
+  [functions.crm-activity-automation]
+    verify_jwt = true
   [functions.order-confirmation]
     verify_jwt = true
   [functions.lead-intelligence]

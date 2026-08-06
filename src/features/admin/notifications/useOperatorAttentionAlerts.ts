@@ -45,7 +45,7 @@ export const useOperatorAttentionAlerts = () => {
       const { data, error } = await (supabase as any)
         .from("activities")
         .select("id,activity_type,due_at,status")
-        .neq("status", "completed")
+        .not("status", "in", "(completed,cancelled)")
         .not("due_at", "is", null)
         .limit(300);
       if (error) throw error;

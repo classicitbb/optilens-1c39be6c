@@ -69,7 +69,8 @@ const materializeStep = async (contactId: string, enrollmentId: string, step: Ca
     const { error } = await (supabase.from("activities") as any).insert({
       activity_type: `${step.channel === "call" ? "Call" : "Visit"} — cadence step ${step.step_order}`,
       contact_id: contactId,
-      status: "open",
+      status: "planned",
+      owner_id: (await supabase.auth.getUser()).data.user?.id ?? null,
       due_at: due.toISOString(),
       type: step.channel === "call" ? "call" : "meeting",
       content: `Cadence enrollment ${enrollmentId}, channel: ${step.channel}.`,
