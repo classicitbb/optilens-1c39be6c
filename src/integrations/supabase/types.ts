@@ -208,6 +208,142 @@ export type Database = {
           },
         ]
       }
+      activity_automation_runs: {
+        Row: {
+          activity_id: string
+          approved_at: string | null
+          approved_by: string | null
+          automation_id: string
+          created_at: string
+          error: string | null
+          executed_at: string | null
+          id: string
+          idempotency_key: string
+          proposed_action: Json
+          result: Json | null
+          status: string
+          trigger_state: string
+        }
+        Insert: {
+          activity_id: string
+          approved_at?: string | null
+          approved_by?: string | null
+          automation_id: string
+          created_at?: string
+          error?: string | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key: string
+          proposed_action: Json
+          result?: Json | null
+          status?: string
+          trigger_state: string
+        }
+        Update: {
+          activity_id?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          automation_id?: string
+          created_at?: string
+          error?: string | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          proposed_action?: Json
+          result?: Json | null
+          status?: string
+          trigger_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_automation_runs_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "activity_automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_automations: {
+        Row: {
+          activity_id: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          recipe: string
+          trigger_state: string
+        }
+        Insert: {
+          activity_id: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          recipe: string
+          trigger_state?: string
+        }
+        Update: {
+          activity_id?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          recipe?: string
+          trigger_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_automations_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_participants: {
+        Row: {
+          activity_id: string
+          added_by: string | null
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          added_by?: string | null
+          created_at?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          added_by?: string | null
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_participants_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addon_clash_rules: {
         Row: {
           addon_id_a: string
@@ -7295,13 +7431,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "quotes_helpdesk_ticket_id_fkey"
-            columns: ["helpdesk_ticket_id"]
-            isOneToOne: true
-            referencedRelation: "helpdesk_tickets"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "quotes_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
@@ -7313,6 +7442,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_helpdesk_ticket_id_fkey"
+            columns: ["helpdesk_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -9560,6 +9696,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "quotes_helpdesk_ticket_id_fkey"
+            columns: ["helpdesk_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       statement_lines_public: {
@@ -9888,6 +10031,20 @@ export type Database = {
           p_statement_id?: string
         }
         Returns: string
+      }
+      crm_dashboard_kpis: {
+        Args: { p_end_date?: string; p_period?: string; p_start_date?: string }
+        Returns: {
+          avg_markup: number
+          contacts_count: number
+          landed_costing_total: number
+          open_opportunities: number
+          overdue_activities: number
+          period_end: string
+          period_start: string
+          price_items_count: number
+          quote_acceptance_rate: number
+        }[]
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -10353,155 +10510,6 @@ export type Database = {
           ticket_id: string
         }[]
       }
-      activity_participants: {
-        Row: {
-          activity_id: string
-          added_by: string | null
-          created_at: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          activity_id: string
-          added_by?: string | null
-          created_at?: string
-          role: string
-          user_id: string
-        }
-        Update: {
-          activity_id?: string
-          added_by?: string | null
-          created_at?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activity_participants_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      activity_automations: {
-        Row: {
-          activity_id: string
-          config: Json
-          created_at: string
-          created_by: string | null
-          enabled: boolean
-          id: string
-          recipe: string
-          trigger_state: string
-        }
-        Insert: {
-          activity_id: string
-          config?: Json
-          created_at?: string
-          created_by?: string | null
-          enabled?: boolean
-          id?: string
-          recipe: string
-          trigger_state?: string
-        }
-        Update: {
-          activity_id?: string
-          config?: Json
-          created_at?: string
-          created_by?: string | null
-          enabled?: boolean
-          id?: string
-          recipe?: string
-          trigger_state?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activity_automations_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      activity_automation_runs: {
-        Row: {
-          activity_id: string
-          approved_at: string | null
-          approved_by: string | null
-          automation_id: string
-          created_at: string
-          error: string | null
-          executed_at: string | null
-          id: string
-          idempotency_key: string
-          proposed_action: Json
-          result: Json | null
-          status: string
-          trigger_state: string
-        }
-        Insert: {
-          activity_id: string
-          approved_at?: string | null
-          approved_by?: string | null
-          automation_id: string
-          created_at?: string
-          error?: string | null
-          executed_at?: string | null
-          id?: string
-          idempotency_key: string
-          proposed_action: Json
-          result?: Json | null
-          status?: string
-          trigger_state: string
-        }
-        Update: {
-          activity_id?: string
-          approved_at?: string | null
-          approved_by?: string | null
-          automation_id?: string
-          created_at?: string
-          error?: string | null
-          executed_at?: string | null
-          id?: string
-          idempotency_key?: string
-          proposed_action?: Json
-          result?: Json | null
-          status?: string
-          trigger_state?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "activity_automation_runs_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "activity_automation_runs_automation_id_fkey"
-            columns: ["automation_id"]
-            isOneToOne: false
-            referencedRelation: "activity_automations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      submit_customer_quote_request: {
-        Args: {
-          p_account_id?: number
-          p_customer_name: string
-          p_request_details: string
-        }
-        Returns: {
-          quote_id: string
-          quote_number: string
-          ticket_id: string
-          ticket_number: string
-        }[]
-      }
       set_custom_price: {
         Args: {
           p_customer_id: number
@@ -10524,6 +10532,19 @@ export type Database = {
         Args: { p_gateway?: Json; p_payment_id: string }
         Returns: string
       }
+      submit_customer_quote_request: {
+        Args: {
+          p_account_id?: number
+          p_customer_name: string
+          p_request_details: string
+        }
+        Returns: {
+          quote_id: string
+          quote_number: string
+          ticket_id: string
+          ticket_number: string
+        }[]
+      }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }
         Returns: {
@@ -10544,6 +10565,35 @@ export type Database = {
       toggle_anchor_exclusion: {
         Args: { p_excluded: boolean; p_lens_id: string; p_reason?: string }
         Returns: undefined
+      }
+      transition_crm_activity: {
+        Args: {
+          p_activity_id: string
+          p_due_at?: string
+          p_state: string
+          p_update_due?: boolean
+        }
+        Returns: {
+          activity_id: string
+          approved_at: string | null
+          approved_by: string | null
+          automation_id: string
+          created_at: string
+          error: string | null
+          executed_at: string | null
+          id: string
+          idempotency_key: string
+          proposed_action: Json
+          result: Json | null
+          status: string
+          trigger_state: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "activity_automation_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       trigger_integration_sync_job: {
         Args: { p_provider: string; p_sync_kind: string; p_tenant_key: string }
