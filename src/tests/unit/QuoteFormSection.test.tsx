@@ -119,7 +119,8 @@ describe("QuoteFormSection", () => {
     expect(await screen.findByText("Request sent and locked")).toBeInTheDocument();
     expect(screen.getByText(/PTL-DEF456/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole("button", { name: /view conversation/i }).at(-1)!);
+    const conversationButtons = screen.getAllByRole("button", { name: /view conversation/i });
+    fireEvent.click(conversationButtons[conversationButtons.length - 1]);
     expect(await screen.findByText("Conversation opened")).toBeInTheDocument();
   });
 });
