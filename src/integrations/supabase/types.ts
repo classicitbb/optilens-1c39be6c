@@ -9373,7 +9373,9 @@ export type Database = {
       customer_account_number_duplicates: {
         Row: {
           account_number: string | null
+          customer_contact_ids: string[] | null
           customer_ids: number[] | null
+          customer_is_erp: boolean[] | null
           customer_names: string[] | null
           duplicate_count: number | null
         }
@@ -10477,6 +10479,17 @@ export type Database = {
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       resolve_contact_customer_links: { Args: never; Returns: number }
+      resolve_non_erp_duplicate_account_link: {
+        Args: { p_account_number: string }
+        Returns: {
+          account_number: string
+          canonical_customer_id: number
+          cleared_customer_ids: number[]
+          message: string
+          ok: boolean
+          status: string
+        }[]
+      }
       revert_account_to_master: {
         Args: { p_customer_id: number }
         Returns: undefined
