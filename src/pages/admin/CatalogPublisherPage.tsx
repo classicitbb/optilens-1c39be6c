@@ -18,7 +18,7 @@ import { Plus, Search, Trash2, Copy, Users, FileDown, BookOpen } from "lucide-re
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { generateCatalogPdf } from "@/features/admin/catalog-editor-v2/utils/generateCatalogPdf";
+import { generateCatalogPdf } from "@/lib/generateCatalogPdf";
 
 /* ─── Types ─── */
 type SortField = "updated_at" | "name" | "customers" | "sections";

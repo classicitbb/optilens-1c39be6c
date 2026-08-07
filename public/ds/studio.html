@@ -440,37 +440,6 @@
       </div>
       </sc-if>
 
-      <!-- ---------- PRICE LIST ---------- -->
-      <sc-if value="{{ isPricelist }}" hint-placeholder-val="{{ false }}">
-      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
-        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Saved pricelist</div><select class="cv-in" value="{{ selectedPricelistId }}" onChange="{{ applySavedPricelist }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"><option value="">Select saved pricelist</option><sc-for list="{{ savedPricelistOptions }}" as="p" hint-placeholder-count="0"><option value="{{ p.id }}">{{ p.label }}</option></sc-for></select></div>
-        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Customer / addressee</div><input class="cv-in" value="{{ f.plCustomer.v }}" onChange="{{ f.plCustomer.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
-        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Attention</div><input class="cv-in" value="{{ f.plAttn.v }}" onChange="{{ f.plAttn.on }}" placeholder="Buyer / contact name" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
-        <div style="display:flex;gap:11px">
-          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Date</div><input class="cv-in" value="{{ f.plDate.v }}" onChange="{{ f.plDate.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
-          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Valid for</div><input class="cv-in" value="{{ f.plValidity.v }}" onChange="{{ f.plValidity.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
-        </div>
-        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Currency</div><div style="display:flex;gap:7px"><sc-for list="{{ plCurrencyOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div></div>
-        <div>
-          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Line items</div>
-          <sc-for list="{{ plRowViews }}" as="r" hint-placeholder-count="1">
-            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0ede6">
-              <div style="display:flex;gap:7px">
-                <input class="cv-in" value="{{ r.code }}" onChange="{{ r.onCode }}" placeholder="Code" style="width:72px;flex:none;padding:7px 9px;border:1px solid #d9d7cf;border-radius:7px;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
-                <input class="cv-in" value="{{ r.desc }}" onChange="{{ r.onDesc }}" placeholder="Description" style="flex:1;padding:7px 9px;border:1px solid #d9d7cf;border-radius:7px;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
-              </div>
-              <div style="display:flex;gap:7px;align-items:center">
-                <input class="cv-in" value="{{ r.price }}" onChange="{{ r.onPrice }}" placeholder="Price" style="width:90px;flex:none;padding:7px 9px;border:1px solid #d9d7cf;border-radius:7px;font:600 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
-                <button onClick="{{ r.del }}" style="background:none;border:1px solid #e0ddd6;border-radius:6px;color:#b3aa9a;cursor:pointer;padding:5px 9px;font-size:13px;line-height:1">×</button>
-              </div>
-            </div>
-          </sc-for>
-          <button onClick="{{ addPlRow }}" style="width:100%;padding:8px;border:1.5px dashed #c8c4bb;border-radius:8px;background:none;color:#5b6b7c;font:600 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Add item</button>
-        </div>
-        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Footer note — optional</div><textarea class="cv-in" value="{{ f.plNote.v }}" onChange="{{ f.plNote.on }}" rows="2" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
-      </div>
-      </sc-if>
-
       <!-- ---------- SHIPPING LABEL ---------- -->
       <sc-if value="{{ isShiplabel }}" hint-placeholder-val="{{ false }}">
       <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
@@ -1167,9 +1136,6 @@ class Component extends DCLogic {
     emailLib: [], letterLib: [], sigLib: [], snippets: [],
     smFormat: 'instagram', smStyle: 'navy', smHeadline: 'Vision starts here.', smHeadlineAlign: 'left', smHeadlineItalic: false, smBody: '', smSub: '', smHandle: '@classicvisions', smPostLib: [],
     copied: '', libraryDelete: null,
-    // Price list
-    plCustomer: '', plAttn: '', plDate: '', plValidity: '30 days', plCurrency: 'BBD', plNote: '',
-    plRows: [{ id: '1', code: '', desc: '', price: '' }],
     // Shipping label
     slFromName: 'Classic Visions', slFromAddr: 'Worthing, Christ Church\nBarbados', slFromPhone: '+1 246 433-4928',
     slToName: '', slToCompany: '', slToAddr: '', slToPhone: '', slCarrier: '', slService: '', slTracking: '', slWeight: '', slDims: '', slNote: '',
@@ -1206,8 +1172,8 @@ class Component extends DCLogic {
     emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
     emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
     emailContacts: [],
-    dsCustomers: [], dsPricelists: [],
-    selectedStatementCustomer: '', selectedShipCustomer: '', selectedBillingCustomer: '', selectedPricelistId: ''
+    dsCustomers: [],
+    selectedStatementCustomer: '', selectedShipCustomer: '', selectedBillingCustomer: ''
   };
 
   componentDidMount() {
@@ -1288,7 +1254,7 @@ class Component extends DCLogic {
   };
 
   // ---------- persistence ----------
-  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, dsPricelists, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -1962,7 +1928,6 @@ class Component extends DCLogic {
     const t = this.state.tab;
     if (t === 'files') { this.toast('Open a file to preview it'); return; }
     if (t === 'social') { this.openSmFull(); return; }
-    if (t === 'pricelist') { this.printDoc(this.buildPricelist(), 'Price List'); return; }
     if (t === 'shiplabel') { this.printDoc(this.buildShippingLabel(), 'Shipping Label'); return; }
     if (t === 'statement') { this.printDoc(this.state.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement(), 'Customer Statement'); return; }
     if (t === 'billing') { this.printDoc(this.buildBilling(), this.billMeta().title, this.state.billPaperSize || 'letter'); return; }
@@ -2122,12 +2087,7 @@ class Component extends DCLogic {
   seg = (key, opts) => opts.map(o => ({ label: o.l, style: this.segStyle(this.state[key] === o.k), onClick: () => this.set(key, o.k) }));
 
 
-  // ---------- PRICE LIST rows ----------
-  addPlRow = () => this.setState(s => ({ plRows: [...(s.plRows||[]), { id: Date.now()+'', code:'', desc:'', price:'' }] }), this.persistSoon);
-  delPlRow = (i) => this.setState(s => { const r=[...(s.plRows||[])]; r.splice(i,1); return { plRows: r.length ? r : [{ id:Date.now()+'', code:'', desc:'', price:'' }] }; }, this.persistSoon);
-  updatePlRow = (i, key, val) => this.setState(s => { const r=[...(s.plRows||[])]; r[i]={...r[i],[key]:val}; return { plRows:r }; }, this.persistSoon);
-
-  // ---------- customer / pricelist reference data ----------
+  // ---------- customer reference data ----------
   loadDocStudioData = async () => {
     const getJson = async (url, fallback) => {
       try {
@@ -2137,13 +2097,11 @@ class Component extends DCLogic {
         return Array.isArray(j) ? j : fallback;
       } catch (e) { return fallback; }
     };
-    const [customers, lists] = await Promise.all([
-      getJson('/api/pl/customers', []),
-      getJson('/api/pricelists', [])
+    const [customers] = await Promise.all([
+      getJson('/api/pl/customers', [])
     ]);
     this.setState({
-      dsCustomers: customers.filter(c => c && (c.account || c.name)),
-      dsPricelists: lists.filter(p => p && p.id)
+      dsCustomers: customers.filter(c => c && (c.account || c.name))
     });
   };
   customerLabel = (c) => `${c.name || c.customerName || c.account || 'Customer'}${c.account ? ' (' + c.account + ')' : ''}`;
@@ -2190,39 +2148,6 @@ class Component extends DCLogic {
       blToAddr: this.customerAddressBlock(c)
     }, this.billingChanged);
   };
-  applySavedPricelist = async (e) => {
-    const id = e.target.value;
-    if (!id) return this.set('selectedPricelistId', '');
-    try {
-      const r = await fetch('/api/pricelists/' + encodeURIComponent(id), { credentials: 'same-origin' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const p = await r.json();
-      const cur = p.currency || 'BBD';
-      const mode = p.priceMode === 'retail' ? 'retailUSD' : 'priceUSD';
-      const rows = Object.entries(p.prices || {}).map(([key, val], i) => {
-        const parts = key.split('||');
-        const raw = Number((val && (val[mode] || val.priceUSD || val.retailUSD)) || 0);
-        if (!raw) return null;
-        const display = cur === 'BBD' ? raw * 2 : raw;
-        return {
-          id: Date.now() + '-' + i,
-          code: parts[2] || '',
-          desc: [parts[0], parts[1], parts[2]].filter(Boolean).join(' - '),
-          price: display.toFixed(2)
-        };
-      }).filter(Boolean);
-      this.setState({
-        selectedPricelistId: id,
-        plCustomer: p.customerName || p.customer || this.state.plCustomer,
-        plCurrency: cur,
-        plRows: rows.length ? rows : [{ id: Date.now() + '', code: '', desc: '', price: '' }]
-      }, this.persistSoon);
-      this.toast('Pricelist loaded as editable items');
-    } catch (err) {
-      this.toast('Could not load pricelist');
-    }
-  };
-
   // ---------- STATEMENT rows ----------
   addStRow = () => this.setState(s => ({ stRows: [...(s.stRows||[]), { id: Date.now()+'', date:'', desc:'', patient:'', debit:'', credit:'' }] }), this.persistSoon);
   delStRow = (i) => this.setState(s => { const r=[...(s.stRows||[])]; r.splice(i,1); return { stRows: r.length ? r : [{ id:Date.now()+'', date:'', desc:'', patient:'', debit:'', credit:'' }] }; }, this.persistSoon);
@@ -2298,35 +2223,6 @@ class Component extends DCLogic {
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(title)} — Classic Visions</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif}@page{size:${paper};margin:6mm}@media print{body{background:#fff}.ds-bill-page{box-shadow:none!important}}</style></head><body>${html}</body></html>`);
     w.document.close();
     setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 500);
-  };
-
-  // ---------- PRICE LIST build ----------
-  buildPricelist = () => {
-    const d = this.state, b = this.brand(), esc = this.esc;
-    const cur = d.plCurrency || 'BBD';
-    const rows = (d.plRows || []).filter(r => r.desc || r.code || r.price);
-    const rowsHtml = rows.length ? rows.map((r, i) => `<tr style="background:${i%2===0?'#fff':'#f9f8f5'}"><td style="padding:11px 16px;font:400 13px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;border-bottom:1px solid #f0ede6">${esc(r.code)}</td><td style="padding:11px 16px;font:400 13px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;border-bottom:1px solid #f0ede6">${esc(r.desc)}</td><td style="padding:11px 16px;font:600 13px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;text-align:right;border-bottom:1px solid #f0ede6">${esc(r.price)}</td></tr>`).join('') : `<tr><td colspan="3" style="padding:20px 16px;font:400 13px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#a7a596;font-style:italic">No items added yet.</td></tr>`;
-    return `<div style="width:680px;max-width:680px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif">
-      <div style="padding:44px 52px 0">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
-          <td style="vertical-align:middle">${this.lockup('light',{big:true})}</td>
-          <td style="vertical-align:middle;text-align:right">
-            <div style="font:800 18px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.01em;color:#0B1E35">PRICE LIST</div>
-            <div style="font:400 12px/1.8 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-top:6px">${esc(d.plDate)}<br>Valid: ${esc(d.plValidity)}</div>
-          </td>
-        </tr></table>
-        <div style="height:2px;background:#C89130;margin:20px 0 0"></div>
-      </div>
-      ${d.plCustomer ? `<div style="padding:22px 52px 0"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Prepared for</div><div style="font:600 14px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(d.plCustomer)}</div>${d.plAttn?`<div style="font:400 12.5px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c">Attn: ${esc(d.plAttn)}</div>`:''}</div>` : ''}
-      <div style="padding:22px 52px 0">
-        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7e4db;border-radius:10px;overflow:hidden">
-          <thead><tr style="background:#0B1E35"><th style="padding:11px 16px;font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#F4F2ED;text-align:left">Code</th><th style="padding:11px 16px;font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#F4F2ED;text-align:left">Description</th><th style="padding:11px 16px;font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#C89130;text-align:right">${esc(cur)}</th></tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
-      ${d.plNote ? `<div style="padding:18px 52px 0;font:400 12px/1.65 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;font-style:italic">${esc(d.plNote)}</div>` : ''}
-      <div style="padding:34px 52px 44px"><div style="height:1px;background:#e7e4db;margin-bottom:14px"></div><div style="text-align:center;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(b.name)} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)} &nbsp;·&nbsp; ${esc(b.web)}</div></div>
-    </div>`;
   };
 
   // ---------- SHIPPING LABEL build ----------
@@ -2714,9 +2610,9 @@ class Component extends DCLogic {
     return data;
   };
 
-  TYPE_LABELS = { email: 'Email', letter: 'Letterhead', signature: 'Signature', social: 'Social', pricelist: 'Price List', shiplabel: 'Ship Label', statement: 'Statement', billing: 'Billing' };
-  TYPE_COLORS = { email: { c: '#3B6D11', bg: '#dff0d4', hdr: '#C0DD97' }, letter: { c: '#534AB7', bg: '#e5e3f9', hdr: '#AFA9EC' }, billing: { c: '#185FA5', bg: '#ddeaf8', hdr: '#B5D4F4' }, pricelist: { c: '#854F0B', bg: '#f5e8cc', hdr: '#FAC775' }, shiplabel: { c: '#0F6E56', bg: '#d3efe7', hdr: '#9FE1CB' }, signature: { c: '#993556', bg: '#f4d0df', hdr: '#ED93B1' }, social: { c: '#185FA5', bg: '#ddeaf8', hdr: '#B5D4F4' }, statement: { c: '#534AB7', bg: '#e5e3f9', hdr: '#AFA9EC' } };
-  TYPE_ICONS_SVG = { email: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', letter: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', billing: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', pricelist: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z', shiplabel: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0', signature: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', social: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z', statement: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' };
+  TYPE_LABELS = { email: 'Email', letter: 'Letterhead', signature: 'Signature', social: 'Social', shiplabel: 'Ship Label', statement: 'Statement', billing: 'Billing' };
+  TYPE_COLORS = { email: { c: '#3B6D11', bg: '#dff0d4', hdr: '#C0DD97' }, letter: { c: '#534AB7', bg: '#e5e3f9', hdr: '#AFA9EC' }, billing: { c: '#185FA5', bg: '#ddeaf8', hdr: '#B5D4F4' }, shiplabel: { c: '#0F6E56', bg: '#d3efe7', hdr: '#9FE1CB' }, signature: { c: '#993556', bg: '#f4d0df', hdr: '#ED93B1' }, social: { c: '#185FA5', bg: '#ddeaf8', hdr: '#B5D4F4' }, statement: { c: '#534AB7', bg: '#e5e3f9', hdr: '#AFA9EC' } };
+  TYPE_ICONS_SVG = { email: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', letter: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', billing: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', shiplabel: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0', signature: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', social: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z', statement: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' };
 
   _showFileCtxMenu = (itemJson, x, y) => {
     const item = JSON.parse(itemJson);
@@ -2807,7 +2703,6 @@ class Component extends DCLogic {
     letter: ['docType', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe', 'ltBody'],
     signature: ['sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'sgLogo'],
     social: ['smFormat', 'smStyle', 'smHeadline', 'smHeadlineAlign', 'smHeadlineItalic', 'smBody', 'smSub', 'smHandle'],
-    pricelist: ['plCustomer', 'plAttn', 'plDate', 'plValidity', 'plCurrency', 'plNote', 'plRows', 'selectedPricelistId'],
     shiplabel: ['slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
     statement: ['stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stCurrency', 'stOpenBal', 'stRows', 'stNote', 'selectedStatementCustomer']
   };
@@ -2850,18 +2745,17 @@ class Component extends DCLogic {
     if (type === 'letter') return d.ltSubject || this.TYPE_LABELS.letter;
     if (type === 'signature') return d.sgName || 'Email signature';
     if (type === 'social') return d.smHeadline || 'Social post';
-    if (type === 'pricelist') return d.plCustomer ? 'Price list - ' + d.plCustomer : 'Price list';
     if (type === 'shiplabel') return d.slToCompany || d.slToName ? 'Ship label - ' + (d.slToCompany || d.slToName) : 'Ship label';
     if (type === 'statement') return d.stCustomer ? 'Statement - ' + d.stCustomer : 'Statement';
     return 'Doc Studio file';
   };
 
-  renderedForFile = (type) => type === 'email' ? this.buildEmail() : type === 'letter' ? this.buildLetter() : type === 'signature' ? this.buildSignature() : type === 'social' ? this.buildSocialPost() : type === 'pricelist' ? this.buildPricelist() : type === 'shiplabel' ? this.buildShippingLabel() : type === 'statement' ? this.buildStatement() : '';
+  renderedForFile = (type) => type === 'email' ? this.buildEmail() : type === 'letter' ? this.buildLetter() : type === 'signature' ? this.buildSignature() : type === 'social' ? this.buildSocialPost() : type === 'shiplabel' ? this.buildShippingLabel() : type === 'statement' ? this.buildStatement() : '';
 
   filePayload = (type, name, options = {}) => ({
     fileType: type,
     fileName: name || this.state.currentFileName || this.defaultFileName(type),
-    customerName: type === 'statement' ? this.state.stCustomer : type === 'pricelist' ? this.state.plCustomer : type === 'shiplabel' ? (this.state.slToCompany || this.state.slToName) : '',
+    customerName: type === 'statement' ? this.state.stCustomer : type === 'shiplabel' ? (this.state.slToCompany || this.state.slToName) : '',
     customerAccount: type === 'statement' ? this.state.selectedStatementCustomer : type === 'shiplabel' ? this.state.selectedShipCustomer : '',
     metadata: {
       typeLabel: this.TYPE_LABELS[type] || type,
@@ -3448,14 +3342,14 @@ class Component extends DCLogic {
         )
       );
     } else {
-      const html = tab === 'email' ? this.buildEmail() : tab === 'letter' ? this.buildLetter() : tab === 'pricelist' ? this.buildPricelist() : tab === 'shiplabel' ? this.buildShippingLabel() : tab === 'statement' ? (d.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement()) : tab === 'billing' ? this.buildBilling() : this.buildSignatureBoard();
+      const html = tab === 'email' ? this.buildEmail() : tab === 'letter' ? this.buildLetter() : tab === 'shiplabel' ? this.buildShippingLabel() : tab === 'statement' ? (d.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement()) : tab === 'billing' ? this.buildBilling() : this.buildSignatureBoard();
       previewNode = React.createElement('div', { style: { width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }, dangerouslySetInnerHTML: { __html: html } });
     }
-    const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['pricelist', 'Price List'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ label: l, onClick: () => this.switchTab(k), style: this.tabStyle(tab === k) }));
+    const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ label: l, onClick: () => this.switchTab(k), style: this.tabStyle(tab === k) }));
     // Both tab bars render from one freshly-computed HTML node per render (not sc-for),
     // so the active-tab highlight always tracks state. Two identical, independent nodes
     // avoid the runtime reconciling one shared list across two mount points.
-    const _tabBarHtml = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['pricelist', 'Price List'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => `<button onclick="window._dsApp.switchTab('${k}')" style="${this.tabStyle(tab === k)}">${l}</button>`).join('');
+    const _tabBarHtml = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => `<button onclick="window._dsApp.switchTab('${k}')" style="${this.tabStyle(tab === k)}">${l}</button>`).join('');
     const _mkTabBar = () => React.createElement('div', { style: { display: 'contents' }, dangerouslySetInnerHTML: { __html: _tabBarHtml } });
     // Saved email templates are durable Doc Studio files. Rendering from the
     // same collection as My Files keeps the quick-reuse panel in sync after a
@@ -3502,10 +3396,6 @@ class Component extends DCLogic {
     const emailSendPreviewNode = React.createElement('div', { style: { display:'flex', justifyContent:'center', alignItems:'flex-start' } },
       React.createElement('div', { style: { width:'640px', maxWidth:'100%', background:'#F4F2ED', boxShadow:'0 12px 44px -18px rgba(11,30,53,.38)' }, dangerouslySetInnerHTML: { __html: this.buildEmail() } })
     );
-    const savedPricelistOptions = (d.dsPricelists || [])
-      .slice()
-      .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-      .map(p => ({ id: p.id, label: `${p.name || 'Saved pricelist'}${p.customerName || p.customer ? ' - ' + (p.customerName || p.customer) : ''}` }));
     // ---- billing bindings ----
     const bm = this.BILL_META[d.billType] || this.BILL_META.invoice;
     const billCur = d.blCurrency || 'BBD';
@@ -3567,14 +3457,14 @@ class Component extends DCLogic {
     const sidebarWidth = this.clampSidebarWidth(d.sidebarWidth || 396);
     return {
       tab,
-      isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isPricelist: tab === 'pricelist', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
+      isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
       f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
-      previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'pricelist' ? 'Price list preview' : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
+      previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
       showEmailFileIdentity: tab === 'email',
       activeEmailFileName: d.currentFileKind === 'file' && d.currentFileType === 'email' ? (d.currentFileName || 'Untitled email') : 'Unsaved email',
       activeEmailFileStatus: d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? 'Unsaved' : d.currentFileIsTemplate ? 'Template' : 'File',
       activeEmailFileBadgeStyle: `padding:4px 7px;border-radius:999px;background:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#f1ede5' : d.currentFileIsTemplate ? '#dceef0' : '#e7edf5'};color:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#7a715f' : d.currentFileIsTemplate ? '#176d7a' : '#415b7a'};font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap`,
-      copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'pricelist' ? 'Print price list' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
+      copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
       copyNow: this.copyNow, printLetter: this.printLetter,
       openEmailSend: this.openEmailSend,
       emailSendOpen: d.emailSendOpen, closeEmailSend: this.closeEmailSend,
@@ -3589,7 +3479,7 @@ class Component extends DCLogic {
       emailSending: d.emailSending, emailSendError: d.emailSendError || '', sendEmailNow: this.sendEmailNow,
       emailSendButtonLabel: d.emailSending ? 'Sending...' : 'Send Email',
       emailSendButtonOpacity: d.emailSending ? '.65' : '1',
-      showFileActions: ['email', 'letter', 'signature', 'social', 'pricelist', 'shiplabel', 'statement'].includes(tab),
+      showFileActions: ['email', 'letter', 'signature', 'social', 'shiplabel', 'statement'].includes(tab),
       fileSaveState: d.fileSaveState || '',
       saveActiveFile: this.saveActiveFile, saveAsActiveFile: this.saveAsActiveFile, renameActiveFile: this.renameActiveFile, shareActiveFile: this.shareActiveFile, deleteActiveFile: this.deleteActiveFile,
       fileSaveDialogOpen: d.fileSaveDialogOpen,
@@ -3608,7 +3498,7 @@ class Component extends DCLogic {
         const counts = {};
         (d.myFiles || []).forEach(f => { counts[f.fileType] = (counts[f.fileType] || 0) + 1; });
         const total = (d.myFiles || []).length;
-        const types = [['', 'All types', total, 'apps'], ['email','Email',counts.email||0,'mail'], ['letter','Letterhead',counts.letter||0,'description'], ['billing','Billing',counts.billing||0,'receipt_long'], ['pricelist','Price list',counts.pricelist||0,'sell'], ['shiplabel','Ship label',counts.shiplabel||0,'local_shipping'], ['signature','Signature',counts.signature||0,'draw'], ['social','Social',counts.social||0,'campaign'], ['statement','Statement',counts.statement||0,'account_balance']];
+        const types = [['', 'All types', total, 'apps'], ['email','Email',counts.email||0,'mail'], ['letter','Letterhead',counts.letter||0,'description'], ['billing','Billing',counts.billing||0,'receipt_long'], ['shiplabel','Ship label',counts.shiplabel||0,'local_shipping'], ['signature','Signature',counts.signature||0,'draw'], ['social','Social',counts.social||0,'campaign'], ['statement','Statement',counts.statement||0,'account_balance']];
         return types.map(([type, label, count, icon]) => {
           const active = (d.fileTypeFilter || '') === type;
           return {
@@ -3656,24 +3546,12 @@ class Component extends DCLogic {
       smHeadlineOn: (e) => this.set('smHeadline', e.target.value), smSubOn: (e) => this.set('smSub', e.target.value), smHandleOn: (e) => this.set('smHandle', e.target.value),
       smHeadlineItalicToggle: this.smHeadlineItalicToggle, smHeadlineLeft: this.smHeadlineLeft, smHeadlineCenter: this.smHeadlineCenter, smHeadlineRight: this.smHeadlineRight,
       customerOptions,
-      savedPricelistOptions,
       selectedStatementCustomer: d.selectedStatementCustomer || '',
       selectedShipCustomer: d.selectedShipCustomer || '',
       selectedBillingCustomer: d.selectedBillingCustomer || '',
-      selectedPricelistId: d.selectedPricelistId || '',
       applyCustomerToStatement: this.applyCustomerToStatement,
       applyCustomerToShipLabel: this.applyCustomerToShipLabel,
       applyCustomerToBilling: this.applyCustomerToBilling,
-      applySavedPricelist: this.applySavedPricelist,
-      plCurrencyOpts: this.seg('plCurrency', [{ k: 'BBD', l: 'BBD' }, { k: 'USD', l: 'USD' }]),
-      plRowViews: (d.plRows || []).map((r, i) => ({
-        code: r.code, desc: r.desc, price: r.price,
-        onCode: (e) => this.updatePlRow(i, 'code', e.target.value),
-        onDesc: (e) => this.updatePlRow(i, 'desc', e.target.value),
-        onPrice: (e) => this.updatePlRow(i, 'price', e.target.value),
-        del: () => this.delPlRow(i)
-      })),
-      addPlRow: this.addPlRow,
       stCurrencyOpts: this.seg('stCurrency', [{ k: 'BBD', l: 'BBD' }, { k: 'USD', l: 'USD' }]),
       stTypeOpts: [{ k: 'simple', l: 'Simple Statement' }, { k: 'advanced', l: 'Advanced Statement' }].map(o => ({ label: o.l, onClick: () => this.set('stType', o.k), style: this.segStyle(d.stType === o.k) })),
       isSimpleStatement: d.stType !== 'advanced',

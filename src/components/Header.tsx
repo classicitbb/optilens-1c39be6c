@@ -546,11 +546,11 @@ const Header = () => {
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-        <Link to="/" {...labLinkNavigationProps} className="flex items-center gap-2" aria-label="Classic Visions home">
+        <Link to="/" {...labLinkNavigationProps} className="flex shrink-0 items-center gap-2" aria-label="Classic Visions home">
           <div className="flex h-10 w-10 items-center justify-center">
               <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
-          <span className="text-xl font-bold text-foreground">Classic Visions</span>
+          <span className="whitespace-nowrap text-xl font-bold text-foreground">Classic Visions</span>
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
@@ -783,7 +783,12 @@ const Header = () => {
             }
 
               {user ? (
-                <CartSheet triggerVariant="hero" triggerSize="sm" showLabel className="min-w-[7.5rem] justify-center" />
+                <CartSheet
+                  triggerVariant="hero"
+                  triggerSize="sm"
+                  showLabel
+                  className="h-10 w-10 min-w-10 justify-center px-0 sm:h-9 sm:w-auto sm:min-w-[7.5rem] sm:px-4"
+                />
               ) : (
                 <Button variant="hero" size="sm" className="min-w-[7.5rem] justify-center" asChild>
                   <Link to="/store" {...labLinkNavigationProps}>

@@ -4,7 +4,7 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
 ---
 

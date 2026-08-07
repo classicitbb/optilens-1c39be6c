@@ -32,7 +32,6 @@ const QuotePrintPreviewPage = lazy(() => import("@/pages/admin/QuotePrintPreview
 const CatalogPublisherPage = lazy(() => import("@/pages/admin/CatalogPublisherPage"));
 const CatalogPublisherV2Page = lazy(() => import("@/pages/admin/CatalogPublisherV2Page"));
 const CatalogEditorPage = lazy(() => import("@/pages/admin/CatalogEditorPage"));
-const CanvasEditorPage = lazy(() => import("@/pages/admin/CanvasEditorPage"));
 const ContactsPage = lazy(() => import("@/pages/admin/erp/ContactsPage"));
 const ContactTagsConfigPage = lazy(() => import("@/pages/admin/erp/ContactTagsConfigPage"));
 const IndustriesConfigPage = lazy(() => import("@/pages/admin/erp/IndustriesConfigPage"));
@@ -80,7 +79,6 @@ const AdminRoutes = () => (
       <Route path="pricing/classification" element={<LensClassificationPage />} />
       <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
-      <Route path="pricing/publisher/:id/canvas" element={<CanvasEditorPage />} />
       <Route path="pricing/costings" element={<ImportCostingsPage />} />
       <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
       <Route path="pricing/costings/:id" element={<ShipmentDetailPage />} />
