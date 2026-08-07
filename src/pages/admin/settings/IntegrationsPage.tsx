@@ -8,9 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
 import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
+import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
+import { redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scotia eCom+ (Fiserv IPG Connect) hosted-payment credential store.
@@ -92,6 +95,7 @@ export default function IntegrationsPage() {
     enabled: false,
   });
   const [sharedSecret, setSharedSecret] = useState("");
+  const [testPayment, setTestPayment] = useState<PreparePaymentInput | null>(null);
   const [dhlForm, setDhlForm] = useState<Partial<{
     account_number: string;
     environment: "test" | "production";
@@ -105,7 +109,7 @@ export default function IntegrationsPage() {
     setForm({
       store_id: data.store_id ?? "",
       environment: data.environment,
-      currency: data.currency,
+      currency: "840",
       timezone: data.timezone,
       enabled: data.enabled,
     });
@@ -122,7 +126,7 @@ export default function IntegrationsPage() {
       const { error } = await supabase.rpc("upsert_payment_gateway_settings" as never, {
         p_store_id: form.store_id,
         p_environment: form.environment,
-        p_currency: form.currency,
+        p_currency: "840",
         p_timezone: form.timezone,
         p_enabled: form.enabled,
         p_shared_secret: sharedSecret || null,
@@ -178,7 +182,13 @@ export default function IntegrationsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
       qc.invalidateQueries({ queryKey: ["payment-gateway-status"] });
-      toast({ title: "Configuration valid", description: "Credentials resolved and the request hash computed successfully." });
+      setTestPayment({
+        testMode: true,
+        chargetotal: 1,
+        responseSuccessURL: `${window.location.origin}/checkout`,
+        responseFailURL: `${window.location.origin}/checkout`,
+      });
+      toast({ title: "Configuration valid", description: "The secure hosted-payment window is ready for an iframe test." });
     },
     onError: (error: any) => {
       qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
@@ -295,10 +305,11 @@ export default function IntegrationsPage() {
           <div className="space-y-1.5">
             <Label>Currency (ISO numeric)</Label>
             <Input
-              value={form.currency}
-              onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))}
-              placeholder="840 (USD) · 484 (MXN)"
+              value="840"
+              readOnly
+              aria-describedby="scotia-currency-note"
             />
+            <p id="scotia-currency-note" className="text-xs text-muted-foreground">USD is fixed by the hosted-payment integration.</p>
           </div>
           <div className="space-y-1.5">
             <Label>Timezone</Label>
@@ -454,6 +465,31 @@ export default function IntegrationsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={testPayment !== null} onOpenChange={(open) => !open && setTestPayment(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Scotia secure payment-window test</DialogTitle>
+            <DialogDescription>
+              This uses the configured test gateway. It first opens the hosted page in an iframe and automatically continues with the supported redirect if framing is rejected.
+            </DialogDescription>
+          </DialogHeader>
+          {testPayment && (
+            <ScotiaPaymentFrame
+              payment={testPayment}
+              onResult={(result) => {
+                toast({
+                  title: result.approved ? "Test payment approved" : "Test payment returned a decline",
+                  description: result.hashValid ? "The signed gateway response was validated." : "The gateway response could not be verified.",
+                  variant: result.approved && result.hashValid ? "default" : "destructive",
+                });
+              }}
+              onError={(message) => toast({ title: "Payment-window test failed", description: message, variant: "destructive" })}
+              onFallback={redirectToScotiaPayment}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -29,6 +29,19 @@ describe("Scotia redirect payment flow", () => {
     expect(migration).toContain("REVOKE ALL ON FUNCTION public.place_customer_order");
   });
 
+  it("uses the required hosted-form language and USD currency for iframe and redirect modes", () => {
+    const prepare = read("supabase/functions/scotia-payment/index.ts");
+    const config = read("supabase/functions/_shared/scotia/config.ts");
+    const frame = read("src/components/checkout/ScotiaPaymentFrame.tsx");
+    const checkout = read("src/pages/CheckoutPage.tsx");
+
+    expect(prepare).toContain('currency: "840"');
+    expect(prepare).toContain('language: "en_GB"');
+    expect(config).toContain('currency: "840"');
+    expect(frame).toContain("onFallback");
+    expect(checkout).toContain("ScotiaPaymentFrame");
+  });
+
   it("uses an RLS-backed completion page instead of trusting query parameters", () => {
     const page = read("src/pages/OrderCompletePage.tsx");
 

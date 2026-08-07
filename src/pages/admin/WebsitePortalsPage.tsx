@@ -17,7 +17,7 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
-import { clearStoredPortalAdminSession, startPortalEmulation, stopPortalEmulation } from "@/lib/portalEmulation";
+import { clearStoredPortalAdminSession, stopPortalEmulation } from "@/lib/portalEmulation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -1144,24 +1144,26 @@ const WebsitePortalsPage = () => {
     if (!account.portalUser) return;
     const label = account.fullName || account.email || "customer";
     try {
-      const {
-        data: { session: adminSession },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      const { data: { session: adminSession }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       if (!adminSession) throw new Error("No active admin session. Please sign in again.");
 
       const token = await emulatePortalUser.mutateAsync(account.portalUser.userId);
-      startPortalEmulation({ userId: account.portalUser.userId, label, mode: "signed-in-as" }, adminSession);
+      const portalOrigin = window.location.hostname === "admin.classicvisions.net"
+        ? "https://www.classicvisions.net"
+        : window.location.origin;
+      const previewUrl = new URL("/auth", portalOrigin);
+      previewUrl.searchParams.set("mode", "signin");
+      previewUrl.searchParams.set("redirect", "/profile");
+      previewUrl.searchParams.set("emulate_token_hash", token.tokenHash);
+      previewUrl.searchParams.set("emulate_type", token.verificationType ?? "magiclink");
+      previewUrl.searchParams.set("emulate_user_id", account.portalUser.userId);
+      previewUrl.searchParams.set("emulate_label", label);
 
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: token.tokenHash,
-        type: token.verificationType ?? "magiclink",
-      });
-      if (error) throw error;
-
-      queryClient.clear();
-      navigate("/profile", { replace: true });
+      // Admin and customer portals use different subdomains, so auth storage
+      // cannot be shared through a relative in-app navigation. Let the public
+      // host redeem the one-time token in a separate preview tab instead.
+      window.open(previewUrl.toString(), "_blank", "noopener,noreferrer");
     } catch (error) {
       stopPortalEmulation();
       clearStoredPortalAdminSession();

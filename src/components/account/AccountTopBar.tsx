@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, CircleHelp, House, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Sun } from "lucide-react";
+import { ArrowLeft, CircleHelp, House, KeyRound, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import SidebarNavList from "@/components/shared/SidebarNavList";
 import { ACCOUNT_NAV_ITEMS } from "@/components/account/accountNav";
 import { useLocation } from "react-router";
@@ -161,18 +162,34 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                   }`}
                 />
               </Button>
-              <span className="max-w-[220px] truncate text-sm font-medium text-foreground">
-                {formattedDisplayName}
-              </span>
-              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 rounded-full" asChild>
-                <Link to="/profile/account">
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="text-[10px] uppercase">
-                      {formattedDisplayName.slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Link>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-9 shrink-0 gap-2 rounded-md px-2 text-sm font-medium text-foreground hover:bg-muted"
+                    aria-label={`Open account menu for ${formattedDisplayName}`}
+                  >
+                    <span className="max-w-[220px] truncate">{formattedDisplayName}</span>
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-[10px] uppercase">
+                        {formattedDisplayName.slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 p-1.5">
+                  <DropdownMenuItem asChild className="gap-2 rounded-md px-2.5 py-2 text-sm">
+                    <Link to="/profile/account">
+                      <KeyRound className="h-4 w-4" />
+                      Change password
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={onSignOut} className="gap-2 rounded-md px-2.5 py-2 text-sm">
+                    <LogOut className="h-4 w-4" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

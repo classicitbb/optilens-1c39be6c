@@ -22,6 +22,7 @@
 
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/scotia/config.ts";
+import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
 
 function ok(body: Record<string, unknown> = { received: true }): Response {
   return new Response(JSON.stringify(body), {
@@ -144,6 +145,10 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
       if (settleError) {
         console.error("scotia-notify: settle_scotia_payment failed", { oid, settleError });
         return ok({ received: true, settled: false, reason: "rpc_error" });
+      }
+
+      if (result.approved) {
+        await queuePaidOrderFulfillmentEmail(deps.admin as unknown as typeof supabaseAdmin, oid);
       }
 
       return ok({ received: true, settled: true, flow: "order", approved: result.approved });

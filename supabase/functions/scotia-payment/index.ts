@@ -236,7 +236,10 @@ Deno.serve(async (req) => {
     const formParams: Record<string, string> = {
       chargetotal: normalizeAmount(p.chargetotal),
       checkoutoption: DEFAULT_CHECKOUT_OPTION,
-      currency: cfg.currency,
+      // Required by the Scotia hosted-page contract for this site. Keep this
+      // fixed even if an old credential-store row still has another value.
+      currency: "840",
+      language: "en_GB",
       hash_algorithm: ALWAYS_HASH_ALGORITHM,
       responseFailURL: p.responseFailURL,
       responseSuccessURL: p.responseSuccessURL,

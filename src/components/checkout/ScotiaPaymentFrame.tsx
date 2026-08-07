@@ -36,12 +36,19 @@ interface ScotiaPaymentFrameProps {
   payment: Omit<PreparePaymentInput, "hostURI">;
   onResult: (result: ScotiaValidationResult, raw: Record<string, string>) => void;
   onError: (message: string) => void;
+  /** Used when the gateway refuses cross-origin framing for this StoreID. */
+  onFallback: (prepared: Awaited<ReturnType<typeof prepareScotiaPayment>>) => void;
 }
 
-const ScotiaPaymentFrame = ({ payment, onResult, onError }: ScotiaPaymentFrameProps) => {
+const FRAME_LOAD_TIMEOUT_MS = 12_000;
+
+const ScotiaPaymentFrame = ({ payment, onResult, onError, onFallback }: ScotiaPaymentFrameProps) => {
   const frameName = `scotia-frame-${useId().replace(/[:]/g, "")}`;
   const containerRef = useRef<HTMLIFrameElement | null>(null);
   const [loading, setLoading] = useState(true);
+  const fallbackSent = useRef(false);
+  const loaded = useRef(false);
+  const preparedRef = useRef<Awaited<ReturnType<typeof prepareScotiaPayment>> | null>(null);
 
   // 1. Prepare + submit the signed form into the iframe.
   useEffect(() => {
@@ -53,7 +60,18 @@ const ScotiaPaymentFrame = ({ payment, onResult, onError }: ScotiaPaymentFramePr
           hostURI: window.location.href,
         });
         if (cancelled) return;
+        preparedRef.current = prepared;
         submitScotiaForm(prepared, frameName);
+        // Browsers do not expose a useful error event when a third-party page
+        // is blocked by frame-ancestors/X-Frame-Options. Treat a frame that
+        // never loads as a real failure and continue in the supported
+        // top-level redirect flow.
+        window.setTimeout(() => {
+          if (!cancelled && !loaded.current && !fallbackSent.current) {
+            fallbackSent.current = true;
+            onFallback(prepared);
+          }
+        }, FRAME_LOAD_TIMEOUT_MS);
       } catch (err) {
         if (!cancelled) onError(err instanceof Error ? err.message : "Could not start payment.");
       }
@@ -63,6 +81,22 @@ const ScotiaPaymentFrame = ({ payment, onResult, onError }: ScotiaPaymentFramePr
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Chromium emits this on the embedding document when the gateway's CSP
+  // rejects frame-ancestors. Unlike iframe.onerror, it is reliable for the
+  // common X-Frame-Options/frame-ancestors failure mode.
+  useEffect(() => {
+    const receiveCspViolation = (event: SecurityPolicyViolationEvent) => {
+      const directive = `${event.violatedDirective} ${event.effectiveDirective}`.toLowerCase();
+      if (!directive.includes("frame")) return;
+      const prepared = preparedRef.current;
+      if (!prepared || fallbackSent.current) return;
+      fallbackSent.current = true;
+      onFallback(prepared);
+    };
+    document.addEventListener("securitypolicyviolation", receiveCspViolation);
+    return () => document.removeEventListener("securitypolicyviolation", receiveCspViolation);
+  }, [onFallback]);
 
   // 2. Receive the gateway's postMessage (manual page 12), validate, report.
   useEffect(() => {
@@ -101,7 +135,17 @@ const ScotiaPaymentFrame = ({ payment, onResult, onError }: ScotiaPaymentFramePr
           name={frameName}
           title="Scotia eCom+ secure payment"
           className="h-[520px] w-full"
-          onLoad={() => setLoading(false)}
+          onLoad={() => {
+            loaded.current = true;
+            setLoading(false);
+          }}
+          onError={() => {
+            const prepared = preparedRef.current;
+            if (prepared && !fallbackSent.current) {
+              fallbackSent.current = true;
+              onFallback(prepared);
+            }
+          }}
         />
       </div>
     </div>

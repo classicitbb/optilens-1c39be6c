@@ -44,7 +44,9 @@ import {
   prepareScotiaPayment,
   redirectToScotiaPayment,
   SCOTIA_RETURN_URL,
+  type PreparePaymentInput,
 } from "@/lib/payments/scotiaConnect";
+import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
 
 // Scotia eCom+ embedded gateway. Off unless VITE_SCOTIA_ENABLED=true — the
 // existing offline methods + on-account always remain available as fallback.
@@ -269,6 +271,7 @@ const CheckoutPage = () => {
   // Token of a previously-saved Scotia card to reuse (CVV-only), or null for a new card.
   const [selectedScotiaToken, setSelectedScotiaToken] = useState<string | null>(null);
   const [scotiaError, setScotiaError] = useState<string | null>(null);
+  const [scotiaIntent, setScotiaIntent] = useState<PreparePaymentInput | null>(null);
 
   // Redirect-mode Scotia checkout: create the order first (pending — no
   // payment captured yet), then send the buyer's whole browser to Scotia's
@@ -296,10 +299,9 @@ const CheckoutPage = () => {
         return;
       }
 
-      const prepared = await prepareScotiaPayment({
-        // The server returns the persisted payable total. Do not calculate a
-        // second amount in the browser: the signed gateway amount must match
-        // the order-payment record exactly.
+      setScotiaIntent({
+        // The server signs the persisted payable total. Do not calculate a
+        // second amount in the browser: it must match the order-payment row.
         chargetotal: order.totalAmount,
         responseSuccessURL: SCOTIA_RETURN_URL,
         responseFailURL: SCOTIA_RETURN_URL,
@@ -307,8 +309,7 @@ const CheckoutPage = () => {
         hosteddataid: selectedScotiaToken ?? undefined,
         assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
       });
-      redirectToScotiaPayment(prepared);
-      // No further code runs — the page is navigating away.
+      setIsProcessing(false);
     } catch (err) {
       setScotiaError(err instanceof Error ? err.message : "Could not start payment. Please try again.");
       setIsProcessing(false);
@@ -494,7 +495,7 @@ const CheckoutPage = () => {
   };
 
   // ── Step labels ──
-  const stepLabel = step < 4 ? "Continue" : payWithScotia ? "Continue to Scotiabank" : "Place order";
+  const stepLabel = step < 4 ? "Continue" : payWithScotia ? "Open secure payment" : "Place order";
 
   // ─────────────────────────────────────────────────────────────────────────
   // STORE LOCKDOWN — checkout stays closed until the store_checkout feature
@@ -1315,6 +1316,24 @@ const CheckoutPage = () => {
               {/* ───── STEP 4: Review ───── */}
               {step === 4 && (
                 <div className="space-y-4">
+                  {scotiaIntent && (
+                    <div className="rounded-xl border border-primary/30 bg-card p-5 sm:p-6">
+                      <SectionHead>Secure payment</SectionHead>
+                      <ScotiaPaymentFrame
+                        payment={scotiaIntent}
+                        onResult={async (result) => {
+                          if (!result.hashValid) {
+                            setScotiaError("The payment response could not be verified. Please try again.");
+                            return;
+                          }
+                          await clearCart();
+                          navigate(`/order/${encodeURIComponent(scotiaIntent.orderId ?? "")}?scotia=${result.approved ? "success" : "declined"}`, { replace: true });
+                        }}
+                        onError={setScotiaError}
+                        onFallback={redirectToScotiaPayment}
+                      />
+                    </div>
+                  )}
                   <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                     <SectionHead>Review your order</SectionHead>
 
@@ -1435,7 +1454,7 @@ const CheckoutPage = () => {
               )}
 
               {/* ── Action bar ── */}
-              <div className="flex items-center gap-3">
+              {!scotiaIntent && <div className="flex items-center gap-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -1470,7 +1489,7 @@ const CheckoutPage = () => {
                     </>
                   )}
                 </Button>
-              </div>
+              </div>}
             </div>
 
             {/* ── Sidebar ── */}

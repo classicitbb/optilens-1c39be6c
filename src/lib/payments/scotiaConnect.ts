@@ -4,11 +4,9 @@
 // Talks to the `scotia-payment` Edge Function which holds the SharedSecret.
 // The browser never sees the secret and never computes a hash.
 //
-// Flow ("Direct Sale" / full-page redirect, manual page 11):
-//   test.ipg-online.com refuses to be framed cross-origin, so we don't use
-//   the IFRAME mode described on pages 12–13 — the buyer's whole browser
-//   navigates to Scotia and back, rather than paying inside an embedded
-//   frame.
+// Flow: try the hosted page in its approved IFRAME mode first. If the gateway
+// declines framing, the same already-signed form is posted as a top-level
+// Direct Sale redirect, so payment remains available.
 //   1. prepareScotiaPayment()   → { gatewayUrl, formParams } (incl. hashExtended)
 //   2. redirectToScotiaPayment() → builds a hidden form (no target — full
 //                                  top-level navigation) and submits it.
@@ -51,6 +49,8 @@ export interface PreparePaymentInput {
   hostURI?: string;
   /** Internal order reference (becomes the gateway `oid`). */
   orderId?: string;
+  /** Admin-only signed-form probe; never used by customer checkout. */
+  testMode?: boolean;
   // Tokenization
   assignToken?: boolean;
   hosteddataid?: string;
@@ -85,9 +85,7 @@ export async function prepareScotiaPayment(input: PreparePaymentInput): Promise<
 
 /**
  * Build a hidden form from prepared params and POST it into the iframe.
- * Mirrors the IFRAME sale form shape in the manual (pages 12–13). Kept for
- * reference / possible future use if Fiserv enables cross-origin embedding
- * for this StoreID — not called by the current (redirect-mode) checkout.
+ * Mirrors the IFRAME sale form shape in the manual (pages 12–13).
  */
 export function submitScotiaForm(prepared: PreparedPayment, iframeName: string): void {
   const form = document.createElement("form");
