@@ -94,7 +94,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: dueToday.slice(0, 3).map((activity) => activity.activity_type).join(", "),
       createdAt: dueToday[0].due_at,
       severity: "info",
-      href: "/admin/crm/activities?urgency=today",
+      href: `/admin/crm/activities?urgency=today&task=${dueToday[0].id}`,
     });
   }
 
@@ -115,7 +115,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: overdue.slice(0, 3).map((activity) => activity.activity_type).join(", "),
       createdAt: overdue[0].due_at,
       severity: "warning",
-      href: "/admin/crm/activities?urgency=overdue",
+      href: `/admin/crm/activities?urgency=overdue&task=${overdue[0].id}`,
     });
   }
 

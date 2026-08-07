@@ -48,6 +48,7 @@ const ScotiaPaymentFrame = ({ payment, onResult, onError, onFallback }: ScotiaPa
   const [loading, setLoading] = useState(true);
   const fallbackSent = useRef(false);
   const loaded = useRef(false);
+  const frameWasFocused = useRef(false);
   const preparedRef = useRef<Awaited<ReturnType<typeof prepareScotiaPayment>> | null>(null);
 
   // 1. Prepare + submit the signed form into the iframe.
@@ -62,16 +63,34 @@ const ScotiaPaymentFrame = ({ payment, onResult, onError, onFallback }: ScotiaPa
         if (cancelled) return;
         preparedRef.current = prepared;
         submitScotiaForm(prepared, frameName);
+        // A blocked Chromium frame is rendered as an internal error document
+        // and exposes no contentWindow. Poll briefly because its load event
+        // can fire before the error document replaces the initial about:blank.
+        const blockedFrameCheck = window.setInterval(() => {
+          if (cancelled || fallbackSent.current) {
+            window.clearInterval(blockedFrameCheck);
+            return;
+          }
+          if (containerRef.current?.contentWindow === null) {
+            fallbackSent.current = true;
+            window.clearInterval(blockedFrameCheck);
+            onFallback(prepared);
+          }
+        }, 250);
         // Browsers do not expose a useful error event when a third-party page
         // is blocked by frame-ancestors/X-Frame-Options. Treat a frame that
         // never loads as a real failure and continue in the supported
         // top-level redirect flow.
         window.setTimeout(() => {
-          if (!cancelled && !loaded.current && !fallbackSent.current) {
+          // A real hosted form becomes focusable as soon as the buyer starts
+          // entering card details. A refused/error frame cannot, so redirect
+          // only when the iframe has remained unusable for the grace period.
+          if (!cancelled && (payment.testMode || !frameWasFocused.current) && !fallbackSent.current) {
             fallbackSent.current = true;
+            window.clearInterval(blockedFrameCheck);
             onFallback(prepared);
           }
-        }, FRAME_LOAD_TIMEOUT_MS);
+        }, payment.testMode ? 1_500 : FRAME_LOAD_TIMEOUT_MS);
       } catch (err) {
         if (!cancelled) onError(err instanceof Error ? err.message : "Could not start payment.");
       }
@@ -135,7 +154,19 @@ const ScotiaPaymentFrame = ({ payment, onResult, onError, onFallback }: ScotiaPa
           name={frameName}
           title="Scotia eCom+ secure payment"
           className="h-[520px] w-full"
-          onLoad={() => {
+          onLoad={(event) => {
+            const prepared = preparedRef.current;
+            // Chromium renders a blocked cross-origin frame as an internal
+            // error page. It fires `load`, but has no contentWindow; a real
+            // cross-origin hosted page does. This is the reliable signal for
+            // Fiserv's "refused to connect" response.
+            if (prepared && event.currentTarget.contentWindow === null) {
+              if (!fallbackSent.current) {
+                fallbackSent.current = true;
+                onFallback(prepared);
+              }
+              return;
+            }
             loaded.current = true;
             setLoading(false);
           }}
@@ -145,6 +176,9 @@ const ScotiaPaymentFrame = ({ payment, onResult, onError, onFallback }: ScotiaPa
               fallbackSent.current = true;
               onFallback(prepared);
             }
+          }}
+          onFocus={() => {
+            frameWasFocused.current = true;
           }}
         />
       </div>

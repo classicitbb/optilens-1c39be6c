@@ -124,6 +124,7 @@ const CrmActivitiesPage = () => {
   const selected = data.find((activity) => activity.id === selectedId) ?? null;
 
   useEffect(() => { const urgency = searchParams.get("urgency"); if (urgency === "overdue") setPreset("overdue"); }, [searchParams]);
+  useEffect(() => { setSelectedId(searchParams.get("task")); }, [searchParams]);
   const openDialog = (key: "createActivity" | "editActivity", value: string) => { const params = new URLSearchParams(location.search); params.delete("createActivity"); params.delete("editActivity"); params.set(key, value); navigate({ pathname: location.pathname, search: `?${params}` }); };
   const filtered = useMemo(() => data.filter((activity) => {
     if (!matchesPreset(activity, preset, user?.id)) return false;
