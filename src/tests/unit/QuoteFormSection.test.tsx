@@ -118,8 +118,8 @@ describe("QuoteFormSection", () => {
     await screen.findByText("Example Optical", { exact: false });
 
     fireEvent.click(screen.getByRole("button", { name: "Request a quote" }));
-    expect(await screen.findByPlaceholderText("Customer or business")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/products, quantities/i)).toBeInTheDocument();
+    expect(await screen.findByText(/which customer or business is this quote for/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Ask anything")).toBeInTheDocument();
     expect(rpc).not.toHaveBeenCalled();
   });
 });

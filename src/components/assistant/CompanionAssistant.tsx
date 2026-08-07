@@ -4,126 +4,11 @@ import { Link, useLocation } from "react-router";
 import { Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import type { AssistantQuickAction } from "@/features/assistant/CompanionAssistantContext";
 import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
-
-const AssistantForm = () => {
-  const { formState, updateForm, closeForm, submitForm, isSubmitting } = useCompanionAssistant();
-  const [isReviewing, setIsReviewing] = useState(false);
-
-  if (!formState) return null;
-
-  const showMarket = formState.kind === "retailer_help";
-  const showIssueType = formState.kind === "portal_support" || formState.kind === "customer_support";
-  const showProductTopic = formState.kind === "product_help";
-  const isQuoteRequest = formState.kind === "quote_request";
-
-  return (
-    <div className="space-y-3 rounded-[22px] border border-border/50 bg-card/80 p-4 backdrop-blur-md">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">{isQuoteRequest ? "Request a quote" : "Request help"}</p>
-          <p className="text-xs leading-5 text-foreground/50">
-            This stays inside the assistant and includes the current page and conversation context.
-          </p>
-        </div>
-        <Button type="button" variant="ghost" size="sm" className="text-foreground/60 hover:bg-muted hover:text-foreground" onClick={closeForm}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {!isQuoteRequest ? <div className="grid gap-3 sm:grid-cols-2">
-        <Input
-          value={formState.name}
-          onChange={(event) => updateForm({ name: event.target.value })}
-          placeholder="Full name"
-          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-        />
-        <Input
-          value={formState.email}
-          onChange={(event) => updateForm({ email: event.target.value })}
-          placeholder="Email address"
-          type="email"
-          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-        />
-      </div> : null}
-
-      {!isQuoteRequest ? <Input
-        value={formState.phone}
-        onChange={(event) => updateForm({ phone: event.target.value })}
-        placeholder="Phone (optional)"
-        type="tel"
-        className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-      /> : null}
-
-      {isQuoteRequest ? <Input value={formState.customerName} onChange={(event) => updateForm({ customerName: event.target.value })} placeholder="Customer or business" autoComplete="organization" className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40" /> : null}
-
-      {showMarket ? (
-        <Input
-          value={formState.market}
-          onChange={(event) => updateForm({ market: event.target.value })}
-          placeholder="Island or market"
-          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-        />
-      ) : null}
-
-      {showIssueType ? (
-        <Input
-          value={formState.issueType}
-          onChange={(event) => updateForm({ issueType: event.target.value })}
-          placeholder={formState.kind === "portal_support" ? "Issue type or account concern" : "What do you need help with?"}
-          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-        />
-      ) : null}
-
-      {showProductTopic ? (
-        <Input
-          value={formState.productTopic}
-          onChange={(event) => updateForm({ productTopic: event.target.value })}
-          placeholder="Product or topic"
-          className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-        />
-      ) : null}
-
-      <Textarea
-        value={formState.summary}
-        onChange={(event) => updateForm({ summary: event.target.value })}
-        placeholder={
-          formState.kind === "retailer_help"
-            ? "Tell us what kind of retailer, clinic, or help you need."
-            : isQuoteRequest
-              ? "Tell us what products, quantities, and pricing details you need."
-              : formState.kind === "portal_support"
-              ? "Describe the issue, account context, and what you already tried."
-              : "Tell us what you need help with."
-        }
-        rows={4}
-        className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-      />
-
-      {isReviewing ? (
-        <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs leading-5 text-foreground/70">
-          Please confirm that you want to send this request to the support team with the current page and assistant context attached.
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" className="rounded-full" onClick={() => { if (isReviewing) void submitForm(); else setIsReviewing(true); }} disabled={isSubmitting || !formState.summary.trim() || (isQuoteRequest ? !formState.customerName.trim() : !formState.name.trim() || !formState.email.trim())}>
-          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-          {isReviewing ? "Confirm & submit" : "Review request"}
-        </Button>
-        {isReviewing ? <Button type="button" variant="outline" className="rounded-full border-border/50 bg-card/80 text-foreground hover:bg-muted" onClick={() => setIsReviewing(false)}>Edit request</Button> : null}
-        <Button type="button" variant="outline" className="rounded-full border-border/50 bg-card/80 text-foreground hover:bg-muted" onClick={closeForm}>
-          Keep chatting
-        </Button>
-      </div>
-    </div>
-  );
-};
 
 const MessageQuickActions = ({
   quickActions,
@@ -318,14 +203,16 @@ const AssistantMessageList = () => {
                 ) : null}
 
                 {message.kind === "text" ? (
-                  <div className="space-y-3 rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
-                    <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
-                      <ReactMarkdown>{message.text}</ReactMarkdown>
+                  <div className="space-y-2">
+                    <div className="rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
+                      <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
+                        <ReactMarkdown>{message.text}</ReactMarkdown>
+                      </div>
+                      {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
                     </div>
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} onAction={submitQuickAction} />
                     ) : null}
-                    {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
                   </div>
                 ) : null}
 
@@ -391,7 +278,6 @@ const CompanionAssistant = () => {
     dismissNudge,
     isSubmitting,
     openDetachedWindow,
-    formState,
   } = useCompanionAssistant();
 
   // Track whether the user dismissed the nudge ("Not now") — collapse to icon-only bubble
@@ -486,8 +372,6 @@ const CompanionAssistant = () => {
       </div>
 
       <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
-        {formState ? <AssistantForm /> : null}
-
         <div className="rounded-full border border-border/50 bg-card/80 p-1 shadow-soft backdrop-blur-md focus-within:border-ring/60">
           <div className="flex items-center gap-2">
             <Input

@@ -153,6 +153,22 @@ const createInitialFormState = ({
   };
 };
 
+const getFormQuestion = (field: NonNullable<AssistantFormState["pendingField"]>, kind: AssistantFormKind) => {
+  if (field === "name") return "What name should the team use when they reply?";
+  if (field === "email") return "What email address should we use for the reply?";
+  if (field === "customerName") return "Which customer or business is this quote for?";
+  if (field === "issueType") return "What is this support request about?";
+  return kind === "quote_request"
+    ? "What products, quantities, and pricing details should we include?"
+    : "Please describe what you need help with.";
+};
+
+const getNextFormField = (form: AssistantFormState): AssistantFormState["pendingField"] => {
+  if (form.kind === "quote_request") return !form.customerName.trim() ? "customerName" : !form.summary.trim() ? "summary" : undefined;
+  if (form.kind === "portal_support") return !form.issueType.trim() ? "issueType" : !form.summary.trim() ? "summary" : undefined;
+  return !form.name.trim() ? "name" : !form.email.trim() ? "email" : !form.summary.trim() ? "summary" : undefined;
+};
+
 export const CompanionAssistantProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -368,7 +384,14 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       userName,
       userEmail,
     });
-    setFormState({ ...initial, kind: options?.kind ?? initial.kind, ...options?.values });
+    const next = { ...initial, kind: options?.kind ?? initial.kind, ...options?.values };
+    const pendingField = getNextFormField(next);
+    setFormState({ ...next, pendingField });
+    setMessages((current) => [...current, {
+      id: createId("assistant"), role: "assistant", kind: "text",
+      text: pendingField ? getFormQuestion(pendingField, next.kind) : "I have what I need. Please review your request before I send it.",
+      quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
+    }]);
   }, [activeProfile, pathname, userEmail, userName]);
 
   const closeForm = useCallback(() => setFormState(null), []);
@@ -654,9 +677,22 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   }, [activeAudience, audienceOverride, corpus, messages, pathname, user]);
 
   const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile, audience?: AssistantAudience) => {
+    const formAnswer = (queryValue ?? currentQuery).trim();
+    if (formState?.pendingField && formAnswer) {
+      const completed = { ...formState, [formState.pendingField]: formAnswer };
+      const pendingField = getNextFormField(completed);
+      setCurrentQuery("");
+      setMessages((current) => [...current, { id: createId("user"), role: "user", kind: "user", text: formAnswer }, {
+        id: createId("assistant"), role: "assistant", kind: "text",
+        text: pendingField ? getFormQuestion(pendingField, completed.kind) : `Here is the request I will send:\n\n${completed.kind === "quote_request" ? `**Customer:** ${completed.customerName}\n\n` : ""}${completed.kind === "portal_support" ? `**Topic:** ${completed.issueType}\n\n` : ""}${completed.summary}`,
+        quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
+      }]);
+      setFormState({ ...completed, pendingField });
+      return;
+    }
     if (audience) setAudienceOverride(audience);
     await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile, audience ?? activeAudience);
-  }, [activeAudience, activeProfile, currentQuery, submitQueryInternal]);
+  }, [activeAudience, activeProfile, currentQuery, formState, submitQueryInternal]);
 
   const openAssistant = useCallback((options?: OpenAssistantOptions) => {
     setIsOpen(true);
@@ -669,7 +705,14 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
     if (options?.formKind) {
       const initial = createInitialFormState({ pathname, profile: options.profile ?? activeProfile, userName, userEmail });
-      setFormState({ ...initial, kind: options.formKind, ...options.formValues });
+      const next = { ...initial, kind: options.formKind, ...options.formValues };
+      const pendingField = getNextFormField(next);
+      setFormState({ ...next, pendingField });
+      setMessages((current) => [...current, {
+        id: createId("assistant"), role: "assistant", kind: "text",
+        text: pendingField ? getFormQuestion(pendingField, next.kind) : "I have what I need. Please review your request before I send it.",
+        quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
+      }]);
     }
     if (options?.autoSubmit && options.query) {
       window.setTimeout(() => {
@@ -766,6 +809,17 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       return;
     }
 
+    if (action.type === "submit_form") {
+      void submitForm();
+      return;
+    }
+
+    if (action.type === "cancel_form") {
+      closeForm();
+      setMessages((current) => [...current, { id: createId("assistant"), role: "assistant", kind: "text", text: "No request was sent. What else can I help with?" }]);
+      return;
+    }
+
     if (action.type === "link") {
       if (action.external) {
         window.open(action.href, "_blank", "noopener,noreferrer");
@@ -775,7 +829,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         window.location.href = action.href;
       }
     }
-  }, [activeProfile, openForm, submitQuery, submitWebSearch]);
+  }, [activeProfile, closeForm, openForm, submitQuery, submitWebSearch]);
 
   const submitForm = useCallback(async () => {
     if (!formState) return;

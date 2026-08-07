@@ -5,6 +5,8 @@ export type AssistantQuickAction =
   | { type: "query"; label: string; query: string; profile?: AssistantProfile; audience?: AssistantAudience }
   | { type: "web_search"; label: string; query: string }
   | { type: "form"; label: string; profile?: AssistantProfile }
+  | { type: "submit_form"; label: string }
+  | { type: "cancel_form"; label: string }
   | { type: "link"; label: string; href: string; external?: boolean };
 
 export type AssistantMessage =
@@ -53,6 +55,7 @@ export interface AssistantFormState {
   productTopic: string;
   customerName: string;
   summary: string;
+  pendingField?: "name" | "email" | "issueType" | "customerName" | "summary";
 }
 
 export type OpenAssistantOptions = {

@@ -135,6 +135,11 @@ section content — not a redesign per type.
   `expiry_date`, and `portal_token` columns added directly (chosen over a separate `catalog_issues`
   table once the legacy `pricelist` file_type — see below — was confirmed dead and available to
   repurpose, removing the original naming-collision objection).
+- **Lifecycle (2026-08-02):** `draft → approved → published → superseded → archived`. `published`
+  automatically supersedes the prior published snapshot for the same working template. `archived` is
+  a manual hide/soft-delete. **`published` requires manager-only sign-off** — stricter than the
+  regular per-change approval in §8, matching the original brief's rule that commercial/price-match
+  approvals need owner/manager level, not any edit-role staff member.
 - **Table of contents pagination is two-pass:** content assembles first, real page count is known,
   *then* the ToC renders with real numbers. Never hardcode ToC page numbers (the prototype does,
   deliberately, as throwaway shorthand).
@@ -149,9 +154,9 @@ section content — not a redesign per type.
 - The `docstudio_files.file_type` value the old tab used is **repurposed** for frozen catalog
   snapshots (rename to `'catalog'` or reuse `'pricelist'` directly — either is fine now that the old
   meaning is gone) rather than adding a parallel type.
-- **Pre-migration check required:** confirm whether any real `docstudio_files` rows already exist
-  with `file_type = 'pricelist'` (the broken *load* dropdown doesn't prove nothing was ever *saved*)
-  before repurposing the type value.
+- **Confirmed safe to repurpose (2026-08-02):** no pricelist was ever generated/saved through the
+  legacy tab — business owner confirmed directly. No migration/backfill concern; the `file_type`
+  value can be repurposed without a pre-check.
 - The catalog editor is a **real React route** in the admin app, styled to match Doc Studio's visual
   language (palette, file-list treatment) — not hosted inside `studio.html`'s iframe/bespoke
   micro-framework runtime. "Feels native" is a styling commitment, not a shared-runtime requirement.
@@ -215,11 +220,9 @@ build but should not be contradicted by it.
 
 - The exact structured operation set the agent can call (add/remove section, set linkage, edit
   content, reorder, draft copy) needs an interface design pass of its own.
-- Portal-published live link + 14-day expiry token flow (from the original brief) hasn't been
-  re-grilled in this round.
-- Payment provider and currency-conversion source remain open from the original brief.
-- Exact `docstudio_files.status` enum values and who may transition them.
-- The `docstudio_files` row-count check for existing `'pricelist'`-typed rows (§10) — not yet run.
+- ~~The `docstudio_files` row-count check for existing `'pricelist'`-typed rows (§10).~~ **Resolved
+  2026-08-02** — confirmed no pricelist was ever generated/saved through the legacy tab; safe to
+  repurpose the type value with no migration concern.
 
 ## 16. Key risks
 
@@ -270,8 +273,8 @@ discarded.
 ## 20. Phased plan
 
 1. **Housekeeping** — retire `catalog-editor-v2`'s canvas code; retire Doc Studio's dead pricelist
-   tab and `/api/pricelists` stub; run the `docstudio_files` row-count check before repurposing the
-   file type.
+   tab and `/api/pricelists` stub. (Row-count check no longer needed — confirmed no legacy pricelist
+   was ever saved.)
 2. **Data prerequisite** — audit and fix AR coatings/tints/add-on line items in the live pricing
    admin.
 3. **Schema** — extend `docstudio_files` with lifecycle columns; repurpose the retired file_type
