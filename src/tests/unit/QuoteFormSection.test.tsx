@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import QuoteFormSection from "@/components/account/sections/QuoteFormSection";
+import CompanionAssistant from "@/components/assistant/CompanionAssistant";
+import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 
 const { rpc, from, toast } = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -23,6 +25,12 @@ vi.mock("@/hooks/usePortalIdentity", () => ({
 }));
 
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast }) }));
+
+vi.mock("@/hooks/useStoreProducts", () => ({ useStoreProducts: () => ({ data: [] }) }));
+vi.mock("@/hooks/useContentArticles", () => ({ usePublicKnowledge: () => ({ data: [] }) }));
+vi.mock("@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket", () => ({ useCreateHelpdeskTicket: () => ({ mutateAsync: vi.fn() }) }));
+vi.mock("@/features/assistant/assistantGeneration", () => ({ generateAssistantAnswer: vi.fn(async () => null) }));
+vi.mock("@/lib/cookieConsent", () => ({ hasGivenConsent: () => true, COOKIE_PREFERENCES_EVENT: "cookie-preferences-changed" }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from, rpc },
@@ -58,10 +66,12 @@ const renderSection = () => {
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={["/profile/quotes"]}>
-        <Routes>
-          <Route path="/profile/quotes" element={<QuoteFormSection />} />
-          <Route path="/profile/helpdesk/:ticketId" element={<div>Conversation opened</div>} />
-        </Routes>
+        <CompanionAssistantProvider>
+          <Routes>
+            <Route path="/profile/quotes" element={<><QuoteFormSection /><CompanionAssistant /></>} />
+            <Route path="/profile/helpdesk/:ticketId" element={<div>Conversation opened</div>} />
+          </Routes>
+        </CompanionAssistantProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -103,24 +113,13 @@ describe("QuoteFormSection", () => {
     expect(screen.getAllByRole("button", { name: /view conversation/i })).toHaveLength(1);
   });
 
-  it("submits through the atomic RPC and opens the new ticket on demand", async () => {
+  it("moves quote intake into the assistant while preserving quote history", async () => {
     renderSection();
     await screen.findByText("Example Optical", { exact: false });
 
-    fireEvent.change(screen.getByLabelText("Customer or business"), { target: { value: "New Optical" } });
-    fireEvent.change(screen.getByLabelText("Request details"), { target: { value: "Please quote 10 photochromic lenses" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit quote request" }));
-
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith("submit_customer_quote_request", {
-      p_customer_name: "New Optical",
-      p_request_details: "Please quote 10 photochromic lenses",
-      p_account_id: 42,
-    }));
-    expect(await screen.findByText("Request sent and locked")).toBeInTheDocument();
-    expect(screen.getByText(/PTL-DEF456/)).toBeInTheDocument();
-
-    const conversationButtons = screen.getAllByRole("button", { name: /view conversation/i });
-    fireEvent.click(conversationButtons[conversationButtons.length - 1]);
-    expect(await screen.findByText("Conversation opened")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Request a quote" }));
+    expect(await screen.findByPlaceholderText("Customer or business")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/products, quantities/i)).toBeInTheDocument();
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

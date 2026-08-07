@@ -84,7 +84,7 @@ const getStarterActions = (pathname: string, isAuthenticated: boolean): Assistan
         { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=patient" },
         { type: "web_search", label: "Search the web", query: "Best lens coatings for digital screen use" },
         { type: "form", label: "Get support", profile: "customer_support" },
-        { type: "link", label: "Contact us", href: "/#contact" },
+        { type: "form", label: "Contact us", profile: "customer_support" },
       ];
 
 const isKeyPage = (pathname: string) =>
@@ -148,6 +148,7 @@ const createInitialFormState = ({
     market: pathname.startsWith("/find-a-retailer/barbados") ? "Barbados" : "",
     issueType: "",
     productTopic: "",
+    customerName: "",
     summary: "",
   };
 };
@@ -358,15 +359,16 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     setNudge(null);
   }, [isDetachedRoute]);
 
-  const openForm = useCallback((profile?: AssistantProfile) => {
+  const openForm = useCallback((profile?: AssistantProfile, options?: { kind?: AssistantFormKind; values?: Partial<AssistantFormState> }) => {
     setIsOpen(true);
     setNudge(null);
-    setFormState(createInitialFormState({
+    const initial = createInitialFormState({
       pathname,
       profile: profile ?? activeProfile,
       userName,
       userEmail,
-    }));
+    });
+    setFormState({ ...initial, kind: options?.kind ?? initial.kind, ...options?.values });
   }, [activeProfile, pathname, userEmail, userName]);
 
   const closeForm = useCallback(() => setFormState(null), []);
@@ -665,13 +667,17 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     if (options?.query) {
       setCurrentQuery(options.query);
     }
+    if (options?.formKind) {
+      const initial = createInitialFormState({ pathname, profile: options.profile ?? activeProfile, userName, userEmail });
+      setFormState({ ...initial, kind: options.formKind, ...options.formValues });
+    }
     if (options?.autoSubmit && options.query) {
       window.setTimeout(() => {
         if (options.audience) setAudienceOverride(options.audience);
         void submitQueryInternal(options.query!, options.profile ?? activeProfile, options.audience ?? activeAudience);
       }, 0);
     }
-  }, [activeAudience, activeProfile, messages.length, resetConversation, submitQueryInternal]);
+  }, [activeAudience, activeProfile, messages.length, pathname, resetConversation, submitQueryInternal, userEmail, userName]);
 
   const openDetachedWindow = useCallback(() => {
     try {
@@ -775,7 +781,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     if (!formState) return;
 
     const summary = formState.summary.trim();
-    if (!summary || !formState.name.trim() || !formState.email.trim()) return;
+    const isQuoteRequest = formState.kind === "quote_request";
+    if (!summary || (!isQuoteRequest && (!formState.name.trim() || !formState.email.trim())) || (isQuoteRequest && !formState.customerName.trim())) return;
 
     setIsSubmitting(true);
     try {
@@ -803,7 +810,18 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       };
 
       let portalTicketId: string | null = null;
-      if (formState.kind === "portal_support" && user) {
+      let quoteNumber: string | null = null;
+      if (isQuoteRequest && user) {
+        const { data, error } = await (supabase.rpc as any)("submit_customer_quote_request", {
+          p_customer_name: formState.customerName.trim(),
+          p_request_details: summary,
+          p_account_id: identity?.crmCustomerId ?? null,
+        });
+        if (error) throw error;
+        const result = Array.isArray(data) ? data[0] : data;
+        portalTicketId = result?.ticket_id ?? null;
+        quoteNumber = result?.quote_number ?? null;
+      } else if (formState.kind === "portal_support" && user) {
         portalTicketId = await createTicket.mutateAsync({
           title: formState.issueType.trim() || "Portal assistant support request",
           description: `${summary}\n\nAssistant context:\n${JSON.stringify(contextNotes, null, 2)}`,
@@ -842,8 +860,10 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           id: createId("assistant"),
           role: "assistant",
           kind: "confirmation",
-          title: "Request sent",
-          text: formState.kind === "portal_support"
+          title: isQuoteRequest ? "Quote request sent" : "Request sent",
+          text: isQuoteRequest
+            ? `Your quote request${quoteNumber ? ` ${quoteNumber}` : ""} is now linked to a live Helpdesk conversation for corrections, questions, and replies.`
+            : formState.kind === "portal_support"
             ? "Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here."
             : "Your request was submitted with the current page and assistant context attached. You can keep chatting here, or open one of the source links above while the team follows up.",
           quickActions: pathname.startsWith("/profile")
@@ -867,7 +887,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, location.hash, location.search, messages, navigate, pathname, user]);
+  }, [activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, user]);
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,

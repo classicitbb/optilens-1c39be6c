@@ -20,12 +20,13 @@ const AssistantForm = () => {
   const showMarket = formState.kind === "retailer_help";
   const showIssueType = formState.kind === "portal_support" || formState.kind === "customer_support";
   const showProductTopic = formState.kind === "product_help";
+  const isQuoteRequest = formState.kind === "quote_request";
 
   return (
     <div className="space-y-3 rounded-[22px] border border-border/50 bg-card/80 p-4 backdrop-blur-md">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-foreground">Request help</p>
+          <p className="text-sm font-semibold text-foreground">{isQuoteRequest ? "Request a quote" : "Request help"}</p>
           <p className="text-xs leading-5 text-foreground/50">
             This stays inside the assistant and includes the current page and conversation context.
           </p>
@@ -35,7 +36,7 @@ const AssistantForm = () => {
         </Button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {!isQuoteRequest ? <div className="grid gap-3 sm:grid-cols-2">
         <Input
           value={formState.name}
           onChange={(event) => updateForm({ name: event.target.value })}
@@ -49,15 +50,17 @@ const AssistantForm = () => {
           type="email"
           className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
         />
-      </div>
+      </div> : null}
 
-      <Input
+      {!isQuoteRequest ? <Input
         value={formState.phone}
         onChange={(event) => updateForm({ phone: event.target.value })}
         placeholder="Phone (optional)"
         type="tel"
         className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40"
-      />
+      /> : null}
+
+      {isQuoteRequest ? <Input value={formState.customerName} onChange={(event) => updateForm({ customerName: event.target.value })} placeholder="Customer or business" autoComplete="organization" className="border-border/50 bg-background/60 text-foreground placeholder:text-foreground/40" /> : null}
 
       {showMarket ? (
         <Input
@@ -92,7 +95,9 @@ const AssistantForm = () => {
         placeholder={
           formState.kind === "retailer_help"
             ? "Tell us what kind of retailer, clinic, or help you need."
-            : formState.kind === "portal_support"
+            : isQuoteRequest
+              ? "Tell us what products, quantities, and pricing details you need."
+              : formState.kind === "portal_support"
               ? "Describe the issue, account context, and what you already tried."
               : "Tell us what you need help with."
         }
@@ -107,7 +112,7 @@ const AssistantForm = () => {
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" className="rounded-full" onClick={() => { if (isReviewing) void submitForm(); else setIsReviewing(true); }} disabled={isSubmitting || !formState.name.trim() || !formState.email.trim() || !formState.summary.trim()}>
+        <Button type="button" className="rounded-full" onClick={() => { if (isReviewing) void submitForm(); else setIsReviewing(true); }} disabled={isSubmitting || !formState.summary.trim() || (isQuoteRequest ? !formState.customerName.trim() : !formState.name.trim() || !formState.email.trim())}>
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           {isReviewing ? "Confirm & submit" : "Review request"}
         </Button>

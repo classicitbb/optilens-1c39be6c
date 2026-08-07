@@ -40,7 +40,7 @@ export type AssistantMessage =
       text: string;
     };
 
-export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support";
+export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request";
 
 export interface AssistantFormState {
   kind: AssistantFormKind;
@@ -51,6 +51,7 @@ export interface AssistantFormState {
   market: string;
   issueType: string;
   productTopic: string;
+  customerName: string;
   summary: string;
 }
 
@@ -59,6 +60,8 @@ export type OpenAssistantOptions = {
   autoSubmit?: boolean;
   profile?: AssistantProfile;
   audience?: AssistantAudience;
+  formKind?: AssistantFormKind;
+  formValues?: Partial<AssistantFormState>;
 };
 
 export interface CompanionAssistantContextValue {
@@ -82,7 +85,7 @@ export interface CompanionAssistantContextValue {
   isSubmitting: boolean;
   openDetachedWindow: () => void;
   formState: AssistantFormState | null;
-  openForm: (profile?: AssistantProfile) => void;
+  openForm: (profile?: AssistantProfile, options?: { kind?: AssistantFormKind; values?: Partial<AssistantFormState> }) => void;
   closeForm: () => void;
   updateForm: (patch: Partial<AssistantFormState>) => void;
   submitForm: () => Promise<void>;

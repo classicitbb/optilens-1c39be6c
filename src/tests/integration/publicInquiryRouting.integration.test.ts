@@ -8,12 +8,11 @@ const read = (relativePath: string) =>
   readFileSync(resolve(repoRoot, relativePath), "utf8");
 
 describe("public inquiry routing", () => {
-  it("routes public website forms through the shared inquiry helper", () => {
+  it("routes public website requests through the shared inquiry helper and the assistant", () => {
     const helper = read("src/lib/publicInquiry.ts");
     expect(helper).toContain('supabase.functions.invoke("contact-inquiry"');
 
     for (const file of [
-      "src/components/ContactForm.tsx",
       "src/pages/OpticalRetailWebsitesPage.tsx",
       "src/pages/ProfessionalsPortalPage.tsx",
       "src/pages/zenvue/ZenvueWholesale.tsx",
@@ -22,6 +21,10 @@ describe("public inquiry routing", () => {
       const source = read(file);
       expect(source).toContain("submitPublicInquiry");
     }
+
+    const contactEntry = read("src/components/ContactForm.tsx");
+    expect(contactEntry).toContain("useCompanionAssistant");
+    expect(contactEntry).toContain('formKind: "customer_support"');
   });
 
   it("does not bypass resend-backed routing with direct public inquiry inserts on website forms", () => {
