@@ -334,7 +334,7 @@ const CompanionAssistant = () => {
   const assistantWindow = (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border-2 border-[#c9a227] shadow-elegant backdrop-blur-md",
+        "flex flex-col overflow-hidden border border-[#c9a227]/65 shadow-elegant backdrop-blur-md",
         "bg-background/80",
         isDetachedRoute
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
@@ -402,7 +402,7 @@ const CompanionAssistant = () => {
       </div>
 
       <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
-        <div className="rounded-full border border-border/50 bg-card/80 p-1 shadow-soft backdrop-blur-md focus-within:border-ring/60">
+        <div className="rounded-full border border-accent/55 bg-card/90 p-1 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
           <div className="flex items-center gap-2">
             <Input
               dir="ltr"
@@ -465,7 +465,7 @@ const CompanionAssistant = () => {
             size="icon"
             aria-label="Open search & help assistant"
             onClick={() => { setIsCollapsed(false); openAssistant(); }}
-            className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-border/50 bg-background/80 text-foreground shadow-[0_24px_70px_rgba(2,6,23,0.24)] backdrop-blur-md hover:bg-background/90 sm:bottom-6 sm:right-6"
+            className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
             <Sparkles className="h-5 w-5" />
           </Button>
@@ -473,7 +473,7 @@ const CompanionAssistant = () => {
           <Button
             type="button"
             onClick={() => openAssistant()}
-            className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-border/50 bg-background/80 text-foreground shadow-[0_24px_70px_rgba(2,6,23,0.24)] backdrop-blur-md hover:bg-background/90 sm:bottom-6 sm:right-6"
+            className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
             <MessageCircle className="mr-2 h-5 w-5" />
             Search & help

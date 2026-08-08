@@ -369,7 +369,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
 
       {open &&
       createPortal(
-        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border/50 bg-background/80 p-4 shadow-lg backdrop-blur-md">
+        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background/80 p-4 shadow-lg backdrop-blur-md">
           {/* Arrow pointing up at the trigger button */}
           <div
           style={{ left: arrowLeft }}
@@ -603,45 +603,6 @@ const Header = () => {
                 <span className="text-lg font-bold text-foreground">Classic Visions</span>
               </SheetTitle>
               <MobileNavigation items={visibleMenu} labLinkNavigationProps={labLinkNavigationProps} />
-              {false && <nav>
-                <Accordion type="multiple" className="space-y-3">
-                  {visibleMenu.map((item) =>
-                    <AccordionItem key={item.label} value={item.label} className="rounded-lg border border-border/60 px-3">
-                      <AccordionTrigger className="py-3 text-sm font-semibold text-foreground hover:no-underline">
-                        {item.label}
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-3 pb-2">
-                          {item.sections.map((section) =>
-                          <div key={`${item.label}-${section.title}`}>
-                              <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{section.title}</p>
-                              <div className="space-y-1">
-                                {section.links.map((link) =>
-                              link.href ?
-                              <a
-                                key={link.label}
-                                href={link.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                                
-                                      {link.label} {link.externalLabel ? `(${link.externalLabel})` : ""}
-                                    </a> :
-
-                              <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                                      {link.label}
-                                    </Link>
-
-                              )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                    )}
-                </Accordion>
-              </nav>}
             </SheetContent>
           </Sheet>
 
@@ -655,7 +616,7 @@ const Header = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-11 rounded-full border border-border/60 bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
+                      className="h-11 rounded-full border border-border bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
                     >
                       <Avatar className="h-8 w-8 border border-border/60">
                         <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
@@ -674,7 +635,7 @@ const Header = () => {
                   <DropdownMenuContent
                     align="end"
                     sideOffset={10}
-                    className="w-[min(88vw,18rem)] rounded-2xl border-border/50 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
+                    className="w-[min(88vw,18rem)] rounded-2xl border border-border/90 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
                   >
                     <div className="space-y-1 p-2.5 sm:p-3">
                       <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
