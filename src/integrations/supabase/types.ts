@@ -726,6 +726,93 @@ export type Database = {
         }
         Relationships: []
       }
+      assistant_editorial_opportunities: {
+        Row: {
+          agent_activity_id: string | null
+          audience: string
+          created_at: string
+          editorial_activity_id: string | null
+          first_observed_at: string
+          id: string
+          last_observed_at: string
+          route: string
+          source_count: number
+          topic_key: string
+          updated_at: string
+        }
+        Insert: {
+          agent_activity_id?: string | null
+          audience: string
+          created_at?: string
+          editorial_activity_id?: string | null
+          first_observed_at: string
+          id?: string
+          last_observed_at: string
+          route: string
+          source_count?: number
+          topic_key: string
+          updated_at?: string
+        }
+        Update: {
+          agent_activity_id?: string | null
+          audience?: string
+          created_at?: string
+          editorial_activity_id?: string | null
+          first_observed_at?: string
+          id?: string
+          last_observed_at?: string
+          route?: string
+          source_count?: number
+          topic_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_editorial_opportunities_agent_activity_id_fkey"
+            columns: ["agent_activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assistant_editorial_opportunities_editorial_activity_id_fkey"
+            columns: ["editorial_activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistant_editorial_signals: {
+        Row: {
+          audience: string
+          id: string
+          occurred_at: string
+          outcome: string
+          route: string
+          session_hash: string
+          topic_key: string
+        }
+        Insert: {
+          audience: string
+          id?: string
+          occurred_at?: string
+          outcome: string
+          route: string
+          session_hash: string
+          topic_key: string
+        }
+        Update: {
+          audience?: string
+          id?: string
+          occurred_at?: string
+          outcome?: string
+          route?: string
+          session_hash?: string
+          topic_key?: string
+        }
+        Relationships: []
+      }
       assistant_feedback: {
         Row: {
           anonymous_session_id: string | null
@@ -10460,6 +10547,21 @@ export type Database = {
         }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
+      record_assistant_editorial_signal: {
+        Args: {
+          p_audience: string
+          p_outcome: string
+          p_route: string
+          p_session_hash: string
+          p_topic_key: string
+        }
+        Returns: {
+          agent_activity_id: string
+          editorial_activity_id: string
+          qualified: boolean
+          source_count: number
+        }[]
+      }
       record_customer_portal_login: { Args: never; Returns: string }
       record_dhl_express_test: {
         Args: {
