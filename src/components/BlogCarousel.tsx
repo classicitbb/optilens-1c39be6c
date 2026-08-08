@@ -11,14 +11,14 @@ import { useFeaturedBlogPosts } from "@/hooks/useBlogPosts";
 import { ArrowRight, BookOpen, CalendarDays } from "lucide-react";
 import { Link } from "react-router";
 
-const BlogCarousel = () => {
+const BlogCarousel = ({ sectionId }: { sectionId?: string }) => {
   const { data: posts = [], isLoading, isError } = useFeaturedBlogPosts();
 
   if (!isLoading && !isError && posts.length === 0) return null;
   if (isError) return null;
 
   return (
-    <section className="bg-muted/30 py-16 sm:py-24" aria-label="Latest blog posts">
+    <section id={sectionId} className="bg-muted/30 py-16 sm:py-24" aria-label="Latest blog posts">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="mb-12 flex flex-col items-center justify-between gap-4 text-center sm:mb-16 md:flex-row md:text-left">
           <div>

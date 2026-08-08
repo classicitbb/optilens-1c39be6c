@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette, ShoppingCart } from "lucide-react";
+import { LogOut, User, Package, Shield, ChevronDown, Menu, Sun, Moon, Monitor, Sparkles, Settings, Palette, ShoppingCart, Eye, UsersRound, Info, MessageCircle } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { createAuthHref } from "@/lib/authFlow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 
 type MegaMenuLink = {
   label: string;
@@ -192,9 +193,9 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
   {
     title: "About Us",
     links: [
-    { label: "Our Story", description: "Learn how our company started", to: "/#about" },
-    { label: "What Drives Us", description: "Our mission and values", to: "/#about" },
-    { label: "Our Vision", description: "Where we are heading", to: "/#about" },
+    { label: "Our Story", description: "Learn how our company started", to: "/about-us#our-story" },
+    { label: "What Drives Us", description: "Our mission and values", to: "/about-us#our-story" },
+    { label: "Our Vision", description: "Where we are heading", to: "/about-us#why-choose" },
     { label: "News & Articles", description: "Latest updates and insights", to: "/blog" }]
 
   },
@@ -473,33 +474,20 @@ const MobileNavigation = ({
   labLinkNavigationProps: Record<string, unknown>;
 }) => {
   const variant = "A";
+  const navigationIcons = { Lenses: Eye, Coatings: Sparkles, Professionals: UsersRound, Patients: User, About: Info } as const;
 
   return <>
     {variant === "A" && <div className="space-y-5">
-      <p className="text-sm leading-6 text-muted-foreground">Choose where you want to start. Product guidance stays separate from account tasks.</p>
       <div className="grid grid-cols-2 gap-3">
-        <Link to="/store" {...labLinkNavigationProps} className="rounded-2xl bg-primary px-4 py-4 text-sm font-semibold text-primary-foreground shadow-sm">Browse catalog <span className="mt-1 block text-xs font-normal opacity-85">Lenses & supplies</span></Link>
-        <Link to="/profile/orders" {...labLinkNavigationProps} className="rounded-2xl border border-border bg-card px-4 py-4 text-sm font-semibold text-foreground">My orders <span className="mt-1 block text-xs font-normal text-muted-foreground">Track an order</span></Link>
+        <Link to="/store" {...labLinkNavigationProps} className="rounded-xl border border-primary/45 bg-primary px-4 py-4 text-sm font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"><ShoppingCart className="mb-2 h-4 w-4" aria-hidden="true" />Browse catalog <span className="mt-1 block text-xs font-normal opacity-85">Lenses & supplies</span></Link>
+        <Link to="/profile/orders" {...labLinkNavigationProps} className="rounded-xl border border-border/60 bg-background/80 px-4 py-4 text-sm font-semibold text-foreground shadow-lg backdrop-blur-md transition-colors hover:bg-muted"><Package className="mb-2 h-4 w-4 text-primary" aria-hidden="true" />My orders <span className="mt-1 block text-xs font-normal text-muted-foreground">Track an order</span></Link>
       </div>
-      <Accordion type="multiple" className="space-y-2">
-        {items.map((item) => <AccordionItem key={item.label} value={item.label} className="rounded-xl border border-border/70 px-3">
-          <AccordionTrigger className="py-3.5 text-base font-semibold hover:no-underline">{item.label}</AccordionTrigger>
-          <AccordionContent className="pb-2">{item.sections.map((section) => <div key={section.title} className="mb-3"><p className="mb-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p>{section.links.slice(0, 4).map((link) => <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className="block rounded-lg px-2 py-2.5 text-sm text-foreground hover:bg-muted">{link.label}<span className="mt-0.5 block text-xs text-muted-foreground">{link.description}</span></Link>)}</div>)}</AccordionContent>
-        </AccordionItem>)}
+      <Accordion type="single" collapsible className="space-y-2">
+        {items.map((item) => { const Icon = navigationIcons[item.label as keyof typeof navigationIcons] ?? Info; return <AccordionItem key={item.label} value={item.label} className="rounded-xl border border-border/60 bg-background/65 px-3 shadow-sm backdrop-blur-md transition-colors data-[state=open]:border-primary/40 data-[state=open]:bg-primary/5">
+          <AccordionTrigger className="py-3.5 text-base font-semibold text-foreground hover:no-underline"><span className="flex items-center gap-2.5"><Icon className="h-4 w-4 text-primary" aria-hidden="true" />{item.label}</span></AccordionTrigger>
+          <AccordionContent className="space-y-5 pb-3 pt-0">{item.sections.map((section) => <section key={section.title} className="border-t border-border/50 pt-4 first:border-t-0 first:pt-0"><p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p><div className="grid gap-2">{section.links.map((link) => <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className="group flex min-h-16 items-center justify-between rounded-lg border border-border/50 bg-background/70 px-3 py-2.5 text-left shadow-sm backdrop-blur-md transition-colors hover:border-primary/40 hover:bg-muted"><span><span className="block text-sm font-semibold text-foreground">{link.label}</span><span className="mt-0.5 block text-xs leading-4 text-muted-foreground">{link.description}</span></span><span className="ml-3 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/5 text-sm text-primary transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span></Link>)}</div></section>)}</AccordionContent>
+        </AccordionItem>})}
       </Accordion>
-    </div>}
-
-    {variant === "B" && <div className="space-y-6">
-      <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Explore Classic Visions</p><h3 className="mt-2 text-2xl font-bold tracking-tight">What can we help with?</h3></div>
-      {primaryItems.map((item) => <section key={item.label} className="border-b border-border pb-5"><h4 className="mb-3 text-lg font-semibold">{item.label}</h4><div className="grid gap-2">{item.sections.flatMap((section) => section.links).slice(0, 5).map((link) => <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className="flex items-center justify-between rounded-xl bg-muted/55 px-3 py-3 text-sm font-medium"><span>{link.label}<span className="mt-0.5 block text-xs font-normal text-muted-foreground">{link.description}</span></span><span aria-hidden="true">→</span></Link>)}</div></section>)}
-      <div className="grid grid-cols-3 gap-2">{items.slice(2).map((item) => <Link key={item.label} to={item.sections[0]?.links[0]?.to || "/"} {...labLinkNavigationProps} className="rounded-xl border border-border px-2 py-3 text-center text-sm font-semibold">{item.label}</Link>)}</div>
-      <Link to="/store" {...labLinkNavigationProps} className="block rounded-xl bg-primary px-4 py-3.5 text-center text-sm font-semibold text-primary-foreground">Shop lenses & supplies</Link>
-    </div>}
-
-    {variant === "C" && <div className="space-y-4">
-      <div className="rounded-2xl bg-muted px-4 py-4"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quick navigation</p><p className="mt-1 text-lg font-bold">Find a product, service, or answer</p><Link to="/#site-search" {...labLinkNavigationProps} className="mt-3 block rounded-xl bg-background px-3 py-3 text-sm text-muted-foreground shadow-sm">Search the site <span className="float-right">⌕</span></Link></div>
-      {items.map((item, index) => <section key={item.label} className="rounded-xl border border-border px-3 py-3"><div className="mb-2 flex items-baseline gap-2"><span className="text-xs font-semibold text-primary">0{index + 1}</span><h4 className="font-semibold">{item.label}</h4></div>{item.sections.flatMap((section) => section.links).slice(0, 3).map((link) => <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className="block py-1.5 text-sm text-muted-foreground hover:text-foreground">{link.label}</Link>)}</section>)}
-      <div className="grid grid-cols-2 gap-2"><Link to="/profile" {...labLinkNavigationProps} className="rounded-xl border border-border px-3 py-3 text-center text-sm font-semibold">My account</Link><a href="tel:+12464334928" className="rounded-xl bg-primary px-3 py-3 text-center text-sm font-semibold text-primary-foreground">Call us</a></div>
     </div>}
 
   </>;
@@ -507,6 +495,7 @@ const MobileNavigation = ({
 
 const Header = () => {
   const location = useLocation();
+  const { openAssistant } = useCompanionAssistant();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
@@ -606,7 +595,7 @@ const Header = () => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="!w-screen !max-w-none border-0 bg-background/80 backdrop-blur-md sm:!max-w-none">
+            <SheetContent side="left" className="!w-screen !max-w-none overflow-y-auto overscroll-contain border-r border-border/50 bg-background/80 pb-8 shadow-lg backdrop-blur-md sm:!max-w-none">
               <SheetTitle className="mb-6 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center">
                   <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" />
@@ -656,32 +645,8 @@ const Header = () => {
             </SheetContent>
           </Sheet>
 
-              <Button
-              variant="ghost"
-              size="sm"
-              className="hidden sm:inline-flex"
-              onClick={() => {
-                if (location.pathname !== "/") {
-                  window.location.href = "/#site-search";
-                  return;
-                }
-                const el = document.getElementById("site-search");
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
-                  const input = el.querySelector("input");
-                  if (input) setTimeout(() => input.focus(), 600);
-                }
-              }}>
-              
-                <Search className="h-4 w-4" />
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-              </Button>
-
-              <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
-                <a href="tel:+12464334928">
-                  <Phone className="mr-2 h-4 w-4" />
-                  Call Us
-                </a>
+              <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => openAssistant()} aria-label="Open assistant" title="Open assistant">
+                <MessageCircle className="h-4 w-4" />
               </Button>
 
               {user ?

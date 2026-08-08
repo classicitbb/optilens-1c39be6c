@@ -57,12 +57,53 @@ type CompanionRequest = {
   intent?: string;
   confidence?: string;
   answerMode?: string;
+  anonymousSessionId?: string;
+  taskContext?: {
+    kind?: string;
+    label?: string;
+    sourceRoute?: string;
+  };
   fallbackAnswer?: string;
   topLinks?: ContextLink[];
   conversation?: Array<{
     role?: string;
     text?: string;
   }>;
+};
+
+const normalizeRoute = (route?: string) => {
+  const value = (route ?? "/").trim();
+  return value.startsWith("/") ? value.split(/[?#]/, 1)[0].slice(0, 180) : "/";
+};
+
+const editorialTopicKey = (payload: CompanionRequest) => {
+  const taskKind = payload.taskContext?.kind?.toLowerCase().replace(/[^a-z_]/g, "");
+  const intent = payload.intent?.toLowerCase().replace(/[^a-z_]/g, "") || "general";
+  const route = normalizeRoute(payload.taskContext?.sourceRoute ?? payload.route)
+    .split("/").filter(Boolean).slice(0, 2).join("-") || "home";
+  return `${taskKind || intent}:${route}`.slice(0, 120);
+};
+
+const sha256 = async (value: string) => {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const recordEditorialSignal = async (payload: CompanionRequest) => {
+  if (payload.answerMode !== "support_handoff" || !payload.anonymousSessionId) return;
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRoleKey) return;
+
+  const db = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  await (db.rpc as any)("record_assistant_editorial_signal", {
+    p_topic_key: editorialTopicKey(payload),
+    p_audience: (payload.audience ?? "visitor").slice(0, 32),
+    p_route: normalizeRoute(payload.taskContext?.sourceRoute ?? payload.route),
+    p_outcome: "unresolved",
+    p_session_hash: await sha256(payload.anonymousSessionId),
+  });
 };
 
 const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -227,6 +268,7 @@ serve(async (req) => {
 
     const answer = (rawAnswer ?? groundedPayload.fallbackAnswer ?? "").trim() || null;
     const citations = (groundedPayload.topLinks ?? []).slice(0, 4);
+    await recordEditorialSignal(groundedPayload).catch((error) => console.error("assistant editorial signal failed", error));
 
     return new Response(JSON.stringify({
       answer,

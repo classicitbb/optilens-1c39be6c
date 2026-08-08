@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AssistantAudience, AssistantProfile, AssistantLinkResult, AssistantQueryResult } from "./companionAssistantEngine";
+import type { AssistantTaskContext } from "./CompanionAssistantContext.shared";
 
 type ConversationTurn = {
   role: "user" | "assistant";
@@ -13,6 +14,8 @@ export interface AssistantGenerationPayload {
   audience: AssistantAudience;
   result: AssistantQueryResult;
   conversation: ConversationTurn[];
+  anonymousSessionId: string;
+  taskContext?: AssistantTaskContext;
 }
 
 export interface AssistantGenerationResult {
@@ -45,6 +48,8 @@ export async function generateAssistantAnswer(payload: AssistantGenerationPayloa
           evidence: link.evidence ?? null,
         })),
         conversation: payload.conversation,
+        anonymousSessionId: payload.anonymousSessionId,
+        taskContext: payload.taskContext,
       },
     });
 

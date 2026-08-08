@@ -301,6 +301,36 @@ const CompanionAssistant = () => {
     [location.pathname],
   );
 
+  useEffect(() => {
+    const routeKeepsExplicitControls = location.pathname.startsWith("/checkout")
+      || location.pathname.startsWith("/auth")
+      || location.pathname.startsWith("/legal");
+    if (routeKeepsExplicitControls) return;
+
+    const handleCustomerContact = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!target || target.target === "_blank" || target.dataset.assistantBypass === "true") return;
+      const href = target.getAttribute("href") ?? "";
+      const isClassicVisionsContact = href === "/contact" || href === "/#contact" || href === "#contact"
+        || href === "tel:+12464334928"
+        || /^mailto:[^?]+@classicvisions\.net$/i.test(href);
+      if (!isClassicVisionsContact) return;
+
+      event.preventDefault();
+      const label = target.textContent?.replace(/\s+/g, " ").trim() || "contacting the Classic Visions team";
+      const taskContext = {
+        kind: /quote/i.test(label) ? "quote" as const : /policy|return|repair|replacement/i.test(location.pathname) ? "policy_help" as const : "contact" as const,
+        label,
+        sourceRoute: `${location.pathname}${location.search}${location.hash}`,
+      };
+      openAssistant({ taskContext, profile: location.pathname.startsWith("/profile") ? "portal_support" : "customer_support" });
+    };
+
+    document.addEventListener("click", handleCustomerContact);
+    return () => document.removeEventListener("click", handleCustomerContact);
+  }, [location.hash, location.pathname, location.search, openAssistant]);
+
   const assistantWindow = (
     <div
       className={cn(
@@ -406,13 +436,13 @@ const CompanionAssistant = () => {
   return (
     <>
       {!isDetachedRoute && nudge && consentGiven ? (
-        <div className="fixed bottom-24 right-4 z-40 max-w-xs rounded-[22px] border border-slate-700/80 bg-slate-950/95 p-4 shadow-[0_30px_80px_rgba(2,6,23,0.5)] backdrop-blur sm:right-6">
+        <div className="fixed bottom-24 right-4 z-40 max-w-xs rounded-[22px] border border-border/50 bg-background/80 p-4 text-foreground shadow-[0_30px_80px_rgba(2,6,23,0.24)] backdrop-blur-md sm:right-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-50">Need a hand?</p>
-              <p className="mt-1 text-xs leading-5 text-slate-300">{nudge.message}</p>
+              <p className="text-sm font-semibold">Need a hand?</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{nudge.message}</p>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-slate-300 hover:bg-white/10 hover:text-white" onClick={handleNudgeDismiss}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted/80 hover:text-foreground" onClick={handleNudgeDismiss}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -421,7 +451,7 @@ const CompanionAssistant = () => {
               <Sparkles className="mr-2 h-4 w-4" />
               Open assistant
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full border-slate-600/80 bg-slate-900/70 text-slate-100 hover:bg-slate-800" onClick={handleNudgeDismiss}>
+            <Button size="sm" variant="outline" className="rounded-full border-border/60 bg-background/70 text-foreground backdrop-blur-md hover:bg-muted/80" onClick={handleNudgeDismiss}>
               Not now
             </Button>
           </div>
@@ -435,7 +465,7 @@ const CompanionAssistant = () => {
             size="icon"
             aria-label="Open search & help assistant"
             onClick={() => { setIsCollapsed(false); openAssistant(); }}
-            className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-sky-400/20 bg-slate-950 text-slate-50 shadow-[0_24px_70px_rgba(2,6,23,0.52)] hover:bg-slate-900 sm:bottom-6 sm:right-6"
+            className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-border/50 bg-background/80 text-foreground shadow-[0_24px_70px_rgba(2,6,23,0.24)] backdrop-blur-md hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
             <Sparkles className="h-5 w-5" />
           </Button>
@@ -443,7 +473,7 @@ const CompanionAssistant = () => {
           <Button
             type="button"
             onClick={() => openAssistant()}
-            className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-sky-400/20 bg-slate-950 text-slate-50 shadow-[0_24px_70px_rgba(2,6,23,0.52)] hover:bg-slate-900 sm:bottom-6 sm:right-6"
+            className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-border/50 bg-background/80 text-foreground shadow-[0_24px_70px_rgba(2,6,23,0.24)] backdrop-blur-md hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
             <MessageCircle className="mr-2 h-5 w-5" />
             Search & help

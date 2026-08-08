@@ -94,6 +94,8 @@ const RetailerPromptHarness = () => {
   );
 };
 
+const ContactLinkHarness = () => <a href="/#contact">Contact our team</a>;
+
 describe("CompanionAssistant", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -155,5 +157,20 @@ describe("CompanionAssistant", () => {
     expect(await screen.findByText(/are you asking as a patient/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "I’m a patient" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "I’m a dispenser" })).toBeInTheDocument();
+  });
+
+  it("turns a public contact route into a contextual assistant interaction", async () => {
+    render(
+      <MemoryRouter initialEntries={["/lenses/sport"]}>
+        <CompanionAssistantProvider>
+          <ContactLinkHarness />
+          <CompanionAssistant />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "Contact our team" }));
+
+    expect(await screen.findByText(/i need help with contact our team/i)).toBeInTheDocument();
   });
 });

@@ -42,7 +42,15 @@ export type AssistantMessage =
       text: string;
     };
 
-export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request";
+export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request";
+
+export type AssistantTaskKind = "contact" | "support" | "quote" | "policy_help";
+
+export interface AssistantTaskContext {
+  kind: AssistantTaskKind;
+  label: string;
+  sourceRoute: string;
+}
 
 export interface AssistantFormState {
   kind: AssistantFormKind;
@@ -50,12 +58,15 @@ export interface AssistantFormState {
   name: string;
   email: string;
   phone: string;
+  businessName: string;
+  requesterType: string;
   market: string;
   issueType: string;
   productTopic: string;
   customerName: string;
   summary: string;
-  pendingField?: "name" | "email" | "issueType" | "customerName" | "summary";
+  taskContext?: AssistantTaskContext;
+  pendingField?: "name" | "email" | "businessName" | "requesterType" | "market" | "issueType" | "customerName" | "summary";
 }
 
 export type OpenAssistantOptions = {
@@ -65,6 +76,7 @@ export type OpenAssistantOptions = {
   audience?: AssistantAudience;
   formKind?: AssistantFormKind;
   formValues?: Partial<AssistantFormState>;
+  taskContext?: AssistantTaskContext;
 };
 
 export interface CompanionAssistantContextValue {

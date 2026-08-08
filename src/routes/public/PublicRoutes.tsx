@@ -10,6 +10,7 @@ import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Index = lazy(() => import("@/pages/Index"));
+const AboutUsPage = lazy(() => import("@/pages/AboutUsPage"));
 const VizionizeCleanerPage = lazy(() => import("@/pages/VizionizeCleanerPage"));
 const BlogHubPage = lazy(() => import("@/pages/BlogHubPage"));
 const BlogPostPage = lazy(() => import("@/pages/BlogPostPage"));
@@ -98,6 +99,7 @@ const LensAssistantRouteGate = () => {
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
+    <Route path="about-us" element={<AboutUsPage />} />
     <Route path="contact" element={<ContactHashRedirect />} />
     <Route path="blog" element={<BlogHubPage />} />
     <Route path="blog/:slug" element={<BlogPostPage />} />

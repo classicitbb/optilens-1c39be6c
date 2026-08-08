@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { createStructuredHelpdeskTicket } from "@/features/admin/helpdesk/utils/structuredTicketing";
 import { submitPublicInquiry } from "@/lib/publicInquiry";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { LifeBuoy, LogIn } from "lucide-react";
 import { createAuthHref } from "@/lib/authFlow";
 
@@ -49,12 +50,11 @@ const portalPages: Record<string, PortalPage> = {
   },
   "price-list-request": {
     title: "Price List Request",
-    description: "Lead form for current lens and coating price lists.",
+    description: "A guided request for eligible optical professionals.",
     body: [
-      "Request the latest wholesale pricing and optional product matrix by market segment.",
-      "Submissions are sent to the sales operations inbox and tagged for response tracking.",
+      "The assistant will confirm your optical-business details and market before sending a request for current wholesale pricing or a product matrix.",
+      "Nothing is sent until you review and confirm the request.",
     ],
-    isForm: true,
   },
   "lab-process-overview": {
     title: "Lab Process Overview",
@@ -228,6 +228,16 @@ const CustomerServiceTicketForm = () => {
   );
 };
 
+const PriceListAssistantLaunch = () => {
+  const { openAssistant } = useCompanionAssistant();
+
+  return (
+    <Button className="mt-8" onClick={() => openAssistant({ formKind: "pricelist_request", audience: "dispenser" })}>
+      Start price-list request
+    </Button>
+  );
+};
+
 const ProfessionalsPortalPage = () => {
   const { slug } = useParams();
   const { user } = useAuth();
@@ -368,6 +378,8 @@ const ProfessionalsPortalPage = () => {
           )}
 
           {page.isCustomerService && <CustomerServiceTicketForm />}
+
+          {slug === "price-list-request" && <PriceListAssistantLaunch />}
 
           {page.isForm && (
             <form

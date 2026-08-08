@@ -62,4 +62,16 @@ describe("public inquiry routing", () => {
 
     expect(source).toContain("TCK-${insertedInquiry.id.slice(0, 8).toUpperCase()}");
   });
+
+  it("moves price-list qualification into the assistant and captures approved requests as CRM leads", () => {
+    const priceListPage = read("src/pages/ProfessionalsPortalPage.tsx");
+    const assistant = read("src/features/assistant/CompanionAssistantContext.tsx");
+    const edgeFunction = read("supabase/functions/contact-inquiry/index.ts");
+
+    expect(priceListPage).toContain('formKind: "pricelist_request"');
+    expect(assistant).toContain("isPricelistRequesterEligible");
+    expect(assistant).toContain('inquiryType: isPricelistRequest ? "price_list" : "assistant_request"');
+    expect(edgeFunction).toContain('payload.inquiryType === "price_list"');
+    expect(edgeFunction).toContain('pipeline: "opticals", stage: "qualifying"');
+  });
 });

@@ -190,15 +190,59 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Create helpdesk ticket so submissions appear in the helpdesk overview
-    try {
-      let contactId: string | null = null;
-      const { data: matchedContact } = await supabase
+    // Price-list requests are sales enquiries. Create a CRM lead before the
+    // ticket, while preserving an established customer's existing lifecycle.
+    let contactId: string | null = null;
+    if (payload.inquiryType === "price_list") {
+      const { data: existingContact, error: contactLookupError } = await supabase
         .from("contacts")
-        .select("id")
+        .select("id,is_customer,pipeline,stage")
         .ilike("email", payload.email)
         .maybeSingle();
-      if (matchedContact) contactId = matchedContact.id;
+      if (contactLookupError) throw contactLookupError;
+
+      if (existingContact) {
+        contactId = existingContact.id;
+        if (!existingContact.is_customer && (!existingContact.pipeline || !existingContact.stage)) {
+          const { error: contactUpdateError } = await supabase
+            .from("contacts")
+            .update({ pipeline: "opticals", stage: "qualifying", stage_entered_at: new Date().toISOString() })
+            .eq("id", existingContact.id);
+          if (contactUpdateError) throw contactUpdateError;
+        }
+      } else {
+        const { data: lead, error: leadInsertError } = await supabase
+          .from("contacts")
+          .insert({
+            name: payload.name,
+            email: payload.email,
+            phone: payload.phone || null,
+            business_name: payload.businessName || null,
+            type: "individual",
+            status: "lead",
+            pipeline_stage: "Qualified",
+            pipeline: "opticals",
+            stage: "qualifying",
+            stage_entered_at: new Date().toISOString(),
+            is_customer: false,
+          })
+          .select("id")
+          .single();
+        if (leadInsertError) throw leadInsertError;
+        contactId = lead.id;
+      }
+    }
+
+    // Create helpdesk ticket so submissions appear in the helpdesk overview
+    try {
+      if (!contactId) {
+        const { data: matchedContact } = await supabase
+          .from("contacts")
+          .select("id")
+          .ilike("email", payload.email)
+          .maybeSingle();
+        if (matchedContact) contactId = matchedContact.id;
+      }
 
       const ticketNumber = `TCK-${insertedInquiry.id.slice(0, 8).toUpperCase()}`;
       const titleName = (payload.businessName?.trim() || payload.name).slice(0, 200);

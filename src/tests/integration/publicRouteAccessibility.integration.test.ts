@@ -28,6 +28,16 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers and declares the canonical About Us page", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.about-us" && route.path === "/about-us" && route.status === "active"),
+    ).toBeTruthy();
+
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+    expect(source).toContain('<Route path="about-us" element={<AboutUsPage />} />');
+  });
+
   it("registers /knowledge/:articleSlug in the public route registry", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.knowledge.article" && route.path === "/knowledge/:articleSlug" && route.status === "active"),

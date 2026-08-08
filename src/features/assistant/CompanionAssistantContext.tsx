@@ -27,6 +27,7 @@ import {
   type AssistantFormState,
   type AssistantMessage,
   type AssistantQuickAction,
+  type AssistantTaskContext,
   type CompanionAssistantContextValue,
   type OpenAssistantOptions,
 } from "./CompanionAssistantContext.shared";
@@ -36,6 +37,7 @@ export type {
   AssistantFormState,
   AssistantMessage,
   AssistantQuickAction,
+  AssistantTaskContext,
   CompanionAssistantContextValue,
   OpenAssistantOptions,
 } from "./CompanionAssistantContext.shared";
@@ -44,6 +46,13 @@ const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).sli
 const POPOUT_SNAPSHOT_KEY = "companion-assistant-popout";
 const PENDING_SAVE_KEY = "companion-assistant-pending-save";
 const ANONYMOUS_SESSION_KEY = "companion-assistant-anonymous-session";
+
+const getAssistantLaunchPrompt = (context: AssistantTaskContext) => {
+  const label = context.label.replace(/\s+/g, " ").trim().slice(0, 120) || "this request";
+  if (context.kind === "quote") return `I need help preparing a quote for ${label}.`;
+  if (context.kind === "policy_help") return `I need help understanding the policy information for ${label}.`;
+  return `I need help with ${label}.`;
+};
 
 const getProfileForRoute = (pathname: string): AssistantProfile => {
   if (pathname.startsWith("/profile")) return "portal_support";
@@ -145,6 +154,8 @@ const createInitialFormState = ({
     name: userName,
     email: userEmail,
     phone: "",
+    businessName: "",
+    requesterType: "",
     market: pathname.startsWith("/find-a-retailer/barbados") ? "Barbados" : "",
     issueType: "",
     productTopic: "",
@@ -156,6 +167,9 @@ const createInitialFormState = ({
 const getFormQuestion = (field: NonNullable<AssistantFormState["pendingField"]>, kind: AssistantFormKind) => {
   if (field === "name") return "What name should the team use when they reply?";
   if (field === "email") return "What email address should we use for the reply?";
+  if (field === "businessName") return "What is your optical business, clinic, or lab called?";
+  if (field === "requesterType") return "Wholesale price lists are available to optical businesses and professionals. What is your role or type of optical business?";
+  if (field === "market") return "Which country or market will this price list be used in?";
   if (field === "customerName") return "Which customer or business is this quote for?";
   if (field === "issueType") return "What is this support request about?";
   return kind === "quote_request"
@@ -163,8 +177,19 @@ const getFormQuestion = (field: NonNullable<AssistantFormState["pendingField"]>,
     : "Please describe what you need help with.";
 };
 
+export const isPricelistRequesterEligible = (requesterType: string) =>
+  /\b(optician|optical|dispens|clinic|practice|lab(?:oratory)?|retail(?:er)?|store|ophthalm|eye\s*care)\b/i.test(requesterType);
+
 const getNextFormField = (form: AssistantFormState): AssistantFormState["pendingField"] => {
   if (form.kind === "quote_request") return !form.customerName.trim() ? "customerName" : !form.summary.trim() ? "summary" : undefined;
+  if (form.kind === "pricelist_request") {
+    if (!form.name.trim()) return "name";
+    if (!form.email.trim()) return "email";
+    if (!form.businessName.trim()) return "businessName";
+    if (!form.requesterType.trim() || !isPricelistRequesterEligible(form.requesterType)) return "requesterType";
+    if (!form.market.trim()) return "market";
+    return !form.summary.trim() ? "summary" : undefined;
+  }
   if (form.kind === "portal_support") return !form.issueType.trim() ? "issueType" : !form.summary.trim() ? "summary" : undefined;
   return !form.name.trim() ? "name" : !form.email.trim() ? "email" : !form.summary.trim() ? "summary" : undefined;
 };
@@ -196,6 +221,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const [formState, setFormState] = useState<AssistantFormState | null>(null);
   const lastQueryRef = useRef<string | null>(null);
   const negativeFeedbackRef = useRef(false);
+  const taskContextRef = useRef<AssistantTaskContext | undefined>(undefined);
   const nudgeTimerRef = useRef<number | null>(null);
   const hasRestoredPopoutRef = useRef(false);
   const runtimeHeadings = useMemo(
@@ -384,7 +410,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       userName,
       userEmail,
     });
-    const next = { ...initial, kind: options?.kind ?? initial.kind, ...options?.values };
+    const next = { ...initial, kind: options?.kind ?? initial.kind, taskContext: taskContextRef.current, ...options?.values };
     const pendingField = getNextFormField(next);
     setFormState({ ...next, pendingField });
     setMessages((current) => [...current, {
@@ -656,6 +682,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         audience: result.audience,
         result,
         conversation: [...conversation, { role: "user", text: trimmedQuery }],
+        anonymousSessionId: getAnonymousSessionId(),
+        taskContext: taskContextRef.current,
       });
 
       setMessages((current) =>
@@ -671,6 +699,14 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
             : message,
         ),
       );
+
+      if (result.answerMode === "support_handoff") {
+        setMessages((current) => [...current, {
+          id: createId("assistant"), role: "assistant", kind: "text",
+          text: "I could not resolve that confidently from approved site information. I can prepare a request for the team, and nothing will be sent until you review and confirm it.",
+          quickActions: [{ type: "form", label: "Prepare a request", profile: user ? "portal_support" : "customer_support" }],
+        }]);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -684,7 +720,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       setCurrentQuery("");
       setMessages((current) => [...current, { id: createId("user"), role: "user", kind: "user", text: formAnswer }, {
         id: createId("assistant"), role: "assistant", kind: "text",
-        text: pendingField ? getFormQuestion(pendingField, completed.kind) : `Here is the request I will send:\n\n${completed.kind === "quote_request" ? `**Customer:** ${completed.customerName}\n\n` : ""}${completed.kind === "portal_support" ? `**Topic:** ${completed.issueType}\n\n` : ""}${completed.summary}`,
+        text: pendingField ? getFormQuestion(pendingField, completed.kind) : `Here is the request I will send:\n\n${completed.kind === "quote_request" ? `**Customer:** ${completed.customerName}\n\n` : ""}${completed.kind === "pricelist_request" ? `**Business:** ${completed.businessName}\n**Role/type:** ${completed.requesterType}\n**Market:** ${completed.market}\n\n` : ""}${completed.kind === "portal_support" ? `**Topic:** ${completed.issueType}\n\n` : ""}${completed.summary}`,
         quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
       }]);
       setFormState({ ...completed, pendingField });
@@ -700,12 +736,13 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     if (messages.length === 0) {
       resetConversation();
     }
-    if (options?.query) {
-      setCurrentQuery(options.query);
-    }
+    const taskContext = options?.taskContext;
+    taskContextRef.current = taskContext;
+    const launchQuery = options?.query ?? (taskContext ? getAssistantLaunchPrompt(taskContext) : undefined);
+    if (launchQuery) setCurrentQuery(launchQuery);
     if (options?.formKind) {
       const initial = createInitialFormState({ pathname, profile: options.profile ?? activeProfile, userName, userEmail });
-      const next = { ...initial, kind: options.formKind, ...options.formValues };
+      const next = { ...initial, kind: options.formKind, taskContext, ...options.formValues };
       const pendingField = getNextFormField(next);
       setFormState({ ...next, pendingField });
       setMessages((current) => [...current, {
@@ -714,10 +751,10 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
       }]);
     }
-    if (options?.autoSubmit && options.query) {
+    if ((options?.autoSubmit || taskContext) && launchQuery) {
       window.setTimeout(() => {
         if (options.audience) setAudienceOverride(options.audience);
-        void submitQueryInternal(options.query!, options.profile ?? activeProfile, options.audience ?? activeAudience);
+        void submitQueryInternal(launchQuery, options.profile ?? activeProfile, options.audience ?? activeAudience);
       }, 0);
     }
   }, [activeAudience, activeProfile, messages.length, pathname, resetConversation, submitQueryInternal, userEmail, userName]);
@@ -836,7 +873,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
     const summary = formState.summary.trim();
     const isQuoteRequest = formState.kind === "quote_request";
-    if (!summary || (!isQuoteRequest && (!formState.name.trim() || !formState.email.trim())) || (isQuoteRequest && !formState.customerName.trim())) return;
+    const isPricelistRequest = formState.kind === "pricelist_request";
+    if (!summary || (!isQuoteRequest && (!formState.name.trim() || !formState.email.trim())) || (isQuoteRequest && !formState.customerName.trim()) || (isPricelistRequest && (!formState.businessName.trim() || !formState.market.trim() || !isPricelistRequesterEligible(formState.requesterType)))) return;
 
     setIsSubmitting(true);
     try {
@@ -860,6 +898,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         market: formState.market,
         issueType: formState.issueType,
         productTopic: formState.productTopic,
+        taskContext: formState.taskContext ?? null,
         previousResults: resultSummary,
       };
 
@@ -895,10 +934,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         ].filter(Boolean).join("\n");
 
         await submitPublicInquiry({
-          inquiryType: "assistant_request",
+          inquiryType: isPricelistRequest ? "price_list" : "assistant_request",
           name: formState.name.trim(),
           email: formState.email.trim(),
           phone: formState.phone.trim() || null,
+          businessName: formState.businessName.trim() || null,
           message,
           pageSlug: `${pathname}${location.search}${location.hash}`,
           sourceChannel: "ai_assistant",
@@ -914,9 +954,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           id: createId("assistant"),
           role: "assistant",
           kind: "confirmation",
-          title: isQuoteRequest ? "Quote request sent" : "Request sent",
+          title: isQuoteRequest ? "Quote request sent" : isPricelistRequest ? "Price-list request sent" : "Request sent",
           text: isQuoteRequest
             ? `Your quote request${quoteNumber ? ` ${quoteNumber}` : ""} is now linked to a live Helpdesk conversation for corrections, questions, and replies.`
+            : isPricelistRequest
+            ? "Your approved price-list request was sent to Russell and added to the CRM for follow-up."
             : formState.kind === "portal_support"
             ? "Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here."
             : "Your request was submitted with the current page and assistant context attached. You can keep chatting here, or open one of the source links above while the team follows up.",

@@ -26,9 +26,9 @@ const values = [
   },
 ];
 
-const About = () => {
+const About = ({ sectionId = "about", heading = "About Classic Visions" }: { sectionId?: string; heading?: string }) => {
   return (
-    <section id="about" className="py-16 sm:py-24" aria-label="About Classic Visions">
+    <section id={sectionId} className="py-16 sm:py-24" aria-label={heading}>
       <div className="container mx-auto px-4 lg:px-8">
         {/* Intro */}
         <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-16">
@@ -36,7 +36,7 @@ const About = () => {
             <img src={cleanLogoSmooth} alt="Classic Visions" className="h-20 w-20" />
           </div>
           <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
-            About Classic Visions
+            {heading}
           </h2>
           <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
             Classic Visions is a trusted wholesale supplier of premium prescription lenses,

@@ -19,6 +19,7 @@ export interface RouteDefinition {
 
 export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.home", path: "/", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
+  { id: "public.about-us", path: "/about-us", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.assistant.window", path: "/assistant/window", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.optical-retail-websites", path: "/optical-retail-websites", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.rx-job-status", path: "/rx-job-status", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },

@@ -23,9 +23,9 @@ const features = [
   },
 ];
 
-const Features = () => {
+const Features = ({ sectionId }: { sectionId?: string }) => {
   return (
-    <section className="bg-muted/50 py-16 sm:py-24" aria-label="Why choose us">
+    <section id={sectionId} className="bg-muted/50 py-16 sm:py-24" aria-label="Why choose us">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="mb-12 text-center sm:mb-16">
           <h2 className="mb-4 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
