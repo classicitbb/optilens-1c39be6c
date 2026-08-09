@@ -49,6 +49,10 @@ export const LensVariantGrid = ({
 
   const selectedCount = Object.values(quantities).reduce((sum, qty) => sum + (qty > 0 ? qty : 0), 0);
 
+  const incrementQuantity = (variantId: string) => {
+    setQuantities((prev) => ({ ...prev, [variantId]: (prev[variantId] ?? 0) + 1 }));
+  };
+
   const handleAdd = async () => {
     const payload = Object.entries(quantities)
       .filter(([, quantity]) => quantity > 0)
@@ -115,6 +119,7 @@ export const LensVariantGrid = ({
                                     const next = Math.max(0, Number(event.target.value || 0));
                                     setQuantities((prev) => ({ ...prev, [variant.id]: next }));
                                   }}
+                                  onDoubleClick={() => !readOnly && incrementQuantity(variant.id)}
                                   className="h-6 w-11 px-1 text-left text-[10px] ring-1 ring-amber-400/70"
                                   disabled={readOnly}
                                   aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
@@ -136,6 +141,7 @@ export const LensVariantGrid = ({
                             const next = Math.max(0, Number(event.target.value || 0));
                             setQuantities((prev) => ({ ...prev, [variant.id]: next }));
                           }}
+                          onDoubleClick={() => !readOnly && incrementQuantity(variant.id)}
                           className="h-6 w-11 px-1 text-left text-[10px]"
                           disabled={readOnly}
                           aria-label={`${sphere.toFixed(2)} ${cylinder.toFixed(2)} quantity`}
