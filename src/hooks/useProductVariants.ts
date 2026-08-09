@@ -60,16 +60,13 @@ export const useProductVariants = (productType?: StoreProductType, productId?: s
     queryKey: ["store-product-variants", productType, productId],
     enabled: Boolean(productType && productId),
     queryFn: async () => {
-      const query = (supabase as any)
-        .from("store_product_variants_public")
-        .select(publicVariantColumns)
-        .eq("product_type", productType)
-        .eq("product_id", productId)
-        .order("sort_order", { ascending: true });
-      if (activeOnly) query.eq("is_active", true);
-      const { data, error } = await query;
+      const { data, error } = await (supabase.rpc as any)("get_store_product_variants_public", {
+        p_product_type: productType,
+        p_product_id: productId,
+      });
       if (error) throw error;
-      return (data ?? []) as ProductVariant[];
+      const variants = (data ?? []) as ProductVariant[];
+      return activeOnly ? variants.filter((variant) => variant.is_active) : variants;
     },
   });
 };
