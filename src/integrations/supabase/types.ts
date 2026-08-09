@@ -1374,13 +1374,6 @@ export type Database = {
             referencedRelation: "store_product_variants"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "cart_items_variant_id_fkey"
-            columns: ["variant_id"]
-            isOneToOne: false
-            referencedRelation: "store_product_variants_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       catalog_assignments: {
@@ -5779,13 +5772,6 @@ export type Database = {
             referencedRelation: "store_product_variants"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "order_items_variant_id_fkey"
-            columns: ["variant_id"]
-            isOneToOne: false
-            referencedRelation: "store_product_variants_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       order_payment_events: {
@@ -8771,13 +8757,6 @@ export type Database = {
             referencedRelation: "store_product_variants"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "store_variant_audit_logs_variant_id_fkey"
-            columns: ["variant_id"]
-            isOneToOne: false
-            referencedRelation: "store_product_variants_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       suppliers: {
@@ -9911,69 +9890,6 @@ export type Database = {
         }
         Relationships: []
       }
-      store_product_variants_public: {
-        Row: {
-          allow_backorder: boolean | null
-          attributes: Json | null
-          created_at: string | null
-          id: string | null
-          is_active: boolean | null
-          low_stock_threshold: number | null
-          metadata: Json | null
-          opc_code: string | null
-          price: number | null
-          product_id: string | null
-          product_type: string | null
-          reserved_qty: number | null
-          sku: string | null
-          sort_order: number | null
-          stock_qty: number | null
-          title: string | null
-          updated_at: string | null
-          variant_key: string | null
-        }
-        Insert: {
-          allow_backorder?: boolean | null
-          attributes?: Json | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          low_stock_threshold?: number | null
-          metadata?: Json | null
-          opc_code?: string | null
-          price?: number | null
-          product_id?: string | null
-          product_type?: string | null
-          reserved_qty?: number | null
-          sku?: string | null
-          sort_order?: number | null
-          stock_qty?: number | null
-          title?: string | null
-          updated_at?: string | null
-          variant_key?: string | null
-        }
-        Update: {
-          allow_backorder?: boolean | null
-          attributes?: Json | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          low_stock_threshold?: number | null
-          metadata?: Json | null
-          opc_code?: string | null
-          price?: number | null
-          product_id?: string | null
-          product_type?: string | null
-          reserved_qty?: number | null
-          sku?: string | null
-          sort_order?: number | null
-          stock_qty?: number | null
-          title?: string | null
-          updated_at?: string | null
-          variant_key?: string | null
-        }
-        Relationships: []
-      }
       supplies_public: {
         Row: {
           category: string | null
@@ -10345,6 +10261,27 @@ export type Database = {
           shared_secret: string
           store_id: string
           timezone: string
+        }[]
+      }
+      get_store_product_variants_public: {
+        Args: { p_product_id: string; p_product_type: string }
+        Returns: {
+          allow_backorder: boolean
+          attributes: Json
+          id: string
+          is_active: boolean
+          low_stock_threshold: number
+          metadata: Json
+          opc_code: string
+          price: number
+          product_id: string
+          product_type: string
+          reserved_qty: number
+          sku: string
+          sort_order: number
+          stock_qty: number
+          title: string
+          variant_key: string
         }[]
       }
       get_supplies_safe: {
