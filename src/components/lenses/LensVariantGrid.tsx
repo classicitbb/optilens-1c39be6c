@@ -28,12 +28,12 @@ export const LensVariantGrid = ({
   const [saving, setSaving] = useState(false);
 
   const spheres = useMemo(
-    () => Array.from(new Set(variants.map((variant) => asNumber(variant.attributes?.sphere)).filter((value) => Number.isFinite(value)))).sort((a, b) => a - b),
+    () => Array.from(new Set(variants.map((variant) => asNumber(variant.attributes?.sphere)).filter((value) => Number.isFinite(value)))).sort((a, b) => b - a),
     [variants],
   );
 
   const cylinders = useMemo(
-    () => Array.from(new Set(variants.map((variant) => asNumber(variant.attributes?.cylinder)).filter((value) => Number.isFinite(value)))).sort((a, b) => a - b),
+    () => Array.from(new Set(variants.map((variant) => asNumber(variant.attributes?.cylinder)).filter((value) => Number.isFinite(value)))).sort((a, b) => b - a),
     [variants],
   );
 
