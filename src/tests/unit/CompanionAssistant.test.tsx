@@ -159,6 +159,29 @@ describe("CompanionAssistant", () => {
     expect(screen.getByRole("button", { name: "I’m a dispenser" })).toBeInTheDocument();
   });
 
+  it("starts a new chat with a clean draft and starter actions", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <CompanionAssistantProvider>
+          <CompanionAssistant />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /search & help/i }));
+    const input = screen.getByPlaceholderText("Ask anything") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "Which lens is best for computer use?" } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter", charCode: 13 });
+
+    expect(await screen.findByText(/are you asking as a patient/i)).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: "A different draft" } });
+    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+
+    expect(input.value).toBe("");
+    expect(screen.queryByText(/are you asking as a patient/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Find the right lens")).toBeInTheDocument();
+  });
+
   it("turns a public contact route into a contextual assistant interaction", async () => {
     render(
       <MemoryRouter initialEntries={["/lenses/sport"]}>

@@ -93,6 +93,7 @@ export interface CompanionAssistantContextValue {
   submitQuery: (query?: string, profile?: AssistantProfile, audience?: AssistantAudience) => Promise<void>;
   submitQuickAction: (action: AssistantQuickAction) => void;
   markFeedback: (messageId: string, feedback: "helpful" | "not_helpful") => void;
+  startNewConversation: () => void;
   saveConversation: () => Promise<void>;
   isSavingConversation: boolean;
   nudge: { message: string; query?: string } | null;
