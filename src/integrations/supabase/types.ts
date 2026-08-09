@@ -9924,7 +9924,6 @@ export type Database = {
           price: number | null
           product_id: string | null
           product_type: string | null
-          reserved_qty: number | null
           sku: string | null
           sort_order: number | null
           stock_qty: number | null
@@ -9944,7 +9943,6 @@ export type Database = {
           price?: number | null
           product_id?: string | null
           product_type?: string | null
-          reserved_qty?: number | null
           sku?: string | null
           sort_order?: number | null
           stock_qty?: number | null
@@ -9964,7 +9962,6 @@ export type Database = {
           price?: number | null
           product_id?: string | null
           product_type?: string | null
-          reserved_qty?: number | null
           sku?: string | null
           sort_order?: number | null
           stock_qty?: number | null
