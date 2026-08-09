@@ -145,15 +145,22 @@ const StoreProductPage = () => {
                       </div>
                     )}
 
-                    <div className="pt-2">
-                      <div className="text-3xl font-bold text-foreground">
-                        ${product.sell_price_usd.toFixed(2)}
-                        <span className="ml-1 text-sm font-normal text-muted-foreground">
-                          {product.product_type === "supply" ? `/${product.subcategory}` : "/pair"}
-                        </span>
+                    {user ? (
+                      <div className="pt-2">
+                        <div className="text-3xl font-bold text-foreground">
+                          ${product.sell_price_usd.toFixed(2)}
+                          <span className="ml-1 text-sm font-normal text-muted-foreground">
+                            {product.product_type === "supply" ? `/${product.subcategory}` : "/pair"}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</div>
                       </div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</div>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
+                        <Lock className="h-4 w-4" />
+                        Sign in to view pricing
+                      </div>
+                    )}
 
                     {product.has_variants && !(product.product_type === "lens" && variants.length > 0) && (
                       <Card className="border-border/70 bg-muted/30">
