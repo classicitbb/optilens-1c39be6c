@@ -1441,7 +1441,7 @@ const CheckoutPage = () => {
               )}
 
               {/* ── Action bar ── */}
-              {!scotiaIntent && <div className="flex items-center gap-3">
+              {<div className="flex items-center gap-3">
                 <Button
                   type="button"
                   variant="outline"
