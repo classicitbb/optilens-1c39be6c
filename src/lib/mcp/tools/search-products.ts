@@ -1,44 +1,51 @@
-declare const process: { env: Record<string, string | undefined> };
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
+import { supabaseForUser, notAuthenticated, ok, fail } from "../supabase";
+
+type Row = Record<string, unknown>;
+
+const matches = (row: Row, needle: string) =>
+  String(row.name ?? "").toLowerCase().includes(needle) ||
+  String(row.description ?? "").toLowerCase().includes(needle) ||
+  String(row.sku ?? "").toLowerCase().includes(needle);
 
 export default defineTool({
   name: "search_products",
-  title: "Search store products",
+  title: "Search catalog",
   description:
-    "Search the Classic Visions public store catalog by name or description. Returns up to `limit` products.",
+    "Search the Classic Visions catalog (lenses, supplies, add-ons) by name, SKU or description. Cost data is never returned.",
   inputSchema: {
-    query: z.string().min(1).describe("Search text matched against product name/description."),
-    limit: z.number().int().min(1).max(50).optional().describe("Max rows to return (default 10)."),
+    query: z.string().min(1).describe("Search text matched against name, SKU or description."),
+    category: z
+      .enum(["all", "lenses", "supplies", "addons"])
+      .optional()
+      .describe("Restrict the search to one catalog type (default: all)."),
+    limit: z.number().int().min(1).max(50).optional().describe("Max rows per category (default 10)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ query, limit }, ctx) => {
-    if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated." }], isError: true };
-    }
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      {
-        global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-        auth: { persistSession: false, autoRefreshToken: false },
-      },
-    );
+  handler: async ({ query, category, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
     const cap = limit ?? 10;
-    const like = `%${query.replace(/[%_]/g, "")}%`;
-    const { data, error } = await supabase
-      .from("store_products")
-      .select("id,name,product_type,description")
-      .or(`name.ilike.${like},description.ilike.${like}`)
-      .limit(cap);
-    if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
-    }
-    const rows = data ?? [];
-    return {
-      content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
-      structuredContent: { count: rows.length, results: rows },
+    const needle = query.toLowerCase();
+    const want = category ?? "all";
+
+    const load = async (rpc: string) => {
+      const { data, error } = await supabase.rpc(rpc);
+      if (error) throw new Error(`${rpc}: ${error.message}`);
+      return ((data ?? []) as Row[]).filter((r) => matches(r, needle)).slice(0, cap);
     };
+
+    try {
+      const [lenses, supplies, addons] = await Promise.all([
+        want === "all" || want === "lenses" ? load("get_lenses_safe") : Promise.resolve([]),
+        want === "all" || want === "supplies" ? load("get_supplies_safe") : Promise.resolve([]),
+        want === "all" || want === "addons" ? load("get_addons_safe") : Promise.resolve([]),
+      ]);
+      const payload = { lenses, supplies, addons };
+      return ok(payload, { count: lenses.length + supplies.length + addons.length, ...payload });
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : "Catalog search failed.");
+    }
   },
 });

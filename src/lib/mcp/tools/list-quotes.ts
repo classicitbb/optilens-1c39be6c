@@ -3,27 +3,26 @@ import { z } from "zod";
 import { supabaseForUser, notAuthenticated, ok, fail } from "../supabase";
 
 export default defineTool({
-  name: "list_orders",
-  title: "List orders",
-  description:
-    "List Classic Visions orders visible to the signed-in user (most recent first). RLS limits customers to their own orders; staff see all.",
+  name: "list_quotes",
+  title: "List quotes",
+  description: "List quotes visible to the caller (most recent first). Cost and margin fields are hidden from customers by policy.",
   inputSchema: {
-    status: z.string().min(1).optional().describe("Filter by order status (e.g. pending, paid, cancelled)."),
-    limit: z.number().int().min(1).max(50).optional().describe("Max orders to return (default 10)."),
+    status: z.string().min(1).optional().describe("Filter by quote status."),
+    limit: z.number().int().min(1).max(50).optional().describe("Max quotes to return (default 10)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ status, limit }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
     const supabase = supabaseForUser(ctx);
     let q = supabase
-      .from("orders")
-      .select("id,status,total_amount,customer_name,contact_email,checkout_method,created_at,updated_at")
+      .from("quotes")
+      .select("id,quote_number,quote_type,status,customer_name,contact_name,contact_email,currency,valid_until,lead_time_days,grand_total,created_at")
       .order("created_at", { ascending: false })
       .limit(limit ?? 10);
     if (status) q = q.eq("status", status);
     const { data, error } = await q;
     if (error) return fail(error.message);
     const rows = data ?? [];
-    return ok(rows, { count: rows.length, orders: rows });
+    return ok(rows, { count: rows.length, quotes: rows });
   },
 });
