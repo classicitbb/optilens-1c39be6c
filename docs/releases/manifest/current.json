@@ -1,16 +1,17 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-06T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-11T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "**Activities** and **Rx Order Form** now appear in the header app launcher for staff with access to their owning CRM or Website app.",
-    "Selecting either shortcut opens the existing page directly; CRM and Website navigation remain unchanged."
+    "The **Stock Order Form** is available from the header app launcher and global search.",
+    "Stock-order account selection now shows only lab accounts with priced stock-lens rows.",
+    "Adding a stock order to drafts persists the staged order and makes it reopenable from the quotations page."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Header Launcher Shortcuts."
+      "notes": "Updated as part of Stock Order Form Discovery and Drafts."
     }
   ],
   "migrationNotes": [

@@ -128,6 +128,73 @@ export interface StageOrderItem {
   customer_ref: string;
 }
 
+export interface StockOrderDraft {
+  id: string;
+  account_id: number;
+  po_number: string | null;
+  order_reference: string | null;
+  status: string;
+  payload: {
+    account?: { id?: number; name?: string; account_number?: string | null };
+    po_number?: string | null;
+    order_reference?: string | null;
+    instructions?: string | null;
+    items?: Array<{
+      power_row_id?: string;
+      side?: "right" | "left" | "either";
+      sku?: string;
+      source?: string;
+      description?: string;
+      quantity?: number;
+      comment?: string;
+      unit_price?: number;
+    }>;
+    order_total?: number;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+const isMissingStockOrderFeatureError = (error: any) =>
+  /stock_order_submissions|schema cache|does not exist|relation .* does not exist/i.test(String(error?.message ?? ""));
+
+export const useStockOrderDrafts = () => {
+  return useQuery<StockOrderDraft[]>({
+    queryKey: ["stock-order-drafts"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("stock_order_submissions") as any)
+        .select("id, account_id, po_number, order_reference, status, payload, created_at, updated_at")
+        .in("status", ["staged", "failed"])
+        .order("updated_at", { ascending: false });
+      if (error) {
+        if (isMissingStockOrderFeatureError(error)) return [];
+        throw error;
+      }
+      return (data ?? []) as StockOrderDraft[];
+    },
+    staleTime: 30_000,
+  });
+};
+
+export const useStockOrderDraft = (draftId: string | null) => {
+  return useQuery<StockOrderDraft | null>({
+    queryKey: ["stock-order-draft", draftId],
+    enabled: !!draftId,
+    queryFn: async () => {
+      if (!draftId) return null;
+      const { data, error } = await (supabase.from("stock_order_submissions") as any)
+        .select("id, account_id, po_number, order_reference, status, payload, created_at, updated_at")
+        .eq("id", draftId)
+        .maybeSingle();
+      if (error) {
+        if (isMissingStockOrderFeatureError(error)) return null;
+        throw error;
+      }
+      return (data ?? null) as StockOrderDraft | null;
+    },
+  });
+};
+
 export const useStageStockOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({

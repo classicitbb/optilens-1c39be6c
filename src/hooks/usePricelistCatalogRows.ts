@@ -38,11 +38,19 @@ export const usePricelistCatalogRows = (
   const saveRows = useMutation({
     mutationFn: async (rows: Omit<PricelistCatalogRow, "id">[]) => {
       if (!versionId) return;
-      // Delete all existing rows for this version + catalog_type
+      // Delete all existing rows for this version + catalog_type, but only
+      // the row_types this editor actually manages (lens/addon/supply).
+      // catalog_type='stock' is a shared bucket — the Stock Order Builder's
+      // pricing tab also writes row_type='stock_variant' rows into it
+      // (see 20260811000000_stock_order_pricing_and_outbox.sql). A blanket
+      // delete-by-catalog_type here would silently wipe that pricing every
+      // time someone saves the WSPL Stock Lens Prices page. Scope the wipe
+      // to the row_types ListCatalogTab actually rebuilds below.
       const { error: delErr } = await (supabase.from("pricelist_catalog_rows") as any)
         .delete()
         .eq("pricelist_version_id", versionId)
-        .eq("catalog_type", catalogType);
+        .eq("catalog_type", catalogType)
+        .in("row_type", ["lens", "addon", "supply"]);
       if (delErr) throw delErr;
 
       // Insert current rows

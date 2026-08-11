@@ -20,7 +20,7 @@ vi.mock("@/hooks/usePortalIdentity", () => ({
   usePortalIdentity: () => ({
     emulation: null,
     effectiveUserId: "user-1",
-    identity: { crmCustomerId: 42, crmContactId: "contact-1" },
+    identity: { crmCustomerId: 42, crmContactId: "contact-1", organizationName: "Example Optical", customerName: "Example Optical" },
   }),
 }));
 
@@ -118,8 +118,17 @@ describe("QuoteFormSection", () => {
     await screen.findByText("Example Optical", { exact: false });
 
     fireEvent.click(screen.getByRole("button", { name: "Request a quote" }));
-    expect(await screen.findByText(/which customer or business is this quote for/i)).toBeInTheDocument();
+    expect(await screen.findByText(/what would you like a quote for/i)).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Quote request form" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Quote title")).toBeInTheDocument();
+    expect(screen.getByLabelText("Description (optional)")).toBeInTheDocument();
+    expect(screen.getByText("This quote will be prepared for Example Optical.")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Ask anything")).toBeInTheDocument();
     expect(rpc).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("form", { name: "Quote request form" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/what would you like a quote for/i)).not.toBeInTheDocument();
+    expect(screen.getByText("No request was sent. What else can I help with?")).toBeInTheDocument();
   });
 });

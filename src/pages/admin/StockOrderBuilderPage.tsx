@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Barcode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import "@/features/rx-order/embed/rx-order.css";
 import {
   useStockEligibleAccounts, useStockLensPricing, resolveStockCode,
-  useStageStockOrder, useReleaseStockOrder, StageOrderItem,
+  useStageStockOrder, useReleaseStockOrder, useStockOrderDraft, StageOrderItem,
 } from "@/hooks/useStockOrderBuilder";
 import { useInnovationsStoreLensCatalog, useInnovationsLensPowerRows } from "@/hooks/useInnovationsStoreLensCatalog";
 
@@ -49,6 +49,7 @@ const axisLabels = (rows: PowerRow[]) => {
 
 const StockOrderBuilderPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   const [accountId, setAccountId] = useState<number | null>(null);
@@ -64,8 +65,11 @@ const StockOrderBuilderPage = () => {
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [staged, setStaged] = useState<{ id: string; total: number } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
 
   const { data: eligibleAccounts = [], isLoading: accountsLoading } = useStockEligibleAccounts();
+  const draftId = searchParams.get("draft");
+  const { data: draft } = useStockOrderDraft(draftId);
   const selectedAccount = eligibleAccounts.find((a) => a.id === accountId) ?? null;
   const { data: pricing } = useStockLensPricing(selectedAccount?.pricelist_version_id ?? null);
 
@@ -90,6 +94,31 @@ const StockOrderBuilderPage = () => {
 
   const stageMutation = useStageStockOrder();
   const releaseMutation = useReleaseStockOrder();
+
+  useEffect(() => {
+    if (!draft || loadedDraftId === draft.id) return;
+    const payload = draft.payload ?? {};
+    const account = payload.account;
+    setAccountId(draft.account_id ?? account?.id ?? null);
+    setPoNumber(draft.po_number ?? payload.po_number ?? "");
+    setOrderReference(draft.order_reference ?? payload.order_reference ?? "");
+    setInstructions(payload.instructions ?? "");
+    setLines((payload.items ?? []).map((item, index) => ({
+      key: `${draft.id}:${item.power_row_id ?? index}:${item.side ?? "either"}`,
+      powerRowId: item.power_row_id ?? "",
+      familyId: "draft",
+      familyName: item.description ?? "Stock lens",
+      lensState: item.source === "FLENS" ? "finished" : "semi_finished",
+      side: item.side ?? "either",
+      sku: item.sku ?? "",
+      description: item.description ?? item.sku ?? "Stock lens",
+      quantity: Number(item.quantity ?? 1),
+      customerRef: item.comment ?? "",
+      unitPrice: Number(item.unit_price ?? 0),
+    })));
+    setStaged({ id: draft.id, total: Number(payload.order_total ?? 0) });
+    setLoadedDraftId(draft.id);
+  }, [draft, loadedDraftId]);
 
   const addLine = (family: { id: string; name: string; lens_state: string }, row: PowerRow, side: "right" | "left" | "either", quantity: number) => {
     const unitPrice = pricing?.get(family.id) ?? 0;
@@ -200,9 +229,11 @@ const StockOrderBuilderPage = () => {
       </div>
 
       <div className="wrap">
-        <div className="pagehead">
-          <h1>Stock order builder</h1>
-          <p>Search, scan, or fill a power grid to order finished and semi-finished lenses by SKU.</p>
+          <div className="pagehead">
+           <div>
+             <h1>Stock order form</h1>
+             <p>Search, scan, or fill a power grid to order finished and semi-finished lenses by SKU.</p>
+           </div>
         </div>
 
         <div className="card reveal" style={{ gridColumn: "1/-1" }}>
@@ -376,8 +407,11 @@ const StockOrderBuilderPage = () => {
           <div className="step-actions" style={{ marginLeft: 0 }}>
             <button className="btn btn-ghost" onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
             <button className="btn btn-ghost" disabled={!lines.length || !accountId || stageMutation.isPending} onClick={handleStage}>
-              {stageMutation.isPending ? "Staging…" : "Stage order"}
+              {stageMutation.isPending ? "Adding…" : "Add to drafts"}
             </button>
+            {staged && (
+              <Link className="linkbtn" to="/admin/website/quotations">View drafts</Link>
+            )}
             <button className="btn btn-primary" disabled={!staged || releaseMutation.isPending} onClick={handleRelease}>
               {releaseMutation.isPending ? "Releasing…" : "Release to Innova"}
             </button>

@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-11 — Stock Order Form Discovery and Drafts
+
+### Release Notes
+- The **Stock Order Form** is available from the header app launcher and global search.
+- Stock-order account selection now shows only lab accounts with priced stock-lens rows.
+- Adding a stock order to drafts persists the staged order and makes it reopenable from the quotations page.
+
 ## 2026-08-06 — Header Launcher Shortcuts
 
 ### Release Notes

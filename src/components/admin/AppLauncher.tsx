@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, CalendarCheck, Glasses, HelpCircle, LayoutDashboard, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Glasses, HelpCircle, LayoutDashboard, Package, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -42,6 +42,13 @@ const LAUNCHER_SHORTCUTS = {
     title: "Rx Order Form",
     icon: Glasses,
     defaultRoute: "/admin/website/quotations/new-rx",
+    featurePrefix: "website",
+  },
+  "stock-order": {
+    key: "stock-order",
+    title: "Stock Order Builder",
+    icon: Package,
+    defaultRoute: "/admin/website/stock-orders",
     featurePrefix: "website",
   },
 } as const;

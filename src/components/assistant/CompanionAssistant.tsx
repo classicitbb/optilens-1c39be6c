@@ -4,11 +4,15 @@ import { Link, useLocation } from "react-router";
 import { Expand, ExternalLink, Loader2, MessageCircle, MessageSquarePlus, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import type { AssistantQuickAction } from "@/features/assistant/CompanionAssistantContext";
 import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const MessageQuickActions = ({
   quickActions,
@@ -165,7 +169,7 @@ const AssistantResultCard = ({
 };
 
 const AssistantMessageList = () => {
-  const { messages, submitQuickAction } = useCompanionAssistant();
+  const { messages, formState, submitQuickAction } = useCompanionAssistant();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const wasNearBottomRef = useRef(true);
 
@@ -240,6 +244,7 @@ const AssistantMessageList = () => {
               </div>
             </div>
           ))}
+          {formState ? <AssistantRequestForm /> : null}
         </div>
       </div>
     </div>
@@ -258,6 +263,107 @@ const AssistantFeedbackControls = ({ messageId, feedback }: { messageId: string;
         <ThumbsDown className="h-3.5 w-3.5" />
       </Button>
     </div>
+  );
+};
+
+const requestAreaForPath = (pathname: string) => {
+  if (pathname.includes("/orders")) return "Order History";
+  if (pathname.includes("/statements")) return "Statements";
+  if (pathname.includes("/quotes")) return "Quote Requests";
+  if (pathname.includes("/helpdesk")) return "Helpdesk";
+  if (pathname.includes("/profile")) return "My Account";
+  return "Classic Visions website";
+};
+
+const AssistantRequestForm = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+  const { identity } = usePortalIdentity();
+  const { formState, updateForm, submitForm, submitQuickAction, isSubmitting } = useCompanionAssistant();
+  if (!formState) return null;
+
+  const isQuoteRequest = formState.kind === "quote_request";
+  const isPortalSupport = formState.kind === "portal_support";
+  const isPricelistRequest = formState.kind === "pricelist_request";
+  const accountName = identity?.organizationName || identity?.customerName || formState.customerName || "Signed-in account";
+  const requesterName = formState.name || user?.email || "Signed-in user";
+  const requestTitle = isQuoteRequest ? (formState.requestTitle || "") : formState.issueType;
+  const hasRequiredContact = isPortalSupport || (formState.name.trim().length > 0 && formState.email.trim().length > 0);
+  const isEligiblePricelistRequester = /\b(optician|optical|dispens|clinic|practice|lab(?:oratory)?|retail(?:er)?|store|ophthalm|eye\s*care)\b/i.test(formState.requesterType);
+  const canSubmit = isQuoteRequest
+    ? Boolean(user) && requestTitle.trim().length > 0
+    : hasRequiredContact && requestTitle.trim().length > 0 && formState.summary.trim().length > 0 && (!isPricelistRequest || (formState.businessName.trim() && formState.market.trim() && isEligiblePricelistRequester));
+
+  return (
+    <form
+      className="space-y-4 rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft"
+      aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (canSubmit) void submitForm();
+      }}
+    >
+      <div className="space-y-1">
+        <p className="font-semibold text-foreground">Review your request before sending</p>
+        <p className="text-xs leading-5 text-muted-foreground">Nothing is sent until you choose Confirm &amp; send.</p>
+      </div>
+
+      <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
+        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
+        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Asking for</span><span className="text-right font-medium text-foreground">{requesterName}{accountName && accountName !== requesterName ? ` · ${accountName}` : ""}</span></div>
+        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Help with</span><span className="text-right font-medium text-foreground">{isQuoteRequest ? "A quotation" : "A support request"}</span></div>
+      </div>
+
+      {isQuoteRequest ? (
+        <div className="space-y-2">
+          <Label htmlFor="assistant-quote-title">Quote title</Label>
+          <Input
+            id="assistant-quote-title"
+            value={formState.requestTitle || ""}
+            onChange={(event) => updateForm({ requestTitle: event.target.value })}
+            placeholder="What would you like a quote for?"
+            disabled={isSubmitting}
+          />
+          <p className="text-xs text-muted-foreground">This quote will be prepared for {accountName}.</p>
+          <Label htmlFor="assistant-quote-description">Description (optional)</Label>
+          <Textarea
+            id="assistant-quote-description"
+            value={formState.summary}
+            onChange={(event) => updateForm({ summary: event.target.value })}
+            placeholder="Add quantities, products, or other details."
+            disabled={isSubmitting}
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {!isPortalSupport ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2"><Label htmlFor="assistant-requester-name">Your name</Label><Input id="assistant-requester-name" value={formState.name} onChange={(event) => updateForm({ name: event.target.value })} disabled={isSubmitting} /></div>
+              <div className="space-y-2"><Label htmlFor="assistant-requester-email">Reply email</Label><Input id="assistant-requester-email" type="email" value={formState.email} onChange={(event) => updateForm({ email: event.target.value })} disabled={isSubmitting} /></div>
+            </div>
+          ) : null}
+          {isPricelistRequest ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2"><Label htmlFor="assistant-business-name">Business or clinic</Label><Input id="assistant-business-name" value={formState.businessName} onChange={(event) => updateForm({ businessName: event.target.value })} disabled={isSubmitting} /></div>
+              <div className="space-y-2"><Label htmlFor="assistant-market">Country or market</Label><Input id="assistant-market" value={formState.market} onChange={(event) => updateForm({ market: event.target.value })} disabled={isSubmitting} /></div>
+            </div>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="assistant-request-title">Request title</Label>
+            <Input id="assistant-request-title" value={formState.issueType} onChange={(event) => updateForm({ issueType: event.target.value })} placeholder="A short title for this request" disabled={isSubmitting} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="assistant-request-details">What do you need help with?</Label>
+            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} />
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
+        <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
+        <Button type="submit" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
+      </div>
+    </form>
   );
 };
 

@@ -2,6 +2,12 @@
 
 Support-facing notes for the frontend runtime.
 
+## 2026-08-11 — Stock order form
+
+- Open the header grid and select **Stock Order Builder**, or type **stock order** into the header search bar.
+- The account picker intentionally lists only lab accounts with stock-lens pricing. If an expected account is missing, confirm its CRM **Is Lab** tag and assigned stock pricing.
+- Select **Add to drafts** to save a staged order. Open **Website → Quotations** to see Stock order drafts, then choose **Open draft** to continue it.
+
 ## 2026-08-06 — Header launcher shortcuts
 
 - Open the grid icon in the admin header, then select **Activities** to go directly to CRM follow-ups and scheduled work.

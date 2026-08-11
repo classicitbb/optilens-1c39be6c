@@ -2,6 +2,13 @@
 
 Operational notes and change context for code in `src/**`.
 
+## 2026-08-11 — Stock order form discovery and drafts
+
+- `navigationRegistry.ts` uses the `stock-order` shortcut key so the Website app and the Stock Order Form remain separate launcher tiles while sharing Website permissions.
+- `GlobalSearch` supplements sidebar items with concrete active admin routes from `APP_ROUTE_REGISTRY`; parameterized routes are excluded until an identifier can be supplied.
+- `useStockEligibleAccounts` reads the lab-scoped `stock_lens_eligible_accounts` view. The view follows the CRM **Is Lab** contact graph used by `can_access_customer_lab_pricing`.
+- Staged `stock_order_submissions` are the persisted stock-order drafts. The quotations page lists them and links back with `?draft=<id>` so the form can restore the frozen payload.
+
 ## 2026-08-06 — Header launcher shortcuts
 
 - `navigationRegistry.ts` declares Activities and Rx Order Form as launcher shortcuts while retaining their CRM and Website `appKey` permissions.

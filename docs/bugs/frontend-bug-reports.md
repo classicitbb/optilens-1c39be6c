@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-11 — Stock order form discovery and draft recovery
+- Area: Admin Website stock ordering and navigation
+- Impact: the stock form was not a distinct header-launcher tile, newly registered routes were not consistently discoverable in global search, and staged stock orders had no drafts-page entry.
+- Root cause: launcher deduplication collapsed the Website child route into the Website app, while global search depended on sidebar items and the stock outbox had no list/reopen surface.
+- Resolution: added a permission-aware Stock Order Form shortcut, route-registry search fallback, lab-only account scope, explicit form title/action copy, and draft list/reopen links on Quotations.
+- Regression prevention: keep concrete admin routes registered in `APP_ROUTE_REGISTRY`, preserve the `stock-order` navigation shortcut, and retain the stock route accessibility test plus the lab-tag migration guard.
+
 ## 2026-08-06 — Missing header launcher shortcuts
 - Area: Admin header app launcher
 - Impact: staff had to navigate through CRM or Website sidebars to reach Activities or the Rx Order Form.
