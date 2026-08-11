@@ -682,6 +682,62 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Unsupported _rx_submissions operation." }, 404);
   }
 
+  // ── Stock order outbox: same claim/complete pattern as _rx_submissions,
+  // separate table (stock_order_submissions), separate status vocabulary
+  // (staged/approved/claimed/released/failed/cancelled — "released" instead
+  // of "submitted" since there's no InnovaAPI call for stock orders, only
+  // the file-drop). See docs/innova-stockhashref-format.md (optilens-local)
+  // and the 20260811000000 migration (cvweb-deploy) for the rest of this
+  // pipeline. ──
+  if (entity === "_stock_submissions") {
+    if (!scopes.includes("customers:write")) {
+      return json({ error: "Missing required scope: customers:write" }, 403);
+    }
+    if (req.method === "GET" && id === "next") {
+      const { data: pending } = await supabase
+        .from("stock_order_submissions")
+        .select("id,account_id,payload,attempts")
+        .eq("status", "approved")
+        .order("approved_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!pending) return json({ submission: null });
+      const { data: claimed, error: claimErr } = await supabase
+        .from("stock_order_submissions")
+        .update({ status: "claimed", claimed_at: new Date().toISOString() })
+        .eq("id", (pending as any).id)
+        .eq("status", "approved")
+        .select("id,account_id,payload,attempts")
+        .maybeSingle();
+      if (claimErr || !claimed) return json({ submission: null }); // lost the race
+      return json({ submission: claimed });
+    }
+    if (req.method === "POST" && id === "complete") {
+      const body = (await req.json().catch(() => null)) as any;
+      if (!body || !body.id) {
+        return json({ error: "Body must be { id, ok, transport?, filename?, error? }." }, 400);
+      }
+      const { data: updated, error: updErr } = await supabase
+        .from("stock_order_submissions")
+        .update({
+          status: body.ok ? "released" : "failed",
+          transport: body.transport ?? null,
+          filename: body.filename ?? null,
+          last_error: body.ok ? null : (body.error ?? "Unknown error"),
+          released_at: body.ok ? new Date().toISOString() : null,
+          attempts: (Number(body.attempts) || 0) + 1,
+        })
+        .eq("id", body.id)
+        .eq("status", "claimed")
+        .select("id")
+        .maybeSingle();
+      if (updErr) return json({ error: "Update failed", detail: updErr.message }, 500);
+      if (!updated) return json({ error: "Submission not found or not in claimed state." }, 409);
+      return json({ ok: true });
+    }
+    return json({ error: "Unsupported _stock_submissions operation." }, 404);
+  }
+
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   const cfg = ENTITIES[entity];
