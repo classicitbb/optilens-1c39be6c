@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Loader2, MessageCircle, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Expand, ExternalLink, Loader2, MessageCircle, MessageSquarePlus, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -272,6 +272,7 @@ const CompanionAssistant = () => {
     closeAssistant,
     submitQuery,
     activeAudience,
+    startNewConversation,
     saveConversation,
     isSavingConversation,
     nudge,
@@ -380,17 +381,30 @@ const CompanionAssistant = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-4 py-2">
         <span className="text-xs text-foreground/60">Answering for: <span className="font-semibold capitalize text-foreground/80">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span></span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 text-xs text-foreground/60 hover:text-foreground"
-          onClick={() => void saveConversation()}
-          disabled={isSavingConversation}
-        >
-          {isSavingConversation ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-          Save this chat
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 text-xs text-foreground/60 hover:text-foreground"
+            onClick={startNewConversation}
+            disabled={isSubmitting || isSavingConversation}
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+            New chat
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-foreground/60 hover:text-foreground"
+            onClick={() => void saveConversation()}
+            disabled={isSavingConversation}
+          >
+            {isSavingConversation ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+            Save this chat
+          </Button>
+        </div>
       </div>
 
       <div className="border-b border-border/50 bg-muted/30 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/40">

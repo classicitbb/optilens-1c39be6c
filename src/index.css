@@ -28,6 +28,13 @@
     --secondary: 188 71% 36%;
     --secondary-foreground: 0 0% 100%;
 
+    /* Meridian Precision — the deep ocean navy *field*.
+       Unlike --primary (which inverts to teal in dark mode for controls),
+       this stays navy in both themes so large anchoring surfaces such as the
+       hero and closing bands keep their weight. */
+    --surface-deep: 213 66% 13%;
+    --surface-deep-foreground: 43 25% 94%;
+
     --muted: 43 15% 90%;
     --muted-foreground: 213 30% 45%;
 
@@ -97,6 +104,10 @@
 
     --secondary: 188 60% 40%;
     --secondary-foreground: 213 66% 8%;
+
+    /* Deep navy field stays navy on the dark canvas, one step darker than --card. */
+    --surface-deep: 213 70% 7%;
+    --surface-deep-foreground: 43 25% 92%;
 
     --muted: 213 45% 16%;
     --muted-foreground: 213 20% 65%;
