@@ -5598,6 +5598,45 @@ export type Database = {
           },
         ]
       }
+      nps_responses: {
+        Row: {
+          comment: string | null
+          contact_email: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          score: number
+          source_id: string | null
+          source_label: string | null
+          trigger_context: string
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          score: number
+          source_id?: string | null
+          source_label?: string | null
+          trigger_context: string
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          score?: number
+          source_id?: string | null
+          source_label?: string | null
+          trigger_context?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           audit_pdf_url: string | null
@@ -9598,6 +9637,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      nps_score_summary: {
+        Row: {
+          detractors: number | null
+          nps_score: number | null
+          passives: number | null
+          promoters: number | null
+          total_responses: number | null
+          trigger_context: string | null
+        }
+        Relationships: []
       }
       pricelist_variance: {
         Row: {
