@@ -2,7 +2,643 @@
 // To take ownership, delete this banner line; the plugin then leaves the file alone.
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
+// src/lib/mcp/index.ts
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.1";
+
+// src/lib/mcp/tools/whoami.ts
+import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.1";
+
+// src/lib/mcp/supabase.ts
+import { createClient } from "npm:@supabase/supabase-js@^2.110.7";
+function runtimeEnv(name) {
+  const runtime = globalThis;
+  return runtime.Deno?.env?.get?.(name) ?? runtime.process?.env?.[name];
+}
+function configuredEnv(names) {
+  for (const name of names) {
+    const value = runtimeEnv(name)?.trim();
+    if (value) return value;
+  }
+  return void 0;
+}
+function supabaseProjectUrl() {
+  const url = configuredEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
+  if (!url) throw new Error("SUPABASE_URL (or VITE_SUPABASE_URL) is required");
+  return url;
+}
+function supabasePublishableKey() {
+  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]);
+  if (direct) return direct;
+  const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS");
+  if (keyset) {
+    try {
+      const parsed = JSON.parse(keyset);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const keys = parsed;
+        const key = [keys.default, ...Object.values(keys)].find((v) => typeof v === "string" && v.trim().startsWith("sb_publishable_"))?.trim();
+        if (key) return key;
+      }
+    } catch {
+    }
+  }
+  const legacy = configuredEnv(["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"]);
+  if (legacy) return legacy;
+  throw new Error("SUPABASE_PUBLISHABLE_KEY, SUPABASE_PUBLISHABLE_KEYS, or SUPABASE_ANON_KEY is required");
+}
+function supabaseForUser(ctx) {
+  const token = ctx.getToken();
+  if (!token) throw new Error("supabaseForUser requires a verified OAuth token");
+  return createClient(supabaseProjectUrl(), supabasePublishableKey(), {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var notAuthenticated = {
+  content: [{ type: "text", text: "Not authenticated." }],
+  isError: true
+};
+function ok(payload, structured) {
+  return {
+    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+    structuredContent: structured ?? { result: payload }
+  };
+}
+function fail(message) {
+  return { content: [{ type: "text", text: message }], isError: true };
+}
+function likePattern(query) {
+  return `%${query.replace(/[%_]/g, "")}%`;
+}
+
+// src/lib/mcp/tools/whoami.ts
+var whoami_default = defineTool({
+  name: "whoami",
+  title: "Who am I",
+  description: "Return the signed-in Classic Visions user's id, email, roles, portal profile and linked customer accounts. Call this first to understand what the caller can access.",
+  inputSchema: {},
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async (_input, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const userId = ctx.getUserId();
+    const [{ data: roles }, { data: profile }, { data: memberships }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("full_name,display_name,organization_name,portal_access_status,crm_customer_id,crm_contact_id,email").eq("user_id", userId).maybeSingle(),
+      supabase.rpc("get_portal_account_memberships").then((r) => r, () => ({ data: null }))
+    ]);
+    const summary = {
+      user_id: userId,
+      email: ctx.getUserEmail(),
+      roles: (roles ?? []).map((r) => r.role),
+      profile: profile ?? null,
+      accounts: memberships ?? null
+    };
+    return ok(summary, summary);
+  }
+});
+
+// src/lib/mcp/tools/search-products.ts
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z } from "npm:zod@^4.4.3";
+var matches = (row, needle) => String(row.name ?? "").toLowerCase().includes(needle) || String(row.description ?? "").toLowerCase().includes(needle) || String(row.sku ?? "").toLowerCase().includes(needle);
+var search_products_default = defineTool2({
+  name: "search_products",
+  title: "Search catalog",
+  description: "Search the Classic Visions catalog (lenses, supplies, add-ons) by name, SKU or description. Cost data is never returned.",
+  inputSchema: {
+    query: z.string().min(1).describe("Search text matched against name, SKU or description."),
+    category: z.enum(["all", "lenses", "supplies", "addons"]).optional().describe("Restrict the search to one catalog type (default: all)."),
+    limit: z.number().int().min(1).max(50).optional().describe("Max rows per category (default 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ query, category, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const cap = limit ?? 10;
+    const needle = query.toLowerCase();
+    const want = category ?? "all";
+    const load = async (rpc) => {
+      const { data, error } = await supabase.rpc(rpc);
+      if (error) throw new Error(`${rpc}: ${error.message}`);
+      return (data ?? []).filter((r) => matches(r, needle)).slice(0, cap);
+    };
+    try {
+      const [lenses, supplies, addons] = await Promise.all([
+        want === "all" || want === "lenses" ? load("get_lenses_safe") : Promise.resolve([]),
+        want === "all" || want === "supplies" ? load("get_supplies_safe") : Promise.resolve([]),
+        want === "all" || want === "addons" ? load("get_addons_safe") : Promise.resolve([])
+      ]);
+      const payload = { lenses, supplies, addons };
+      return ok(payload, { count: lenses.length + supplies.length + addons.length, ...payload });
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : "Catalog search failed.");
+    }
+  }
+});
+
+// src/lib/mcp/tools/list-my-orders.ts
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z2 } from "npm:zod@^4.4.3";
+var list_my_orders_default = defineTool3({
+  name: "list_orders",
+  title: "List orders",
+  description: "List Classic Visions orders visible to the signed-in user (most recent first). RLS limits customers to their own orders; staff see all.",
+  inputSchema: {
+    status: z2.string().min(1).optional().describe("Filter by order status (e.g. pending, paid, cancelled)."),
+    limit: z2.number().int().min(1).max(50).optional().describe("Max orders to return (default 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ status, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("orders").select("id,status,total_amount,customer_name,contact_email,checkout_method,created_at,updated_at").order("created_at", { ascending: false }).limit(limit ?? 10);
+    if (status) q = q.eq("status", status);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, orders: rows });
+  }
+});
+
+// src/lib/mcp/tools/get-order.ts
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z3 } from "npm:zod@^4.4.3";
+var get_order_default = defineTool4({
+  name: "get_order",
+  title: "Get order details",
+  description: "Fetch one order with its line items, payments and activity. RLS restricts access to orders the caller may see.",
+  inputSchema: { order_id: z3.string().min(1).describe("Order id returned by list_orders.") },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ order_id }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const { data: order, error } = await supabase.from("orders").select("id,status,total_amount,customer_name,contact_email,contact_phone,shipping_address,billing_address,checkout_method,created_at,updated_at").eq("id", order_id).maybeSingle();
+    if (error) return fail(error.message);
+    if (!order) return fail("Order not found or not visible to this user.");
+    const [{ data: items }, { data: payments }] = await Promise.all([
+      supabase.from("order_items").select("id,product_name,product_type,variant_label,sku,opc_code,quantity,product_price,unit_price_snapshot").eq("order_id", order_id),
+      supabase.from("order_payments").select("id,status,amount,currency,method,created_at").eq("order_id", order_id).then((r) => r, () => ({ data: null }))
+    ]);
+    const payload = { order, items: items ?? [], payments: payments ?? [] };
+    return ok(payload, payload);
+  }
+});
+
+// src/lib/mcp/tools/list-statements.ts
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z4 } from "npm:zod@^4.4.3";
+var list_statements_default = defineTool5({
+  name: "list_statements",
+  title: "List account statements",
+  description: "List billing statements visible to the caller (most recent first), optionally for one customer account number.",
+  inputSchema: {
+    account_number: z4.string().min(1).optional().describe("Filter by customer account number."),
+    limit: z4.number().int().min(1).max(50).optional().describe("Max statements to return (default 12).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ account_number, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("statements").select("id,account_number,statement_date,from_date,to_date,due_date,opening_balance,closing_balance,payments,finance_charges,status").order("statement_date", { ascending: false }).limit(limit ?? 12);
+    if (account_number) q = q.eq("account_number", account_number);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, statements: rows });
+  }
+});
+
+// src/lib/mcp/tools/get-statement.ts
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z5 } from "npm:zod@^4.4.3";
+var get_statement_default = defineTool6({
+  name: "get_statement",
+  title: "Get statement transactions",
+  description: "Fetch one statement with its transaction lines (invoices, payments, credits).",
+  inputSchema: {
+    statement_id: z5.string().min(1).describe("Statement id returned by list_statements."),
+    limit: z5.number().int().min(1).max(500).optional().describe("Max transaction lines (default 200).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ statement_id, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const { data: statement, error } = await supabase.from("statements").select("id,innovations_statement_id,account_number,statement_date,from_date,to_date,due_date,opening_balance,closing_balance,payments,finance_charges,status").eq("id", statement_id).maybeSingle();
+    if (error) return fail(error.message);
+    if (!statement) return fail("Statement not found or not visible to this user.");
+    const { data: lines, error: lineError } = await supabase.from("statement_lines").select("id,post_date,order_type_name,invoice_id,reference,patient,amount,payment_method").eq("innovations_statement_id", statement.innovations_statement_id).order("post_date", { ascending: true }).limit(limit ?? 200);
+    if (lineError) return fail(lineError.message);
+    const payload = { statement, lines: lines ?? [] };
+    return ok(payload, payload);
+  }
+});
+
+// src/lib/mcp/tools/get-account-balance.ts
+import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z6 } from "npm:zod@^4.4.3";
+var get_account_balance_default = defineTool7({
+  name: "get_account_balance",
+  title: "Get account balance",
+  description: "Return current balance, credit limit and last statement/payment info for the caller's customer account(s).",
+  inputSchema: {
+    account_number: z6.string().min(1).optional().describe("Limit to one customer account number.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ account_number }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("balances").select("account_number,credit_limit,current_balance,last_statement_amount,last_statement_date,last_payment_amount,last_payment_date,synced_at").limit(25);
+    if (account_number) q = q.eq("account_number", account_number);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, balances: rows });
+  }
+});
+
+// src/lib/mcp/tools/list-quotes.ts
+import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z7 } from "npm:zod@^4.4.3";
+var list_quotes_default = defineTool8({
+  name: "list_quotes",
+  title: "List quotes",
+  description: "List quotes visible to the caller (most recent first). Cost and margin fields are hidden from customers by policy.",
+  inputSchema: {
+    status: z7.string().min(1).optional().describe("Filter by quote status."),
+    limit: z7.number().int().min(1).max(50).optional().describe("Max quotes to return (default 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ status, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("quotes").select("id,quote_number,quote_type,status,customer_name,contact_name,contact_email,currency,valid_until,lead_time_days,grand_total,created_at").order("created_at", { ascending: false }).limit(limit ?? 10);
+    if (status) q = q.eq("status", status);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, quotes: rows });
+  }
+});
+
+// src/lib/mcp/tools/get-quote.ts
+import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z8 } from "npm:zod@^4.4.3";
+var get_quote_default = defineTool9({
+  name: "get_quote",
+  title: "Get quote details",
+  description: "Fetch one quote with its lines. Lines are read through the cost-safe server function, so customers never receive cost or margin data.",
+  inputSchema: { quote_id: z8.string().min(1).describe("Quote id returned by list_quotes.") },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ quote_id }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const { data: quote, error } = await supabase.from("quotes").select("id,quote_number,quote_type,status,customer_name,contact_name,contact_email,currency,valid_until,lead_time_days,notes_customer,grand_total,created_at").eq("id", quote_id).maybeSingle();
+    if (error) return fail(error.message);
+    if (!quote) return fail("Quote not found or not visible to this user.");
+    const { data: lines, error: lineError } = await supabase.rpc("get_customer_quote_lines", { p_quote_id: quote_id });
+    if (lineError) return fail(lineError.message);
+    const payload = { quote, lines: lines ?? [] };
+    return ok(payload, payload);
+  }
+});
+
+// src/lib/mcp/tools/list-support-tickets.ts
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z9 } from "npm:zod@^4.4.3";
+var list_support_tickets_default = defineTool10({
+  name: "list_support_tickets",
+  title: "List support tickets",
+  description: "List helpdesk tickets visible to the caller (most recent first).",
+  inputSchema: {
+    search: z9.string().min(1).optional().describe("Match against ticket title or description."),
+    limit: z9.number().int().min(1).max(50).optional().describe("Max tickets to return (default 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ search, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("helpdesk_tickets").select("id,ticket_number,title,description,priority,source_channel,customer_email,opened_at,closed_at,deadline,created_at").order("created_at", { ascending: false }).limit(limit ?? 10);
+    if (search) {
+      const like = `%${search.replace(/[%_]/g, "")}%`;
+      q = q.or(`title.ilike.${like},description.ilike.${like}`);
+    }
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, tickets: rows });
+  }
+});
+
+// src/lib/mcp/tools/get-support-ticket.ts
+import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z10 } from "npm:zod@^4.4.3";
+var get_support_ticket_default = defineTool11({
+  name: "get_support_ticket",
+  title: "Get support ticket",
+  description: "Fetch one helpdesk ticket with its message thread.",
+  inputSchema: {
+    ticket_id: z10.string().min(1).describe("Ticket id returned by list_support_tickets.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ ticket_id }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const { data: ticket, error } = await supabase.from("helpdesk_tickets").select("id,ticket_number,title,description,priority,source_channel,customer_email,opened_at,first_response_at,closed_at,deadline,created_at,updated_at").eq("id", ticket_id).maybeSingle();
+    if (error) return fail(error.message);
+    if (!ticket) return fail("Ticket not found or not visible to this user.");
+    const { data: messages, error: msgError } = await supabase.from("helpdesk_ticket_messages").select("id,direction,body,sender_name,sender_email,is_automated,sent_at,created_at").eq("ticket_id", ticket_id).order("created_at", { ascending: true }).limit(200);
+    if (msgError) return fail(msgError.message);
+    const payload = { ticket, messages: messages ?? [] };
+    return ok(payload, payload);
+  }
+});
+
+// src/lib/mcp/tools/create-support-ticket.ts
+import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z11 } from "npm:zod@^4.4.3";
+var create_support_ticket_default = defineTool12({
+  name: "create_support_ticket",
+  title: "Create support ticket",
+  description: "Open a new Classic Visions helpdesk ticket on behalf of the signed-in user. Use only when the user explicitly asks for support.",
+  inputSchema: {
+    title: z11.string().trim().min(3).max(200).describe("Short subject line for the ticket."),
+    description: z11.string().trim().min(3).max(5e3).describe("Full description of the issue or request."),
+    priority: z11.string().min(1).optional().describe("Optional priority label recognised by the helpdesk.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: async ({ title, description, priority }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const { data, error } = await supabase.from("helpdesk_tickets").insert({
+      title,
+      description,
+      ...priority ? { priority } : {},
+      source_channel: "mcp",
+      customer_email: ctx.getUserEmail() ?? null,
+      owner_user_id: null
+    }).select("id,ticket_number,title,priority,created_at").maybeSingle();
+    if (error) return fail(error.message);
+    return ok(data, { ticket: data });
+  }
+});
+
+// src/lib/mcp/tools/reply-to-support-ticket.ts
+import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z12 } from "npm:zod@^4.4.3";
+var reply_to_support_ticket_default = defineTool13({
+  name: "reply_to_support_ticket",
+  title: "Reply to support ticket",
+  description: "Append a message from the signed-in user to an existing helpdesk ticket thread.",
+  inputSchema: {
+    ticket_id: z12.string().min(1).describe("Ticket id returned by list_support_tickets."),
+    body: z12.string().trim().min(1).max(5e3).describe("Message text to append.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: async ({ ticket_id, body }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const { data, error } = await supabase.from("helpdesk_ticket_messages").insert({
+      ticket_id,
+      body,
+      direction: "inbound",
+      sender_user_id: ctx.getUserId(),
+      sender_email: ctx.getUserEmail() ?? null,
+      is_automated: false
+    }).select("id,ticket_id,created_at").maybeSingle();
+    if (error) return fail(error.message);
+    return ok(data, { message: data });
+  }
+});
+
+// src/lib/mcp/tools/search-knowledge-base.ts
+import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z13 } from "npm:zod@^4.4.3";
+var search_knowledge_base_default = defineTool14({
+  name: "search_knowledge_base",
+  title: "Search help articles",
+  description: "Search Classic Visions help/wiki articles by title, summary or body. Visibility rules limit results to what the caller may read.",
+  inputSchema: {
+    query: z13.string().min(1).describe("Search text."),
+    limit: z13.number().int().min(1).max(25).optional().describe("Max articles to return (default 8).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ query, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const like = likePattern(query);
+    const { data, error } = await supabase.from("help_articles").select("id,title,slug,summary,description,category,content_type,page_slug,status,updated_at,content").or(`title.ilike.${like},summary.ilike.${like},description.ilike.${like},content.ilike.${like}`).limit(limit ?? 8);
+    if (error) return fail(error.message);
+    const rows = (data ?? []).map((row) => ({
+      ...row,
+      content: typeof row.content === "string" ? row.content.slice(0, 4e3) : row.content
+    }));
+    return ok(rows, { count: rows.length, articles: rows });
+  }
+});
+
+// src/lib/mcp/tools/search-crm.ts
+import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z14 } from "npm:zod@^4.4.3";
+var search_crm_default = defineTool15({
+  name: "search_crm",
+  title: "Search CRM contacts and customers",
+  description: "Search CRM contacts and customer accounts by name, email or account number. Staff-only in practice: RLS returns nothing for customer-role callers.",
+  inputSchema: {
+    query: z14.string().min(1).describe("Name, email, business name or account number."),
+    limit: z14.number().int().min(1).max(25).optional().describe("Max rows per collection (default 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ query, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const like = likePattern(query);
+    const cap = limit ?? 10;
+    const [contactsRes, customersRes] = await Promise.all([
+      supabase.from("contacts").select("id,name,business_name,email,phone,city,country,pipeline,stage,status,is_customer,linked_customer_id,next_action_at").or(`name.ilike.${like},business_name.ilike.${like},email.ilike.${like}`).limit(cap),
+      supabase.from("customers").select("id,name,account_number,type,email,phone,country_code,pipeline_stage,credit_limit,pay_by_card,pay_by_eft,assigned_pricelist_id").or(`name.ilike.${like},account_number.ilike.${like},email.ilike.${like}`).limit(cap)
+    ]);
+    if (contactsRes.error && customersRes.error) return fail(contactsRes.error.message);
+    const payload = { contacts: contactsRes.data ?? [], customers: customersRes.data ?? [] };
+    return ok(payload, payload);
+  }
+});
+
+// src/lib/mcp/tools/list-crm-tasks.ts
+import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z15 } from "npm:zod@^4.4.3";
+var list_crm_tasks_default = defineTool16({
+  name: "list_crm_tasks",
+  title: "List CRM tasks and activities",
+  description: "List CRM activities/tasks visible to the caller, newest first. Optionally filter to open tasks or one contact.",
+  inputSchema: {
+    contact_id: z15.string().min(1).optional().describe("Restrict to one CRM contact id."),
+    status: z15.string().min(1).optional().describe("Filter by activity status (e.g. open, done)."),
+    limit: z15.number().int().min(1).max(50).optional().describe("Max rows (default 15).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ contact_id, status, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("activities").select("id,contact_id,opportunity_id,type,activity_type,content,status,priority,due_at,completed_at,owner_id,task_channel,created_at").order("created_at", { ascending: false }).limit(limit ?? 15);
+    if (contact_id) q = q.eq("contact_id", contact_id);
+    if (status) q = q.eq("status", status);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, activities: rows });
+  }
+});
+
+// src/lib/mcp/tools/create-crm-task.ts
+import { defineTool as defineTool17 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z16 } from "npm:zod@^4.4.3";
+var create_crm_task_default = defineTool17({
+  name: "create_crm_task",
+  title: "Create a CRM task or note",
+  description: "Log a CRM activity (note or task) against a contact. Staff-only in practice: RLS rejects callers without CRM write access.",
+  inputSchema: {
+    contact_id: z16.string().min(1).describe("CRM contact id from search_crm."),
+    content: z16.string().trim().min(1).max(4e3).describe("Note text or task description."),
+    activity_type: z16.string().min(1).optional().describe("Activity type label (e.g. note, call, email, task)."),
+    due_at: z16.string().min(1).optional().describe("ISO timestamp when the task is due."),
+    priority: z16.string().min(1).optional().describe("Priority label.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: async ({ contact_id, content, activity_type, due_at, priority }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const { data, error } = await supabase.from("activities").insert({
+      contact_id,
+      content,
+      type: activity_type ?? "note",
+      activity_type: activity_type ?? "note",
+      created_by: ctx.getUserId(),
+      owner_id: ctx.getUserId(),
+      ...due_at ? { due_at, status: "open" } : {},
+      ...priority ? { priority } : {}
+    }).select("id,contact_id,activity_type,status,due_at,created_at").maybeSingle();
+    if (error) return fail(error.message);
+    return ok(data, { activity: data });
+  }
+});
+
+// src/lib/mcp/tools/list-opportunities.ts
+import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z17 } from "npm:zod@^4.4.3";
+var list_opportunities_default = defineTool18({
+  name: "list_opportunities",
+  title: "List sales opportunities",
+  description: "List CRM opportunities visible to the caller, newest first.",
+  inputSchema: {
+    stage: z17.string().min(1).optional().describe("Filter by pipeline stage."),
+    limit: z17.number().int().min(1).max(50).optional().describe("Max rows (default 15).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ stage, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("opportunities").select("id,title,contact_id,status,stage,country,volume_tier,expected_value,estimated_value,close_date,source,created_at").order("created_at", { ascending: false }).limit(limit ?? 15);
+    if (stage) q = q.eq("stage", stage);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, opportunities: rows });
+  }
+});
+
+// src/lib/mcp/tools/list-pricelists.ts
+import { defineTool as defineTool19 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z18 } from "npm:zod@^4.4.3";
+var list_pricelists_default = defineTool19({
+  name: "list_pricelists",
+  title: "List pricelists and catalogs",
+  description: "List pricelist versions and catalog templates the caller may see, to identify which pricelist applies to an account.",
+  inputSchema: {
+    limit: z18.number().int().min(1).max(50).optional().describe("Max rows per collection (default 20).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    const cap = limit ?? 20;
+    const [versions, templates] = await Promise.all([
+      supabase.from("pricelist_versions").select("id,name,base_currency,is_template,format_type,updated_at").order("updated_at", { ascending: false }).limit(cap),
+      supabase.from("catalog_templates").select("id,name,status,cover_title,cover_subtitle,updated_at").order("updated_at", { ascending: false }).limit(cap)
+    ]);
+    if (versions.error && templates.error) return fail(versions.error.message);
+    const payload = { pricelist_versions: versions.data ?? [], catalog_templates: templates.data ?? [] };
+    return ok(payload, payload);
+  }
+});
+
+// src/lib/mcp/tools/list-shipments.ts
+import { defineTool as defineTool20 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z19 } from "npm:zod@^4.4.3";
+var list_shipments_default = defineTool20({
+  name: "list_shipments",
+  title: "List inbound shipments",
+  description: "List supplier shipments visible to the caller (most recent first). Staff-only in practice under RLS.",
+  inputSchema: {
+    status: z19.string().min(1).optional().describe("Filter by shipment status (draft, reviewed, locked)."),
+    limit: z19.number().int().min(1).max(50).optional().describe("Max rows (default 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ status, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("shipments").select("id,type,commodity,po_ref,invoice_number,invoice_date,date_ordered,date_received,currency,invoice_total_foreign,status,freight_provider,created_at").order("created_at", { ascending: false }).limit(limit ?? 10);
+    if (status) q = q.eq("status", status);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
+    const rows = data ?? [];
+    return ok(rows, { count: rows.length, shipments: rows });
+  }
+});
+
+// src/lib/mcp/index.ts
+var projectRef = "xstmeirxhfbiyayrrsob";
+var mcp_default = defineMcp({
+  name: "classic-visions-mcp",
+  title: "Classic Visions",
+  version: "0.2.0",
+  instructions: [
+    "Tools for the Classic Visions optical platform (wholesale lenses, coatings and optical supplies).",
+    "Every call acts as the signed-in user and row-level security decides what is visible: customers see only their own account data, staff see the wider CRM, catalog and operations data.",
+    "Start with `whoami` to learn the caller's roles and linked customer accounts.",
+    "Billing: `get_account_balance`, `list_statements`, `get_statement`. Orders: `list_orders`, `get_order`. Quotes: `list_quotes`, `get_quote`.",
+    "Support: `list_support_tickets`, `get_support_ticket`, `create_support_ticket`, `reply_to_support_ticket`.",
+    "Catalog and knowledge: `search_products`, `list_pricelists`, `search_knowledge_base`.",
+    "Staff operations: `search_crm`, `list_crm_tasks`, `create_crm_task`, `list_opportunities`, `list_shipments`.",
+    "Never quote or invent prices that did not come from these tools, and never promise discounts, credit terms or delivery dates."
+  ].join(" "),
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated"
+  }),
+  tools: [
+    whoami_default,
+    search_products_default,
+    list_my_orders_default,
+    get_order_default,
+    list_statements_default,
+    get_statement_default,
+    get_account_balance_default,
+    list_quotes_default,
+    get_quote_default,
+    list_support_tickets_default,
+    get_support_ticket_default,
+    create_support_ticket_default,
+    reply_to_support_ticket_default,
+    search_knowledge_base_default,
+    search_crm_default,
+    list_crm_tasks_default,
+    create_crm_task_default,
+    list_opportunities_default,
+    list_pricelists_default,
+    list_shipments_default
+  ]
+});
+
 // lovable-mcp-supabase-entry.ts
-import mcp from "npm:C:\\DEV\\cvweb-deploy\\optilens-1c39be6c\\src\\lib\\mcp\\index.ts";
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.26.1/stacks/supabase";
-Deno.serve(createSupabaseHandler(mcp, { functionName: "mcp" }));
+Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));
