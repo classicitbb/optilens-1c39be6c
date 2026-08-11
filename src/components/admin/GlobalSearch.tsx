@@ -90,7 +90,7 @@ const GlobalSearch = () => {
           keywords: [route.id, route.path],
         } satisfies SearchResult;
       })
-      .filter((item): item is SearchResult => !!item);
+      .filter((item): item is NonNullable<typeof item> => !!item);
 
     const existingPaths = new Set(moduleResults.map((result) => result.path));
     return results.filter((result) => !existingPaths.has(result.path));
