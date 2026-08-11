@@ -115,18 +115,35 @@ export async function computeExtendedHash(
 export async function validateResponseHash(
   response: Record<string, string>,
   sharedSecret: string,
+  /** Configured store id, used when the gateway echoes an empty `storename`
+   *  (observed in production returns) — the gateway still hashes with its
+   *  own store id, so an empty echo must not fail authenticity. */
+  expectedStorename?: string,
 ): Promise<{ valid: boolean; expected: string; received: string }> {
-  const stringToHash = [
-    response.approval_code ?? "",
-    response.chargetotal ?? "",
-    response.currency ?? "",
-    response.txndatetime ?? "",
-    response.storename ?? "",
-  ].join("|");
+  // The S2S notification posts `notification_hash`; the browser return leg
+  // posts `response_hash`. Same string-to-hash contract for both.
+  const received = response.response_hash ?? response.notification_hash ?? "";
 
-  const expected = await hmacSha256Base64(stringToHash, sharedSecret);
-  const received = response.response_hash ?? "";
-  return { valid: timingSafeEqual(expected, received), expected, received };
+  const storenames = [response.storename ?? "", expectedStorename ?? ""]
+    .filter((s, i, arr) => s !== "" && arr.indexOf(s) === i);
+  if (storenames.length === 0) storenames.push("");
+
+  let expected = "";
+  for (const storename of storenames) {
+    const stringToHash = [
+      response.approval_code ?? "",
+      response.chargetotal ?? "",
+      response.currency ?? "",
+      response.txndatetime ?? "",
+      storename,
+    ].join("|");
+    const candidate = await hmacSha256Base64(stringToHash, sharedSecret);
+    if (!expected) expected = candidate;
+    if (timingSafeEqual(candidate, received)) {
+      return { valid: true, expected: candidate, received };
+    }
+  }
+  return { valid: false, expected, received };
 }
 
 /** Constant-time string comparison to avoid hash-timing leaks. */
