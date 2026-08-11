@@ -25,27 +25,18 @@ export default {
   				'Segoe UI Symbol',
   				'Noto Color Emoji'
   			],
-  			/* Meridian Precision — classical serif for monumental headlines */
+  			/* Plus Jakarta Sans everywhere — no serif, no mono per brand direction */
   			serif: [
-  				'Playfair Display',
-  				'ui-serif',
-  				'Georgia',
-  				'Cambria',
-  				'Times New Roman',
-  				'Times',
-  				'serif'
+  				'Plus Jakarta Sans',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
   			],
-  			/* Meridian Precision — geometric monospace for precision labels */
   			mono: [
-  				'Space Mono',
-  				'ui-monospace',
-  				'SFMono-Regular',
-  				'Menlo',
-  				'Monaco',
-  				'Consolas',
-  				'Liberation Mono',
-  				'Courier New',
-  				'monospace'
+  				'Plus Jakarta Sans',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
   			]
   		},
   		colors: {
