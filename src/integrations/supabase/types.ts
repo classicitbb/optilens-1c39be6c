@@ -85,6 +85,8 @@ export type Database = {
         Row: {
           account_number: string | null
           amount: number
+          bank_reference: string | null
+          confirmed_at: string | null
           created_at: string
           crm_customer_id: number | null
           currency: string
@@ -101,6 +103,8 @@ export type Database = {
         Insert: {
           account_number?: string | null
           amount: number
+          bank_reference?: string | null
+          confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
@@ -117,6 +121,8 @@ export type Database = {
         Update: {
           account_number?: string | null
           amount?: number
+          bank_reference?: string | null
+          confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
@@ -10110,6 +10116,10 @@ export type Database = {
         Args: { p_ticket_id: string }
         Returns: boolean
       }
+      confirm_account_payment: {
+        Args: { p_bank_reference?: string; p_payment_id: string }
+        Returns: string
+      }
       create_api_key: {
         Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
         Returns: Json
@@ -10561,6 +10571,10 @@ export type Database = {
       queue_abandoned_cart_alerts: {
         Args: { p_cutoff_hours?: number }
         Returns: Json
+      }
+      queue_account_payment_receipt: {
+        Args: { p_kind: string; p_payment_id: string }
+        Returns: undefined
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
