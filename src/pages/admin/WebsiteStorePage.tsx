@@ -38,6 +38,7 @@ import StorageImage from "@/components/StorageImage";
 
 type ProductType = "lens" | "supply" | "addon";
 type ProductFilter = "all" | "lenses" | "supplies" | "services";
+type StatusFilter = "all" | "active";
 type SortMode = "az" | "za" | "price-high";
 
 const CATALOG_FILTER_KEY = "catalog_filter_store_v1";
@@ -106,6 +107,7 @@ const WebsiteStorePage = () => {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ProductFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("az");
   const [selected, setSelected] = useState<ProductRow | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -252,6 +254,7 @@ const WebsiteStorePage = () => {
     const query = search.trim().toLowerCase();
     const filtered = allProducts.filter((row) => {
       if (!row.showOnWebsite) return false;
+      if (statusFilter === "active" && !row.isActive) return false;
       if (filter === "lenses" && row.type !== "lens") return false;
       if (filter === "supplies" && row.type !== "supply") return false;
       if (filter === "services" && row.type !== "addon") return false;
@@ -259,7 +262,7 @@ const WebsiteStorePage = () => {
       return [row.name, row.category, row.description, row.tags.join(" ")].some((field) => field.toLowerCase().includes(query));
     });
     return sortProducts(filtered, sortMode);
-  }, [allProducts, filter, search, sortMode]);
+  }, [allProducts, filter, search, sortMode, statusFilter]);
 
   const pickerRows = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -506,11 +509,19 @@ const WebsiteStorePage = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 shrink-0">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input className="pl-8 h-8 text-xs" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by product, category, tag" />
         </div>
+
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Select value={filter} onValueChange={(value) => setFilter(value as ProductFilter)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Filter" /></SelectTrigger>
@@ -557,7 +568,10 @@ const WebsiteStorePage = () => {
                     <div className="flex items-center gap-2">
                       <img src={row.imageUrl} alt={`${row.name} preview`} className="h-10 w-10 rounded border object-cover bg-white" />
                       <div>
-                        <div className="font-medium">{row.name}</div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-medium">{row.name}</span>
+                          {!row.isActive && <Badge variant="secondary">Inactive</Badge>}
+                        </div>
                         <div className="text-muted-foreground">{row.description || "No description"}</div>
                       </div>
                     </div>

@@ -87,7 +87,7 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
         return ok({ received: false, reason: "not_configured" });
       }
 
-      const result = await classifyScotiaResponse(response, cfg.sharedSecret);
+      const result = await classifyScotiaResponse(response, cfg.sharedSecret, cfg.storeId);
       if (!result.hashValid) {
         console.error("scotia-notify: response hash did not validate", {
           oid,

@@ -63,11 +63,34 @@ const readRows = <T,>(response: { data: T[] | null; error: any }, options?: { op
   return Array.isArray(response.data) ? response.data : [];
 };
 
+// PostgREST caps RPC responses at 1000 rows by default. Staff sessions get every
+// row back from these RPCs (not just website-published ones), and the lens table
+// alone holds 1000+ rows — without paging, catalogs past row 1000 silently vanish
+// from the storefront lookup ("Product unavailable" for a real, published lens).
+const SAFE_RPC_PAGE_SIZE = 1000;
+
+const fetchAllSafeRows = async (fnName: "get_lenses_safe" | "get_supplies_safe" | "get_addons_safe") => {
+  const rows: any[] = [];
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await (supabase.rpc as any)(fnName).range(offset, offset + SAFE_RPC_PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+
+    const page = Array.isArray(data) ? data : [];
+    rows.push(...page);
+    if (page.length < SAFE_RPC_PAGE_SIZE) break;
+    offset += SAFE_RPC_PAGE_SIZE;
+  }
+
+  return { data: rows, error: null };
+};
+
 export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
   const [lensRes, supplyRes, addonRes, mediaRes, overrideRes, variantSummaryRes] = await Promise.all([
-    (supabase.rpc as any)("get_lenses_safe"),
-    (supabase.rpc as any)("get_supplies_safe"),
-    (supabase.rpc as any)("get_addons_safe"),
+    fetchAllSafeRows("get_lenses_safe"),
+    fetchAllSafeRows("get_supplies_safe"),
+    fetchAllSafeRows("get_addons_safe"),
     (supabase.from("store_product_media") as any)
       .select("product_type, product_id, image_url, sort_order, is_active")
       .eq("is_active", true)

@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
 
   try {
     if (parsed.action === "validate") {
-      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret);
+      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret, cfg.storeId);
       return json({
         hashValid: result.hashValid,
         approved: result.approved,
@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
       ?? (Deno.env.get("SUPABASE_URL")
         ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/scotia-notify`
         : undefined);
-    if (notificationURL) formParams.notificationURL = notificationURL;
+    if (notificationURL) formParams.transactionNotificationURL = notificationURL;
 
     // Tokenization
     if (p.assignToken) formParams.assignToken = "true";

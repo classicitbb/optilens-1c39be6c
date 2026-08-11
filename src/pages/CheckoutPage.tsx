@@ -44,9 +44,8 @@ import {
   prepareScotiaPayment,
   redirectToScotiaPayment,
   SCOTIA_RETURN_URL,
-  type PreparePaymentInput,
 } from "@/lib/payments/scotiaConnect";
-import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
+
 
 // Scotia eCom+ embedded gateway. Off unless VITE_SCOTIA_ENABLED=true — the
 // existing offline methods + on-account always remain available as fallback.
@@ -271,14 +270,17 @@ const CheckoutPage = () => {
   // Token of a previously-saved Scotia card to reuse (CVV-only), or null for a new card.
   const [selectedScotiaToken, setSelectedScotiaToken] = useState<string | null>(null);
   const [scotiaError, setScotiaError] = useState<string | null>(null);
-  const [scotiaIntent, setScotiaIntent] = useState<PreparePaymentInput | null>(null);
 
   // Redirect-mode Scotia checkout: create the order first (pending — no
-  // payment captured yet), then send the buyer's whole browser to Scotia's
-  // hosted page. Nothing runs after redirectToScotiaPayment(); the gateway
-  // POSTs the buyer back to scotia-return, which settles the order via
-  // service role and 302s back here with a `?scotia=` result flag (handled
-  // by the returning-from-Scotia effect below).
+  // payment captured yet), prepare a freshly-signed form, then send the
+  // buyer's whole browser to Scotia's hosted page in a single top-level POST.
+  // The hosted page cannot be iframed (Fiserv sends X-Frame-Options:
+  // SAMEORIGIN / frame-ancestors 'self'), and a prepared form may only be
+  // posted ONCE — re-posting the same oid + txndatetime makes the gateway
+  // answer "Unknown application error". Nothing runs after
+  // redirectToScotiaPayment(); the gateway POSTs the buyer back to
+  // scotia-return, which settles the order via service role and 302s back
+  // here with a `?scotia=` result flag.
   const handleScotiaCheckout = async () => {
     setScotiaError(null);
     setIsProcessing(true);
@@ -299,7 +301,7 @@ const CheckoutPage = () => {
         return;
       }
 
-      setScotiaIntent({
+      const prepared = await prepareScotiaPayment({
         // The server signs the persisted payable total. Do not calculate a
         // second amount in the browser: it must match the order-payment row.
         chargetotal: order.totalAmount,
@@ -309,7 +311,7 @@ const CheckoutPage = () => {
         hosteddataid: selectedScotiaToken ?? undefined,
         assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
       });
-      setIsProcessing(false);
+      redirectToScotiaPayment(prepared);
     } catch (err) {
       setScotiaError(err instanceof Error ? err.message : "Could not start payment. Please try again.");
       setIsProcessing(false);
@@ -1316,24 +1318,9 @@ const CheckoutPage = () => {
               {/* ───── STEP 4: Review ───── */}
               {step === 4 && (
                 <div className="space-y-4">
-                  {scotiaIntent && (
-                    <div className="rounded-xl border border-primary/30 bg-card p-5 sm:p-6">
-                      <SectionHead>Secure payment</SectionHead>
-                      <ScotiaPaymentFrame
-                        payment={scotiaIntent}
-                        onResult={async (result) => {
-                          if (!result.hashValid) {
-                            setScotiaError("The payment response could not be verified. Please try again.");
-                            return;
-                          }
-                          await clearCart();
-                          navigate(`/order/${encodeURIComponent(scotiaIntent.orderId ?? "")}?scotia=${result.approved ? "success" : "declined"}`, { replace: true });
-                        }}
-                        onError={setScotiaError}
-                        onFallback={redirectToScotiaPayment}
-                      />
-                    </div>
-                  )}
+                  {/* Scotia's hosted page cannot be embedded (frame-ancestors
+                      'self'), so checkout redirects out to it instead of
+                      rendering an iframe here. */}
                   <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                     <SectionHead>Review your order</SectionHead>
 
@@ -1454,7 +1441,7 @@ const CheckoutPage = () => {
               )}
 
               {/* ── Action bar ── */}
-              {!scotiaIntent && <div className="flex items-center gap-3">
+              {<div className="flex items-center gap-3">
                 <Button
                   type="button"
                   variant="outline"
