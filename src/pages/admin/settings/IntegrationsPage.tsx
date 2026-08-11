@@ -12,8 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
 import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
-import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
-import { redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
+import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scotia eCom+ (Fiserv IPG Connect) hosted-payment credential store.
