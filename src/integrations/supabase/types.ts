@@ -7248,6 +7248,7 @@ export type Database = {
           shape_traced_axis: number | null
           shape_traced_ed: number | null
           standard_shape_id: string | null
+          trace_geometry: Json | null
           uncut_price: number | null
           updated_at: string
         }
@@ -7268,6 +7269,7 @@ export type Database = {
           shape_traced_axis?: number | null
           shape_traced_ed?: number | null
           standard_shape_id?: string | null
+          trace_geometry?: Json | null
           uncut_price?: number | null
           updated_at?: string
         }
@@ -7288,6 +7290,7 @@ export type Database = {
           shape_traced_axis?: number | null
           shape_traced_ed?: number | null
           standard_shape_id?: string | null
+          trace_geometry?: Json | null
           uncut_price?: number | null
           updated_at?: string
         }
