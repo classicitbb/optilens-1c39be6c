@@ -4,9 +4,10 @@
 // Talks to the `scotia-payment` Edge Function which holds the SharedSecret.
 // The browser never sees the secret and never computes a hash.
 //
-// Flow: try the hosted page in its approved IFRAME mode first. If the gateway
-// declines framing, the same already-signed form is posted as a top-level
-// Direct Sale redirect, so payment remains available.
+// Flow: use the hosted page in top-level Direct Sale redirect mode. The app
+// can itself be hosted inside a preview iframe, so the form explicitly targets
+// `_top`; otherwise a targetless form would navigate only the preview iframe
+// and Fiserv would reject the page via frame-ancestors/X-Frame-Options.
 //   1. prepareScotiaPayment()   → { gatewayUrl, formParams } (incl. hashExtended)
 //   2. redirectToScotiaPayment() → builds a hidden form (no target — full
 //                                  top-level navigation) and submits it.
@@ -125,6 +126,7 @@ export function redirectToScotiaPayment(prepared: PreparedPayment): void {
   const form = document.createElement("form");
   form.method = "POST";
   form.action = prepared.gatewayUrl;
+  form.target = "_top";
   form.style.display = "none";
 
   for (const [name, value] of Object.entries(prepared.formParams)) {
