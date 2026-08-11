@@ -802,12 +802,49 @@ const StatementsSection = () => {
       >
         <DialogContent className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-950 dark:border-slate-700">
           <DialogHeader>
-            <DialogTitle className="dark:text-slate-50">Pay your balance</DialogTitle>
+            <DialogTitle className="dark:text-slate-50">
+              {dialogMode === "result"
+                ? scotiaReturn === "success"
+                  ? "Thank you for your payment"
+                  : "Payment not completed"
+                : "Pay your balance"}
+            </DialogTitle>
             <DialogDescription className="dark:text-slate-400">
-              Current balance: ${money(currentBalance)}
+              {dialogMode === "result" && scotiaReturn === "success"
+                ? `Payment received${returnedAmountValid ? `: $${money(returnedAmount)}` : ""}`
+                : `Current balance: $${money(currentBalance)}`}
             </DialogDescription>
           </DialogHeader>
 
+          {dialogMode === "result" ? (
+            <div className="space-y-3">
+              {scotiaReturn === "success" ? (
+                <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  <AlertDescription className="text-emerald-900 dark:text-emerald-300">
+                    Thank you for your payment{returnedAmountValid ? ` of $${money(returnedAmount)}` : ""}. A receipt has
+                    been emailed to you. Your payment will appear on your account once it has been verified with the
+                    bank, and we'll send a confirmation as soon as that happens.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert variant="destructive" role="alert">
+                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                  <AlertDescription>
+                    {scotiaReturn === "declined"
+                      ? "Your card was declined. No payment was taken."
+                      : "We couldn't confirm your payment. No payment was taken."}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {scotiaReturn !== "success" && (
+                <Button className="w-full h-10" onClick={openPaymentModal}>
+                  Try again
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
           {/* ── Card payment (Scotia eCom+, redirect mode) ── */}
           {cardPaymentsEnabled ? (
             <div className="space-y-3">
