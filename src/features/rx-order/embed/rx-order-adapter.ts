@@ -300,6 +300,11 @@ export async function persistPayload(
     shape_traced_ed: payload.shape?.computed?.ed ?? null,
     shape_traced_axis: payload.shape?.computed?.edAxis ?? null,
     standard_shape_id: payload.shape?.standardId ?? null,
+    // Full trace geometry (radii/nativeBox/computed/mirroredFrom/confirmed) —
+    // previously dropped here, meaning optilens-local's buildOrder() never
+    // received real trace data even when the dispenser confirmed a shape.
+    // build_rx_submission_payload() now surfaces this column as payload.shape.
+    trace_geometry: payload.shape ?? null,
   };
   const { data: existingFrame } = await (supabase.from("quote_frame_details") as any)
     .select("id").eq("quote_id", quoteId).maybeSingle();
