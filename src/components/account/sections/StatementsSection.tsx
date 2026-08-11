@@ -524,8 +524,16 @@ const StatementsSection = () => {
 
   // ── Returning from Scotia (full-page redirect back via scotia-return) ──
   const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
+  const returnedAmount = Number(searchParams.get("amt") ?? "");
+  const returnedAmountValid = Number.isFinite(returnedAmount) && returnedAmount > 0;
 
   useEffect(() => {
+    if (!scotiaReturn) return;
+    // Land the buyer back in the same popup they left from, now showing the
+    // thank-you / verification notice instead of the amount field.
+    setDialogMode("result");
+    setCardStep("idle");
+    setPaymentModalOpen(true);
     if (scotiaReturn === "success") {
       queryClient.invalidateQueries({ queryKey: ["live-innovations-customer-account"] });
     }
