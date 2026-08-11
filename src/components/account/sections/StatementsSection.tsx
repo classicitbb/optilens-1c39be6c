@@ -349,6 +349,10 @@ const StatementsSection = () => {
   // page entirely for Scotia's hosted page.
   const [cardStep, setCardStep] = useState<"idle" | "paying">("idle");
   const [payAmount, setPayAmount] = useState("");
+  // Buyer choices inside the Pay dialog.
+  const [payMethod, setPayMethod] = useState<"card" | "bank">("card");
+  const [amountSource, setAmountSource] = useState<"current" | "statement" | "custom">("current");
+
   const [scotiaError, setScotiaError] = useState<string | null>(null);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
   const statementPrintRef = useRef<HTMLDivElement>(null);
