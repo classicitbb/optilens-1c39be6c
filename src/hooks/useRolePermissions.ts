@@ -91,6 +91,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/website/portals": "website",
   "/admin/website/store": "website",
   "/admin/website/quotations": "quotations",
+  "/admin/website/stock-orders": "website",
   "/admin/website/orders": "orders",
   "/admin/website/nps": "website",
   "/admin/docs/studio": "website",

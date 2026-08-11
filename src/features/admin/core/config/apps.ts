@@ -115,6 +115,7 @@ export const ADMIN_APPS = {
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
       { label: 'Quotations', route: '/admin/website/quotations', icon: FileEdit },
       { label: 'Rx Order Form', route: '/admin/website/quotations/new-rx', icon: Eye },
+      { label: 'Stock Order Builder', route: '/admin/website/stock-orders', icon: Package },
       { label: 'Innovations Submissions', route: '/admin/website/rx-submissions', icon: Upload },
       { label: 'Orders', route: '/admin/website/orders', icon: Package },
       { label: 'Customer Feedback (NPS)', route: '/admin/website/nps', icon: Smile },
