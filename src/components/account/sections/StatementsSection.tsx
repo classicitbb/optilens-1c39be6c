@@ -412,15 +412,19 @@ const StatementsSection = () => {
     queryKey: ["customer-payment-profile", crmCustomerId],
     enabled: typeof crmCustomerId === "number",
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("customer_payment_profile_public")
-        .select("*")
-        .eq("customer_id", crmCustomerId)
-        .maybeSingle();
+      // Security-definer RPC: the customers table is staff-only, so a customer
+      // session cannot read the payment view directly. The RPC enforces the
+      // same statements-access + account-membership rules and returns only
+      // non-financial fields.
+      const { data, error } = await (supabase.rpc as any)("get_customer_payment_profile", {
+        p_customer_id: crmCustomerId,
+      });
       if (error) throw error;
-      return data as PaymentProfile | null;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? null) as PaymentProfile | null;
     },
   });
+
   const paymentProfile = paymentProfileQuery.data ?? null;
 
   const bankPortalQuery = useQuery({
