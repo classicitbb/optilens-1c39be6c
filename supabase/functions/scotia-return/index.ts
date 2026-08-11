@@ -114,7 +114,10 @@ Deno.serve(async (req) => {
         console.error("scotia-return: settle_statement_payment failed", { paymentId, error });
         return redirect(returnPath, { scotia: "error" });
       }
-      return redirect(returnPath, { scotia: outcome });
+      return redirect(returnPath, {
+        scotia: outcome,
+        ...(result.chargetotal ? { amt: String(result.chargetotal) } : {}),
+      });
     }
 
     // Checkout order flow — settle_scotia_payment's ownership check trusts
