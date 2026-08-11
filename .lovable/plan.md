@@ -44,5 +44,5 @@ The shared secret was pasted into chat. It is already stored correctly server-si
 ## Verification after the change
 
 1. Place a test order with the Scotia method — the browser should leave the app immediately and land on the "CLASSIC VISIONS / select payment method" page (no blank panel, no error page).
-2. Complete a test card payment and confirm `scotia-return` brings the browser back with `?scotia=success` and the order/payment rows settle.
+2. Complete a test card payment and fix the return leg, which has been failing and is treated as in-scope work, not just a check: confirm the gateway POSTs back to `scotia-return`, that the response hash validates (log `expected` vs `received` if it does not), that the `oid` resolves to the order, that the order and `order_payments` rows are settled via the service role, and that the browser lands back in the app with `?scotia=success`. Also confirm `scotia-notify` records the same outcome server-to-server so settlement does not depend on the buyer's browser completing the redirect.
 3. Trigger a decline, then use the retry button and confirm the second attempt also reaches the hosted page (proving the fresh-prepare fix).
