@@ -24,9 +24,15 @@ import { supabase } from "@/integrations/supabase/client";
 /** Public URL of the scotia-return Edge Function — where Scotia posts the
  * buyer's browser back to after payment. Both responseSuccessURL and
  * responseFailURL point here; the function reads the actual response params
- * to determine the true outcome regardless of which URL Fiserv used. */
-export const SCOTIA_RETURN_URL =
-  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scotia-return`;
+ * to determine the true outcome regardless of which URL Fiserv used.
+ * The `origin` param tells scotia-return which host to send the buyer back
+ * to (allowlisted server-side), so checkout started on a preview/admin host
+ * doesn't land on the apex domain. */
+export const SCOTIA_RETURN_URL = (() => {
+  const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scotia-return`;
+  if (typeof window === "undefined") return base;
+  return `${base}?origin=${encodeURIComponent(window.location.origin)}`;
+})();
 
 /** Gateway origin used to validate inbound postMessage events (manual page 12). */
 export const SCOTIA_TEST_ORIGIN = "https://test.ipg-online.com";
