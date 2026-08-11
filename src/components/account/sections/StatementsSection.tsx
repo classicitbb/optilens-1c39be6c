@@ -960,9 +960,12 @@ const StatementsSection = () => {
               </div>
               {!cardPaymentsEnabled && (
                 <p className="text-[11px] text-muted-foreground">
-                  Card payments aren't enabled on your account yet — contact us to turn them on.
+                  {!cardFeatureEnabled
+                    ? "Card payments are temporarily unavailable — please use bank transfer."
+                    : "Card payments aren't enabled on your account yet — contact us to turn them on."}
                 </p>
               )}
+
             </div>
           )}
 
