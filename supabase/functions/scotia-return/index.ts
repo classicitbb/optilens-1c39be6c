@@ -29,8 +29,38 @@ const CHECKOUT_RETURN_PATH = "/order-complete";
 const STATEMENT_RETURN_PATH = "/profile/statements";
 const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
-function redirect(path: string, params: Record<string, string>): Response {
-  const url = new URL(path, siteOrigin());
+// The buyer may have started checkout on the apex site, the admin host, or a
+// Lovable preview/published host. Fiserv POSTs back to the exact
+// responseSuccessURL we signed, so the browser's origin is carried through as
+// an `origin` query param on THIS request's URL. Honour it only when it is on
+// the allowlist, otherwise fall back to the configured site origin.
+const ALLOWED_RETURN_HOSTS = [
+  "classicvisions.net",
+  "www.classicvisions.net",
+  "admin.classicvisions.net",
+];
+const ALLOWED_RETURN_HOST_SUFFIXES = [".lovable.app", ".lovableproject.com"];
+
+function resolveOrigin(req: Request): string {
+  const requested = new URL(req.url).searchParams.get("origin");
+  if (requested) {
+    try {
+      const url = new URL(requested);
+      const host = url.hostname.toLowerCase();
+      const allowed = url.protocol === "https:"
+        && (ALLOWED_RETURN_HOSTS.includes(host)
+          || ALLOWED_RETURN_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix)));
+      if (allowed) return url.origin;
+      console.warn("scotia-return: ignoring non-allowlisted return origin", { requested });
+    } catch {
+      console.warn("scotia-return: ignoring malformed return origin", { requested });
+    }
+  }
+  return siteOrigin();
+}
+
+function redirect(req: Request, path: string, params: Record<string, string>): Response {
+  const url = new URL(path, resolveOrigin(req));
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   return new Response(null, { status: 302, headers: { Location: url.toString() } });
 }
