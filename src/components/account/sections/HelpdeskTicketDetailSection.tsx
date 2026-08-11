@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useLiveHelpdeskTicketUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
+import NpsPrompt from "@/components/feedback/NpsPrompt";
 
 const HelpdeskTicketDetailSection = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
@@ -200,9 +201,18 @@ const HelpdeskTicketDetailSection = () => {
         )}
 
         {isClosed && (
-          <div className="rounded-md bg-muted/50 border border-border px-4 py-3 text-sm text-muted-foreground text-center">
-            This ticket is closed.
-          </div>
+          <>
+            <div className="rounded-md bg-muted/50 border border-border px-4 py-3 text-sm text-muted-foreground text-center">
+              This ticket is closed.
+            </div>
+            <NpsPrompt
+              triggerContext="helpdesk_ticket"
+              sourceId={ticket.id}
+              sourceLabel={`Ticket ${ticket.ticket_number}`}
+              title="How likely are you to recommend Classic Visions based on this support experience?"
+              className="mt-3"
+            />
+          </>
         )}
       </CardContent>
     </Card>

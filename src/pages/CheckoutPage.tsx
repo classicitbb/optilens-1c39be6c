@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { createAuthHref } from "@/lib/authFlow";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
+import NpsPrompt from "@/components/feedback/NpsPrompt";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   isScotiaEnabled,
@@ -249,6 +250,7 @@ const CheckoutPage = () => {
   // ── State ──
   const [step, setStep] = useState<Step>(1);
   const [isComplete, setIsComplete] = useState(false);
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [formData, setFormData] = useState<CheckoutFormData>(() => emptyForm(false));
@@ -469,7 +471,7 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
-    const success = await createOrder(items, totalPrice, {
+    const order = await createOrder(items, totalPrice, {
       ...formData,
       billingAddress: sameAsShipping ? formData.shippingAddress : formData.billingAddress,
       billingAddressId: sameAsShipping ? formData.shippingAddressId : formData.billingAddressId,
@@ -479,7 +481,8 @@ const CheckoutPage = () => {
       shippingAmount: shippingCost ?? 0,
     });
     setIsProcessing(false);
-    if (success) {
+    if (order) {
+      setCompletedOrderId(order.id);
       setIsComplete(true);
       await clearCart();
     }
@@ -559,7 +562,7 @@ const CheckoutPage = () => {
                 </p>
               </div>
             )}
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button variant="default" asChild>
                 <Link to="/profile/orders">View my orders</Link>
               </Button>
@@ -567,6 +570,14 @@ const CheckoutPage = () => {
                 <Link to="/store">Continue shopping</Link>
               </Button>
             </div>
+
+            {scotiaReturnOrderId && (
+              <NpsPrompt
+                triggerContext="order"
+                sourceId={scotiaReturnOrderId}
+                sourceLabel={`Order ${scotiaReturnOrderId}`}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -682,7 +693,7 @@ const CheckoutPage = () => {
               )}
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button variant="default" asChild>
                 <Link to="/profile/orders">View my orders</Link>
               </Button>
@@ -690,6 +701,12 @@ const CheckoutPage = () => {
                 <Link to="/store">Continue shopping</Link>
               </Button>
             </div>
+
+            <NpsPrompt
+              triggerContext="order"
+              sourceId={completedOrderId}
+              sourceLabel={`Order ${completedOrderNum}`}
+            />
           </div>
         </main>
       </div>

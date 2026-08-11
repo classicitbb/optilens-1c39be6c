@@ -10,7 +10,7 @@ import {
   Ticket, MessageSquare,
   Layout, UserCircle, Store,
   BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -117,6 +117,7 @@ export const ADMIN_APPS = {
       { label: 'Rx Order Form', route: '/admin/website/quotations/new-rx', icon: Eye },
       { label: 'Innovations Submissions', route: '/admin/website/rx-submissions', icon: Upload },
       { label: 'Orders', route: '/admin/website/orders', icon: Package },
+      { label: 'Customer Feedback (NPS)', route: '/admin/website/nps', icon: Smile },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
       { label: 'Feature Board', route: '/admin/website/features', icon: SlidersHorizontal },
       { label: 'Assistant Quality', route: '/admin/website/assistant/quality', icon: MessageSquare },

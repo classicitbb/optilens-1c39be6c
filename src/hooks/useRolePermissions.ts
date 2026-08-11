@@ -92,6 +92,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/website/store": "website",
   "/admin/website/quotations": "quotations",
   "/admin/website/orders": "orders",
+  "/admin/website/nps": "website",
   "/admin/docs/studio": "website",
   "/admin/website/features": "website",
   // Knowledge

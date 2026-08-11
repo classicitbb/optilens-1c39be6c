@@ -25,6 +25,7 @@ const ShipmentDetailPage = lazy(() => import("@/pages/admin/costings/ShipmentDet
 const CostingsReportsPage = lazy(() => import("@/pages/admin/costings/CostingsReportsPage"));
 const QuotationsListPage = lazy(() => import("@/pages/admin/QuotationsListPage"));
 const RxOrderFormPage = lazy(() => import("@/pages/admin/RxOrderFormPage"));
+const StockOrderBuilderPage = lazy(() => import("@/pages/admin/StockOrderBuilderPage"));
 const RxSubmissionsPage = lazy(() => import("@/pages/admin/RxSubmissionsPage"));
 const AliasMappingPage = lazy(() => import("@/pages/admin/AliasMappingPage"));
 const QuoteEditorPage = lazy(() => import("@/pages/admin/QuoteEditorPage"));
@@ -58,6 +59,7 @@ const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskCon
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
 const HelpdeskTicketDetailPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"));
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
+const NpsDashboardPage = lazy(() => import("@/pages/admin/NpsDashboardPage"));
 const DocStudioPage = lazy(() => import("@/pages/admin/website/DocStudioPage"));
 const FeatureBoardPage = lazy(() => import("@/pages/admin/website/FeatureBoardPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
@@ -117,9 +119,11 @@ const AdminRoutes = () => (
       <Route path="website/content" element={<ContentManagerPage />} />
       <Route path="website/microsites" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
+      <Route path="website/nps" element={<NpsDashboardPage />} />
       <Route path="website/documents" element={<Navigate to="/admin/docs/studio" replace />} />
       <Route path="website/features" element={<FeatureBoardPage />} />
       <Route path="website/quotations" element={<QuotationsListPage />} />
+      <Route path="website/stock-orders" element={<StockOrderBuilderPage />} />
       <Route path="website/quotations/new-rx" element={<RxOrderFormPage />} />
       <Route path="website/quotations/rx/:id" element={<RxOrderFormPage />} />
       <Route path="website/quotations/:id" element={<QuoteEditorPage />} />
