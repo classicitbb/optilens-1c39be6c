@@ -12,8 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
 import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
-import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
-import { redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
+import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scotia eCom+ (Fiserv IPG Connect) hosted-payment credential store.
@@ -159,7 +158,6 @@ export default function IntegrationsPage() {
             chargetotal: 1,
             responseSuccessURL: `${window.location.origin}/checkout`,
             responseFailURL: `${window.location.origin}/checkout`,
-            hostURI: `${window.location.origin}/checkout`,
           },
         });
         if (error) throw new Error(error.message);
@@ -471,22 +469,28 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>Scotia secure payment-window test</DialogTitle>
             <DialogDescription>
-              This uses the configured test gateway. It first opens the hosted page in an iframe and automatically continues with the supported redirect if framing is rejected.
+              This uses the configured test gateway. Scotia's hosted page cannot be embedded
+              (it sends frame-ancestors 'self'), so the test opens it as a full-page redirect.
             </DialogDescription>
           </DialogHeader>
           {testPayment && (
-            <ScotiaPaymentFrame
-              payment={testPayment}
-              onResult={(result) => {
-                toast({
-                  title: result.approved ? "Test payment approved" : "Test payment returned a decline",
-                  description: result.hashValid ? "The signed gateway response was validated." : "The gateway response could not be verified.",
-                  variant: result.approved && result.hashValid ? "default" : "destructive",
-                });
+            <Button
+              type="button"
+              onClick={async () => {
+                try {
+                  const prepared = await prepareScotiaPayment(testPayment);
+                  redirectToScotiaPayment(prepared);
+                } catch (error) {
+                  toast({
+                    title: "Payment-window test failed",
+                    description: error instanceof Error ? error.message : String(error),
+                    variant: "destructive",
+                  });
+                }
               }}
-              onError={(message) => toast({ title: "Payment-window test failed", description: message, variant: "destructive" })}
-              onFallback={redirectToScotiaPayment}
-            />
+            >
+              Open Scotia test payment page
+            </Button>
           )}
         </DialogContent>
       </Dialog>
