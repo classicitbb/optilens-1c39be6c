@@ -500,9 +500,10 @@ const StatementsSection = () => {
   const isLoading = liveAccountQuery.isLoading;
   const currentBalance = liveAccountQuery.data?.balance?.current_balance ?? 0;
 
-  // Card payments require both the global gateway flag and the per-customer
-  // CRM flag. Bank transfer is always offered as an alternative.
-  const cardPaymentsEnabled = isScotiaEnabled() && !!paymentProfile?.pay_by_card;
+  // Card payments require the gateway build flag, the admin website feature
+  // switch, and the per-customer CRM flag. Bank transfer is always offered.
+  const cardPaymentsEnabled = isScotiaEnabled() && cardFeatureEnabled && !!paymentProfile?.pay_by_card;
+
   const statementBalance = Number(activeStatement?.closing_balance ?? 0);
   const parsedPayAmount = Number(payAmount);
   const payAmountValid = Number.isFinite(parsedPayAmount) && parsedPayAmount > 0;
