@@ -341,6 +341,9 @@ const StatementsSection = () => {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  // The same modal handles both "adjust the amount and pay" and the
+  // thank-you state the buyer lands back on after Scotia redirects home.
+  const [dialogMode, setDialogMode] = useState<"pay" | "result">("pay");
   // Card payment (Scotia eCom+, redirect mode): "paying" only covers the
   // brief create-intent + prepare round trip before the browser leaves this
   // page entirely for Scotia's hosted page.
