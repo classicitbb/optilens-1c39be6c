@@ -43,6 +43,7 @@ describe("Scotia redirect payment flow", () => {
     expect(checkout).not.toContain("ScotiaPaymentFrame");
     expect(checkout).toContain("prepareScotiaPayment");
     expect(checkout).toContain("redirectToScotiaPayment(prepared)");
+    expect(read("src/lib/payments/scotiaConnect.ts")).toContain('form.target = "_top"');
   });
 
   it("uses an RLS-backed completion page instead of trusting query parameters", () => {
