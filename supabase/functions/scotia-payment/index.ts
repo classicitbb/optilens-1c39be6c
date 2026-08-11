@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
 
   try {
     if (parsed.action === "validate") {
-      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret);
+      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret, cfg.storeId);
       return json({
         hashValid: result.hashValid,
         approved: result.approved,

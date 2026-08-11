@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       return redirect(returnPath, { scotia: "error" });
     }
 
-    const result = await classifyScotiaResponse(response, cfg.sharedSecret);
+    const result = await classifyScotiaResponse(response, cfg.sharedSecret, cfg.storeId);
 
     if (!result.hashValid) {
       // debugHash is safe to log: HMAC digests, not the shared secret, and
