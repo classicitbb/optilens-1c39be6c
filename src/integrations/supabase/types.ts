@@ -7184,6 +7184,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           archived_by: string | null
+          audience: string | null
           avatar_url: string | null
           billing_address: Json | null
           bio: string | null
@@ -7196,7 +7197,9 @@ export type Database = {
           email_verified_at: string | null
           full_name: string | null
           id: string
+          interest_intent: string | null
           last_portal_login_at: string | null
+          onboarding_completed_at: string | null
           organization_name: string | null
           phone: string | null
           portal_access_approved_at: string | null
@@ -7215,6 +7218,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           archived_by?: string | null
+          audience?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
@@ -7227,7 +7231,9 @@ export type Database = {
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
+          interest_intent?: string | null
           last_portal_login_at?: string | null
+          onboarding_completed_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_approved_at?: string | null
@@ -7246,6 +7252,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           archived_by?: string | null
+          audience?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
@@ -7258,7 +7265,9 @@ export type Database = {
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
+          interest_intent?: string | null
           last_portal_login_at?: string | null
+          onboarding_completed_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_approved_at?: string | null
