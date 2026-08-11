@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
-import { ArrowRight, Phone } from "lucide-react";
+import { ArrowRight, MapPin, Phone } from "lucide-react";
 
 const CTA = () => {
   return (
@@ -13,11 +13,10 @@ const CTA = () => {
 
       <div className="container relative mx-auto px-4 text-center lg:px-8">
         <h2 className="mb-4 text-2xl font-bold text-primary-foreground sm:text-3xl md:text-4xl lg:text-5xl">
-          Ready to Partner with Us?
+          Your clearest next step is right here.
         </h2>
         <p className="mx-auto mb-8 max-w-2xl text-base text-primary-foreground/80 sm:text-lg">
-          Join hundreds of optical professionals who trust Classic Visions for their 
-          prescription lens needs. Get started today.
+          Order for your practice, find a trusted optical retailer, or talk with our Barbados team. We’ll help you move forward with confidence.
         </p>
 
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
@@ -27,7 +26,7 @@ const CTA = () => {
             asChild
           >
             <Link to="/store" className="group">
-              Start Ordering
+              Order for my practice
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Link>
           </Button>
@@ -37,12 +36,15 @@ const CTA = () => {
             className="border-2 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
             asChild
           >
-            <a href="tel:+12464334928">
-              <Phone className="h-5 w-5" aria-hidden="true" />
-              Contact Sales
-            </a>
+            <Link to="/find-a-retailer">
+              <MapPin className="h-5 w-5" aria-hidden="true" />
+              Find an optical retailer
+            </Link>
           </Button>
         </div>
+        <a href="tel:+12464334928" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary-foreground/80 underline-offset-4 hover:text-primary-foreground hover:underline">
+          <Phone className="h-4 w-4" aria-hidden="true" /> Prefer to speak with us? Call +1 246 433-4928
+        </a>
       </div>
     </section>
   );

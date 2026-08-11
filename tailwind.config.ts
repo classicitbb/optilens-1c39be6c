@@ -62,6 +62,11 @@ export default {
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
   			},
+  			/* Deep navy anchoring field — navy in both light and dark themes. */
+  			'surface-deep': {
+  				DEFAULT: 'hsl(var(--surface-deep))',
+  				foreground: 'hsl(var(--surface-deep-foreground))'
+  			},
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'

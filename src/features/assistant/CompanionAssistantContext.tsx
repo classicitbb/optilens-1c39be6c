@@ -248,6 +248,17 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     ]);
   }, [pathname, starterActions]);
 
+  const startNewConversation = useCallback(() => {
+    setCurrentQuery("");
+    setFormState(null);
+    setAudienceOverride(null);
+    lastQueryRef.current = null;
+    negativeFeedbackRef.current = false;
+    taskContextRef.current = undefined;
+    try { window.sessionStorage.removeItem(POPOUT_SNAPSHOT_KEY); } catch { /* best effort */ }
+    resetConversation();
+  }, [resetConversation]);
+
   const persistConversation = useCallback(async (conversationMessages: AssistantMessage[], audience: AssistantAudience) => {
     if (!user || conversationMessages.length < 2) return;
 
@@ -999,6 +1010,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitQuery,
     submitQuickAction,
     markFeedback,
+    startNewConversation,
     saveConversation,
     isSavingConversation,
     nudge,
@@ -1033,6 +1045,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitQuery,
     saveConversation,
     setAudienceOverride,
+    startNewConversation,
     updateForm,
   ]);
 
