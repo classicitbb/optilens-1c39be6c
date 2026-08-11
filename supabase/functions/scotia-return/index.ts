@@ -67,7 +67,7 @@ function redirect(req: Request, path: string, params: Record<string, string>): R
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
-    return redirect(CHECKOUT_RETURN_PATH, { scotia: "error" });
+    return redirect(req, CHECKOUT_RETURN_PATH, { scotia: "error" });
   }
 
   let response: Record<string, string> = {};
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     console.error("scotia-return: failed to parse gateway POST body", err);
-    return redirect(CHECKOUT_RETURN_PATH, { scotia: "error" });
+    return redirect(req, CHECKOUT_RETURN_PATH, { scotia: "error" });
   }
 
   const oid = (response.oid ?? "").trim();
@@ -87,14 +87,14 @@ Deno.serve(async (req) => {
 
   if (!oid) {
     console.error("scotia-return: gateway response missing oid", response);
-    return redirect(returnPath, { scotia: "error" });
+    return redirect(req, returnPath, { scotia: "error" });
   }
 
   try {
     const cfg = await getScotiaConfig();
     if (!cfg.sharedSecret) {
       console.error("scotia-return: Scotia gateway not configured (missing SharedSecret)");
-      return redirect(returnPath, { scotia: "error" });
+      return redirect(req, returnPath, { scotia: "error" });
     }
 
     const result = await classifyScotiaResponse(response, cfg.sharedSecret, cfg.storeId);
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
         Object.entries(response).map(([k, v]) => [k, REDACT_KEYS.has(k.toLowerCase()) ? "[redacted]" : v]),
       );
       console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash, rawFields });
-      return redirect(returnPath, { scotia: "error" });
+      return redirect(req, returnPath, { scotia: "error" });
     }
 
     const gatewayPayload = {
@@ -142,9 +142,9 @@ Deno.serve(async (req) => {
       });
       if (error) {
         console.error("scotia-return: settle_statement_payment failed", { paymentId, error });
-        return redirect(returnPath, { scotia: "error" });
+        return redirect(req, returnPath, { scotia: "error" });
       }
-      return redirect(returnPath, { scotia: outcome });
+      return redirect(req, returnPath, { scotia: outcome });
     }
 
     // Checkout order flow — settle_scotia_payment's ownership check trusts
@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
 
     if (orderError || !order?.user_id) {
       console.error("scotia-return: order not found for oid", { oid, orderError });
-      return redirect(returnPath, { scotia: "error" });
+      return redirect(req, returnPath, { scotia: "error" });
     }
 
     const orderReturnPath = ORDER_COMPLETE_PATH(oid);
@@ -170,16 +170,16 @@ Deno.serve(async (req) => {
     });
     if (settleError) {
       console.error("scotia-return: settle_scotia_payment failed", { oid, settleError });
-      return redirect(orderReturnPath, { scotia: "error" });
+      return redirect(req, orderReturnPath, { scotia: "error" });
     }
 
     if (result.approved) {
       await queuePaidOrderFulfillmentEmail(supabaseAdmin, oid);
     }
 
-    return redirect(orderReturnPath, { scotia: outcome });
+    return redirect(req, orderReturnPath, { scotia: outcome });
   } catch (err) {
     console.error("scotia-return: unexpected error", err);
-    return redirect(returnPath, { scotia: "error" });
+    return redirect(req, returnPath, { scotia: "error" });
   }
 });
