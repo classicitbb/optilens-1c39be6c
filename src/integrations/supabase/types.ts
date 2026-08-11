@@ -7248,6 +7248,7 @@ export type Database = {
           shape_traced_axis: number | null
           shape_traced_ed: number | null
           standard_shape_id: string | null
+          trace_geometry: Json | null
           uncut_price: number | null
           updated_at: string
         }
@@ -7268,6 +7269,7 @@ export type Database = {
           shape_traced_axis?: number | null
           shape_traced_ed?: number | null
           standard_shape_id?: string | null
+          trace_geometry?: Json | null
           uncut_price?: number | null
           updated_at?: string
         }
@@ -7288,6 +7290,7 @@ export type Database = {
           shape_traced_axis?: number | null
           shape_traced_ed?: number | null
           standard_shape_id?: string | null
+          trace_geometry?: Json | null
           uncut_price?: number | null
           updated_at?: string
         }
@@ -10345,6 +10348,27 @@ export type Database = {
           shared_secret: string
           store_id: string
           timezone: string
+        }[]
+      }
+      get_store_product_variants_public: {
+        Args: { p_product_id: string; p_product_type: string }
+        Returns: {
+          allow_backorder: boolean
+          attributes: Json
+          id: string
+          is_active: boolean
+          low_stock_threshold: number
+          metadata: Json
+          opc_code: string
+          price: number
+          product_id: string
+          product_type: string
+          reserved_qty: number
+          sku: string
+          sort_order: number
+          stock_qty: number
+          title: string
+          variant_key: string
         }[]
       }
       get_supplies_safe: {
