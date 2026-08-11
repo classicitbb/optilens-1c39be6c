@@ -3001,6 +3001,168 @@ export type Database = {
         }
         Relationships: []
       }
+      gatekeeper_contract_secrets: {
+        Row: {
+          contract_id: string
+          encrypted_hash_routing: string
+          updated_at: string
+        }
+        Insert: {
+          contract_id: string
+          encrypted_hash_routing: string
+          updated_at?: string
+        }
+        Update: {
+          contract_id?: string
+          encrypted_hash_routing?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gatekeeper_contract_secrets_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "gatekeeper_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gatekeeper_contracts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          origin_lab_id: string
+          origin_retailer_name: string
+          origin_type: string | null
+          receiver_lab_id: string
+          receiver_retailer_name: string
+          receiver_type: string | null
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          origin_lab_id: string
+          origin_retailer_name: string
+          origin_type?: string | null
+          receiver_lab_id: string
+          receiver_retailer_name: string
+          receiver_type?: string | null
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          origin_lab_id?: string
+          origin_retailer_name?: string
+          origin_type?: string | null
+          receiver_lab_id?: string
+          receiver_retailer_name?: string
+          receiver_type?: string | null
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gatekeeper_contracts_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: false
+            referencedRelation: "gatekeeper_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gatekeeper_secrets: {
+        Row: {
+          auth_token_expires_at: string | null
+          encrypted_auth_token: string | null
+          encrypted_jwt_key: string
+          encrypted_jwt_secret: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_token_expires_at?: string | null
+          encrypted_auth_token?: string | null
+          encrypted_jwt_key: string
+          encrypted_jwt_secret: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_token_expires_at?: string | null
+          encrypted_auth_token?: string | null
+          encrypted_jwt_key?: string
+          encrypted_jwt_secret?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gatekeeper_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "gatekeeper_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gatekeeper_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          environment: string
+          has_credentials: boolean
+          id: string
+          lab_name: string
+          last_auth_refresh_at: string | null
+          last_connected_at: string | null
+          last_error: string | null
+          last_receipt_at: string | null
+          origin_lab_id: string
+          status: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          environment?: string
+          has_credentials?: boolean
+          id?: string
+          lab_name: string
+          last_auth_refresh_at?: string | null
+          last_connected_at?: string | null
+          last_error?: string | null
+          last_receipt_at?: string | null
+          origin_lab_id: string
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          environment?: string
+          has_credentials?: boolean
+          id?: string
+          lab_name?: string
+          last_auth_refresh_at?: string | null
+          last_connected_at?: string | null
+          last_error?: string | null
+          last_receipt_at?: string | null
+          origin_lab_id?: string
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       help_article_contexts: {
         Row: {
           article_id: string
@@ -7918,6 +8080,8 @@ export type Database = {
           attempts: number
           claimed_at: string | null
           created_at: string
+          dispatch_provider: string
+          gatekeeper_order_id: number
           id: string
           last_error: string | null
           mode: number
@@ -7939,6 +8103,8 @@ export type Database = {
           attempts?: number
           claimed_at?: string | null
           created_at?: string
+          dispatch_provider?: string
+          gatekeeper_order_id?: number
           id?: string
           last_error?: string | null
           mode?: number
@@ -7960,6 +8126,8 @@ export type Database = {
           attempts?: number
           claimed_at?: string | null
           created_at?: string
+          dispatch_provider?: string
+          gatekeeper_order_id?: number
           id?: string
           last_error?: string | null
           mode?: number
@@ -10298,7 +10466,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
-      approve_rx_submission: { Args: { p_id: string }; Returns: undefined }
+      approve_rx_submission: {
+        Args: { p_dispatch_provider?: string; p_id: string }
+        Returns: undefined
+      }
       assign_customer_account_number: {
         Args: { p_account_number: string; p_customer_id: number }
         Returns: {
@@ -10327,6 +10498,10 @@ export type Database = {
       bulk_toggle_anchor_exclusion: {
         Args: { p_excluded: boolean; p_lens_ids: string[]; p_reason?: string }
         Returns: number
+      }
+      cache_gatekeeper_auth_token: {
+        Args: { p_actor_user_id?: string; p_auth_token: string }
+        Returns: undefined
       }
       can_access_customer_lab_pricing: {
         Args: { p_customer_id?: number; p_user_id?: string }
@@ -10537,6 +10712,35 @@ export type Database = {
           api_username: string
           enabled: boolean
           environment: string
+        }[]
+      }
+      get_gatekeeper_connection_credentials: {
+        Args: never
+        Returns: {
+          auth_token: string
+          auth_token_expires_at: string
+          environment: string
+          jwt_key: string
+          jwt_secret: string
+          lab_name: string
+          last_auth_refresh_at: string
+          origin_lab_id: string
+        }[]
+      }
+      get_gatekeeper_credentials: {
+        Args: never
+        Returns: {
+          auth_token: string
+          auth_token_expires_at: string
+          contract_id: string
+          enabled: boolean
+          environment: string
+          hash_routing: string
+          jwt_key: string
+          jwt_secret: string
+          last_auth_refresh_at: string
+          receiver_lab_id: string
+          receiver_retailer_name: string
         }[]
       }
       get_integration_connection_secret: {
@@ -10897,6 +11101,15 @@ export type Database = {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
       }
+      record_gatekeeper_result: {
+        Args: {
+          p_error_message?: string
+          p_receipt?: Json
+          p_submission_id: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
       record_payment_gateway_test: {
         Args: { p_actor_user_id?: string; p_success: boolean }
         Returns: undefined
@@ -10904,6 +11117,10 @@ export type Database = {
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       release_stock_order_submission: {
         Args: { p_id: string }
+        Returns: undefined
+      }
+      replace_gatekeeper_contracts: {
+        Args: { p_actor_user_id?: string; p_contracts: Json }
         Returns: undefined
       }
       resolve_contact_customer_links: { Args: never; Returns: number }
@@ -10961,6 +11178,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_gatekeeper_delivery_route: {
+        Args: {
+          p_actor_user_id?: string
+          p_contract_id: string
+          p_enabled: boolean
+        }
+        Returns: undefined
+      }
       set_master_price: {
         Args: { p_item_ref: string; p_price: number }
         Returns: undefined
@@ -10985,6 +11210,19 @@ export type Database = {
           order_total: number
           submission_id: string
         }[]
+      }
+      store_gatekeeper_connection: {
+        Args: {
+          p_actor_user_id?: string
+          p_auth_token: string
+          p_contracts: Json
+          p_environment: string
+          p_jwt_key: string
+          p_jwt_secret: string
+          p_lab_name: string
+          p_origin_lab_id: string
+        }
+        Returns: undefined
       }
       submit_customer_quote_request: {
         Args: {
