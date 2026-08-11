@@ -10222,6 +10222,18 @@ export type Database = {
         Args: { p_customer_id?: number }
         Returns: Json
       }
+      get_customer_payment_profile: {
+        Args: { p_customer_id?: number }
+        Returns: {
+          account_number: string
+          customer_id: number
+          default_payment_type: string
+          eft_institution_name: string
+          name: string
+          pay_by_card: boolean
+          pay_by_eft: boolean
+        }[]
+      }
       get_customer_quote_lines: {
         Args: { p_quote_id: string }
         Returns: {
