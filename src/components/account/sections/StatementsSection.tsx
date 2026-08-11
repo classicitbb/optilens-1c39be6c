@@ -481,18 +481,28 @@ const StatementsSection = () => {
   const currentBalance = liveAccountQuery.data?.balance?.current_balance ?? 0;
 
   // Card payments require both the global gateway flag and the per-customer
-  // CRM flag. EFT routing (below) is independent and unchanged.
+  // CRM flag. Bank transfer is always offered as an alternative.
   const cardPaymentsEnabled = isScotiaEnabled() && !!paymentProfile?.pay_by_card;
+  const statementBalance = Number(activeStatement?.closing_balance ?? 0);
   const parsedPayAmount = Number(payAmount);
   const payAmountValid = Number.isFinite(parsedPayAmount) && parsedPayAmount > 0;
+
+  const applyAmountSource = (source: "current" | "statement" | "custom") => {
+    setAmountSource(source);
+    if (source === "current") setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
+    if (source === "statement") setPayAmount(statementBalance > 0 ? statementBalance.toFixed(2) : "");
+  };
 
   const openPaymentModal = () => {
     setCardStep("idle");
     setScotiaError(null);
     setDialogMode("pay");
+    setPayMethod(cardPaymentsEnabled ? "card" : "bank");
+    setAmountSource("current");
     setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
     setPaymentModalOpen(true);
   };
+
 
   // Redirect-mode statement payment: create a pending intent (while we still
   // have an authenticated session), then send the whole browser to Scotia's
