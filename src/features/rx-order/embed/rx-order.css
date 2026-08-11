@@ -36,6 +36,7 @@
    header, so it opts into an offset matching that header's height. */
 .cv-rx-embed .steps{position:sticky;top:0;z-index:40;display:flex;flex-wrap:wrap;align-items:center;column-gap:14px;row-gap:8px}
 .cv-rx-embed.has-fixed-header .steps{top:64px}
+.cv-rx-embed.has-fixed-header{border-radius:18px}
 .cv-rx-embed.portal-account-toolbar .pagehead{display:none}
 /* Two independently-reflowing clusters, not one rigid row: step pills wrap
    on their own (unchanged), and order/draft/account/currency now wrap on

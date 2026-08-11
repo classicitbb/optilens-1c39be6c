@@ -27,7 +27,7 @@ describe("portal lab pricelist access", () => {
   });
 
   it("does not render or export the stock-lens tab for non-lab users", () => {
-    expect(section).toContain('("can_access_customer_lab_pricing")');
+    expect(section).toContain('"can_access_customer_lab_pricing"');
     expect(section).toContain("enabled: hasPricelist && canAccessLabPricing");
     expect(section).toContain('{canAccessLabPricing && <TabsTrigger value="stock">Stock Lenses</TabsTrigger>}');
     expect(section).toContain("if (canAccessLabPricing) addCatalogSection(\"Stock Lenses\", stockBySection);");
@@ -42,6 +42,12 @@ describe("portal lab pricelist access", () => {
     expect(section).toContain('staleTime: 0');
     expect(section).toContain('refetchOnMount: "always"');
     expect(section).toContain('refetchOnWindowFocus: "always"');
+  });
+
+  it("adds stock-pricelist items through the shared cart context", () => {
+    expect(section).toContain('import { useCartContext } from "@/contexts/CartContext";');
+    expect(section).not.toContain('import { useCart } from "@/hooks/useCart";');
+    expect(section).toContain("const { addToCart } = useCartContext();");
   });
 
   it("does not report tag selection as saved when replacing existing links fails", () => {

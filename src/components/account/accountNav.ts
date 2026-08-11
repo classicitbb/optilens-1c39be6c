@@ -14,7 +14,7 @@ import {
 import type { SidebarNavItem } from "@/components/shared/SidebarNavList";
 
 export const ACCOUNT_NAV_ITEMS: SidebarNavItem[] = [
-  { label: "My Account", to: "/profile", icon: User },
+  { label: "My Account", to: "/profile", icon: User, exact: true },
   { label: "My Profile", to: "/profile/account", icon: User },
   { label: "My Orders", to: "/profile/orders", icon: Package },
   { label: "Saved Drafts", to: "/profile/drafts", icon: FileText },

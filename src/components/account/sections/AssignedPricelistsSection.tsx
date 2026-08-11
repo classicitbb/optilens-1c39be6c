@@ -16,7 +16,7 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
-import { useCart } from "@/hooks/useCart";
+import { useCartContext } from "@/contexts/CartContext";
 import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { cn } from "@/lib/utils";
@@ -102,7 +102,7 @@ const AssignedPricelistsSection = () => {
   const [pricesHidden, setPricesHidden] = useState(true);
   const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
-  const { addToCart } = useCart();
+  const { addToCart } = useCartContext();
   const navigate = useNavigate();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({

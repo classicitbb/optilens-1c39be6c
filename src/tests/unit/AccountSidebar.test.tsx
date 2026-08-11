@@ -61,9 +61,9 @@ vi.mock("@/hooks/useWebsiteFeatures", () => ({
   }),
 }));
 
-const renderSidebar = () => render(
+const renderSidebar = (pathname = "/profile/account") => render(
   <MemoryRouter>
-    <AccountSidebar pathname="/profile/account" />
+    <AccountSidebar pathname={pathname} />
   </MemoryRouter>,
 );
 
@@ -139,5 +139,13 @@ describe("AccountSidebar", () => {
 
     expect(screen.getByLabelText("2 unique orders")).toBeInTheDocument();
     expect(screen.getByLabelText("1 new statement")).toBeInTheDocument();
+  });
+
+  it("does not keep My Account active on a child account route", () => {
+    mocks.lensAssistantPublic = true;
+    renderSidebar("/profile/rx-order");
+
+    expect(screen.getByRole("link", { name: "My Account" })).not.toHaveClass("bg-primary/10");
+    expect(screen.getByRole("link", { name: "Rx Order Form" })).toHaveClass("bg-primary/10");
   });
 });
