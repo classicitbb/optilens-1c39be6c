@@ -349,6 +349,10 @@ const StatementsSection = () => {
   // page entirely for Scotia's hosted page.
   const [cardStep, setCardStep] = useState<"idle" | "paying">("idle");
   const [payAmount, setPayAmount] = useState("");
+  // Buyer choices inside the Pay dialog.
+  const [payMethod, setPayMethod] = useState<"card" | "bank">("card");
+  const [amountSource, setAmountSource] = useState<"current" | "statement" | "custom">("current");
+
   const [scotiaError, setScotiaError] = useState<string | null>(null);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
   const statementPrintRef = useRef<HTMLDivElement>(null);
@@ -477,18 +481,28 @@ const StatementsSection = () => {
   const currentBalance = liveAccountQuery.data?.balance?.current_balance ?? 0;
 
   // Card payments require both the global gateway flag and the per-customer
-  // CRM flag. EFT routing (below) is independent and unchanged.
+  // CRM flag. Bank transfer is always offered as an alternative.
   const cardPaymentsEnabled = isScotiaEnabled() && !!paymentProfile?.pay_by_card;
+  const statementBalance = Number(activeStatement?.closing_balance ?? 0);
   const parsedPayAmount = Number(payAmount);
   const payAmountValid = Number.isFinite(parsedPayAmount) && parsedPayAmount > 0;
+
+  const applyAmountSource = (source: "current" | "statement" | "custom") => {
+    setAmountSource(source);
+    if (source === "current") setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
+    if (source === "statement") setPayAmount(statementBalance > 0 ? statementBalance.toFixed(2) : "");
+  };
 
   const openPaymentModal = () => {
     setCardStep("idle");
     setScotiaError(null);
     setDialogMode("pay");
+    setPayMethod(cardPaymentsEnabled ? "card" : "bank");
+    setAmountSource("current");
     setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
     setPaymentModalOpen(true);
   };
+
 
   // Redirect-mode statement payment: create a pending intent (while we still
   // have an authenticated session), then send the whole browser to Scotia's
@@ -845,15 +859,42 @@ const StatementsSection = () => {
             </div>
           ) : (
             <>
-          {/* ── Card payment (Scotia eCom+, redirect mode) ── */}
-          {cardPaymentsEnabled ? (
-            <div className="space-y-3">
-              {scotiaError && (
-                <Alert variant="destructive" role="alert">
-                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
-                  <AlertDescription>{scotiaError}</AlertDescription>
-                </Alert>
-              )}
+          {scotiaError && (
+            <Alert variant="destructive" role="alert">
+              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+              <AlertDescription>{scotiaError}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* ── 1. What to pay ── */}
+          {cardStep !== "paying" && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium dark:text-slate-50">What would you like to pay?</p>
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyAmountSource("current")}
+                  className={`flex items-center justify-between border px-3 py-2 text-left text-sm ${amountSource === "current" ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  <span>Current balance</span>
+                  <span className="font-medium">${money(currentBalance)}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyAmountSource("statement")}
+                  className={`flex items-center justify-between border px-3 py-2 text-left text-sm ${amountSource === "statement" ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  <span>Statement balance{activeStatement?.statement_date ? ` (${fmtDate(activeStatement.statement_date)})` : ""}</span>
+                  <span className="font-medium">${money(statementBalance)}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyAmountSource("custom")}
+                  className={`border px-3 py-2 text-left text-sm ${amountSource === "custom" ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  Another amount
+                </button>
+              </div>
               <div className="space-y-1.5">
                 <label htmlFor="statement-pay-amount" className="text-sm font-medium dark:text-slate-50">
                   Amount to pay
@@ -865,11 +906,48 @@ const StatementsSection = () => {
                   min="0.01"
                   step="0.01"
                   value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmountSource("custom");
+                    setPayAmount(e.target.value);
+                  }}
                   className="h-10"
-                  disabled={cardStep === "paying"}
                 />
               </div>
+            </div>
+          )}
+
+          {/* ── 2. How to pay ── */}
+          {cardStep !== "paying" && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium dark:text-slate-50">How would you like to pay?</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={!cardPaymentsEnabled}
+                  onClick={() => setPayMethod("card")}
+                  className={`border px-3 py-2 text-sm disabled:opacity-50 ${payMethod === "card" ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  Card
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayMethod("bank")}
+                  className={`border px-3 py-2 text-sm ${payMethod === "bank" ? "border-primary bg-primary/5" : "border-border"}`}
+                >
+                  Bank transfer
+                </button>
+              </div>
+              {!cardPaymentsEnabled && (
+                <p className="text-[11px] text-muted-foreground">
+                  Card payments aren't enabled on your account yet — contact us to turn them on.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ── Card payment (Scotia eCom+, redirect mode) ── */}
+          {payMethod === "card" && cardPaymentsEnabled ? (
+            <div className="space-y-3">
               <Button
                 className="w-full h-10 gap-2"
                 disabled={!payAmountValid || cardStep === "paying"}
@@ -892,43 +970,38 @@ const StatementsSection = () => {
             </div>
           ) : null}
 
-          {cardStep === "paying" ? null : paymentProfile?.pay_by_eft && bankPortal?.portal_url ? (
-            <>
-              <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/20">
-                <AlertDescription className="text-blue-900 dark:text-blue-300">
-                  Your account is set up to pay via {bankPortal.bank_name}. You'll be taken to your bank's online
-                  banking to complete the payment.
+          {/* ── Bank transfer ── */}
+          {payMethod === "bank" && cardStep !== "paying" ? (
+            bankPortal?.portal_url ? (
+              <div className="space-y-3">
+                <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/20">
+                  <AlertDescription className="text-blue-900 dark:text-blue-300">
+                    You'll be taken to {bankPortal.bank_name} online banking to transfer{" "}
+                    ${money(parsedPayAmount || 0)}. Please quote your account number
+                    {paymentProfile?.account_number ? ` (${paymentProfile.account_number})` : ""} as the reference.
+                  </AlertDescription>
+                </Alert>
+                <Button
+                  className="w-full h-10 gap-2"
+                  onClick={() => window.open(bankPortal.portal_url!, "_blank", "noopener,noreferrer")}
+                >
+                  Go to {bankPortal.bank_name} Online Banking <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+                <AlertDescription className="text-amber-800 dark:text-amber-300">
+                  To pay ${money(parsedPayAmount || 0)} by bank transfer
+                  {paymentProfile?.eft_institution_name ? ` from ${paymentProfile.eft_institution_name}` : ""}, contact
+                  us at <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
+                  <a href="mailto:accounts@classicvisions.net" className="underline">accounts@classicvisions.net</a> for
+                  our bank details. Quote your account number
+                  {paymentProfile?.account_number ? ` (${paymentProfile.account_number})` : ""} as the reference.
                 </AlertDescription>
               </Alert>
-              <Button
-                className="w-full h-10 gap-2"
-                onClick={() => window.open(bankPortal.portal_url, "_blank", "noopener,noreferrer")}
-              >
-                Go to {bankPortal.bank_name} Online Banking <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </>
-          ) : paymentProfile?.pay_by_eft && paymentProfile?.eft_institution_name ? (
-            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
-              <AlertDescription className="text-amber-800 dark:text-amber-300">
-                Your bank ({paymentProfile.eft_institution_name}) hasn't been connected for online payment routing
-                yet. Please contact us at{" "}
-                <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
-                <a href="mailto:accounts@classicvisions.net" className="underline">accounts@classicvisions.net</a> to
-                arrange payment.
-              </AlertDescription>
-            </Alert>
-          ) : cardPaymentsEnabled ? null : (
-            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
-              <AlertDescription className="text-amber-800 dark:text-amber-300">
-                {paymentProfile?.pay_by_card
-                  ? "Online card payments are coming soon. "
-                  : "We're still connecting this portal to live billing, so we can't take payments here yet. "}
-                To pay your balance of ${money(currentBalance)}, please contact us at{" "}
-                <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
-                <a href="mailto:accounts@classicvisions.net" className="underline">accounts@classicvisions.net</a>.
-              </AlertDescription>
-            </Alert>
-          )}
+            )
+          ) : null}
+
             </>
           )}
 
