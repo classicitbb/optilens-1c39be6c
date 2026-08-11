@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Barcode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import "@/features/rx-order/embed/rx-order.css";
+import "./stock-order-builder.css";
 import {
   useStockEligibleAccounts, useStockLensPricing, resolveStockCode,
   useStageStockOrder, useReleaseStockOrder, useStockOrderDraft, StageOrderItem,
@@ -34,6 +35,32 @@ interface OrderLine {
   side: "right" | "left" | "either"; sku: string; description: string;
   quantity: number; customerRef: string; unitPrice: number;
 }
+
+type AnnotationPriority = "must" | "prefer" | "idea";
+
+interface StockOrderAnnotation {
+  id: string;
+  label: string;
+  text: string;
+  priority: AnnotationPriority;
+  createdAt: string;
+}
+
+const STOCK_ANNOTATIONS_KEY = "cv-stock-order-annotations";
+
+const readStockAnnotations = (): StockOrderAnnotation[] => {
+  try {
+    return JSON.parse(localStorage.getItem(STOCK_ANNOTATIONS_KEY) ?? "[]") as StockOrderAnnotation[];
+  } catch {
+    return [];
+  }
+};
+
+const annotationPriorityLabel = (priority: AnnotationPriority) => {
+  if (priority === "must") return "Must change";
+  if (priority === "idea") return "Idea";
+  return "I'd prefer";
+};
 
 const describePower = (row: Pick<PowerRow, "sphere" | "base" | "cylinder" | "add">) => {
   const primary = row.sphere ?? row.base;
@@ -66,6 +93,12 @@ const StockOrderBuilderPage = () => {
   const [staged, setStaged] = useState<{ id: string; total: number } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
+  const [annotateOn, setAnnotateOn] = useState(false);
+  const [annotations, setAnnotations] = useState<StockOrderAnnotation[]>(readStockAnnotations);
+  const [annotationTarget, setAnnotationTarget] = useState<{ label: string; rect: DOMRect } | null>(null);
+  const [annotationText, setAnnotationText] = useState("");
+  const [annotationPriority, setAnnotationPriority] = useState<AnnotationPriority>("prefer");
+  const [showAnnotations, setShowAnnotations] = useState(false);
 
   const { data: eligibleAccounts = [], isLoading: accountsLoading } = useStockEligibleAccounts();
   const draftId = searchParams.get("draft");
@@ -94,6 +127,18 @@ const StockOrderBuilderPage = () => {
 
   const stageMutation = useStageStockOrder();
   const releaseMutation = useReleaseStockOrder();
+  const retailAccount = useMemo(
+    () => eligibleAccounts.find((a) => a.name.trim().toLowerCase() === "retail") ?? null,
+    [eligibleAccounts],
+  );
+
+  useEffect(() => {
+    if (!draftId && accountId == null && retailAccount) setAccountId(retailAccount.id);
+  }, [accountId, draftId, retailAccount]);
+
+  useEffect(() => {
+    try { localStorage.setItem(STOCK_ANNOTATIONS_KEY, JSON.stringify(annotations)); } catch { /* optional persistence */ }
+  }, [annotations]);
 
   useEffect(() => {
     if (!draft || loadedDraftId === draft.id) return;
@@ -204,6 +249,56 @@ const StockOrderBuilderPage = () => {
     }
   };
 
+  const handleAnnotationCapture = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!annotateOn) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-annotation-ui]")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const element = target.closest<HTMLElement>("[data-annotatable]") ?? target;
+    const fieldLabel = element.closest(".field")?.querySelector("label")?.textContent?.replace(/\s+/g, " ").trim();
+    const label = (element.getAttribute("aria-label") || fieldLabel || element.textContent || element.getAttribute("title") || "Stock order form")
+      .replace(/\s+/g, " ").trim().slice(0, 80);
+    setAnnotationTarget({ label: label || "Stock order form", rect: element.getBoundingClientRect() });
+    setAnnotationText("");
+    setAnnotationPriority("prefer");
+  };
+
+  const saveAnnotation = () => {
+    const text = annotationText.trim();
+    if (!text) {
+      toast({ title: "Add a note before saving", variant: "destructive" });
+      return;
+    }
+    setAnnotations((current) => [...current, {
+      id: `stock-${Date.now().toString(36)}`,
+      label: annotationTarget?.label ?? "General note",
+      text,
+      priority: annotationPriority,
+      createdAt: new Date().toISOString(),
+    }]);
+    setAnnotationTarget(null);
+    setAnnotationText("");
+    toast({ title: "Note saved" });
+  };
+
+  const downloadAnnotations = () => {
+    if (!annotations.length) return;
+    const markdown = [
+      "# Stock order form — reviewer feedback", "",
+      `Captured ${new Date().toLocaleString()} · ${annotations.length} notes`, "",
+      ...annotations.map((note, index) => `## ${index + 1}. ${annotationPriorityLabel(note.priority)} — ${note.label}\n\n${note.text}\n`),
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "stock-order-form-FEEDBACK.md";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const previewText = useMemo(() => {
     // Approximate preview only — the authoritative .stockhashref is
     // rendered by optilens-local's stock-order-generator.js at release
@@ -221,47 +316,52 @@ const StockOrderBuilderPage = () => {
   }, [lines, poNumber, orderReference, selectedAccount]);
 
   return (
-    <div className="cv-rx-embed no-gear">
+    <div className={`cv-rx-embed no-gear stock-order-shell${annotateOn ? " stock-annotate-on" : ""}`} onClickCapture={handleAnnotationCapture}>
       <div className="flex items-center gap-2 px-4 pt-3">
         <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
           <ArrowLeft className="h-3.5 w-3.5" /> Back
         </Button>
       </div>
 
-      <div className="wrap">
-          <div className="pagehead">
-           <div>
+       <div className="wrap">
+          <div className="pagehead" data-annotatable>
+           <div className="stock-order-heading">
+             <div className="stock-order-title-row">
              <h1>Stock order form</h1>
+             <div className="stock-order-toolbar" data-annotation-ui>
+               <span className="ordno"><span>Order</span> {staged?.id ? staged.id.slice(0, 8).toUpperCase() : "—"}</span>
+               <button className="btn btn-ghost btn-sm" disabled={!lines.length || !accountId || stageMutation.isPending} onClick={handleStage}>
+                 {stageMutation.isPending ? "Saving…" : "Save draft"}
+               </button>
+               <label className="stock-order-account" title="Customer account">
+                 <span className="stock-order-account-dot" />
+                 <span>Ordering for</span>
+                 <select aria-label="Customer account" value={accountId ?? ""} disabled={accountsLoading} onChange={(e) => { setAccountId(e.target.value ? Number(e.target.value) : null); setLines([]); setStaged(null); }}>
+                   <option value="">{accountsLoading ? "Loading…" : "Select account"}</option>
+                   {eligibleAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                 </select>
+                 <span className="stock-order-chevron">▾</span>
+               </label>
+               <label className="stock-order-currency" title="Display currency">
+                 <span>USD $</span><span className="stock-order-chevron">▾</span>
+               </label>
+               <button className="iconbtn" type="button" title="Annotate improvements" aria-label="Annotate improvements" onClick={() => setAnnotateOn((current) => !current)}>✎</button>
+             </div>
+             </div>
              <p>Search, scan, or fill a power grid to order finished and semi-finished lenses by SKU.</p>
            </div>
         </div>
 
-        <div className="card reveal" style={{ gridColumn: "1/-1" }}>
+        <div className="card reveal" style={{ gridColumn: "1/-1" }} data-annotatable>
           <div className="card-h">
             <span className="idx">1</span>
             <div>
               <h2>Order details</h2>
-              <div className="sub">Only accounts with stock lens pricing show up below.</div>
+              <div className="sub">Retail is the temporary default while stock pricelists are being corrected.</div>
             </div>
           </div>
           <div className="card-b">
-            <div className="grid g3">
-              <div className="field">
-                <label>Customer account <span className="req">*</span></label>
-                <select
-                  value={accountId ?? ""}
-                  disabled={accountsLoading}
-                  onChange={(e) => { setAccountId(e.target.value ? Number(e.target.value) : null); setLines([]); setStaged(null); }}
-                >
-                  <option value="">{accountsLoading ? "Loading accounts…" : "Select an account"}</option>
-                  {eligibleAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name} — {a.account_number ?? a.id}</option>
-                  ))}
-                </select>
-                {selectedAccount?.pricelist_name && (
-                  <div className="hint">Pricing from: {selectedAccount.pricelist_name}</div>
-                )}
-              </div>
+            <div className="grid stock-order-details-grid">
               <div className="field">
                 <label>PO number <span className="opt-tag">optional</span></label>
                 <input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="Optional" />
@@ -274,7 +374,7 @@ const StockOrderBuilderPage = () => {
           </div>
         </div>
 
-        <div className="card reveal" style={{ gridColumn: "1/-1", opacity: accountId ? 1 : 0.45, pointerEvents: accountId ? "auto" : "none" }}>
+        <div className="card reveal" style={{ gridColumn: "1/-1", opacity: accountId ? 1 : 0.45, pointerEvents: accountId ? "auto" : "none" }} data-annotatable>
           <div className="card-h">
             <span className="idx">2</span>
             <div>
@@ -373,7 +473,7 @@ const StockOrderBuilderPage = () => {
           </div>
         </div>
 
-        <div className="card reveal" style={{ gridColumn: "1/-1" }}>
+        <div className="card reveal" style={{ gridColumn: "1/-1" }} data-annotatable>
           <div className="card-h">
             <span className="idx">3</span>
             <div>
@@ -403,17 +503,14 @@ const StockOrderBuilderPage = () => {
           </div>
         </div>
 
-        <div className="steps" style={{ position: "static", gridColumn: "1/-1" }}>
+        <div className="steps" style={{ position: "static", gridColumn: "1/-1" }} data-annotatable>
           <div className="step-actions" style={{ marginLeft: 0 }}>
             <button className="btn btn-ghost" onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
-            <button className="btn btn-ghost" disabled={!lines.length || !accountId || stageMutation.isPending} onClick={handleStage}>
-              {stageMutation.isPending ? "Adding…" : "Add to drafts"}
-            </button>
             {staged && (
               <Link className="linkbtn" to="/admin/website/quotations">View drafts</Link>
             )}
             <button className="btn btn-primary" disabled={!staged || releaseMutation.isPending} onClick={handleRelease}>
-              {releaseMutation.isPending ? "Releasing…" : "Release to Innova"}
+              {releaseMutation.isPending ? "Submitting…" : "Submit order"}
             </button>
           </div>
         </div>
@@ -421,6 +518,44 @@ const StockOrderBuilderPage = () => {
           <pre style={{ gridColumn: "1/-1", background: "hsl(213 30% 12%)", color: "hsl(43 25% 92%)", borderRadius: 12, padding: "14px 16px", fontSize: 11.5, overflow: "auto" }}>
             {previewText}
           </pre>
+        )}
+
+        {annotateOn && (
+          <>
+            {annotationTarget && <div className="stock-annotation-highlight" style={{ top: annotationTarget.rect.top, left: annotationTarget.rect.left, width: annotationTarget.rect.width, height: annotationTarget.rect.height }} />}
+            <div className="stock-annotation-bar" data-annotation-ui>
+              <span>Annotate mode — click anything · <b>{annotations.length}</b> notes</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAnnotationTarget(null); setShowAnnotations(true); }}>View notes</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAnnotationTarget(null); setAnnotateOn(false); }}>Exit</button>
+            </div>
+          </>
+        )}
+        {annotationTarget && (
+          <div className="stock-annotation-popover" data-annotation-ui>
+            <div className="stock-annotation-label">Selected element</div>
+            <div className="stock-annotation-target">{annotationTarget.label}</div>
+            <textarea autoFocus value={annotationText} onChange={(e) => setAnnotationText(e.target.value)} placeholder="What should be improved?" />
+            <div className="stock-annotation-priorities">
+              {(["must", "prefer", "idea"] as AnnotationPriority[]).map((priority) => (
+                <button key={priority} type="button" aria-pressed={annotationPriority === priority} onClick={() => setAnnotationPriority(priority)}>{annotationPriorityLabel(priority)}</button>
+              ))}
+            </div>
+            <div className="stock-annotation-actions">
+              <button className="btn btn-ghost btn-sm" onClick={() => setAnnotationTarget(null)}>Cancel</button>
+              <button className="btn btn-primary btn-sm" onClick={saveAnnotation}>Save note</button>
+            </div>
+          </div>
+        )}
+        {showAnnotations && (
+          <aside className="stock-annotation-drawer" data-annotation-ui>
+            <div className="stock-annotation-drawer-head"><div><h3>Your notes</h3><span>{annotations.length} notes</span></div><button className="iconbtn" onClick={() => setShowAnnotations(false)} aria-label="Close notes">×</button></div>
+            <div className="stock-annotation-drawer-body">
+              {!annotations.length ? <p className="stock-annotation-empty">No notes yet. Turn on Annotate mode and click anything you would like changed.</p> : annotations.map((note, index) => (
+                <div className={`stock-annotation-note ${note.priority}`} key={note.id}><div><b>{index + 1}. {note.label}</b><span>{annotationPriorityLabel(note.priority)}</span></div><p>{note.text}</p></div>
+              ))}
+            </div>
+            <div className="stock-annotation-drawer-foot"><button className="btn btn-primary btn-sm" disabled={!annotations.length} onClick={downloadAnnotations}>Download .md</button><button className="btn btn-ghost btn-sm" disabled={!annotations.length} onClick={() => setAnnotations([])}>Clear notes</button></div>
+          </aside>
         )}
       </div>
     </div>

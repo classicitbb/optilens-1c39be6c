@@ -30,11 +30,25 @@ export const useStockEligibleAccounts = () => {
   return useQuery<StockEligibleAccount[]>({
     queryKey: ["stock-eligible-accounts"],
     queryFn: async () => {
-      const { data: eligible, error: eligibleErr } = await (supabase as any)
-        .from("stock_lens_eligible_accounts")
-        .select("account_id, pricelist_version_id");
+      const [{ data: eligible, error: eligibleErr }, { data: retailFallback, error: retailFallbackErr }] = await Promise.all([
+        (supabase as any)
+          .from("stock_lens_eligible_accounts")
+          .select("account_id, pricelist_version_id"),
+        // Temporary compatibility path: Retail remains the default stock-order
+        // account while its stock rows are repaired. Keep every other account
+        // governed by the lab + priced eligibility view above.
+        (supabase.from("customers") as any)
+          .select("id, name, account_number, assigned_pricelist_id")
+          .ilike("name", "retail")
+          .limit(1),
+      ]);
       if (eligibleErr) throw eligibleErr;
+      if (retailFallbackErr) throw retailFallbackErr;
       const rows = (eligible ?? []) as { account_id: number; pricelist_version_id: number }[];
+      const retail = (retailFallback ?? [])[0] as { id?: number; assigned_pricelist_id?: number | null } | undefined;
+      if (retail?.id && retail.assigned_pricelist_id && !rows.some((row) => row.account_id === retail.id)) {
+        rows.push({ account_id: retail.id, pricelist_version_id: retail.assigned_pricelist_id });
+      }
       if (!rows.length) return [];
 
       const accountIds = rows.map((r) => r.account_id);

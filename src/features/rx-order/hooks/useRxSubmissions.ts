@@ -2,10 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RxSubmissionRow } from "../types";
 
-// Outbox admin: list + approve/cancel (manual-release gate). The actual
-// submission to Innovations happens office-side in optilens-local — see
-// lib/rx-order-submitter.js there; status moves approved → claimed →
-// submitted|failed as the worker reports back.
+// Outbox admin: list + approve/cancel (manual-release gate). Innovations is
+// claimed by the office worker; Gatekeeper is sent by its authenticated Edge
+// Function and stores only Gatekeeper's immediate receipt.
 export const useRxSubmissions = () => {
   const qc = useQueryClient();
 
@@ -23,11 +22,18 @@ export const useRxSubmissions = () => {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase.rpc as any)("approve_rx_submission", { p_id: id });
+    mutationFn: async ({ id, provider }: { id: string; provider: "innovations" | "gatekeeper" }) => {
+      const { error } = await (supabase.rpc as any)("approve_rx_submission", { p_id: id, p_dispatch_provider: provider });
       if (error) throw error;
+      if (provider === "gatekeeper") {
+        const { data, error: sendError } = await supabase.functions.invoke("gatekeeper-orders", {
+          body: { action: "send", submissionId: id },
+        });
+        if (sendError) throw new Error(sendError.message);
+        if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not confirm receipt of the order.");
+      }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["rx-order-submissions"] }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["rx-order-submissions"] }),
   });
 
   const cancelMutation = useMutation({

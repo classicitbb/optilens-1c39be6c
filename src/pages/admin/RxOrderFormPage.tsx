@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import "./rx-order-form-page.css";
 
 // Admin surface for the ported prototype Rx order form. Fast-path entry
 // (/admin/website/quotations/new-rx) creates a blank RX quote and drops
@@ -50,7 +51,7 @@ const RxOrderFormPage = () => {
   }, [quoteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-0">
+    <div className="min-h-0 rx-order-admin-shell">
       <div className="flex items-center gap-2 px-4 pt-3">
         <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
           <ArrowLeft className="h-3.5 w-3.5" /> Quotations

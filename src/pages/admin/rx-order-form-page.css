@@ -1,0 +1,27 @@
+/* Keep the embedded coach/settings controls in the admin shell header zone.
+   The controls remain inside the embed so the engine's existing event wiring,
+   gear menu, and coach modal continue to work unchanged. */
+.rx-order-admin-shell .cv-rx-embed.admin-rx-order .pagehead .headtools {
+  position: fixed;
+  top: 54px;
+  right: 30px;
+  z-index: 70;
+  min-height: 32px;
+  padding: 4px;
+  border: 1px solid hsl(213 20% 85%);
+  border-radius: 12px;
+  background: hsl(0 0% 100% / .92);
+  box-shadow: 0 4px 20px -4px hsl(213 66% 13% / .12);
+  backdrop-filter: blur(10px);
+}
+
+.rx-order-admin-shell .cv-rx-embed.admin-rx-order .pagehead .headtools .iconbtn {
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .rx-order-admin-shell .cv-rx-embed.admin-rx-order .pagehead .headtools {
+    top: 51px;
+    right: 12px;
+  }
+}

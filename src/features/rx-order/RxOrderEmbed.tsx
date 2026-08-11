@@ -251,7 +251,7 @@ export const RxOrderEmbed = ({
   }, [engineInput, effectiveAccountId, scopeIsCurrent, scopeLoading]);
 
   return (
-    <div className="cv-rx-embed" ref={hostRef}>
+    <div className={`cv-rx-embed${surface === "admin" ? " admin-rx-order" : ""}`} ref={hostRef}>
       {!engineInput && (
         <div style={{ padding: "48px", textAlign: "center", fontSize: 13, color: "#667" }}>
           Loading the Rx order form…

@@ -43,6 +43,7 @@ export interface RxSubmissionRow {
   order_id: string | null;
   account_id: number | null;
   status: string;
+  dispatch_provider: "innovations" | "gatekeeper";
   transport: string | null;
   result_code: number | null;
   result_message: string | null;

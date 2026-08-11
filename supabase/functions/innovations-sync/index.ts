@@ -640,6 +640,7 @@ Deno.serve(async (req: Request) => {
         .from("rx_order_submissions")
         .select("id,quote_id,payload,mode,attempts")
         .eq("status", "approved")
+        .eq("dispatch_provider", "innovations")
         .order("approved_at", { ascending: true })
         .limit(1)
         .maybeSingle();

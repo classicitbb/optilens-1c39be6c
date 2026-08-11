@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
 import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
+import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrationTab";
 import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -269,6 +271,12 @@ export default function IntegrationsPage() {
         </Badge>
       </div>
 
+      <Tabs defaultValue="services" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="services">Service integrations</TabsTrigger>
+          <TabsTrigger value="gatekeeper">Gatekeeper</TabsTrigger>
+        </TabsList>
+        <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
 
       <Card>
@@ -494,6 +502,11 @@ export default function IntegrationsPage() {
           )}
         </DialogContent>
       </Dialog>
+        </TabsContent>
+        <TabsContent value="gatekeeper" className="mt-0">
+          <GatekeeperIntegrationTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -1,0 +1,499 @@
+-- Gatekeeper outbound order-sending integration.
+--
+-- Credentials and Gatekeeper bearer tokens are encrypted at rest and are only
+-- decryptable by the service-role Gatekeeper Edge Function.  This integration
+-- deliberately does not poll or ingest job statuses: the only inbound data we
+-- retain is Gatekeeper's immediate receipt for an outbound order.
+
+CREATE TABLE IF NOT EXISTS public.gatekeeper_settings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_key text NOT NULL DEFAULT 'default' UNIQUE,
+  environment text NOT NULL DEFAULT 'staging' CHECK (environment IN ('staging', 'production')),
+  origin_lab_id text NOT NULL,
+  lab_name text NOT NULL,
+  enabled boolean NOT NULL DEFAULT false,
+  has_credentials boolean NOT NULL DEFAULT false,
+  status text NOT NULL DEFAULT 'not_configured' CHECK (status IN ('not_configured', 'connected', 'error')),
+  last_connected_at timestamptz,
+  last_auth_refresh_at timestamptz,
+  last_receipt_at timestamptz,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.gatekeeper_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can read Gatekeeper settings" ON public.gatekeeper_settings;
+CREATE POLICY "Admins can read Gatekeeper settings"
+  ON public.gatekeeper_settings FOR SELECT TO authenticated
+  USING (public.has_edit_role(auth.uid()));
+
+DROP POLICY IF EXISTS "No direct Gatekeeper settings writes" ON public.gatekeeper_settings;
+CREATE POLICY "No direct Gatekeeper settings writes"
+  ON public.gatekeeper_settings FOR ALL TO authenticated
+  USING (false) WITH CHECK (false);
+
+DROP TRIGGER IF EXISTS update_gatekeeper_settings_updated_at ON public.gatekeeper_settings;
+CREATE TRIGGER update_gatekeeper_settings_updated_at
+  BEFORE UPDATE ON public.gatekeeper_settings
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS public.gatekeeper_secrets (
+  settings_id uuid PRIMARY KEY REFERENCES public.gatekeeper_settings(id) ON DELETE CASCADE,
+  encrypted_jwt_key bytea NOT NULL,
+  encrypted_jwt_secret bytea NOT NULL,
+  encrypted_auth_token bytea,
+  auth_token_expires_at timestamptz,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.gatekeeper_secrets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "No direct Gatekeeper secret access" ON public.gatekeeper_secrets;
+CREATE POLICY "No direct Gatekeeper secret access"
+  ON public.gatekeeper_secrets FOR ALL
+  USING (false) WITH CHECK (false);
+
+CREATE TABLE IF NOT EXISTS public.gatekeeper_contracts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  settings_id uuid NOT NULL REFERENCES public.gatekeeper_settings(id) ON DELETE CASCADE,
+  origin_lab_id text NOT NULL,
+  origin_retailer_name text NOT NULL,
+  receiver_lab_id text NOT NULL,
+  receiver_retailer_name text NOT NULL,
+  origin_type text,
+  receiver_type text,
+  is_active boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (settings_id, origin_lab_id, origin_retailer_name, receiver_lab_id, receiver_retailer_name)
+);
+
+ALTER TABLE public.gatekeeper_contracts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can read Gatekeeper contracts" ON public.gatekeeper_contracts;
+CREATE POLICY "Admins can read Gatekeeper contracts"
+  ON public.gatekeeper_contracts FOR SELECT TO authenticated
+  USING (public.has_edit_role(auth.uid()));
+
+DROP POLICY IF EXISTS "No direct Gatekeeper contract writes" ON public.gatekeeper_contracts;
+CREATE POLICY "No direct Gatekeeper contract writes"
+  ON public.gatekeeper_contracts FOR ALL TO authenticated
+  USING (false) WITH CHECK (false);
+
+DROP TRIGGER IF EXISTS update_gatekeeper_contracts_updated_at ON public.gatekeeper_contracts;
+CREATE TRIGGER update_gatekeeper_contracts_updated_at
+  BEFORE UPDATE ON public.gatekeeper_contracts
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS public.gatekeeper_contract_secrets (
+  contract_id uuid PRIMARY KEY REFERENCES public.gatekeeper_contracts(id) ON DELETE CASCADE,
+  encrypted_hash_routing bytea NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.gatekeeper_contract_secrets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "No direct Gatekeeper contract secret access" ON public.gatekeeper_contract_secrets;
+CREATE POLICY "No direct Gatekeeper contract secret access"
+  ON public.gatekeeper_contract_secrets FOR ALL
+  USING (false) WITH CHECK (false);
+
+-- Per-submission dispatch is a staff decision.  Innovations remains the
+-- default so existing approved orders continue through optilens-local.
+ALTER TABLE public.rx_order_submissions
+  ADD COLUMN IF NOT EXISTS dispatch_provider text NOT NULL DEFAULT 'innovations'
+    CHECK (dispatch_provider IN ('innovations', 'gatekeeper')),
+  ADD COLUMN IF NOT EXISTS gatekeeper_order_id bigint GENERATED BY DEFAULT AS IDENTITY;
+
+CREATE UNIQUE INDEX IF NOT EXISTS rx_order_submissions_gatekeeper_order_id_key
+  ON public.rx_order_submissions (gatekeeper_order_id)
+  WHERE gatekeeper_order_id IS NOT NULL;
+
+-- Replaces the one-argument function from the Rx outbox migration, retaining
+-- its confirmed-alias safety gate and adding a narrow provider choice.
+DROP FUNCTION IF EXISTS public.approve_rx_submission(uuid);
+CREATE FUNCTION public.approve_rx_submission(
+  p_id uuid,
+  p_dispatch_provider text DEFAULT 'innovations'
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_quote_id uuid;
+BEGIN
+  IF NOT public.has_edit_role(auth.uid()) THEN
+    RAISE EXCEPTION 'Only editors can approve Rx submissions.';
+  END IF;
+  IF p_dispatch_provider NOT IN ('innovations', 'gatekeeper') THEN
+    RAISE EXCEPTION 'Unsupported Rx submission provider.';
+  END IF;
+
+  SELECT quote_id INTO v_quote_id
+  FROM public.rx_order_submissions
+  WHERE id = p_id AND status IN ('pending_review', 'failed');
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Submission not found or not in an approvable state.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.quote_lines
+    WHERE quote_id = v_quote_id
+      AND line_type = 'Lens'
+      AND innovations_alias IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Every selected lens colour needs a confirmed Innovations alias before release.';
+  END IF;
+
+  UPDATE public.rx_order_submissions
+  SET status = 'approved',
+      dispatch_provider = p_dispatch_provider,
+      payload = public.build_rx_submission_payload(quote_id),
+      approved_by = auth.uid(),
+      approved_at = now(),
+      last_error = NULL
+  WHERE id = p_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.store_gatekeeper_connection(
+  p_environment text,
+  p_origin_lab_id text,
+  p_lab_name text,
+  p_jwt_key text,
+  p_jwt_secret text,
+  p_auth_token text,
+  p_contracts jsonb,
+  p_actor_user_id uuid DEFAULT auth.uid()
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_actor uuid := COALESCE(p_actor_user_id, auth.uid());
+  v_settings_id uuid;
+  v_contract jsonb;
+  v_contract_id uuid;
+  v_active_receiver_lab_id text;
+  v_active_receiver_retailer_name text;
+BEGIN
+  IF NOT public.has_edit_role(v_actor) THEN
+    RAISE EXCEPTION 'Only admins can connect Gatekeeper.';
+  END IF;
+  IF p_environment NOT IN ('staging', 'production') THEN
+    RAISE EXCEPTION 'Gatekeeper environment must be staging or production.';
+  END IF;
+  IF NULLIF(BTRIM(p_origin_lab_id), '') IS NULL OR NULLIF(BTRIM(p_lab_name), '') IS NULL
+     OR NULLIF(BTRIM(p_jwt_key), '') IS NULL OR NULLIF(BTRIM(p_jwt_secret), '') IS NULL
+     OR NULLIF(BTRIM(p_auth_token), '') IS NULL THEN
+    RAISE EXCEPTION 'Gatekeeper returned incomplete credentials.';
+  END IF;
+
+  INSERT INTO public.gatekeeper_settings (
+    tenant_key, environment, origin_lab_id, lab_name, has_credentials,
+    status, last_connected_at, last_auth_refresh_at, last_error
+  ) VALUES (
+    'default', p_environment, BTRIM(p_origin_lab_id), BTRIM(p_lab_name), true,
+    'connected', now(), now(), NULL
+  )
+  ON CONFLICT (tenant_key) DO UPDATE SET
+    environment = EXCLUDED.environment,
+    origin_lab_id = EXCLUDED.origin_lab_id,
+    lab_name = EXCLUDED.lab_name,
+    has_credentials = true,
+    status = 'connected',
+    last_connected_at = now(),
+    last_auth_refresh_at = now(),
+    last_error = NULL,
+    updated_at = now()
+  RETURNING id INTO v_settings_id;
+
+  INSERT INTO public.gatekeeper_secrets (
+    settings_id, encrypted_jwt_key, encrypted_jwt_secret, encrypted_auth_token,
+    auth_token_expires_at, updated_at
+  ) VALUES (
+    v_settings_id,
+    extensions.pgp_sym_encrypt(p_jwt_key, public.payment_secret_encryption_key()),
+    extensions.pgp_sym_encrypt(p_jwt_secret, public.payment_secret_encryption_key()),
+    extensions.pgp_sym_encrypt(p_auth_token, public.payment_secret_encryption_key()),
+    now() + interval '23 hours', now()
+  ) ON CONFLICT (settings_id) DO UPDATE SET
+    encrypted_jwt_key = EXCLUDED.encrypted_jwt_key,
+    encrypted_jwt_secret = EXCLUDED.encrypted_jwt_secret,
+    encrypted_auth_token = EXCLUDED.encrypted_auth_token,
+    auth_token_expires_at = EXCLUDED.auth_token_expires_at,
+    updated_at = now();
+
+  SELECT receiver_lab_id, receiver_retailer_name
+  INTO v_active_receiver_lab_id, v_active_receiver_retailer_name
+  FROM public.gatekeeper_contracts
+  WHERE settings_id = v_settings_id AND is_active;
+
+  DELETE FROM public.gatekeeper_contracts WHERE settings_id = v_settings_id;
+  FOR v_contract IN SELECT value FROM jsonb_array_elements(COALESCE(p_contracts, '[]'::jsonb))
+  LOOP
+    IF NULLIF(BTRIM(v_contract ->> 'hash_routing'), '') IS NULL
+       OR NULLIF(BTRIM(v_contract ->> 'webrx_lab_id_receiver'), '') IS NULL
+       OR NULLIF(BTRIM(v_contract ->> 'webrx_retailer_name_receiver'), '') IS NULL THEN
+      CONTINUE;
+    END IF;
+    INSERT INTO public.gatekeeper_contracts (
+      settings_id, origin_lab_id, origin_retailer_name, receiver_lab_id,
+      receiver_retailer_name, origin_type, receiver_type, is_active
+    ) VALUES (
+      v_settings_id,
+      COALESCE(NULLIF(BTRIM(v_contract ->> 'webrx_lab_id_origin'), ''), BTRIM(p_origin_lab_id)),
+      COALESCE(NULLIF(BTRIM(v_contract ->> 'webrx_retailer_name_origin'), ''), BTRIM(p_lab_name)),
+      BTRIM(v_contract ->> 'webrx_lab_id_receiver'),
+      BTRIM(v_contract ->> 'webrx_retailer_name_receiver'),
+      NULLIF(BTRIM(v_contract ->> 'origin_type'), ''),
+      NULLIF(BTRIM(v_contract ->> 'receiver_type'), ''),
+      BTRIM(v_contract ->> 'webrx_lab_id_receiver') = v_active_receiver_lab_id
+        AND BTRIM(v_contract ->> 'webrx_retailer_name_receiver') = v_active_receiver_retailer_name
+    ) RETURNING id INTO v_contract_id;
+    INSERT INTO public.gatekeeper_contract_secrets (contract_id, encrypted_hash_routing)
+    VALUES (v_contract_id, extensions.pgp_sym_encrypt(v_contract ->> 'hash_routing', public.payment_secret_encryption_key()));
+  END LOOP;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.set_gatekeeper_delivery_route(
+  p_contract_id uuid,
+  p_enabled boolean,
+  p_actor_user_id uuid DEFAULT auth.uid()
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor uuid := COALESCE(p_actor_user_id, auth.uid());
+  v_settings_id uuid;
+BEGIN
+  IF NOT public.has_edit_role(v_actor) THEN
+    RAISE EXCEPTION 'Only admins can update Gatekeeper delivery settings.';
+  END IF;
+  SELECT id INTO v_settings_id FROM public.gatekeeper_settings WHERE tenant_key = 'default';
+  IF NOT FOUND OR NOT EXISTS (
+    SELECT 1 FROM public.gatekeeper_contracts WHERE id = p_contract_id AND settings_id = v_settings_id
+  ) THEN
+    RAISE EXCEPTION 'Select a current Gatekeeper contract.';
+  END IF;
+  UPDATE public.gatekeeper_contracts SET is_active = (id = p_contract_id), updated_at = now()
+  WHERE settings_id = v_settings_id;
+  UPDATE public.gatekeeper_settings SET enabled = p_enabled, updated_at = now()
+  WHERE id = v_settings_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.replace_gatekeeper_contracts(
+  p_contracts jsonb,
+  p_actor_user_id uuid DEFAULT auth.uid()
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_actor uuid := COALESCE(p_actor_user_id, auth.uid());
+  v_settings_id uuid;
+  v_origin_lab_id text;
+  v_lab_name text;
+  v_contract jsonb;
+  v_contract_id uuid;
+  v_active_receiver_lab_id text;
+  v_active_receiver_retailer_name text;
+BEGIN
+  IF NOT public.has_edit_role(v_actor) THEN
+    RAISE EXCEPTION 'Only admins can refresh Gatekeeper contracts.';
+  END IF;
+  SELECT id, origin_lab_id, lab_name INTO v_settings_id, v_origin_lab_id, v_lab_name
+  FROM public.gatekeeper_settings WHERE tenant_key = 'default';
+  IF NOT FOUND THEN RAISE EXCEPTION 'Gatekeeper is not connected.'; END IF;
+
+  SELECT receiver_lab_id, receiver_retailer_name
+  INTO v_active_receiver_lab_id, v_active_receiver_retailer_name
+  FROM public.gatekeeper_contracts
+  WHERE settings_id = v_settings_id AND is_active;
+  DELETE FROM public.gatekeeper_contracts WHERE settings_id = v_settings_id;
+
+  FOR v_contract IN SELECT value FROM jsonb_array_elements(COALESCE(p_contracts, '[]'::jsonb))
+  LOOP
+    IF NULLIF(BTRIM(v_contract ->> 'hash_routing'), '') IS NULL
+       OR NULLIF(BTRIM(v_contract ->> 'webrx_lab_id_receiver'), '') IS NULL
+       OR NULLIF(BTRIM(v_contract ->> 'webrx_retailer_name_receiver'), '') IS NULL THEN
+      CONTINUE;
+    END IF;
+    INSERT INTO public.gatekeeper_contracts (
+      settings_id, origin_lab_id, origin_retailer_name, receiver_lab_id,
+      receiver_retailer_name, origin_type, receiver_type, is_active
+    ) VALUES (
+      v_settings_id,
+      COALESCE(NULLIF(BTRIM(v_contract ->> 'webrx_lab_id_origin'), ''), v_origin_lab_id),
+      COALESCE(NULLIF(BTRIM(v_contract ->> 'webrx_retailer_name_origin'), ''), v_lab_name),
+      BTRIM(v_contract ->> 'webrx_lab_id_receiver'),
+      BTRIM(v_contract ->> 'webrx_retailer_name_receiver'),
+      NULLIF(BTRIM(v_contract ->> 'origin_type'), ''),
+      NULLIF(BTRIM(v_contract ->> 'receiver_type'), ''),
+      BTRIM(v_contract ->> 'webrx_lab_id_receiver') = v_active_receiver_lab_id
+        AND BTRIM(v_contract ->> 'webrx_retailer_name_receiver') = v_active_receiver_retailer_name
+    ) RETURNING id INTO v_contract_id;
+    INSERT INTO public.gatekeeper_contract_secrets (contract_id, encrypted_hash_routing)
+    VALUES (v_contract_id, extensions.pgp_sym_encrypt(v_contract ->> 'hash_routing', public.payment_secret_encryption_key()));
+  END LOOP;
+  UPDATE public.gatekeeper_settings SET status = 'connected', last_error = NULL, updated_at = now()
+  WHERE id = v_settings_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_gatekeeper_credentials()
+RETURNS TABLE (
+  environment text,
+  enabled boolean,
+  jwt_key text,
+  jwt_secret text,
+  auth_token text,
+  auth_token_expires_at timestamptz,
+  last_auth_refresh_at timestamptz,
+  contract_id uuid,
+  receiver_lab_id text,
+  receiver_retailer_name text,
+  hash_routing text
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+  SELECT s.environment, s.enabled,
+    extensions.pgp_sym_decrypt(sec.encrypted_jwt_key, public.payment_secret_encryption_key())::text,
+    extensions.pgp_sym_decrypt(sec.encrypted_jwt_secret, public.payment_secret_encryption_key())::text,
+    CASE WHEN sec.encrypted_auth_token IS NULL THEN NULL
+      ELSE extensions.pgp_sym_decrypt(sec.encrypted_auth_token, public.payment_secret_encryption_key())::text END,
+    sec.auth_token_expires_at, s.last_auth_refresh_at,
+    c.id, c.receiver_lab_id, c.receiver_retailer_name,
+    extensions.pgp_sym_decrypt(contract_sec.encrypted_hash_routing, public.payment_secret_encryption_key())::text
+  FROM public.gatekeeper_settings s
+  JOIN public.gatekeeper_secrets sec ON sec.settings_id = s.id
+  JOIN public.gatekeeper_contracts c ON c.settings_id = s.id AND c.is_active
+  JOIN public.gatekeeper_contract_secrets contract_sec ON contract_sec.contract_id = c.id
+  WHERE s.tenant_key = 'default'
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_gatekeeper_connection_credentials()
+RETURNS TABLE (
+  environment text,
+  origin_lab_id text,
+  lab_name text,
+  jwt_key text,
+  jwt_secret text,
+  auth_token text,
+  auth_token_expires_at timestamptz,
+  last_auth_refresh_at timestamptz
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+  SELECT s.environment, s.origin_lab_id, s.lab_name,
+    extensions.pgp_sym_decrypt(sec.encrypted_jwt_key, public.payment_secret_encryption_key())::text,
+    extensions.pgp_sym_decrypt(sec.encrypted_jwt_secret, public.payment_secret_encryption_key())::text,
+    CASE WHEN sec.encrypted_auth_token IS NULL THEN NULL
+      ELSE extensions.pgp_sym_decrypt(sec.encrypted_auth_token, public.payment_secret_encryption_key())::text END,
+    sec.auth_token_expires_at, s.last_auth_refresh_at
+  FROM public.gatekeeper_settings s
+  JOIN public.gatekeeper_secrets sec ON sec.settings_id = s.id
+  WHERE s.tenant_key = 'default'
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.cache_gatekeeper_auth_token(
+  p_auth_token text,
+  p_actor_user_id uuid DEFAULT auth.uid()
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_actor uuid := COALESCE(p_actor_user_id, auth.uid());
+BEGIN
+  IF NULLIF(BTRIM(p_auth_token), '') IS NULL THEN
+    RAISE EXCEPTION 'Gatekeeper auth token was empty.';
+  END IF;
+  UPDATE public.gatekeeper_secrets sec
+  SET encrypted_auth_token = extensions.pgp_sym_encrypt(p_auth_token, public.payment_secret_encryption_key()),
+      auth_token_expires_at = now() + interval '23 hours', updated_at = now()
+  FROM public.gatekeeper_settings s
+  WHERE sec.settings_id = s.id AND s.tenant_key = 'default';
+  UPDATE public.gatekeeper_settings
+  SET last_auth_refresh_at = now(), status = 'connected', last_error = NULL, updated_at = now()
+  WHERE tenant_key = 'default';
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.record_gatekeeper_result(
+  p_submission_id uuid,
+  p_success boolean,
+  p_receipt jsonb DEFAULT NULL,
+  p_error_message text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_receipt_id text;
+BEGIN
+  v_receipt_id := COALESCE(p_receipt ->> 'id', p_receipt ->> 'requesting_id');
+  UPDATE public.rx_order_submissions
+  SET status = CASE WHEN p_success THEN 'submitted' ELSE 'failed' END,
+      transport = CASE WHEN p_success THEN 'gatekeeper' ELSE transport END,
+      result_code = CASE WHEN v_receipt_id ~ '^[0-9]+$' AND v_receipt_id::bigint <= 2147483647 THEN v_receipt_id::integer ELSE NULL END,
+      result_message = CASE WHEN p_success THEN 'Gatekeeper receipt accepted.' ELSE NULL END,
+      rxt_data = CASE WHEN p_success THEN p_receipt::text ELSE NULL END,
+      last_error = CASE WHEN p_success THEN NULL ELSE LEFT(NULLIF(BTRIM(p_error_message), ''), 500) END,
+      submitted_at = CASE WHEN p_success THEN now() ELSE NULL END,
+      attempts = attempts + 1,
+      updated_at = now()
+  WHERE id = p_submission_id AND status = 'claimed' AND dispatch_provider = 'gatekeeper';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Gatekeeper submission was not claimed.';
+  END IF;
+  UPDATE public.gatekeeper_settings
+  SET status = CASE WHEN p_success THEN 'connected' ELSE 'error' END,
+      last_receipt_at = CASE WHEN p_success THEN now() ELSE last_receipt_at END,
+      last_error = CASE WHEN p_success THEN NULL ELSE LEFT(NULLIF(BTRIM(p_error_message), ''), 500) END,
+      updated_at = now()
+  WHERE tenant_key = 'default';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.approve_rx_submission(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.approve_rx_submission(uuid, text) TO authenticated;
+REVOKE ALL ON FUNCTION public.store_gatekeeper_connection(text, text, text, text, text, text, jsonb, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.store_gatekeeper_connection(text, text, text, text, text, text, jsonb, uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.set_gatekeeper_delivery_route(uuid, boolean, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.set_gatekeeper_delivery_route(uuid, boolean, uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.replace_gatekeeper_contracts(jsonb, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.replace_gatekeeper_contracts(jsonb, uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.get_gatekeeper_credentials() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_gatekeeper_credentials() TO service_role;
+REVOKE ALL ON FUNCTION public.get_gatekeeper_connection_credentials() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_gatekeeper_connection_credentials() TO service_role;
+REVOKE ALL ON FUNCTION public.cache_gatekeeper_auth_token(text, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cache_gatekeeper_auth_token(text, uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.record_gatekeeper_result(uuid, boolean, jsonb, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.record_gatekeeper_result(uuid, boolean, jsonb, text) TO service_role;
+
+NOTIFY pgrst, 'reload schema';
