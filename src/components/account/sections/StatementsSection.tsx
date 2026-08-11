@@ -485,6 +485,7 @@ const StatementsSection = () => {
   const openPaymentModal = () => {
     setCardStep("idle");
     setScotiaError(null);
+    setDialogMode("pay");
     setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
     setPaymentModalOpen(true);
   };
