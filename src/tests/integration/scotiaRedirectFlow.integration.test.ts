@@ -36,6 +36,8 @@ describe("Scotia redirect payment flow", () => {
 
     expect(prepare).toContain('currency: "840"');
     expect(prepare).toContain('language: "en_GB"');
+    expect(prepare).toContain("formParams.transactionNotificationURL = notificationURL");
+    expect(prepare).not.toContain("formParams.notificationURL = notificationURL");
     expect(config).toContain('currency: "840"');
     // Scotia's hosted page refuses framing (frame-ancestors 'self'), so
     // checkout must POST a freshly-signed form as a top-level navigation and

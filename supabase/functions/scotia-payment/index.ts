@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
       ?? (Deno.env.get("SUPABASE_URL")
         ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/scotia-notify`
         : undefined);
-    if (notificationURL) formParams.notificationURL = notificationURL;
+    if (notificationURL) formParams.transactionNotificationURL = notificationURL;
 
     // Tokenization
     if (p.assignToken) formParams.assignToken = "true";
