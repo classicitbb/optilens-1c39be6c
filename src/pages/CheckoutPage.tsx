@@ -1318,24 +1318,9 @@ const CheckoutPage = () => {
               {/* ───── STEP 4: Review ───── */}
               {step === 4 && (
                 <div className="space-y-4">
-                  {scotiaIntent && (
-                    <div className="rounded-xl border border-primary/30 bg-card p-5 sm:p-6">
-                      <SectionHead>Secure payment</SectionHead>
-                      <ScotiaPaymentFrame
-                        payment={scotiaIntent}
-                        onResult={async (result) => {
-                          if (!result.hashValid) {
-                            setScotiaError("The payment response could not be verified. Please try again.");
-                            return;
-                          }
-                          await clearCart();
-                          navigate(`/order/${encodeURIComponent(scotiaIntent.orderId ?? "")}?scotia=${result.approved ? "success" : "declined"}`, { replace: true });
-                        }}
-                        onError={setScotiaError}
-                        onFallback={redirectToScotiaPayment}
-                      />
-                    </div>
-                  )}
+                  {/* Scotia's hosted page cannot be embedded (frame-ancestors
+                      'self'), so checkout redirects out to it instead of
+                      rendering an iframe here. */}
                   <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                     <SectionHead>Review your order</SectionHead>
 
