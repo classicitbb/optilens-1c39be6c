@@ -270,14 +270,17 @@ const CheckoutPage = () => {
   // Token of a previously-saved Scotia card to reuse (CVV-only), or null for a new card.
   const [selectedScotiaToken, setSelectedScotiaToken] = useState<string | null>(null);
   const [scotiaError, setScotiaError] = useState<string | null>(null);
-  const [scotiaIntent, setScotiaIntent] = useState<PreparePaymentInput | null>(null);
 
   // Redirect-mode Scotia checkout: create the order first (pending — no
-  // payment captured yet), then send the buyer's whole browser to Scotia's
-  // hosted page. Nothing runs after redirectToScotiaPayment(); the gateway
-  // POSTs the buyer back to scotia-return, which settles the order via
-  // service role and 302s back here with a `?scotia=` result flag (handled
-  // by the returning-from-Scotia effect below).
+  // payment captured yet), prepare a freshly-signed form, then send the
+  // buyer's whole browser to Scotia's hosted page in a single top-level POST.
+  // The hosted page cannot be iframed (Fiserv sends X-Frame-Options:
+  // SAMEORIGIN / frame-ancestors 'self'), and a prepared form may only be
+  // posted ONCE — re-posting the same oid + txndatetime makes the gateway
+  // answer "Unknown application error". Nothing runs after
+  // redirectToScotiaPayment(); the gateway POSTs the buyer back to
+  // scotia-return, which settles the order via service role and 302s back
+  // here with a `?scotia=` result flag.
   const handleScotiaCheckout = async () => {
     setScotiaError(null);
     setIsProcessing(true);
@@ -298,7 +301,7 @@ const CheckoutPage = () => {
         return;
       }
 
-      setScotiaIntent({
+      const prepared = await prepareScotiaPayment({
         // The server signs the persisted payable total. Do not calculate a
         // second amount in the browser: it must match the order-payment row.
         chargetotal: order.totalAmount,
@@ -308,7 +311,7 @@ const CheckoutPage = () => {
         hosteddataid: selectedScotiaToken ?? undefined,
         assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
       });
-      setIsProcessing(false);
+      redirectToScotiaPayment(prepared);
     } catch (err) {
       setScotiaError(err instanceof Error ? err.message : "Could not start payment. Please try again.");
       setIsProcessing(false);
