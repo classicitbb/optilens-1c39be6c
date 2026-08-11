@@ -158,7 +158,6 @@ export default function IntegrationsPage() {
             chargetotal: 1,
             responseSuccessURL: `${window.location.origin}/checkout`,
             responseFailURL: `${window.location.origin}/checkout`,
-            hostURI: `${window.location.origin}/checkout`,
           },
         });
         if (error) throw new Error(error.message);
