@@ -442,6 +442,22 @@ const StatementsSection = () => {
   });
   const bankPortal = bankPortalQuery.data ?? null;
 
+  // Admin master switch: Website features -> "Pay statements by card".
+  const cardFeatureQuery = useQuery({
+    queryKey: ["website-feature", "card_payments_on_statements"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("website_features")
+        .select("enabled")
+        .eq("key", "card_payments_on_statements")
+        .maybeSingle();
+      if (error) throw error;
+      return Boolean(data?.enabled);
+    },
+  });
+  const cardFeatureEnabled = cardFeatureQuery.data ?? false;
+
+
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
