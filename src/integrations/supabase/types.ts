@@ -85,6 +85,8 @@ export type Database = {
         Row: {
           account_number: string | null
           amount: number
+          bank_reference: string | null
+          confirmed_at: string | null
           created_at: string
           crm_customer_id: number | null
           currency: string
@@ -101,6 +103,8 @@ export type Database = {
         Insert: {
           account_number?: string | null
           amount: number
+          bank_reference?: string | null
+          confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
@@ -117,6 +121,8 @@ export type Database = {
         Update: {
           account_number?: string | null
           amount?: number
+          bank_reference?: string | null
+          confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
@@ -7248,6 +7254,7 @@ export type Database = {
           shape_traced_axis: number | null
           shape_traced_ed: number | null
           standard_shape_id: string | null
+          trace_geometry: Json | null
           uncut_price: number | null
           updated_at: string
         }
@@ -7268,6 +7275,7 @@ export type Database = {
           shape_traced_axis?: number | null
           shape_traced_ed?: number | null
           standard_shape_id?: string | null
+          trace_geometry?: Json | null
           uncut_price?: number | null
           updated_at?: string
         }
@@ -7288,6 +7296,7 @@ export type Database = {
           shape_traced_axis?: number | null
           shape_traced_ed?: number | null
           standard_shape_id?: string | null
+          trace_geometry?: Json | null
           uncut_price?: number | null
           updated_at?: string
         }
@@ -10107,6 +10116,10 @@ export type Database = {
         Args: { p_ticket_id: string }
         Returns: boolean
       }
+      confirm_account_payment: {
+        Args: { p_bank_reference?: string; p_payment_id: string }
+        Returns: string
+      }
       create_api_key: {
         Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
         Returns: Json
@@ -10347,6 +10360,27 @@ export type Database = {
           timezone: string
         }[]
       }
+      get_store_product_variants_public: {
+        Args: { p_product_id: string; p_product_type: string }
+        Returns: {
+          allow_backorder: boolean
+          attributes: Json
+          id: string
+          is_active: boolean
+          low_stock_threshold: number
+          metadata: Json
+          opc_code: string
+          price: number
+          product_id: string
+          product_type: string
+          reserved_qty: number
+          sku: string
+          sort_order: number
+          stock_qty: number
+          title: string
+          variant_key: string
+        }[]
+      }
       get_supplies_safe: {
         Args: never
         Returns: {
@@ -10537,6 +10571,10 @@ export type Database = {
       queue_abandoned_cart_alerts: {
         Args: { p_cutoff_hours?: number }
         Returns: Json
+      }
+      queue_account_payment_receipt: {
+        Args: { p_kind: string; p_payment_id: string }
+        Returns: undefined
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

@@ -341,6 +341,9 @@ const StatementsSection = () => {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  // The same modal handles both "adjust the amount and pay" and the
+  // thank-you state the buyer lands back on after Scotia redirects home.
+  const [dialogMode, setDialogMode] = useState<"pay" | "result">("pay");
   // Card payment (Scotia eCom+, redirect mode): "paying" only covers the
   // brief create-intent + prepare round trip before the browser leaves this
   // page entirely for Scotia's hosted page.
@@ -482,6 +485,7 @@ const StatementsSection = () => {
   const openPaymentModal = () => {
     setCardStep("idle");
     setScotiaError(null);
+    setDialogMode("pay");
     setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
     setPaymentModalOpen(true);
   };
@@ -520,8 +524,16 @@ const StatementsSection = () => {
 
   // ── Returning from Scotia (full-page redirect back via scotia-return) ──
   const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
+  const returnedAmount = Number(searchParams.get("amt") ?? "");
+  const returnedAmountValid = Number.isFinite(returnedAmount) && returnedAmount > 0;
 
   useEffect(() => {
+    if (!scotiaReturn) return;
+    // Land the buyer back in the same popup they left from, now showing the
+    // thank-you / verification notice instead of the amount field.
+    setDialogMode("result");
+    setCardStep("idle");
+    setPaymentModalOpen(true);
     if (scotiaReturn === "success") {
       queryClient.invalidateQueries({ queryKey: ["live-innovations-customer-account"] });
     }
@@ -790,12 +802,49 @@ const StatementsSection = () => {
       >
         <DialogContent className="w-full max-w-sm rounded-lg bg-white dark:bg-slate-950 dark:border-slate-700">
           <DialogHeader>
-            <DialogTitle className="dark:text-slate-50">Pay your balance</DialogTitle>
+            <DialogTitle className="dark:text-slate-50">
+              {dialogMode === "result"
+                ? scotiaReturn === "success"
+                  ? "Thank you for your payment"
+                  : "Payment not completed"
+                : "Pay your balance"}
+            </DialogTitle>
             <DialogDescription className="dark:text-slate-400">
-              Current balance: ${money(currentBalance)}
+              {dialogMode === "result" && scotiaReturn === "success"
+                ? `Payment received${returnedAmountValid ? `: $${money(returnedAmount)}` : ""}`
+                : `Current balance: $${money(currentBalance)}`}
             </DialogDescription>
           </DialogHeader>
 
+          {dialogMode === "result" ? (
+            <div className="space-y-3">
+              {scotiaReturn === "success" ? (
+                <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  <AlertDescription className="text-emerald-900 dark:text-emerald-300">
+                    Thank you for your payment{returnedAmountValid ? ` of $${money(returnedAmount)}` : ""}. A receipt has
+                    been emailed to you. Your payment will appear on your account once it has been verified with the
+                    bank, and we'll send a confirmation as soon as that happens.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert variant="destructive" role="alert">
+                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                  <AlertDescription>
+                    {scotiaReturn === "declined"
+                      ? "Your card was declined. No payment was taken."
+                      : "We couldn't confirm your payment. No payment was taken."}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {scotiaReturn !== "success" && (
+                <Button className="w-full h-10" onClick={openPaymentModal}>
+                  Try again
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
           {/* ── Card payment (Scotia eCom+, redirect mode) ── */}
           {cardPaymentsEnabled ? (
             <div className="space-y-3">
@@ -880,6 +929,10 @@ const StatementsSection = () => {
               </AlertDescription>
             </Alert>
           )}
+            </>
+          )}
+
+
 
           <Button variant="outline" className="w-full h-10" onClick={() => setPaymentModalOpen(false)}>
             Close
