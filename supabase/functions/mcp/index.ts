@@ -7,75 +7,129 @@ import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.1";
 
 // src/lib/mcp/tools/whoami.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.1";
+
+// src/lib/mcp/supabase.ts
+import { createClient } from "npm:@supabase/supabase-js@^2.110.7";
+function runtimeEnv(name) {
+  const runtime = globalThis;
+  return runtime.Deno?.env?.get?.(name) ?? runtime.process?.env?.[name];
+}
+function configuredEnv(names) {
+  for (const name of names) {
+    const value = runtimeEnv(name)?.trim();
+    if (value) return value;
+  }
+  return void 0;
+}
+function supabaseProjectUrl() {
+  const url = configuredEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
+  if (!url) throw new Error("SUPABASE_URL (or VITE_SUPABASE_URL) is required");
+  return url;
+}
+function supabasePublishableKey() {
+  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]);
+  if (direct) return direct;
+  const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS");
+  if (keyset) {
+    try {
+      const parsed = JSON.parse(keyset);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const keys = parsed;
+        const key = [keys.default, ...Object.values(keys)].find((v) => typeof v === "string" && v.trim().startsWith("sb_publishable_"))?.trim();
+        if (key) return key;
+      }
+    } catch {
+    }
+  }
+  const legacy = configuredEnv(["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"]);
+  if (legacy) return legacy;
+  throw new Error("SUPABASE_PUBLISHABLE_KEY, SUPABASE_PUBLISHABLE_KEYS, or SUPABASE_ANON_KEY is required");
+}
+function supabaseForUser(ctx) {
+  const token = ctx.getToken();
+  if (!token) throw new Error("supabaseForUser requires a verified OAuth token");
+  return createClient(supabaseProjectUrl(), supabasePublishableKey(), {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+var notAuthenticated = {
+  content: [{ type: "text", text: "Not authenticated." }],
+  isError: true
+};
+function ok(payload, structured) {
+  return {
+    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+    structuredContent: structured ?? { result: payload }
+  };
+}
+function fail(message) {
+  return { content: [{ type: "text", text: message }], isError: true };
+}
+
+// src/lib/mcp/tools/whoami.ts
 var whoami_default = defineTool({
   name: "whoami",
   title: "Who am I",
-  description: "Return the signed-in Classic Visions user's id, email, and any roles.",
+  description: "Return the signed-in Classic Visions user's id, email, roles, portal profile and linked customer accounts. Call this first to understand what the caller can access.",
   inputSchema: {},
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async (_input, ctx) => {
-    if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated." }], isError: true };
-    }
-    const { createClient } = await import("npm:@supabase/supabase-js@^2.110.7");
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
-      {
-        global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-        auth: { persistSession: false, autoRefreshToken: false }
-      }
-    );
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
     const userId = ctx.getUserId();
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    const [{ data: roles }, { data: profile }, { data: memberships }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("full_name,display_name,organization_name,portal_access_status,crm_customer_id,crm_contact_id,email").eq("user_id", userId).maybeSingle(),
+      supabase.rpc("get_portal_account_memberships").then((r) => r, () => ({ data: null }))
+    ]);
     const summary = {
       user_id: userId,
       email: ctx.getUserEmail(),
-      roles: (roles ?? []).map((r) => r.role)
+      roles: (roles ?? []).map((r) => r.role),
+      profile: profile ?? null,
+      accounts: memberships ?? null
     };
-    return {
-      content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-      structuredContent: summary
-    };
+    return ok(summary, summary);
   }
 });
 
 // src/lib/mcp/tools/search-products.ts
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.1";
 import { z } from "npm:zod@^4.4.3";
+var matches = (row, needle) => String(row.name ?? "").toLowerCase().includes(needle) || String(row.description ?? "").toLowerCase().includes(needle) || String(row.sku ?? "").toLowerCase().includes(needle);
 var search_products_default = defineTool2({
   name: "search_products",
-  title: "Search store products",
-  description: "Search the Classic Visions public store catalog by name or description. Returns up to `limit` products.",
+  title: "Search catalog",
+  description: "Search the Classic Visions catalog (lenses, supplies, add-ons) by name, SKU or description. Cost data is never returned.",
   inputSchema: {
-    query: z.string().min(1).describe("Search text matched against product name/description."),
-    limit: z.number().int().min(1).max(50).optional().describe("Max rows to return (default 10).")
+    query: z.string().min(1).describe("Search text matched against name, SKU or description."),
+    category: z.enum(["all", "lenses", "supplies", "addons"]).optional().describe("Restrict the search to one catalog type (default: all)."),
+    limit: z.number().int().min(1).max(50).optional().describe("Max rows per category (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ query, limit }, ctx) => {
-    if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated." }], isError: true };
-    }
-    const { createClient } = await import("npm:@supabase/supabase-js@^2.110.7");
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
-      {
-        global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-        auth: { persistSession: false, autoRefreshToken: false }
-      }
-    );
+  handler: async ({ query, category, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
     const cap = limit ?? 10;
-    const like = `%${query.replace(/[%_]/g, "")}%`;
-    const { data, error } = await supabase.from("store_products").select("id,name,product_type,description").or(`name.ilike.${like},description.ilike.${like}`).limit(cap);
-    if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
-    }
-    const rows = data ?? [];
-    return {
-      content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
-      structuredContent: { count: rows.length, results: rows }
+    const needle = query.toLowerCase();
+    const want = category ?? "all";
+    const load = async (rpc) => {
+      const { data, error } = await supabase.rpc(rpc);
+      if (error) throw new Error(`${rpc}: ${error.message}`);
+      return (data ?? []).filter((r) => matches(r, needle)).slice(0, cap);
     };
+    try {
+      const [lenses, supplies, addons] = await Promise.all([
+        want === "all" || want === "lenses" ? load("get_lenses_safe") : Promise.resolve([]),
+        want === "all" || want === "supplies" ? load("get_supplies_safe") : Promise.resolve([]),
+        want === "all" || want === "addons" ? load("get_addons_safe") : Promise.resolve([])
+      ]);
+      const payload = { lenses, supplies, addons };
+      return ok(payload, { count: lenses.length + supplies.length + addons.length, ...payload });
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : "Catalog search failed.");
+    }
   }
 });
 
@@ -83,35 +137,23 @@ var search_products_default = defineTool2({
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.1";
 import { z as z2 } from "npm:zod@^4.4.3";
 var list_my_orders_default = defineTool3({
-  name: "list_my_orders",
-  title: "List my orders",
-  description: "List the signed-in user's Classic Visions orders (most recent first). RLS restricts results to the caller.",
+  name: "list_orders",
+  title: "List orders",
+  description: "List Classic Visions orders visible to the signed-in user (most recent first). RLS limits customers to their own orders; staff see all.",
   inputSchema: {
+    status: z2.string().min(1).optional().describe("Filter by order status (e.g. pending, paid, cancelled)."),
     limit: z2.number().int().min(1).max(50).optional().describe("Max orders to return (default 10).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ limit }, ctx) => {
-    if (!ctx.isAuthenticated()) {
-      return { content: [{ type: "text", text: "Not authenticated." }], isError: true };
-    }
-    const { createClient } = await import("npm:@supabase/supabase-js@^2.110.7");
-    const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
-      {
-        global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-        auth: { persistSession: false, autoRefreshToken: false }
-      }
-    );
-    const { data, error } = await supabase.from("orders").select("id,status,total,currency,created_at").order("created_at", { ascending: false }).limit(limit ?? 10);
-    if (error) {
-      return { content: [{ type: "text", text: error.message }], isError: true };
-    }
+  handler: async ({ status, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    const supabase = supabaseForUser(ctx);
+    let q = supabase.from("orders").select("id,status,total_amount,customer_name,contact_email,checkout_method,created_at,updated_at").order("created_at", { ascending: false }).limit(limit ?? 10);
+    if (status) q = q.eq("status", status);
+    const { data, error } = await q;
+    if (error) return fail(error.message);
     const rows = data ?? [];
-    return {
-      content: [{ type: "text", text: JSON.stringify(rows, null, 2) }],
-      structuredContent: { count: rows.length, orders: rows }
-    };
+    return ok(rows, { count: rows.length, orders: rows });
   }
 });
 
