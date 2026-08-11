@@ -44,9 +44,8 @@ import {
   prepareScotiaPayment,
   redirectToScotiaPayment,
   SCOTIA_RETURN_URL,
-  type PreparePaymentInput,
 } from "@/lib/payments/scotiaConnect";
-import ScotiaPaymentFrame from "@/components/checkout/ScotiaPaymentFrame";
+
 
 // Scotia eCom+ embedded gateway. Off unless VITE_SCOTIA_ENABLED=true — the
 // existing offline methods + on-account always remain available as fallback.
