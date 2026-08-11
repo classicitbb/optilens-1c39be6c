@@ -200,14 +200,24 @@ export interface ScotiaResponseClassification {
 export async function classifyScotiaResponse(
   response: Record<string, string>,
   sharedSecret: string,
+  expectedStorename?: string,
 ): Promise<ScotiaResponseClassification> {
-  const { valid, expected, received } = await validateResponseHash(response, sharedSecret);
+  const { valid, expected, received } = await validateResponseHash(
+    response,
+    sharedSecret,
+    expectedStorename,
+  );
   const associationCode = (response.processor_response_code
     ?? response.approval_code ?? "").split(":").pop()?.slice(0, 2) ?? "";
+  // Fiserv states the outcome three ways; any one of them is authoritative
+  // once the hash validated. `approval_code` is "Y:<auth>:..." when approved.
+  const approved = isApproved(associationCode)
+    || (response.status ?? "").toUpperCase() === "APPROVED"
+    || (response.approval_code ?? "").startsWith("Y:");
   return {
     hashValid: valid,
-    approved: isApproved(associationCode),
-    softDecline: isSoftDecline(associationCode),
+    approved,
+    softDecline: !approved && isSoftDecline(associationCode),
     associationResponseCode: associationCode,
     failRc: response.fail_rc ?? null,
     oid: response.oid ?? null,
