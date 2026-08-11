@@ -929,6 +929,10 @@ const StatementsSection = () => {
               </AlertDescription>
             </Alert>
           )}
+            </>
+          )}
+
+
 
           <Button variant="outline" className="w-full h-10" onClick={() => setPaymentModalOpen(false)}>
             Close
