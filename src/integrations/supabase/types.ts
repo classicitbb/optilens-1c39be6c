@@ -1016,6 +1016,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "balances_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
         ]
       }
       bank_payment_portals: {
@@ -1429,6 +1436,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -2256,6 +2270,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_linked_customer_id_fkey"
+            columns: ["linked_customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "contacts_parent_id_fkey"
@@ -5409,6 +5430,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "live_data_gateway_requests_website_customer_id_fkey"
+            columns: ["website_customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
         ]
       }
       material_upgrades: {
@@ -6261,6 +6289,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "portal_account_audit_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "portal_account_audit_events_membership_id_fkey"
             columns: ["membership_id"]
             isOneToOne: false
@@ -6346,6 +6381,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_account_memberships_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -6773,6 +6815,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -7580,6 +7629,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quotes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "quotes_helpdesk_ticket_id_fkey"
             columns: ["helpdesk_ticket_id"]
             isOneToOne: false
@@ -7923,6 +7979,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_order_submissions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "rx_order_submissions_order_id_fkey"
@@ -8600,6 +8663,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
+      stock_order_submissions: {
+        Row: {
+          account_id: number
+          approved_at: string | null
+          approved_by: string | null
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          created_by: string | null
+          filename: string | null
+          id: string
+          last_error: string | null
+          order_reference: string | null
+          payload: Json
+          po_number: string | null
+          released_at: string | null
+          status: string
+          transport: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          filename?: string | null
+          id?: string
+          last_error?: string | null
+          order_reference?: string | null
+          payload?: Json
+          po_number?: string | null
+          released_at?: string | null
+          status?: string
+          transport?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          filename?: string | null
+          id?: string
+          last_error?: string | null
+          order_reference?: string | null
+          payload?: Json
+          po_number?: string | null
+          released_at?: string | null
+          status?: string
+          transport?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_order_submissions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -9479,6 +9631,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "balances_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
         ]
       }
       catalog_live: {
@@ -9680,6 +9839,13 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pricelists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
         ]
       }
       quote_lines_customer: {
@@ -9845,6 +10011,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quotes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
             foreignKeyName: "quotes_helpdesk_ticket_id_fkey"
             columns: ["helpdesk_ticket_id"]
             isOneToOne: false
@@ -9880,6 +10053,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
           },
         ]
       }
@@ -9954,6 +10134,28 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
+      stock_lens_eligible_accounts: {
+        Row: {
+          account_id: number | null
+          pricelist_version_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_assigned_pricelist_id_fkey"
+            columns: ["pricelist_version_id"]
+            isOneToOne: false
+            referencedRelation: "pricelist_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -10068,6 +10270,13 @@ export type Database = {
       }
     }
     Functions: {
+      _price_stock_order_items: {
+        Args: { p_items: Json; p_pricelist_version_id: number }
+        Returns: {
+          order_total: number
+          priced_items: Json
+        }[]
+      }
       add_variant_items_to_cart: {
         Args: { p_items: Json; p_target_user_id?: string }
         Returns: number
@@ -10147,6 +10356,10 @@ export type Database = {
         Returns: undefined
       }
       cancel_rx_submission: { Args: { p_id: string }; Returns: undefined }
+      cancel_stock_order_submission: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       claim_live_data_gateway_request: {
         Args: { p_agent_key_id: string }
         Returns: {
@@ -10680,6 +10893,10 @@ export type Database = {
         Returns: undefined
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      release_stock_order_submission: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       resolve_contact_customer_links: { Args: never; Returns: number }
       resolve_non_erp_duplicate_account_link: {
         Args: { p_account_number: string }
@@ -10746,6 +10963,19 @@ export type Database = {
       settle_statement_payment: {
         Args: { p_gateway?: Json; p_payment_id: string }
         Returns: string
+      }
+      stage_stock_order_submission: {
+        Args: {
+          p_account_id: number
+          p_instructions: string
+          p_items: Json
+          p_order_reference: string
+          p_po_number: string
+        }
+        Returns: {
+          order_total: number
+          submission_id: string
+        }[]
       }
       submit_customer_quote_request: {
         Args: {
