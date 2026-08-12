@@ -1,5 +1,11 @@
 # Frontend Help Docs
 
+## 2026-08-12 — Releasing an order through Gatekeeper or Innovations
+
+- In the Rx and Stock Order forms, choose the transport at release time. A Gatekeeper release sends immediately; an Innovations release waits for the office worker.
+- Use **Preview file** to inspect the exact Hashref order before release. If a stock item cannot be released, correct its website publication, pricelist price, or variant OPC/SKU first.
+- If Gatekeeper contract refresh fails, reconnect or refresh contracts in Admin → Settings → Integrations; the sender requires an active contract with lab number, customer number, and routing key.
+
 Support-facing notes for the frontend runtime.
 
 ## 2026-08-11 — Stock order form

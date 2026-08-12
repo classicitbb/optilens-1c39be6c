@@ -2,6 +2,11 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-12 — Inconsistent outbound-order transport and preview behavior
+- Area: Rx and Stock Order forms
+- Impact: stock and Rx orders could diverge in rendered order text or transport routing, making the release result difficult to verify.
+- Resolution: both forms now use the shared Hashref writer and select Innovations or Gatekeeper explicitly at release time; the preview is rendered by that same writer.
+
 ## 2026-08-11 — Stock order form discovery and draft recovery
 - Area: Admin Website stock ordering and navigation
 - Impact: the stock form was not a distinct header-launcher tile, newly registered routes were not consistently discoverable in global search, and staged stock orders had no drafts-page entry.

@@ -27,7 +27,7 @@ export const useRxSubmissions = () => {
       if (error) throw error;
       if (provider === "gatekeeper") {
         const { data, error: sendError } = await supabase.functions.invoke("gatekeeper-orders", {
-          body: { action: "send", submissionId: id },
+          body: { action: "send", orderKind: "rx", submissionId: id },
         });
         if (sendError) throw new Error(sendError.message);
         if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not confirm receipt of the order.");

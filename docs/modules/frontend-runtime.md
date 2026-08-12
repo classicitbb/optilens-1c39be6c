@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-12 — Unified order dispatch
+
+- `StockOrderBuilderPage` sells published website products and variants, with server-side pricing and an explicit Innovations or Gatekeeper release choice.
+- Rx and stock releases invoke the same canonical Hashref writer. Stock orders use `rx_eye:5`, while previews show the exact generated order text.
+- The stock pricing reference tab makes clear that legacy Innova-family pricing rows are no longer the Stock Order Builder's price source.
+
 Operational notes and change context for code in `src/**`.
 
 ## 2026-08-11 — Stock order form discovery and drafts

@@ -4,6 +4,17 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-12 — Unified Order Dispatch and MCP Artifact Stability
+
+### Release Notes
+- Rx and stock orders now share one Hashref v2.5 writer and can be released through either Innovations or Gatekeeper without duplicate claims.
+- MCP Edge Function generation is now explicit at deployment time; normal Vite builds and Vitest runs no longer overwrite the portable function artifact.
+
+### Technical Changelog
+- Added the shared canonical-order writer, stock dispatch migration, Gatekeeper stock routing, and coverage for the generated Hashref contract.
+- Corrected the Gatekeeper contract lookup to `/api/v2/orders/contract_available`.
+- Added `npm run mcp:generate` and deploy/CI wiring that generates a portable bundle for the selected Supabase project.
+
 ## 2026-08-11 — Stock Order Form Discovery and Drafts
 
 ### Release Notes

@@ -9,19 +9,25 @@ import { useInnovationsStoreLensCatalog } from "@/hooks/useInnovationsStoreLensC
 import { usePricelistCatalogRowUpsert } from "@/hooks/usePricelistCatalogRowUpsert";
 
 // Prices the real Innova SKU catalog (innovations_store_lenses) for one
-// pricelist version — feeds the Stock Order Builder's account eligibility
-// and per-line pricing (stock_lens_eligible_accounts view,
-// _price_stock_order_items()). Deliberately separate component from
-// ListCatalogTab: that component's Save button rebuilds and wipes
-// catalog_type='stock' rows by row_type ('lens'/'addon'/'supply') — it has
-// no knowledge of these row_type='stock_variant' rows, and this component
-// never touches its rows either (see the scoped delete fix in
-// usePricelistCatalogRows.ts). Row-level upserts only, via
-// usePricelistCatalogRowUpsert, so the two editors can't stomp each other.
+// pricelist version, one row per lens family (row_type='stock_variant',
+// item_id = innovations_store_lenses.id).
 //
-// Price is set once per lens family (one row per innovations_store_lenses.id),
-// applied to every power/side under it — see FLAGGED ASSUMPTION 1 in
-// 20260811000000_stock_order_pricing_and_outbox.sql.
+// NOTE — this no longer feeds the Stock Order Builder. As of
+// 20260812000000_unified_order_dispatch.sql that form sells the items
+// published on the website and their variants, and prices them from the
+// ordinary catalog_type='stock' rows keyed by the lens/supply/addon product
+// uuid — the rows the List Catalog tab maintains. Account eligibility
+// (stock_lens_eligible_accounts) follows those same rows. Prices set here
+// are read by nothing today; keep them only if the Innova-family view is
+// still wanted for reference.
+//
+// Deliberately separate component from ListCatalogTab: that component's Save
+// button rebuilds and wipes catalog_type='stock' rows by row_type
+// ('lens'/'addon'/'supply') — it has no knowledge of these
+// row_type='stock_variant' rows, and this component never touches its rows
+// either (see the scoped delete fix in usePricelistCatalogRows.ts).
+// Row-level upserts only, via usePricelistCatalogRowUpsert, so the two
+// editors can't stomp each other.
 
 interface PricedRow {
   item_id: string;
@@ -113,9 +119,9 @@ const StockSkuPricingTab = ({ versionId }: { versionId: number | null }) => {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-xs text-muted-foreground">
-          Prices the real Innova SKU catalog (finished + semi-finished lenses synced from Innova) for the Stock Order
-          Builder. One price per lens family, applied to every power and side. Accounts only appear in the Stock
-          Order Builder once their assigned pricelist has at least one priced row here.
+          Prices the real Innova SKU catalog (finished + semi-finished lenses synced from Innova), one price per lens
+          family. The Stock Order Builder no longer reads these rows — it sells the items published on the website and
+          prices them from the List Catalog tab's stock rows, so price a lens there to make it orderable.
         </p>
         <Badge variant="secondary">{pricedCount} of {families.length} priced</Badge>
       </div>

@@ -1,5 +1,11 @@
 # Automation and QA Module Docs
 
+## 2026-08-12 — MCP deployment artifact generation
+
+- `scripts/generate_mcp_function.mjs` bundles `src/lib/mcp/index.ts` into the portable `supabase/functions/mcp/index.ts` artifact for the explicit `SUPABASE_PROJECT_REF` target.
+- Run `SUPABASE_PROJECT_REF=<target> npm run mcp:generate` before a manual MCP deployment. The normal Vite build and Vitest configuration intentionally do not generate this file.
+- `scripts/deploy_supabase_functions.mjs` and the edge-function GitHub workflow generate the artifact immediately before deploying MCP, preventing a local test run from producing an unusable filesystem import.
+
 ## Purpose
 This module covers repository automation scripts in `scripts/**`, including PR checks and quality gates.
 

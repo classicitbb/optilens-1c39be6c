@@ -17,6 +17,7 @@ import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
 import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { buildOrderHashref, canonicalOrderFor, type OrderKind } from "../_shared/orders/hashref.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -263,6 +264,34 @@ const ENTITIES: Record<string, EntityConfig> = {
   },
 };
 
+// Both outboxes hand the office worker the same normalised order alongside
+// the raw payload it already consumes. `canonical_order` is the exact model
+// the Gatekeeper transport renders its Hashref v2.5 from
+// (../_shared/orders/hashref.ts), so an order released through optilens-local
+// and the same order released through Gatekeeper describe one thing.
+//
+// Routing (lab_num / cust_num) is deliberately absent: on this path it comes
+// from the office's own data/rx/config.json, which the cloud does not hold.
+// `hashref_body` is therefore rendered with placeholders for those two fields
+// only — useful for eyeballing an order, not for sending as-is.
+//
+// Best-effort throughout. A payload the builder rejects (a lens with no
+// confirmed alias, say) must still be claimable, so the worker can report the
+// real failure back rather than the claim silently disappearing.
+function withCanonicalOrder(kind: OrderKind, submission: Record<string, unknown> | null) {
+  if (!submission) return submission;
+  try {
+    const canonical = canonicalOrderFor(kind, submission as any);
+    return {
+      ...submission,
+      canonical_order: canonical,
+      hashref_body: buildOrderHashref(canonical, { labNum: "{{lab_num}}", custNum: "{{cust_num}}" }),
+    };
+  } catch (err) {
+    return { ...submission, canonical_order: null, canonical_error: String((err as Error)?.message ?? err) };
+  }
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -280,7 +309,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-08-03.1-store-lens-variant-catalog";
+const VERSION = "2026-08-12.1-unified-order-dispatch";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
@@ -650,10 +679,10 @@ Deno.serve(async (req: Request) => {
         .update({ status: "claimed", claimed_at: new Date().toISOString() })
         .eq("id", (pending as any).id)
         .eq("status", "approved")
-        .select("id,quote_id,payload,mode,attempts")
+        .select("id,quote_id,payload,mode,attempts,gatekeeper_order_id")
         .maybeSingle();
       if (claimErr || !claimed) return json({ submission: null }); // lost the race
-      return json({ submission: claimed });
+      return json({ submission: withCanonicalOrder("rx", claimed as any) });
     }
     if (req.method === "POST" && id === "complete") {
       const body = (await req.json().catch(() => null)) as any;
@@ -695,10 +724,15 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Missing required scope: customers:write" }, 403);
     }
     if (req.method === "GET" && id === "next") {
+      // dispatch_provider matters as much here as it does on the Rx outbox:
+      // without it this worker would claim stock orders staff routed to
+      // Gatekeeper and drop them into Innova's Incoming share as well,
+      // duplicating every Gatekeeper-bound order at the lab.
       const { data: pending } = await supabase
         .from("stock_order_submissions")
         .select("id,account_id,payload,attempts")
         .eq("status", "approved")
+        .eq("dispatch_provider", "innovations")
         .order("approved_at", { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -708,10 +742,10 @@ Deno.serve(async (req: Request) => {
         .update({ status: "claimed", claimed_at: new Date().toISOString() })
         .eq("id", (pending as any).id)
         .eq("status", "approved")
-        .select("id,account_id,payload,attempts")
+        .select("id,account_id,payload,attempts,gatekeeper_order_id")
         .maybeSingle();
       if (claimErr || !claimed) return json({ submission: null }); // lost the race
-      return json({ submission: claimed });
+      return json({ submission: withCanonicalOrder("stock", claimed as any) });
     }
     if (req.method === "POST" && id === "complete") {
       const body = (await req.json().catch(() => null)) as any;

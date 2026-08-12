@@ -1,9 +1,16 @@
-// Gatekeeper outbound Rx-order sender.  This function never pulls job status;
+// Gatekeeper outbound order sender.  This function never pulls job status;
 // it only connects, refreshes the sender's contract list, and submits an
 // explicitly released order while retaining Gatekeeper's immediate receipt.
+//
+// It carries BOTH order types — prescription orders (rx_order_submissions)
+// and stock/SKU orders (stock_order_submissions) — through the one shared
+// Hashref v2.5 writer in ../_shared/orders/hashref.ts, which is also the
+// text the optilens-local worker receives for the Innovations transport.
+// Same order, same bytes, whichever route staff pick.
 
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { buildOrderHashref, canonicalOrderFor, text, type OrderKind } from "../_shared/orders/hashref.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -44,6 +51,17 @@ type Submission = {
   payload: Record<string, unknown>;
 };
 
+// The two outboxes differ only in which table and which columns hold the
+// order; everything downstream of the claim is identical.
+const ORDER_TABLES: Record<OrderKind, { table: string; columns: string }> = {
+  rx: { table: "rx_order_submissions", columns: "id,gatekeeper_order_id,payload" },
+  stock: { table: "stock_order_submissions", columns: "id,gatekeeper_order_id,payload" },
+};
+
+function orderKindFrom(value: unknown): OrderKind {
+  return text(value, 10) === "stock" ? "stock" : "rx";
+}
+
 const GATEKEEPER_BASE_URLS = {
   staging: "https://gatekeeper-staging.opticalonline.com",
   production: "https://gatekeeper.opticalonline.com",
@@ -54,143 +72,6 @@ function json(req: Request, body: unknown, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json", ...getCorsHeaders(req, corsPolicy) },
   });
-}
-
-function text(value: unknown, max = 255): string {
-  return String(value ?? "").replace(/[\r\n:]/g, " ").trim().slice(0, max);
-}
-
-function numberText(value: unknown, field: string, fallback?: number): string {
-  if (value === null || value === undefined || value === "") {
-    if (fallback !== undefined) return fallback.toFixed(2);
-    throw new Error(`${field} is required for Gatekeeper delivery.`);
-  }
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) throw new Error(`${field} must be numeric for Gatekeeper delivery.`);
-  return numeric.toFixed(2);
-}
-
-function integerText(value: unknown, field: string, fallback = 0): string {
-  if (value === null || value === undefined || value === "") return String(fallback);
-  const numeric = Number(value);
-  if (!Number.isInteger(numeric)) throw new Error(`${field} must be a whole number for Gatekeeper delivery.`);
-  return String(numeric);
-}
-
-function hashrefLine(key: string, value: unknown): string {
-  return `${key}:${text(value)}`;
-}
-
-function gatekeeperDate(): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Barbados",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
-  }).formatToParts(new Date());
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
-  return `${get("year")}-${get("month")}-${get("day")}-${get("hour")}-${get("minute")}-${get("second")}`;
-}
-
-function buildHashref(submission: Submission, credentials: GatekeeperCredentials): string {
-  const payload = submission.payload as any;
-  const quote = payload.quote ?? {};
-  const frame = payload.frame ?? {};
-  const lens = Array.isArray(payload.lenses) ? payload.lenses[0] : null;
-  const rx = lens?.rx ?? {};
-  const codes = lens?.codes ?? {};
-  if (!submission.gatekeeper_order_id) throw new Error("Gatekeeper order number has not been allocated.");
-  if (!lens || !lens.alias || !codes.material_code || !codes.style_code || !codes.color_code) {
-    throw new Error("A confirmed lens alias with material, style, and colour codes is required for Gatekeeper delivery.");
-  }
-
-  const isUncut = frame.is_uncut === true || frame.job_scope === "surface_only";
-  const frameA = frame.a_mm;
-  const frameB = frame.b_mm;
-  const frameEd = frame.ed_mm;
-  if (!isUncut && (frameA == null || frameB == null || frameEd == null)) {
-    throw new Error("Frame A, B, and ED measurements are required for an edged Gatekeeper order.");
-  }
-  if (isUncut && frameEd == null) {
-    throw new Error("Frame ED is required to derive the uncut diameter for Gatekeeper delivery.");
-  }
-
-  const orderId = String(submission.gatekeeper_order_id);
-  const patientName = text(quote.contact_name || quote.customer_name, 255);
-  if (!patientName) throw new Error("Patient name is required for Gatekeeper delivery.");
-  const date = gatekeeperDate();
-  const lines = [
-    hashrefLine("file_version", "2.5"),
-    "start_order",
-    hashrefLine("agent_name", "optilens"),
-    hashrefLine("agent_version", "1"),
-    hashrefLine("lab_num", credentials.receiver_lab_id),
-    hashrefLine("order_id", orderId),
-    hashrefLine("cust_num", credentials.receiver_retailer_name),
-    hashrefLine("cust_seq_num", orderId),
-    hashrefLine("customer_po_num", quote.quote_number || orderId),
-    hashrefLine("x_gk_order", orderId),
-    hashrefLine("x_gk_guid", submission.id),
-    hashrefLine("patient_name", patientName),
-    hashrefLine("date_ordered", date),
-    hashrefLine("instructions", quote.notes_customer || `CV Web order ${quote.quote_number || orderId}`),
-    hashrefLine("frame_status", isUncut ? "LENSES ONLY" : "SUPPLIED"),
-    hashrefLine("frame_tracing", "NO TRACE"),
-    hashrefLine("frame_mounting", "STANDARD"),
-    hashrefLine("frame_edge", isUncut ? "UNCUT" : "EDGED"),
-    hashrefLine("frame_vendor", frame.brand),
-    hashrefLine("frame_model", frame.model_colour),
-  ];
-
-  if (isUncut) {
-    const diameter = Math.ceil(Number(frameEd));
-    if (!Number.isFinite(diameter) || diameter < 30 || diameter > 80) {
-      throw new Error("Frame ED must yield an uncut diameter between 30 and 80 mm for Gatekeeper delivery.");
-    }
-    lines.push(hashrefLine("x_uncut_by_diam", "Y"), hashrefLine("x_od_uncut_diam", diameter), hashrefLine("x_os_uncut_diam", diameter));
-  } else {
-    lines.push(
-      hashrefLine("frame_a", numberText(frameA, "Frame A")),
-      hashrefLine("frame_b", numberText(frameB, "Frame B")),
-      hashrefLine("frame_ed", numberText(frameEd, "Frame ED")),
-      hashrefLine("frame_dbl", numberText(frame.dbl_mm, "Frame DBL", 0)),
-      hashrefLine("frame_bridge", numberText(frame.bridge_mm, "Frame bridge", 0)),
-    );
-  }
-
-  const rightCylinder = numberText(rx.od_cyl, "OD cylinder", 0);
-  const leftCylinder = numberText(rx.os_cyl, "OS cylinder", 0);
-  const addLensFields = (side: "od" | "os", eyeRx: Record<string, unknown>, cylinder: string) => {
-    const prefix = side === "od" ? "od" : "os";
-    return [
-      hashrefLine(`x_${prefix}_lens_alias`, lens.alias),
-      hashrefLine(`x_lens_${prefix}_material_code`, codes.material_code),
-      hashrefLine(`x_lens_${prefix}_material_desc`, codes.material_description),
-      hashrefLine(`x_lens_${prefix}_style_code`, codes.style_code),
-      hashrefLine(`x_lens_${prefix}_style_desc`, codes.style_description),
-      hashrefLine(`x_lens_${prefix}_color_code`, codes.color_code),
-      hashrefLine(`x_lens_${prefix}_color_desc`, codes.color_description),
-      hashrefLine(`rx_${prefix}_sphere`, numberText(eyeRx[`${prefix}_sph`], `${prefix.toUpperCase()} sphere`)),
-      hashrefLine(`rx_${prefix}_cylinder`, cylinder),
-      hashrefLine(`rx_${prefix}_axis`, integerText(eyeRx[`${prefix}_axis`], `${prefix.toUpperCase()} axis`)),
-      hashrefLine(`rx_${prefix}_far`, numberText(eyeRx[`${prefix}_fpd`], `${prefix.toUpperCase()} far PD`)),
-      hashrefLine(`rx_${prefix}_prism`, "0.00"),
-      hashrefLine(`rx_${prefix}_prism_dir`, "IN"),
-      hashrefLine(`rx_${prefix}_prism2`, "0.00"),
-      hashrefLine(`rx_${prefix}_prism2_dir`, "UP"),
-    ];
-  };
-  lines.push(hashrefLine("rx_eye", "3"), ...addLensFields("od", rx, rightCylinder), ...addLensFields("os", rx, leftCylinder));
-  if (Number(rx.od_add ?? 0) > 0 || Number(rx.os_add ?? 0) > 0) {
-    lines.push(
-      hashrefLine("rx_od_add", numberText(rx.od_add, "OD add")),
-      hashrefLine("rx_os_add", numberText(rx.os_add, "OS add")),
-      hashrefLine("rx_od_seg_height", numberText(rx.seg_height || rx.fitting_height, "OD segment height")),
-      hashrefLine("rx_os_seg_height", numberText(rx.seg_height || rx.fitting_height, "OS segment height")),
-      hashrefLine("x_rx_seg_height_qual", "1"),
-    );
-  }
-  lines.push("end_order");
-  return lines.join("\r\n");
 }
 
 function baseUrl(environment: "staging" | "production") {
@@ -212,7 +93,7 @@ async function authenticate(environment: "staging" | "production", jwtKey: strin
 }
 
 async function contractsFor(environment: "staging" | "production", authToken: string): Promise<GatekeeperContract[]> {
-  const response = await fetch(`${baseUrl(environment)}/api/v2/operations/contract_available`, {
+  const response = await fetch(`${baseUrl(environment)}/api/v2/orders/contract_available`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
   const body = await readJson(response);
@@ -281,7 +162,7 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;
   const action = text(body?.action, 40);
-  if (!body || !["connect", "refresh-contracts", "send"].includes(action)) {
+  if (!body || !["connect", "refresh-contracts", "send", "preview"].includes(action)) {
     return json(req, { error: "Unsupported action." }, 400);
   }
 
@@ -344,15 +225,41 @@ Deno.serve(async (req) => {
       return json(req, { ok: true, contracts: sanitizeContracts(contracts) });
     }
 
+    const orderKind = orderKindFrom(body.orderKind);
+    const { table, columns } = ORDER_TABLES[orderKind];
     const submissionId = text(body.submissionId, 64);
     if (!submissionId) return json(req, { error: "A submission ID is required." }, 400);
+
+    // Preview renders exactly what a send would transmit, from the same
+    // builder, without claiming the row or contacting Gatekeeper. It is what
+    // both order forms show in their "Preview file" pane, so what staff read
+    // there is the order itself and not a separate approximation of it.
+    if (action === "preview") {
+      const { data: row, error: readError } = await authContext.supabaseAdminClient
+        .from(table)
+        .select(columns)
+        .eq("id", submissionId)
+        .maybeSingle();
+      if (readError) throw new Error(`Could not read the submission: ${readError.message}`);
+      if (!row) return json(req, { error: "Submission not found." }, 404);
+      const config = await credentialsFor(authContext).catch(() => null);
+      const hashref = buildOrderHashref(canonicalOrderFor(orderKind, row as Submission), {
+        // Without a connected contract there is nothing to route to yet, but
+        // the order body is still worth showing; the placeholders make it
+        // obvious which two fields the contract supplies.
+        labNum: config?.receiver_lab_id || "<lab_num>",
+        custNum: config?.receiver_retailer_name || "<cust_num>",
+      });
+      return json(req, { ok: true, orderKind, hashref, routed: !!config });
+    }
+
     const { data: claimed, error: claimError } = await authContext.supabaseAdminClient
-      .from("rx_order_submissions")
+      .from(table)
       .update({ status: "claimed", claimed_at: new Date().toISOString() })
       .eq("id", submissionId)
       .eq("status", "approved")
       .eq("dispatch_provider", "gatekeeper")
-      .select("id,gatekeeper_order_id,payload")
+      .select(columns)
       .maybeSingle();
     if (claimError) throw new Error(`Could not claim Gatekeeper submission: ${claimError.message}`);
     if (!claimed) return json(req, { error: "Submission is not awaiting Gatekeeper delivery." }, 409);
@@ -362,7 +269,10 @@ Deno.serve(async (req) => {
     try {
       const config = await credentialsFor(authContext);
       const authToken = await validAuthToken(authContext, config);
-      const rxContent = buildHashref(claimed as Submission, config);
+      const rxContent = buildOrderHashref(canonicalOrderFor(orderKind, claimed as Submission), {
+        labNum: config.receiver_lab_id,
+        custNum: config.receiver_retailer_name,
+      });
       const response = await fetch(`${baseUrl(config.environment)}/api/v2/orders/push_order_to_lab`, {
         method: "POST",
         headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
@@ -380,15 +290,16 @@ Deno.serve(async (req) => {
       const { error } = await authContext.supabaseAdminClient.rpc("record_gatekeeper_result", {
         p_submission_id: submissionId,
         p_success: true,
+        p_order_kind: orderKind,
         p_receipt: receipt,
       });
       if (error) throw new Error(`Gatekeeper accepted the order but the receipt could not be recorded: ${error.message}`);
-      return json(req, { ok: true, receipt: { id: receipt.id ?? null, guid: receipt.guid ?? null, created_at: receipt.created_at ?? null } });
+      return json(req, { ok: true, orderKind, receipt: { id: receipt.id ?? null, guid: receipt.guid ?? null, created_at: receipt.created_at ?? null } });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (!receiptAccepted) {
         await authContext.supabaseAdminClient.rpc("record_gatekeeper_result", {
-          p_submission_id: submissionId, p_success: false, p_error_message: message,
+          p_submission_id: submissionId, p_success: false, p_order_kind: orderKind, p_error_message: message,
         });
       }
       throw error;

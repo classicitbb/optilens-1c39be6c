@@ -6,34 +6,45 @@ import { useToast } from "@/hooks/use-toast";
 import "@/features/rx-order/embed/rx-order.css";
 import "./stock-order-builder.css";
 import {
-  useStockEligibleAccounts, useStockLensPricing, resolveStockCode,
-  useStageStockOrder, useReleaseStockOrder, useStockOrderDraft, StageOrderItem,
+  useStockEligibleAccounts, useStockOrderCatalog, useStockProductVariants, resolveStockCode,
+  useStageStockOrder, useReleaseStockOrder, useStockOrderDraft, useStockOrderPreview,
+  variantSkuFor, variantIsChiral,
+  type StageOrderItem, type StockCatalogItem, type StockProductType, type StockVariant,
+  type DispatchProvider,
 } from "@/hooks/useStockOrderBuilder";
-import { useInnovationsStoreLensCatalog, useInnovationsLensPowerRows } from "@/hooks/useInnovationsStoreLensCatalog";
 
 // Stock Order Builder (/admin/website/stock-orders) — staff tool for
-// building SKU-identified stock/finished-lens orders and releasing them to
-// Innova. Completely separate from the Rx order form (prescription orders):
-// see optilens-local docs/innova-stockhashref-format.md for why the two
-// file formats and pipelines don't mix. Styled with the same visual system
-// as the Rx order form (rx-order.css, .cv-rx-embed) per Russell's request,
-// but this is a native implementation, not a ported prototype.
+// building SKU-identified stock orders and releasing them to Innova.
 //
-// NOT tested against a live app/database this session — the migration this
-// depends on (20260811000000_stock_order_pricing_and_outbox.sql) hasn't
-// been run yet. Treat this as a first pass to review and exercise once it
-// has, not as verified-working code.
-
-interface PowerRow {
-  id: string; innovations_lens_id: string;
-  diameter: number | null; sphere: number | null; base: number | null; cylinder: number | null; add: number | null;
-  stock_on_hand: number | null; right_opc: string | null; left_opc: string | null;
-}
+// It sells what the website sells: the published store items and their
+// variants (Russell, 2026-08-12). Catalog and prices come from
+// get_stock_order_catalog (the account's assigned pricelist, 'stock'
+// section); variants come from the storefront's own reader, so this form and
+// /store/product/* always show the same thing.
+//
+// Released orders go out through either transport — OptiLens (the
+// optilens-local worker drops the file into Innova's Incoming share) or
+// Gatekeeper (sent immediately by the Edge Function) — and both render the
+// same order from supabase/functions/_shared/orders/hashref.ts. The preview
+// pane below asks the server for that exact text rather than approximating
+// it here.
+//
+// NOT tested against a live app/database this session. The migrations this
+// depends on (20260811000000, 20260812000000) have not been run.
 
 interface OrderLine {
-  key: string; powerRowId: string; familyId: string; familyName: string; lensState: string;
-  side: "right" | "left" | "either"; sku: string; description: string;
-  quantity: number; customerRef: string; unitPrice: number;
+  key: string;
+  productType: StockProductType;
+  productId: string;
+  productName: string;
+  variantId: string | null;
+  variantTitle: string;
+  side: "right" | "left" | "either";
+  sku: string;
+  description: string;
+  quantity: number;
+  customerRef: string;
+  unitPrice: number;
 }
 
 type AnnotationPriority = "must" | "prefer" | "idea";
@@ -62,17 +73,22 @@ const annotationPriorityLabel = (priority: AnnotationPriority) => {
   return "I'd prefer";
 };
 
-const describePower = (row: Pick<PowerRow, "sphere" | "base" | "cylinder" | "add">) => {
-  const primary = row.sphere ?? row.base;
-  const secondary = row.cylinder ?? row.add;
-  const parts = [primary, secondary].filter((v) => v != null).map((v) => Number(v).toFixed(2));
-  return parts.join(" / ");
+const PRODUCT_TYPE_LABEL: Record<StockProductType, string> = {
+  lens: "Lens",
+  supply: "Supply",
+  addon: "Service",
 };
 
-const axisLabels = (rows: PowerRow[]) => {
-  const usesBaseAdd = rows.some((r) => r.base != null || r.add != null);
-  return usesBaseAdd ? { row: "Base", col: "Add" } : { row: "Sphere", col: "Cylinder" };
+const numericAttr = (variant: StockVariant, key: string): number | null => {
+  const value = (variant.attributes as any)?.[key];
+  return value == null || value === "" || Number.isNaN(Number(value)) ? null : Number(value);
 };
+
+/** Lens variants imported from Lens Local carry sphere/cylinder attributes, so
+ *  they can be laid out as the power matrix staff are used to. Anything else
+ *  (supplies, services, hand-built variants) lists instead. */
+const hasPowerAxes = (variants: StockVariant[]) =>
+  variants.length > 0 && variants.every((v) => numericAttr(v, "sphere") != null && numericAttr(v, "cylinder") != null);
 
 const StockOrderBuilderPage = () => {
   const navigate = useNavigate();
@@ -85,12 +101,13 @@ const StockOrderBuilderPage = () => {
   const [instructions, setInstructions] = useState("");
   const [mode, setMode] = useState<"search" | "scan" | "grid">("search");
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedFamilyId, setExpandedFamilyId] = useState<string | null>(null);
-  const [gridFamilyId, setGridFamilyId] = useState<string | null>(null);
+  const [expandedProductKey, setExpandedProductKey] = useState<string | null>(null);
+  const [gridProductKey, setGridProductKey] = useState<string | null>(null);
   const [scanValue, setScanValue] = useState("");
   const [scanFeedback, setScanFeedback] = useState<{ ok: boolean; message: string } | null>(null);
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [staged, setStaged] = useState<{ id: string; total: number } | null>(null);
+  const [provider, setProvider] = useState<DispatchProvider>("innovations");
   const [showPreview, setShowPreview] = useState(false);
   const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
   const [annotateOn, setAnnotateOn] = useState(false);
@@ -104,29 +121,37 @@ const StockOrderBuilderPage = () => {
   const draftId = searchParams.get("draft");
   const { data: draft } = useStockOrderDraft(draftId);
   const selectedAccount = eligibleAccounts.find((a) => a.id === accountId) ?? null;
-  const { data: pricing } = useStockLensPricing(selectedAccount?.pricelist_version_id ?? null);
 
-  const { data: families = [] } = useInnovationsStoreLensCatalog();
-  const orderableFamilies = useMemo(
-    () => families.filter((f) => pricing?.has(f.id)),
-    [families, pricing],
+  const { data: catalog = [], isLoading: catalogLoading } = useStockOrderCatalog(accountId);
+  const productKey = (item: Pick<StockCatalogItem, "product_type" | "product_id">) =>
+    `${item.product_type}:${item.product_id}`;
+  const byKey = useMemo(
+    () => new Map(catalog.map((item) => [productKey(item), item])),
+    [catalog],
   );
+
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return orderableFamilies.slice(0, 25);
-    return orderableFamilies.filter((f) =>
-      [f.name, f.material, f.manufacturer, f.mf_type, f.option_name].filter(Boolean)
+    if (!q) return catalog.slice(0, 25);
+    return catalog.filter((item) =>
+      [item.name, item.category, item.sku, PRODUCT_TYPE_LABEL[item.product_type]]
+        .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
     );
-  }, [orderableFamilies, searchQuery]);
+  }, [catalog, searchQuery]);
 
-  const expandedFamily = orderableFamilies.find((f) => f.id === expandedFamilyId) ?? null;
-  const gridFamily = orderableFamilies.find((f) => f.id === gridFamilyId) ?? null;
-  const { data: expandedPowers = [] } = useInnovationsLensPowerRows(expandedFamily ? [expandedFamily.innovations_lens_id] : []);
-  const { data: gridPowers = [] } = useInnovationsLensPowerRows(gridFamily ? [gridFamily.innovations_lens_id] : []);
+  const expandedProduct = expandedProductKey ? byKey.get(expandedProductKey) ?? null : null;
+  const gridProduct = gridProductKey ? byKey.get(gridProductKey) ?? null : null;
+  const { data: expandedVariants = [] } = useStockProductVariants(
+    expandedProduct?.product_type ?? null, expandedProduct?.product_id ?? null,
+  );
+  const { data: gridVariants = [] } = useStockProductVariants(
+    gridProduct?.product_type ?? null, gridProduct?.product_id ?? null,
+  );
 
   const stageMutation = useStageStockOrder();
   const releaseMutation = useReleaseStockOrder();
+  const preview = useStockOrderPreview(staged?.id ?? null, showPreview);
   const retailAccount = useMemo(
     () => eligibleAccounts.find((a) => a.name.trim().toLowerCase() === "retail") ?? null,
     [eligibleAccounts],
@@ -148,15 +173,17 @@ const StockOrderBuilderPage = () => {
     setPoNumber(draft.po_number ?? payload.po_number ?? "");
     setOrderReference(draft.order_reference ?? payload.order_reference ?? "");
     setInstructions(payload.instructions ?? "");
+    setProvider(draft.dispatch_provider ?? "innovations");
     setLines((payload.items ?? []).map((item, index) => ({
-      key: `${draft.id}:${item.power_row_id ?? index}:${item.side ?? "either"}`,
-      powerRowId: item.power_row_id ?? "",
-      familyId: "draft",
-      familyName: item.description ?? "Stock lens",
-      lensState: item.source === "FLENS" ? "finished" : "semi_finished",
+      key: `${draft.id}:${item.variant_id ?? item.product_id ?? index}:${item.side ?? "either"}`,
+      productType: (item.product_type ?? "lens") as StockProductType,
+      productId: item.product_id ?? "",
+      productName: item.description ?? "Stock item",
+      variantId: item.variant_id ?? null,
+      variantTitle: "",
       side: item.side ?? "either",
       sku: item.sku ?? "",
-      description: item.description ?? item.sku ?? "Stock lens",
+      description: item.description ?? item.sku ?? "Stock item",
       quantity: Number(item.quantity ?? 1),
       customerRef: item.comment ?? "",
       unitPrice: Number(item.unit_price ?? 0),
@@ -165,23 +192,39 @@ const StockOrderBuilderPage = () => {
     setLoadedDraftId(draft.id);
   }, [draft, loadedDraftId]);
 
-  const addLine = (family: { id: string; name: string; lens_state: string }, row: PowerRow, side: "right" | "left" | "either", quantity: number) => {
-    const unitPrice = pricing?.get(family.id) ?? 0;
-    const sku = side === "left" ? row.left_opc : row.right_opc;
+  const addLine = (
+    product: StockCatalogItem,
+    variant: StockVariant | null,
+    side: "right" | "left" | "either",
+    quantity: number,
+  ) => {
+    const sku = variant ? variantSkuFor(variant, side) : product.sku;
     if (!sku) {
-      toast({ title: "No Innova code for that side", variant: "destructive" });
+      toast({
+        title: "No Innova code for that item",
+        description: "Add its OPC code to the website variant before ordering it.",
+        variant: "destructive",
+      });
       return;
     }
+    const key = `${product.product_type}:${product.product_id}:${variant?.id ?? "base"}:${side}`;
     setLines((prev) => {
-      const key = `${row.id}:${side}`;
       const existing = prev.find((l) => l.key === key);
-      if (existing) {
-        return prev.map((l) => (l.key === key ? { ...l, quantity: l.quantity + quantity } : l));
-      }
+      if (existing) return prev.map((l) => (l.key === key ? { ...l, quantity: l.quantity + quantity } : l));
+      const variantTitle = variant?.title ?? "";
       return [...prev, {
-        key, powerRowId: row.id, familyId: family.id, familyName: family.name, lensState: family.lens_state,
-        side, sku, description: `${family.name} ${describePower(row)} / ${side}`,
-        quantity, customerRef: "", unitPrice,
+        key,
+        productType: product.product_type,
+        productId: product.product_id,
+        productName: product.name,
+        variantId: variant?.id ?? null,
+        variantTitle,
+        side,
+        sku,
+        description: [product.name, variantTitle, side !== "either" ? side : null].filter(Boolean).join(" "),
+        quantity,
+        customerRef: "",
+        unitPrice: product.unit_price,
       }];
     });
   };
@@ -198,23 +241,24 @@ const StockOrderBuilderPage = () => {
     try {
       const resolved = await resolveStockCode(code);
       if (!resolved) {
-        setScanFeedback({ ok: false, message: `No item found for code ${code}.` });
+        setScanFeedback({ ok: false, message: `No website item is published with code ${code}.` });
         return;
       }
-      const family = families.find((f) => f.innovations_lens_id === resolved.innovationsLensId);
-      if (!family || !pricing?.has(family.id)) {
-        setScanFeedback({ ok: false, message: `${code} isn't priced on this account's pricelist.` });
+      const product = byKey.get(`${resolved.productType}:${resolved.productId}`);
+      if (!product) {
+        setScanFeedback({
+          ok: false,
+          message: `${resolved.variantTitle} is not priced on ${selectedAccount?.name ?? "this account"}'s pricelist.`,
+        });
         return;
       }
-      const row: PowerRow = {
-        id: resolved.powerRowId, innovations_lens_id: resolved.innovationsLensId,
-        diameter: null, sphere: resolved.sphere, base: resolved.base, cylinder: resolved.cylinder, add: resolved.add,
-        stock_on_hand: null,
-        right_opc: resolved.side === "right" ? code : null,
-        left_opc: resolved.side === "left" ? code : null,
-      };
-      addLine(family, row, resolved.side, 1);
-      setScanFeedback({ ok: true, message: `Added ${code} x1 — ${family.name} ${describePower(row)}` });
+      addLine(
+        product,
+        { id: resolved.variantId, title: resolved.variantTitle, sku: null, opc_code: code, attributes: {}, metadata: {}, stock_qty: 0 },
+        resolved.side,
+        1,
+      );
+      setScanFeedback({ ok: true, message: `Added ${product.name} ${resolved.variantTitle}.` });
       setScanValue("");
     } catch (err: any) {
       setScanFeedback({ ok: false, message: err.message ?? "Lookup failed." });
@@ -222,7 +266,14 @@ const StockOrderBuilderPage = () => {
   };
 
   const buildStageItems = (): StageOrderItem[] =>
-    lines.map((l) => ({ power_row_id: l.powerRowId, side: l.side, quantity: l.quantity, customer_ref: l.customerRef }));
+    lines.map((l) => ({
+      product_type: l.productType,
+      product_id: l.productId,
+      variant_id: l.variantId,
+      side: l.side,
+      quantity: l.quantity,
+      customer_ref: l.customerRef,
+    }));
 
   const handleStage = async () => {
     if (!accountId) return;
@@ -240,8 +291,13 @@ const StockOrderBuilderPage = () => {
   const handleRelease = async () => {
     if (!staged) return;
     try {
-      await releaseMutation.mutateAsync(staged.id);
-      toast({ title: "Released", description: "optilens-local will drop the file into Innova's Incoming folder shortly." });
+      await releaseMutation.mutateAsync({ id: staged.id, provider });
+      toast({
+        title: "Released",
+        description: provider === "gatekeeper"
+          ? "Gatekeeper accepted the order and its receipt is on the submission."
+          : "optilens-local will drop the file into Innova's Incoming folder shortly.",
+      });
       setLines([]);
       setStaged(null);
     } catch (err: any) {
@@ -299,21 +355,13 @@ const StockOrderBuilderPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  const previewText = useMemo(() => {
-    // Approximate preview only — the authoritative .stockhashref is
-    // rendered by optilens-local's stock-order-generator.js at release
-    // time. Keeping one template in one place (Node, where it's actually
-    // sent from) rather than risking the two drifting apart.
-    const itemBlocks = lines.map((l) =>
-      `item_start\nsku:${l.sku}\nitem_source:${l.lensState === "finished" ? "FLENS" : "SLENS"}\nitem_description:${l.description}\nitem_quantity:${l.quantity}\nitem_comment:${l.customerRef}\nitem_part_rx:Y\nitem_end`,
-    ).join("\n");
-    return [
-      "file_version:1.0", "hashrouting_key:", "start_order",
-      `cust_num:${selectedAccount?.account_number ?? ""}`,
-      `customer_po_num:${poNumber}`, `patient_name:${orderReference || "Stock Order"}`,
-      itemBlocks, "end_order",
-    ].join("\n");
-  }, [lines, poNumber, orderReference, selectedAccount]);
+  const previewText = !staged
+    ? "Save the draft to see the order file this will send."
+    : preview.isLoading
+      ? "Rendering…"
+      : preview.error
+        ? `Could not render the order: ${(preview.error as Error).message}`
+        : preview.data?.hashref ?? "";
 
   return (
     <div className={`cv-rx-embed no-gear stock-order-shell${annotateOn ? " stock-annotate-on" : ""}`} onClickCapture={handleAnnotationCapture}>
@@ -348,7 +396,7 @@ const StockOrderBuilderPage = () => {
                <button className="iconbtn" type="button" title="Annotate improvements" aria-label="Annotate improvements" onClick={() => setAnnotateOn((current) => !current)}>✎</button>
              </div>
              </div>
-             <p>Search, scan, or fill a power grid to order finished and semi-finished lenses by SKU.</p>
+             <p>Search, scan, or fill a power grid to order the items published on the website.</p>
            </div>
         </div>
 
@@ -379,7 +427,11 @@ const StockOrderBuilderPage = () => {
             <span className="idx">2</span>
             <div>
               <h2>Add items</h2>
-              <div className="sub">{selectedAccount ? `Prices shown are ${selectedAccount.name}'s pricelist.` : "Select a customer account first."}</div>
+              <div className="sub">
+                {selectedAccount
+                  ? `Website items priced on ${selectedAccount.name}'s pricelist.`
+                  : "Select a customer account first."}
+              </div>
             </div>
           </div>
           <div className="card-b">
@@ -392,38 +444,44 @@ const StockOrderBuilderPage = () => {
             {mode === "search" && (
               <div>
                 <input
-                  placeholder="Search product name, material, or manufacturer"
+                  placeholder="Search product name, category, or SKU"
                   value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ marginBottom: 12 }}
                 />
                 <div className="rxwrap">
-                  {searchResults.map((family) => {
-                    const isExpanded = expandedFamilyId === family.id;
-                    const price = pricing?.get(family.id) ?? 0;
+                  {searchResults.map((item) => {
+                    const key = productKey(item);
+                    const isExpanded = expandedProductKey === key;
                     return (
-                      <div key={family.id} style={{ borderBottom: "1px solid var(--border-soft)" }}>
+                      <div key={key} style={{ borderBottom: "1px solid var(--border-soft)" }}>
                         <div
                           style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 4px", cursor: "pointer" }}
-                          onClick={() => setExpandedFamilyId(isExpanded ? null : family.id)}
+                          onClick={() => setExpandedProductKey(isExpanded ? null : key)}
                         >
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13.5 }}>{family.name}</div>
-                            <div className="hint">{family.material} · {family.mf_type}</div>
+                            <div style={{ fontWeight: 600, fontSize: 13.5 }}>{item.name}</div>
+                            <div className="hint">{[item.category, item.sku].filter(Boolean).join(" · ")}</div>
                           </div>
-                          <span className="tchip">{family.lens_state === "finished" ? "Finished" : "Semi-finished"}</span>
-                          <span style={{ fontWeight: 600, fontSize: 12.5 }}>${price.toFixed(2)}</span>
+                          <span className="tchip">{PRODUCT_TYPE_LABEL[item.product_type]}</span>
+                          <span style={{ fontWeight: 600, fontSize: 12.5 }}>${item.unit_price.toFixed(2)}</span>
                         </div>
                         {isExpanded && (
-                          <PowerGrid
-                            rows={expandedPowers as PowerRow[]}
-                            price={price}
-                            onAdd={(row, side, qty) => addLine(family, row, side, qty)}
+                          <VariantPicker
+                            product={item}
+                            variants={expandedVariants}
+                            onAdd={(variant, side, qty) => addLine(item, variant, side, qty)}
                           />
                         )}
                       </div>
                     );
                   })}
-                  {!searchResults.length && <div className="hint">No priced items match that search.</div>}
+                  {!searchResults.length && (
+                    <div className="hint">
+                      {catalogLoading
+                        ? "Loading the website catalog…"
+                        : "No published website item matches that search on this account's pricelist."}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -433,7 +491,7 @@ const StockOrderBuilderPage = () => {
                 <div className="drop">
                   <Barcode className="di" style={{ width: 26, height: 26, margin: "0 auto" }} />
                   <div className="dt">Scan or type a code, then press Enter</div>
-                  <div className="ds">Resolves to one exact power and side — priced and added directly.</div>
+                  <div className="ds">Resolves to one website variant and side — priced and added directly.</div>
                   <input
                     autoFocus value={scanValue}
                     onChange={(e) => setScanValue(e.target.value)}
@@ -453,19 +511,21 @@ const StockOrderBuilderPage = () => {
             {mode === "grid" && (
               <div>
                 <div className="field" style={{ maxWidth: 360, marginBottom: 12 }}>
-                  <label>Product family</label>
-                  <select value={gridFamilyId ?? ""} onChange={(e) => setGridFamilyId(e.target.value || null)}>
-                    <option value="">Select a family</option>
-                    {orderableFamilies.map((f) => (
-                      <option key={f.id} value={f.id}>{f.name} ({f.lens_state === "finished" ? "finished" : "semi-finished"})</option>
+                  <label>Product</label>
+                  <select value={gridProductKey ?? ""} onChange={(e) => setGridProductKey(e.target.value || null)}>
+                    <option value="">Select a product</option>
+                    {catalog.filter((item) => item.has_variants).map((item) => (
+                      <option key={productKey(item)} value={productKey(item)}>
+                        {item.name} ({PRODUCT_TYPE_LABEL[item.product_type]})
+                      </option>
                     ))}
                   </select>
                 </div>
-                {gridFamily && (
-                  <PowerGrid
-                    rows={gridPowers as PowerRow[]}
-                    price={pricing?.get(gridFamily.id) ?? 0}
-                    onAdd={(row, side, qty) => addLine(gridFamily, row, side, qty)}
+                {gridProduct && (
+                  <VariantPicker
+                    product={gridProduct}
+                    variants={gridVariants}
+                    onAdd={(variant, side, qty) => addLine(gridProduct, variant, side, qty)}
                   />
                 )}
               </div>
@@ -485,7 +545,7 @@ const StockOrderBuilderPage = () => {
           <div className="card-b">
             {lines.map((line) => (
               <div key={line.key} style={{ display: "grid", gridTemplateColumns: "auto 1fr 120px 70px 70px 90px auto", gap: 10, alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
-                <span className="tchip">{line.lensState === "finished" ? "Finished" : "Semi-fin."}</span>
+                <span className="tchip">{PRODUCT_TYPE_LABEL[line.productType]}</span>
                 <span>{line.sku} · {line.description}</span>
                 <input placeholder="Ref" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} style={{ height: 32 }} />
                 <input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} style={{ height: 32, textAlign: "center" }} />
@@ -505,6 +565,14 @@ const StockOrderBuilderPage = () => {
 
         <div className="steps" style={{ position: "static", gridColumn: "1/-1" }} data-annotatable>
           <div className="step-actions" style={{ marginLeft: 0 }}>
+            <label className="stock-order-account" title="Where this order is sent">
+              <span>Send via</span>
+              <select aria-label="Delivery route" value={provider} onChange={(e) => setProvider(e.target.value as DispatchProvider)}>
+                <option value="innovations">OptiLens</option>
+                <option value="gatekeeper">Gatekeeper</option>
+              </select>
+              <span className="stock-order-chevron">▾</span>
+            </label>
             <button className="btn btn-ghost" onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
             {staged && (
               <Link className="linkbtn" to="/admin/website/quotations">View drafts</Link>
@@ -562,61 +630,102 @@ const StockOrderBuilderPage = () => {
   );
 };
 
-const PowerGrid = ({ rows, price, onAdd }: { rows: PowerRow[]; price: number; onAdd: (row: PowerRow, side: "right" | "left" | "either", qty: number) => void }) => {
+/** Picks one of a website product's variants. Lens variants imported from
+ *  Lens Local carry sphere/cylinder attributes and lay out as the familiar
+ *  power matrix; every other variant set lists. A product with no variants at
+ *  all is ordered by its own SKU. */
+const VariantPicker = ({
+  product, variants, onAdd,
+}: {
+  product: StockCatalogItem;
+  variants: StockVariant[];
+  onAdd: (variant: StockVariant | null, side: "right" | "left" | "either", qty: number) => void;
+}) => {
   const [qty, setQty] = useState<Record<string, number>>({});
-  const labels = axisLabels(rows);
-  const rowValues = [...new Set(rows.map((r) => r.sphere ?? r.base).filter((v) => v != null))].sort((a, b) => (b as number) - (a as number));
-  const colValues = [...new Set(rows.map((r) => r.cylinder ?? r.add).filter((v) => v != null))].sort((a, b) => (b as number) - (a as number));
-  const byCell = new Map<string, PowerRow>();
-  rows.forEach((r) => byCell.set(`${r.sphere ?? r.base}:${r.cylinder ?? r.add}`, r));
 
-  if (!rows.length) return <div className="hint" style={{ padding: "8px 4px" }}>Loading powers…</div>;
+  const take = (id: string, variant: StockVariant | null) => {
+    const n = qty[id] || 0;
+    if (!n) return;
+    // A chiral lens variant is two physical lenses with different codes, so a
+    // pair goes on as two lines rather than one ambiguous one.
+    if (variant && variantIsChiral(variant)) {
+      onAdd(variant, "right", n);
+      onAdd(variant, "left", n);
+    } else {
+      onAdd(variant, "either", n);
+    }
+    setQty((p) => ({ ...p, [id]: 0 }));
+  };
+
+  const quantityCell = (id: string, variant: StockVariant | null) => (
+    <>
+      <input
+        type="number" min={0} value={qty[id] ?? ""}
+        onChange={(e) => setQty((p) => ({ ...p, [id]: Math.max(0, Number(e.target.value) || 0) }))}
+        style={{ width: 52 }}
+      />
+      <button className="iconbtn sm" style={{ marginLeft: 4 }} aria-label="Add" onClick={() => take(id, variant)}>+</button>
+    </>
+  );
+
+  if (!product.has_variants) {
+    return (
+      <div style={{ padding: "0 4px 14px" }}>
+        <div className="hint" style={{ marginBottom: 8 }}>
+          No variants on the website — ordered by its own SKU at ${product.unit_price.toFixed(2)}.
+        </div>
+        {quantityCell(`${product.product_type}:${product.product_id}`, null)}
+      </div>
+    );
+  }
+
+  if (!variants.length) return <div className="hint" style={{ padding: "8px 4px" }}>Loading variants…</div>;
+
+  if (hasPowerAxes(variants)) {
+    const rowValues = [...new Set(variants.map((v) => numericAttr(v, "sphere") as number))].sort((a, b) => b - a);
+    const colValues = [...new Set(variants.map((v) => numericAttr(v, "cylinder") as number))].sort((a, b) => b - a);
+    const byCell = new Map<string, StockVariant>();
+    variants.forEach((v) => byCell.set(`${numericAttr(v, "sphere")}:${numericAttr(v, "cylinder")}`, v));
+
+    return (
+      <div style={{ padding: "0 4px 14px" }}>
+        <div className="hint" style={{ marginBottom: 8 }}>Choose power and quantity — ${product.unit_price.toFixed(2)} per cell.</div>
+        <div className="rxwrap">
+          <table className="rxtable">
+            <thead>
+              <tr>
+                <th>Sphere \ Cylinder</th>
+                {colValues.map((c) => <th key={c}>{c.toFixed(2)}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {rowValues.map((r) => (
+                <tr key={r}>
+                  <td><div className="eye"><b>{r.toFixed(2)}</b></div></td>
+                  {colValues.map((c) => {
+                    const variant = byCell.get(`${r}:${c}`);
+                    if (!variant) return <td key={c}>—</td>;
+                    return <td key={c}>{quantityCell(variant.id, variant)}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "0 4px 14px" }}>
-      <div className="hint" style={{ marginBottom: 8 }}>Choose power and quantity — ${price.toFixed(2)} per cell.</div>
-      <div className="rxwrap">
-        <table className="rxtable">
-          <thead>
-            <tr>
-              <th>{labels.row} \ {labels.col}</th>
-              {colValues.map((c) => <th key={String(c)}>{Number(c).toFixed(2)}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {rowValues.map((r) => (
-              <tr key={String(r)}>
-                <td><div className="eye"><b>{Number(r).toFixed(2)}</b></div></td>
-                {colValues.map((c) => {
-                  const row = byCell.get(`${r}:${c}`);
-                  if (!row) return <td key={String(c)}>—</td>;
-                  const chiral = row.right_opc && row.left_opc && row.right_opc !== row.left_opc;
-                  const cellKey = row.id;
-                  return (
-                    <td key={String(c)}>
-                      <input
-                        type="number" min={0} value={qty[cellKey] ?? ""}
-                        onChange={(e) => setQty((p) => ({ ...p, [cellKey]: Math.max(0, Number(e.target.value) || 0) }))}
-                        style={{ width: 52 }}
-                      />
-                      <button
-                        className="iconbtn sm" style={{ marginLeft: 4 }} aria-label="Add"
-                        onClick={() => {
-                          const n = qty[cellKey] || 0;
-                          if (!n) return;
-                          onAdd(row, chiral ? "right" : "either", n);
-                          if (chiral) onAdd(row, "left", n);
-                          setQty((p) => ({ ...p, [cellKey]: 0 }));
-                        }}
-                      >+</button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <div className="hint" style={{ marginBottom: 8 }}>${product.unit_price.toFixed(2)} per unit.</div>
+      {variants.map((variant) => (
+        <div key={variant.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
+          <span style={{ flex: 1, minWidth: 0 }}>{variant.title}</span>
+          <span className="hint">{variantSkuFor(variant, "either") ?? "no code"}</span>
+          {quantityCell(variant.id, variant)}
+        </div>
+      ))}
     </div>
   );
 };
