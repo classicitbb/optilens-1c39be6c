@@ -443,6 +443,54 @@ Deno.serve(async (req) => {
       return json(req, { ok: true, refreshed: true, contracts: sanitizeContracts(contracts) });
     }
 
+    if (action === "pull-statuses") {
+      // Gatekeeper forbids pulling job statuses more often than every 5
+      // minutes, so the window is claimed in the database before any call is
+      // made — a burst of page loads or an overlapping cron run is a no-op.
+      const { data: claimed, error: claimError } = await authContext.supabaseAdminClient
+        .rpc("begin_gatekeeper_status_pull", { p_force: false });
+      if (claimError) throw new Error(`Status pull could not start: ${claimError.message}`);
+      if (!claimed) return json(req, { ok: true, pulled: false, reason: "throttled" });
+
+      const config = await credentialsFor(authContext);
+      const authToken = await validAuthToken(authContext, config, log);
+      const rows = await statusesFor(config.environment, authToken, text(config.receiver_lab_id), log);
+      if (!rows) {
+        return json(req, { ok: true, pulled: false, reason: "endpoint_unavailable" });
+      }
+
+      const byPo = new Map(rows.map((row) => [row.poNumber.toUpperCase(), row]));
+      let updated = 0;
+      for (const kind of ["rx", "stock"] as const) {
+        const { table } = ORDER_TABLES[kind];
+        const { data: submissions } = await authContext.supabaseAdminClient
+          .from(table)
+          .select("id, gatekeeper_order_id, payload, po_number")
+          .eq("status", "submitted")
+          .not("gatekeeper_order_id", "is", null)
+          .limit(500);
+        for (const submission of (submissions ?? []) as any[]) {
+          const po = text(
+            submission.po_number ?? submission.payload?.po_number ?? submission.payload?.quote?.quote_number ?? submission.gatekeeper_order_id,
+            64,
+          ).toUpperCase();
+          const match = byPo.get(po) ?? byPo.get(String(submission.gatekeeper_order_id));
+          if (!match) continue;
+          const { error: recordError } = await authContext.supabaseAdminClient.rpc("record_gatekeeper_status", {
+            p_submission_id: submission.id,
+            p_order_kind: kind,
+            p_status: match.status,
+            p_detail: match.detail,
+          });
+          if (recordError) console.error("gatekeeper status write failed", recordError.message);
+          else updated += 1;
+        }
+      }
+      return json(req, { ok: true, pulled: true, received: rows.length, updated });
+    }
+
+
+
     const orderKind = orderKindFrom(body.orderKind);
     log.orderKind = orderKind;
     const { table, columns } = ORDER_TABLES[orderKind];
