@@ -199,17 +199,34 @@ async function authenticate(environment: "staging" | "production", jwtKey: strin
   return String(body.auth_token);
 }
 
+const CONTRACT_PATHS = [
+  "/api/v2/orders/contract_available",
+  "/api/v2/orders/contracts_available",
+  "/api/v2/contract_available",
+  "/api/v2/orders/contract_availables",
+];
+
 async function contractsFor(environment: "staging" | "production", authToken: string, log: DispatchLog | null): Promise<GatekeeperContract[]> {
-  const url = `${baseUrl(environment)}/api/v2/orders/contract_available`;
-  const { response, body } = await gatekeeperFetch(log, "contract_available", url, {
-    headers: { Authorization: `Bearer ${authToken}` },
-  }, { environment });
-  if (!response.ok) throw new Error(`Gatekeeper contract lookup failed (HTTP ${response.status}).`);
-  const lab = body?.message?.lab ?? body?.lab ?? {};
-  const contracts = lab.contractSending ?? body?.contractSending ?? [];
-  if (!Array.isArray(contracts)) throw new Error("Gatekeeper returned an invalid contract list.");
-  return contracts as GatekeeperContract[];
+  let lastStatus = 0;
+  for (const path of CONTRACT_PATHS) {
+    // Gatekeeper v2 accepts the 24-hour token either as a bearer header or as
+    // an auth_token query parameter; send both so a path change is the only
+    // remaining failure mode.
+    const url = new URL(`${baseUrl(environment)}${path}`);
+    url.searchParams.set("auth_token", authToken);
+    const { response, body } = await gatekeeperFetch(log, "contract_available", url.toString(), {
+      headers: { Authorization: `Bearer ${authToken}`, Accept: "application/json" },
+    }, { environment, path });
+    if (response.status === 404) { lastStatus = 404; continue; }
+    if (!response.ok) throw new Error(`Gatekeeper contract lookup failed (HTTP ${response.status}).`);
+    const lab = body?.message?.lab ?? body?.lab ?? {};
+    const contracts = lab.contractSending ?? body?.contractSending ?? body?.message?.contractSending ?? [];
+    if (!Array.isArray(contracts)) throw new Error("Gatekeeper returned an invalid contract list.");
+    return contracts as GatekeeperContract[];
+  }
+  throw new Error(`Gatekeeper contract lookup failed (HTTP ${lastStatus || 404}). Gatekeeper's contract endpoint is not available on ${environment}; existing stored contracts are unchanged.`);
 }
+
 
 
 function sanitizeContracts(contracts: GatekeeperContract[]) {
