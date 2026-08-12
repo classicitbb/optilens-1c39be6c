@@ -3178,8 +3178,10 @@ export type Database = {
           last_connected_at: string | null
           last_error: string | null
           last_receipt_at: string | null
+          last_status_pull_at: string | null
           origin_lab_id: string
           status: string
+          status_pull_token: string | null
           tenant_key: string
           updated_at: string
         }
@@ -3194,8 +3196,10 @@ export type Database = {
           last_connected_at?: string | null
           last_error?: string | null
           last_receipt_at?: string | null
+          last_status_pull_at?: string | null
           origin_lab_id: string
           status?: string
+          status_pull_token?: string | null
           tenant_key?: string
           updated_at?: string
         }
@@ -3210,8 +3214,10 @@ export type Database = {
           last_connected_at?: string | null
           last_error?: string | null
           last_receipt_at?: string | null
+          last_status_pull_at?: string | null
           origin_lab_id?: string
           status?: string
+          status_pull_token?: string | null
           tenant_key?: string
           updated_at?: string
         }
@@ -8137,6 +8143,9 @@ export type Database = {
           dispatch_provider: string
           gatekeeper_order_id: number
           id: string
+          lab_status: string | null
+          lab_status_at: string | null
+          lab_status_detail: string | null
           last_error: string | null
           mode: number
           order_id: string | null
@@ -8160,6 +8169,9 @@ export type Database = {
           dispatch_provider?: string
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           mode?: number
           order_id?: string | null
@@ -8183,6 +8195,9 @@ export type Database = {
           dispatch_provider?: string
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           mode?: number
           order_id?: string | null
@@ -8917,6 +8932,9 @@ export type Database = {
           filename: string | null
           gatekeeper_order_id: number
           id: string
+          lab_status: string | null
+          lab_status_at: string | null
+          lab_status_detail: string | null
           last_error: string | null
           order_reference: string | null
           payload: Json
@@ -8939,6 +8957,9 @@ export type Database = {
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
@@ -8961,6 +8982,9 @@ export type Database = {
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
@@ -10557,6 +10581,10 @@ export type Database = {
           object_type: string
         }[]
       }
+      begin_gatekeeper_status_pull: {
+        Args: { p_force?: boolean }
+        Returns: boolean
+      }
       build_rx_submission_payload: {
         Args: { p_quote_id: string }
         Returns: Json
@@ -11208,6 +11236,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_gatekeeper_status: {
+        Args: {
+          p_detail?: string
+          p_order_kind: string
+          p_status: string
+          p_submission_id: string
+        }
+        Returns: undefined
+      }
       record_payment_gateway_test: {
         Args: { p_actor_user_id?: string; p_success: boolean }
         Returns: undefined
@@ -11507,6 +11544,10 @@ export type Database = {
           name: string
           scopes: string[]
         }[]
+      }
+      verify_gatekeeper_status_pull_token: {
+        Args: { p_token: string }
+        Returns: boolean
       }
     }
     Enums: {

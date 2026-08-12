@@ -186,3 +186,67 @@ describe("field escaping", () => {
     expect(fields.get("instructions")).toBe("Call first  ask for Sam");
   });
 });
+
+// Gatekeeper spec field constraints. These are the three routing fields the
+// receiving lab keys on, and getting one wrong sends a valid-looking order to
+// the wrong place — so every supported receiver shape is run through the same
+// assertions here rather than being spot-checked per receiver.
+const RECEIVERS = [
+  { name: "retailer-name receiver", routing: { labNum: "5", custNum: "1095001" }, expectedLabNum: "005" },
+  { name: "three-digit lab receiver", routing: { labNum: "742", custNum: "CLASSICVISIONS" }, expectedLabNum: "742" },
+  { name: "zero-padded lab receiver", routing: { labNum: "007", custNum: "1095001" }, expectedLabNum: "007" },
+  { name: "Labzilla integer receiver", routing: { labNum: "12", custNum: "884422" }, expectedLabNum: "012" },
+] as const;
+
+const ORDER_KINDS = [
+  { kind: "rx", build: () => canonicalOrderFromRxSubmission(rxSubmission()) },
+  { kind: "stock", build: () => canonicalOrderFromStockSubmission(stockSubmission()) },
+] as const;
+
+describe("routing field constraints", () => {
+  for (const receiver of RECEIVERS) {
+    for (const orderKind of ORDER_KINDS) {
+      it(`${orderKind.kind} order to a ${receiver.name} sends lab_num, cust_num and cust_seq_num to spec`, () => {
+        const fields = fieldsOf(buildOrderHashref(orderKind.build(), receiver.routing));
+        expect(fields.get("lab_num")).toBe(receiver.expectedLabNum);
+        expect(fields.get("lab_num")).toMatch(/^\d{3}$/);
+        expect(fields.get("cust_num")).toBe(receiver.routing.custNum);
+        expect(fields.get("cust_seq_num")).toMatch(/^\d{3}$/);
+        expect(fields.get("agent_name")).toBe("optilens");
+      });
+    }
+  }
+
+  it("derives cust_seq_num from the last three digits of the allocated order number", () => {
+    const fields = fieldsOf(buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), ROUTING));
+    expect(fields.get("cust_seq_num")).toBe("558"); // gatekeeper_order_id 362558
+    const stockFields = fieldsOf(buildOrderHashref(canonicalOrderFromStockSubmission(stockSubmission()), ROUTING));
+    expect(stockFields.get("cust_seq_num")).toBe("001"); // gatekeeper_order_id 900001
+    expect(stockFields.get("order_id")).toBe("900001");
+  });
+
+  it("rejects a lab number outside 001-999 instead of routing the order somewhere else", () => {
+    for (const labNum of ["0", "1000", "abc"]) {
+      expect(() => buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum, custNum: "1095001" }))
+        .toThrow(/lab number/i);
+    }
+  });
+
+  it("refuses to send when the contract has no lab or customer number", () => {
+    expect(() => buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum: "", custNum: "1095001" }))
+      .toThrow(/lab or customer number/i);
+    expect(() => buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum: "5", custNum: "" }))
+      .toThrow(/lab or customer number/i);
+  });
+
+  it("lowercases agent_name whatever casing the caller passes", () => {
+    const fields = fieldsOf(buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { ...ROUTING, agentName: "OptiLens" }));
+    expect(fields.get("agent_name")).toBe("optilens");
+  });
+
+  it("leaves preview placeholders untouched so an unconnected contract still renders", () => {
+    const fields = fieldsOf(buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum: "<lab_num>", custNum: "<cust_num>" }));
+    expect(fields.get("lab_num")).toBe("<lab_num>");
+    expect(fields.get("cust_num")).toBe("<cust_num>");
+  });
+});

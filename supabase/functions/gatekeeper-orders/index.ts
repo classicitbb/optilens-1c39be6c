@@ -10,6 +10,7 @@
 
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildOrderHashref, canonicalOrderFor, text, type OrderKind } from "../_shared/orders/hashref.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -231,6 +232,50 @@ async function contractsFor(environment: "staging" | "production", authToken: st
   return null;
 }
 
+// Innovations keys job status on the PO number we sent, not the Rx number.
+const STATUS_PATHS = [
+  "/api/v2/operations/order_status",
+  "/api/v2/orders/order_status",
+  "/api/v2/orders/status",
+];
+
+export interface GatekeeperStatusRow {
+  poNumber: string;
+  status: string;
+  detail: string | null;
+}
+
+function normalizeStatusRows(body: any): GatekeeperStatusRow[] {
+  const raw = body?.message?.orders ?? body?.orders ?? body?.message?.statuses ?? body?.statuses ?? body?.message ?? body;
+  const list = Array.isArray(raw) ? raw : [];
+  const rows: GatekeeperStatusRow[] = [];
+  for (const entry of list) {
+    const poNumber = text(entry?.PoNumber ?? entry?.po_number ?? entry?.customer_po_num ?? entry?.poNumber, 64);
+    const status = text(entry?.Status ?? entry?.status ?? entry?.job_status, 64);
+    if (!poNumber || !status) continue;
+    rows.push({
+      poNumber,
+      status,
+      detail: text(entry?.StatusDescription ?? entry?.description ?? entry?.tracking ?? entry?.TrackingNumber, 240) || null,
+    });
+  }
+  return rows;
+}
+
+async function statusesFor(environment: "staging" | "production", authToken: string, labId: string, log: DispatchLog | null): Promise<GatekeeperStatusRow[] | null> {
+  for (const path of STATUS_PATHS) {
+    const url = new URL(`${baseUrl(environment)}${path}`);
+    url.searchParams.set("auth_token", authToken);
+    if (labId) url.searchParams.set("lab_id", labId);
+    const { response, body } = await gatekeeperFetch(log, "order_status", url.toString(), {
+      headers: { Authorization: `Bearer ${authToken}`, Accept: "application/json" },
+    }, { environment, path }, [404]);
+    if (response.status === 404) continue;
+    if (!response.ok) throw new Error(`Gatekeeper status pull failed (HTTP ${response.status}).`);
+    return normalizeStatusRows(body);
+  }
+  return null;
+}
 
 
 function sanitizeContracts(contracts: GatekeeperContract[]) {
@@ -284,16 +329,41 @@ Deno.serve(async (req) => {
   if (disallowedOrigin) return disallowedOrigin;
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
 
-  const authContext = await requirePrivilegedAccess(req, getCorsHeaders(req, corsPolicy), {
-    allowedRoles: ["admin"], sourceFunction: "gatekeeper-orders",
-  });
+  // The scheduled status pull has no interactive user, so it presents the
+  // per-tenant status-pull token instead of an admin session. The token is
+  // verified against the database before anything else happens, and it can
+  // only ever reach the pull-statuses branch below.
+  const presentedCronToken = req.headers.get("x-gatekeeper-cron-token") ?? "";
+  let isCron = false;
+  const serviceClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
+  if (presentedCronToken) {
+    const { data: validToken } = await serviceClient
+      .rpc("verify_gatekeeper_status_pull_token", { p_token: presentedCronToken });
+    isCron = validToken === true;
+    if (!isCron) return json(req, { error: "Unauthorized" }, 401);
+  }
+
+  const authContext = isCron
+    ? { supabaseAdminClient: serviceClient, user: { id: null as string | null } }
+    : await requirePrivilegedAccess(req, getCorsHeaders(req, corsPolicy), {
+        allowedRoles: ["admin"], sourceFunction: "gatekeeper-orders",
+      });
   if (authContext instanceof Response) return authContext;
+
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;
   const action = text(body?.action, 40);
-  if (!body || !["connect", "refresh-contracts", "send", "preview"].includes(action)) {
+  if (!body || !["connect", "refresh-contracts", "send", "preview", "pull-statuses"].includes(action)) {
     return json(req, { error: "Unsupported action." }, 400);
   }
+  if (isCron && action !== "pull-statuses") {
+    return json(req, { error: "The scheduled caller may only pull statuses." }, 403);
+  }
+
 
   const log: DispatchLog = {
     admin: authContext.supabaseAdminClient,
@@ -378,6 +448,54 @@ Deno.serve(async (req) => {
       if (error) throw new Error(`Gatekeeper contracts could not be refreshed: ${error.message}`);
       return json(req, { ok: true, refreshed: true, contracts: sanitizeContracts(contracts) });
     }
+
+    if (action === "pull-statuses") {
+      // Gatekeeper forbids pulling job statuses more often than every 5
+      // minutes, so the window is claimed in the database before any call is
+      // made — a burst of page loads or an overlapping cron run is a no-op.
+      const { data: claimed, error: claimError } = await authContext.supabaseAdminClient
+        .rpc("begin_gatekeeper_status_pull", { p_force: false });
+      if (claimError) throw new Error(`Status pull could not start: ${claimError.message}`);
+      if (!claimed) return json(req, { ok: true, pulled: false, reason: "throttled" });
+
+      const config = await credentialsFor(authContext);
+      const authToken = await validAuthToken(authContext, config, log);
+      const rows = await statusesFor(config.environment, authToken, text(config.receiver_lab_id), log);
+      if (!rows) {
+        return json(req, { ok: true, pulled: false, reason: "endpoint_unavailable" });
+      }
+
+      const byPo = new Map(rows.map((row) => [row.poNumber.toUpperCase(), row]));
+      let updated = 0;
+      for (const kind of ["rx", "stock"] as const) {
+        const { table } = ORDER_TABLES[kind];
+        const { data: submissions } = await authContext.supabaseAdminClient
+          .from(table)
+          .select(kind === "stock" ? "id, gatekeeper_order_id, payload, po_number" : "id, gatekeeper_order_id, payload")
+          .eq("status", "submitted")
+          .not("gatekeeper_order_id", "is", null)
+          .limit(500);
+        for (const submission of (submissions ?? []) as any[]) {
+          const po = text(
+            submission.po_number ?? submission.payload?.po_number ?? submission.payload?.quote?.quote_number ?? submission.gatekeeper_order_id,
+            64,
+          ).toUpperCase();
+          const match = byPo.get(po) ?? byPo.get(String(submission.gatekeeper_order_id));
+          if (!match) continue;
+          const { error: recordError } = await authContext.supabaseAdminClient.rpc("record_gatekeeper_status", {
+            p_submission_id: submission.id,
+            p_order_kind: kind,
+            p_status: match.status,
+            p_detail: match.detail,
+          });
+          if (recordError) console.error("gatekeeper status write failed", recordError.message);
+          else updated += 1;
+        }
+      }
+      return json(req, { ok: true, pulled: true, received: rows.length, updated });
+    }
+
+
 
     const orderKind = orderKindFrom(body.orderKind);
     log.orderKind = orderKind;
