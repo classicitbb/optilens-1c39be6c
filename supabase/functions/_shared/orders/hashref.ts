@@ -325,10 +325,13 @@ export function buildOrderHashref(order: CanonicalOrder, routing: HashrefRouting
   const isPlaceholderLab = text(routing.labNum).startsWith("<");
   const labNumRaw = text(routing.labNum).replace(/\D/g, "");
   const labNumValue = Number(labNumRaw);
-  if (!isPlaceholderLab && (!labNumRaw || !Number.isFinite(labNumValue) || labNumValue < 1 || labNumValue > 999)) {
-    throw new Error("The sending contract's lab number must be between 001 and 999.");
+  if (!isPlaceholderLab && (!labNumRaw || !Number.isFinite(labNumValue) || labNumValue < 1)) {
+    throw new Error("The sending contract's lab number must be a positive number.");
   }
+  // Gatekeeper issues lab ids wider than the spec's 3-digit example (e.g. 1368),
+  // so only pad short values and send longer ones through unchanged.
   const labNum = isPlaceholderLab ? text(routing.labNum) : String(labNumValue).padStart(3, "0");
+
   const orderDigits = String(order.orderId).replace(/\D/g, "");
   const custSeqNum = String(Number(orderDigits.slice(-3) || "0")).padStart(3, "0");
 
