@@ -8859,12 +8859,15 @@ export type Database = {
           claimed_at: string | null
           created_at: string
           created_by: string | null
+          dispatch_provider: string
           filename: string | null
+          gatekeeper_order_id: number
           id: string
           last_error: string | null
           order_reference: string | null
           payload: Json
           po_number: string | null
+          receipt: Json | null
           released_at: string | null
           status: string
           transport: string | null
@@ -8878,12 +8881,15 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           created_by?: string | null
+          dispatch_provider?: string
           filename?: string | null
+          gatekeeper_order_id?: number
           id?: string
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          receipt?: Json | null
           released_at?: string | null
           status?: string
           transport?: string | null
@@ -8897,12 +8903,15 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           created_by?: string | null
+          dispatch_provider?: string
           filename?: string | null
+          gatekeeper_order_id?: number
           id?: string
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          receipt?: Json | null
           released_at?: string | null
           status?: string
           transport?: string | null
@@ -10848,6 +10857,18 @@ export type Database = {
           timezone: string
         }[]
       }
+      get_stock_order_catalog: {
+        Args: { p_account_id: number }
+        Returns: {
+          category: string
+          has_variants: boolean
+          name: string
+          product_id: string
+          product_type: string
+          sku: string
+          unit_price: number
+        }[]
+      }
       get_store_product_variants_public: {
         Args: { p_product_id: string; p_product_type: string }
         Returns: {
@@ -11104,6 +11125,7 @@ export type Database = {
       record_gatekeeper_result: {
         Args: {
           p_error_message?: string
+          p_order_kind?: string
           p_receipt?: Json
           p_submission_id: string
           p_success: boolean
@@ -11116,7 +11138,7 @@ export type Database = {
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       release_stock_order_submission: {
-        Args: { p_id: string }
+        Args: { p_dispatch_provider?: string; p_id: string }
         Returns: undefined
       }
       replace_gatekeeper_contracts: {
