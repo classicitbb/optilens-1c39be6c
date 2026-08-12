@@ -10,6 +10,7 @@
 
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildOrderHashref, canonicalOrderFor, text, type OrderKind } from "../_shared/orders/hashref.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -465,7 +466,7 @@ Deno.serve(async (req) => {
         const { table } = ORDER_TABLES[kind];
         const { data: submissions } = await authContext.supabaseAdminClient
           .from(table)
-          .select("id, gatekeeper_order_id, payload, po_number")
+          .select(kind === "stock" ? "id, gatekeeper_order_id, payload, po_number" : "id, gatekeeper_order_id, payload")
           .eq("status", "submitted")
           .not("gatekeeper_order_id", "is", null)
           .limit(500);
