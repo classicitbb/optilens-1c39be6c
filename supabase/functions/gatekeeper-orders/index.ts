@@ -293,13 +293,13 @@ Deno.serve(async (req) => {
       const pinUrl = new URL("/api/v1/legacy_orders/lab_access_with_pin", baseUrl(environment));
       pinUrl.searchParams.set("webrx_lab_id", originLabId);
       pinUrl.searchParams.set("pin_code", pinCode);
-      const pinResponse = await fetch(pinUrl);
-      const pinBody = await readJson(pinResponse);
+      const { response: pinResponse, body: pinBody } = await gatekeeperFetch(log, "lab_access_with_pin", pinUrl.toString(), {}, { environment, webrx_lab_id: originLabId, pin_code: "[redacted]" });
       const lab = pinBody?.message?.lab ?? pinBody?.lab ?? {};
       if (!pinResponse.ok || !text(lab.jwt_key) || !text(lab.jwt_secret)) {
         throw new Error(`Gatekeeper did not accept the PIN (HTTP ${pinResponse.status}).`);
       }
-      const authToken = await authenticate(environment, String(lab.jwt_key), String(lab.jwt_secret));
+      const authToken = await authenticate(environment, String(lab.jwt_key), String(lab.jwt_secret), log);
+
       const suppliedContracts = Array.isArray(lab.contractSending) ? lab.contractSending as GatekeeperContract[] : [];
       // Persist the single-use-PIN result before a separate contract lookup.
       // If Gatekeeper's second call is temporarily unavailable, the durable JWT
