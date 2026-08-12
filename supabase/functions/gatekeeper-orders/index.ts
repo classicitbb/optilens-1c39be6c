@@ -136,7 +136,7 @@ async function recordDispatchLog(log: DispatchLog | null, entry: {
 }
 
 // Single place where Gatekeeper is called, so no request can escape logging.
-async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: string, init: RequestInit, requestSnapshot?: unknown) {
+async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: string, init: RequestInit, requestSnapshot?: unknown, expectedStatuses: number[] = []) {
   const startedAt = Date.now();
   const method = (init.method ?? "GET").toUpperCase();
   try {
@@ -144,17 +144,18 @@ async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: stri
     const raw = await response.text();
     let body: any = {};
     try { body = raw ? JSON.parse(raw) : {}; } catch { body = { raw: raw.slice(0, SNAPSHOT_LIMIT) }; }
+    const expectedResponse = response.ok || expectedStatuses.includes(response.status);
     await recordDispatchLog(log, {
       phase,
-      success: response.ok,
+      success: expectedResponse,
       endpoint: url.split("?")[0],
       method,
       status: response.status,
       durationMs: Date.now() - startedAt,
       request: requestSnapshot ?? null,
       response: { body, headers: { "content-type": response.headers.get("content-type") } },
-      errorMessage: response.ok ? null : `Gatekeeper responded HTTP ${response.status}`,
-      alert: !response.ok,
+      errorMessage: expectedResponse ? null : `Gatekeeper responded HTTP ${response.status}`,
+      alert: !expectedResponse,
     });
     return { response, body };
   } catch (error) {
@@ -206,8 +207,7 @@ const CONTRACT_PATHS = [
   "/api/v2/orders/contract_availables",
 ];
 
-async function contractsFor(environment: "staging" | "production", authToken: string, log: DispatchLog | null): Promise<GatekeeperContract[]> {
-  let lastStatus = 0;
+async function contractsFor(environment: "staging" | "production", authToken: string, log: DispatchLog | null): Promise<GatekeeperContract[] | null> {
   for (const path of CONTRACT_PATHS) {
     // Gatekeeper v2 accepts the 24-hour token either as a bearer header or as
     // an auth_token query parameter; send both so a path change is the only
@@ -216,15 +216,15 @@ async function contractsFor(environment: "staging" | "production", authToken: st
     url.searchParams.set("auth_token", authToken);
     const { response, body } = await gatekeeperFetch(log, "contract_available", url.toString(), {
       headers: { Authorization: `Bearer ${authToken}`, Accept: "application/json" },
-    }, { environment, path });
-    if (response.status === 404) { lastStatus = 404; continue; }
+    }, { environment, path }, [404]);
+    if (response.status === 404) continue;
     if (!response.ok) throw new Error(`Gatekeeper contract lookup failed (HTTP ${response.status}).`);
     const lab = body?.message?.lab ?? body?.lab ?? {};
     const contracts = lab.contractSending ?? body?.contractSending ?? body?.message?.contractSending ?? [];
     if (!Array.isArray(contracts)) throw new Error("Gatekeeper returned an invalid contract list.");
     return contracts as GatekeeperContract[];
   }
-  throw new Error(`Gatekeeper contract lookup failed (HTTP ${lastStatus || 404}). Gatekeeper's contract endpoint is not available on ${environment}; existing stored contracts are unchanged.`);
+  return null;
 }
 
 
@@ -332,7 +332,15 @@ Deno.serve(async (req) => {
         p_actor_user_id: authContext.user.id,
       });
       if (credentialError) throw new Error(`Gatekeeper credentials could not be saved: ${credentialError.message}`);
-      const contracts = await contractsFor(environment, authToken, log);
+      const refreshedContracts = await contractsFor(environment, authToken, log);
+      if (!refreshedContracts) {
+        return json(req, {
+          ok: true,
+          refreshed: false,
+          contracts: sanitizeContracts(suppliedContracts),
+          message: `Gatekeeper's contract endpoint is not available on ${environment}; contracts returned during connection remain stored.`,
+        });
+      }
       const { error } = await authContext.supabaseAdminClient.rpc("store_gatekeeper_connection", {
         p_environment: environment,
         p_origin_lab_id: text(lab.webrx_lab_id || originLabId, 30),
@@ -340,23 +348,31 @@ Deno.serve(async (req) => {
         p_jwt_key: String(lab.jwt_key),
         p_jwt_secret: String(lab.jwt_secret),
         p_auth_token: authToken,
-        p_contracts: contracts,
+        p_contracts: refreshedContracts,
         p_actor_user_id: authContext.user.id,
       });
       if (error) throw new Error(`Gatekeeper connected but credentials could not be saved: ${error.message}`);
-      return json(req, { ok: true, contracts: sanitizeContracts(contracts) });
+      return json(req, { ok: true, refreshed: true, contracts: sanitizeContracts(refreshedContracts) });
     }
 
     if (action === "refresh-contracts") {
       const config = await connectionCredentialsFor(authContext);
       const authToken = await validAuthToken(authContext, config, log);
       const contracts = await contractsFor(config.environment, authToken, log);
+      if (!contracts) {
+        return json(req, {
+          ok: true,
+          refreshed: false,
+          preserved: true,
+          message: `Gatekeeper's contract endpoint is not available on ${config.environment}; existing stored contracts are unchanged.`,
+        });
+      }
       const { error } = await authContext.supabaseAdminClient.rpc("replace_gatekeeper_contracts", {
         p_contracts: contracts,
         p_actor_user_id: authContext.user.id,
       });
       if (error) throw new Error(`Gatekeeper contracts could not be refreshed: ${error.message}`);
-      return json(req, { ok: true, contracts: sanitizeContracts(contracts) });
+      return json(req, { ok: true, refreshed: true, contracts: sanitizeContracts(contracts) });
     }
 
     const orderKind = orderKindFrom(body.orderKind);
