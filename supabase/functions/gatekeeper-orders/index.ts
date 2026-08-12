@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
         p_actor_user_id: authContext.user.id,
       });
       if (credentialError) throw new Error(`Gatekeeper credentials could not be saved: ${credentialError.message}`);
-      const contracts = await contractsFor(environment, authToken);
+      const contracts = await contractsFor(environment, authToken, log);
       const { error } = await authContext.supabaseAdminClient.rpc("store_gatekeeper_connection", {
         p_environment: environment,
         p_origin_lab_id: text(lab.webrx_lab_id || originLabId, 30),
@@ -332,8 +332,8 @@ Deno.serve(async (req) => {
 
     if (action === "refresh-contracts") {
       const config = await connectionCredentialsFor(authContext);
-      const authToken = await validAuthToken(authContext, config);
-      const contracts = await contractsFor(config.environment, authToken);
+      const authToken = await validAuthToken(authContext, config, log);
+      const contracts = await contractsFor(config.environment, authToken, log);
       const { error } = await authContext.supabaseAdminClient.rpc("replace_gatekeeper_contracts", {
         p_contracts: contracts,
         p_actor_user_id: authContext.user.id,
@@ -343,8 +343,10 @@ Deno.serve(async (req) => {
     }
 
     const orderKind = orderKindFrom(body.orderKind);
+    log.orderKind = orderKind;
     const { table, columns } = ORDER_TABLES[orderKind];
     const submissionId = text(body.submissionId, 64);
+    log.submissionId = submissionId || null;
     if (!submissionId) return json(req, { error: "A submission ID is required." }, 400);
 
     // Preview renders exactly what a send would transmit, from the same
@@ -385,17 +387,22 @@ Deno.serve(async (req) => {
 
     try {
       const config = await credentialsFor(authContext);
-      const authToken = await validAuthToken(authContext, config);
+      const authToken = await validAuthToken(authContext, config, log);
       const rxContent = buildOrderHashref(canonicalOrderFor(orderKind, claimed as Submission), {
         labNum: config.receiver_lab_id,
         custNum: config.receiver_retailer_name,
       });
-      const response = await fetch(`${baseUrl(config.environment)}/api/v2/orders/push_order_to_lab`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ order: { hash_routing: config.hash_routing, rx_content: rxContent, tr_content: "" } }),
-      });
-      const responseBody = await readJson(response);
+      const { response, body: responseBody } = await gatekeeperFetch(
+        log,
+        "push_order_to_lab",
+        `${baseUrl(config.environment)}/api/v2/orders/push_order_to_lab`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ order: { hash_routing: config.hash_routing, rx_content: rxContent, tr_content: "" } }),
+        },
+        { environment: config.environment, hash_routing: config.hash_routing, rx_content: rxContent },
+      );
       if (!response.ok || !responseBody?.message) {
         throw new Error(`Gatekeeper rejected the order (HTTP ${response.status}).`);
       }
@@ -422,6 +429,16 @@ Deno.serve(async (req) => {
       throw error;
     }
   } catch (error) {
-    return json(req, { error: error instanceof Error ? error.message : "Gatekeeper operation failed." }, 502);
+    const message = error instanceof Error ? error.message : "Gatekeeper operation failed.";
+    await recordDispatchLog(log, {
+      phase: "request_failed",
+      success: false,
+      request: { action, orderKind: log.orderKind, submissionId: log.submissionId, body: redact(body) },
+      response: { stack: error instanceof Error ? error.stack?.slice(0, 4000) ?? null : null },
+      errorMessage: message,
+      status: 502,
+      alert: true,
+    });
+    return json(req, { error: message }, 502);
   }
 });
