@@ -70,7 +70,14 @@ const NO_CORS_FUNCTIONS = new Set([
   "helpdesk-followup",
   "mcp",
   "process-email-queue",
+  // Scotia/Fiserv posts the transaction outcome server-to-server. The function
+  // answers GET (version ping) and POST (notification) only and returns 405 to
+  // anything else, including a browser preflight it will never receive. There
+  // is no CORS contract to keep here — "booted and routing, not 5xx" is the
+  // correct assertion.
+  "scotia-notify",
 ]);
+
 
 /**
  * Optional deep health probes. Each entry hits a safe, side-effect-free
