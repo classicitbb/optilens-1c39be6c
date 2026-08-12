@@ -231,6 +231,50 @@ async function contractsFor(environment: "staging" | "production", authToken: st
   return null;
 }
 
+// Innovations keys job status on the PO number we sent, not the Rx number.
+const STATUS_PATHS = [
+  "/api/v2/operations/order_status",
+  "/api/v2/orders/order_status",
+  "/api/v2/orders/status",
+];
+
+export interface GatekeeperStatusRow {
+  poNumber: string;
+  status: string;
+  detail: string | null;
+}
+
+function normalizeStatusRows(body: any): GatekeeperStatusRow[] {
+  const raw = body?.message?.orders ?? body?.orders ?? body?.message?.statuses ?? body?.statuses ?? body?.message ?? body;
+  const list = Array.isArray(raw) ? raw : [];
+  const rows: GatekeeperStatusRow[] = [];
+  for (const entry of list) {
+    const poNumber = text(entry?.PoNumber ?? entry?.po_number ?? entry?.customer_po_num ?? entry?.poNumber, 64);
+    const status = text(entry?.Status ?? entry?.status ?? entry?.job_status, 64);
+    if (!poNumber || !status) continue;
+    rows.push({
+      poNumber,
+      status,
+      detail: text(entry?.StatusDescription ?? entry?.description ?? entry?.tracking ?? entry?.TrackingNumber, 240) || null,
+    });
+  }
+  return rows;
+}
+
+async function statusesFor(environment: "staging" | "production", authToken: string, labId: string, log: DispatchLog | null): Promise<GatekeeperStatusRow[] | null> {
+  for (const path of STATUS_PATHS) {
+    const url = new URL(`${baseUrl(environment)}${path}`);
+    url.searchParams.set("auth_token", authToken);
+    if (labId) url.searchParams.set("lab_id", labId);
+    const { response, body } = await gatekeeperFetch(log, "order_status", url.toString(), {
+      headers: { Authorization: `Bearer ${authToken}`, Accept: "application/json" },
+    }, { environment, path }, [404]);
+    if (response.status === 404) continue;
+    if (!response.ok) throw new Error(`Gatekeeper status pull failed (HTTP ${response.status}).`);
+    return normalizeStatusRows(body);
+  }
+  return null;
+}
 
 
 function sanitizeContracts(contracts: GatekeeperContract[]) {
