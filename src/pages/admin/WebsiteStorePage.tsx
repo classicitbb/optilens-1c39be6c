@@ -555,6 +555,9 @@ const WebsiteStorePage = () => {
                     <Badge variant={selected.isVatTaxable ? "default" : "secondary"}>{selected.isVatTaxable ? "VAT taxable" : "No VAT"}</Badge>
                   </div>
                   <div className="font-semibold">{selected.name}</div>
+                  {selected.type !== "lens" && selected.sku && (
+                    <div className="text-xs text-muted-foreground">SKU: {selected.sku}</div>
+                  )}
                   <div className="text-xs text-muted-foreground">{selected.description || "No description"}</div>
                   <div className="text-xs">{selected.subcategory ? `Sold as: ${selected.quantityLabel} (${selected.subcategory})` : `Sold as: ${selected.quantityLabel}`}</div>
                   <div className="text-xs">{selected.priceBbd.toFixed(2)} BBD · {selected.priceUsd.toFixed(2)} USD</div>
