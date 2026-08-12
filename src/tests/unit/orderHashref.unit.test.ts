@@ -98,7 +98,7 @@ describe("hashref envelope", () => {
       buildOrderHashref(canonicalOrderFromStockSubmission(stockSubmission()), ROUTING),
     ]) {
       const fields = fieldsOf(hashref);
-      expect(fields.get("lab_num")).toBe("5");
+      expect(fields.get("lab_num")).toBe("005");
       expect(fields.get("cust_num")).toBe("1095001");
     }
   });
