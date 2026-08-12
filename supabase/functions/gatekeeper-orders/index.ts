@@ -201,6 +201,10 @@ async function authenticate(environment: "staging" | "production", jwtKey: strin
 }
 
 const CONTRACT_PATHS = [
+  // The Ocuco "Order Sending" spec documents the prose path as
+  // /api/v2/orders/contract_available but captions the actual endpoint as
+  // GET /api/v2/operations/contract_available — try the operations path first.
+  "/api/v2/operations/contract_available",
   "/api/v2/orders/contract_available",
   "/api/v2/orders/contracts_available",
   "/api/v2/contract_available",
