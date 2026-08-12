@@ -226,12 +226,17 @@ describe("routing field constraints", () => {
     expect(stockFields.get("order_id")).toBe("900001");
   });
 
-  it("rejects a lab number outside 001-999 instead of routing the order somewhere else", () => {
-    for (const labNum of ["0", "1000", "abc"]) {
+  it("pads short lab numbers, passes Gatekeeper's wider lab ids through, and rejects non-numeric ones", () => {
+    const labOf = (labNum: string) =>
+      fieldsOf(buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum, custNum: "1095001" })).get("lab_num");
+    expect(labOf("5")).toBe("005");
+    expect(labOf("1368")).toBe("1368");
+    for (const labNum of ["0", "abc"]) {
       expect(() => buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum, custNum: "1095001" }))
         .toThrow(/lab number/i);
     }
   });
+
 
   it("refuses to send when the contract has no lab or customer number", () => {
     expect(() => buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum: "", custNum: "1095001" }))
