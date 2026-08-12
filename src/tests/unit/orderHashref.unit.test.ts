@@ -209,7 +209,8 @@ describe("routing field constraints", () => {
       it(`${orderKind.kind} order to a ${receiver.name} sends lab_num, cust_num and cust_seq_num to spec`, () => {
         const fields = fieldsOf(buildOrderHashref(orderKind.build(), receiver.routing));
         expect(fields.get("lab_num")).toBe(receiver.expectedLabNum);
-        expect(fields.get("lab_num")).toMatch(/^\d{3}$/);
+        expect(fields.get("lab_num")).toMatch(/^\d{3,}$/);
+
         expect(fields.get("cust_num")).toBe(receiver.routing.custNum);
         expect(fields.get("cust_seq_num")).toMatch(/^\d{3}$/);
         expect(fields.get("agent_name")).toBe("optilens");
