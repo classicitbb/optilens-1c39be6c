@@ -67,6 +67,114 @@ const GATEKEEPER_BASE_URLS = {
   production: "https://gatekeeper.opticalonline.com",
 } as const;
 
+// ---------------------------------------------------------------------------
+// Dispatch logging: every Gatekeeper HTTP call and every terminal failure is
+// written to public.gatekeeper_dispatch_logs with the full (redacted) request
+// and response, and failures raise an admin notification.
+// ---------------------------------------------------------------------------
+
+type DispatchLog = {
+  admin: any;
+  action: string;
+  actorUserId: string | null;
+  orderKind?: OrderKind | null;
+  submissionId?: string | null;
+};
+
+const SNAPSHOT_LIMIT = 8000;
+const SECRET_KEYS = ["jwt_secret", "jwt_key", "pin_code", "pinCode", "auth_token", "authorization", "password"];
+
+function redact(value: unknown, depth = 0): unknown {
+  if (value === null || value === undefined) return value ?? null;
+  if (Array.isArray(value)) return depth > 4 ? "[array]" : value.slice(0, 50).map((item) => redact(item, depth + 1));
+  if (typeof value === "object") {
+    if (depth > 4) return "[object]";
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = SECRET_KEYS.some((secret) => key.toLowerCase() === secret.toLowerCase()) ? "[redacted]" : redact(item, depth + 1);
+    }
+    return out;
+  }
+  if (typeof value === "string") return value.length > SNAPSHOT_LIMIT ? `${value.slice(0, SNAPSHOT_LIMIT)}…[truncated]` : value;
+  return value;
+}
+
+async function recordDispatchLog(log: DispatchLog | null, entry: {
+  phase: string;
+  success: boolean;
+  endpoint?: string | null;
+  method?: string | null;
+  status?: number | null;
+  durationMs?: number | null;
+  request?: unknown;
+  response?: unknown;
+  errorMessage?: string | null;
+  alert?: boolean;
+}) {
+  if (!log) return;
+  const payload = {
+    p_action: log.action,
+    p_success: entry.success,
+    p_phase: entry.phase,
+    p_order_kind: log.orderKind ?? null,
+    p_submission_id: log.submissionId ?? null,
+    p_endpoint: entry.endpoint ?? null,
+    p_http_method: entry.method ?? null,
+    p_http_status: entry.status ?? null,
+    p_duration_ms: entry.durationMs ?? null,
+    p_request: (redact(entry.request ?? {}) ?? {}) as Record<string, unknown>,
+    p_response: (redact(entry.response ?? {}) ?? {}) as Record<string, unknown>,
+    p_error_message: entry.errorMessage ?? null,
+    p_actor_user_id: log.actorUserId,
+    p_alert: entry.alert ?? false,
+  };
+  if (!entry.success) {
+    console.error("gatekeeper dispatch failure", JSON.stringify(payload));
+  }
+  const { error } = await log.admin.rpc("log_gatekeeper_dispatch", payload);
+  if (error) console.error("gatekeeper dispatch log write failed", error.message);
+}
+
+// Single place where Gatekeeper is called, so no request can escape logging.
+async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: string, init: RequestInit, requestSnapshot?: unknown) {
+  const startedAt = Date.now();
+  const method = (init.method ?? "GET").toUpperCase();
+  try {
+    const response = await fetch(url, init);
+    const raw = await response.text();
+    let body: any = {};
+    try { body = raw ? JSON.parse(raw) : {}; } catch { body = { raw: raw.slice(0, SNAPSHOT_LIMIT) }; }
+    await recordDispatchLog(log, {
+      phase,
+      success: response.ok,
+      endpoint: url.split("?")[0],
+      method,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+      request: requestSnapshot ?? null,
+      response: { body, headers: { "content-type": response.headers.get("content-type") } },
+      errorMessage: response.ok ? null : `Gatekeeper responded HTTP ${response.status}`,
+      alert: !response.ok,
+    });
+    return { response, body };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await recordDispatchLog(log, {
+      phase,
+      success: false,
+      endpoint: url.split("?")[0],
+      method,
+      status: null,
+      durationMs: Date.now() - startedAt,
+      request: requestSnapshot ?? null,
+      response: { network_error: message },
+      errorMessage: `Network error calling Gatekeeper: ${message}`,
+      alert: true,
+    });
+    throw error;
+  }
+}
+
 function json(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -82,27 +190,27 @@ async function readJson(response: Response): Promise<any> {
   return await response.json().catch(() => ({}));
 }
 
-async function authenticate(environment: "staging" | "production", jwtKey: string, jwtSecret: string): Promise<string> {
+async function authenticate(environment: "staging" | "production", jwtKey: string, jwtSecret: string, log: DispatchLog | null): Promise<string> {
   const url = new URL("/api/v2/auth_user", baseUrl(environment));
   url.searchParams.set("jwt_key", jwtKey);
   url.searchParams.set("jwt_secret", jwtSecret);
-  const response = await fetch(url, { method: "POST" });
-  const body = await readJson(response);
+  const { response, body } = await gatekeeperFetch(log, "auth_user", url.toString(), { method: "POST" }, { environment, jwt_key: "[redacted]" });
   if (!response.ok || !text(body?.auth_token)) throw new Error(`Gatekeeper authentication failed (HTTP ${response.status}).`);
   return String(body.auth_token);
 }
 
-async function contractsFor(environment: "staging" | "production", authToken: string): Promise<GatekeeperContract[]> {
-  const response = await fetch(`${baseUrl(environment)}/api/v2/orders/contract_available`, {
+async function contractsFor(environment: "staging" | "production", authToken: string, log: DispatchLog | null): Promise<GatekeeperContract[]> {
+  const url = `${baseUrl(environment)}/api/v2/orders/contract_available`;
+  const { response, body } = await gatekeeperFetch(log, "contract_available", url, {
     headers: { Authorization: `Bearer ${authToken}` },
-  });
-  const body = await readJson(response);
+  }, { environment });
   if (!response.ok) throw new Error(`Gatekeeper contract lookup failed (HTTP ${response.status}).`);
   const lab = body?.message?.lab ?? body?.lab ?? {};
   const contracts = lab.contractSending ?? body?.contractSending ?? [];
   if (!Array.isArray(contracts)) throw new Error("Gatekeeper returned an invalid contract list.");
   return contracts as GatekeeperContract[];
 }
+
 
 function sanitizeContracts(contracts: GatekeeperContract[]) {
   return contracts.map((contract) => ({
