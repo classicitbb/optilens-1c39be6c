@@ -21,6 +21,15 @@ const RxOrderFormPage = () => {
   const [quoteId, setQuoteId] = useState<string | null>(routeQuoteId ?? null);
   const creatingRef = useRef(false);
 
+  // Both routes render this same component, so React Router does not remount
+  // it when navigating from /quotations/rx/:id to /quotations/new-rx (same
+  // element type, same slot in the tree). Re-sync local state to the URL so
+  // that navigation — not just the initial mount — can trigger a fresh quote.
+  useEffect(() => {
+    setQuoteId(routeQuoteId ?? null);
+    creatingRef.current = false;
+  }, [routeQuoteId]);
+
   const { data: quote } = useQuery({
     queryKey: ["rx-order-quote-header", quoteId],
     enabled: !!quoteId,
@@ -67,6 +76,7 @@ const RxOrderFormPage = () => {
           surface="admin"
           checkoutPath="/checkout"
           storePath="/store"
+          onStartAnother={() => navigate("/admin/website/quotations/new-rx")}
         />
       ) : (
         <div className="text-xs text-muted-foreground p-6">Creating order…</div>

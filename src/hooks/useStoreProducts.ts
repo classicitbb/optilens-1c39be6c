@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface StoreProduct {
   id: string;
   name: string;
+  /** Imported Innovations item code. Lenses use variant OPC/SKU codes instead. */
+  sku: string | null;
   description: string;
   quantity_label: string;
   sell_price: number;
@@ -96,19 +98,21 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
       .eq("is_active", true)
       .order("sort_order"),
     (supabase.from("store_product_overrides") as any)
-      .select("product_type, product_id, quantity_label, is_vat_taxable, website_badges"),
+      .select("product_type, product_id, quantity_label, is_vat_taxable, website_badges, is_published"),
     (supabase.from("store_product_variant_summary") as any)
       .select("product_type, product_id, active_variants"),
   ]);
 
-  // The public store lists ONLY items explicitly published via the admin
-  // Website Store toggle (show_on_website) — never the whole catalog.
-  const lensRows = readRows<any>(lensRes, { optional: true }).filter((row: any) => row.show_on_website === true);
-  const supplyRows = readRows<any>(supplyRes, { optional: true }).filter((row: any) => row.show_on_website === true);
-  const addonRows = readRows<any>(addonRes, { optional: true }).filter((row: any) => row.show_on_website === true);
+  // The public store lists only items explicitly published via the admin
+  // Website Store toggle. The override is intentionally separate from the
+  // source catalog's show_on_website property.
   const mediaRows = readRows<any>(mediaRes, { optional: true });
   const overrideRows = readRows<any>(overrideRes, { optional: true });
   const variantSummaryRows = readRows<any>(variantSummaryRes, { optional: true });
+  const published = (row: any) => {
+    const override = overrideRows.find((item: any) => item.product_type === row.__product_type && item.product_id === row.id);
+    return override?.is_published ?? row.show_on_website === true;
+  };
 
   const { data: pricingSettings } = await (supabase.from("pricing_settings") as any)
     .select("fx_rates, fx_risk_buffer")
@@ -143,10 +147,15 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     variantSummaryMap.set(`${row.product_type}:${row.product_id}`, Number(row.active_variants ?? 0));
   }
 
+  const lensRows = readRows<any>(lensRes, { optional: true }).map((row: any) => ({ ...row, __product_type: "lens" })).filter(published);
+  const supplyRows = readRows<any>(supplyRes, { optional: true }).map((row: any) => ({ ...row, __product_type: "supply" })).filter(published);
+  const addonRows = readRows<any>(addonRes, { optional: true }).map((row: any) => ({ ...row, __product_type: "addon" })).filter(published);
+
   const lenses: StoreProduct[] = lensRows.map((l: any) => ({
     ...(overrideMap.get(`lens:${l.id}`) ?? {}),
     id: l.id,
     name: l.name,
+    sku: null,
     description: l.notes || "Premium prescription lens",
     quantity_label: overrideMap.get(`lens:${l.id}`)?.quantity_label || "pair",
     sell_price: Number(l.sell_price ?? 0),
@@ -165,6 +174,7 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     ...(overrideMap.get(`supply:${s.id}`) ?? {}),
     id: s.id,
     name: s.name,
+    sku: s.sku ?? null,
     description: s.description || "",
     quantity_label: overrideMap.get(`supply:${s.id}`)?.quantity_label || `${s.quantity_per_unit} ${s.unit}`.trim(),
     sell_price: Number(s.sell_price ?? 0),
@@ -183,6 +193,7 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     ...(overrideMap.get(`addon:${a.id}`) ?? {}),
     id: a.id,
     name: a.name,
+    sku: a.sku ?? null,
     description: a.description || "",
     quantity_label: overrideMap.get(`addon:${a.id}`)?.quantity_label || "service",
     sell_price: Number(a.price ?? 0),

@@ -31,6 +31,13 @@ export interface RxOrderEmbedProps {
   checkoutPath?: string;
   storePath?: string;
   /**
+   * "Start another Rx order" — must start a genuinely new quote, not reset
+   * this one in place (the cart's synthetic product id is a hash of quoteId,
+   * so a second submit under the same quote collides with the first job's
+   * cart row). Falls back to the old in-place reset if not supplied.
+   */
+  onStartAnother?: () => void;
+  /**
    * Partial `cv.rxorder/1` payload replayed into the form on mount — the Lens
    * Assistant handoff. Must be settled before the embed renders; the engine
    * applies it during its own init and does not re-read the prop afterwards.
@@ -47,6 +54,7 @@ interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
 export const RxOrderEmbed = ({
   quoteId, quoteNumber, surface, lockedAccountId = null,
   checkoutPath = "/checkout", storePath = "/store",
+  onStartAnother,
   prefill, prefillBanner,
 }: RxOrderEmbedProps) => {
   const navigate = useNavigate();
@@ -228,6 +236,7 @@ export const RxOrderEmbed = ({
       },
       onCheckout: () => navigate(checkoutPath),
       onStore: () => navigate(storePath),
+      onAnother: onStartAnother,
     });
     engineRef.current = engine;
     setHasMountedEngine(true);

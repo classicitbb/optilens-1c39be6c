@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Barcode } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Glasses, PackagePlus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useStoreProducts } from "@/hooks/useStoreProducts";
 import "@/features/rx-order/embed/rx-order.css";
 import "./stock-order-builder.css";
 import {
@@ -79,6 +81,8 @@ const PRODUCT_TYPE_LABEL: Record<StockProductType, string> = {
   addon: "Service",
 };
 
+const todayDate = () => new Intl.DateTimeFormat("en-CA").format(new Date());
+
 const numericAttr = (variant: StockVariant, key: string): number | null => {
   const value = (variant.attributes as any)?.[key];
   return value == null || value === "" || Number.isNaN(Number(value)) ? null : Number(value);
@@ -96,15 +100,15 @@ const StockOrderBuilderPage = () => {
   const { toast } = useToast();
 
   const [accountId, setAccountId] = useState<number | null>(null);
-  const [poNumber, setPoNumber] = useState("");
+  const [poNumber, setPoNumber] = useState(todayDate);
   const [orderReference, setOrderReference] = useState("");
   const [instructions, setInstructions] = useState("");
-  const [mode, setMode] = useState<"search" | "scan" | "grid">("search");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedProductKey, setExpandedProductKey] = useState<string | null>(null);
   const [gridProductKey, setGridProductKey] = useState<string | null>(null);
   const [scanValue, setScanValue] = useState("");
   const [scanFeedback, setScanFeedback] = useState<{ ok: boolean; message: string } | null>(null);
+  const [addDialog, setAddDialog] = useState<"supplies" | "lenses" | null>(null);
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [staged, setStaged] = useState<{ id: string; total: number } | null>(null);
   const [provider, setProvider] = useState<DispatchProvider>("innovations");
@@ -116,6 +120,10 @@ const StockOrderBuilderPage = () => {
   const [annotationText, setAnnotationText] = useState("");
   const [annotationPriority, setAnnotationPriority] = useState<AnnotationPriority>("prefer");
   const [showAnnotations, setShowAnnotations] = useState(false);
+  const [detailsCollapsed, setDetailsCollapsed] = useState(false);
+  const orderDetailsRef = useRef<HTMLDivElement>(null);
+  const detailsEditRef = useRef<HTMLButtonElement>(null);
+  const orderReferenceRef = useRef<HTMLInputElement>(null);
 
   const { data: eligibleAccounts = [], isLoading: accountsLoading } = useStockEligibleAccounts();
   const draftId = searchParams.get("draft");
@@ -123,22 +131,49 @@ const StockOrderBuilderPage = () => {
   const selectedAccount = eligibleAccounts.find((a) => a.id === accountId) ?? null;
 
   const { data: catalog = [], isLoading: catalogLoading } = useStockOrderCatalog(accountId);
+  const { data: websiteProducts = [], isLoading: websiteProductsLoading } = useStoreProducts();
   const productKey = (item: Pick<StockCatalogItem, "product_type" | "product_id">) =>
     `${item.product_type}:${item.product_id}`;
+  const websiteSupplyCatalog = useMemo<StockCatalogItem[]>(
+    () => websiteProducts.filter((item) => item.product_type === "supply").map((item) => ({
+      product_type: "supply",
+      product_id: item.id,
+      name: item.name,
+      category: item.category || null,
+      sku: item.sku ?? null,
+      unit_price: item.sell_price_usd,
+      has_variants: item.has_variants,
+    })),
+    [websiteProducts],
+  );
+  const combinedCatalog = useMemo(() => {
+    const items = new Map(websiteSupplyCatalog.map((item) => [productKey(item), item]));
+    catalog.forEach((item) => {
+      const key = productKey(item);
+      const websiteItem = items.get(key);
+      items.set(key, websiteItem && !item.sku ? { ...item, sku: websiteItem.sku } : item);
+    });
+    return [...items.values()];
+  }, [catalog, websiteSupplyCatalog]);
   const byKey = useMemo(
-    () => new Map(catalog.map((item) => [productKey(item), item])),
-    [catalog],
+    () => new Map(combinedCatalog.map((item) => [productKey(item), item])),
+    [combinedCatalog],
   );
 
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return catalog.slice(0, 25);
-    return catalog.filter((item) =>
+    const supplies = combinedCatalog.filter((item) => item.product_type === "supply");
+    // Keep the initial test catalog intentionally broad. The website/account
+    // eligibility rules can be narrowed once the supply workflow is settled.
+    if (!q) return supplies;
+    return supplies.filter((item) =>
       [item.name, item.category, item.sku, PRODUCT_TYPE_LABEL[item.product_type]]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
     );
-  }, [catalog, searchQuery]);
+  }, [combinedCatalog, searchQuery]);
+
+  const lensCatalog = useMemo(() => catalog.filter((item) => item.product_type === "lens"), [catalog]);
 
   const expandedProduct = expandedProductKey ? byKey.get(expandedProductKey) ?? null : null;
   const gridProduct = gridProductKey ? byKey.get(gridProductKey) ?? null : null;
@@ -166,11 +201,71 @@ const StockOrderBuilderPage = () => {
   }, [annotations]);
 
   useEffect(() => {
+    if (!scanFeedback?.ok) return;
+    const timeout = window.setTimeout(() => setScanFeedback(null), 30_000);
+    return () => window.clearTimeout(timeout);
+  }, [scanFeedback]);
+
+  const hasCapturedOrderDetails = Boolean(poNumber.trim() || orderReference.trim());
+
+  useEffect(() => {
+    if (!hasCapturedOrderDetails) setDetailsCollapsed(false);
+  }, [hasCapturedOrderDetails]);
+
+  useEffect(() => {
+    if (!hasCapturedOrderDetails || detailsCollapsed) return;
+
+    const collapseWhenScrolledPast = () => {
+      const details = orderDetailsRef.current;
+      const heading = document.querySelector<HTMLElement>(".stock-order-heading");
+      if (!details || !heading || details.getBoundingClientRect().top > heading.getBoundingClientRect().bottom) return;
+
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement && details.contains(activeElement)) activeElement.blur();
+      setDetailsCollapsed(true);
+      requestAnimationFrame(() => {
+        details.scrollIntoView({ behavior: "smooth", block: "start" });
+        detailsEditRef.current?.focus();
+      });
+    };
+
+    window.addEventListener("scroll", collapseWhenScrolledPast, true);
+    return () => window.removeEventListener("scroll", collapseWhenScrolledPast, true);
+  }, [detailsCollapsed, hasCapturedOrderDetails]);
+
+  const advanceFromPoNumber = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    orderReferenceRef.current?.focus();
+  };
+
+  const advanceFromOrderReference = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    setAddDialog("supplies");
+  };
+
+  const editOrderDetails = () => {
+    const orderReference = document.querySelector<HTMLInputElement>(".stock-order-shell input[placeholder='e.g. counter sale, phone order']");
+    setDetailsCollapsed(false);
+    orderReference?.focus();
+    requestAnimationFrame(() => {
+      orderDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const closeAddDialog = () => {
+    setAddDialog(null);
+    setExpandedProductKey(null);
+    setGridProductKey(null);
+  };
+
+  useEffect(() => {
     if (!draft || loadedDraftId === draft.id) return;
     const payload = draft.payload ?? {};
     const account = payload.account;
     setAccountId(draft.account_id ?? account?.id ?? null);
-    setPoNumber(draft.po_number ?? payload.po_number ?? "");
+    setPoNumber(draft.po_number ?? payload.po_number ?? todayDate());
     setOrderReference(draft.order_reference ?? payload.order_reference ?? "");
     setInstructions(payload.instructions ?? "");
     setProvider(draft.dispatch_provider ?? "innovations");
@@ -207,6 +302,7 @@ const StockOrderBuilderPage = () => {
       });
       return;
     }
+    setStaged(null);
     const key = `${product.product_type}:${product.product_id}:${variant?.id ?? "base"}:${side}`;
     setLines((prev) => {
       const existing = prev.find((l) => l.key === key);
@@ -229,11 +325,18 @@ const StockOrderBuilderPage = () => {
     });
   };
 
-  const removeLine = (key: string) => setLines((prev) => prev.filter((l) => l.key !== key));
-  const updateLine = (key: string, patch: Partial<OrderLine>) =>
+  const removeLine = (key: string) => {
+    setStaged(null);
+    setLines((prev) => prev.filter((l) => l.key !== key));
+  };
+  const updateLine = (key: string, patch: Partial<OrderLine>) => {
+    setStaged(null);
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  };
 
-  const total = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  // Display-only checkout estimate. Prices are not included in buildStageItems;
+  // the server resolves the actual order price when staging/releasing.
+  const checkoutEstimate = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
 
   const handleScan = async () => {
     const code = scanValue.trim();
@@ -365,21 +468,18 @@ const StockOrderBuilderPage = () => {
 
   return (
     <div className={`cv-rx-embed no-gear stock-order-shell${annotateOn ? " stock-annotate-on" : ""}`} onClickCapture={handleAnnotationCapture}>
-      <div className="flex items-center gap-2 px-4 pt-3">
-        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
-          <ArrowLeft className="h-3.5 w-3.5" /> Back
-        </Button>
-      </div>
-
        <div className="wrap">
           <div className="pagehead" data-annotatable>
            <div className="stock-order-heading">
-             <div className="stock-order-title-row">
-             <h1>Stock order form</h1>
              <div className="stock-order-toolbar" data-annotation-ui>
+               <Button variant="ghost" size="sm" className="stock-order-back" onClick={() => navigate("/admin/website/quotations")}>
+                 <ArrowLeft className="h-4 w-4" /> Back
+               </Button>
+               <h1>Stock order form</h1>
+               <div className="stock-order-toolbar-actions">
                <span className="ordno"><span>Order</span> {staged?.id ? staged.id.slice(0, 8).toUpperCase() : "—"}</span>
                <button className="btn btn-ghost btn-sm" disabled={!lines.length || !accountId || stageMutation.isPending} onClick={handleStage}>
-                 {stageMutation.isPending ? "Saving…" : "Save draft"}
+                 {stageMutation.isPending ? "Saving…" : staged ? "Update draft" : "Save draft"}
                </button>
                <label className="stock-order-account" title="Customer account">
                  <span className="stock-order-account-dot" />
@@ -393,173 +493,86 @@ const StockOrderBuilderPage = () => {
                <label className="stock-order-currency" title="Display currency">
                  <span>USD $</span><span className="stock-order-chevron">▾</span>
                </label>
-               <button className="iconbtn" type="button" title="Annotate improvements" aria-label="Annotate improvements" onClick={() => setAnnotateOn((current) => !current)}>✎</button>
+               <button className="iconbtn" type="button" title="Annotate improvements" aria-label="Annotate improvements" onClick={() => setAnnotateOn((current) => !current)}><Pencil aria-hidden="true" /></button>
+               </div>
              </div>
-             </div>
-             <p>Search, scan, or fill a power grid to order the items published on the website.</p>
            </div>
-        </div>
+       </div>
 
-        <div className="card reveal" style={{ gridColumn: "1/-1" }} data-annotatable>
+        <div ref={orderDetailsRef} className={`card reveal stock-order-details${detailsCollapsed ? " stock-order-details-collapsed" : ""}`} style={{ gridColumn: "1/-1" }} data-annotatable>
           <div className="card-h">
-            <span className="idx">1</span>
             <div>
               <h2>Order details</h2>
               <div className="sub">Retail is the temporary default while stock pricelists are being corrected.</div>
             </div>
+            <button ref={detailsEditRef} className="iconbtn sm stock-order-details-edit" type="button" title="Edit order details" aria-label="Edit order details" onClick={editOrderDetails}><Pencil aria-hidden="true" /></button>
+          </div>
+          <div className="stock-order-details-summary" aria-live="polite">
+            {[poNumber.trim() && `PO ${poNumber.trim()}`, orderReference.trim()].filter(Boolean).join(" · ")}
           </div>
           <div className="card-b">
             <div className="grid stock-order-details-grid">
               <div className="field">
                 <label>PO number <span className="opt-tag">optional</span></label>
-                <input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} placeholder="Optional" />
+              <input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onClick={(e) => e.stopPropagation()} placeholder="YYYY-MM-DD" />
               </div>
               <div className="field">
                 <label>Order reference</label>
-                <input value={orderReference} onChange={(e) => setOrderReference(e.target.value)} placeholder="e.g. counter sale, phone order" />
+                <input ref={orderReferenceRef} value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} placeholder="e.g. counter sale, phone order" />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card reveal" style={{ gridColumn: "1/-1", opacity: accountId ? 1 : 0.45, pointerEvents: accountId ? "auto" : "none" }} data-annotatable>
-          <div className="card-h">
-            <span className="idx">2</span>
-            <div>
-              <h2>Add items</h2>
-              <div className="sub">
-                {selectedAccount
-                  ? `Website items priced on ${selectedAccount.name}'s pricelist.`
-                  : "Select a customer account first."}
-              </div>
-            </div>
-          </div>
-          <div className="card-b">
-            <div className="seg" style={{ marginBottom: 16 }}>
-              <button aria-pressed={mode === "search"} onClick={() => setMode("search")}>Search and select</button>
-              <button aria-pressed={mode === "scan"} onClick={() => setMode("scan")}>Scan to add</button>
-              <button aria-pressed={mode === "grid"} onClick={() => setMode("grid")}>Grid entry</button>
-            </div>
-
-            {mode === "search" && (
-              <div>
-                <input
-                  placeholder="Search product name, category, or SKU"
-                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ marginBottom: 12 }}
-                />
-                <div className="rxwrap">
-                  {searchResults.map((item) => {
-                    const key = productKey(item);
-                    const isExpanded = expandedProductKey === key;
-                    return (
-                      <div key={key} style={{ borderBottom: "1px solid var(--border-soft)" }}>
-                        <div
-                          style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 4px", cursor: "pointer" }}
-                          onClick={() => setExpandedProductKey(isExpanded ? null : key)}
-                        >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13.5 }}>{item.name}</div>
-                            <div className="hint">{[item.category, item.sku].filter(Boolean).join(" · ")}</div>
-                          </div>
-                          <span className="tchip">{PRODUCT_TYPE_LABEL[item.product_type]}</span>
-                          <span style={{ fontWeight: 600, fontSize: 12.5 }}>${item.unit_price.toFixed(2)}</span>
-                        </div>
-                        {isExpanded && (
-                          <VariantPicker
-                            product={item}
-                            variants={expandedVariants}
-                            onAdd={(variant, side, qty) => addLine(item, variant, side, qty)}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                  {!searchResults.length && (
-                    <div className="hint">
-                      {catalogLoading
-                        ? "Loading the website catalog…"
-                        : "No published website item matches that search on this account's pricelist."}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {mode === "scan" && (
-              <div>
-                <div className="drop">
-                  <Barcode className="di" style={{ width: 26, height: 26, margin: "0 auto" }} />
-                  <div className="dt">Scan or type a code, then press Enter</div>
-                  <div className="ds">Resolves to one website variant and side — priced and added directly.</div>
-                  <input
-                    autoFocus value={scanValue}
-                    onChange={(e) => setScanValue(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleScan(); }}
-                    placeholder="0011751138"
-                    style={{ marginTop: 12, maxWidth: 260, textAlign: "center" }}
-                  />
-                </div>
-                {scanFeedback && (
-                  <div className={`callout${scanFeedback.ok ? "" : " gold"}`} style={{ marginTop: 12 }}>
-                    {scanFeedback.message}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {mode === "grid" && (
-              <div>
-                <div className="field" style={{ maxWidth: 360, marginBottom: 12 }}>
-                  <label>Product</label>
-                  <select value={gridProductKey ?? ""} onChange={(e) => setGridProductKey(e.target.value || null)}>
-                    <option value="">Select a product</option>
-                    {catalog.filter((item) => item.has_variants).map((item) => (
-                      <option key={productKey(item)} value={productKey(item)}>
-                        {item.name} ({PRODUCT_TYPE_LABEL[item.product_type]})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {gridProduct && (
-                  <VariantPicker
-                    product={gridProduct}
-                    variants={gridVariants}
-                    onAdd={(variant, side, qty) => addLine(gridProduct, variant, side, qty)}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="card reveal" style={{ gridColumn: "1/-1" }} data-annotatable>
-          <div className="card-h">
-            <span className="idx">3</span>
+        <div className="card reveal stock-order-lines-card" style={{ gridColumn: "1/-1" }} data-annotatable>
+          <div className="card-h stock-order-lines-header">
             <div>
               <h2>Order lines</h2>
-              <div className="sub">Ref carries through to the lab on each line.</div>
             </div>
-            <div className="hx" style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--muted-fg)" }}>{lines.length} items</div>
+            <div className="stock-order-card-actions" aria-label="Add order items">
+              <Button className="stock-order-add-button stock-order-add-supplies" type="button" onClick={() => setAddDialog("supplies")} disabled={!accountId}>
+                <PackagePlus aria-hidden="true" /> Add supplies
+              </Button>
+              <Button className="stock-order-add-button stock-order-add-lens" type="button" onClick={() => setAddDialog("lenses")} disabled={!accountId}>
+                <Glasses aria-hidden="true" /> Add lens powers
+              </Button>
+            </div>
           </div>
           <div className="card-b">
-            {lines.map((line) => (
-              <div key={line.key} style={{ display: "grid", gridTemplateColumns: "auto 1fr 120px 70px 70px 90px auto", gap: 10, alignItems: "center", padding: "9px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
-                <span className="tchip">{PRODUCT_TYPE_LABEL[line.productType]}</span>
-                <span>{line.sku} · {line.description}</span>
-                <input placeholder="Ref" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} style={{ height: 32 }} />
-                <input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} style={{ height: 32, textAlign: "center" }} />
-                <span style={{ color: "var(--muted-fg)" }}>${line.unitPrice.toFixed(2)}</span>
-                <span style={{ fontWeight: 600, textAlign: "right" }}>${(line.unitPrice * line.quantity).toFixed(2)}</span>
-                <button className="iconbtn sm" aria-label="Remove line" onClick={() => removeLine(line.key)}>×</button>
-              </div>
-            ))}
-            {!lines.length && <div className="hint">No items added yet.</div>}
-            {!!lines.length && (
-              <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 0 4px", fontWeight: 600 }}>
-                Order total: ${total.toFixed(2)}
-              </div>
-            )}
+            <div className="rxwrap stock-order-lines-wrap">
+              <table className="rxtable stock-order-lines-table">
+                <thead><tr><th>Line</th><th>SKU / OPC</th><th>Description</th><th>Ref</th><th>Qty</th><th>Unit cost</th><th>Subtotal</th><th><span className="sr-only">Remove</span></th></tr></thead>
+                <tbody>
+                  {lines.map((line, index) => (
+                    <tr key={line.key}>
+                      <th scope="row">{index + 1}</th>
+                      <td className="stock-order-line-sku">{line.sku}</td>
+                      <td className="stock-order-line-description"><span>{line.description}</span></td>
+                      <td><input aria-label={`Reference for line ${index + 1}`} placeholder="Ref" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} /></td>
+                      <td><input aria-label={`Quantity for line ${index + 1}`} type="number" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} /></td>
+                      <td className="stock-order-money">${line.unitPrice.toFixed(2)}</td>
+                      <td className="stock-order-money stock-order-line-subtotal">${(line.unitPrice * line.quantity).toFixed(2)}</td>
+                      <td><button className="iconbtn sm stock-order-remove-line" type="button" aria-label={`Remove line ${index + 1}`} title={`Remove line ${index + 1}`} onClick={() => removeLine(line.key)}><Trash2 aria-hidden="true" /></button></td>
+                    </tr>
+                  ))}
+                  <tr className="stock-order-new-line">
+                    <th scope="row">{lines.length + 1}</th>
+                    <td><input aria-label="Scan OPC for new line" value={scanValue} onChange={(e) => setScanValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleScan(); }} placeholder="Scan OPC" /></td>
+                    <td colSpan={6} className="stock-order-new-line-label">New line</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={4} scope="row">Checkout estimate <span>Display only · not sent with this order</span></th>
+                    <td className="stock-order-qty-total">{lines.length} items</td>
+                    <td />
+                    <td className="stock-order-line-subtotal">${checkoutEstimate.toFixed(2)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {scanFeedback && <div className={`callout${scanFeedback.ok ? "" : " gold"}`} role="status" style={{ marginTop: 12 }}>{scanFeedback.message}</div>}
           </div>
         </div>
 
@@ -577,8 +590,9 @@ const StockOrderBuilderPage = () => {
             {staged && (
               <Link className="linkbtn" to="/admin/website/quotations">View drafts</Link>
             )}
-            <button className="btn btn-primary" disabled={!staged || releaseMutation.isPending} onClick={handleRelease}>
-              {releaseMutation.isPending ? "Submitting…" : "Submit order"}
+            {!staged && lines.length > 0 && accountId && <span id="stock-submit-gate" className="stock-submit-gate" role="status">Save draft to enable submission.</span>}
+            <button className="btn btn-primary" disabled={!staged || releaseMutation.isPending} aria-describedby={!staged ? "stock-submit-gate" : undefined} title={!staged ? "Save the draft first so this order can be submitted safely." : undefined} onClick={handleRelease}>
+              {releaseMutation.isPending ? "Submitting…" : staged ? "Submit order" : "Save draft first"}
             </button>
           </div>
         </div>
@@ -587,6 +601,64 @@ const StockOrderBuilderPage = () => {
             {previewText}
           </pre>
         )}
+
+        <Dialog open={addDialog === "supplies"} onOpenChange={(open) => !open && closeAddDialog()}>
+          <DialogContent className="stock-order-dialog stock-order-supplies-dialog">
+            <DialogHeader>
+              <DialogTitle>Add Stock Item</DialogTitle>
+              <DialogDescription className="sr-only">Search or scan a website-published supply for the selected account.</DialogDescription>
+            </DialogHeader>
+            <div className="stock-order-supply-search">
+              <label className="sr-only" htmlFor="stock-supply-search">Search items</label>
+              <input id="stock-supply-search" autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search items…" />
+            </div>
+            <div className="stock-order-dialog-results" aria-live="polite">
+              {searchResults.map((item) => {
+                const key = productKey(item);
+                const isExpanded = expandedProductKey === key;
+                return (
+                  <div className="stock-order-dialog-result" key={key}>
+                    <button type="button" aria-expanded={isExpanded} onClick={() => {
+                      if (!item.has_variants) {
+                        addLine(item, null, "either", 1);
+                        closeAddDialog();
+                        return;
+                      }
+                      setExpandedProductKey(isExpanded ? null : key);
+                    }}>
+                      <span><b>{item.name}</b>{item.category && <small>{item.category}</small>}</span>
+                      <span>${item.unit_price.toFixed(2)}</span>
+                    </button>
+                    {isExpanded && <VariantPicker product={item} variants={expandedVariants} onAdd={(variant, side, quantity) => { addLine(item, variant, side, quantity); closeAddDialog(); }} />}
+                  </div>
+                );
+              })}
+              {!searchResults.length && <p className="hint">{catalogLoading || websiteProductsLoading ? "Loading website supplies…" : "No website supplies available."}</p>}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={addDialog === "lenses"} onOpenChange={(open) => !open && closeAddDialog()}>
+          <DialogContent className="stock-order-dialog stock-order-lenses-dialog">
+            <DialogHeader>
+              <DialogTitle>Add lens powers</DialogTitle>
+              <DialogDescription>Choose a published lens, enter quantities in the power matrix, then add the selected powers together.</DialogDescription>
+            </DialogHeader>
+            <div className="field">
+              <label htmlFor="stock-lens-product">Lens product</label>
+              <select id="stock-lens-product" autoFocus value={gridProductKey ?? ""} onChange={(e) => setGridProductKey(e.target.value || null)}>
+                <option value="">Select a lens</option>
+                {lensCatalog.filter((item) => item.has_variants).map((item) => <option key={productKey(item)} value={productKey(item)}>{item.name}</option>)}
+              </select>
+            </div>
+            {gridProduct && <VariantPicker product={gridProduct} variants={gridVariants} onAdd={(variant, side, quantity) => addLine(gridProduct, variant, side, quantity)} onBatchAdded={closeAddDialog} />}
+            {!gridProduct && (
+              <div className="stock-power-picker-placeholder" aria-hidden="true">
+                <span>Select a lens to load its power grid</span>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {annotateOn && (
           <>
@@ -616,7 +688,7 @@ const StockOrderBuilderPage = () => {
         )}
         {showAnnotations && (
           <aside className="stock-annotation-drawer" data-annotation-ui>
-            <div className="stock-annotation-drawer-head"><div><h3>Your notes</h3><span>{annotations.length} notes</span></div><button className="iconbtn" onClick={() => setShowAnnotations(false)} aria-label="Close notes">×</button></div>
+            <div className="stock-annotation-drawer-head"><div><h3>Your notes</h3><span>{annotations.length} notes</span></div><button className="iconbtn" onClick={() => setShowAnnotations(false)} aria-label="Close notes"><X aria-hidden="true" /></button></div>
             <div className="stock-annotation-drawer-body">
               {!annotations.length ? <p className="stock-annotation-empty">No notes yet. Turn on Annotate mode and click anything you would like changed.</p> : annotations.map((note, index) => (
                 <div className={`stock-annotation-note ${note.priority}`} key={note.id}><div><b>{index + 1}. {note.label}</b><span>{annotationPriorityLabel(note.priority)}</span></div><p>{note.text}</p></div>
@@ -635,11 +707,12 @@ const StockOrderBuilderPage = () => {
  *  power matrix; every other variant set lists. A product with no variants at
  *  all is ordered by its own SKU. */
 const VariantPicker = ({
-  product, variants, onAdd,
+  product, variants, onAdd, onBatchAdded,
 }: {
   product: StockCatalogItem;
   variants: StockVariant[];
   onAdd: (variant: StockVariant | null, side: "right" | "left" | "either", qty: number) => void;
+  onBatchAdded?: () => void;
 }) => {
   const [qty, setQty] = useState<Record<string, number>>({});
 
@@ -657,60 +730,83 @@ const VariantPicker = ({
     setQty((p) => ({ ...p, [id]: 0 }));
   };
 
-  const quantityCell = (id: string, variant: StockVariant | null) => (
-    <>
-      <input
-        type="number" min={0} value={qty[id] ?? ""}
+  const quantityCell = (id: string, variant: StockVariant | null, powerLabel?: string) => (
+    <div className={powerLabel ? "stock-power-cell" : "stock-quantity-cell"}>
+        <input
+          type="number" min={0} inputMode="numeric" value={qty[id] ?? ""}
         onChange={(e) => setQty((p) => ({ ...p, [id]: Math.max(0, Number(e.target.value) || 0) }))}
-        style={{ width: 52 }}
+        onDoubleClick={(e) => e.preventDefault()}
+        aria-label={powerLabel ? `Quantity for ${powerLabel}` : "Quantity"}
       />
-      <button className="iconbtn sm" style={{ marginLeft: 4 }} aria-label="Add" onClick={() => take(id, variant)}>+</button>
-    </>
+      {!powerLabel && <button className="btn btn-ghost btn-sm" type="button" aria-label="Add selected supply" onClick={() => take(id, variant)}>Add</button>}
+    </div>
   );
 
   if (!product.has_variants) {
-    return (
-      <div style={{ padding: "0 4px 14px" }}>
-        <div className="hint" style={{ marginBottom: 8 }}>
-          No variants on the website — ordered by its own SKU at ${product.unit_price.toFixed(2)}.
-        </div>
-        {quantityCell(`${product.product_type}:${product.product_id}`, null)}
-      </div>
-    );
+    return null;
   }
 
   if (!variants.length) return <div className="hint" style={{ padding: "8px 4px" }}>Loading variants…</div>;
 
   if (hasPowerAxes(variants)) {
-    const rowValues = [...new Set(variants.map((v) => numericAttr(v, "sphere") as number))].sort((a, b) => b - a);
-    const colValues = [...new Set(variants.map((v) => numericAttr(v, "cylinder") as number))].sort((a, b) => b - a);
+    // Stock is read from the lowest power upward in both directions. Keep the
+    // axes consistent for every power-matrix product, rather than depending
+    // on the order returned by a catalog source.
+    const rowValues = [...new Set(variants.map((v) => numericAttr(v, "sphere") as number))].sort((a, b) => a - b);
+    const colValues = [...new Set(variants.map((v) => numericAttr(v, "cylinder") as number))].sort((a, b) => a - b);
     const byCell = new Map<string, StockVariant>();
     variants.forEach((v) => byCell.set(`${numericAttr(v, "sphere")}:${numericAttr(v, "cylinder")}`, v));
+    const selectedVariants = variants.filter((variant) => (qty[variant.id] ?? 0) > 0);
+    const selectedPowers = selectedVariants.length;
+    const selectedLines = selectedVariants.reduce((count, variant) => count + (variantIsChiral(variant) ? 2 : 1), 0);
+    const selectedTotal = selectedVariants.reduce((sum, variant) => sum + (qty[variant.id] ?? 0) * product.unit_price * (variantIsChiral(variant) ? 2 : 1), 0);
+
+    const addSelected = () => {
+      selectedVariants.forEach((variant) => {
+        const quantity = qty[variant.id] ?? 0;
+        if (variantIsChiral(variant)) {
+          onAdd(variant, "right", quantity);
+          onAdd(variant, "left", quantity);
+        } else {
+          onAdd(variant, "either", quantity);
+        }
+      });
+      setQty({});
+      onBatchAdded?.();
+    };
 
     return (
-      <div style={{ padding: "0 4px 14px" }}>
-        <div className="hint" style={{ marginBottom: 8 }}>Choose power and quantity — ${product.unit_price.toFixed(2)} per cell.</div>
+      <div className="stock-power-picker">
+        <div className="stock-power-picker-heading">
+          <span>Cylinder / ADD</span>
+          <span>${product.unit_price.toFixed(2)} each</span>
+        </div>
         <div className="rxwrap">
-          <table className="rxtable">
+          <table className="rxtable stock-power-table">
             <thead>
               <tr>
-                <th>Sphere \ Cylinder</th>
+                <th><span>Base</span><span>Sphere</span></th>
                 {colValues.map((c) => <th key={c}>{c.toFixed(2)}</th>)}
               </tr>
             </thead>
             <tbody>
               {rowValues.map((r) => (
                 <tr key={r}>
-                  <td><div className="eye"><b>{r.toFixed(2)}</b></div></td>
+                  <th scope="row">{r.toFixed(2)}</th>
                   {colValues.map((c) => {
                     const variant = byCell.get(`${r}:${c}`);
                     if (!variant) return <td key={c}>—</td>;
-                    return <td key={c}>{quantityCell(variant.id, variant)}</td>;
+                    const powerLabel = `sphere ${r.toFixed(2)}, cylinder ${c.toFixed(2)}`;
+                    return <td key={c}>{quantityCell(variant.id, variant, powerLabel)}</td>;
                   })}
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="stock-power-picker-footer" aria-live="polite">
+          <span>{selectedPowers ? `${selectedPowers} powers selected · ${selectedLines} order lines · $${selectedTotal.toFixed(2)}` : "Enter a quantity to select a power."}</span>
+          <button className="btn btn-primary" type="button" disabled={!selectedPowers} onClick={addSelected}>Add selected to order</button>
         </div>
       </div>
     );

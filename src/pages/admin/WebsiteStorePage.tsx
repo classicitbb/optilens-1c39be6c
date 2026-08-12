@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDown, ArrowUp, Eye, ImagePlus, Plus, Search, Settings, Store, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, ImagePlus, Layers, Plus, Search, Settings, Store, Trash2 } from "lucide-react";
 import { useLenses, type Lens } from "@/hooks/useLenses";
 import { useSupplies, type Supply } from "@/hooks/useSupplies";
 import { useAddons, type Addon } from "@/hooks/useAddons";
@@ -61,12 +61,14 @@ interface ProductOverride {
   is_vat_taxable: boolean;
   quantity_label: string | null;
   website_badges: string[] | null;
+  is_published: boolean | null;
 }
 
 interface ProductRow {
   id: string;
   type: ProductType;
   name: string;
+  sku: string;
   category: string;
   subcategory: string;
   description: string;
@@ -154,7 +156,7 @@ const WebsiteStorePage = () => {
     queryKey: ["store-product-overrides"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("store_product_overrides") as any)
-        .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges");
+        .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges, is_published");
 
       if (error) return [] as ProductOverride[];
       return (data ?? []) as unknown as ProductOverride[];
@@ -189,10 +191,11 @@ const WebsiteStorePage = () => {
         id: lens.id,
         type: "lens" as const,
         name: lens.name,
+        sku: "",
         category: lens.lenstype?.name ?? "Lens",
         subcategory: lens.material?.name ?? "",
         description: lens.notes ?? "",
-        showOnWebsite: lens.show_on_website,
+        showOnWebsite: override?.is_published ?? lens.show_on_website,
         isActive: lens.is_active,
         priceBbd: Number(lens.sell_price ?? 0),
         priceUsd: normalizeUsd(Number(lens.sell_price ?? 0)),
@@ -211,10 +214,11 @@ const WebsiteStorePage = () => {
         id: supply.id,
         type: "supply" as const,
         name: supply.name,
+        sku: supply.sku ?? "",
         category: supply.category || "Supply",
         subcategory: `${supply.quantity_per_unit} ${supply.unit}`.trim(),
         description: supply.description ?? "",
-        showOnWebsite: supply.show_on_website,
+        showOnWebsite: override?.is_published ?? supply.show_on_website,
         isActive: supply.is_active,
         priceBbd: Number(supply.sell_price ?? 0),
         priceUsd: normalizeUsd(Number(supply.sell_price ?? 0)),
@@ -233,10 +237,11 @@ const WebsiteStorePage = () => {
         id: addon.id,
         type: "addon" as const,
         name: addon.name,
+        sku: "",
         category: addon.category || "Service",
         subcategory: "service",
         description: addon.description ?? "",
-        showOnWebsite: addon.show_on_website,
+        showOnWebsite: override?.is_published ?? addon.show_on_website,
         isActive: addon.is_active,
         priceBbd: Number(addon.price ?? 0),
         priceUsd: normalizeUsd(Number(addon.price ?? 0)),
@@ -259,7 +264,7 @@ const WebsiteStorePage = () => {
       if (filter === "supplies" && row.type !== "supply") return false;
       if (filter === "services" && row.type !== "addon") return false;
       if (!query) return true;
-      return [row.name, row.category, row.description, row.tags.join(" ")].some((field) => field.toLowerCase().includes(query));
+      return [row.name, row.sku, row.category, row.description, row.tags.join(" ")].some((field) => field.toLowerCase().includes(query));
     });
     return sortProducts(filtered, sortMode);
   }, [allProducts, filter, search, sortMode, statusFilter]);
@@ -272,122 +277,37 @@ const WebsiteStorePage = () => {
       if (filter === "supplies" && row.type !== "supply") return false;
       if (filter === "services" && row.type !== "addon") return false;
       if (!query) return true;
-      return [row.name, row.category, row.description].some((field) => field.toLowerCase().includes(query));
+      return [row.name, row.sku, row.category, row.description].some((field) => field.toLowerCase().includes(query));
     });
     return sortProducts(candidates, sortMode);
   }, [allProducts, filter, search, sortMode]);
 
   const isLoading = loadingLenses || loadingSupplies || loadingAddons;
 
-  const updateVisibility = (row: ProductRow, showOnWebsite: boolean) => {
-    if (row.type === "lens") {
-      const lens = lenses.find((item) => item.id === row.id);
-      if (!lens) return;
-      updateLensMutation.mutate(
-        {
-          id: lens.id,
-          form: {
-            name: lens.name,
-            supplier_id: lens.supplier_id,
-            brand_id: lens.brand_id,
-            material_id: lens.material_id,
-            mftype_id: lens.mftype_id,
-            lenstype_id: lens.lenstype_id,
-            finishtype_id: lens.finishtype_id,
-            index_value: lens.index_value,
-            base_price: lens.base_price,
-            sell_price: lens.sell_price,
-            sph_min: lens.sph_min,
-            sph_max: lens.sph_max,
-            cyl_min: lens.cyl_min,
-            cyl_max: lens.cyl_max,
-            add_min: lens.add_min,
-            add_max: lens.add_max,
-            is_active: lens.is_active,
-            show_in_pricelist: lens.show_in_pricelist,
-            full_lab: lens.full_lab,
-            show_in_ws_pricelist: lens.show_in_ws_pricelist,
-            show_on_website: showOnWebsite,
-            notes: lens.notes,
-            option: lens.lens_lens_options[0] ? { lens_option_id: lens.lens_lens_options[0].lens_option_id, extra_cost: lens.lens_lens_options[0].extra_cost } : null,
-          },
-        },
-        {
-          onSuccess: () => toast({ title: showOnWebsite ? "Product published to website" : "Product removed from website" }),
-          onError: (error: any) => toast({ title: "Unable to update", description: error?.message || "Unexpected error", variant: "destructive" }),
-        },
-      );
-      return;
+  const updateVisibility = async (row: ProductRow, showOnWebsite: boolean) => {
+    const existing = overrideMap.get(`${row.type}:${row.id}`);
+    const payload = {
+      product_type: row.type,
+      product_id: row.id,
+      is_published: showOnWebsite,
+      is_vat_taxable: existing?.is_vat_taxable ?? row.isVatTaxable,
+      quantity_label: existing?.quantity_label ?? row.quantityLabel,
+      website_badges: existing?.website_badges ?? row.tags,
+    };
+    try {
+      if (existing?.id) {
+        const { error } = await (supabase.from("store_product_overrides") as any).update(payload).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("store_product_overrides") as any).insert(payload as any);
+        if (error) throw error;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["store-product-overrides"] });
+      await queryClient.invalidateQueries({ queryKey: ["store-products"] });
+      toast({ title: showOnWebsite ? "Product published to storefront" : "Product removed from storefront" });
+    } catch (error: any) {
+      toast({ title: "Unable to update storefront visibility", description: error?.message || "Unexpected error", variant: "destructive" });
     }
-
-    if (row.type === "supply") {
-      const supply = supplies.find((item) => item.id === row.id);
-      if (!supply) return;
-      updateSupplyMutation.mutate(
-        {
-          id: supply.id,
-          form: {
-            name: supply.name,
-            category: supply.category,
-            description: supply.description,
-            sku: supply.sku,
-            base_price: supply.base_price,
-            sell_price: supply.sell_price,
-            unit: supply.unit,
-            quantity_per_unit: supply.quantity_per_unit,
-            is_active: supply.is_active,
-            show_on_website: showOnWebsite,
-            image_url: supply.image_url,
-            notes: supply.notes,
-            supplier_id: supply.supplier_id,
-            brand_id: supply.brand_id,
-            preferred: supply.preferred,
-            stocked: supply.stocked,
-            show_in_pricelist: supply.show_in_pricelist,
-            bin: supply.bin,
-            detail: supply.detail,
-            currency: supply.currency,
-            bb_item: supply.bb_item,
-            duty_added: supply.duty_added,
-            vat_paid: supply.vat_paid,
-            labour_added: supply.labour_added,
-            stk_wspl: supply.stk_wspl,
-          },
-        },
-        {
-          onSuccess: () => toast({ title: showOnWebsite ? "Product published to website" : "Product removed from website" }),
-          onError: (error: any) => toast({ title: "Unable to update", description: error?.message || "Unexpected error", variant: "destructive" }),
-        },
-      );
-      return;
-    }
-
-    const addon = addons.find((item) => item.id === row.id);
-    if (!addon) return;
-
-    updateAddonMutation.mutate(
-      {
-        id: addon.id,
-        form: {
-          name: addon.name,
-          sku: addon.sku,
-          category: addon.category,
-          description: addon.description,
-          cost: addon.cost,
-          price: addon.price,
-          is_auto: addon.is_auto,
-          auto_rule: addon.auto_rule,
-          is_active: addon.is_active,
-          show_on_website: showOnWebsite,
-          sort_order: addon.sort_order,
-          supplier_id: addon.supplier_id,
-        },
-      },
-      {
-        onSuccess: () => toast({ title: showOnWebsite ? "Service published to website" : "Service removed from website" }),
-        onError: (error: any) => toast({ title: "Unable to update", description: error?.message || "Unexpected error", variant: "destructive" }),
-      },
-    );
   };
 
   const openInCatalogForPriceEdit = (row: ProductRow) => {
@@ -428,6 +348,7 @@ const WebsiteStorePage = () => {
       is_vat_taxable: existing?.is_vat_taxable ?? false,
       quantity_label: existing?.quantity_label ?? selected.quantityLabel,
       website_badges: existing?.website_badges ?? selected.tags,
+      is_published: existing?.is_published ?? selected.showOnWebsite,
       ...patch,
     };
 
@@ -551,7 +472,7 @@ const WebsiteStorePage = () => {
                 <th className="text-left font-medium px-3 py-2">Product</th>
                 <th className="text-left font-medium px-3 py-2">Type</th>
                 <th className="text-left font-medium px-3 py-2">Category / Qty</th>
-                <th className="text-right font-medium px-3 py-2">Price (BBD / USD)</th>
+                <th className="text-right font-medium px-3 py-2 whitespace-nowrap min-w-[112px]">Price (BBD / USD)</th>
                 <th className="text-center font-medium px-3 py-2">VAT</th>
                 <th className="text-center font-medium px-3 py-2">Visible</th>
                 <th className="text-right font-medium px-3 py-2">Actions</th>
@@ -569,7 +490,7 @@ const WebsiteStorePage = () => {
                       <img src={row.imageUrl} alt={`${row.name} preview`} className="h-10 w-10 rounded border object-cover bg-white" />
                       <div>
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-medium">{row.name}</span>
+                          <span className="font-medium">{row.name} | {row.sku || "—"}</span>
                           {!row.isActive && <Badge variant="secondary">Inactive</Badge>}
                         </div>
                         <div className="text-muted-foreground">{row.description || "No description"}</div>
@@ -578,7 +499,7 @@ const WebsiteStorePage = () => {
                   </td>
                   <td className="px-3 py-2"><Badge variant="outline">{row.type === "addon" ? "service" : row.type}</Badge></td>
                   <td className="px-3 py-2 text-muted-foreground">{row.category} · {row.quantityLabel}</td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right whitespace-nowrap min-w-[112px]">
                     <div>${row.priceBbd.toFixed(2)} BBD</div>
                     <div className="text-muted-foreground">${row.priceUsd.toFixed(2)} USD</div>
                   </td>
@@ -590,18 +511,18 @@ const WebsiteStorePage = () => {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openEditor(row)}>
-                        <Settings className="h-3 w-3 mr-1" /> Edit
+                      <Button size="icon" variant="outline" className="h-7 w-7" title={`Edit ${row.name}`} aria-label={`Edit ${row.name}`} onClick={() => openEditor(row)}>
+                        <Settings className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
-                        <Link to={`/admin/website/store/variants/${row.type}/${row.id}`}>
-                          Variants
+                      <Button size="icon" variant="outline" className="h-7 w-7" asChild>
+                        <Link to={`/admin/website/store/variants/${row.type}/${row.id}`} title={`Edit variants for ${row.name}`} aria-label={`Edit variants for ${row.name}`}>
+                          <Layers className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
                       {(row.type === "lens" || row.type === "supply" || row.type === "addon") && (
-                        <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
-                          <Link to={`/store/product/${row.type}/${row.id}`} target="_blank" rel="noreferrer">
-                            <Eye className="h-3 w-3 mr-1" /> View
+                        <Button size="icon" variant="outline" className="h-7 w-7" asChild>
+                          <Link to={`/store/product/${row.type}/${row.id}`} target="_blank" rel="noreferrer" title={`View ${row.name}`} aria-label={`View ${row.name}`}>
+                            <Eye className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
                       )}

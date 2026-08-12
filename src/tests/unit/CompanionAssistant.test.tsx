@@ -15,6 +15,7 @@ vi.mock("@/hooks/useStoreProducts", () => ({
       {
         id: "lens-1",
         name: "ZenVue Brilliance Progressive",
+        sku: null,
         description: "Premium progressive lens for all-day wear.",
         quantity_label: "pair",
         sell_price: 100,

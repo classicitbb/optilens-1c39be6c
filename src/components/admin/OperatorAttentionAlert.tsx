@@ -14,7 +14,7 @@ const OperatorAttentionAlert = () => {
   if (isLoading || isSnoozed || items.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-11 z-20 flex justify-center px-4 animate-in slide-in-from-top-8 duration-500" aria-live="assertive">
+    <div className="pointer-events-none fixed inset-x-0 top-11 z-[100] flex justify-center px-4 animate-in slide-in-from-top-8 duration-500" aria-live="assertive">
       <div className="pointer-events-auto w-full max-w-2xl rounded-b-xl border-x-2 border-b-2 border-red-500 bg-red-950 px-4 py-3 text-white shadow-2xl">
         <div className="flex items-start gap-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-300" aria-hidden="true" />

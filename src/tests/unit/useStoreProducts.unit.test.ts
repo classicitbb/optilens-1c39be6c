@@ -40,9 +40,9 @@ describe("fetchStoreProducts", () => {
     mocks.from.mockReset();
     mocks.rpc.mockReset();
     mocks.from.mockImplementation((table: string) => createQueryBuilder(table));
-    mocks.rpc.mockImplementation((functionName: string) =>
-      Promise.resolve(mocks.results[functionName] ?? { data: [], error: null }),
-    );
+    mocks.rpc.mockImplementation((functionName: string) => ({
+      range: vi.fn(async () => mocks.results[functionName] ?? { data: [], error: null }),
+    }));
     mocks.results = {
       get_lenses_safe: { data: [], error: null },
       get_supplies_safe: { data: [], error: null },
@@ -68,6 +68,7 @@ describe("fetchStoreProducts", () => {
           description: "Professional-grade lens cleaning wipes",
           sell_price: 40,
           category: "optical",
+          sku: "SUP-100",
           unit: "box",
           quantity_per_unit: 100,
           image_url: null,
@@ -86,6 +87,7 @@ describe("fetchStoreProducts", () => {
       product_type: "supply",
       sell_price: 40,
       sell_price_usd: 20,
+      sku: "SUP-100",
     });
     expect(mocks.rpc).toHaveBeenCalledWith("get_lenses_safe");
     expect(mocks.rpc).toHaveBeenCalledWith("get_supplies_safe");

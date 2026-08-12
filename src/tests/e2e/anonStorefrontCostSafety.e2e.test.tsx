@@ -6,6 +6,7 @@ import Store from "@/pages/Store";
 const anonymousProduct = {
   id: "lens-safe-1",
   name: "Safe Storefront Lens",
+  sku: null,
   description: "Public product description",
   quantity_label: "pair",
   sell_price: 40,

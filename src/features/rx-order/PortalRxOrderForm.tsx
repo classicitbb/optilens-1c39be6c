@@ -85,6 +85,7 @@ const PortalRxOrderForm = () => {
       lockedAccountId={lockedAccountId}
       checkoutPath="/checkout"
       storePath="/store"
+      onStartAnother={() => { setQuoteId(null); creatingRef.current = false; }}
       prefill={prefill}
       prefillBanner={prefillBanner}
     />
