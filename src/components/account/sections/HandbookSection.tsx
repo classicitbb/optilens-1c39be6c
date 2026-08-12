@@ -47,7 +47,7 @@ const HandbookSection = () => {
               </div>
               <div>
                 <CardTitle className="text-xl">Classic Visions Dispenser Handbook</CardTitle>
-                <CardDescription>Edition 2026.1 · PDF · 22 pages</CardDescription>
+                <CardDescription>Edition 2026.1 · PDF · 15 pages</CardDescription>
               </div>
             </div>
             <Button asChild>
