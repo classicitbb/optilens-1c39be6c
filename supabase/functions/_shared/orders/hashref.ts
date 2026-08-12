@@ -320,12 +320,15 @@ export function buildOrderHashref(order: CanonicalOrder, routing: HashrefRouting
   // Gatekeeper spec constraints: agent_name is lowercase, lab_num is a
   // three-digit 001-999 value, and cust_seq_num is a three-digit integer.
   const agentName = (routing.agentName ?? "optilens").toLowerCase();
+  // Previews render before a contract is attached and pass a visible
+  // placeholder, which is left as-is instead of being validated.
+  const isPlaceholderLab = text(routing.labNum).startsWith("<");
   const labNumRaw = text(routing.labNum).replace(/\D/g, "");
   const labNumValue = Number(labNumRaw);
-  if (!labNumRaw || !Number.isFinite(labNumValue) || labNumValue < 1 || labNumValue > 999) {
+  if (!isPlaceholderLab && (!labNumRaw || !Number.isFinite(labNumValue) || labNumValue < 1 || labNumValue > 999)) {
     throw new Error("The sending contract's lab number must be between 001 and 999.");
   }
-  const labNum = String(labNumValue).padStart(3, "0");
+  const labNum = isPlaceholderLab ? text(routing.labNum) : String(labNumValue).padStart(3, "0");
   const orderDigits = String(order.orderId).replace(/\D/g, "");
   const custSeqNum = String(Number(orderDigits.slice(-3) || "0")).padStart(3, "0");
 
