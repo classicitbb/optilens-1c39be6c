@@ -3077,6 +3077,60 @@ export type Database = {
           },
         ]
       }
+      gatekeeper_dispatch_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          duration_ms: number | null
+          endpoint: string | null
+          error_message: string | null
+          http_method: string | null
+          http_status: number | null
+          id: string
+          order_kind: string | null
+          phase: string
+          request_snapshot: Json
+          response_snapshot: Json
+          submission_id: string | null
+          success: boolean
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error_message?: string | null
+          http_method?: string | null
+          http_status?: number | null
+          id?: string
+          order_kind?: string | null
+          phase?: string
+          request_snapshot?: Json
+          response_snapshot?: Json
+          submission_id?: string | null
+          success?: boolean
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error_message?: string | null
+          http_method?: string | null
+          http_status?: number | null
+          id?: string
+          order_kind?: string | null
+          phase?: string
+          request_snapshot?: Json
+          response_snapshot?: Json
+          submission_id?: string | null
+          success?: boolean
+        }
+        Relationships: []
+      }
       gatekeeper_secrets: {
         Row: {
           auth_token_expires_at: string | null
@@ -10953,6 +11007,25 @@ export type Database = {
           name: string
           user_id: string
         }[]
+      }
+      log_gatekeeper_dispatch: {
+        Args: {
+          p_action: string
+          p_actor_user_id?: string
+          p_alert?: boolean
+          p_duration_ms?: number
+          p_endpoint?: string
+          p_error_message?: string
+          p_http_method?: string
+          p_http_status?: number
+          p_order_kind?: string
+          p_phase?: string
+          p_request?: Json
+          p_response?: Json
+          p_submission_id?: string
+          p_success: boolean
+        }
+        Returns: string
       }
       log_integration_event: {
         Args: {
