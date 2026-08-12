@@ -54,5 +54,10 @@ export interface RxSubmissionRow {
   approved_at: string | null;
   submitted_at: string | null;
   created_at: string;
+  gatekeeper_order_id: number | null;
+  /** Latest job status pulled back from the lab (at most every 5 minutes). */
+  lab_status: string | null;
+  lab_status_detail: string | null;
+  lab_status_at: string | null;
   payload: Record<string, unknown>;
 }
