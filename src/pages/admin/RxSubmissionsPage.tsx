@@ -1,7 +1,7 @@
 import { useRxSubmissions } from "@/features/rx-order/hooks/useRxSubmissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, Ban, RotateCcw } from "lucide-react";
+import { Send, Ban, RotateCcw, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
@@ -20,7 +20,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const RxSubmissionsPage = () => {
-  const { data: rows = [], isLoading, approveMutation, cancelMutation } = useRxSubmissions();
+  const { data: rows = [], isLoading, approveMutation, resendMutation, pullStatusesMutation, cancelMutation } = useRxSubmissions();
   const [dispatchChoices, setDispatchChoices] = useState<Record<string, "innovations" | "gatekeeper">>({});
 
   return (
@@ -32,6 +32,15 @@ const RxSubmissionsPage = () => {
         <Badge variant="outline" className="text-[10px]">
           {rows.filter((r) => r.status === "pending_review").length} awaiting release
         </Badge>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 text-[10px] px-2 gap-1 ml-auto"
+          disabled={pullStatusesMutation.isPending}
+          onClick={() => pullStatusesMutation.mutate()}
+        >
+          <RefreshCw className={cn("h-3 w-3", pullStatusesMutation.isPending && "animate-spin")} /> Refresh lab statuses
+        </Button>
       </div>
 
       <div className="border border-border rounded overflow-hidden">
@@ -72,7 +81,16 @@ const RxSubmissionsPage = () => {
                   <td className="px-2 py-1.5 max-w-[260px]">
                     {r.result_message && <div className="truncate" title={r.result_message}>[{r.result_code}] {r.result_message}</div>}
                     {r.last_error && <div className="text-red-600 dark:text-red-400 truncate" title={r.last_error}>{r.last_error}</div>}
-                    {!r.result_message && !r.last_error && <span className="text-muted-foreground">—</span>}
+                    {r.lab_status && (
+                      <div className="text-[10px]">
+                        <span className="font-medium">{r.lab_status}</span>
+                        {r.lab_status_detail ? ` · ${r.lab_status_detail}` : ""}
+                        {r.lab_status_at && (
+                          <span className="text-muted-foreground"> · {new Date(r.lab_status_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                        )}
+                      </div>
+                    )}
+                    {!r.result_message && !r.last_error && !r.lab_status && <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-2 py-1.5 text-right text-muted-foreground whitespace-nowrap">
                     {new Date(r.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
@@ -92,6 +110,17 @@ const RxSubmissionsPage = () => {
                       </Button>
                       </div>
                     )}
+                    {["approved", "claimed"].includes(r.status) && r.dispatch_provider === "gatekeeper" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-[10px] px-2 gap-1"
+                        disabled={resendMutation.isPending}
+                        onClick={() => resendMutation.mutate(r.id)}
+                      >
+                        <RotateCcw className="h-3 w-3" /> {r.transport ? "Resend" : "Send now"}
+                      </Button>
+                    )}
                     {["pending_review", "approved", "failed"].includes(r.status) && (
                       <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2 gap-1 text-muted-foreground" disabled={cancelMutation.isPending} onClick={() => cancelMutation.mutate(r.id)}>
                         <Ban className="h-3 w-3" /> Cancel
@@ -106,7 +135,9 @@ const RxSubmissionsPage = () => {
       </div>
       <p className="text-[10px] text-muted-foreground max-w-3xl">
         Select OptiLens to use the existing office sender, or Gatekeeper to send immediately through the enabled Gatekeeper
-        contract. Gatekeeper records only its receipt; this page does not poll or import job-status updates.
+        contract. Gatekeeper records only its receipt. A row left in “approved” or “claimed” with no receipt never reached
+        Gatekeeper — use Send now to dispatch it again. Lab statuses refresh automatically and can be pulled manually at most
+        once every 5 minutes.
       </p>
     </div>
   );
