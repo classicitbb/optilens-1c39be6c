@@ -3178,6 +3178,7 @@ export type Database = {
           last_connected_at: string | null
           last_error: string | null
           last_receipt_at: string | null
+          last_status_pull_at: string | null
           origin_lab_id: string
           status: string
           tenant_key: string
@@ -3194,6 +3195,7 @@ export type Database = {
           last_connected_at?: string | null
           last_error?: string | null
           last_receipt_at?: string | null
+          last_status_pull_at?: string | null
           origin_lab_id: string
           status?: string
           tenant_key?: string
@@ -3210,6 +3212,7 @@ export type Database = {
           last_connected_at?: string | null
           last_error?: string | null
           last_receipt_at?: string | null
+          last_status_pull_at?: string | null
           origin_lab_id?: string
           status?: string
           tenant_key?: string
@@ -8137,6 +8140,9 @@ export type Database = {
           dispatch_provider: string
           gatekeeper_order_id: number
           id: string
+          lab_status: string | null
+          lab_status_at: string | null
+          lab_status_detail: string | null
           last_error: string | null
           mode: number
           order_id: string | null
@@ -8160,6 +8166,9 @@ export type Database = {
           dispatch_provider?: string
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           mode?: number
           order_id?: string | null
@@ -8183,6 +8192,9 @@ export type Database = {
           dispatch_provider?: string
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           mode?: number
           order_id?: string | null
@@ -8917,6 +8929,9 @@ export type Database = {
           filename: string | null
           gatekeeper_order_id: number
           id: string
+          lab_status: string | null
+          lab_status_at: string | null
+          lab_status_detail: string | null
           last_error: string | null
           order_reference: string | null
           payload: Json
@@ -8939,6 +8954,9 @@ export type Database = {
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
@@ -8961,6 +8979,9 @@ export type Database = {
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
@@ -10557,6 +10578,10 @@ export type Database = {
           object_type: string
         }[]
       }
+      begin_gatekeeper_status_pull: {
+        Args: { p_force?: boolean }
+        Returns: boolean
+      }
       build_rx_submission_payload: {
         Args: { p_quote_id: string }
         Returns: Json
@@ -11205,6 +11230,15 @@ export type Database = {
           p_receipt?: Json
           p_submission_id: string
           p_success: boolean
+        }
+        Returns: undefined
+      }
+      record_gatekeeper_status: {
+        Args: {
+          p_detail?: string
+          p_order_kind: string
+          p_status: string
+          p_submission_id: string
         }
         Returns: undefined
       }
