@@ -329,26 +329,31 @@ Deno.serve(async (req) => {
   if (disallowedOrigin) return disallowedOrigin;
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
 
-  // The scheduled status pull has no interactive user, so it authenticates
-  // with a shared cron secret instead of an admin session. Every other action
-  // still requires a signed-in admin.
-  const cronSecret = Deno.env.get("GATEKEEPER_CRON_SECRET") ?? "";
-  const presentedCronSecret = req.headers.get("x-gatekeeper-cron-secret") ?? "";
-  const isCron = !!cronSecret && presentedCronSecret === cronSecret;
+  // The scheduled status pull has no interactive user, so it presents the
+  // per-tenant status-pull token instead of an admin session. The token is
+  // verified against the database before anything else happens, and it can
+  // only ever reach the pull-statuses branch below.
+  const presentedCronToken = req.headers.get("x-gatekeeper-cron-token") ?? "";
+  let isCron = false;
+  const serviceClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
+  if (presentedCronToken) {
+    const { data: validToken } = await serviceClient
+      .rpc("verify_gatekeeper_status_pull_token", { p_token: presentedCronToken });
+    isCron = validToken === true;
+    if (!isCron) return json(req, { error: "Unauthorized" }, 401);
+  }
 
   const authContext = isCron
-    ? {
-        supabaseAdminClient: createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-          { auth: { persistSession: false } },
-        ),
-        user: { id: null as string | null },
-      }
+    ? { supabaseAdminClient: serviceClient, user: { id: null as string | null } }
     : await requirePrivilegedAccess(req, getCorsHeaders(req, corsPolicy), {
         allowedRoles: ["admin"], sourceFunction: "gatekeeper-orders",
       });
   if (authContext instanceof Response) return authContext;
+
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;
   const action = text(body?.action, 40);
