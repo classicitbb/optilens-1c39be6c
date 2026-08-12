@@ -240,14 +240,14 @@ async function connectionCredentialsFor(authContext: any): Promise<GatekeeperCon
   return config;
 }
 
-async function validAuthToken(authContext: any, config: Pick<GatekeeperCredentials, "environment" | "jwt_key" | "jwt_secret" | "auth_token" | "auth_token_expires_at" | "last_auth_refresh_at">): Promise<string> {
+async function validAuthToken(authContext: any, config: Pick<GatekeeperCredentials, "environment" | "jwt_key" | "jwt_secret" | "auth_token" | "auth_token_expires_at" | "last_auth_refresh_at">, log: DispatchLog | null): Promise<string> {
   const expiresAt = config.auth_token_expires_at ? Date.parse(config.auth_token_expires_at) : 0;
   if (config.auth_token && Number.isFinite(expiresAt) && expiresAt > Date.now() + 60_000) return config.auth_token;
   const refreshedAt = config.last_auth_refresh_at ? Date.parse(config.last_auth_refresh_at) : 0;
   if (Number.isFinite(refreshedAt) && Date.now() - refreshedAt < 12 * 60 * 60 * 1000) {
     throw new Error("Gatekeeper token is unavailable and may not be refreshed more than twice in 24 hours.");
   }
-  const token = await authenticate(config.environment, config.jwt_key, config.jwt_secret);
+  const token = await authenticate(config.environment, config.jwt_key, config.jwt_secret, log);
   const { error } = await authContext.supabaseAdminClient.rpc("cache_gatekeeper_auth_token", {
     p_auth_token: token,
     p_actor_user_id: authContext.user.id,
@@ -274,7 +274,16 @@ Deno.serve(async (req) => {
     return json(req, { error: "Unsupported action." }, 400);
   }
 
+  const log: DispatchLog = {
+    admin: authContext.supabaseAdminClient,
+    action,
+    actorUserId: authContext.user?.id ?? null,
+    orderKind: null,
+    submissionId: null,
+  };
+
   try {
+
     if (action === "connect") {
       const environment = body.environment === "production" ? "production" : "staging";
       const originLabId = text(body.originLabId, 30);
