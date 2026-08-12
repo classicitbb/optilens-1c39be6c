@@ -3181,6 +3181,7 @@ export type Database = {
           last_status_pull_at: string | null
           origin_lab_id: string
           status: string
+          status_pull_token: string | null
           tenant_key: string
           updated_at: string
         }
@@ -3198,6 +3199,7 @@ export type Database = {
           last_status_pull_at?: string | null
           origin_lab_id: string
           status?: string
+          status_pull_token?: string | null
           tenant_key?: string
           updated_at?: string
         }
@@ -3215,6 +3217,7 @@ export type Database = {
           last_status_pull_at?: string | null
           origin_lab_id?: string
           status?: string
+          status_pull_token?: string | null
           tenant_key?: string
           updated_at?: string
         }
@@ -11541,6 +11544,10 @@ export type Database = {
           name: string
           scopes: string[]
         }[]
+      }
+      verify_gatekeeper_status_pull_token: {
+        Args: { p_token: string }
+        Returns: boolean
       }
     }
     Enums: {
