@@ -284,16 +284,36 @@ Deno.serve(async (req) => {
   if (disallowedOrigin) return disallowedOrigin;
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
 
-  const authContext = await requirePrivilegedAccess(req, getCorsHeaders(req, corsPolicy), {
-    allowedRoles: ["admin"], sourceFunction: "gatekeeper-orders",
-  });
+  // The scheduled status pull has no interactive user, so it authenticates
+  // with a shared cron secret instead of an admin session. Every other action
+  // still requires a signed-in admin.
+  const cronSecret = Deno.env.get("GATEKEEPER_CRON_SECRET") ?? "";
+  const presentedCronSecret = req.headers.get("x-gatekeeper-cron-secret") ?? "";
+  const isCron = !!cronSecret && presentedCronSecret === cronSecret;
+
+  const authContext = isCron
+    ? {
+        supabaseAdminClient: createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+          { auth: { persistSession: false } },
+        ),
+        user: { id: null as string | null },
+      }
+    : await requirePrivilegedAccess(req, getCorsHeaders(req, corsPolicy), {
+        allowedRoles: ["admin"], sourceFunction: "gatekeeper-orders",
+      });
   if (authContext instanceof Response) return authContext;
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;
   const action = text(body?.action, 40);
-  if (!body || !["connect", "refresh-contracts", "send", "preview"].includes(action)) {
+  if (!body || !["connect", "refresh-contracts", "send", "preview", "pull-statuses"].includes(action)) {
     return json(req, { error: "Unsupported action." }, 400);
   }
+  if (isCron && action !== "pull-statuses") {
+    return json(req, { error: "The scheduled caller may only pull statuses." }, 403);
+  }
+
 
   const log: DispatchLog = {
     admin: authContext.supabaseAdminClient,
