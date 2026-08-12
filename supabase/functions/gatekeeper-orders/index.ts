@@ -67,6 +67,114 @@ const GATEKEEPER_BASE_URLS = {
   production: "https://gatekeeper.opticalonline.com",
 } as const;
 
+// ---------------------------------------------------------------------------
+// Dispatch logging: every Gatekeeper HTTP call and every terminal failure is
+// written to public.gatekeeper_dispatch_logs with the full (redacted) request
+// and response, and failures raise an admin notification.
+// ---------------------------------------------------------------------------
+
+type DispatchLog = {
+  admin: any;
+  action: string;
+  actorUserId: string | null;
+  orderKind?: OrderKind | null;
+  submissionId?: string | null;
+};
+
+const SNAPSHOT_LIMIT = 8000;
+const SECRET_KEYS = ["jwt_secret", "jwt_key", "pin_code", "pinCode", "auth_token", "authorization", "password"];
+
+function redact(value: unknown, depth = 0): unknown {
+  if (value === null || value === undefined) return value ?? null;
+  if (Array.isArray(value)) return depth > 4 ? "[array]" : value.slice(0, 50).map((item) => redact(item, depth + 1));
+  if (typeof value === "object") {
+    if (depth > 4) return "[object]";
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = SECRET_KEYS.some((secret) => key.toLowerCase() === secret.toLowerCase()) ? "[redacted]" : redact(item, depth + 1);
+    }
+    return out;
+  }
+  if (typeof value === "string") return value.length > SNAPSHOT_LIMIT ? `${value.slice(0, SNAPSHOT_LIMIT)}…[truncated]` : value;
+  return value;
+}
+
+async function recordDispatchLog(log: DispatchLog | null, entry: {
+  phase: string;
+  success: boolean;
+  endpoint?: string | null;
+  method?: string | null;
+  status?: number | null;
+  durationMs?: number | null;
+  request?: unknown;
+  response?: unknown;
+  errorMessage?: string | null;
+  alert?: boolean;
+}) {
+  if (!log) return;
+  const payload = {
+    p_action: log.action,
+    p_success: entry.success,
+    p_phase: entry.phase,
+    p_order_kind: log.orderKind ?? null,
+    p_submission_id: log.submissionId ?? null,
+    p_endpoint: entry.endpoint ?? null,
+    p_http_method: entry.method ?? null,
+    p_http_status: entry.status ?? null,
+    p_duration_ms: entry.durationMs ?? null,
+    p_request: (redact(entry.request ?? {}) ?? {}) as Record<string, unknown>,
+    p_response: (redact(entry.response ?? {}) ?? {}) as Record<string, unknown>,
+    p_error_message: entry.errorMessage ?? null,
+    p_actor_user_id: log.actorUserId,
+    p_alert: entry.alert ?? false,
+  };
+  if (!entry.success) {
+    console.error("gatekeeper dispatch failure", JSON.stringify(payload));
+  }
+  const { error } = await log.admin.rpc("log_gatekeeper_dispatch", payload);
+  if (error) console.error("gatekeeper dispatch log write failed", error.message);
+}
+
+// Single place where Gatekeeper is called, so no request can escape logging.
+async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: string, init: RequestInit, requestSnapshot?: unknown) {
+  const startedAt = Date.now();
+  const method = (init.method ?? "GET").toUpperCase();
+  try {
+    const response = await fetch(url, init);
+    const raw = await response.text();
+    let body: any = {};
+    try { body = raw ? JSON.parse(raw) : {}; } catch { body = { raw: raw.slice(0, SNAPSHOT_LIMIT) }; }
+    await recordDispatchLog(log, {
+      phase,
+      success: response.ok,
+      endpoint: url.split("?")[0],
+      method,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+      request: requestSnapshot ?? null,
+      response: { body, headers: { "content-type": response.headers.get("content-type") } },
+      errorMessage: response.ok ? null : `Gatekeeper responded HTTP ${response.status}`,
+      alert: !response.ok,
+    });
+    return { response, body };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await recordDispatchLog(log, {
+      phase,
+      success: false,
+      endpoint: url.split("?")[0],
+      method,
+      status: null,
+      durationMs: Date.now() - startedAt,
+      request: requestSnapshot ?? null,
+      response: { network_error: message },
+      errorMessage: `Network error calling Gatekeeper: ${message}`,
+      alert: true,
+    });
+    throw error;
+  }
+}
+
 function json(req: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -82,27 +190,27 @@ async function readJson(response: Response): Promise<any> {
   return await response.json().catch(() => ({}));
 }
 
-async function authenticate(environment: "staging" | "production", jwtKey: string, jwtSecret: string): Promise<string> {
+async function authenticate(environment: "staging" | "production", jwtKey: string, jwtSecret: string, log: DispatchLog | null): Promise<string> {
   const url = new URL("/api/v2/auth_user", baseUrl(environment));
   url.searchParams.set("jwt_key", jwtKey);
   url.searchParams.set("jwt_secret", jwtSecret);
-  const response = await fetch(url, { method: "POST" });
-  const body = await readJson(response);
+  const { response, body } = await gatekeeperFetch(log, "auth_user", url.toString(), { method: "POST" }, { environment, jwt_key: "[redacted]" });
   if (!response.ok || !text(body?.auth_token)) throw new Error(`Gatekeeper authentication failed (HTTP ${response.status}).`);
   return String(body.auth_token);
 }
 
-async function contractsFor(environment: "staging" | "production", authToken: string): Promise<GatekeeperContract[]> {
-  const response = await fetch(`${baseUrl(environment)}/api/v2/orders/contract_available`, {
+async function contractsFor(environment: "staging" | "production", authToken: string, log: DispatchLog | null): Promise<GatekeeperContract[]> {
+  const url = `${baseUrl(environment)}/api/v2/orders/contract_available`;
+  const { response, body } = await gatekeeperFetch(log, "contract_available", url, {
     headers: { Authorization: `Bearer ${authToken}` },
-  });
-  const body = await readJson(response);
+  }, { environment });
   if (!response.ok) throw new Error(`Gatekeeper contract lookup failed (HTTP ${response.status}).`);
   const lab = body?.message?.lab ?? body?.lab ?? {};
   const contracts = lab.contractSending ?? body?.contractSending ?? [];
   if (!Array.isArray(contracts)) throw new Error("Gatekeeper returned an invalid contract list.");
   return contracts as GatekeeperContract[];
 }
+
 
 function sanitizeContracts(contracts: GatekeeperContract[]) {
   return contracts.map((contract) => ({
@@ -132,14 +240,14 @@ async function connectionCredentialsFor(authContext: any): Promise<GatekeeperCon
   return config;
 }
 
-async function validAuthToken(authContext: any, config: Pick<GatekeeperCredentials, "environment" | "jwt_key" | "jwt_secret" | "auth_token" | "auth_token_expires_at" | "last_auth_refresh_at">): Promise<string> {
+async function validAuthToken(authContext: any, config: Pick<GatekeeperCredentials, "environment" | "jwt_key" | "jwt_secret" | "auth_token" | "auth_token_expires_at" | "last_auth_refresh_at">, log: DispatchLog | null): Promise<string> {
   const expiresAt = config.auth_token_expires_at ? Date.parse(config.auth_token_expires_at) : 0;
   if (config.auth_token && Number.isFinite(expiresAt) && expiresAt > Date.now() + 60_000) return config.auth_token;
   const refreshedAt = config.last_auth_refresh_at ? Date.parse(config.last_auth_refresh_at) : 0;
   if (Number.isFinite(refreshedAt) && Date.now() - refreshedAt < 12 * 60 * 60 * 1000) {
     throw new Error("Gatekeeper token is unavailable and may not be refreshed more than twice in 24 hours.");
   }
-  const token = await authenticate(config.environment, config.jwt_key, config.jwt_secret);
+  const token = await authenticate(config.environment, config.jwt_key, config.jwt_secret, log);
   const { error } = await authContext.supabaseAdminClient.rpc("cache_gatekeeper_auth_token", {
     p_auth_token: token,
     p_actor_user_id: authContext.user.id,
@@ -166,7 +274,16 @@ Deno.serve(async (req) => {
     return json(req, { error: "Unsupported action." }, 400);
   }
 
+  const log: DispatchLog = {
+    admin: authContext.supabaseAdminClient,
+    action,
+    actorUserId: authContext.user?.id ?? null,
+    orderKind: null,
+    submissionId: null,
+  };
+
   try {
+
     if (action === "connect") {
       const environment = body.environment === "production" ? "production" : "staging";
       const originLabId = text(body.originLabId, 30);
@@ -176,13 +293,13 @@ Deno.serve(async (req) => {
       const pinUrl = new URL("/api/v1/legacy_orders/lab_access_with_pin", baseUrl(environment));
       pinUrl.searchParams.set("webrx_lab_id", originLabId);
       pinUrl.searchParams.set("pin_code", pinCode);
-      const pinResponse = await fetch(pinUrl);
-      const pinBody = await readJson(pinResponse);
+      const { response: pinResponse, body: pinBody } = await gatekeeperFetch(log, "lab_access_with_pin", pinUrl.toString(), {}, { environment, webrx_lab_id: originLabId, pin_code: "[redacted]" });
       const lab = pinBody?.message?.lab ?? pinBody?.lab ?? {};
       if (!pinResponse.ok || !text(lab.jwt_key) || !text(lab.jwt_secret)) {
         throw new Error(`Gatekeeper did not accept the PIN (HTTP ${pinResponse.status}).`);
       }
-      const authToken = await authenticate(environment, String(lab.jwt_key), String(lab.jwt_secret));
+      const authToken = await authenticate(environment, String(lab.jwt_key), String(lab.jwt_secret), log);
+
       const suppliedContracts = Array.isArray(lab.contractSending) ? lab.contractSending as GatekeeperContract[] : [];
       // Persist the single-use-PIN result before a separate contract lookup.
       // If Gatekeeper's second call is temporarily unavailable, the durable JWT
@@ -198,7 +315,7 @@ Deno.serve(async (req) => {
         p_actor_user_id: authContext.user.id,
       });
       if (credentialError) throw new Error(`Gatekeeper credentials could not be saved: ${credentialError.message}`);
-      const contracts = await contractsFor(environment, authToken);
+      const contracts = await contractsFor(environment, authToken, log);
       const { error } = await authContext.supabaseAdminClient.rpc("store_gatekeeper_connection", {
         p_environment: environment,
         p_origin_lab_id: text(lab.webrx_lab_id || originLabId, 30),
@@ -215,8 +332,8 @@ Deno.serve(async (req) => {
 
     if (action === "refresh-contracts") {
       const config = await connectionCredentialsFor(authContext);
-      const authToken = await validAuthToken(authContext, config);
-      const contracts = await contractsFor(config.environment, authToken);
+      const authToken = await validAuthToken(authContext, config, log);
+      const contracts = await contractsFor(config.environment, authToken, log);
       const { error } = await authContext.supabaseAdminClient.rpc("replace_gatekeeper_contracts", {
         p_contracts: contracts,
         p_actor_user_id: authContext.user.id,
@@ -226,8 +343,10 @@ Deno.serve(async (req) => {
     }
 
     const orderKind = orderKindFrom(body.orderKind);
+    log.orderKind = orderKind;
     const { table, columns } = ORDER_TABLES[orderKind];
     const submissionId = text(body.submissionId, 64);
+    log.submissionId = submissionId || null;
     if (!submissionId) return json(req, { error: "A submission ID is required." }, 400);
 
     // Preview renders exactly what a send would transmit, from the same
@@ -268,17 +387,22 @@ Deno.serve(async (req) => {
 
     try {
       const config = await credentialsFor(authContext);
-      const authToken = await validAuthToken(authContext, config);
+      const authToken = await validAuthToken(authContext, config, log);
       const rxContent = buildOrderHashref(canonicalOrderFor(orderKind, claimed as Submission), {
         labNum: config.receiver_lab_id,
         custNum: config.receiver_retailer_name,
       });
-      const response = await fetch(`${baseUrl(config.environment)}/api/v2/orders/push_order_to_lab`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ order: { hash_routing: config.hash_routing, rx_content: rxContent, tr_content: "" } }),
-      });
-      const responseBody = await readJson(response);
+      const { response, body: responseBody } = await gatekeeperFetch(
+        log,
+        "push_order_to_lab",
+        `${baseUrl(config.environment)}/api/v2/orders/push_order_to_lab`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ order: { hash_routing: config.hash_routing, rx_content: rxContent, tr_content: "" } }),
+        },
+        { environment: config.environment, hash_routing: config.hash_routing, rx_content: rxContent },
+      );
       if (!response.ok || !responseBody?.message) {
         throw new Error(`Gatekeeper rejected the order (HTTP ${response.status}).`);
       }
@@ -305,6 +429,16 @@ Deno.serve(async (req) => {
       throw error;
     }
   } catch (error) {
-    return json(req, { error: error instanceof Error ? error.message : "Gatekeeper operation failed." }, 502);
+    const message = error instanceof Error ? error.message : "Gatekeeper operation failed.";
+    await recordDispatchLog(log, {
+      phase: "request_failed",
+      success: false,
+      request: { action, orderKind: log.orderKind, submissionId: log.submissionId, body: redact(body) },
+      response: { stack: error instanceof Error ? error.stack?.slice(0, 4000) ?? null : null },
+      errorMessage: message,
+      status: 502,
+      alert: true,
+    });
+    return json(req, { error: message }, 502);
   }
 });
