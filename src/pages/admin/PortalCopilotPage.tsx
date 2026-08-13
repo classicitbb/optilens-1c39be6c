@@ -377,17 +377,37 @@ const PortalCopilotPage = () => {
               </Card>
             ) : null}
 
-            {displayedState.actions.length ? displayedState.actions.map((action) => (
-              <ActionCard
-                key={`${action.id}:${action.updated_at}`}
-                action={action}
-                busy={busyActionId === action.id}
-                onDecide={(selected, decision) => decideMutation.mutate({ action: selected, decision })}
-                onSave={(selected, draft) => editMutation.mutate({ action: selected, draft })}
-              />
-            )) : (
+            {displayedState.actions.length ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {([["pending", `Needs approval (${pendingActions.length})`], ["resolved", `Resolved (${resolvedActions.length})`], ["all", `All (${displayedState.actions.length})`]] as const).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={actionFilter === value ? "default" : "outline"}
+                      onClick={() => setActionFilter(value)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                {visibleActions.length ? visibleActions.map((action) => (
+                  <ActionCard
+                    key={`${action.id}:${action.updated_at}`}
+                    action={action}
+                    busy={busyActionId === action.id}
+                    onDecide={(selected, decision) => decideMutation.mutate({ action: selected, decision })}
+                    onSave={(selected, draft) => editMutation.mutate({ action: selected, draft })}
+                  />
+                )) : (
+                  <Card className="shadow-none"><CardContent className="flex flex-col items-center justify-center py-10 text-center"><CheckCircle2 className="h-7 w-7 text-emerald-600" /><p className="mt-3 font-medium">Nothing in this view.</p><p className="mt-1 text-sm text-muted-foreground">Switch filters to see the rest of this run.</p></CardContent></Card>
+                )}
+              </div>
+            ) : (
               <Card className="shadow-none"><CardContent className="flex flex-col items-center justify-center py-12 text-center"><CheckCircle2 className="h-8 w-8 text-emerald-600" /><p className="mt-3 font-medium">No actions need approval for this run.</p><p className="mt-1 text-sm text-muted-foreground">All synced ERP customers already have access, or the run completed without proposed changes.</p></CardContent></Card>
             )}
+
 
             <Card className="shadow-none">
               <CardHeader>
