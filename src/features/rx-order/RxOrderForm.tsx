@@ -204,6 +204,7 @@ export const RxOrderForm = ({ quoteId, surface, account, actions }: RxOrderFormP
       name: `Rx Order ${quote?.quote_number ?? ""} — ${quote?.customer_name ?? ""}`.trim(),
       price: Math.round(subtotal * 100) / 100,
       productType: "lens",
+      priceUnit: "job",
       variantMetadata: { rx_quote_id: quoteId, kind: "rx_order" },
       quantity: 1,
     });

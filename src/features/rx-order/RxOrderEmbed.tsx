@@ -229,6 +229,7 @@ export const RxOrderEmbed = ({
           name: `Rx Order ${quoteNumber ?? ""} — ${[payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || ""}`.trim(),
           price: totalBBD,
           productType: "lens",
+          priceUnit: "job",
           variantMetadata: { rx_quote_id: quoteId, kind: "rx_order" },
           quantity: 1,
         });

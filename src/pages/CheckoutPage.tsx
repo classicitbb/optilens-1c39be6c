@@ -35,6 +35,7 @@ import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
 import { supabase } from "@/integrations/supabase/client";
 import { EMPTY_ADDRESS, type ProfileAddress, resolveUserFullName } from "@/lib/profileData";
 import { cn } from "@/lib/utils";
+import { getCartItemUnit } from "@/lib/cartUnits";
 import { createAuthHref } from "@/lib/authFlow";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
@@ -178,7 +179,7 @@ const OrderSummarySidebar = ({
         <div key={item.id} className="flex items-start justify-between gap-2 text-sm">
           <span className="text-foreground leading-snug">
             {item.product_name}
-            <span className="ml-1 text-muted-foreground">× {item.quantity}</span>
+            <span className="ml-1 text-muted-foreground">× {item.quantity} {getCartItemUnit(item.product_type, item.variant_metadata)}</span>
           </span>
           <span className="shrink-0 tabular-nums text-sm font-semibold text-foreground">
             ${(item.product_price * item.quantity).toFixed(2)}

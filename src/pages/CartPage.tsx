@@ -14,6 +14,7 @@ import SaveDraftDialog from "@/components/cart/SaveDraftDialog";
 import QuantityInput from "@/components/cart/QuantityInput";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import { cn } from "@/lib/utils";
+import { getCartItemUnit } from "@/lib/cartUnits";
 
 const CartPage = () => {
   const { items, totalPrice, totalItems, updateQuantity, removeFromCart, loading } = useCartContext();
@@ -129,6 +130,7 @@ const CartPage = () => {
                   {items.map((item) => {
                     const route = getItemRoute(item);
                     const lineTotal = item.product_price * item.quantity;
+                    const unit = getCartItemUnit(item.product_type, item.variant_metadata);
                     return (
                       <tr
                         key={item.id}
@@ -154,7 +156,7 @@ const CartPage = () => {
                             </div>
                           )}
                           <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/70">
-                            {item.product_type === "supply" ? "per unit" : "per pair"}
+                            {unit === "each" ? "each" : unit === "unit" ? "per unit" : unit === "job" ? "job total" : unit === "service" ? "service" : "per pair"}
                           </div>
                         </td>
                         <td className="px-4 py-3">
