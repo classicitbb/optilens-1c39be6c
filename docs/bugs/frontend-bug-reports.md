@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-13 — Edge reported denied speech permission after microphone approval
+- Area: Admin Portal Copilot push-to-talk
+- Impact: approving microphone access could still immediately show **Microphone or speech permission was denied** and produce no transcript.
+- Root cause: the hook awaited `getUserMedia` and device/meter setup before calling `SpeechRecognition.start()`, detaching Web Speech startup from the initiating user press.
+- Resolution: configure and start recognition synchronously inside the press, then initialize the selected-device meter asynchronously.
+- Regression prevention: retain the hook test that makes recognition emit `not-allowed` whenever startup loses the initiating gesture, plus external Edge activation verification.
+
 ## 2026-08-13 — Portal rollout lacked governed bulk operations
 - Area: Admin portal-access operations
 - Impact: staff had to identify ERP customers and provision invitations one at a time, with no consistent approval queue, ambiguity handling, or consolidated audit history.

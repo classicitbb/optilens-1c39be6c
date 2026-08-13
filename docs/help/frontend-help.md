@@ -3,6 +3,7 @@
 ## 2026-08-13 — Portal Copilot ERP rollout
 
 - Open **Admin → Portal Copilot** and enter **Roll out portal access to all ERP customers**. Voice input must be reviewed and confirmed before the workflow can prepare actions.
+- For voice input, press and hold **Hold to talk**, approve microphone access if Edge asks, continue holding while speaking, then release to review the transcript.
 - Review the live summary and each action. Correct editable email or follow-up details, then approve invitations individually; rejecting an action records the decision without provisioning access.
 - A partial-failure badge means the portal account exists but the invitation email was not queued. Resolve the email issue and use retry; do not create a second account manually.
 - If the page reports that Copilot storage or the Edge Function is unavailable, deploy the Copilot migration and functions before using the workflow.

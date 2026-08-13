@@ -110,34 +110,10 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     const startSequence = ++startSequenceRef.current;
     setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: settings.deviceId === "default" ? true : { deviceId: { exact: settings.deviceId } },
-      });
-      if (startSequence !== startSequenceRef.current) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-      streamRef.current = stream;
-      await refreshDevices();
-      if (startSequence !== startSequenceRef.current) {
-        releaseAudio();
-        return;
-      }
-      const AudioContextClass = window.AudioContext;
-      const audioContext = new AudioContextClass();
-      audioContextRef.current = audioContext;
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      audioContext.createMediaStreamSource(stream).connect(analyser);
-      const values = new Uint8Array(analyser.frequencyBinCount);
-      const meter = () => {
-        analyser.getByteFrequencyData(values);
-        const average = values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
-        setLevel(Math.min(100, Math.round((average / 128) * 100)));
-        animationRef.current = window.requestAnimationFrame(meter);
-      };
-      meter();
-
+      // Web Speech must start inside the initiating press. Waiting for
+      // getUserMedia/device enumeration first can make Chromium treat the
+      // later recognition.start() as detached from the user's gesture and
+      // emit `not-allowed` even after microphone access was granted.
       const recognition = new Constructor();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -171,13 +147,45 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
         stop();
       };
       recognition.onend = () => {
+        recognitionRef.current = null;
         setIsListening(false);
         releaseAudio();
       };
       recognitionRef.current = recognition;
       recognition.start();
       setIsListening(true);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: settings.deviceId === "default" ? true : { deviceId: { exact: settings.deviceId } },
+      });
+      if (startSequence !== startSequenceRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
+      await refreshDevices();
+      if (startSequence !== startSequenceRef.current) {
+        releaseAudio();
+        return;
+      }
+      const AudioContextClass = window.AudioContext;
+      const audioContext = new AudioContextClass();
+      audioContextRef.current = audioContext;
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      audioContext.createMediaStreamSource(stream).connect(analyser);
+      const values = new Uint8Array(analyser.frequencyBinCount);
+      const meter = () => {
+        analyser.getByteFrequencyData(values);
+        const average = values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
+        setLevel(Math.min(100, Math.round((average / 128) * 100)));
+        animationRef.current = window.requestAnimationFrame(meter);
+      };
+      meter();
     } catch (caught) {
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+      setIsListening(false);
       setError(caught instanceof Error ? caught.message : "Could not start the selected microphone.");
       releaseAudio();
     }
