@@ -12,7 +12,7 @@
   "mcp": {
     "server": {
       "name": "classic-visions-mcp",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "title": "Classic Visions"
     },
     "tools": [
@@ -604,6 +604,89 @@
               "maximum": 50
             }
           }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "prepare_erp_portal_rollout",
+        "title": "Prepare ERP portal rollout",
+        "description": "Admin-only. Queries live Innovations-synced customers, excludes active portal members, and prepares invite or follow-up action cards. It never sends an email without later explicit approval.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The admin's plain-English rollout instruction.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_copilot_approvals",
+        "title": "List Portal Copilot approvals",
+        "description": "Admin-only. Lists recent Copilot runs and the action cards for one run, including partial failures and audit-safe execution state.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "description": "Copilot run id. Defaults to the latest run.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "decide_copilot_action",
+        "title": "Approve or reject a Portal Copilot action",
+        "description": "Admin-only. Explicitly approves or rejects one prepared action. Approval can create an internal task or create/link a portal login and queue the customer invitation email.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "action_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Prepared Copilot action id."
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "approve",
+                "reject"
+              ],
+              "description": "The admin's explicit decision."
+            }
+          },
+          "required": [
+            "action_id",
+            "decision"
+          ]
         },
         "outputSchema": null
       }

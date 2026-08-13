@@ -2301,6 +2301,258 @@ export type Database = {
           },
         ]
       }
+      copilot_actions: {
+        Row: {
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          contact_id: string | null
+          created_at: string
+          customer_id: number | null
+          executed_at: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          payload: Json
+          result: Json | null
+          retry_count: number
+          risk_level: number
+          run_id: string
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          customer_id?: number | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
+          risk_level: number
+          run_id: string
+          status?: string
+          summary: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          customer_id?: number | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
+          risk_level?: number
+          run_id?: string
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_actions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_audit_events: {
+        Row: {
+          action_id: string | null
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          run_id: string | null
+          transcript: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          run_id?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          run_id?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_audit_events_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_audit_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_runs: {
+        Row: {
+          autonomy_level: number
+          command_text: string
+          created_at: string
+          id: string
+          input_mode: string
+          requested_by: string
+          source_snapshot_at: string
+          source_system: string
+          status: string
+          summary: Json
+          transcript: string | null
+          transcript_confirmed: boolean
+          updated_at: string
+          workflow: string
+        }
+        Insert: {
+          autonomy_level?: number
+          command_text: string
+          created_at?: string
+          id?: string
+          input_mode?: string
+          requested_by: string
+          source_snapshot_at?: string
+          source_system?: string
+          status?: string
+          summary?: Json
+          transcript?: string | null
+          transcript_confirmed?: boolean
+          updated_at?: string
+          workflow: string
+        }
+        Update: {
+          autonomy_level?: number
+          command_text?: string
+          created_at?: string
+          id?: string
+          input_mode?: string
+          requested_by?: string
+          source_snapshot_at?: string
+          source_system?: string
+          status?: string
+          summary?: Json
+          transcript?: string | null
+          transcript_confirmed?: boolean
+          updated_at?: string
+          workflow?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_runs_workflow_fkey"
+            columns: ["workflow"]
+            isOneToOne: false
+            referencedRelation: "copilot_workflow_settings"
+            referencedColumns: ["workflow"]
+          },
+        ]
+      }
+      copilot_workflow_settings: {
+        Row: {
+          created_at: string
+          email_subject_pattern: string
+          email_template_key: string
+          email_template_name: string
+          model: string | null
+          provider: string
+          updated_at: string
+          updated_by: string | null
+          workflow: string
+        }
+        Insert: {
+          created_at?: string
+          email_subject_pattern: string
+          email_template_key: string
+          email_template_name: string
+          model?: string | null
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+          workflow: string
+        }
+        Update: {
+          created_at?: string
+          email_subject_pattern?: string
+          email_template_key?: string
+          email_template_name?: string
+          model?: string | null
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+          workflow?: string
+        }
+        Relationships: []
+      }
       crm_pipelines: {
         Row: {
           created_at: string
