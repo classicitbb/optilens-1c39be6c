@@ -363,7 +363,7 @@ const PortalCopilotPage = () => {
 
       {displayedState?.runs.length ? (
         <div className="grid min-h-0 gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-          <Card className="h-fit shadow-none">
+          <Card className="h-fit shadow-none lg:sticky lg:top-4">
             <CardHeader><CardTitle className="text-base">Recent runs</CardTitle><CardDescription>Durable rollout history</CardDescription></CardHeader>
             <CardContent className="space-y-2">
               {displayedState.runs.map((run) => (
