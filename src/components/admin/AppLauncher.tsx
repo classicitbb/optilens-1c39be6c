@@ -9,6 +9,7 @@ import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 // Color map per app key for icon tinting
 const APP_COLORS: Record<string, string> = {
   launchpad: "hsl(172 72% 40%)",
+  copilot: "hsl(188 78% 42%)",
   pricing: "hsl(215 65% 50%)",
   contacts: "hsl(168 76% 42%)",
   leads: "hsl(38 92% 50%)",

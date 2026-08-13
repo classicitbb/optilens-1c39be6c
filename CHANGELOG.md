@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-13 — Admin Portal Copilot MVP
+
+### Release Notes
+- Administrators can prepare an ERP-customer portal rollout from one typed or confirmed voice command, review every proposed action, and explicitly approve or reject invitations.
+- The workflow keeps a durable audit trail and treats ambiguous contacts, missing email addresses, and partial email failures as visible follow-up work instead of silently guessing.
+
+### Technical Changelog
+- Added Claude-only Copilot settings, run/action/audit storage, a strict admin Edge Function, deterministic rollout planning, existing portal-provisioning and Doc Studio email reuse, and MCP tools for prepare/list/decide operations.
+- Added the registry-backed `/admin/copilot` surface, push-to-talk controls, approval editing, and Windows-safe admin smoke-process launching.
+
 ## 2026-08-12 — Unified Order Dispatch and MCP Artifact Stability
 
 ### Release Notes

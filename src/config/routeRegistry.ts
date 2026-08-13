@@ -81,6 +81,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "customer.rx-order", path: "/profile/rx-order", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "active", featureFlag: "lens_assistant_public" },
   { id: "customer.rx-draft", path: "/profile/rx-drafts/:draftId", domain: "customer-portal", audience: "customer", authMode: "authenticated", layout: "customer-shell", navGroup: "customer-main", status: "active" },
   { id: "admin.root", path: "/admin", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.copilot", path: "/admin/copilot", domain: "admin-console", audience: "admin", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.assistant.quality", path: "/admin/assistant/quality", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.pricing.compare", path: "/admin/pricing/compare", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.pricing.classification", path: "/admin/pricing/classification", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },

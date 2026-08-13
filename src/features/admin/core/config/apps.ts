@@ -23,6 +23,17 @@ export interface SidebarItem {
 }
 
 export const ADMIN_APPS = {
+  copilot: {
+    key: 'copilot' as const,
+    title: 'Portal Copilot',
+    icon: Bot,
+    baseRoute: '/admin/copilot',
+    defaultRoute: '/admin/copilot',
+    featurePrefix: 'copilot',
+    sidebarItems: [
+      { label: 'ERP Rollout', route: '/admin/copilot', icon: Bot },
+    ] satisfies SidebarItem[],
+  },
   pricing: {
     key: 'pricing' as const,
     title: 'Pricing',

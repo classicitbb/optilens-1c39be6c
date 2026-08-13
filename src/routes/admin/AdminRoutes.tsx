@@ -6,6 +6,7 @@ const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
 
 const AdminHomeRedirect = lazy(() => import("@/components/admin/AdminHomeRedirect"));
 const AdminDashboardHomePage = lazy(() => import("@/pages/admin/AdminDashboardHomePage"));
+const PortalCopilotPage = lazy(() => import("@/pages/admin/PortalCopilotPage"));
 const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
 const ProductCatalogPage = lazy(() => import("@/pages/admin/ProductCatalogPage"));
@@ -72,6 +73,7 @@ const AdminRoutes = () => (
     <Route element={<AdminLayout />}>
       <Route index element={<AdminHomeRedirect />} />
       <Route path="dashboard" element={<AdminDashboardHomePage />} />
+      <Route path="copilot" element={<AdminOnlyRoute><PortalCopilotPage /></AdminOnlyRoute>} />
       <Route path="pricing" element={<Navigate to="pricing/catalog" replace />} />
       <Route path="pricing/catalog" element={<ProductCatalogPage />} />
       <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />

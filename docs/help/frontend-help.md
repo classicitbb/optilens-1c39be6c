@@ -1,5 +1,12 @@
 # Frontend Help Docs
 
+## 2026-08-13 — Portal Copilot ERP rollout
+
+- Open **Admin → Portal Copilot** and enter **Roll out portal access to all ERP customers**. Voice input must be reviewed and confirmed before the workflow can prepare actions.
+- Review the live summary and each action. Correct editable email or follow-up details, then approve invitations individually; rejecting an action records the decision without provisioning access.
+- A partial-failure badge means the portal account exists but the invitation email was not queued. Resolve the email issue and use retry; do not create a second account manually.
+- If the page reports that Copilot storage or the Edge Function is unavailable, deploy the Copilot migration and functions before using the workflow.
+
 ## 2026-08-12 — Releasing an order through Gatekeeper or Innovations
 
 - In the Rx and Stock Order forms, choose the transport at release time. A Gatekeeper release sends immediately; an Innovations release waits for the office worker.

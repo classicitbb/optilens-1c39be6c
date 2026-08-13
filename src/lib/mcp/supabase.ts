@@ -77,3 +77,23 @@ export function fail(message: string) {
 export function likePattern(query: string) {
   return `%${query.replace(/[%_]/g, "")}%`;
 }
+
+/** Calls the admin-only Portal Copilot orchestrator with the MCP caller's OAuth token. */
+export async function callPortalCopilot(ctx: ToolContext, body: Record<string, unknown>) {
+  const token = ctx.getToken();
+  if (!token) throw new Error("callPortalCopilot requires a verified OAuth token");
+  const response = await fetch(`${supabaseProjectUrl()}/functions/v1/portal-copilot`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: supabasePublishableKey(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(typeof payload?.error === "string" ? payload.error : `Portal Copilot failed (${response.status})`);
+  }
+  return payload as Record<string, unknown>;
+}

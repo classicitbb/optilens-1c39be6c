@@ -1,5 +1,12 @@
 # Automation Bug Reports
 
+## 2026-08-13
+- Script(s): `scripts/admin_smoke_and_error_checks.mjs`
+- Impact: the admin smoke gate could fail before starting Vite on Windows with `spawn npm ENOENT`, or with `EINVAL` when attempting to spawn `npm.cmd` directly.
+- Root cause: the script assumed npm was a directly spawnable executable instead of using the npm CLI associated with the active Node installation.
+- Resolution: launch `npm_execpath` with `process.execPath` when available and retain `npm` as the portable fallback; include `/admin/copilot` in the route matrix.
+- Follow-up actions: run the smoke gate under the repository-supported Node version and distinguish route failures from existing source-assertion drift.
+
 ## 2026-08-12
 - Script(s): Vite/Vitest MCP plugin lifecycle
 - Impact: test or build execution could overwrite `supabase/functions/mcp/index.ts` with a `npm:C:\...` import that cannot run in Supabase.

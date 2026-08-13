@@ -69,6 +69,24 @@ function fail(message) {
 function likePattern(query) {
   return `%${query.replace(/[%_]/g, "")}%`;
 }
+async function callPortalCopilot(ctx, body) {
+  const token = ctx.getToken();
+  if (!token) throw new Error("callPortalCopilot requires a verified OAuth token");
+  const response = await fetch(`${supabaseProjectUrl()}/functions/v1/portal-copilot`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: supabasePublishableKey(),
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(typeof payload?.error === "string" ? payload.error : `Portal Copilot failed (${response.status})`);
+  }
+  return payload;
+}
 
 // src/lib/mcp/tools/whoami.ts
 var whoami_default = defineTool({
@@ -595,12 +613,84 @@ var list_shipments_default = defineTool20({
   }
 });
 
+// src/lib/mcp/tools/prepare-erp-portal-rollout.ts
+import { defineTool as defineTool21 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z20 } from "npm:zod@^4.4.3";
+var prepare_erp_portal_rollout_default = defineTool21({
+  name: "prepare_erp_portal_rollout",
+  title: "Prepare ERP portal rollout",
+  description: "Admin-only. Queries live Innovations-synced customers, excludes active portal members, and prepares invite or follow-up action cards. It never sends an email without later explicit approval.",
+  inputSchema: {
+    command: z20.string().trim().min(1).max(2e3).optional().describe("The admin's plain-English rollout instruction.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: async ({ command }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    try {
+      const payload = await callPortalCopilot(ctx, {
+        operation: "prepare-erp-rollout",
+        command: command ?? "Roll out portal access to all ERP customers",
+        inputMode: "text",
+        transcriptConfirmed: false
+      });
+      return ok(payload, payload);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Could not prepare the ERP portal rollout");
+    }
+  }
+});
+
+// src/lib/mcp/tools/list-copilot-approvals.ts
+import { defineTool as defineTool22 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z21 } from "npm:zod@^4.4.3";
+var list_copilot_approvals_default = defineTool22({
+  name: "list_copilot_approvals",
+  title: "List Portal Copilot approvals",
+  description: "Admin-only. Lists recent Copilot runs and the action cards for one run, including partial failures and audit-safe execution state.",
+  inputSchema: {
+    run_id: z21.string().uuid().optional().describe("Copilot run id. Defaults to the latest run.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ run_id }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    try {
+      const payload = await callPortalCopilot(ctx, { operation: "get-state", ...run_id ? { runId: run_id } : {} });
+      return ok(payload, payload);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Could not load Copilot approvals");
+    }
+  }
+});
+
+// src/lib/mcp/tools/decide-copilot-action.ts
+import { defineTool as defineTool23 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { z as z22 } from "npm:zod@^4.4.3";
+var decide_copilot_action_default = defineTool23({
+  name: "decide_copilot_action",
+  title: "Approve or reject a Portal Copilot action",
+  description: "Admin-only. Explicitly approves or rejects one prepared action. Approval can create an internal task or create/link a portal login and queue the customer invitation email.",
+  inputSchema: {
+    action_id: z22.string().uuid().describe("Prepared Copilot action id."),
+    decision: z22.enum(["approve", "reject"]).describe("The admin's explicit decision.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+  handler: async ({ action_id, decision }, ctx) => {
+    if (!ctx.isAuthenticated()) return notAuthenticated;
+    try {
+      const payload = await callPortalCopilot(ctx, { operation: "decide-action", actionId: action_id, decision });
+      return ok(payload, payload);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Could not apply the Copilot decision");
+    }
+  }
+});
+
 // src/lib/mcp/index.ts
-var projectRef = "xstmeirxhfbiyayrrsob";
+var projectRef = "dzsalnvmlvjoatryhqfz";
 var mcp_default = defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",
-  version: "0.2.0",
+  version: "0.3.0",
   instructions: [
     "Tools for the Classic Visions optical platform (wholesale lenses, coatings and optical supplies).",
     "Every call acts as the signed-in user and row-level security decides what is visible: customers see only their own account data, staff see the wider CRM, catalog and operations data.",
@@ -609,6 +699,7 @@ var mcp_default = defineMcp({
     "Support: `list_support_tickets`, `get_support_ticket`, `create_support_ticket`, `reply_to_support_ticket`.",
     "Catalog and knowledge: `search_products`, `list_pricelists`, `search_knowledge_base`.",
     "Staff operations: `search_crm`, `list_crm_tasks`, `create_crm_task`, `list_opportunities`, `list_shipments`.",
+    "Admin Portal Copilot: `prepare_erp_portal_rollout`, `list_copilot_approvals`, `decide_copilot_action`. Customer-facing effects always require an explicit approve decision.",
     "Never quote or invent prices that did not come from these tools, and never promise discounts, credit terms or delivery dates."
   ].join(" "),
   auth: auth.oauth.issuer({
@@ -635,7 +726,10 @@ var mcp_default = defineMcp({
     create_crm_task_default,
     list_opportunities_default,
     list_pricelists_default,
-    list_shipments_default
+    list_shipments_default,
+    prepare_erp_portal_rollout_default,
+    list_copilot_approvals_default,
+    decide_copilot_action_default
   ]
 });
 

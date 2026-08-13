@@ -9,6 +9,8 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   [functions.companion-assistant]
     verify_jwt = false
+  [functions.portal-copilot]
+    verify_jwt = false
   [functions.lens-assistant]
     verify_jwt = true
   [functions.crm-draft-outreach]
