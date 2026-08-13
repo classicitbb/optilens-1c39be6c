@@ -593,7 +593,8 @@ const Header = () => {
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
-                <Menu className="h-5 w-5" />
+                <Menu className="h-5 w-5" aria-hidden="true" />
+                <span className="sr-only">Open mobile navigation menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="!w-screen !max-w-none overflow-y-auto overscroll-contain border-r border-border/50 bg-background/80 pb-8 shadow-lg backdrop-blur-md sm:!max-w-none">
@@ -608,7 +609,8 @@ const Header = () => {
           </Sheet>
 
               <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => openAssistant()} aria-label="Open assistant" title="Open assistant">
-                <MessageCircle className="h-4 w-4" />
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Open assistant</span>
               </Button>
 
               {user ?
