@@ -148,6 +148,8 @@ const PortalCopilotPage = () => {
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [state, setState] = useState<CopilotState | null>(null);
   const [busyActionId, setBusyActionId] = useState<string | null>(null);
+  const [actionFilter, setActionFilter] = useState<"pending" | "resolved" | "all">("pending");
+
 
   const onTranscript = useCallback((transcript: string, confidence: number) => {
     setCommand(transcript);
@@ -200,8 +202,18 @@ const PortalCopilotPage = () => {
     () => displayedState?.runs.find((run) => run.id === displayedState.selectedRunId) ?? displayedState?.runs[0] ?? null,
     [displayedState],
   );
+  const pendingActions = useMemo(
+    () => (displayedState?.actions ?? []).filter((action) => action.status === "pending_approval" || action.status === "failed"),
+    [displayedState],
+  );
+  const resolvedActions = useMemo(
+    () => (displayedState?.actions ?? []).filter((action) => action.status !== "pending_approval" && action.status !== "failed"),
+    [displayedState],
+  );
+  const visibleActions = actionFilter === "pending" ? pendingActions : actionFilter === "resolved" ? resolvedActions : (displayedState?.actions ?? []);
   const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
   const canPrepare = command.trim().length > 0 && !prepareMutation.isPending && (inputMode === "text" || transcriptConfirmed);
+
 
   const chooseRun = (runId: string) => {
     setSelectedRunId(runId);
@@ -351,7 +363,7 @@ const PortalCopilotPage = () => {
 
       {displayedState?.runs.length ? (
         <div className="grid min-h-0 gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-          <Card className="h-fit shadow-none">
+          <Card className="h-fit shadow-none lg:sticky lg:top-4">
             <CardHeader><CardTitle className="text-base">Recent runs</CardTitle><CardDescription>Durable rollout history</CardDescription></CardHeader>
             <CardContent className="space-y-2">
               {displayedState.runs.map((run) => (
@@ -377,17 +389,37 @@ const PortalCopilotPage = () => {
               </Card>
             ) : null}
 
-            {displayedState.actions.length ? displayedState.actions.map((action) => (
-              <ActionCard
-                key={`${action.id}:${action.updated_at}`}
-                action={action}
-                busy={busyActionId === action.id}
-                onDecide={(selected, decision) => decideMutation.mutate({ action: selected, decision })}
-                onSave={(selected, draft) => editMutation.mutate({ action: selected, draft })}
-              />
-            )) : (
+            {displayedState.actions.length ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {([["pending", `Needs approval (${pendingActions.length})`], ["resolved", `Resolved (${resolvedActions.length})`], ["all", `All (${displayedState.actions.length})`]] as const).map(([value, label]) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={actionFilter === value ? "default" : "outline"}
+                      onClick={() => setActionFilter(value)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                {visibleActions.length ? visibleActions.map((action) => (
+                  <ActionCard
+                    key={`${action.id}:${action.updated_at}`}
+                    action={action}
+                    busy={busyActionId === action.id}
+                    onDecide={(selected, decision) => decideMutation.mutate({ action: selected, decision })}
+                    onSave={(selected, draft) => editMutation.mutate({ action: selected, draft })}
+                  />
+                )) : (
+                  <Card className="shadow-none"><CardContent className="flex flex-col items-center justify-center py-10 text-center"><CheckCircle2 className="h-7 w-7 text-emerald-600" /><p className="mt-3 font-medium">Nothing in this view.</p><p className="mt-1 text-sm text-muted-foreground">Switch filters to see the rest of this run.</p></CardContent></Card>
+                )}
+              </div>
+            ) : (
               <Card className="shadow-none"><CardContent className="flex flex-col items-center justify-center py-12 text-center"><CheckCircle2 className="h-8 w-8 text-emerald-600" /><p className="mt-3 font-medium">No actions need approval for this run.</p><p className="mt-1 text-sm text-muted-foreground">All synced ERP customers already have access, or the run completed without proposed changes.</p></CardContent></Card>
             )}
+
 
             <Card className="shadow-none">
               <CardHeader>

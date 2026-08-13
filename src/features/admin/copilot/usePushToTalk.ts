@@ -64,6 +64,8 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const gotLiveTranscriptRef = useRef(false);
+  const recorderMimeRef = useRef<string>("audio/webm");
+  const peakLevelRef = useRef(0);
   const settingsRef = useRef(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -102,8 +104,11 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     const chunks = chunksRef.current;
     chunksRef.current = [];
     if (gotLiveTranscriptRef.current || chunks.length === 0) return;
-    const blob = new Blob(chunks, { type: recorderRef.current?.mimeType || "audio/webm" });
-    if (blob.size < 2000) return;
+    const blob = new Blob(chunks, { type: recorderMimeRef.current || "audio/webm" });
+    if (blob.size < 2000 || peakLevelRef.current < 4) {
+      setError("No speech was picked up — check the selected microphone, then hold the button and speak.");
+      return;
+    }
     setIsTranscribing(true);
     try {
       const buffer = new Uint8Array(await blob.arrayBuffer());
@@ -128,6 +133,7 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       setIsTranscribing(false);
     }
   }, [onTranscript]);
+
 
   const stop = useCallback(() => {
     startSequenceRef.current += 1;
@@ -156,6 +162,7 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     setError(null);
     gotLiveTranscriptRef.current = false;
     chunksRef.current = [];
+    peakLevelRef.current = 0;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: settings.deviceId === "default" ? true : { deviceId: { exact: settings.deviceId } },
@@ -180,7 +187,9 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       const meter = () => {
         analyser.getByteFrequencyData(values);
         const average = values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
-        setLevel(Math.min(100, Math.round((average / 128) * 100)));
+        const next = Math.min(100, Math.round((average / 128) * 100));
+        peakLevelRef.current = Math.max(peakLevelRef.current, next);
+        setLevel(next);
         animationRef.current = window.requestAnimationFrame(meter);
       };
       meter();
@@ -191,7 +200,8 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
           recorder.ondataavailable = (event) => {
             if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
           };
-          recorder.start(250);
+          recorderMimeRef.current = recorder.mimeType || "audio/webm";
+          recorder.start();
           recorderRef.current = recorder;
         } catch {
           recorderRef.current = null;
