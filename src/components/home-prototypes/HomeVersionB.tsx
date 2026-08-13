@@ -212,14 +212,14 @@ const HomeVersionB = () => {
           <OpticalRings className="-left-48 top-1/2 -translate-y-1/2 opacity-70" />
 
           <div className="container relative mx-auto grid max-w-[1500px] gap-0 px-5 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:px-0">
-            <div className="flex flex-col justify-center py-14 sm:py-20 lg:py-24 lg:pl-12 lg:pr-14 xl:pl-16">
+            <div className="flex min-w-0 flex-col justify-center py-14 sm:py-20 lg:py-24 lg:pl-12 lg:pr-14 xl:pl-16">
               <Eyebrow >
                 Barbados optical laboratory{PLACEHOLDERS.foundingYear ? ` · Est. ${PLACEHOLDERS.foundingYear}` : ""}
               </Eyebrow>
 
               <h1
                 id="hero-heading"
-                className="mt-5 max-w-[15ch] font-serif text-[2.6rem] font-semibold leading-[1.04] tracking-[-0.02em] sm:text-6xl xl:text-[4.25rem]"
+                className="mt-5 max-w-[15ch] hyphens-auto break-words font-serif text-[2rem] font-semibold leading-[1.06] tracking-[-0.02em] min-[400px]:text-[2.4rem] sm:text-6xl sm:leading-[1.04] xl:text-[4.25rem]"
               >
                 Wholesale prescription lenses, <span className="text-accent">made in the Caribbean.</span>
               </h1>
@@ -247,7 +247,7 @@ const HomeVersionB = () => {
                       aria-pressed={audience === key}
                       onClick={() => setAudience(key)}
                       className={cn(
-                        "flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition sm:text-base",
+                        "flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-center text-[0.8125rem] font-semibold leading-tight transition sm:gap-2 sm:px-3 sm:text-base",
                         audience === key
                           ? "bg-background text-foreground shadow-medium"
                           : "text-surface-deep-foreground/85 hover:bg-surface-deep-foreground/10",
