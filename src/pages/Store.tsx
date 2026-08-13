@@ -353,6 +353,7 @@ const Store = () => {
             ) : (
               <>
                 <TabsContent value={activeTab}>
+                  <h2 className="sr-only">Product listings</h2>
                   <div className={layout === "grid" ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {filtered.map((product, index) => (
                       <ProductCard key={`${product.product_type}:${product.id}`} product={product} index={index} layout={layout} />

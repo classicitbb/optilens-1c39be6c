@@ -53,8 +53,8 @@ export const CartSheet = ({
           className={cn("relative", showLabel && "gap-2 px-4", className)}
           aria-label={totalItems > 0 ? `Open cart with ${totalItems} item${totalItems === 1 ? "" : "s"}` : "Open cart"}
         >
-          <ShoppingCart className="h-5 w-5" />
-          {showLabel ? <span className="hidden sm:inline">Cart</span> : null}
+          <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+          {showLabel ? <span className="hidden sm:inline">Cart</span> : <span className="sr-only">Open cart</span>}
           {totalItems > 0 && (
             <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-medium text-accent-foreground">
               {totalItems}
