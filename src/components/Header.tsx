@@ -747,9 +747,10 @@ const Header = () => {
                 </DropdownMenu> :
 
             <Button variant="ghost" size="sm" asChild>
-                  <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })} {...labLinkNavigationProps}>
-                    <User className="mr-2 h-4 w-4" />
-                    Sign in
+                  <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })} {...labLinkNavigationProps} aria-label="Sign in">
+                    <User className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+                    <span className="hidden sm:inline">Sign in</span>
+                    <span className="sr-only sm:hidden">Sign in</span>
                   </Link>
                 </Button>
             }
@@ -762,10 +763,11 @@ const Header = () => {
                   className="h-10 w-10 min-w-10 justify-center px-0 sm:h-9 sm:w-auto sm:min-w-[7.5rem] sm:px-4"
                 />
               ) : (
-                <Button variant="hero" size="sm" className="min-w-[7.5rem] justify-center" asChild>
-                  <Link to="/store" {...labLinkNavigationProps}>
-                    <ShoppingCart className="h-5 w-5" />
-                    <span>Shop</span>
+                <Button variant="hero" size="sm" className="justify-center px-3 sm:min-w-[7.5rem] sm:px-4" asChild>
+                  <Link to="/store" {...labLinkNavigationProps} aria-label="Shop the catalog">
+                    <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+                    <span className="hidden sm:inline">Shop</span>
+                    <span className="sr-only sm:hidden">Shop</span>
                   </Link>
                 </Button>
               )}
