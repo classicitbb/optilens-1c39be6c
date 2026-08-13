@@ -151,13 +151,11 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
 
   const start = useCallback(async () => {
     const Constructor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Constructor) {
-      setError("Push-to-talk requires Chrome or Edge speech recognition.");
-      return;
-    }
     if (isListening) return;
     const startSequence = ++startSequenceRef.current;
     setError(null);
+    gotLiveTranscriptRef.current = false;
+    chunksRef.current = [];
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: settings.deviceId === "default" ? true : { deviceId: { exact: settings.deviceId } },
@@ -187,6 +185,29 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       };
       meter();
 
+      if (typeof MediaRecorder !== "undefined") {
+        try {
+          const recorder = new MediaRecorder(stream);
+          recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
+          };
+          recorder.start(250);
+          recorderRef.current = recorder;
+        } catch {
+          recorderRef.current = null;
+        }
+      }
+
+      if (!Constructor) {
+        if (!recorderRef.current) {
+          setError("This browser cannot capture voice input. Type the command instead.");
+          releaseAudio();
+          return;
+        }
+        setIsListening(true);
+        return;
+      }
+
       const recognition = new Constructor();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -211,17 +232,30 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
             confidenceCount += 1;
           }
         }
+        if (transcript.trim()) gotLiveTranscriptRef.current = true;
         onTranscript(transcript.trim(), confidenceCount ? confidence / confidenceCount : 1);
         if (stopTimerRef.current != null) window.clearTimeout(stopTimerRef.current);
         stopTimerRef.current = window.setTimeout(stop, settings.silenceTimeoutMs);
       };
       recognition.onerror = (event) => {
-        setError(event.error === "not-allowed" ? "Microphone or speech permission was denied." : `Speech recognition stopped: ${event.error ?? "unknown error"}`);
-        stop();
+        const code = event.error ?? "unknown error";
+        if (code === "not-allowed" || code === "service-not-allowed") {
+          setError("Microphone or speech permission was denied.");
+        } else if (code === "network" || code === "language-not-supported" || code === "audio-capture") {
+          // Browser speech service is unavailable here (common inside preview frames);
+          // the recorded audio is transcribed server-side on release instead.
+          setError(null);
+        } else if (code !== "no-speech" && code !== "aborted") {
+          setError(`Speech recognition stopped: ${code}`);
+        }
+        recognitionRef.current = null;
+        if (!recorderRef.current) stop();
       };
       recognition.onend = () => {
-        setIsListening(false);
-        releaseAudio();
+        if (!recorderRef.current) {
+          setIsListening(false);
+          releaseAudio();
+        }
       };
       recognitionRef.current = recognition;
       recognition.start();
@@ -231,6 +265,7 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       releaseAudio();
     }
   }, [isListening, onTranscript, refreshDevices, releaseAudio, settings, stop]);
+
 
   const activeDeviceLabel = devices.find((device) => device.deviceId === settings.deviceId)?.label
     || devices.find((device) => device.deviceId === "default")?.label
