@@ -580,7 +580,7 @@ const Header = () => {
           <div className="flex h-10 w-10 items-center justify-center">
               <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
-          <span className="whitespace-nowrap text-xl font-bold text-foreground">Classic Visions</span>
+          <span className="hidden whitespace-nowrap text-lg font-bold text-foreground min-[380px]:inline sm:text-xl">Classic Visions</span>
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
