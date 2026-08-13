@@ -54,12 +54,21 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
   const [isListening, setIsListening] = useState(false);
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationRef = useRef<number | null>(null);
   const stopTimerRef = useRef<number | null>(null);
   const startSequenceRef = useRef(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const gotLiveTranscriptRef = useRef(false);
+  const settingsRef = useRef(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -89,13 +98,51 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     setLevel(0);
   }, []);
 
+  const transcribeRecording = useCallback(async () => {
+    const chunks = chunksRef.current;
+    chunksRef.current = [];
+    if (gotLiveTranscriptRef.current || chunks.length === 0) return;
+    const blob = new Blob(chunks, { type: recorderRef.current?.mimeType || "audio/webm" });
+    if (blob.size < 2000) return;
+    setIsTranscribing(true);
+    try {
+      const buffer = new Uint8Array(await blob.arrayBuffer());
+      let binary = "";
+      for (let index = 0; index < buffer.length; index += 8192) {
+        binary += String.fromCharCode(...buffer.subarray(index, index + 8192));
+      }
+      const { data, error: invokeError } = await supabase.functions.invoke("voice-transcribe", {
+        body: { audio: btoa(binary), mimeType: blob.type, vocabulary: settingsRef.current.vocabulary },
+      });
+      if (invokeError) throw invokeError;
+      const transcript = String((data as { transcript?: string } | null)?.transcript ?? "").trim();
+      if (transcript) {
+        setError(null);
+        onTranscript(transcript, 0.9);
+      } else {
+        setError("Nothing was recognised in that recording. Try again or type the command.");
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? `Transcription failed: ${caught.message}` : "Transcription failed.");
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, [onTranscript]);
+
   const stop = useCallback(() => {
     startSequenceRef.current += 1;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.onstop = () => void transcribeRecording();
+      recorder.stop();
+    }
     setIsListening(false);
     releaseAudio();
-  }, [releaseAudio]);
+  }, [releaseAudio, transcribeRecording]);
+
 
   useEffect(() => () => {
     recognitionRef.current?.abort();
