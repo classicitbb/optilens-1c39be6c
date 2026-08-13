@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 
 type SpeechRecognitionEventLike = Event & {
   results: ArrayLike<ArrayLike<{ transcript: string; confidence: number }> & { isFinal?: boolean }>;
@@ -52,12 +54,21 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
   const [isListening, setIsListening] = useState(false);
   const [level, setLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationRef = useRef<number | null>(null);
   const stopTimerRef = useRef<number | null>(null);
   const startSequenceRef = useRef(0);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const gotLiveTranscriptRef = useRef(false);
+  const settingsRef = useRef(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -87,13 +98,51 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     setLevel(0);
   }, []);
 
+  const transcribeRecording = useCallback(async () => {
+    const chunks = chunksRef.current;
+    chunksRef.current = [];
+    if (gotLiveTranscriptRef.current || chunks.length === 0) return;
+    const blob = new Blob(chunks, { type: recorderRef.current?.mimeType || "audio/webm" });
+    if (blob.size < 2000) return;
+    setIsTranscribing(true);
+    try {
+      const buffer = new Uint8Array(await blob.arrayBuffer());
+      let binary = "";
+      for (let index = 0; index < buffer.length; index += 8192) {
+        binary += String.fromCharCode(...buffer.subarray(index, index + 8192));
+      }
+      const { data, error: invokeError } = await supabase.functions.invoke("voice-transcribe", {
+        body: { audio: btoa(binary), mimeType: blob.type, vocabulary: settingsRef.current.vocabulary },
+      });
+      if (invokeError) throw invokeError;
+      const transcript = String((data as { transcript?: string } | null)?.transcript ?? "").trim();
+      if (transcript) {
+        setError(null);
+        onTranscript(transcript, 0.9);
+      } else {
+        setError("Nothing was recognised in that recording. Try again or type the command.");
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? `Transcription failed: ${caught.message}` : "Transcription failed.");
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, [onTranscript]);
+
   const stop = useCallback(() => {
     startSequenceRef.current += 1;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.onstop = () => void transcribeRecording();
+      recorder.stop();
+    }
     setIsListening(false);
     releaseAudio();
-  }, [releaseAudio]);
+  }, [releaseAudio, transcribeRecording]);
+
 
   useEffect(() => () => {
     recognitionRef.current?.abort();
@@ -102,13 +151,11 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
 
   const start = useCallback(async () => {
     const Constructor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Constructor) {
-      setError("Push-to-talk requires Chrome or Edge speech recognition.");
-      return;
-    }
     if (isListening) return;
     const startSequence = ++startSequenceRef.current;
     setError(null);
+    gotLiveTranscriptRef.current = false;
+    chunksRef.current = [];
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: settings.deviceId === "default" ? true : { deviceId: { exact: settings.deviceId } },
@@ -138,6 +185,29 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       };
       meter();
 
+      if (typeof MediaRecorder !== "undefined") {
+        try {
+          const recorder = new MediaRecorder(stream);
+          recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
+          };
+          recorder.start(250);
+          recorderRef.current = recorder;
+        } catch {
+          recorderRef.current = null;
+        }
+      }
+
+      if (!Constructor) {
+        if (!recorderRef.current) {
+          setError("This browser cannot capture voice input. Type the command instead.");
+          releaseAudio();
+          return;
+        }
+        setIsListening(true);
+        return;
+      }
+
       const recognition = new Constructor();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -162,17 +232,30 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
             confidenceCount += 1;
           }
         }
+        if (transcript.trim()) gotLiveTranscriptRef.current = true;
         onTranscript(transcript.trim(), confidenceCount ? confidence / confidenceCount : 1);
         if (stopTimerRef.current != null) window.clearTimeout(stopTimerRef.current);
         stopTimerRef.current = window.setTimeout(stop, settings.silenceTimeoutMs);
       };
       recognition.onerror = (event) => {
-        setError(event.error === "not-allowed" ? "Microphone or speech permission was denied." : `Speech recognition stopped: ${event.error ?? "unknown error"}`);
-        stop();
+        const code = event.error ?? "unknown error";
+        if (code === "not-allowed" || code === "service-not-allowed") {
+          setError("Microphone or speech permission was denied.");
+        } else if (code === "network" || code === "language-not-supported" || code === "audio-capture") {
+          // Browser speech service is unavailable here (common inside preview frames);
+          // the recorded audio is transcribed server-side on release instead.
+          setError(null);
+        } else if (code !== "no-speech" && code !== "aborted") {
+          setError(`Speech recognition stopped: ${code}`);
+        }
+        recognitionRef.current = null;
+        if (!recorderRef.current) stop();
       };
       recognition.onend = () => {
-        setIsListening(false);
-        releaseAudio();
+        if (!recorderRef.current) {
+          setIsListening(false);
+          releaseAudio();
+        }
       };
       recognitionRef.current = recognition;
       recognition.start();
@@ -183,9 +266,10 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     }
   }, [isListening, onTranscript, refreshDevices, releaseAudio, settings, stop]);
 
+
   const activeDeviceLabel = devices.find((device) => device.deviceId === settings.deviceId)?.label
     || devices.find((device) => device.deviceId === "default")?.label
     || "System default microphone";
 
-  return { settings, setSettings, devices, activeDeviceLabel, isListening, level, error, start, stop };
+  return { settings, setSettings, devices, activeDeviceLabel, isListening, isTranscribing, level, error, start, stop };
 };

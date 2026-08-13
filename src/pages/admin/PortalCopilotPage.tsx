@@ -303,7 +303,9 @@ const PortalCopilotPage = () => {
               </Button>
             </div>
           </div>
+          {speech.isTranscribing ? <p className="text-sm text-muted-foreground">Transcribing your recording…</p> : null}
           {speech.error ? <p role="alert" className="text-sm text-red-700">{speech.error}</p> : null}
+
 
           {showAudioSettings ? (
             <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-2 lg:grid-cols-4">
