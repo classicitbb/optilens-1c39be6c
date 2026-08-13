@@ -200,8 +200,18 @@ const PortalCopilotPage = () => {
     () => displayedState?.runs.find((run) => run.id === displayedState.selectedRunId) ?? displayedState?.runs[0] ?? null,
     [displayedState],
   );
+  const pendingActions = useMemo(
+    () => (displayedState?.actions ?? []).filter((action) => action.status === "pending_approval" || action.status === "failed"),
+    [displayedState],
+  );
+  const resolvedActions = useMemo(
+    () => (displayedState?.actions ?? []).filter((action) => action.status !== "pending_approval" && action.status !== "failed"),
+    [displayedState],
+  );
+  const visibleActions = actionFilter === "pending" ? pendingActions : actionFilter === "resolved" ? resolvedActions : (displayedState?.actions ?? []);
   const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
   const canPrepare = command.trim().length > 0 && !prepareMutation.isPending && (inputMode === "text" || transcriptConfirmed);
+
 
   const chooseRun = (runId: string) => {
     setSelectedRunId(runId);
