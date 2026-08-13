@@ -1021,8 +1021,8 @@ const ContactsPage = ({
   }, [clearInterimTimer, flushPendingTranscript, toast]);
 
   useEffect(() => {
-    const speechApi = (window as Window & { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).SpeechRecognition
-      ?? (window as Window & { webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).webkitSpeechRecognition;
+    const speechWindow = window as unknown as { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor };
+    const speechApi = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
     setDictationSupported(!!speechApi);
     if (typeof navigator !== "undefined" && navigator.language) {
       setDictationLanguage(navigator.language);
