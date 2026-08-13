@@ -271,5 +271,5 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     || devices.find((device) => device.deviceId === "default")?.label
     || "System default microphone";
 
-  return { settings, setSettings, devices, activeDeviceLabel, isListening, level, error, start, stop };
+  return { settings, setSettings, devices, activeDeviceLabel, isListening, isTranscribing, level, error, start, stop };
 };
