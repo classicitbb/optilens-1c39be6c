@@ -247,7 +247,7 @@ const HomeVersionB = () => {
                       aria-pressed={audience === key}
                       onClick={() => setAudience(key)}
                       className={cn(
-                        "flex min-h-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition sm:text-base",
+                        "flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-center text-[0.8125rem] font-semibold leading-tight transition sm:gap-2 sm:px-3 sm:text-base",
                         audience === key
                           ? "bg-background text-foreground shadow-medium"
                           : "text-surface-deep-foreground/85 hover:bg-surface-deep-foreground/10",
