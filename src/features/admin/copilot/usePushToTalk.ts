@@ -102,8 +102,11 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     const chunks = chunksRef.current;
     chunksRef.current = [];
     if (gotLiveTranscriptRef.current || chunks.length === 0) return;
-    const blob = new Blob(chunks, { type: recorderRef.current?.mimeType || "audio/webm" });
-    if (blob.size < 2000) return;
+    const blob = new Blob(chunks, { type: recorderMimeRef.current || "audio/webm" });
+    if (blob.size < 2000 || peakLevelRef.current < 4) {
+      setError("No speech was picked up — check the selected microphone, then hold the button and speak.");
+      return;
+    }
     setIsTranscribing(true);
     try {
       const buffer = new Uint8Array(await blob.arrayBuffer());
@@ -128,6 +131,7 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       setIsTranscribing(false);
     }
   }, [onTranscript]);
+
 
   const stop = useCallback(() => {
     startSequenceRef.current += 1;
