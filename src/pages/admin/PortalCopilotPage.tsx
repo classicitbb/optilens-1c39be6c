@@ -148,6 +148,8 @@ const PortalCopilotPage = () => {
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [state, setState] = useState<CopilotState | null>(null);
   const [busyActionId, setBusyActionId] = useState<string | null>(null);
+  const [actionFilter, setActionFilter] = useState<"pending" | "resolved" | "all">("pending");
+
 
   const onTranscript = useCallback((transcript: string, confidence: number) => {
     setCommand(transcript);
