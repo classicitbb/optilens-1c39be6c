@@ -1,5 +1,12 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-13 — Admin Portal Copilot
+
+- `/admin/copilot` is an admin-only, registry-backed page. Its browser client calls `portal-copilot`; it never holds provider or service-role credentials.
+- ERP rollout planning is deterministic and reads current customers, contacts, and active portal memberships. The model may classify a command, but it cannot invent recipients, execute SQL, or bypass risk and approval rules.
+- Voice input uses browser speech recognition with an explicit transcript-confirmation gate. Ordinary textarea typing remains fully editable and independent of clipboard access.
+- Level 4 invitation actions require an explicit approval. Level 2 data-quality tasks may be edited before approval, and durable run/action/audit records remain the source of truth after refresh.
+
 ## 2026-08-12 — Unified order dispatch
 
 - `StockOrderBuilderPage` sells published website products and variants, with server-side pricing and an explicit Innovations or Gatekeeper release choice.

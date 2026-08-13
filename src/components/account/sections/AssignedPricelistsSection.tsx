@@ -142,6 +142,7 @@ const AssignedPricelistsSection = () => {
       name: row.display_description,
       price: row.bbd_price,
       productType,
+      priceUnit: productType === "lens" ? "pair" : undefined,
     });
   };
 

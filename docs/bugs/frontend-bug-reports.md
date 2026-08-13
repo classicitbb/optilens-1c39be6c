@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-13 — Portal rollout lacked governed bulk operations
+- Area: Admin portal-access operations
+- Impact: staff had to identify ERP customers and provision invitations one at a time, with no consistent approval queue, ambiguity handling, or consolidated audit history.
+- Root cause: existing portal-provisioning and email functions were transactional endpoints rather than a governed workflow spanning live selection, review, execution, and recovery.
+- Resolution: added an admin-only Copilot workflow that deterministically prepares actions, requires approval for invitations, reuses existing provisioning/email boundaries, and records every transition.
+- Regression prevention: retain admin authorization, deterministic recipient selection, idempotency keys, transcript confirmation, explicit level-4 approval, and partial-failure retry coverage.
+
 ## 2026-08-12 — Inconsistent outbound-order transport and preview behavior
 - Area: Rx and Stock Order forms
 - Impact: stock and Rx orders could diverge in rendered order text or transport routing, making the release result difficult to verify.

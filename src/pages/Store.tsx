@@ -45,7 +45,8 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
       name: product.name,
       price: product.sell_price_usd,
       productType: product.product_type,
-      quantity: product.product_type === "lens" ? 2 : 1,
+      quantity: 1,
+      priceUnit: product.product_type === "lens" ? "pair" : undefined,
     });
   };
 

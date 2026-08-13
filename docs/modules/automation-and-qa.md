@@ -1,5 +1,10 @@
 # Automation and QA Module Docs
 
+## 2026-08-13 — Windows admin smoke process launch
+
+- `scripts/admin_smoke_and_error_checks.mjs` starts npm through the active Node executable and `npm_execpath` when available, avoiding Windows `spawn npm ENOENT` and `.cmd` `EINVAL` failures.
+- The smoke route matrix includes `/admin/copilot`, so a production preview must return the admin shell for the new route before source assertions run.
+
 ## 2026-08-12 — MCP deployment artifact generation
 
 - `scripts/generate_mcp_function.mjs` bundles `src/lib/mcp/index.ts` into the portable `supabase/functions/mcp/index.ts` artifact for the explicit `SUPABASE_PROJECT_REF` target.

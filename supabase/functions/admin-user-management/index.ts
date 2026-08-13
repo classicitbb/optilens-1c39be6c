@@ -374,7 +374,18 @@ Deno.serve(async (req) => {
               return jsonResponse(req, 409, { error: "A user with this email already exists." });
             }
             await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
-            return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+            const { data: recoveryLink, error: recoveryError } = await adminClient.auth.admin.generateLink({
+              type: "recovery",
+              email,
+              options: { redirectTo: getPasswordRedirectTo(req) },
+            });
+            if (recoveryError) throw recoveryError;
+            return jsonResponse(req, 200, {
+              success: true,
+              alreadyExisted: true,
+              userId: existing.id,
+              actionLink: recoveryLink?.properties?.action_link,
+            });
           }
           throw error;
         }

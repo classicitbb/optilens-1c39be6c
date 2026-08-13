@@ -4,12 +4,20 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-08-11
+Last updated: 2026-08-13
 
 ---
 
 ## Active work
 
+- **CV Portal Copilot ERP rollout MVP** — source implementation is complete at
+  `/admin/copilot`: admin-only route, live Innovations-synced rollout planning,
+  Level 2 preparation with Level 4 invitation approvals, push-to-talk transcript
+  review, audit history, email retry/partial-failure handling, and three new
+  Classic Visions MCP tools. The
+  `20260813130000_portal_copilot_mvp.sql` migration and the `portal-copilot`,
+  regenerated `mcp`, updated `admin-user-management`, and `docstudio-api`
+  functions still require deployment before live workflow verification.
 - **Classic Visions MCP deployment** — Codex is registered against the streamable-HTTP endpoint and the local OAuth-protected function exposes three read-only tools. The live endpoint still returns `404 Requested function was not found`; direct deployment is blocked because the currently authenticated Supabase account returns `403` for function access.
 - **Catalog editor wizard** — `NewCatalogDialog` component not yet shipped.
   Implementation prompts exist in `plan.md` (Codex handoff sequence). Three

@@ -1,16 +1,17 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-12T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-13T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Rx and stock orders now share one Hashref v2.5 writer and can be released through either Innovations or Gatekeeper without duplicate claims.",
-    "MCP Edge Function generation is now explicit at deployment time; normal Vite builds and Vitest runs no longer overwrite the portable function artifact."
+    "Administrators can open **Portal Copilot**, type a rollout request or confirm a voice transcript, and prepare portal access for every ERP-linked customer from live portal data.",
+    "Invitations always wait for explicit approval. Ambiguous or incomplete contacts become editable follow-up tasks, while every decision and execution result remains in the audit history.",
+    "A portal account that succeeds before its email fails is preserved and shown as a partial failure that can be retried safely."
   ],
   "moduleImpact": [
     {
-      "module": "api/v2",
+      "module": "admin/copilot",
       "impact": "medium",
-      "notes": "Updated as part of Unified Order Dispatch and MCP Artifact Stability."
+      "notes": "Updated as part of Admin Portal Copilot MVP."
     }
   ],
   "migrationNotes": [
