@@ -3217,7 +3217,14 @@ $('#submitBtn').addEventListener('click',()=>{void submit();});
 $('#submitBtn2').addEventListener('click',()=>{void submit();});
 $$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
   const n=b.dataset.next; $('#scrim').classList.remove('on');
-  if(n==='another') setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
+  if(n==='another'){
+    // A blank in-place reset (clearAll) keeps this quote's id, and the cart's
+    // synthetic product id is a hash of that id — so a second submit under
+    // the same quote collides with the first job's cart row and fails to
+    // add. onAnother (when wired) starts a genuinely new quote instead.
+    if(ADAPTER.onAnother) ADAPTER.onAnother();
+    else setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
+  }
   else if(n==='duplicate') toast('Prototype: cart now holds 2 copies of this Rx — edit either with the pencil');
   else if(n==='checkout'){ if(ADAPTER.onCheckout) ADAPTER.onCheckout(); else toast('Checkout wiring not enabled on this surface'); }
   else { if(ADAPTER.onStore) ADAPTER.onStore(); else toast('Store return not enabled on this surface'); }

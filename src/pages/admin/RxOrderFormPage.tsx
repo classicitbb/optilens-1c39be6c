@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import "./rx-order-form-page.css";
 
 // Admin surface for the ported prototype Rx order form. Fast-path entry
 // (/admin/website/quotations/new-rx) creates a blank RX quote and drops
@@ -19,6 +20,15 @@ const RxOrderFormPage = () => {
   const { createMutation } = useQuotes();
   const [quoteId, setQuoteId] = useState<string | null>(routeQuoteId ?? null);
   const creatingRef = useRef(false);
+
+  // Both routes render this same component, so React Router does not remount
+  // it when navigating from /quotations/rx/:id to /quotations/new-rx (same
+  // element type, same slot in the tree). Re-sync local state to the URL so
+  // that navigation — not just the initial mount — can trigger a fresh quote.
+  useEffect(() => {
+    setQuoteId(routeQuoteId ?? null);
+    creatingRef.current = false;
+  }, [routeQuoteId]);
 
   const { data: quote } = useQuery({
     queryKey: ["rx-order-quote-header", quoteId],
@@ -50,7 +60,7 @@ const RxOrderFormPage = () => {
   }, [quoteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-0">
+    <div className="min-h-0 rx-order-admin-shell">
       <div className="flex items-center gap-2 px-4 pt-3">
         <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
           <ArrowLeft className="h-3.5 w-3.5" /> Quotations
@@ -66,6 +76,7 @@ const RxOrderFormPage = () => {
           surface="admin"
           checkoutPath="/checkout"
           storePath="/store"
+          onStartAnother={() => navigate("/admin/website/quotations/new-rx")}
         />
       ) : (
         <div className="text-xs text-muted-foreground p-6">Creating order…</div>

@@ -2,9 +2,11 @@ import { useState, useRef, ReactNode } from "react";
 
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
+import StockSkuPricingTab from "@/components/admin/StockSkuPricingTab";
 import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
 import type { PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 
@@ -50,37 +52,50 @@ const StockLensPricesPage = () => {
       ) : undefined}
     >
       {resolvedId && activeVersion && (
-        <div className="space-y-4">
-          <ListCatalogTab
-            pageName="Stock Lens Prices"
-            fxRate={fxRate}
-            showUSD={showUSD}
-            catalogType="stock"
-            lensFilter="wspl"
-            showTreatmentsAddons={false}
-            pageTitle={activeVersion?.name ?? "Stock Lens Pricelist"}
-            versionId={resolvedId}
-            renderSaveBar={setSaveBar}
-            onRowsChange={setLiveCatalogRows}
-          />
+        <Tabs defaultValue="wspl" className="w-full">
+          <TabsList>
+            <TabsTrigger value="wspl">WSPL Stock List</TabsTrigger>
+            <TabsTrigger value="stock-skus">Stock Order SKUs</TabsTrigger>
+          </TabsList>
 
-          {/* Live Preview */}
-          <div ref={previewRef} className="mt-6">
-            <PdfPreviewShell
-              title={`${activeVersion.name} — Stock Lens Preview`}
-              formatLabel="List"
-            >
-              <PricelistLivePreview
-                version={activeVersion}
-                previewFormat={previewFormat}
-                showUSD={showUSD}
+          <TabsContent value="wspl">
+            <div className="space-y-4">
+              <ListCatalogTab
+                pageName="Stock Lens Prices"
                 fxRate={fxRate}
+                showUSD={showUSD}
                 catalogType="stock"
-                liveCatalogRows={liveCatalogRows}
+                lensFilter="wspl"
+                showTreatmentsAddons={false}
+                pageTitle={activeVersion?.name ?? "Stock Lens Pricelist"}
+                versionId={resolvedId}
+                renderSaveBar={setSaveBar}
+                onRowsChange={setLiveCatalogRows}
               />
-            </PdfPreviewShell>
-          </div>
-        </div>
+
+              {/* Live Preview */}
+              <div ref={previewRef} className="mt-6">
+                <PdfPreviewShell
+                  title={`${activeVersion.name} — Stock Lens Preview`}
+                  formatLabel="List"
+                >
+                  <PricelistLivePreview
+                    version={activeVersion}
+                    previewFormat={previewFormat}
+                    showUSD={showUSD}
+                    fxRate={fxRate}
+                    catalogType="stock"
+                    liveCatalogRows={liveCatalogRows}
+                  />
+                </PdfPreviewShell>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="stock-skus">
+            <StockSkuPricingTab versionId={resolvedId} />
+          </TabsContent>
+        </Tabs>
       )}
     </VersionSelectorPanel>
   );

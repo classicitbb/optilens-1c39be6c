@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { fieldsMatch } from "@/lib/wildcardMatch";
-import { Search, BookOpen, ArrowRight, PlusCircle, Ticket, User, Activity } from "lucide-react";
+import { Search, BookOpen, ArrowRight, PlusCircle, Ticket, User, Activity, LayoutDashboard } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
 import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS, NEW_RX_ORDER_SEARCH_KEYWORDS } from "./globalSearchActions";
 import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
+import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
+import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 
 interface SearchResult {
   id: string;
@@ -22,6 +24,11 @@ interface SearchResult {
   group: string;
   keywords?: string[];
 }
+
+const humanizeRouteId = (id: string) => id
+  .replace(/^admin\./, "")
+  .replace(/[._-]+/g, " ")
+  .replace(/\b\w/g, (character) => character.toUpperCase());
 
 const GlobalSearch = () => {
   const [query, setQuery] = useState("");
@@ -52,6 +59,42 @@ const GlobalSearch = () => {
       )
       .filter((item): item is SearchResult => !!item);
   }, [canView, hasAppAccess]);
+
+  // Keep search coverage tied to the canonical route registry. Sidebar entries
+  // remain the preferred presentation, while this fallback makes a newly
+  // registered concrete admin route discoverable even before a sidebar item is
+  // added. Parameterized routes are intentionally omitted because they cannot
+  // be opened without an identifier.
+  const registeredRouteResults = useMemo<SearchResult[]>(() => {
+    const results = APP_ROUTE_REGISTRY
+      .filter((route) => route.domain === "admin-console" && route.status === "active")
+      .filter((route) => !route.path.includes(":"))
+      .map((route) => {
+        const navigation = ACTIVE_NAVIGATION_REGISTRY.find((item) => item.routeId === route.id);
+        const app = Object.values(ADMIN_APPS).find((candidate) =>
+          candidate.sidebarItems.some((item) => item.route === route.path) || route.path.startsWith(`${candidate.baseRoute}/`),
+        );
+        const sidebarItem = app?.sidebarItems.find((item) => item.route === route.path);
+        const feature = PATH_FEATURE_MAP[route.path];
+
+        if (feature && !canView(feature) && !app?.featurePrefix) return null;
+        if (app && !hasAppAccess(app.featurePrefix)) return null;
+
+        return {
+          id: `route-${route.id}`,
+          label: navigation?.label ?? sidebarItem?.label ?? humanizeRouteId(route.id),
+          sublabel: app?.title ?? "Admin route",
+          path: route.path,
+          icon: sidebarItem?.icon ?? app?.icon ?? LayoutDashboard,
+          group: "Routes",
+          keywords: [route.id, route.path],
+        } satisfies SearchResult;
+      })
+      .filter((item): item is NonNullable<typeof item> => !!item);
+
+    const existingPaths = new Set(moduleResults.map((result) => result.path));
+    return results.filter((result) => !existingPaths.has(result.path));
+  }, [canView, hasAppAccess, moduleResults]);
 
   const recentModuleResults = useMemo<SearchResult[]>(() => {
     if (query.trim()) return [];
@@ -219,8 +262,8 @@ const GlobalSearch = () => {
   });
 
   const allResults = useMemo(
-    () => [...moduleResults, ...actionResults, ...wikiResults, ...dbSearchResults],
-    [actionResults, moduleResults, wikiResults, dbSearchResults],
+    () => [...moduleResults, ...registeredRouteResults, ...actionResults, ...wikiResults, ...dbSearchResults],
+    [actionResults, dbSearchResults, moduleResults, registeredRouteResults, wikiResults],
   );
 
   const results = useMemo(() => {

@@ -10,7 +10,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LensChatbot } from "@/components/LensChatbot";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useStoreProducts, StoreProduct, getStableStoreProductCartId, getStoreProductRoute } from "@/hooks/useStoreProducts";
+import {
+  useStoreProducts,
+  StoreProduct,
+  getStableStoreProductCartId,
+  getStoreProductRoute,
+} from "@/hooks/useStoreProducts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createAuthHref } from "@/lib/authFlow";
 import StorageImage from "@/components/StorageImage";
@@ -46,22 +51,24 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
 
   if (layout === "list") {
     return (
-      <Card
-        variant="feature"
-        className="opacity-0 animate-fade-in"
-        style={{ animationDelay: `${index * 30}ms` }}
-      >
+      <Card variant="feature" className="opacity-0 animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
         <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium capitalize text-accent">
-                {product.product_type === "supply" ? (SUPPLY_CATEGORY_LABELS[product.category] || product.category) : product.category}
+                {product.product_type === "supply"
+                  ? SUPPLY_CATEGORY_LABELS[product.category] || product.category
+                  : product.category}
               </span>
               {product.subcategory ? (
-                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">{product.subcategory}</span>
+                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                  {product.subcategory}
+                </span>
               ) : null}
               {product.tags.slice(0, 3).map((tag) => (
-                <span key={tag} className="text-xs text-muted-foreground">{tag}</span>
+                <span key={tag} className="text-xs text-muted-foreground">
+                  {tag}
+                </span>
               ))}
             </div>
             <h3 className="text-lg font-semibold leading-snug text-foreground">{product.name}</h3>
@@ -72,7 +79,9 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
               <div className="flex items-baseline justify-between gap-4">
                 <div className="text-2xl font-bold text-foreground">
                   ${product.sell_price_usd.toFixed(2)}
-                  <span className="text-sm font-normal text-muted-foreground">{product.product_type === "supply" ? "/unit" : "/pair"}</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {product.product_type === "supply" ? "/unit" : "/pair"}
+                  </span>
                 </div>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</span>
               </div>
@@ -96,7 +105,16 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
                 Sign in for pricing
               </div>
               <Button variant="hero" size="sm" asChild>
-                <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Create Trade Account</Link>
+                <Link
+                  to={createAuthHref({
+                    mode: "signup",
+                    audience: "professional",
+                    intent: "products",
+                    redirect: "/store",
+                  })}
+                >
+                  Create Trade Account
+                </Link>
               </Button>
             </div>
           )}
@@ -110,7 +128,9 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
       <CardHeader className="gap-4 pb-2">
         <div className="mb-2 flex items-center gap-2">
           <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium capitalize text-accent">
-            {product.product_type === "supply" ? (SUPPLY_CATEGORY_LABELS[product.category] || product.category) : product.category}
+            {product.product_type === "supply"
+              ? SUPPLY_CATEGORY_LABELS[product.category] || product.category
+              : product.category}
           </span>
           {product.subcategory && (
             <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
@@ -125,9 +145,16 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
           </div>
           <div className="relative h-[92px] w-[92px] overflow-hidden rounded-md border border-border/50 bg-muted/30">
             {product.image_url ? (
-              <StorageImage src={product.image_url} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" loading="lazy" />
+              <StorageImage
+                src={product.image_url}
+                alt={`${product.name} thumbnail`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">No image</div>
+              <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                No image
+              </div>
             )}
             {product.image_url && (
               <Dialog>
@@ -145,7 +172,11 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
                   <DialogHeader>
                     <DialogTitle>{product.name}</DialogTitle>
                   </DialogHeader>
-                  <StorageImage src={product.image_url} alt={`${product.name} large preview`} className="max-h-[70vh] w-full rounded-md object-contain" />
+                  <StorageImage
+                    src={product.image_url}
+                    alt={`${product.name} large preview`}
+                    className="max-h-[70vh] w-full rounded-md object-contain"
+                  />
                 </DialogContent>
               </Dialog>
             )}
@@ -192,7 +223,16 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
               Sign in for pricing
             </div>
             <Button variant="hero" size="sm" asChild>
-              <Link to={createAuthHref({ mode: "signup", audience: "professional", intent: "products", redirect: "/store" })}>Create Trade Account</Link>
+              <Link
+                to={createAuthHref({
+                  mode: "signup",
+                  audience: "professional",
+                  intent: "products",
+                  redirect: "/store",
+                })}
+              >
+                Create Trade Account
+              </Link>
             </Button>
           </div>
         )}
@@ -239,20 +279,18 @@ const Store = () => {
 
       const matchesCategory =
         !categorySlug ||
-        (aliasedType ? p.product_type === aliasedType : (
-          p.category.toLowerCase() === categorySlug ||
-          p.subcategory.toLowerCase() === categorySlug ||
-          p.tags.some((t) => t.toLowerCase() === categorySlug)
-        ));
+        (aliasedType
+          ? p.product_type === aliasedType
+          : p.category.toLowerCase() === categorySlug ||
+            p.subcategory.toLowerCase() === categorySlug ||
+            p.tags.some((t) => t.toLowerCase() === categorySlug));
 
       return matchesSearch && matchesTab && matchesCategory;
     });
 
-    return [...result].sort((a, b) => (
-      sortMode === "price_low_high"
-        ? a.sell_price_usd - b.sell_price_usd
-        : b.sell_price_usd - a.sell_price_usd
-    ));
+    return [...result].sort((a, b) =>
+      sortMode === "price_low_high" ? a.sell_price_usd - b.sell_price_usd : b.sell_price_usd - a.sell_price_usd,
+    );
   }, [activeTab, initialCategory, products, searchTerm, sortMode]);
 
   const handleTabChange = (tab: string) => {
@@ -272,28 +310,27 @@ const Store = () => {
             <h1 className="mb-4 text-4xl font-bold text-foreground">Product Catalog</h1>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
               Browse premium lenses, optical supplies, and service packages in one storefront.
-              Configure variants, then place your order for admin review and fulfilment.
             </p>
           </div>
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8">
             <div className="flex flex-col gap-4 rounded-xl bg-card p-4 shadow-soft">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <TabsList>
-                <TabsTrigger value="all">All Products</TabsTrigger>
-                <TabsTrigger value="lenses">Lenses</TabsTrigger>
-                <TabsTrigger value="supplies">Supplies</TabsTrigger>
-                <TabsTrigger value="services">Services</TabsTrigger>
-              </TabsList>
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+                <TabsList>
+                  <TabsTrigger value="all">All Products</TabsTrigger>
+                  <TabsTrigger value="lenses">Lenses</TabsTrigger>
+                  <TabsTrigger value="supplies">Supplies</TabsTrigger>
+                  <TabsTrigger value="services">Services</TabsTrigger>
+                </TabsList>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <div className="inline-flex items-center rounded-md border bg-background p-1">
                     <Button
@@ -353,9 +390,15 @@ const Store = () => {
             ) : (
               <>
                 <TabsContent value={activeTab}>
+                  <h2 className="sr-only">Product listings</h2>
                   <div className={layout === "grid" ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {filtered.map((product, index) => (
-                      <ProductCard key={`${product.product_type}:${product.id}`} product={product} index={index} layout={layout} />
+                      <ProductCard
+                        key={`${product.product_type}:${product.id}`}
+                        product={product}
+                        index={index}
+                        layout={layout}
+                      />
                     ))}
                   </div>
                   {filtered.length === 0 && (

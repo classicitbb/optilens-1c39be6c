@@ -78,7 +78,7 @@ const Hero = () => {
                   type="button"
                   aria-pressed={audience === "professional"}
                   onClick={() => setAudience("professional")}
-                  className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 text-sm font-semibold transition sm:text-base ${audience === "professional" ? "bg-white text-[#0b2745] shadow-lg" : "text-white hover:bg-white/10"}`}
+                  className={`flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-center text-[0.8125rem] font-semibold leading-tight transition sm:gap-2 sm:px-3 sm:text-base ${audience === "professional" ? "bg-white text-[#0b2745] shadow-lg" : "text-white hover:bg-white/10"}`}
                 >
                   <Glasses className="h-4 w-4 shrink-0" aria-hidden="true" />
                   Optical professional
@@ -87,7 +87,7 @@ const Hero = () => {
                   type="button"
                   aria-pressed={audience === "visitor"}
                   onClick={() => setAudience("visitor")}
-                  className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-3 text-sm font-semibold transition sm:text-base ${audience === "visitor" ? "bg-white text-[#0b2745] shadow-lg" : "text-white hover:bg-white/10"}`}
+                  className={`flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-center text-[0.8125rem] font-semibold leading-tight transition sm:gap-2 sm:px-3 sm:text-base ${audience === "visitor" ? "bg-white text-[#0b2745] shadow-lg" : "text-white hover:bg-white/10"}`}
                 >
                   <CircleUserRound className="h-4 w-4 shrink-0" aria-hidden="true" />
                   Patient or visitor

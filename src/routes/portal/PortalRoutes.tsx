@@ -22,6 +22,7 @@ const StatementsSection = lazy(() => import("@/components/account/sections/State
 const RxDraftSection = lazy(() => import("@/components/account/sections/RxDraftSection"));
 const LensAssistantSection = lazy(() => import("@/components/account/sections/LensAssistantSection"));
 const NetworkingCardPage = lazy(() => import("@/pages/NetworkingCardPage"));
+const HandbookSection = lazy(() => import("@/components/account/sections/HandbookSection"));
 
 const LensAssistantProfileRouteGate = () => {
   const { isLoading: identityLoading } = usePortalIdentity();
@@ -69,6 +70,7 @@ const PortalRoutes = () => {
         <Route path="rx-drafts/:draftId" element={<RxDraftSection />} />
         <Route path="statements" element={<PortalFeatureGate feature="statements"><StatementsSection /></PortalFeatureGate>} />
         <Route path="networking-card" element={<NetworkingCardPage />} />
+        <Route path="handbook" element={<HandbookSection />} />
       </Route>
       <Route path="*" element={<Navigate to="/profile" replace />} />
     </Routes>

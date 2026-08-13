@@ -73,7 +73,7 @@ const QuoteFormSection = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div><p className="text-sm font-semibold text-foreground">Start a quote request</p><p className="text-sm text-muted-foreground">The assistant collects the customer and product details, then asks you to confirm before submitting.</p></div>
+          <div><p className="text-sm font-semibold text-foreground">Start a quote request</p><p className="text-sm text-muted-foreground">The assistant uses this signed-in account, lets you edit the quote title and details, then asks you to confirm before submitting.</p></div>
           <Button type="button" onClick={() => openAssistant({ formKind: "quote_request", formValues: { summary: (location.state as { prefillNote?: string } | null)?.prefillNote ?? "" } })} disabled={!!emulation} title={emulation ? "Submitting is disabled while emulating a customer" : undefined}><MessageCircle className="mr-2 h-4 w-4" />Request a quote</Button>
         </div>
         <div className="space-y-2">

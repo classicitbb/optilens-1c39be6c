@@ -1,5 +1,12 @@
 # Automation Bug Reports
 
+## 2026-08-12
+- Script(s): Vite/Vitest MCP plugin lifecycle
+- Impact: test or build execution could overwrite `supabase/functions/mcp/index.ts` with a `npm:C:\...` import that cannot run in Supabase.
+- Root cause: Vite registered the MCP code generator for every config load, including Vitest on Windows.
+- Resolution: removed generator side effects from Vite and added an explicit portable generator invoked only by MCP deployment paths.
+- Follow-up actions: confirm the artifact hash is unchanged after focused tests and run `npm run mcp:generate` for the intended deploy project.
+
 Track issues and exceptions related to QA automation and PR checks.
 
 ## Entry format

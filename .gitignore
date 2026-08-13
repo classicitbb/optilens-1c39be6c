@@ -30,6 +30,7 @@ bun.lockb
 
 # Claude Code worktrees — never commit
 .claude/worktrees/
+.claude/settings.local.json
 
 # Environment variables — never commit secrets
 .env

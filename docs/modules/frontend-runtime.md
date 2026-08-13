@@ -1,6 +1,19 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-12 — Unified order dispatch
+
+- `StockOrderBuilderPage` sells published website products and variants, with server-side pricing and an explicit Innovations or Gatekeeper release choice.
+- Rx and stock releases invoke the same canonical Hashref writer. Stock orders use `rx_eye:5`, while previews show the exact generated order text.
+- The stock pricing reference tab makes clear that legacy Innova-family pricing rows are no longer the Stock Order Builder's price source.
+
 Operational notes and change context for code in `src/**`.
+
+## 2026-08-11 — Stock order form discovery and drafts
+
+- `navigationRegistry.ts` uses the `stock-order` shortcut key so the Website app and the Stock Order Form remain separate launcher tiles while sharing Website permissions.
+- `GlobalSearch` supplements sidebar items with concrete active admin routes from `APP_ROUTE_REGISTRY`; parameterized routes are excluded until an identifier can be supplied.
+- `useStockEligibleAccounts` reads the lab-scoped `stock_lens_eligible_accounts` view. The view follows the CRM **Is Lab** contact graph used by `can_access_customer_lab_pricing`.
+- Staged `stock_order_submissions` are the persisted stock-order drafts. The quotations page lists them and links back with `?draft=<id>` so the form can restore the frozen payload.
 
 ## 2026-08-06 — Header launcher shortcuts
 

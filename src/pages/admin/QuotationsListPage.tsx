@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuotes, Quote, QUOTE_STATUSES } from "@/hooks/useQuotes";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ import { Plus, Copy, FileText, Search, Trash2 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import { format } from "date-fns";
+import { useStockOrderDrafts } from "@/hooks/useStockOrderBuilder";
 
 const statusColors: Record<string, string> = {
   Draft: "hsl(215 15% 50%)",
@@ -31,6 +32,7 @@ const statusColors: Record<string, string> = {
 
 const QuotationsListPage = () => {
   const { data: quotes, isLoading, createMutation, deleteMutation } = useQuotes();
+  const { data: stockDrafts = [] } = useStockOrderDrafts();
   const { canEdit } = useAdminRole();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -251,20 +253,29 @@ const QuotationsListPage = () => {
             <DialogTitle className="text-sm font-semibold">New Quote</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
-            <button
-              onClick={() => handleCreate("STOCK")}
-              disabled={createMutation.isPending}
-              className="flex flex-col items-center gap-3 p-6 border rounded-lg hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
-              style={{ borderColor: "hsl(215 15% 82%)" }}
-            >
-              <FileText className="h-8 w-8" style={{ color: "hsl(215 65% 50%)" }} />
-              <div className="text-center">
-                <div className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Stock Quote</div>
-                <div className="text-[11px] mt-1" style={{ color: "hsl(215 15% 50%)" }}>
-                  Stock items only
+            <div className="flex flex-col items-center">
+              <button
+                onClick={() => handleCreate("STOCK")}
+                disabled={createMutation.isPending}
+                className="flex w-full flex-col items-center gap-3 p-6 border rounded-lg hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+                style={{ borderColor: "hsl(215 15% 82%)" }}
+              >
+                <FileText className="h-8 w-8" style={{ color: "hsl(215 65% 50%)" }} />
+                <div className="text-center">
+                  <div className="text-sm font-semibold" style={{ color: "hsl(215 30% 15%)" }}>Stock Quote</div>
+                  <div className="text-[11px] mt-1" style={{ color: "hsl(215 15% 50%)" }}>
+                    Stock items only
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+              <Link
+                to="/admin/website/stock-orders"
+                onClick={() => setNewQuoteOpen(false)}
+                className="mt-2 text-[11px] text-blue-600 hover:underline"
+              >
+                Open stock order form
+              </Link>
+            </div>
             <button
               onClick={() => handleCreate("RX")}
               disabled={createMutation.isPending}
@@ -282,6 +293,34 @@ const QuotationsListPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {stockDrafts.length > 0 && (
+        <div className="border rounded" style={{ borderColor: "hsl(215 15% 85%)" }}>
+          <div className="flex items-center justify-between border-b px-3 py-2">
+            <div>
+              <h2 className="text-sm font-semibold">Stock order drafts</h2>
+              <p className="text-[11px] text-muted-foreground">Saved from the stock order form and waiting for release.</p>
+            </div>
+            <Link className="text-xs text-blue-600 hover:underline" to="/admin/website/stock-orders">New stock order</Link>
+          </div>
+          <div className="divide-y">
+            {stockDrafts.map((draft) => (
+              <div key={draft.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                <div className="min-w-0">
+                  <div className="truncate text-xs font-medium">
+                    {draft.payload.account?.name ?? `Account ${draft.account_id}`}
+                    {draft.order_reference ? ` · ${draft.order_reference}` : ""}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {draft.payload.items?.length ?? 0} item{(draft.payload.items?.length ?? 0) === 1 ? "" : "s"} · {format(new Date(draft.updated_at), "dd MMM yyyy")}
+                  </div>
+                </div>
+                <Link className="text-xs text-blue-600 hover:underline" to={`/admin/website/stock-orders?draft=${draft.id}`}>Open draft</Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

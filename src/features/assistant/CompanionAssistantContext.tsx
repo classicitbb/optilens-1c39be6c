@@ -133,11 +133,13 @@ const createInitialFormState = ({
   profile,
   userName,
   userEmail,
+  accountName,
 }: {
   pathname: string;
   profile: AssistantProfile;
   userName: string;
   userEmail: string;
+  accountName: string;
 }): AssistantFormState => {
   const kind: AssistantFormKind =
     profile === "retailer_help" || pathname.startsWith("/find-a-retailer")
@@ -158,8 +160,9 @@ const createInitialFormState = ({
     requesterType: "",
     market: pathname.startsWith("/find-a-retailer/barbados") ? "Barbados" : "",
     issueType: "",
+    requestTitle: "",
     productTopic: "",
-    customerName: "",
+    customerName: accountName,
     summary: "",
   };
 };
@@ -172,6 +175,7 @@ const getFormQuestion = (field: NonNullable<AssistantFormState["pendingField"]>,
   if (field === "market") return "Which country or market will this price list be used in?";
   if (field === "customerName") return "Which customer or business is this quote for?";
   if (field === "issueType") return "What is this support request about?";
+  if (field === "requestTitle") return "What should we call this request?";
   return kind === "quote_request"
     ? "What products, quantities, and pricing details should we include?"
     : "Please describe what you need help with.";
@@ -181,7 +185,9 @@ export const isPricelistRequesterEligible = (requesterType: string) =>
   /\b(optician|optical|dispens|clinic|practice|lab(?:oratory)?|retail(?:er)?|store|ophthalm|eye\s*care)\b/i.test(requesterType);
 
 const getNextFormField = (form: AssistantFormState): AssistantFormState["pendingField"] => {
-  if (form.kind === "quote_request") return !form.customerName.trim() ? "customerName" : !form.summary.trim() ? "summary" : undefined;
+  // Requests are presented as an editable inline form. Keep this helper for
+  // older persisted assistant snapshots that still contain a pending field.
+  if (form.kind === "quote_request") return undefined;
   if (form.kind === "pricelist_request") {
     if (!form.name.trim()) return "name";
     if (!form.email.trim()) return "email";
@@ -190,7 +196,7 @@ const getNextFormField = (form: AssistantFormState): AssistantFormState["pending
     if (!form.market.trim()) return "market";
     return !form.summary.trim() ? "summary" : undefined;
   }
-  if (form.kind === "portal_support") return !form.issueType.trim() ? "issueType" : !form.summary.trim() ? "summary" : undefined;
+  if (form.kind === "portal_support") return undefined;
   return !form.name.trim() ? "name" : !form.email.trim() ? "email" : !form.summary.trim() ? "summary" : undefined;
 };
 
@@ -207,6 +213,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
   const userName = resolveUserFullName(user) || "";
   const userEmail = user?.email?.trim() || "";
+  const accountName = identity?.organizationName?.trim() || identity?.customerName?.trim() || userName;
   const activeProfile = getProfileForRoute(pathname);
   const [audienceOverride, setAudienceOverride] = useState<AssistantAudience | null>(null);
   const activeAudience = audienceOverride ?? (user ? "dispenser" : getDefaultAudienceForRoute(pathname));
@@ -222,6 +229,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const lastQueryRef = useRef<string | null>(null);
   const negativeFeedbackRef = useRef(false);
   const taskContextRef = useRef<AssistantTaskContext | undefined>(undefined);
+  const formMessageIdsRef = useRef<Set<string>>(new Set());
   const nudgeTimerRef = useRef<number | null>(null);
   const hasRestoredPopoutRef = useRef(false);
   const runtimeHeadings = useMemo(
@@ -255,6 +263,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     lastQueryRef.current = null;
     negativeFeedbackRef.current = false;
     taskContextRef.current = undefined;
+    formMessageIdsRef.current.clear();
     try { window.sessionStorage.removeItem(POPOUT_SNAPSHOT_KEY); } catch { /* best effort */ }
     resetConversation();
   }, [resetConversation]);
@@ -345,7 +354,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         setCurrentQuery(snapshot.currentQuery);
       }
       if (snapshot.formState) {
-        setFormState(snapshot.formState);
+        setFormState({ requestTitle: "", ...snapshot.formState });
       }
       setIsOpen(true);
     } catch {
@@ -420,18 +429,32 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       profile: profile ?? activeProfile,
       userName,
       userEmail,
+      accountName,
     });
     const next = { ...initial, kind: options?.kind ?? initial.kind, taskContext: taskContextRef.current, ...options?.values };
-    const pendingField = getNextFormField(next);
+    const pendingField = undefined;
     setFormState({ ...next, pendingField });
+    const messageId = createId("assistant");
+    formMessageIdsRef.current = new Set([messageId]);
     setMessages((current) => [...current, {
-      id: createId("assistant"), role: "assistant", kind: "text",
-      text: pendingField ? getFormQuestion(pendingField, next.kind) : "I have what I need. Please review your request before I send it.",
-      quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
+      id: messageId, role: "assistant", kind: "text",
+      text: next.kind === "quote_request"
+        ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
+        : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
     }]);
-  }, [activeProfile, pathname, userEmail, userName]);
+  }, [accountName, activeProfile, pathname, userEmail, userName]);
 
   const closeForm = useCallback(() => setFormState(null), []);
+
+  const cancelForm = useCallback(() => {
+    const formMessageIds = formMessageIdsRef.current;
+    setFormState(null);
+    setMessages((current) => [
+      ...current.filter((message) => !formMessageIds.has(message.id)),
+      { id: createId("assistant"), role: "assistant", kind: "text", text: "No request was sent. What else can I help with?" },
+    ]);
+    formMessageIdsRef.current = new Set();
+  }, []);
 
   const updateForm = useCallback((patch: Partial<AssistantFormState>) => {
     setFormState((current) => (current ? { ...current, ...patch } : current));
@@ -729,8 +752,12 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       const completed = { ...formState, [formState.pendingField]: formAnswer };
       const pendingField = getNextFormField(completed);
       setCurrentQuery("");
-      setMessages((current) => [...current, { id: createId("user"), role: "user", kind: "user", text: formAnswer }, {
-        id: createId("assistant"), role: "assistant", kind: "text",
+      const userMessageId = createId("user");
+      const assistantMessageId = createId("assistant");
+      formMessageIdsRef.current.add(userMessageId);
+      formMessageIdsRef.current.add(assistantMessageId);
+      setMessages((current) => [...current, { id: userMessageId, role: "user", kind: "user", text: formAnswer }, {
+        id: assistantMessageId, role: "assistant", kind: "text",
         text: pendingField ? getFormQuestion(pendingField, completed.kind) : `Here is the request I will send:\n\n${completed.kind === "quote_request" ? `**Customer:** ${completed.customerName}\n\n` : ""}${completed.kind === "pricelist_request" ? `**Business:** ${completed.businessName}\n**Role/type:** ${completed.requesterType}\n**Market:** ${completed.market}\n\n` : ""}${completed.kind === "portal_support" ? `**Topic:** ${completed.issueType}\n\n` : ""}${completed.summary}`,
         quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
       }]);
@@ -752,14 +779,17 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     const launchQuery = options?.query ?? (taskContext ? getAssistantLaunchPrompt(taskContext) : undefined);
     if (launchQuery) setCurrentQuery(launchQuery);
     if (options?.formKind) {
-      const initial = createInitialFormState({ pathname, profile: options.profile ?? activeProfile, userName, userEmail });
+      const initial = createInitialFormState({ pathname, profile: options.profile ?? activeProfile, userName, userEmail, accountName });
       const next = { ...initial, kind: options.formKind, taskContext, ...options.formValues };
-      const pendingField = getNextFormField(next);
+      const pendingField = undefined;
       setFormState({ ...next, pendingField });
+      const messageId = createId("assistant");
+      formMessageIdsRef.current = new Set([messageId]);
       setMessages((current) => [...current, {
-        id: createId("assistant"), role: "assistant", kind: "text",
-        text: pendingField ? getFormQuestion(pendingField, next.kind) : "I have what I need. Please review your request before I send it.",
-        quickActions: pendingField ? undefined : [{ type: "submit_form", label: "Confirm & send" }, { type: "cancel_form", label: "Cancel" }],
+        id: messageId, role: "assistant", kind: "text",
+        text: next.kind === "quote_request"
+          ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
+          : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
       }]);
     }
     if ((options?.autoSubmit || taskContext) && launchQuery) {
@@ -768,7 +798,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         void submitQueryInternal(launchQuery, options.profile ?? activeProfile, options.audience ?? activeAudience);
       }, 0);
     }
-  }, [activeAudience, activeProfile, messages.length, pathname, resetConversation, submitQueryInternal, userEmail, userName]);
+  }, [accountName, activeAudience, activeProfile, messages.length, pathname, resetConversation, submitQueryInternal, userEmail, userName]);
 
   const openDetachedWindow = useCallback(() => {
     try {
@@ -863,8 +893,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
 
     if (action.type === "cancel_form") {
-      closeForm();
-      setMessages((current) => [...current, { id: createId("assistant"), role: "assistant", kind: "text", text: "No request was sent. What else can I help with?" }]);
+      cancelForm();
       return;
     }
 
@@ -877,7 +906,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         window.location.href = action.href;
       }
     }
-  }, [activeProfile, closeForm, openForm, submitQuery, submitWebSearch]);
+  }, [activeProfile, cancelForm, openForm, submitQuery, submitWebSearch]);
 
   const submitForm = useCallback(async () => {
     if (!formState) return;
@@ -885,7 +914,9 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     const summary = formState.summary.trim();
     const isQuoteRequest = formState.kind === "quote_request";
     const isPricelistRequest = formState.kind === "pricelist_request";
-    if (!summary || (!isQuoteRequest && (!formState.name.trim() || !formState.email.trim())) || (isQuoteRequest && !formState.customerName.trim()) || (isPricelistRequest && (!formState.businessName.trim() || !formState.market.trim() || !isPricelistRequesterEligible(formState.requesterType)))) return;
+    const requestTitle = (isQuoteRequest ? (formState.requestTitle ?? "") : formState.issueType).trim();
+    if ((!requestTitle) || (!isQuoteRequest && !summary) || (isQuoteRequest && !user) || (!isQuoteRequest && (!formState.name.trim() || !formState.email.trim())) || (isPricelistRequest && (!formState.businessName.trim() || !formState.market.trim() || !isPricelistRequesterEligible(formState.requesterType)))) return;
+    const requestDetails = isQuoteRequest ? [requestTitle, summary].filter(Boolean).join("\n\n") : summary;
 
     setIsSubmitting(true);
     try {
@@ -908,6 +939,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         accountCustomer: identity?.customerName ?? identity?.organizationName ?? null,
         market: formState.market,
         issueType: formState.issueType,
+        requestTitle,
         productTopic: formState.productTopic,
         taskContext: formState.taskContext ?? null,
         previousResults: resultSummary,
@@ -917,8 +949,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       let quoteNumber: string | null = null;
       if (isQuoteRequest && user) {
         const { data, error } = await (supabase.rpc as any)("submit_customer_quote_request", {
-          p_customer_name: formState.customerName.trim(),
-          p_request_details: summary,
+          p_customer_name: formState.customerName.trim() || accountName || "Signed-in customer",
+          p_request_details: requestDetails,
           p_account_id: identity?.crmCustomerId ?? null,
         });
         if (error) throw error;
@@ -928,7 +960,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       } else if (formState.kind === "portal_support" && user) {
         portalTicketId = await createTicket.mutateAsync({
           title: formState.issueType.trim() || "Portal assistant support request",
-          description: `${summary}\n\nAssistant context:\n${JSON.stringify(contextNotes, null, 2)}`,
+          description: `${requestDetails}\n\nAssistant context:\n${JSON.stringify(contextNotes, null, 2)}`,
           partnerContactId: identity?.crmContactId ?? null,
           ownerUserId: user.id,
           priority: 1,
@@ -936,7 +968,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         });
       } else {
         const message = [
-          summary,
+          requestDetails,
           "",
           formState.market ? `Market: ${formState.market}` : null,
           formState.issueType ? `Issue type: ${formState.issueType}` : null,
@@ -994,7 +1026,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, user]);
+  }, [accountName, activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, user]);
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,
@@ -1020,11 +1052,13 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     formState,
     openForm,
     closeForm,
+    cancelForm,
     updateForm,
     submitForm,
   }), [
     activeProfile,
     activeAudience,
+    cancelForm,
     closeAssistant,
     currentQuery,
     dismissNudge,

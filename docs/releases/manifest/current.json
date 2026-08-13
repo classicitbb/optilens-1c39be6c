@@ -1,16 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-06T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-12T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "**Activities** and **Rx Order Form** now appear in the header app launcher for staff with access to their owning CRM or Website app.",
-    "Selecting either shortcut opens the existing page directly; CRM and Website navigation remain unchanged."
+    "Rx and stock orders now share one Hashref v2.5 writer and can be released through either Innovations or Gatekeeper without duplicate claims.",
+    "MCP Edge Function generation is now explicit at deployment time; normal Vite builds and Vitest runs no longer overwrite the portable function artifact."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "api/v2",
       "impact": "medium",
-      "notes": "Updated as part of Header Launcher Shortcuts."
+      "notes": "Updated as part of Unified Order Dispatch and MCP Artifact Stability."
     }
   ],
   "migrationNotes": [

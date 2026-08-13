@@ -1,6 +1,18 @@
 # Frontend Help Docs
 
+## 2026-08-12 — Releasing an order through Gatekeeper or Innovations
+
+- In the Rx and Stock Order forms, choose the transport at release time. A Gatekeeper release sends immediately; an Innovations release waits for the office worker.
+- Use **Preview file** to inspect the exact Hashref order before release. If a stock item cannot be released, correct its website publication, pricelist price, or variant OPC/SKU first.
+- If Gatekeeper contract refresh fails, reconnect or refresh contracts in Admin → Settings → Integrations; the sender requires an active contract with lab number, customer number, and routing key.
+
 Support-facing notes for the frontend runtime.
+
+## 2026-08-11 — Stock order form
+
+- Open the header grid and select **Stock Order Builder**, or type **stock order** into the header search bar.
+- The account picker intentionally lists only lab accounts with stock-lens pricing. If an expected account is missing, confirm its CRM **Is Lab** tag and assigned stock pricing.
+- Select **Add to drafts** to save a staged order. Open **Website → Quotations** to see Stock order drafts, then choose **Open draft** to continue it.
 
 ## 2026-08-06 — Header launcher shortcuts
 

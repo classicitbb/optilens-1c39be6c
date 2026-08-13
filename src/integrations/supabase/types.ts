@@ -3001,6 +3001,228 @@ export type Database = {
         }
         Relationships: []
       }
+      gatekeeper_contract_secrets: {
+        Row: {
+          contract_id: string
+          encrypted_hash_routing: string
+          updated_at: string
+        }
+        Insert: {
+          contract_id: string
+          encrypted_hash_routing: string
+          updated_at?: string
+        }
+        Update: {
+          contract_id?: string
+          encrypted_hash_routing?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gatekeeper_contract_secrets_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "gatekeeper_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gatekeeper_contracts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          origin_lab_id: string
+          origin_retailer_name: string
+          origin_type: string | null
+          receiver_lab_id: string
+          receiver_retailer_name: string
+          receiver_type: string | null
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          origin_lab_id: string
+          origin_retailer_name: string
+          origin_type?: string | null
+          receiver_lab_id: string
+          receiver_retailer_name: string
+          receiver_type?: string | null
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          origin_lab_id?: string
+          origin_retailer_name?: string
+          origin_type?: string | null
+          receiver_lab_id?: string
+          receiver_retailer_name?: string
+          receiver_type?: string | null
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gatekeeper_contracts_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: false
+            referencedRelation: "gatekeeper_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gatekeeper_dispatch_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          duration_ms: number | null
+          endpoint: string | null
+          error_message: string | null
+          http_method: string | null
+          http_status: number | null
+          id: string
+          order_kind: string | null
+          phase: string
+          request_snapshot: Json
+          response_snapshot: Json
+          submission_id: string | null
+          success: boolean
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error_message?: string | null
+          http_method?: string | null
+          http_status?: number | null
+          id?: string
+          order_kind?: string | null
+          phase?: string
+          request_snapshot?: Json
+          response_snapshot?: Json
+          submission_id?: string | null
+          success?: boolean
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          error_message?: string | null
+          http_method?: string | null
+          http_status?: number | null
+          id?: string
+          order_kind?: string | null
+          phase?: string
+          request_snapshot?: Json
+          response_snapshot?: Json
+          submission_id?: string | null
+          success?: boolean
+        }
+        Relationships: []
+      }
+      gatekeeper_secrets: {
+        Row: {
+          auth_token_expires_at: string | null
+          encrypted_auth_token: string | null
+          encrypted_jwt_key: string
+          encrypted_jwt_secret: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          auth_token_expires_at?: string | null
+          encrypted_auth_token?: string | null
+          encrypted_jwt_key: string
+          encrypted_jwt_secret: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          auth_token_expires_at?: string | null
+          encrypted_auth_token?: string | null
+          encrypted_jwt_key?: string
+          encrypted_jwt_secret?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gatekeeper_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "gatekeeper_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gatekeeper_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          environment: string
+          has_credentials: boolean
+          id: string
+          lab_name: string
+          last_auth_refresh_at: string | null
+          last_connected_at: string | null
+          last_error: string | null
+          last_receipt_at: string | null
+          last_status_pull_at: string | null
+          origin_lab_id: string
+          status: string
+          status_pull_token: string | null
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          environment?: string
+          has_credentials?: boolean
+          id?: string
+          lab_name: string
+          last_auth_refresh_at?: string | null
+          last_connected_at?: string | null
+          last_error?: string | null
+          last_receipt_at?: string | null
+          last_status_pull_at?: string | null
+          origin_lab_id: string
+          status?: string
+          status_pull_token?: string | null
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          environment?: string
+          has_credentials?: boolean
+          id?: string
+          lab_name?: string
+          last_auth_refresh_at?: string | null
+          last_connected_at?: string | null
+          last_error?: string | null
+          last_receipt_at?: string | null
+          last_status_pull_at?: string | null
+          origin_lab_id?: string
+          status?: string
+          status_pull_token?: string | null
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       help_article_contexts: {
         Row: {
           article_id: string
@@ -7184,6 +7406,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           archived_by: string | null
+          audience: string | null
           avatar_url: string | null
           billing_address: Json | null
           bio: string | null
@@ -7196,7 +7419,9 @@ export type Database = {
           email_verified_at: string | null
           full_name: string | null
           id: string
+          interest_intent: string | null
           last_portal_login_at: string | null
+          onboarding_completed_at: string | null
           organization_name: string | null
           phone: string | null
           portal_access_approved_at: string | null
@@ -7215,6 +7440,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           archived_by?: string | null
+          audience?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
@@ -7227,7 +7453,9 @@ export type Database = {
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
+          interest_intent?: string | null
           last_portal_login_at?: string | null
+          onboarding_completed_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_approved_at?: string | null
@@ -7246,6 +7474,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           archived_by?: string | null
+          audience?: string | null
           avatar_url?: string | null
           billing_address?: Json | null
           bio?: string | null
@@ -7258,7 +7487,9 @@ export type Database = {
           email_verified_at?: string | null
           full_name?: string | null
           id?: string
+          interest_intent?: string | null
           last_portal_login_at?: string | null
+          onboarding_completed_at?: string | null
           organization_name?: string | null
           phone?: string | null
           portal_access_approved_at?: string | null
@@ -7909,7 +8140,12 @@ export type Database = {
           attempts: number
           claimed_at: string | null
           created_at: string
+          dispatch_provider: string
+          gatekeeper_order_id: number
           id: string
+          lab_status: string | null
+          lab_status_at: string | null
+          lab_status_detail: string | null
           last_error: string | null
           mode: number
           order_id: string | null
@@ -7930,7 +8166,12 @@ export type Database = {
           attempts?: number
           claimed_at?: string | null
           created_at?: string
+          dispatch_provider?: string
+          gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           mode?: number
           order_id?: string | null
@@ -7951,7 +8192,12 @@ export type Database = {
           attempts?: number
           claimed_at?: string | null
           created_at?: string
+          dispatch_provider?: string
+          gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           mode?: number
           order_id?: string | null
@@ -8682,12 +8928,18 @@ export type Database = {
           claimed_at: string | null
           created_at: string
           created_by: string | null
+          dispatch_provider: string
           filename: string | null
+          gatekeeper_order_id: number
           id: string
+          lab_status: string | null
+          lab_status_at: string | null
+          lab_status_detail: string | null
           last_error: string | null
           order_reference: string | null
           payload: Json
           po_number: string | null
+          receipt: Json | null
           released_at: string | null
           status: string
           transport: string | null
@@ -8701,12 +8953,18 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           created_by?: string | null
+          dispatch_provider?: string
           filename?: string | null
+          gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          receipt?: Json | null
           released_at?: string | null
           status?: string
           transport?: string | null
@@ -8720,12 +8978,18 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           created_by?: string | null
+          dispatch_provider?: string
           filename?: string | null
+          gatekeeper_order_id?: number
           id?: string
+          lab_status?: string | null
+          lab_status_at?: string | null
+          lab_status_detail?: string | null
           last_error?: string | null
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          receipt?: Json | null
           released_at?: string | null
           status?: string
           transport?: string | null
@@ -8792,6 +9056,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_published: boolean | null
           is_vat_taxable: boolean
           product_id: string
           product_type: string
@@ -8802,6 +9067,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_published?: boolean | null
           is_vat_taxable?: boolean
           product_id: string
           product_type: string
@@ -8812,6 +9078,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_published?: boolean | null
           is_vat_taxable?: boolean
           product_id?: string
           product_type?: string
@@ -10289,7 +10556,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
-      approve_rx_submission: { Args: { p_id: string }; Returns: undefined }
+      approve_rx_submission: {
+        Args: { p_dispatch_provider?: string; p_id: string }
+        Returns: undefined
+      }
       assign_customer_account_number: {
         Args: { p_account_number: string; p_customer_id: number }
         Returns: {
@@ -10311,6 +10581,10 @@ export type Database = {
           object_type: string
         }[]
       }
+      begin_gatekeeper_status_pull: {
+        Args: { p_force?: boolean }
+        Returns: boolean
+      }
       build_rx_submission_payload: {
         Args: { p_quote_id: string }
         Returns: Json
@@ -10318,6 +10592,10 @@ export type Database = {
       bulk_toggle_anchor_exclusion: {
         Args: { p_excluded: boolean; p_lens_ids: string[]; p_reason?: string }
         Returns: number
+      }
+      cache_gatekeeper_auth_token: {
+        Args: { p_actor_user_id?: string; p_auth_token: string }
+        Returns: undefined
       }
       can_access_customer_lab_pricing: {
         Args: { p_customer_id?: number; p_user_id?: string }
@@ -10530,6 +10808,35 @@ export type Database = {
           environment: string
         }[]
       }
+      get_gatekeeper_connection_credentials: {
+        Args: never
+        Returns: {
+          auth_token: string
+          auth_token_expires_at: string
+          environment: string
+          jwt_key: string
+          jwt_secret: string
+          lab_name: string
+          last_auth_refresh_at: string
+          origin_lab_id: string
+        }[]
+      }
+      get_gatekeeper_credentials: {
+        Args: never
+        Returns: {
+          auth_token: string
+          auth_token_expires_at: string
+          contract_id: string
+          enabled: boolean
+          environment: string
+          hash_routing: string
+          jwt_key: string
+          jwt_secret: string
+          last_auth_refresh_at: string
+          receiver_lab_id: string
+          receiver_retailer_name: string
+        }[]
+      }
       get_integration_connection_secret: {
         Args: { p_connection_id: string }
         Returns: string
@@ -10635,6 +10942,18 @@ export type Database = {
           timezone: string
         }[]
       }
+      get_stock_order_catalog: {
+        Args: { p_account_id: number }
+        Returns: {
+          category: string
+          has_variants: boolean
+          name: string
+          product_id: string
+          product_type: string
+          sku: string
+          unit_price: number
+        }[]
+      }
       get_store_product_variants_public: {
         Args: { p_product_id: string; p_product_type: string }
         Returns: {
@@ -10719,6 +11038,25 @@ export type Database = {
           name: string
           user_id: string
         }[]
+      }
+      log_gatekeeper_dispatch: {
+        Args: {
+          p_action: string
+          p_actor_user_id?: string
+          p_alert?: boolean
+          p_duration_ms?: number
+          p_endpoint?: string
+          p_error_message?: string
+          p_http_method?: string
+          p_http_status?: number
+          p_order_kind?: string
+          p_phase?: string
+          p_request?: Json
+          p_response?: Json
+          p_submission_id?: string
+          p_success: boolean
+        }
+        Returns: string
       }
       log_integration_event: {
         Args: {
@@ -10888,13 +11226,36 @@ export type Database = {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
       }
+      record_gatekeeper_result: {
+        Args: {
+          p_error_message?: string
+          p_order_kind?: string
+          p_receipt?: Json
+          p_submission_id: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
+      record_gatekeeper_status: {
+        Args: {
+          p_detail?: string
+          p_order_kind: string
+          p_status: string
+          p_submission_id: string
+        }
+        Returns: undefined
+      }
       record_payment_gateway_test: {
         Args: { p_actor_user_id?: string; p_success: boolean }
         Returns: undefined
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       release_stock_order_submission: {
-        Args: { p_id: string }
+        Args: { p_dispatch_provider?: string; p_id: string }
+        Returns: undefined
+      }
+      replace_gatekeeper_contracts: {
+        Args: { p_actor_user_id?: string; p_contracts: Json }
         Returns: undefined
       }
       resolve_contact_customer_links: { Args: never; Returns: number }
@@ -10952,6 +11313,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_gatekeeper_delivery_route: {
+        Args: {
+          p_actor_user_id?: string
+          p_contract_id: string
+          p_enabled: boolean
+        }
+        Returns: undefined
+      }
       set_master_price: {
         Args: { p_item_ref: string; p_price: number }
         Returns: undefined
@@ -10976,6 +11345,19 @@ export type Database = {
           order_total: number
           submission_id: string
         }[]
+      }
+      store_gatekeeper_connection: {
+        Args: {
+          p_actor_user_id?: string
+          p_auth_token: string
+          p_contracts: Json
+          p_environment: string
+          p_jwt_key: string
+          p_jwt_secret: string
+          p_lab_name: string
+          p_origin_lab_id: string
+        }
+        Returns: undefined
       }
       submit_customer_quote_request: {
         Args: {
@@ -11162,6 +11544,10 @@ export type Database = {
           name: string
           scopes: string[]
         }[]
+      }
+      verify_gatekeeper_status_pull_token: {
+        Args: { p_token: string }
+        Returns: boolean
       }
     }
     Enums: {

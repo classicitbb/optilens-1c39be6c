@@ -62,11 +62,12 @@ export interface AssistantFormState {
   requesterType: string;
   market: string;
   issueType: string;
+  requestTitle: string;
   productTopic: string;
   customerName: string;
   summary: string;
   taskContext?: AssistantTaskContext;
-  pendingField?: "name" | "email" | "businessName" | "requesterType" | "market" | "issueType" | "customerName" | "summary";
+  pendingField?: "name" | "email" | "businessName" | "requesterType" | "market" | "issueType" | "requestTitle" | "customerName" | "summary";
 }
 
 export type OpenAssistantOptions = {
@@ -103,6 +104,7 @@ export interface CompanionAssistantContextValue {
   formState: AssistantFormState | null;
   openForm: (profile?: AssistantProfile, options?: { kind?: AssistantFormKind; values?: Partial<AssistantFormState> }) => void;
   closeForm: () => void;
+  cancelForm: () => void;
   updateForm: (patch: Partial<AssistantFormState>) => void;
   submitForm: () => Promise<void>;
 }

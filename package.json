@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "mcp:generate": "node scripts/generate_mcp_function.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",
