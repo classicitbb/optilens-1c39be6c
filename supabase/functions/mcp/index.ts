@@ -641,4 +641,4 @@ var mcp_default = defineMcp({
 
 // classic-visions-mcp-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.26.1/stacks/supabase";
-Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));
+Deno.serve(createSupabaseHandler(mcp, { functionName: "mcp" }));
