@@ -1038,8 +1038,8 @@ const ContactsPage = ({
   }, [editContact, stopDictation]);
 
   const startDictation = useCallback(() => {
-    const speechApi = (window as Window & { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).SpeechRecognition
-      ?? (window as Window & { webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).webkitSpeechRecognition;
+    const speechWindow = window as unknown as { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor };
+    const speechApi = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 
     if (!speechApi) {
       toast({
