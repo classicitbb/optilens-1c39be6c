@@ -135,22 +135,32 @@ export const buildErpPortalRolloutPlan = (
       ? peopleWithEmail.filter((contact) => normalizeEmail(contact.email) === customerEmail)
       : [];
 
+    const domainOf = (value: string | null | undefined) => normalizeEmail(value).split("@")[1] ?? "";
+    const customerDomain = domainOf(customer.email);
+    const domainMatches = customerDomain
+      ? peopleWithEmail.filter((contact) => domainOf(contact.email) === customerDomain)
+      : [];
+
     let selected: CopilotPersonContact | null = null;
     if (exactEmailMatches.length === 1) selected = exactEmailMatches[0];
     else if (peopleWithEmail.length === 1) selected = peopleWithEmail[0];
+    else if (domainMatches.length === 1) selected = domainMatches[0];
 
     if (!selected) {
+      const candidateList = (list: CopilotPersonContact[]) =>
+        list.slice(0, 5).map((contact) => `${contact.name}${contact.email ? ` <${clean(contact.email)}>` : ""}`).join(", ");
       if (peopleWithEmail.length > 1) {
-        actions.push(followUp(customer, customer.contact_id, "There are multiple possible recipients; confirm which person should own the portal login."));
+        actions.push(followUp(customer, customer.contact_id, `There are ${peopleWithEmail.length} possible recipients; confirm which person should own the portal login. Candidates: ${candidateList(peopleWithEmail)}.`));
       } else if (people.length === 1) {
-        actions.push(followUp(customer, people[0].id, "The resolved person contact has no valid email; add or confirm an email before inviting them."));
+        actions.push(followUp(customer, people[0].id, `${people[0].name} is the only linked contact but has no valid email; add or confirm an email before inviting them.`));
       } else if (people.length > 1) {
-        actions.push(followUp(customer, customer.contact_id, "There are multiple possible recipients and none has a valid email; confirm the person and email."));
+        actions.push(followUp(customer, customer.contact_id, `There are ${people.length} possible recipients and none has a valid email; confirm the person and email. Candidates: ${candidateList(people)}.`));
       } else {
         actions.push(followUp(customer, customer.contact_id, "No person contact is safely linked to this ERP customer; link or create the intended portal user first."));
       }
       continue;
     }
+
 
     const recipientEmail = clean(selected.email);
     actions.push({
