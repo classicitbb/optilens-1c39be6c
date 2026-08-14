@@ -460,8 +460,9 @@ const PortalCopilotPage = () => {
                   ))}
                 </div>
               </div>
-            ) : (
+            ) : selectedRun ? (
               <>
+
                 <div className="flex justify-end">
                   <div className="max-w-[85%] bg-primary px-4 py-3 text-sm text-primary-foreground">{selectedRun.command_text}</div>
                 </div>
