@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-14 — New Copilot chat replaced the current local thread
+- Area: Admin Portal Copilot conversations
+- Impact: **New chat** only cleared component state; attachment messages disappeared on navigation or refresh, and the sidebar represented workflow runs rather than independent conversations.
+- Root cause: chat messages had no durable parent model, while only ERP execution runs were persisted.
+- Resolution: added user-owned conversations and messages, linked runs to their parent chat, and made chat creation and switching server-backed.
+- Regression prevention: retain the conversation schema/API integration assertions and external-browser switching test with direct keyboard input.
+
 ## 2026-08-13 — Portal rollout lacked governed bulk operations
 - Area: Admin portal-access operations
 - Impact: staff had to identify ERP customers and provision invitations one at a time, with no consistent approval queue, ambiguity handling, or consolidated audit history.

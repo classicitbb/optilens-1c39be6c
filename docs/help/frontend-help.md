@@ -1,5 +1,11 @@
 # Frontend Help Docs
 
+## 2026-08-14 — Using multiple Portal Copilot chats
+
+- Select **New chat** to open a separate conversation. Start as many as needed; each appears in the **Chats** sidebar after creation.
+- Select any chat in the sidebar to restore its messages and associated ERP approval cards. Starting or switching chats does not delete earlier work.
+- A new chat is titled automatically from its first command or attachment note.
+
 ## 2026-08-13 — Portal Copilot ERP rollout
 
 - Open **Admin → Portal Copilot** and enter **Roll out portal access to all ERP customers**. Voice input must be reviewed and confirmed before the workflow can prepare actions.

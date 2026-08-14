@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-14 — Portal Copilot conversations
+
+- `copilot_conversations` is the user-owned chat container; `copilot_messages` stores its text and attachment metadata, while `copilot_runs` remains the governed approval/audit unit linked by `conversation_id`.
+- The browser requests all conversation mutations through `portal-copilot`. The Edge Function verifies ownership and admin access, updates the chat title from its first request, and returns one selected conversation with its messages, runs, actions, and audit events.
+- Existing rollout runs are backfilled as conversations so the multi-chat upgrade preserves historical work.
+
 ## 2026-08-13 — Admin Portal Copilot
 
 - `/admin/copilot` is an admin-only, registry-backed page. Its browser client calls `portal-copilot`; it never holds provider or service-role credentials.

@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-14 — Portal Copilot multi-chat workspace
+
+### Release Notes
+- **New chat** now creates a separate, durable Copilot conversation.
+- The Chats sidebar keeps up to 50 recent conversations available for switching, including prior attachment analyses and ERP rollout results.
+
 ## 2026-08-13 — Admin Portal Copilot MVP
 
 ### Release Notes

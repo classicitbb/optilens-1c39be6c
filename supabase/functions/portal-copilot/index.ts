@@ -84,16 +84,67 @@ const classifyWithClaude = async (command: string, configuredModel?: unknown): P
   return text.includes("ERP_PORTAL_ROLLOUT");
 };
 
-const loadState = async (db: any, runId?: string) => {
+const createConversation = async (db: any, actorUserId: string, title = "New chat") => {
+  const { data, error } = await db.from("copilot_conversations").insert({
+    title: stringValue(title, 120) || "New chat",
+    created_by: actorUserId,
+  }).select("id,title,created_by,created_at,updated_at").single();
+  if (error) throw error;
+  return data;
+};
+
+const requireOwnedConversation = async (db: any, actorUserId: string, conversationId?: string) => {
+  if (!conversationId) return createConversation(db, actorUserId);
+  const { data, error } = await db.from("copilot_conversations")
+    .select("id,title,created_by,created_at,updated_at")
+    .eq("id", conversationId)
+    .eq("created_by", actorUserId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Copilot conversation was not found");
+  return data;
+};
+
+const touchConversation = async (db: any, conversationId: string, title?: string) => {
+  const changes: JsonRecord = { updated_at: new Date().toISOString() };
+  if (title) changes.title = stringValue(title, 120);
+  const { error } = await db.from("copilot_conversations").update(changes).eq("id", conversationId);
+  if (error) throw error;
+};
+
+const loadState = async (db: any, actorUserId: string, conversationId?: string, runId?: string) => {
+  const { data: conversations, error: conversationsError } = await db
+    .from("copilot_conversations")
+    .select("id,title,created_by,created_at,updated_at")
+    .eq("created_by", actorUserId)
+    .order("updated_at", { ascending: false })
+    .limit(50);
+  if (conversationsError) throw conversationsError;
+  const selectedConversationId = conversationId && conversations?.some((conversation: { id: string }) => conversation.id === conversationId)
+    ? conversationId
+    : conversations?.[0]?.id;
   const { data: runs, error: runsError } = await db
     .from("copilot_runs")
-    .select("id,workflow,command_text,input_mode,transcript,transcript_confirmed,autonomy_level,status,source_system,source_snapshot_at,summary,requested_by,created_at,updated_at")
+    .select("id,conversation_id,workflow,command_text,input_mode,transcript,transcript_confirmed,autonomy_level,status,source_system,source_snapshot_at,summary,requested_by,created_at,updated_at")
+    .eq("requested_by", actorUserId)
+    .eq("conversation_id", selectedConversationId || "00000000-0000-0000-0000-000000000000")
     .order("created_at", { ascending: false })
     .limit(12);
   if (runsError) throw runsError;
-  const selectedRunId = runId || runs?.[0]?.id;
+  const selectedRunId = runId && runs?.some((run: { id: string }) => run.id === runId)
+    ? runId
+    : runs?.[0]?.id;
   let actions: unknown[] = [];
   let auditEvents: unknown[] = [];
+  let messages: unknown[] = [];
+  if (selectedConversationId) {
+    const { data, error } = await db.from("copilot_messages")
+      .select("id,conversation_id,role,content,attachments,created_at")
+      .eq("conversation_id", selectedConversationId)
+      .order("created_at");
+    if (error) throw error;
+    messages = data ?? [];
+  }
   if (selectedRunId) {
     const [actionsResult, auditResult] = await Promise.all([
       db.from("copilot_actions")
@@ -116,7 +167,16 @@ const loadState = async (db: any, runId?: string) => {
     .eq("workflow", "erp_portal_rollout")
     .maybeSingle();
   if (settingsError) throw settingsError;
-  return { runs: runs ?? [], selectedRunId: selectedRunId ?? null, actions, auditEvents, settings };
+  return {
+    conversations: conversations ?? [],
+    selectedConversationId: selectedConversationId ?? null,
+    messages,
+    runs: runs ?? [],
+    selectedRunId: selectedRunId ?? null,
+    actions,
+    auditEvents,
+    settings,
+  };
 };
 
 const refreshRunStatus = async (db: any, runId: string) => {
@@ -257,7 +317,17 @@ Deno.serve(async (req) => {
     const operation = stringValue(body.operation, 80);
 
     if (operation === "get-state") {
-      return jsonResponse(req, 200, await loadState(db, stringValue(body.runId, 80) || undefined));
+      return jsonResponse(req, 200, await loadState(
+        db,
+        actorUserId,
+        stringValue(body.conversationId, 80) || undefined,
+        stringValue(body.runId, 80) || undefined,
+      ));
+    }
+
+    if (operation === "create-conversation") {
+      const conversation = await createConversation(db, actorUserId);
+      return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id));
     }
 
     if (operation === "prepare-erp-rollout") {
@@ -277,6 +347,8 @@ Deno.serve(async (req) => {
       if (!(await classifyWithClaude(command, settings.model))) {
         return jsonResponse(req, 400, { error: "The MVP currently supports only ERP portal rollout commands" });
       }
+      const conversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
+      const isUntitled = conversation.title === "New chat";
 
       const [{ data: customers, error: customerError }, { data: contacts, error: contactError }, { data: memberships, error: membershipError }] = await Promise.all([
         db.from("customers").select("id,name,account_number,email,contact_id,innovations_customer_id").not("innovations_customer_id", "is", null).order("name"),
@@ -298,6 +370,7 @@ Deno.serve(async (req) => {
         },
       );
       const { data: run, error: runError } = await db.from("copilot_runs").insert({
+        conversation_id: conversation.id,
         workflow: "erp_portal_rollout",
         command_text: command,
         input_mode: inputMode,
@@ -311,6 +384,12 @@ Deno.serve(async (req) => {
         requested_by: actorUserId,
       }).select("id").single();
       if (runError) throw runError;
+      const { error: messageError } = await db.from("copilot_messages").insert({
+        conversation_id: conversation.id,
+        role: "user",
+        content: command,
+      });
+      if (messageError) throw messageError;
 
       if (plan.actions.length > 0) {
         const rows = plan.actions.map((planned) => ({
@@ -336,7 +415,8 @@ Deno.serve(async (req) => {
         transcript: inputMode === "voice" ? command : null,
         metadata: { inputMode, transcriptConfirmed, source: "innovations_sync", counts: plan.counts },
       });
-      return jsonResponse(req, 200, await loadState(db, run.id));
+      await touchConversation(db, conversation.id, isUntitled ? command : undefined);
+      return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id, run.id));
     }
 
     if (operation === "edit-action") {
@@ -362,7 +442,8 @@ Deno.serve(async (req) => {
       if (updateError) throw updateError;
       await audit(db, actorUserId, "action_edited", { runId: action.run_id, actionId });
       await refreshRunStatus(db, action.run_id);
-      return jsonResponse(req, 200, await loadState(db, action.run_id));
+      const { data: run } = await db.from("copilot_runs").select("conversation_id").eq("id", action.run_id).single();
+      return jsonResponse(req, 200, await loadState(db, actorUserId, run?.conversation_id, action.run_id));
     }
 
     if (operation === "decide-action") {
@@ -380,7 +461,8 @@ Deno.serve(async (req) => {
         if (rejectError) throw rejectError;
         await audit(db, actorUserId, "action_rejected", { runId: action.run_id, actionId });
         await refreshRunStatus(db, action.run_id);
-        return jsonResponse(req, 200, await loadState(db, action.run_id));
+        const { data: run } = await db.from("copilot_runs").select("conversation_id").eq("id", action.run_id).single();
+        return jsonResponse(req, 200, await loadState(db, actorUserId, run?.conversation_id, action.run_id));
       }
 
       const { data: claimed, error: claimError } = await db.from("copilot_actions").update({
@@ -416,7 +498,8 @@ Deno.serve(async (req) => {
         await audit(db, actorUserId, "action_failed", { runId: action.run_id, actionId, metadata: { error: message, partialResult } });
       }
       await refreshRunStatus(db, action.run_id);
-      return jsonResponse(req, 200, await loadState(db, action.run_id));
+      const { data: run } = await db.from("copilot_runs").select("conversation_id").eq("id", action.run_id).single();
+      return jsonResponse(req, 200, await loadState(db, actorUserId, run?.conversation_id, action.run_id));
     }
 
     if (operation === "analyze-attachments") {
@@ -471,10 +554,27 @@ Deno.serve(async (req) => {
       const reply = stringValue(aiData?.choices?.[0]?.message?.content, 20000);
       if (!reply) return jsonResponse(req, 502, { error: "AI returned an empty response" });
 
+      const conversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
+      const messageRows = [
+        {
+          conversation_id: conversation.id,
+          role: "user",
+          content: message,
+          attachments: (rawAttachments as JsonRecord[]).map((attachment) => ({
+            name: stringValue(attachment.name, 200) || "attachment",
+            kind: stringValue(attachment.mimeType, 120).startsWith("image/") ? "image" : stringValue(attachment.mimeType, 120) === "application/pdf" ? "pdf" : "text",
+          })),
+        },
+        { conversation_id: conversation.id, role: "assistant", content: reply, attachments: [] },
+      ];
+      const { error: messagesError } = await db.from("copilot_messages").insert(messageRows);
+      if (messagesError) throw messagesError;
+      await touchConversation(db, conversation.id, conversation.title === "New chat" ? message || names.join(", ") : undefined);
+
       await audit(db, actorUserId, "attachment_analyzed", {
         metadata: { files: names, hasMessage: message.length > 0 },
       });
-      return jsonResponse(req, 200, { reply });
+      return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id));
     }
 
     return jsonResponse(req, 400, { error: "Unknown Copilot operation" });

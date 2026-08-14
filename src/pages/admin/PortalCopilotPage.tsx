@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   analyzeCopilotAttachments,
+  createCopilotConversation,
   decideCopilotAction,
   editCopilotAction,
   loadCopilotState,
@@ -191,6 +192,7 @@ const PortalCopilotPage = () => {
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
   const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [state, setState] = useState<CopilotState | null>(null);
   const [busyActionId, setBusyActionId] = useState<string | null>(null);
@@ -227,17 +229,23 @@ const PortalCopilotPage = () => {
   const speech = usePushToTalk(onTranscript);
 
   const stateQuery = useQuery({
-    queryKey: ["portal-copilot-state", selectedRunId ?? "latest"],
-    queryFn: () => loadCopilotState(selectedRunId),
+    queryKey: ["portal-copilot-state", selectedConversationId ?? "latest", selectedRunId ?? "latest"],
+    queryFn: () => loadCopilotState(selectedConversationId, selectedRunId),
     retry: false,
   });
   const acceptState = useCallback((next: CopilotState) => {
     setState(next);
+    setSelectedConversationId(next.selectedConversationId ?? undefined);
     setSelectedRunId(next.selectedRunId ?? undefined);
   }, []);
 
   const prepareMutation = useMutation({
-    mutationFn: () => prepareErpRollout({ command, inputMode, transcriptConfirmed }),
+    mutationFn: () => prepareErpRollout({
+      command,
+      inputMode,
+      transcriptConfirmed,
+      conversationId: selectedConversationId ?? stateQuery.data?.selectedConversationId ?? undefined,
+    }),
     onSuccess: (next) => {
       acceptState(next);
       setCommand("");
@@ -248,6 +256,21 @@ const PortalCopilotPage = () => {
       toast({ title: "ERP rollout prepared", description: "No customer-facing action was executed. Review the action cards in the thread." });
     },
     onError: (error: Error) => toast({ title: "Could not prepare rollout", description: error.message, variant: "destructive" }),
+  });
+
+  const newConversationMutation = useMutation({
+    mutationFn: createCopilotConversation,
+    onSuccess: (next) => {
+      acceptState(next);
+      setCommand("");
+      setInputMode("text");
+      setTranscriptConfirmed(false);
+      setSpeechConfidence(null);
+      setAttachments([]);
+      setLocalMessages([]);
+      setActionFilter("pending");
+    },
+    onError: (error: Error) => toast({ title: "Could not start a new chat", description: error.message, variant: "destructive" }),
   });
 
   const decideMutation = useMutation({
@@ -270,9 +293,18 @@ const PortalCopilotPage = () => {
   });
 
   const displayedState = state ?? stateQuery.data ?? null;
+  const selectedConversation = useMemo(
+    () => (displayedState?.conversations ?? []).find((conversation) => conversation.id === displayedState?.selectedConversationId) ?? null,
+    [displayedState],
+  );
+  const conversationMessages = useMemo(() => displayedState?.messages ?? [], [displayedState]);
   const selectedRun = useMemo(
     () => displayedState?.runs.find((run) => run.id === displayedState.selectedRunId) ?? displayedState?.runs[0] ?? null,
     [displayedState],
+  );
+  const visibleConversationMessages = useMemo(
+    () => conversationMessages.filter((message) => !selectedRun || message.content !== selectedRun.command_text),
+    [conversationMessages, selectedRun],
   );
   const pendingActions = useMemo(
     () => (displayedState?.actions ?? []).filter((action) => action.status === "pending_approval" || action.status === "failed"),
@@ -292,27 +324,22 @@ const PortalCopilotPage = () => {
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [selectedRun?.id, visibleActions.length, prepareMutation.isPending, localMessages.length, isAnalyzing]);
+  }, [selectedConversation?.id, selectedRun?.id, visibleActions.length, prepareMutation.isPending, conversationMessages.length, localMessages.length, isAnalyzing]);
 
-  const chooseRun = (runId: string) => {
-    setSelectedRunId(runId);
+  const chooseConversation = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    setSelectedRunId(undefined);
+    setLocalMessages([]);
+    setCommand("");
+    setAttachments([]);
     setActionFilter("pending");
-    void loadCopilotState(runId).then(acceptState).catch((error) => {
-      toast({ title: "Could not load run", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
+    void loadCopilotState(conversationId).then(acceptState).catch((error) => {
+      toast({ title: "Could not load chat", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
     });
   };
 
   const startNewConversation = () => {
-    setState(null);
-    setSelectedRunId(undefined);
-    setCommand("");
-    setInputMode("text");
-    setTranscriptConfirmed(false);
-    setSpeechConfidence(null);
-    setAttachments([]);
-    setLocalMessages([]);
-    setActionFilter("pending");
-    void stateQuery.refetch();
+    newConversationMutation.mutate();
   };
 
   const analyzeAttachments = async () => {
@@ -329,8 +356,13 @@ const PortalCopilotPage = () => {
     setInputMode("text");
     setIsAnalyzing(true);
     try {
-      const reply = await analyzeCopilotAttachments({ message: text, attachments: pending });
-      setLocalMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: reply }]);
+      const next = await analyzeCopilotAttachments({
+        message: text,
+        attachments: pending,
+        conversationId: selectedConversationId ?? stateQuery.data?.selectedConversationId ?? undefined,
+      });
+      setLocalMessages([]);
+      acceptState(next);
     } catch (error) {
       const messageText = error instanceof Error ? error.message : "The Copilot could not read that file.";
       setLocalMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: messageText }]);
@@ -378,31 +410,31 @@ const PortalCopilotPage = () => {
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
           <div className="flex items-center justify-between gap-2 border-b p-3">
             <span className="flex items-center gap-2 text-sm font-semibold"><Bot className="h-4 w-4 text-cyan-600" /> Portal Copilot</span>
-            <Button size="icon" variant="ghost" aria-label="Hide run history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-4 w-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Hide chat history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-4 w-4" /></Button>
           </div>
           <div className="p-3">
-            <Button variant="outline" className="w-full justify-start rounded-none" onClick={startNewConversation}>
-              <Plus className="mr-2 h-4 w-4" /> New conversation
+            <Button variant="outline" className="w-full justify-start rounded-none" disabled={newConversationMutation.isPending} onClick={startNewConversation}>
+              {newConversationMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} New chat
             </Button>
           </div>
 
           <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
-            <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Recent runs</p>
-            {(displayedState?.runs ?? []).map((run) => (
+            <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Chats</p>
+            {(displayedState?.conversations ?? []).map((conversation) => (
               <button
-                key={run.id}
+                key={conversation.id}
                 type="button"
-                onClick={() => chooseRun(run.id)}
+                onClick={() => chooseConversation(conversation.id)}
                 className={cn(
                   "w-full border border-transparent px-3 py-2 text-left transition-colors hover:bg-muted",
-                  run.id === displayedState?.selectedRunId && "border-border bg-background",
+                  conversation.id === displayedState?.selectedConversationId && "border-border bg-background",
                 )}
               >
-                <p className="line-clamp-2 text-sm">{run.command_text}</p>
-                <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><Clock3 className="h-3 w-3" /> {new Date(run.created_at).toLocaleString()}</p>
+                <p className="line-clamp-2 text-sm">{conversation.title}</p>
+                <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><Clock3 className="h-3 w-3" /> {new Date(conversation.updated_at).toLocaleString()}</p>
               </button>
             ))}
-            {!displayedState?.runs.length ? <p className="px-1 text-xs text-muted-foreground">No runs yet.</p> : null}
+            {!displayedState?.conversations.length ? <p className="px-1 text-xs text-muted-foreground">No chats yet.</p> : null}
           </div>
         </aside>
       ) : null}
@@ -410,15 +442,15 @@ const PortalCopilotPage = () => {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b px-4 py-3">
           {!showSidebar ? (
-            <Button size="icon" variant="ghost" aria-label="Show run history" className="hidden lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-4 w-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-4 w-4" /></Button>
           ) : null}
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold">CV Portal Copilot</h1>
+            <h1 className="truncate text-sm font-semibold">{selectedConversation?.title ?? "CV Portal Copilot"}</h1>
             <p className="truncate text-xs text-muted-foreground">Admin only · prepares safe actions, never sends without approval</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant="outline" className="rounded-none" onClick={startNewConversation}>
-              <Plus className="mr-2 h-4 w-4" /> New chat
+            <Button size="sm" variant="outline" className="rounded-none" disabled={newConversationMutation.isPending} onClick={startNewConversation}>
+              {newConversationMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} New chat
             </Button>
             <Badge variant="outline" className="hidden gap-1 md:inline-flex"><ShieldCheck className="h-3 w-3" /> Level 2 prepare</Badge>
             <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> Innovations sync</Badge>
@@ -438,7 +470,7 @@ const PortalCopilotPage = () => {
               </div>
             ) : null}
 
-            {!selectedRun && !localMessages.length ? (
+            {!selectedRun && !conversationMessages.length && !localMessages.length ? (
               <div className="flex flex-col items-center py-16 text-center">
                 <div className="bg-slate-900 p-3 text-white"><Bot className="h-6 w-6 text-cyan-300" /></div>
                 <h2 className="mt-4 text-xl font-semibold">What should I take care of?</h2>
@@ -537,7 +569,15 @@ const PortalCopilotPage = () => {
               </>
             ) : null}
 
-            {localMessages.map((message) => (
+            {[
+              ...visibleConversationMessages.map((message) => ({
+                id: message.id,
+                role: message.role,
+                text: message.content,
+                files: message.attachments,
+              })),
+              ...localMessages,
+            ].map((message) => (
               message.role === "user" ? (
                 <div key={message.id} className="flex justify-end">
                   <div className="max-w-[85%] space-y-2 bg-primary px-4 py-3 text-sm text-primary-foreground">

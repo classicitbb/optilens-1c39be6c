@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type CopilotRun = {
   id: string;
+  conversation_id: string | null;
   workflow: "erp_portal_rollout";
   command_text: string;
   input_mode: "text" | "voice";
@@ -22,6 +23,23 @@ export type CopilotRun = {
   requested_by: string;
   created_at: string;
   updated_at: string;
+};
+
+export type CopilotConversation = {
+  id: string;
+  title: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CopilotMessage = {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant";
+  content: string;
+  attachments: { name: string; kind: "image" | "text" | "pdf" }[];
+  created_at: string;
 };
 
 export type CopilotActionPayload = {
@@ -71,6 +89,9 @@ export type CopilotAuditEvent = {
 };
 
 export type CopilotState = {
+  conversations: CopilotConversation[];
+  selectedConversationId: string | null;
+  messages: CopilotMessage[];
   runs: CopilotRun[];
   selectedRunId: string | null;
   actions: CopilotAction[];
@@ -99,13 +120,17 @@ export async function invokePortalCopilot(body: Record<string, unknown>): Promis
   return data as CopilotState;
 }
 
-export const loadCopilotState = (runId?: string) =>
-  invokePortalCopilot({ operation: "get-state", ...(runId ? { runId } : {}) });
+export const loadCopilotState = (conversationId?: string, runId?: string) =>
+  invokePortalCopilot({ operation: "get-state", ...(conversationId ? { conversationId } : {}), ...(runId ? { runId } : {}) });
+
+export const createCopilotConversation = () =>
+  invokePortalCopilot({ operation: "create-conversation" });
 
 export const prepareErpRollout = (input: {
   command: string;
   inputMode: "text" | "voice";
   transcriptConfirmed: boolean;
+  conversationId?: string;
 }) => invokePortalCopilot({ operation: "prepare-erp-rollout", ...input });
 
 export const decideCopilotAction = (actionId: string, decision: "approve" | "reject") =>
@@ -129,11 +154,13 @@ export type CopilotAttachment = {
 export async function analyzeCopilotAttachments(input: {
   message: string;
   attachments: CopilotAttachment[];
-}): Promise<string> {
+  conversationId?: string;
+}): Promise<CopilotState> {
   const { data, error } = await supabase.functions.invoke("portal-copilot", {
     body: {
       operation: "analyze-attachments",
       message: input.message,
+      ...(input.conversationId ? { conversationId: input.conversationId } : {}),
       attachments: input.attachments.map(({ name, mimeType, data: payload, text }) => ({ name, mimeType, data: payload, text })),
     },
   });
@@ -146,6 +173,6 @@ export async function analyzeCopilotAttachments(input: {
     throw error;
   }
   if (data?.error) throw new Error(String(data.error));
-  return String(data?.reply ?? "").trim();
+  return data as CopilotState;
 }
 

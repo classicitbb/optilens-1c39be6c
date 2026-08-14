@@ -37,6 +37,25 @@ describe("admin-only CV Portal Copilot", () => {
     expect(migration).toContain("transcript");
   });
 
+  it("persists multiple user-owned chats and links workflow runs to their conversation", () => {
+    const migration = read("supabase/migrations/20260814120000_portal_copilot_conversations.sql");
+    const edge = read("supabase/functions/portal-copilot/index.ts");
+    const page = read("src/pages/admin/PortalCopilotPage.tsx");
+
+    expect(migration).toContain("CREATE TABLE public.copilot_conversations");
+    expect(migration).toContain("CREATE TABLE public.copilot_messages");
+    expect(migration).toContain("ADD COLUMN conversation_id");
+    expect(migration).toContain("created_by = (SELECT auth.uid())");
+    expect(edge).toContain('operation === "create-conversation"');
+    expect(edge).toContain('from("copilot_messages")');
+    expect(edge).toContain("selectedConversationId");
+    expect(edge).toContain("conversations?.some");
+    expect(edge).toContain("runs?.some");
+    expect(page).toContain("chooseConversation");
+    expect(page).toContain("New chat");
+    expect(page).toContain("displayedState?.conversations");
+  });
+
   it("extends the existing MCP registry with the rollout and approval tools", () => {
     const mcp = read("src/lib/mcp/index.ts");
     expect(mcp).toContain("prepareErpPortalRolloutTool");
@@ -52,7 +71,9 @@ describe("admin-only CV Portal Copilot", () => {
     expect(edge).toContain("classifyWithClaude(command, settings.model)");
     expect(edge).toContain('operation === "decide-action"');
     expect(edge).toContain('from("copilot_audit_events")');
-    expect(edge).toContain("actions, auditEvents, settings");
+    expect(edge).toContain("actions,");
+    expect(edge).toContain("auditEvents,");
+    expect(edge).toContain("settings,");
     expect(edge).toContain("for (let attempt = 1; attempt <= 2; attempt += 1)");
     expect(edge).toContain("portalAccountCreated: true");
     expect(edge).toContain('status: "failed"');

@@ -1,17 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-13T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-14T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Administrators can open **Portal Copilot**, type a rollout request or confirm a voice transcript, and prepare portal access for every ERP-linked customer from live portal data.",
-    "Invitations always wait for explicit approval. Ambiguous or incomplete contacts become editable follow-up tasks, while every decision and execution result remains in the audit history.",
-    "A portal account that succeeds before its email fails is preserved and shown as a partial failure that can be retried safely."
+    "**New chat** now creates a separate, durable Copilot conversation.",
+    "The Chats sidebar keeps up to 50 recent conversations available for switching, including prior attachment analyses and ERP rollout results."
   ],
   "moduleImpact": [
     {
-      "module": "admin/copilot",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Admin Portal Copilot MVP."
+      "notes": "Updated as part of Portal Copilot multi-chat workspace."
     }
   ],
   "migrationNotes": [

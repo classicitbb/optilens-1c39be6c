@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-14 — Portal Copilot multi-chat workspace
+
+### Release Notes
+- Administrators can start a new Copilot chat, keep multiple conversations, and switch between them without losing prior messages or workflow results.
+
+### Technical Changelog
+- Added user-owned conversation/message storage, linked rollout runs to conversations, backfilled existing runs, and replaced the run-only sidebar with persistent chat history.
+
 ## 2026-08-13 — Admin Portal Copilot MVP
 
 ### Release Notes
