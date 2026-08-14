@@ -416,10 +416,14 @@ const PortalCopilotPage = () => {
             <h1 className="truncate text-sm font-semibold">CV Portal Copilot</h1>
             <p className="truncate text-xs text-muted-foreground">Admin only · prepares safe actions, never sends without approval</p>
           </div>
-          <div className="ml-auto hidden items-center gap-2 md:flex">
-            <Badge variant="outline" className="gap-1"><ShieldCheck className="h-3 w-3" /> Level 2 prepare</Badge>
-            <Badge variant="outline" className="gap-1"><Database className="h-3 w-3" /> Innovations sync</Badge>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="outline" className="rounded-none" onClick={startNewConversation}>
+              <Plus className="mr-2 h-4 w-4" /> New chat
+            </Button>
+            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><ShieldCheck className="h-3 w-3" /> Level 2 prepare</Badge>
+            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> Innovations sync</Badge>
           </div>
+
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
