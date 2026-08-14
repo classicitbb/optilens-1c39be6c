@@ -8,12 +8,14 @@ import {
   Clock3,
   Database,
   FileCheck2,
+  FileText,
   Loader2,
   Mail,
   Mic,
   MicOff,
   PanelLeftClose,
   PanelLeftOpen,
+  Paperclip,
   Plus,
   RotateCcw,
   Save,
@@ -33,15 +35,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
+  analyzeCopilotAttachments,
   decideCopilotAction,
   editCopilotAction,
   loadCopilotState,
   prepareErpRollout,
   type CopilotAction,
+  type CopilotAttachment,
   type CopilotState,
 } from "@/features/admin/copilot/api";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { cn } from "@/lib/utils";
+
+const MAX_ATTACHMENTS = 4;
+const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+const TEXT_TYPES = /^(text\/|application\/(json|csv|xml))/;
+
+const toBase64 = async (file: Blob) => {
+  const buffer = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  for (let index = 0; index < buffer.length; index += 8192) {
+    binary += String.fromCharCode(...buffer.subarray(index, index + 8192));
+  }
+  return btoa(binary);
+};
+
+const buildAttachment = async (file: File): Promise<CopilotAttachment> => {
+  const id = `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`;
+  const mimeType = file.type || "application/octet-stream";
+  if (TEXT_TYPES.test(mimeType)) {
+    return { id, name: file.name, mimeType, kind: "text", text: (await file.text()).slice(0, 20000) };
+  }
+  const data = await toBase64(file);
+  if (mimeType.startsWith("image/")) {
+    return { id, name: file.name, mimeType, kind: "image", data, previewUrl: URL.createObjectURL(file) };
+  }
+  return { id, name: file.name || "document.pdf", mimeType: "application/pdf", kind: "pdf", data };
+};
+
+type LocalMessage = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  files?: { name: string; kind: CopilotAttachment["kind"]; previewUrl?: string }[];
+};
+
 
 const DEFAULT_COMMAND = "Roll out portal access to all ERP customers";
 const SUGGESTIONS = [
