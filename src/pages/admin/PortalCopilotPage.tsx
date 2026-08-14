@@ -535,7 +535,42 @@ const PortalCopilotPage = () => {
                   </div>
                 </div>
               </>
-            )}
+            ) : null}
+
+            {localMessages.map((message) => (
+              message.role === "user" ? (
+                <div key={message.id} className="flex justify-end">
+                  <div className="max-w-[85%] space-y-2 bg-primary px-4 py-3 text-sm text-primary-foreground">
+                    {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+                    {message.files?.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {message.files.map((file) => (
+                          file.kind === "image" && file.previewUrl ? (
+                            <img key={file.name} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover" />
+                          ) : (
+                            <span key={file.name} className="flex items-center gap-1 border border-primary-foreground/30 px-2 py-1 text-xs">
+                              <FileText className="h-3 w-3" /> {file.name}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div key={message.id} className="flex gap-3">
+                  <div className="mt-1 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 text-cyan-300" /></div>
+                  <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-6">{message.text}</p>
+                </div>
+              )
+            ))}
+
+            {isAnalyzing ? (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
+                Reading your attachment…
+              </div>
+            ) : null}
 
             {prepareMutation.isPending ? (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -543,6 +578,7 @@ const PortalCopilotPage = () => {
                 Working through the ERP customer layer…
               </div>
             ) : null}
+
             <div ref={transcriptEndRef} />
           </div>
         </div>
