@@ -508,7 +508,7 @@ const PortalCopilotPage = () => {
                       {" "}Nothing customer-facing has been sent.
                     </p>
 
-                    {displayedState?.actions.length ? (
+                    {(displayedState?.actions ?? []).length ? (
                       <>
                         <div className="flex flex-wrap items-center gap-2">
                           {([["pending", `Needs approval (${pendingActions.length})`], ["resolved", `Resolved (${resolvedActions.length})`], ["all", `All (${displayedState.actions.length})`]] as const).map(([value, label]) => (
