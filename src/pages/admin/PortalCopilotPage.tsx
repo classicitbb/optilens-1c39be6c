@@ -701,9 +701,10 @@ const PortalCopilotPage = () => {
               >
                 {speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
-              <Button type="button" size="icon" className="rounded-none" aria-label="Prepare safe actions" disabled={!canPrepare} onClick={submit}>
-                {prepareMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+              <Button type="button" size="icon" className="rounded-none" aria-label={attachments.length ? "Analyse attachment" : "Prepare safe actions"} disabled={!canPrepare} onClick={submit}>
+                {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
               </Button>
+
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
