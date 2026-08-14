@@ -434,7 +434,7 @@ const PortalCopilotPage = () => {
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><Clock3 className="h-3 w-3" /> {new Date(conversation.updated_at).toLocaleString()}</p>
               </button>
             ))}
-            {!displayedState?.conversations.length ? <p className="px-1 text-xs text-muted-foreground">No chats yet.</p> : null}
+            {!(displayedState?.conversations ?? []).length ? <p className="px-1 text-xs text-muted-foreground">No chats yet.</p> : null}
           </div>
         </aside>
       ) : null}
@@ -508,7 +508,7 @@ const PortalCopilotPage = () => {
                       {" "}Nothing customer-facing has been sent.
                     </p>
 
-                    {displayedState?.actions.length ? (
+                    {(displayedState?.actions ?? []).length ? (
                       <>
                         <div className="flex flex-wrap items-center gap-2">
                           {([["pending", `Needs approval (${pendingActions.length})`], ["resolved", `Resolved (${resolvedActions.length})`], ["all", `All (${displayedState.actions.length})`]] as const).map(([value, label]) => (

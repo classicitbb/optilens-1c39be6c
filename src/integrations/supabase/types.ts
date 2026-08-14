@@ -2458,10 +2458,70 @@ export type Database = {
           },
         ]
       }
+      copilot_conversations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      copilot_messages: {
+        Row: {
+          attachments: Json
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          attachments?: Json
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          attachments?: Json
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       copilot_runs: {
         Row: {
           autonomy_level: number
           command_text: string
+          conversation_id: string | null
           created_at: string
           id: string
           input_mode: string
@@ -2478,6 +2538,7 @@ export type Database = {
         Insert: {
           autonomy_level?: number
           command_text: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
           input_mode?: string
@@ -2494,6 +2555,7 @@ export type Database = {
         Update: {
           autonomy_level?: number
           command_text?: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
           input_mode?: string
@@ -2508,6 +2570,13 @@ export type Database = {
           workflow?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "copilot_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_conversations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "copilot_runs_workflow_fkey"
             columns: ["workflow"]
