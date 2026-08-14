@@ -345,7 +345,41 @@ Deno.serve(async (req) => {
         .single();
       if (settingsError) throw settingsError;
       if (!(await classifyWithClaude(command, settings.model))) {
-        return jsonResponse(req, 400, { error: "The MVP currently supports only ERP portal rollout commands" });
+        // Not a rollout command — answer as a normal chat turn instead of failing.
+        const chatConversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
+        const apiKey = Deno.env.get("LOVABLE_API_KEY")?.trim();
+        let reply = "I can help with ERP portal rollout commands (for example: \"roll out portal access to ERP customers\"). AI chat is not configured in this environment.";
+        if (apiKey) {
+          const chatResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+            body: JSON.stringify({
+              model: "google/gemini-3.6-flash",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are the Classic Visions Portal Copilot assisting an internal admin. Answer helpfully and concisely. You can prepare ERP portal rollout actions when asked (invites and follow-up tasks); for anything else, answer directly. Never invent prices, discounts, credit terms or delivery dates.",
+                },
+                { role: "user", content: command },
+              ],
+            }),
+          });
+          if (chatResponse.status === 429) return jsonResponse(req, 429, { error: "AI rate limit reached. Try again shortly." });
+          if (chatResponse.status === 402) return jsonResponse(req, 402, { error: "AI credits exhausted. Add credits to continue." });
+          if (chatResponse.ok) {
+            const chatData = await chatResponse.json().catch(() => null);
+            reply = stringValue(chatData?.choices?.[0]?.message?.content, 20000) || reply;
+          } else {
+            await chatResponse.text().catch(() => "");
+          }
+        }
+        const { error: chatMessagesError } = await db.from("copilot_messages").insert([
+          { conversation_id: chatConversation.id, role: "user", content: command, attachments: [] },
+          { conversation_id: chatConversation.id, role: "assistant", content: reply, attachments: [] },
+        ]);
+        if (chatMessagesError) throw chatMessagesError;
+        await touchConversation(db, chatConversation.id, chatConversation.title === "New chat" ? command : undefined);
+        return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id));
       }
       const conversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
       const isUntitled = conversation.title === "New chat";
