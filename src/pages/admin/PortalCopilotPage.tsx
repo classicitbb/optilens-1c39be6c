@@ -197,7 +197,26 @@ const PortalCopilotPage = () => {
   const [actionFilter, setActionFilter] = useState<"pending" | "resolved" | "all">("pending");
   const [showSidebar, setShowSidebar] = useState(true);
   const [showAudit, setShowAudit] = useState(false);
+  const [attachments, setAttachments] = useState<CopilotAttachment[]>([]);
+  const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+
+  const addFiles = useCallback(async (files: File[]) => {
+    const usable = files.filter((file) => {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        toast({ title: "File too large", description: `${file.name} is over 8MB.`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    if (!usable.length) return;
+    const built = await Promise.all(usable.map(buildAttachment));
+    setAttachments((current) => [...current, ...built].slice(0, MAX_ATTACHMENTS));
+  }, [toast]);
+
 
   const onTranscript = useCallback((transcript: string, confidence: number) => {
     setCommand(transcript);
