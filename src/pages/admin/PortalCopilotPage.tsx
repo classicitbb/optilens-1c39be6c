@@ -351,7 +351,29 @@ const PortalCopilotPage = () => {
 
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden border-t bg-background">
+    <div
+      className="relative flex h-[calc(100vh-4rem)] w-full overflow-hidden border-t bg-background"
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        setIsDragging(false);
+      }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.files.length) return;
+        event.preventDefault();
+        setIsDragging(false);
+        void addFiles(Array.from(event.dataTransfer.files));
+      }}
+    >
+      {isDragging ? (
+        <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center border-2 border-dashed border-cyan-500 bg-background/85">
+          <p className="flex items-center gap-2 text-sm font-medium"><Paperclip className="h-4 w-4" /> Drop a prescription or order file to attach it</p>
+        </div>
+      ) : null}
       {showSidebar ? (
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
           <div className="flex items-center justify-between gap-2 border-b p-3">
@@ -359,19 +381,11 @@ const PortalCopilotPage = () => {
             <Button size="icon" variant="ghost" aria-label="Hide run history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-4 w-4" /></Button>
           </div>
           <div className="p-3">
-            <Button
-              variant="outline"
-              className="w-full justify-start rounded-none"
-              onClick={() => {
-                setState(null);
-                setSelectedRunId(undefined);
-                setCommand("");
-                setInputMode("text");
-              }}
-            >
+            <Button variant="outline" className="w-full justify-start rounded-none" onClick={startNewConversation}>
               <Plus className="mr-2 h-4 w-4" /> New conversation
             </Button>
           </div>
+
           <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
             <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Recent runs</p>
             {(displayedState?.runs ?? []).map((run) => (
