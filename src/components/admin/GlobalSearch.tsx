@@ -354,7 +354,7 @@ const GlobalSearch = () => {
     selectResult(result);
   };
 
-  const showDropdown = open && query.trim().length > 0;
+  const showDropdown = open && (query.trim().length > 0 || results.length > 0);
 
   return (
     <div className="relative flex-1 max-w-xl">
