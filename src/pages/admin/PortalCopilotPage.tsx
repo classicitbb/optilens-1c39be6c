@@ -601,13 +601,65 @@ const PortalCopilotPage = () => {
               </div>
             ) : null}
 
+            {attachments.length ? (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((file) => (
+                  <div key={file.id} className="flex items-center gap-2 border px-2 py-1 text-xs">
+                    {file.kind === "image" && file.previewUrl ? (
+                      <img src={file.previewUrl} alt="" className="h-8 w-8 object-cover" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5" />
+                    )}
+                    <span className="max-w-[12rem] truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${file.name}`}
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={() => setAttachments((current) => current.filter((item) => item.id !== file.id))}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              accept="image/*,application/pdf,text/*,.csv"
+              onChange={(event) => {
+                void addFiles(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
+
             <div className="flex items-end gap-2 border p-2">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="rounded-none"
+                aria-label="Attach a prescription or order file"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
               <Textarea
                 aria-label="Message the Copilot"
                 value={command}
                 onChange={(event) => {
                   setCommand(event.target.value);
                   if (inputMode === "voice") setTranscriptConfirmed(false);
+                }}
+                onPaste={(event) => {
+                  const files = Array.from(event.clipboardData.files ?? []);
+                  if (files.length) {
+                    event.preventDefault();
+                    void addFiles(files);
+                  }
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
@@ -617,8 +669,9 @@ const PortalCopilotPage = () => {
                 }}
                 rows={1}
                 className="max-h-40 min-h-10 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0"
-                placeholder={`Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
+                placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : `Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
               />
+
               <Button
                 type="button"
                 size="icon"
