@@ -284,12 +284,15 @@ const PortalCopilotPage = () => {
   );
   const visibleActions = actionFilter === "pending" ? pendingActions : actionFilter === "resolved" ? resolvedActions : (displayedState?.actions ?? []);
   const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
-  const canPrepare = command.trim().length > 0 && !prepareMutation.isPending && (inputMode === "text" || transcriptConfirmed);
+  const hasAttachments = attachments.length > 0;
+  const canPrepare = !prepareMutation.isPending && !isAnalyzing
+    && (hasAttachments || command.trim().length > 0)
+    && (inputMode === "text" || transcriptConfirmed);
   const auditEvents = displayedState?.auditEvents ?? [];
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [selectedRun?.id, visibleActions.length, prepareMutation.isPending]);
+  }, [selectedRun?.id, visibleActions.length, prepareMutation.isPending, localMessages.length, isAnalyzing]);
 
   const chooseRun = (runId: string) => {
     setSelectedRunId(runId);
@@ -299,10 +302,53 @@ const PortalCopilotPage = () => {
     });
   };
 
+  const startNewConversation = () => {
+    setState(null);
+    setSelectedRunId(undefined);
+    setCommand("");
+    setInputMode("text");
+    setTranscriptConfirmed(false);
+    setSpeechConfidence(null);
+    setAttachments([]);
+    setLocalMessages([]);
+    setActionFilter("pending");
+    void stateQuery.refetch();
+  };
+
+  const analyzeAttachments = async () => {
+    const pending = attachments;
+    const text = command.trim();
+    setLocalMessages((current) => [...current, {
+      id: `user-${Date.now()}`,
+      role: "user",
+      text,
+      files: pending.map((file) => ({ name: file.name, kind: file.kind, previewUrl: file.previewUrl })),
+    }]);
+    setCommand("");
+    setAttachments([]);
+    setInputMode("text");
+    setIsAnalyzing(true);
+    try {
+      const reply = await analyzeCopilotAttachments({ message: text, attachments: pending });
+      setLocalMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: reply }]);
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : "The Copilot could not read that file.";
+      setLocalMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: messageText }]);
+      toast({ title: "Could not read the attachment", description: messageText, variant: "destructive" });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const submit = () => {
     if (!canPrepare) return;
+    if (hasAttachments) {
+      void analyzeAttachments();
+      return;
+    }
     prepareMutation.mutate();
   };
+
 
   return (
     <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden border-t bg-background">
