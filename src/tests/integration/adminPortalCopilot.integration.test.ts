@@ -77,9 +77,28 @@ describe("admin-only CV Portal Copilot", () => {
     expect(edge).toContain("for (let attempt = 1; attempt <= 2; attempt += 1)");
     expect(edge).toContain("portalAccountCreated: true");
     expect(edge).toContain('status: "failed"');
-    expect(edge).toContain('activity_type: "erp_portal_rollout_followup"');
+    expect(edge).toContain('"erp_portal_rollout_followup"');
     expect(edge).toContain('status: "inbox"');
-    expect(edge).toContain('priority: "normal"');
+    expect(edge).toContain('const priority = ["urgent", "high", "normal", "low"].includes');
     expect(config).toContain("[functions.portal-copilot]");
+  });
+
+  it("prepares evidence-backed CRM follow-up suggestions without creating live work", () => {
+    const migration = read("supabase/migrations/20260814160000_portal_copilot_crm_opportunity_scan.sql");
+    const edge = read("supabase/functions/portal-copilot/index.ts");
+    const planner = read("supabase/functions/_shared/copilot/crmOpportunityScan.ts");
+    const page = read("src/pages/admin/PortalCopilotPage.tsx");
+
+    expect(migration).toContain("crm_opportunity_scan");
+    expect(edge).toContain("buildQualifiedCrmPlan");
+    expect(edge).toContain("isQualifiedCrmScanCommand");
+    expect(edge).toContain('from("customer_order_health")');
+    expect(edge).toContain('from("opportunities")');
+    expect(edge).toContain('from("activities")');
+    expect(edge).toContain('"crm_opportunity_suggestion"');
+    expect(planner).toContain("Evidence:");
+    expect(planner).toContain("Inference:");
+    expect(page).toContain("Evidence used");
+    expect(page).toContain("No CRM task or opportunity has been created yet.");
   });
 });

@@ -1,5 +1,11 @@
 # Frontend Help Docs
 
+## 2026-08-14 — Reviewing Copilot CRM suggestions
+
+- In **Admin → Portal Copilot**, enter **Scan CRM for lapsed buyers and qualified follow-up opportunities**.
+- Review the source evidence separately from Copilot's inference, plus the priority, due date and recommended next action. Edit the internal task if needed.
+- Select **Approve task** only when it should become live CRM work. Rejecting leaves the CRM unchanged; the scan never creates an opportunity automatically.
+
 ## 2026-08-14 — Using multiple Portal Copilot chats
 
 - Select **New chat** to open a separate conversation. Start as many as needed; each appears in the **Chats** sidebar after creation.

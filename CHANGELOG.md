@@ -4,6 +4,15 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-14 — Portal Copilot qualified CRM suggestions
+
+### Release Notes
+- Administrators can scan current CRM and order-health signals for a focused queue of lapsed-buyer, overdue-follow-up, incomplete-contact and opportunity-review suggestions, then approve only the tasks they want created.
+
+### Technical Changelog
+- Added a deterministic CRM recommendation planner, real contact/order-health/opportunity/activity adapters, evidence-versus-inference UI, and an approval-only bridge to existing CRM activities.
+- Documented the verified pricing-advisor and public-web enrichment seams without enabling guessed or automatic writes.
+
 ## 2026-08-14 — Portal Copilot multi-chat workspace
 
 ### Release Notes

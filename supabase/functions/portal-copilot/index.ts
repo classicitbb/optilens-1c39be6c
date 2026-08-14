@@ -7,6 +7,14 @@ import {
   type CopilotMembership,
   type CopilotPersonContact,
 } from "../_shared/copilot/portalRollout.ts";
+import {
+  buildQualifiedCrmPlan,
+  isQualifiedCrmScanCommand,
+  type CrmActivitySignal,
+  type CrmOpportunitySignal,
+  type CrmOrderHealth,
+  type CrmScanContact,
+} from "../_shared/copilot/crmOpportunityScan.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -254,13 +262,22 @@ const executeAction = async (req: Request, db: any, actorUserId: string, action:
       .maybeSingle();
     if (existingError) throw existingError;
     if (existing) return { activityId: existing.id, reused: true };
+    const priority = ["urgent", "high", "normal", "low"].includes(stringValue(payload.priority, 20))
+      ? stringValue(payload.priority, 20)
+      : "normal";
+    const dueAtText = stringValue(payload.dueAt, 80);
+    const dueAt = dueAtText && !Number.isNaN(Date.parse(dueAtText)) ? new Date(dueAtText).toISOString() : null;
+    const isCrmSuggestion = stringValue(payload.reasonCode, 80).length > 0;
     const { data, error } = await db.from("activities").insert({
       contact_id: contactId,
+      opportunity_id: stringValue(payload.opportunityId, 80) || null,
       content: markerContent,
       type: "note",
-      activity_type: "erp_portal_rollout_followup",
+      task_channel: "todo",
+      activity_type: isCrmSuggestion ? "crm_opportunity_suggestion" : "erp_portal_rollout_followup",
       status: "inbox",
-      priority: "normal",
+      priority,
+      due_at: dueAt,
       created_by: actorUserId,
       owner_id: actorUserId,
     }).select("id").single();
@@ -297,6 +314,93 @@ const executeAction = async (req: Request, db: any, actorUserId: string, action:
   throw new Error(`Unsupported Copilot action: ${action.action_type}`);
 };
 
+const prepareCrmOpportunityScan = async (
+  db: any,
+  actorUserId: string,
+  command: string,
+  inputMode: "text" | "voice",
+  transcriptConfirmed: boolean,
+  conversationId?: string,
+) => {
+  const conversation = await requireOwnedConversation(db, actorUserId, conversationId);
+  const [{ data: contacts, error: contactsError }, { data: health, error: healthError }, { data: opportunities, error: opportunitiesError }, { data: activities, error: activitiesError }] = await Promise.all([
+    db.from("contacts")
+      .select("id,name,business_name,email,phone,pipeline,stage,next_action_at,lead_score,is_company,is_archived")
+      .not("pipeline", "is", null)
+      .eq("is_archived", false)
+      .limit(5000),
+    db.from("customer_order_health")
+      .select("contact_id,last_order_date,quiet_days,avg_gap_days,orders_last_30_days,health")
+      .limit(5000),
+    db.from("opportunities").select("id,contact_id,title,stage").limit(5000),
+    db.from("activities")
+      .select("contact_id,status")
+      .in("status", ["open", "pending", "inbox", "planned", "in_progress", "waiting"])
+      .limit(10000),
+  ]);
+  if (contactsError) throw contactsError;
+  if (healthError) throw healthError;
+  if (opportunitiesError) throw opportunitiesError;
+  if (activitiesError) throw activitiesError;
+
+  const plan = buildQualifiedCrmPlan(
+    (contacts ?? []) as CrmScanContact[],
+    (health ?? []) as CrmOrderHealth[],
+    (opportunities ?? []) as CrmOpportunitySignal[],
+    (activities ?? []) as CrmActivitySignal[],
+    new Date(),
+  );
+  const { data: run, error: runError } = await db.from("copilot_runs").insert({
+    conversation_id: conversation.id,
+    workflow: "crm_opportunity_scan",
+    command_text: command,
+    input_mode: inputMode,
+    transcript: inputMode === "voice" ? command : null,
+    transcript_confirmed: inputMode === "voice" ? transcriptConfirmed : false,
+    autonomy_level: 2,
+    status: "preparing",
+    source_system: "crm_order_activity",
+    source_snapshot_at: new Date().toISOString(),
+    summary: plan.counts,
+    requested_by: actorUserId,
+  }).select("id").single();
+  if (runError) throw runError;
+
+  const { error: messageError } = await db.from("copilot_messages").insert({
+    conversation_id: conversation.id,
+    role: "user",
+    content: command,
+  });
+  if (messageError) throw messageError;
+
+  if (plan.actions.length > 0) {
+    const { error: actionError } = await db.from("copilot_actions").insert(plan.actions.map((planned) => ({
+      run_id: run.id,
+      customer_id: null,
+      contact_id: planned.contactId,
+      action_type: planned.actionType,
+      risk_level: planned.riskLevel,
+      status: planned.status,
+      title: planned.title,
+      summary: planned.summary,
+      payload: { ...planned, suggestedOwnerId: actorUserId },
+      idempotency_key: `${run.id}:${planned.reasonCode}:${planned.contactId}`,
+    })));
+    if (actionError) throw actionError;
+  }
+
+  const nextStatus = plan.actions.length ? "prepared" : "completed";
+  const { error: statusError } = await db.from("copilot_runs").update({ status: nextStatus }).eq("id", run.id);
+  if (statusError) throw statusError;
+  await audit(db, actorUserId, "crm_opportunity_scan_prepared", {
+    runId: run.id,
+    transcript: inputMode === "voice" ? command : null,
+    metadata: { inputMode, transcriptConfirmed, source: "crm_order_activity", counts: plan.counts },
+  });
+  await touchConversation(db, conversation.id, conversation.title === "New chat" ? command : undefined);
+  return loadState(db, actorUserId, conversation.id, run.id);
+};
+
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
   if (preflight) return preflight;
@@ -330,13 +434,23 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id));
     }
 
-    if (operation === "prepare-erp-rollout") {
+    if (operation === "prepare-erp-rollout" || operation === "submit-command") {
       const command = stringValue(body.command, 2000);
       const inputMode = body.inputMode === "voice" ? "voice" : "text";
       const transcriptConfirmed = body.transcriptConfirmed === true;
       if (!command) return jsonResponse(req, 400, { error: "Enter or speak a command first" });
       if (inputMode === "voice" && !transcriptConfirmed) {
         return jsonResponse(req, 400, { error: "Review and confirm the transcript before preparing actions" });
+      }
+      if (isQualifiedCrmScanCommand(command)) {
+        return jsonResponse(req, 200, await prepareCrmOpportunityScan(
+          db,
+          actorUserId,
+          command,
+          inputMode,
+          transcriptConfirmed,
+          stringValue(body.conversationId, 80) || undefined,
+        ));
       }
       const { data: settings, error: settingsError } = await db
         .from("copilot_workflow_settings")

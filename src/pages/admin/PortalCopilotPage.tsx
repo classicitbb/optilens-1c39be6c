@@ -40,7 +40,7 @@ import {
   decideCopilotAction,
   editCopilotAction,
   loadCopilotState,
-  prepareErpRollout,
+  submitCopilotCommand,
   type CopilotAction,
   type CopilotAttachment,
   type CopilotState,
@@ -84,6 +84,7 @@ type LocalMessage = {
 
 const DEFAULT_COMMAND = "Roll out portal access to all ERP customers";
 const SUGGESTIONS = [
+  "Scan CRM for lapsed buyers and qualified follow-up opportunities",
   "Roll out portal access to all ERP customers",
   "Prepare portal invitations for Innovations customers without logins",
   "Show me which ERP customers still need a portal contact",
@@ -157,7 +158,32 @@ const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) => {
             </div>
           </div>
         ) : (
-          <div className="space-y-1.5 border bg-muted/20 p-4">
+          <div className="space-y-3 border bg-muted/20 p-4">
+            {action.payload.evidence?.length ? (
+              <div className="space-y-2 text-sm">
+                <div className="flex flex-wrap gap-2">
+                  {action.payload.priority ? <Badge variant="outline">Priority: {action.payload.priority}</Badge> : null}
+                  {action.payload.dueAt ? <Badge variant="outline">Due: {new Date(action.payload.dueAt).toLocaleDateString()}</Badge> : null}
+                  {action.payload.suggestedOwnerId ? <Badge variant="outline">Owner: current admin</Badge> : null}
+                </div>
+                <p className="font-medium">Evidence used</p>
+                <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                  {action.payload.evidence.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+                {action.payload.inference ? (
+                  <p><span className="font-medium">Inference:</span> {action.payload.inference}</p>
+                ) : null}
+                {action.payload.recommendedNextAction ? (
+                  <p><span className="font-medium">Recommended next action:</span> {action.payload.recommendedNextAction}</p>
+                ) : null}
+                {action.payload.outreachDraft ? (
+                  <div className="border-l-2 border-cyan-500 pl-3">
+                    <p className="font-medium">Optional outreach draft</p>
+                    <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{action.payload.outreachDraft}</p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <Label htmlFor={`task-${action.id}`}>Internal follow-up task</Label>
             <Textarea id={`task-${action.id}`} value={taskContent} onChange={(event) => setTaskContent(event.target.value)} rows={4} />
           </div>
@@ -240,7 +266,7 @@ const PortalCopilotPage = () => {
   }, []);
 
   const prepareMutation = useMutation({
-    mutationFn: () => prepareErpRollout({
+    mutationFn: () => submitCopilotCommand({
       command,
       inputMode,
       transcriptConfirmed,
@@ -253,7 +279,12 @@ const PortalCopilotPage = () => {
       setTranscriptConfirmed(false);
       setSpeechConfidence(null);
       setActionFilter("pending");
-      toast({ title: "ERP rollout prepared", description: "No customer-facing action was executed. Review the action cards in the thread." });
+      const preparedRun = next.runs.find((run) => run.id === next.selectedRunId);
+      toast(preparedRun?.workflow === "crm_opportunity_scan"
+        ? { title: "CRM recommendations prepared", description: "No CRM record was changed. Review and approve individual tasks." }
+        : preparedRun?.workflow === "erp_portal_rollout"
+          ? { title: "ERP rollout prepared", description: "No customer-facing action was executed. Review the action cards in the thread." }
+          : { title: "Copilot replied" });
     },
     onError: (error: Error) => toast({ title: "Could not prepare rollout", description: error.message, variant: "destructive" }),
   });
@@ -453,7 +484,7 @@ const PortalCopilotPage = () => {
               {newConversationMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} New chat
             </Button>
             <Badge variant="outline" className="hidden gap-1 md:inline-flex"><ShieldCheck className="h-3 w-3" /> Level 2 prepare</Badge>
-            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> Innovations sync</Badge>
+            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> Governed CRM + ERP data</Badge>
           </div>
 
         </header>
@@ -474,7 +505,7 @@ const PortalCopilotPage = () => {
               <div className="flex flex-col items-center py-16 text-center">
                 <div className="bg-slate-900 p-3 text-white"><Bot className="h-6 w-6 text-cyan-300" /></div>
                 <h2 className="mt-4 text-xl font-semibold">What should I take care of?</h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask in plain English, hold the mic, or drop in a prescription or order file. I query the live Innovations-synced customer layer, prepare portal actions, and wait for your approval before anything customer-facing happens.</p>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask in plain English, hold the mic, or drop in a prescription or order file. I can prepare portal operations and evidence-backed CRM follow-ups, then wait for your approval before changing live records.</p>
 
                 <div className="mt-6 grid w-full max-w-xl gap-2">
                   {SUGGESTIONS.map((suggestion) => (
@@ -502,11 +533,23 @@ const PortalCopilotPage = () => {
                 <div className="flex gap-3">
                   <div className="mt-1 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 text-cyan-300" /></div>
                   <div className="min-w-0 flex-1 space-y-4">
-                    <p className="text-sm leading-6">
-                      I reviewed <strong>{selectedRun.summary.erpCustomers ?? 0}</strong> ERP customers. <strong>{selectedRun.summary.alreadyActive ?? 0}</strong> already have portal access,
-                      {" "}<strong>{selectedRun.summary.invitationsReady ?? 0}</strong> invitations are drafted and waiting for your approval, and <strong>{selectedRun.summary.followUpsNeeded ?? 0}</strong> customers need a follow-up before I can invite anyone.
-                      {" "}Nothing customer-facing has been sent.
-                    </p>
+                    {selectedRun.workflow === "crm_opportunity_scan" ? (
+                      <div className="space-y-2 text-sm leading-6">
+                        <p>
+                          I reviewed <strong>{selectedRun.summary.contactsReviewed ?? 0}</strong> pipeline contacts and <strong>{selectedRun.summary.orderSignalsReviewed ?? 0}</strong> order-health records.
+                          {" "}<strong>{selectedRun.summary.suggestionsPrepared ?? 0}</strong> qualified follow-up tasks are ready for review.
+                        </p>
+                        <p className="text-muted-foreground">
+                          Signals: {selectedRun.summary.lapsedBuyers ?? 0} lapsed buyers · {selectedRun.summary.overdueNextActions ?? 0} overdue next actions · {selectedRun.summary.missingContactDetails ?? 0} incomplete contacts · {selectedRun.summary.noActiveOpportunity ?? 0} opportunity reviews. No CRM task or opportunity has been created yet.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-6">
+                        I reviewed <strong>{selectedRun.summary.erpCustomers ?? 0}</strong> ERP customers. <strong>{selectedRun.summary.alreadyActive ?? 0}</strong> already have portal access,
+                        {" "}<strong>{selectedRun.summary.invitationsReady ?? 0}</strong> invitations are drafted and waiting for your approval, and <strong>{selectedRun.summary.followUpsNeeded ?? 0}</strong> customers need a follow-up before I can invite anyone.
+                        {" "}Nothing customer-facing has been sent.
+                      </p>
+                    )}
 
                     {(displayedState?.actions ?? []).length ? (
                       <>
@@ -537,7 +580,7 @@ const PortalCopilotPage = () => {
                       <div className="flex flex-col items-center border py-10 text-center">
                         <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                         <p className="mt-3 font-medium">No actions need approval for this run.</p>
-                        <p className="mt-1 text-sm text-muted-foreground">All synced ERP customers already have access, or the run completed without proposed changes.</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{selectedRun.workflow === "crm_opportunity_scan" ? "No contact met the qualified-suggestion rules, or existing open work already covers them." : "All synced ERP customers already have access, or the run completed without proposed changes."}</p>
                       </div>
                     )}
 

@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-14 — CRM pipeline surfaced contacts without a qualified review queue
+- Area: Admin Portal Copilot and CRM follow-up planning
+- Impact: staff had order-health and pipeline data but no focused, evidence-backed way to turn it into reviewed work without manually scanning broad contact lists.
+- Root cause: CRM contacts, order health, opportunities and existing activities had no shared deterministic recommendation boundary.
+- Resolution: added a ranked Copilot planner that suppresses existing open work, labels evidence and inference, and prepares approval-only CRM task proposals.
+- Regression prevention: retain pure planner coverage plus integration assertions that preparation reads existing sources and creates only pending Copilot actions.
+
 ## 2026-08-14 — New Copilot chat replaced the current local thread
 - Area: Admin Portal Copilot conversations
 - Impact: **New chat** only cleared component state; attachment messages disappeared on navigation or refresh, and the sidebar represented workflow runs rather than independent conversations.

@@ -25,4 +25,18 @@ describe("portal access deployment coupling", () => {
     expect(contactsPage).toContain('editContact?.is_company && accountSettingsCustomer?.id');
     expect(contactsPage).toContain('query.eq("crm_customer_id", accountSettingsCustomer.id)');
   });
+
+  it("hands a temporary-password deployment to Doc Studio without exposing the password in the URL", () => {
+    const deploymentDialog = read("src/components/admin/AccessDeploymentAssistantDialog.tsx");
+    const docStudioPage = read("src/pages/admin/website/DocStudioPage.tsx");
+    const studio = read("public/ds/studio.html");
+
+    expect(deploymentDialog).toContain("Draft Invite Email");
+    expect(deploymentDialog).toContain("sessionStorage.setItem(`cv_doc_studio_staff_invite:${handoff}`");
+    expect(deploymentDialog).toContain("navigate(`/admin/docs/studio?staffInvite=");
+    expect(docStudioPage).toContain("staffInvite ? `&staffInvite=");
+    expect(studio).toContain("consumeStaffInviteHandoff");
+    expect(studio).toContain("sessionStorage.removeItem(key)");
+    expect(studio).toContain("Temporary password:");
+  });
 });

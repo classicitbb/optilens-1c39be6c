@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-14 — Portal Copilot qualified CRM suggestions
+
+### Release Notes
+- Ask Portal Copilot to scan CRM for qualified follow-up opportunities. It prioritizes current CRM and order-history signals, explains the evidence and inference separately, and avoids contacts already covered by open work.
+- Every suggested task remains a review item until an administrator approves it. The scan does not silently create opportunities or change customer data.
+
 ## 2026-08-14 — Portal Copilot multi-chat workspace
 
 ### Release Notes

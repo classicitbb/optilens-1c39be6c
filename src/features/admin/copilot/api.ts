@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type CopilotRun = {
   id: string;
   conversation_id: string | null;
-  workflow: "erp_portal_rollout";
+  workflow: "erp_portal_rollout" | "crm_opportunity_scan";
   command_text: string;
   input_mode: "text" | "voice";
   transcript: string | null;
@@ -19,6 +19,13 @@ export type CopilotRun = {
     followUpsNeeded?: number;
     provider?: string;
     model?: string | null;
+    contactsReviewed?: number;
+    orderSignalsReviewed?: number;
+    suggestionsPrepared?: number;
+    lapsedBuyers?: number;
+    overdueNextActions?: number;
+    missingContactDetails?: number;
+    noActiveOpportunity?: number;
   };
   requested_by: string;
   created_at: string;
@@ -54,6 +61,15 @@ export type CopilotActionPayload = {
   templateKey?: string;
   templateName?: string;
   taskContent?: string;
+  opportunityId?: string | null;
+  reasonCode?: "lapsed_buyer" | "overdue_next_action" | "missing_contact_details" | "no_active_opportunity";
+  priority?: "urgent" | "high" | "normal";
+  dueAt?: string;
+  evidence?: string[];
+  inference?: string;
+  recommendedNextAction?: string;
+  outreachDraft?: string;
+  suggestedOwnerId?: string;
 };
 
 export type CopilotAction = {
@@ -126,12 +142,14 @@ export const loadCopilotState = (conversationId?: string, runId?: string) =>
 export const createCopilotConversation = () =>
   invokePortalCopilot({ operation: "create-conversation" });
 
-export const prepareErpRollout = (input: {
+export const submitCopilotCommand = (input: {
   command: string;
   inputMode: "text" | "voice";
   transcriptConfirmed: boolean;
   conversationId?: string;
-}) => invokePortalCopilot({ operation: "prepare-erp-rollout", ...input });
+}) => invokePortalCopilot({ operation: "submit-command", ...input });
+
+export const prepareErpRollout = submitCopilotCommand;
 
 export const decideCopilotAction = (actionId: string, decision: "approve" | "reject") =>
   invokePortalCopilot({ operation: "decide-action", actionId, decision });

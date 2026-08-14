@@ -60,6 +60,34 @@ const stateFor = (selectedConversationId: string): CopilotState => ({
   settings: null,
 });
 
+const crmState = (): CopilotState => ({
+  ...stateFor("chat-a"),
+  runs: [{
+    id: "run-crm", conversation_id: "chat-a", workflow: "crm_opportunity_scan",
+    command_text: "Scan CRM", input_mode: "text", transcript: null,
+    transcript_confirmed: false, autonomy_level: 2, status: "prepared",
+    source_system: "crm_order_activity", source_snapshot_at: "2026-08-14T12:00:00Z",
+    summary: { contactsReviewed: 1, suggestionsPrepared: 1, lapsedBuyers: 1 },
+    requested_by: "admin", created_at: "2026-08-14T12:00:00Z", updated_at: "2026-08-14T12:00:00Z",
+  }],
+  selectedRunId: "run-crm",
+  actions: [{
+    id: "action-crm", run_id: "run-crm", customer_id: null, contact_id: "contact-1",
+    action_type: "create_followup_task", risk_level: 2, status: "pending_approval",
+    title: "Re-engage lapsed buyer: I Care Express", summary: "Ordering is past its observed cadence.",
+    payload: {
+      contactId: "contact-1", reasonCode: "lapsed_buyer", priority: "urgent",
+      dueAt: "2026-08-15T12:00:00Z", suggestedOwnerId: "admin",
+      evidence: ["Last order was 74 days ago."],
+      inference: "The contact may benefit from re-engagement; the cause is not known.",
+      recommendedNextAction: "Review recent category history, then call.",
+      taskContent: "Review and call I Care Express.",
+    },
+    result: null, retry_count: 0, last_error: null, approved_by: null, approved_at: null,
+    executed_at: null, created_at: "2026-08-14T12:00:00Z", updated_at: "2026-08-14T12:00:00Z",
+  }],
+});
+
 describe("Portal Copilot multi-chat workspace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -99,5 +127,17 @@ describe("Portal Copilot multi-chat workspace", () => {
     expect(await screen.findByRole("heading", { name: "What should I take care of?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /First chat/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Second chat/i })).toBeInTheDocument();
+  });
+
+  it("renders CRM evidence and keeps a suggestion pending for explicit approval", async () => {
+    loadCopilotState.mockResolvedValue(crmState());
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    render(<QueryClientProvider client={client}><PortalCopilotPage /></QueryClientProvider>);
+
+    expect(await screen.findByText("Re-engage lapsed buyer: I Care Express")).toBeInTheDocument();
+    expect(screen.getByText("Last order was 74 days ago.")).toBeInTheDocument();
+    expect(screen.getByText(/Inference:/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve task" })).toBeInTheDocument();
+    expect(screen.getByText(/No CRM task or opportunity has been created yet/)).toBeInTheDocument();
   });
 });

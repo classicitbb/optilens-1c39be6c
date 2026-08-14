@@ -3,14 +3,14 @@
   "releaseDateTimeUtc": "2026-08-14T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "**New chat** now creates a separate, durable Copilot conversation.",
-    "The Chats sidebar keeps up to 50 recent conversations available for switching, including prior attachment analyses and ERP rollout results."
+    "Ask Portal Copilot to scan CRM for qualified follow-up opportunities. It prioritizes current CRM and order-history signals, explains the evidence and inference separately, and avoids contacts already covered by open work.",
+    "Every suggested task remains a review item until an administrator approves it. The scan does not silently create opportunities or change customer data."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Portal Copilot multi-chat workspace."
+      "notes": "Updated as part of Portal Copilot qualified CRM suggestions."
     }
   ],
   "migrationNotes": [

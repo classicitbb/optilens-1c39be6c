@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-14 — Portal Copilot qualified CRM scan
+
+- `portal-copilot` reads `contacts`, `customer_order_health`, `opportunities` and open `activities`, then passes those rows to the pure `crmOpportunityScan` planner.
+- The planner suppresses contacts with existing open work and emits at most one ranked pending action per contact. Evidence, inference, priority, due date and next action are stored in the action payload.
+- Approval reuses the existing `activities` write boundary with the approving admin as owner. Preparing or rejecting a suggestion performs no CRM mutation, and no path auto-creates an opportunity.
+
 ## 2026-08-14 — Portal Copilot conversations
 
 - `copilot_conversations` is the user-owned chat container; `copilot_messages` stores its text and attachment metadata, while `copilot_runs` remains the governed approval/audit unit linked by `conversation_id`.
