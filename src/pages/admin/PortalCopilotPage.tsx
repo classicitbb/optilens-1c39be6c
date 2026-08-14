@@ -438,11 +438,12 @@ const PortalCopilotPage = () => {
               </div>
             ) : null}
 
-            {!selectedRun ? (
+            {!selectedRun && !localMessages.length ? (
               <div className="flex flex-col items-center py-16 text-center">
                 <div className="bg-slate-900 p-3 text-white"><Bot className="h-6 w-6 text-cyan-300" /></div>
                 <h2 className="mt-4 text-xl font-semibold">What should I take care of?</h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask in plain English or hold the mic. I query the live Innovations-synced customer layer, prepare portal actions, and wait for your approval before anything customer-facing happens.</p>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask in plain English, hold the mic, or drop in a prescription or order file. I query the live Innovations-synced customer layer, prepare portal actions, and wait for your approval before anything customer-facing happens.</p>
+
                 <div className="mt-6 grid w-full max-w-xl gap-2">
                   {SUGGESTIONS.map((suggestion) => (
                     <button
