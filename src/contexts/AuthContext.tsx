@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => subscription.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
