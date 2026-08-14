@@ -8,12 +8,14 @@ import {
   Clock3,
   Database,
   FileCheck2,
+  FileText,
   Loader2,
   Mail,
   Mic,
   MicOff,
   PanelLeftClose,
   PanelLeftOpen,
+  Paperclip,
   Plus,
   RotateCcw,
   Save,
@@ -33,15 +35,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
+  analyzeCopilotAttachments,
   decideCopilotAction,
   editCopilotAction,
   loadCopilotState,
   prepareErpRollout,
   type CopilotAction,
+  type CopilotAttachment,
   type CopilotState,
 } from "@/features/admin/copilot/api";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { cn } from "@/lib/utils";
+
+const MAX_ATTACHMENTS = 4;
+const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+const TEXT_TYPES = /^(text\/|application\/(json|csv|xml))/;
+
+const toBase64 = async (file: Blob) => {
+  const buffer = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  for (let index = 0; index < buffer.length; index += 8192) {
+    binary += String.fromCharCode(...buffer.subarray(index, index + 8192));
+  }
+  return btoa(binary);
+};
+
+const buildAttachment = async (file: File): Promise<CopilotAttachment> => {
+  const id = `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`;
+  const mimeType = file.type || "application/octet-stream";
+  if (TEXT_TYPES.test(mimeType)) {
+    return { id, name: file.name, mimeType, kind: "text", text: (await file.text()).slice(0, 20000) };
+  }
+  const data = await toBase64(file);
+  if (mimeType.startsWith("image/")) {
+    return { id, name: file.name, mimeType, kind: "image", data, previewUrl: URL.createObjectURL(file) };
+  }
+  return { id, name: file.name || "document.pdf", mimeType: "application/pdf", kind: "pdf", data };
+};
+
+type LocalMessage = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  files?: { name: string; kind: CopilotAttachment["kind"]; previewUrl?: string }[];
+};
+
 
 const DEFAULT_COMMAND = "Roll out portal access to all ERP customers";
 const SUGGESTIONS = [
@@ -159,7 +197,26 @@ const PortalCopilotPage = () => {
   const [actionFilter, setActionFilter] = useState<"pending" | "resolved" | "all">("pending");
   const [showSidebar, setShowSidebar] = useState(true);
   const [showAudit, setShowAudit] = useState(false);
+  const [attachments, setAttachments] = useState<CopilotAttachment[]>([]);
+  const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
+
+  const addFiles = useCallback(async (files: File[]) => {
+    const usable = files.filter((file) => {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        toast({ title: "File too large", description: `${file.name} is over 8MB.`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    if (!usable.length) return;
+    const built = await Promise.all(usable.map(buildAttachment));
+    setAttachments((current) => [...current, ...built].slice(0, MAX_ATTACHMENTS));
+  }, [toast]);
+
 
   const onTranscript = useCallback((transcript: string, confidence: number) => {
     setCommand(transcript);
@@ -227,12 +284,15 @@ const PortalCopilotPage = () => {
   );
   const visibleActions = actionFilter === "pending" ? pendingActions : actionFilter === "resolved" ? resolvedActions : (displayedState?.actions ?? []);
   const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
-  const canPrepare = command.trim().length > 0 && !prepareMutation.isPending && (inputMode === "text" || transcriptConfirmed);
+  const hasAttachments = attachments.length > 0;
+  const canPrepare = !prepareMutation.isPending && !isAnalyzing
+    && (hasAttachments || command.trim().length > 0)
+    && (inputMode === "text" || transcriptConfirmed);
   const auditEvents = displayedState?.auditEvents ?? [];
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [selectedRun?.id, visibleActions.length, prepareMutation.isPending]);
+  }, [selectedRun?.id, visibleActions.length, prepareMutation.isPending, localMessages.length, isAnalyzing]);
 
   const chooseRun = (runId: string) => {
     setSelectedRunId(runId);
@@ -242,13 +302,78 @@ const PortalCopilotPage = () => {
     });
   };
 
+  const startNewConversation = () => {
+    setState(null);
+    setSelectedRunId(undefined);
+    setCommand("");
+    setInputMode("text");
+    setTranscriptConfirmed(false);
+    setSpeechConfidence(null);
+    setAttachments([]);
+    setLocalMessages([]);
+    setActionFilter("pending");
+    void stateQuery.refetch();
+  };
+
+  const analyzeAttachments = async () => {
+    const pending = attachments;
+    const text = command.trim();
+    setLocalMessages((current) => [...current, {
+      id: `user-${Date.now()}`,
+      role: "user",
+      text,
+      files: pending.map((file) => ({ name: file.name, kind: file.kind, previewUrl: file.previewUrl })),
+    }]);
+    setCommand("");
+    setAttachments([]);
+    setInputMode("text");
+    setIsAnalyzing(true);
+    try {
+      const reply = await analyzeCopilotAttachments({ message: text, attachments: pending });
+      setLocalMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: reply }]);
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : "The Copilot could not read that file.";
+      setLocalMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", text: messageText }]);
+      toast({ title: "Could not read the attachment", description: messageText, variant: "destructive" });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const submit = () => {
     if (!canPrepare) return;
+    if (hasAttachments) {
+      void analyzeAttachments();
+      return;
+    }
     prepareMutation.mutate();
   };
 
+
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden border-t bg-background">
+    <div
+      className="relative flex h-[calc(100vh-4rem)] w-full overflow-hidden border-t bg-background"
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        setIsDragging(false);
+      }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.files.length) return;
+        event.preventDefault();
+        setIsDragging(false);
+        void addFiles(Array.from(event.dataTransfer.files));
+      }}
+    >
+      {isDragging ? (
+        <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center border-2 border-dashed border-cyan-500 bg-background/85">
+          <p className="flex items-center gap-2 text-sm font-medium"><Paperclip className="h-4 w-4" /> Drop a prescription or order file to attach it</p>
+        </div>
+      ) : null}
       {showSidebar ? (
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
           <div className="flex items-center justify-between gap-2 border-b p-3">
@@ -256,19 +381,11 @@ const PortalCopilotPage = () => {
             <Button size="icon" variant="ghost" aria-label="Hide run history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-4 w-4" /></Button>
           </div>
           <div className="p-3">
-            <Button
-              variant="outline"
-              className="w-full justify-start rounded-none"
-              onClick={() => {
-                setState(null);
-                setSelectedRunId(undefined);
-                setCommand("");
-                setInputMode("text");
-              }}
-            >
+            <Button variant="outline" className="w-full justify-start rounded-none" onClick={startNewConversation}>
               <Plus className="mr-2 h-4 w-4" /> New conversation
             </Button>
           </div>
+
           <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
             <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Recent runs</p>
             {(displayedState?.runs ?? []).map((run) => (
@@ -299,10 +416,14 @@ const PortalCopilotPage = () => {
             <h1 className="truncate text-sm font-semibold">CV Portal Copilot</h1>
             <p className="truncate text-xs text-muted-foreground">Admin only · prepares safe actions, never sends without approval</p>
           </div>
-          <div className="ml-auto hidden items-center gap-2 md:flex">
-            <Badge variant="outline" className="gap-1"><ShieldCheck className="h-3 w-3" /> Level 2 prepare</Badge>
-            <Badge variant="outline" className="gap-1"><Database className="h-3 w-3" /> Innovations sync</Badge>
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="outline" className="rounded-none" onClick={startNewConversation}>
+              <Plus className="mr-2 h-4 w-4" /> New chat
+            </Button>
+            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><ShieldCheck className="h-3 w-3" /> Level 2 prepare</Badge>
+            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> Innovations sync</Badge>
           </div>
+
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -317,11 +438,12 @@ const PortalCopilotPage = () => {
               </div>
             ) : null}
 
-            {!selectedRun ? (
+            {!selectedRun && !localMessages.length ? (
               <div className="flex flex-col items-center py-16 text-center">
                 <div className="bg-slate-900 p-3 text-white"><Bot className="h-6 w-6 text-cyan-300" /></div>
                 <h2 className="mt-4 text-xl font-semibold">What should I take care of?</h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask in plain English or hold the mic. I query the live Innovations-synced customer layer, prepare portal actions, and wait for your approval before anything customer-facing happens.</p>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask in plain English, hold the mic, or drop in a prescription or order file. I query the live Innovations-synced customer layer, prepare portal actions, and wait for your approval before anything customer-facing happens.</p>
+
                 <div className="mt-6 grid w-full max-w-xl gap-2">
                   {SUGGESTIONS.map((suggestion) => (
                     <button
@@ -338,8 +460,9 @@ const PortalCopilotPage = () => {
                   ))}
                 </div>
               </div>
-            ) : (
+            ) : selectedRun ? (
               <>
+
                 <div className="flex justify-end">
                   <div className="max-w-[85%] bg-primary px-4 py-3 text-sm text-primary-foreground">{selectedRun.command_text}</div>
                 </div>
@@ -412,7 +535,42 @@ const PortalCopilotPage = () => {
                   </div>
                 </div>
               </>
-            )}
+            ) : null}
+
+            {localMessages.map((message) => (
+              message.role === "user" ? (
+                <div key={message.id} className="flex justify-end">
+                  <div className="max-w-[85%] space-y-2 bg-primary px-4 py-3 text-sm text-primary-foreground">
+                    {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+                    {message.files?.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {message.files.map((file) => (
+                          file.kind === "image" && file.previewUrl ? (
+                            <img key={file.name} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover" />
+                          ) : (
+                            <span key={file.name} className="flex items-center gap-1 border border-primary-foreground/30 px-2 py-1 text-xs">
+                              <FileText className="h-3 w-3" /> {file.name}
+                            </span>
+                          )
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div key={message.id} className="flex gap-3">
+                  <div className="mt-1 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 text-cyan-300" /></div>
+                  <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-6">{message.text}</p>
+                </div>
+              )
+            ))}
+
+            {isAnalyzing ? (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
+                Reading your attachment…
+              </div>
+            ) : null}
 
             {prepareMutation.isPending ? (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -420,6 +578,7 @@ const PortalCopilotPage = () => {
                 Working through the ERP customer layer…
               </div>
             ) : null}
+
             <div ref={transcriptEndRef} />
           </div>
         </div>
@@ -442,13 +601,65 @@ const PortalCopilotPage = () => {
               </div>
             ) : null}
 
+            {attachments.length ? (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((file) => (
+                  <div key={file.id} className="flex items-center gap-2 border px-2 py-1 text-xs">
+                    {file.kind === "image" && file.previewUrl ? (
+                      <img src={file.previewUrl} alt="" className="h-8 w-8 object-cover" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5" />
+                    )}
+                    <span className="max-w-[12rem] truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${file.name}`}
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={() => setAttachments((current) => current.filter((item) => item.id !== file.id))}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              accept="image/*,application/pdf,text/*,.csv"
+              onChange={(event) => {
+                void addFiles(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
+
             <div className="flex items-end gap-2 border p-2">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="rounded-none"
+                aria-label="Attach a prescription or order file"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
               <Textarea
                 aria-label="Message the Copilot"
                 value={command}
                 onChange={(event) => {
                   setCommand(event.target.value);
                   if (inputMode === "voice") setTranscriptConfirmed(false);
+                }}
+                onPaste={(event) => {
+                  const files = Array.from(event.clipboardData.files ?? []);
+                  if (files.length) {
+                    event.preventDefault();
+                    void addFiles(files);
+                  }
                 }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" && !event.shiftKey) {
@@ -458,8 +669,9 @@ const PortalCopilotPage = () => {
                 }}
                 rows={1}
                 className="max-h-40 min-h-10 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0"
-                placeholder={`Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
+                placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : `Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
               />
+
               <Button
                 type="button"
                 size="icon"
@@ -489,9 +701,10 @@ const PortalCopilotPage = () => {
               >
                 {speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
-              <Button type="button" size="icon" className="rounded-none" aria-label="Prepare safe actions" disabled={!canPrepare} onClick={submit}>
-                {prepareMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+              <Button type="button" size="icon" className="rounded-none" aria-label={attachments.length ? "Analyse attachment" : "Prepare safe actions"} disabled={!canPrepare} onClick={submit}>
+                {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
               </Button>
+
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">

@@ -419,7 +419,66 @@ Deno.serve(async (req) => {
       return jsonResponse(req, 200, await loadState(db, action.run_id));
     }
 
+    if (operation === "analyze-attachments") {
+      const message = stringValue(body.message, 4000);
+      const rawAttachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 4) : [];
+      if (rawAttachments.length === 0) return jsonResponse(req, 400, { error: "Attach a prescription or order file first" });
+
+      const apiKey = Deno.env.get("LOVABLE_API_KEY")?.trim();
+      if (!apiKey) return jsonResponse(req, 500, { error: "AI is not configured for this environment" });
+
+      const content: JsonRecord[] = [{
+        type: "text",
+        text: message || "Read the attached prescription or order and summarise it for our team.",
+      }];
+      const names: string[] = [];
+      for (const raw of rawAttachments as JsonRecord[]) {
+        const name = stringValue(raw?.name, 200) || "attachment";
+        const mimeType = stringValue(raw?.mimeType, 120) || "application/octet-stream";
+        const text = stringValue(raw?.text, 20000);
+        const data = typeof raw?.data === "string" ? raw.data : "";
+        names.push(name);
+        if (text) {
+          content.push({ type: "text", text: `File: ${name}\n---\n${text}` });
+        } else if (data && mimeType.startsWith("image/")) {
+          content.push({ type: "image_url", image_url: { url: `data:${mimeType};base64,${data}` } });
+        } else if (data && mimeType === "application/pdf") {
+          content.push({ type: "file", file: { filename: name, file_data: `data:${mimeType};base64,${data}` } });
+        }
+      }
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
+        body: JSON.stringify({
+          model: "google/gemini-3.6-flash",
+          messages: [
+            {
+              role: "system",
+              content: "You are the Classic Visions Portal Copilot assisting an internal admin. Read attached prescriptions, order forms or invoices and extract the key details: patient/customer, Rx values (sphere, cylinder, axis, add, PD, prism), lens type, material, coatings, quantities, and any special instructions. Present a short structured summary, then list anything missing or ambiguous that must be clarified before the order can be placed. Never invent prices, discounts, credit terms or delivery dates. If the file is unreadable, say so plainly.",
+            },
+            { role: "user", content },
+          ],
+        }),
+      });
+      if (aiResponse.status === 429) return jsonResponse(req, 429, { error: "AI rate limit reached. Try again shortly." });
+      if (aiResponse.status === 402) return jsonResponse(req, 402, { error: "AI credits exhausted. Add credits to continue." });
+      if (!aiResponse.ok) {
+        const detail = await aiResponse.text().catch(() => "");
+        return jsonResponse(req, 502, { error: `AI could not read the attachment (${aiResponse.status}). ${detail.slice(0, 300)}` });
+      }
+      const aiData = await aiResponse.json().catch(() => null);
+      const reply = stringValue(aiData?.choices?.[0]?.message?.content, 20000);
+      if (!reply) return jsonResponse(req, 502, { error: "AI returned an empty response" });
+
+      await audit(db, actorUserId, "attachment_analyzed", {
+        metadata: { files: names, hasMessage: message.length > 0 },
+      });
+      return jsonResponse(req, 200, { reply });
+    }
+
     return jsonResponse(req, 400, { error: "Unknown Copilot operation" });
+
   } catch (error) {
     const message = error instanceof Error ? error.message : "Portal Copilot failed";
     return jsonResponse(req, 500, { error: message });

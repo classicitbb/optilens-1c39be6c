@@ -113,3 +113,39 @@ export const decideCopilotAction = (actionId: string, decision: "approve" | "rej
 
 export const editCopilotAction = (action: CopilotAction, draft: { subject?: string; body?: string; taskContent?: string }) =>
   invokePortalCopilot({ operation: "edit-action", actionId: action.id, ...draft });
+
+export type CopilotAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  kind: "image" | "text" | "pdf";
+  /** base64 payload for images and PDFs */
+  data?: string;
+  /** plain text payload for text/CSV pastes and files */
+  text?: string;
+  previewUrl?: string;
+};
+
+export async function analyzeCopilotAttachments(input: {
+  message: string;
+  attachments: CopilotAttachment[];
+}): Promise<string> {
+  const { data, error } = await supabase.functions.invoke("portal-copilot", {
+    body: {
+      operation: "analyze-attachments",
+      message: input.message,
+      attachments: input.attachments.map(({ name, mimeType, data: payload, text }) => ({ name, mimeType, data: payload, text })),
+    },
+  });
+  if (error) {
+    const context = (error as { context?: Response }).context;
+    if (context) {
+      const payload = await context.clone().json().catch(() => null) as { error?: string } | null;
+      if (payload?.error) throw new Error(payload.error);
+    }
+    throw error;
+  }
+  if (data?.error) throw new Error(String(data.error));
+  return String(data?.reply ?? "").trim();
+}
+
