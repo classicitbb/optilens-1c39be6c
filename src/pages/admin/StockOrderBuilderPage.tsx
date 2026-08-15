@@ -125,6 +125,7 @@ const StockOrderBuilderPage = () => {
   const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BBD">("USD");
   const orderDetailsRef = useRef<HTMLDivElement>(null);
   const detailsEditRef = useRef<HTMLButtonElement>(null);
+  const poNumberRef = useRef<HTMLInputElement>(null);
   const orderReferenceRef = useRef<HTMLInputElement>(null);
 
   const { data: eligibleAccounts = [], isLoading: accountsLoading } = useStockEligibleAccounts();
@@ -252,15 +253,15 @@ const StockOrderBuilderPage = () => {
   const advanceFromOrderReference = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    setAddDialog("supplies");
+    setDetailsCollapsed(true);
+    requestAnimationFrame(() => detailsEditRef.current?.focus());
   };
 
   const editOrderDetails = () => {
-    const orderReference = document.querySelector<HTMLInputElement>(".stock-order-shell input[placeholder='e.g. counter sale, phone order']");
     setDetailsCollapsed(false);
-    orderReference?.focus();
     requestAnimationFrame(() => {
       orderDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      poNumberRef.current?.focus();
     });
   };
 
@@ -500,14 +501,15 @@ const StockOrderBuilderPage = () => {
                  </select>
                  <span className="stock-order-chevron">▾</span>
                </label>
-               <label className="stock-order-currency" title="Display currency">
+               <label className="stock-order-currency" title="Change the currency used to display order prices">
+                 <span className="stock-order-currency-label">Display</span>
                  <select
                    aria-label="Display currency"
                    value={displayCurrency}
                    onChange={(e) => setDisplayCurrency(e.target.value as "USD" | "BBD")}
                  >
-                   <option value="USD">USD $</option>
-                   <option value="BBD">BBD $</option>
+                   <option value="USD">USD — US dollar</option>
+                   <option value="BBD">BBD — Barbadian dollar</option>
                  </select>
                  <span className="stock-order-chevron">▾</span>
                </label>
@@ -523,20 +525,22 @@ const StockOrderBuilderPage = () => {
               <h2>Order details</h2>
               <div className="sub">Retail is the temporary default while stock pricelists are being corrected.</div>
             </div>
-            <button ref={detailsEditRef} className="iconbtn sm stock-order-details-edit" type="button" title="Edit order details" aria-label="Edit order details" onClick={editOrderDetails}><Pencil aria-hidden="true" /></button>
+            {detailsCollapsed && <button ref={detailsEditRef} className="iconbtn sm stock-order-details-edit" type="button" title="Edit order details" aria-label="Edit order details" onClick={editOrderDetails}><Pencil aria-hidden="true" /></button>}
           </div>
           <div className="stock-order-details-summary" aria-live="polite">
             {[poNumber.trim() && `PO ${poNumber.trim()}`, orderReference.trim()].filter(Boolean).join(" · ")}
           </div>
-          <div className="card-b">
+          <div className="card-b" inert={detailsCollapsed}>
             <div className="grid stock-order-details-grid">
-              <div className="field">
-                <label>PO number <span className="opt-tag">optional</span></label>
-              <input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onClick={(e) => e.stopPropagation()} placeholder="YYYY-MM-DD" />
+              <div className="field stock-order-detail-field stock-order-detail-field-po">
+                <label htmlFor="stock-order-po-number">PO number <span className="opt-tag">optional</span></label>
+                <p id="stock-order-po-number-hint" className="stock-order-field-hint">Your purchase order or internal tracking number.</p>
+                <input ref={poNumberRef} id="stock-order-po-number" aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onClick={(e) => e.stopPropagation()} placeholder="YYYY-MM-DD" />
               </div>
-              <div className="field">
-                <label>Order reference</label>
-                <input ref={orderReferenceRef} value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} placeholder="e.g. counter sale, phone order" />
+              <div className="field stock-order-detail-field stock-order-detail-field-reference">
+                <label htmlFor="stock-order-reference">Order reference</label>
+                <p id="stock-order-reference-hint" className="stock-order-field-hint">A customer-facing or staff note that identifies this order.</p>
+                <input ref={orderReferenceRef} id="stock-order-reference" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} placeholder="e.g. counter sale, phone order" />
               </div>
             </div>
           </div>
