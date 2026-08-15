@@ -229,6 +229,15 @@ const StockOrderBuilderPage = () => {
     if (!hasCapturedOrderDetails) setDetailsCollapsed(false);
   }, [hasCapturedOrderDetails]);
 
+  // Restored/autosaved drafts do not emit a browser blur event. Once both
+  // summary values are hydrated, keep the expanded form out of the way just
+  // as if staff had completed the fields and moved on.
+  useEffect(() => {
+    if (loadedDraftId && poNumber.trim() && orderReference.trim()) {
+      setDetailsCollapsed(true);
+    }
+  }, [loadedDraftId, orderReference, poNumber]);
+
   useEffect(() => {
     if (!hasCapturedOrderDetails || detailsCollapsed) return;
 

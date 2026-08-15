@@ -108,6 +108,7 @@ describe("admin stock order builder route accessibility", () => {
     const styles = read("src/pages/admin/stock-order-builder.css");
 
     expect(page).toContain("onBlur={collapseOrderDetailsOnBlur}");
+    expect(page).toContain("if (loadedDraftId && poNumber.trim() && orderReference.trim())");
     expect(page).toContain("useStoreProducts()");
     expect(page).toContain("Configure price & variants");
     expect(page).toContain('disabled={item.available === false}');
