@@ -6,12 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, CircleDollarSign, Glasses, PackagePlus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useStoreProducts } from "@/hooks/useStoreProducts";
 import "@/features/rx-order/embed/rx-order.css";
 import "./stock-order-builder.css";
 import { resolveStockOrderAnnotationTarget } from "./stock-order-annotations";
 import {
   useStockEligibleAccounts, useStockOrderCatalog, useStockProductVariants, resolveStockCode,
-  useStageStockOrder, useReleaseStockOrder, useSaveStockOrderAsQuote, useStockOrderDraft, useStockOrderPreview,
+  useStageStockOrder, useReleaseStockOrder, useSaveStockOrderAsQuote, useStockOrderDraft, useStockOrderDraftForQuote, useStockOrderPreview,
   variantSkuFor, variantIsChiral,
   type StageOrderItem, type StockCatalogItem, type StockProductType, type StockVariant,
 } from "@/hooks/useStockOrderBuilder";
@@ -140,16 +141,38 @@ const StockOrderBuilderPage = () => {
     return (usd: number) => `${prefix}${((usd ?? 0) * factor).toFixed(2)}`;
   }, [displayCurrency, usdPerBbd]);
   const draftId = searchParams.get("draft");
-  const { data: draft } = useStockOrderDraft(draftId);
+  const quoteId = searchParams.get("quote");
+  const { data: quotedDraft, isLoading: quotedDraftLoading } = useStockOrderDraftForQuote(quoteId);
+  const effectiveDraftId = draftId ?? quotedDraft?.id ?? null;
+  const { data: draft } = useStockOrderDraft(effectiveDraftId);
   const selectedAccount = eligibleAccounts.find((a) => a.id === accountId) ?? null;
 
   const { data: catalog = [], isLoading: catalogLoading } = useStockOrderCatalog(accountId);
+  const { data: websiteProducts = [], isLoading: websiteProductsLoading } = useStoreProducts();
   const productKey = (item: Pick<StockCatalogItem, "product_type" | "product_id">) =>
     `${item.product_type}:${item.product_id}`;
-  // The server resolver is also the availability boundary. Do not merge in a
-  // broad storefront list here: non-Retail accounts must not browse products
-  // outside their assigned pricelist.
-  const combinedCatalog = catalog;
+  // The complete published catalogue is visible for staff, but only products
+  // returned by the server resolver can be added. This makes availability
+  // actionable without letting the browser bypass account pricing rules.
+  const combinedCatalog = useMemo<StockCatalogItem[]>(() => {
+    const resolved = new Map(catalog.map((item) => [productKey(item), { ...item, available: true }]));
+    for (const product of websiteProducts) {
+      const key = `${product.product_type}:${product.id}`;
+      if (!resolved.has(key)) {
+        resolved.set(key, {
+          product_type: product.product_type,
+          product_id: product.id,
+          name: product.name,
+          category: product.category || null,
+          sku: product.sku ?? null,
+          unit_price: 0,
+          has_variants: product.has_variants,
+          available: false,
+        });
+      }
+    }
+    return [...resolved.values()];
+  }, [catalog, websiteProducts]);
   const byKey = useMemo(
     () => new Map(combinedCatalog.map((item) => [productKey(item), item])),
     [combinedCatalog],
@@ -166,7 +189,7 @@ const StockOrderBuilderPage = () => {
     );
   }, [combinedCatalog, searchQuery]);
 
-  const lensCatalog = useMemo(() => catalog.filter((item) => item.product_type === "lens"), [catalog]);
+  const lensCatalog = useMemo(() => combinedCatalog.filter((item) => item.product_type === "lens"), [combinedCatalog]);
 
   const expandedProduct = expandedProductKey ? byKey.get(expandedProductKey) ?? null : null;
   const gridProduct = gridProductKey ? byKey.get(gridProductKey) ?? null : null;
@@ -187,8 +210,8 @@ const StockOrderBuilderPage = () => {
   );
 
   useEffect(() => {
-    if (!draftId && accountId == null && retailAccount) setAccountId(retailAccount.id);
-  }, [accountId, draftId, retailAccount]);
+    if (!effectiveDraftId && accountId == null && retailAccount) setAccountId(retailAccount.id);
+  }, [accountId, effectiveDraftId, retailAccount]);
 
   useEffect(() => {
     try { localStorage.setItem(STOCK_ANNOTATIONS_KEY, JSON.stringify(annotations)); } catch { /* optional persistence */ }
@@ -240,6 +263,14 @@ const StockOrderBuilderPage = () => {
     requestAnimationFrame(() => detailsEditRef.current?.focus());
   };
 
+  const collapseOrderDetailsOnBlur = () => {
+    window.setTimeout(() => {
+      const details = orderDetailsRef.current;
+      if (!details || details.contains(document.activeElement)) return;
+      if (poNumber.trim() || orderReference.trim()) setDetailsCollapsed(true);
+    }, 0);
+  };
+
   const editOrderDetails = () => {
     setDetailsCollapsed(false);
     requestAnimationFrame(() => {
@@ -288,6 +319,10 @@ const StockOrderBuilderPage = () => {
     side: "right" | "left" | "either",
     quantity: number,
   ) => {
+    if (product.available === false) {
+      toast({ title: "Product unavailable for this account", description: "Configure its account pricing before adding it to a stock order.", variant: "destructive" });
+      return;
+    }
     const sku = variant ? variantSkuFor(variant, side) : product.sku;
     if (!sku) {
       toast({
@@ -393,7 +428,7 @@ const StockOrderBuilderPage = () => {
   const hasUnsavedChanges = canPersistDraft && savedSnapshotRef.current !== autosaveSnapshot;
 
   useEffect(() => {
-    if (draftId && loadedDraftId !== draftId) return;
+    if ((draftId || quoteId) && (!effectiveDraftId || loadedDraftId !== effectiveDraftId)) return;
     if (!canPersistDraft || !accountId) return;
     if (savedSnapshotRef.current === autosaveSnapshot) {
       return;
@@ -422,7 +457,7 @@ const StockOrderBuilderPage = () => {
       });
     }, 500);
     return () => window.clearTimeout(timeout);
-  }, [accountId, autosaveSnapshot, canPersistDraft, draftId, instructions, isSavingStockOrder, loadedDraftId, orderReference, poNumber, saveStockOrder, stageItems, stagedId]);
+  }, [accountId, autosaveSnapshot, canPersistDraft, draftId, effectiveDraftId, instructions, isSavingStockOrder, loadedDraftId, orderReference, poNumber, quoteId, saveStockOrder, stageItems, stagedId]);
 
   const handleRelease = async () => {
     if (!staged) return;
@@ -496,6 +531,15 @@ const StockOrderBuilderPage = () => {
         ? `Could not render the order: ${(preview.error as Error).message}`
         : preview.data?.hashref ?? "";
 
+  if (quoteId && !quotedDraftLoading && !quotedDraft) {
+    return (
+      <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+        <p>This historical stock quotation has no linked Stock Order Builder draft, so it is read-only.</p>
+        <Link className="linkbtn" to="/admin/website/quotations">Back to quotations</Link>
+      </div>
+    );
+  }
+
   return (
     <div className={`cv-rx-embed no-gear stock-order-shell${annotateOn ? " stock-annotate-on" : ""}`} onClickCapture={handleAnnotationCapture}>
        <div className="wrap">
@@ -554,12 +598,12 @@ const StockOrderBuilderPage = () => {
               <div className="field stock-order-detail-field stock-order-detail-field-po">
                 <label htmlFor="stock-order-po-number">PO number <span className="opt-tag">optional</span></label>
                 <p id="stock-order-po-number-hint" className="stock-order-field-hint">Your purchase order or internal tracking number.</p>
-                <input ref={poNumberRef} id="stock-order-po-number" aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onClick={(e) => e.stopPropagation()} placeholder="YYYY-MM-DD" />
+                <input ref={poNumberRef} id="stock-order-po-number" aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="YYYY-MM-DD" />
               </div>
               <div className="field stock-order-detail-field stock-order-detail-field-reference">
                 <label htmlFor="stock-order-reference">Order reference</label>
                 <p id="stock-order-reference-hint" className="stock-order-field-hint">A customer-facing or staff note that identifies this order.</p>
-                <input ref={orderReferenceRef} id="stock-order-reference" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} placeholder="e.g. counter sale, phone order" />
+                <input ref={orderReferenceRef} id="stock-order-reference" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale, phone order" />
               </div>
             </div>
           </div>
@@ -652,7 +696,7 @@ const StockOrderBuilderPage = () => {
           <SheetContent className="stock-order-panel stock-order-supplies-panel">
             <SheetHeader className="stock-order-panel-header">
               <SheetTitle>Add Stock Item</SheetTitle>
-              <SheetDescription>Search the published supplies available to the selected account.</SheetDescription>
+              <SheetDescription>All published supplies are listed. Unavailable products stay disabled until their account pricing is configured.</SheetDescription>
             </SheetHeader>
             <div className="stock-order-supply-search">
               <label className="sr-only" htmlFor="stock-supply-search">Search published stock items</label>
@@ -663,8 +707,8 @@ const StockOrderBuilderPage = () => {
                 const key = productKey(item);
                 const isExpanded = expandedProductKey === key;
                 return (
-                  <div className="stock-order-panel-result" key={key}>
-                    <button type="button" aria-expanded={isExpanded} onClick={() => {
+                  <div className={`stock-order-panel-result${item.available === false ? " is-unavailable" : ""}`} key={key}>
+                    <button type="button" disabled={item.available === false} aria-expanded={isExpanded} onClick={() => {
                       if (!item.has_variants) {
                         addLine(item, null, "either", 1);
                         closeAddDialog();
@@ -673,13 +717,14 @@ const StockOrderBuilderPage = () => {
                       setExpandedProductKey(isExpanded ? null : key);
                     }}>
                       <span><b>{item.name}</b>{item.category && <small>{item.category}</small>}</span>
-                      <span>{money(item.unit_price)}</span>
+                      <span>{item.available === false ? "Unavailable" : money(item.unit_price)}</span>
                     </button>
+                    {item.available === false && <Link className="stock-order-availability-link" to={`/admin/website/store/variants/${item.product_type}/${item.product_id}`}>Configure price & variants</Link>}
                     {isExpanded && <VariantPicker money={money} product={item} variants={expandedVariants} onAdd={(variant, side, quantity) => { addLine(item, variant, side, quantity); closeAddDialog(); }} />}
                   </div>
                 );
               })}
-              {!searchResults.length && <p className="hint">{catalogLoading ? "Loading website supplies…" : "No website supplies available for this account."}</p>}
+              {!searchResults.length && <p className="hint">{catalogLoading || websiteProductsLoading ? "Loading published supplies…" : "No published supplies match this search."}</p>}
             </div>
           </SheetContent>
         </Sheet>
@@ -688,7 +733,7 @@ const StockOrderBuilderPage = () => {
           <SheetContent className="stock-order-panel stock-order-lenses-panel">
             <SheetHeader className="stock-order-panel-header">
               <SheetTitle>Add Lens Powers</SheetTitle>
-              <SheetDescription>Choose a published lens, enter quantities in the power matrix, then add the selected powers to the order.</SheetDescription>
+              <SheetDescription>Choose a published semi-finished lens with variants, enter quantities in the power matrix, then add the selected powers to the order.</SheetDescription>
             </SheetHeader>
             <div className="stock-lens-select field">
               <span id="stock-lens-product-label">Lens product</span>
@@ -697,7 +742,7 @@ const StockOrderBuilderPage = () => {
                   <SelectValue placeholder="Select a published lens" />
                 </SelectTrigger>
                 <SelectContent className="stock-lens-select-menu">
-                  {lensCatalog.filter((item) => item.has_variants).map((item) => <SelectItem className="stock-lens-select-option" key={productKey(item)} value={productKey(item)}>{item.name}</SelectItem>)}
+                  {lensCatalog.filter((item) => item.has_variants).map((item) => <SelectItem className="stock-lens-select-option" key={productKey(item)} value={productKey(item)} disabled={item.available === false}>{item.name}{item.available === false ? " — unavailable for this account" : ""}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

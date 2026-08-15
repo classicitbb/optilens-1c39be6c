@@ -98,6 +98,9 @@ export interface StockCatalogItem {
   price_source?: "assigned_pricelist" | "retail_pricelist" | "catalog" | "manual";
   source_trail?: string[];
   unit_cost?: number | null;
+  /** Presentation-only availability. The server catalog is still the order
+   * authorization boundary, so false entries can never be staged. */
+  available?: boolean;
 }
 
 const isMissingStockOrderFeatureError = (error: any) =>
@@ -335,6 +338,28 @@ export const useReleaseStockOrder = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-order-drafts"] });
+    },
+  });
+};
+
+/** Resolves a canonical STOCK quote back to the stock submission that owns
+ * it. This keeps old quotation-editor URLs usable without retaining a second
+ * active stock editor. */
+export const useStockOrderDraftForQuote = (quoteId: string | null) => {
+  return useQuery<StockOrderDraft | null>({
+    queryKey: ["stock-order-draft-for-quote", quoteId],
+    enabled: !!quoteId,
+    queryFn: async () => {
+      if (!quoteId) return null;
+      const { data, error } = await (supabase.from("stock_order_submissions") as any)
+        .select(draftColumns)
+        .eq("quote_id", quoteId)
+        .maybeSingle();
+      if (error) {
+        if (isMissingStockOrderFeatureError(error)) return null;
+        throw error;
+      }
+      return (data ?? null) as StockOrderDraft | null;
     },
   });
 };

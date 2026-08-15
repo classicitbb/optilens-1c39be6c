@@ -91,9 +91,12 @@ const QuoteEditorPage = () => {
     });
   }, [printSettingsProfileId]);
 
-  // RX quotes live in the in-house Rx order form now — bounce stale links here.
+  // Both quote types have one canonical editor. RX keeps its in-house form;
+  // STOCK uses the Stock Order Builder so this legacy URL cannot revive the
+  // retired flat stock editor.
   useEffect(() => {
     if (quote?.quote_type === "RX") navigate(`/admin/website/quotations/rx/${quote.id}`, { replace: true });
+    if (quote?.quote_type === "STOCK") navigate(`/admin/website/stock-orders?quote=${encodeURIComponent(quote.id)}`, { replace: true });
   }, [quote?.id, quote?.quote_type, navigate]);
 
   useEffect(() => {
@@ -210,6 +213,10 @@ const QuoteEditorPage = () => {
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-t-transparent border-primary" />
       </div>
     );
+  }
+
+  if (quote.quote_type === "STOCK") {
+    return <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">Opening Stock Order Builder…</div>;
   }
 
   return (

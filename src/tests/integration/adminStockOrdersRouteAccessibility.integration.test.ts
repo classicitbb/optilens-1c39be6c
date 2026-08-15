@@ -88,4 +88,17 @@ describe("admin stock order builder route accessibility", () => {
     expect(studio).toContain("billingDocument");
     expect(studioRoute).toContain('searchParams.get("billingDocument")');
   });
+
+  it("retires the legacy STOCK quote editor without changing RX quote routing", () => {
+    const read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
+    const list = read("src/pages/admin/QuotationsListPage.tsx");
+    const editor = read("src/pages/admin/QuoteEditorPage.tsx");
+    const builder = read("src/pages/admin/StockOrderBuilderPage.tsx");
+
+    expect(list).toContain('navigate("/admin/website/stock-orders")');
+    expect(list).toContain('`/admin/website/stock-orders?quote=${encodeURIComponent(q.id)}`');
+    expect(editor).toContain('navigate(`/admin/website/stock-orders?quote=${encodeURIComponent(quote.id)}`, { replace: true })');
+    expect(editor).toContain('navigate(`/admin/website/quotations/rx/${quote.id}`, { replace: true })');
+    expect(builder).toContain('useStockOrderDraftForQuote(quoteId)');
+  });
 });
