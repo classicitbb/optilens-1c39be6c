@@ -101,4 +101,17 @@ describe("admin stock order builder route accessibility", () => {
     expect(editor).toContain('navigate(`/admin/website/quotations/rx/${quote.id}`, { replace: true })');
     expect(builder).toContain('useStockOrderDraftForQuote(quoteId)');
   });
+
+  it("keeps populated order details collapsible and makes catalogue availability actionable", () => {
+    const read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
+    const page = read("src/pages/admin/StockOrderBuilderPage.tsx");
+    const styles = read("src/pages/admin/stock-order-builder.css");
+
+    expect(page).toContain("onBlur={collapseOrderDetailsOnBlur}");
+    expect(page).toContain("useStoreProducts()");
+    expect(page).toContain("Configure price & variants");
+    expect(page).toContain('disabled={item.available === false}');
+    expect(styles).toContain(".stock-order-panel-result.is-unavailable");
+    expect(styles).toContain("@media (max-width: 1220px)");
+  });
 });
