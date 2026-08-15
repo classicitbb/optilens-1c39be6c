@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-15 — Canonical stock quotations
+
+### Release Notes
+- Staff can save a staged Stock Order Builder draft as a numbered quotation and continue with its populated DocStudio quotation document.
+- Price selection follows the account pricelist, Retail fallback, then published catalog price; a non-zero manual price requires a reason when no configured source can price the item.
+
 ## 2026-08-14 — Portal Copilot qualified CRM suggestions
 
 ### Release Notes

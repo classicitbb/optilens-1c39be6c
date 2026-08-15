@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-15 — Canonical stock quotations
+
+### Release Notes
+- The Stock Order Builder now saves a linked STOCK quotation using the same protected non-zero price resolution as the account catalogue, and opens the populated quotation in DocStudio.
+
+### Technical Changelog
+- Added an account/Retail/catalog/manual pricing resolver, atomic stock-draft-to-quote command, linked DocStudio billing document, and editing-staff-only profit context.
+
 ## 2026-08-14 — Portal Copilot qualified CRM suggestions
 
 ### Release Notes

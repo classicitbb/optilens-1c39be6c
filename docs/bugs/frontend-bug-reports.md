@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-15 — Stock quotes could diverge from account pricing and documents
+- Area: Admin Website stock ordering and quotations
+- Impact: a staged stock order could depend on a browser price and did not create a linked authoritative quote or DocStudio document.
+- Root cause: stock drafts, pricing lookup, quotation creation, and document handoff were separate workflows.
+- Resolution: introduced a server-side non-zero price resolver, an atomic stock-draft-to-STOCK-quote command, and a linked DocStudio billing document handoff.
+- Regression prevention: retain resolver precedence, access-control, quote-link, and DocStudio handoff coverage; do not reintroduce client-supplied monetary values.
+
 ## 2026-08-14 — CRM pipeline surfaced contacts without a qualified review queue
 - Area: Admin Portal Copilot and CRM follow-up planning
 - Impact: staff had order-health and pipeline data but no focused, evidence-backed way to turn it into reviewed work without manually scanning broad contact lists.

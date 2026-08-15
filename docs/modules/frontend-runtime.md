@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-15 — Canonical stock quotations
+
+- `resolve_stock_order_price` is the authenticated stock-pricing authority: selected-account pricelist, the single canonical Retail account's pricelist, published catalog price, then an audited editing-staff manual price.
+- `save_stock_order_as_quote` locks a staged stock submission, re-resolves its catalog-derived prices, writes the authoritative `STOCK` quote and lines, and links a DocStudio billing document. The browser only sends the draft identity.
+- `StockOrderBuilderPage` consumes the resolved catalog rather than supplementing it with a broad storefront list, so non-Retail availability remains server controlled. Editing staff can inspect cost and margin context without exposing it to view-only users.
+
 ## 2026-08-14 — Portal Copilot qualified CRM scan
 
 - `portal-copilot` reads `contacts`, `customer_order_health`, `opportunities` and open `activities`, then passes those rows to the pure `crmOpportunityScan` planner.

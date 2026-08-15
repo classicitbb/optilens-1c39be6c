@@ -1,5 +1,10 @@
 # Frontend Help Docs
 
+## 2026-08-15 — Saving a stock quotation
+
+- Build the stock order, wait for the automatic draft save, then select **Save as quotation**. The saved quotation opens in DocStudio for the document workflow.
+- A product price follows the selected account's pricelist, Retail fallback, then the published catalog. If none applies, an editing staff member must enter a non-zero manual price and explain why.
+
 ## 2026-08-14 — Reviewing Copilot CRM suggestions
 
 - In **Admin → Portal Copilot**, enter **Scan CRM for lapsed buyers and qualified follow-up opportunities**.

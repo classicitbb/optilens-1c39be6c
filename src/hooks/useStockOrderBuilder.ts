@@ -20,7 +20,6 @@ import { supabase } from "@/integrations/supabase/client";
 //   - supabase/functions/_shared/orders/hashref.ts (the one order format)
 
 export type StockProductType = "lens" | "supply" | "addon";
-export type DispatchProvider = "innovations" | "gatekeeper";
 
 export interface StockEligibleAccount {
   id: number;
@@ -96,6 +95,9 @@ export interface StockCatalogItem {
   sku: string | null;
   unit_price: number;
   has_variants: boolean;
+  price_source?: "assigned_pricelist" | "retail_pricelist" | "catalog" | "manual";
+  source_trail?: string[];
+  unit_cost?: number | null;
 }
 
 const isMissingStockOrderFeatureError = (error: any) =>
@@ -121,6 +123,9 @@ export const useStockOrderCatalog = (accountId: number | null) => {
         sku: row.sku ?? null,
         unit_price: Number(row.unit_price ?? 0),
         has_variants: Boolean(row.has_variants),
+        price_source: row.price_source ?? undefined,
+        source_trail: Array.isArray(row.source_trail) ? row.source_trail.filter(Boolean) : [],
+        unit_cost: row.unit_cost == null ? null : Number(row.unit_cost),
       }));
     },
     staleTime: 60_000,
@@ -229,7 +234,6 @@ export interface StockOrderDraft {
   po_number: string | null;
   order_reference: string | null;
   status: string;
-  dispatch_provider?: DispatchProvider;
   payload: {
     account?: { id?: number; name?: string; account_number?: string | null };
     po_number?: string | null;
@@ -296,9 +300,11 @@ export const useStageStockOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
+      submissionId?: string;
       accountId: number; poNumber: string; orderReference: string; instructions: string; items: StageOrderItem[];
     }) => {
-      const { data, error } = await (supabase.rpc as any)("stage_stock_order_submission", {
+      const { data, error } = await (supabase.rpc as any)("save_stock_order_draft", {
+        p_submission_id: input.submissionId ?? null,
         p_account_id: input.accountId,
         p_po_number: input.poNumber || null,
         p_order_reference: input.orderReference || null,
@@ -315,28 +321,43 @@ export const useStageStockOrder = () => {
   });
 };
 
-// Releasing picks the transport, exactly as the Rx outbox does. Innovations
-// leaves the row for the optilens-local worker to claim; Gatekeeper is sent
-// here and now by the Edge Function, which records its receipt on the row.
+// Stock orders always release through Innovations. The office worker claims
+// the outbox row and drops the rendered file into Innova's Incoming folder.
 export const useReleaseStockOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, provider }: { id: string; provider: DispatchProvider }) => {
+    mutationFn: async ({ id }: { id: string }) => {
       const { error } = await (supabase.rpc as any)("release_stock_order_submission", {
         p_id: id,
-        p_dispatch_provider: provider,
+        p_dispatch_provider: "innovations",
       });
       if (error) throw error;
-      if (provider === "gatekeeper") {
-        const { data, error: sendError } = await supabase.functions.invoke("gatekeeper-orders", {
-          body: { action: "send", orderKind: "stock", submissionId: id },
-        });
-        if (sendError) throw new Error(sendError.message);
-        if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not confirm receipt of the order.");
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-order-drafts"] });
+    },
+  });
+};
+
+/** Converts a saved stock draft into the authoritative STOCK quote and its
+ * linked DocStudio billing document. Monetary values remain server-resolved. */
+export const useSaveStockOrderAsQuote = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ submissionId }: { submissionId: string }) => {
+      const { data, error } = await (supabase.rpc as any)("save_stock_order_as_quote", {
+        p_submission_id: submissionId,
+      });
+      if (error) throw error;
+      return (Array.isArray(data) ? data[0] : data) as {
+        quote_id: string;
+        quote_number: string;
+        docstudio_document_id: string;
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stock-order-drafts"] });
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
     },
   });
 };

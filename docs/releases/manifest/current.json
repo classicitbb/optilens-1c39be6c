@@ -1,16 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-14T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-15T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Ask Portal Copilot to scan CRM for qualified follow-up opportunities. It prioritizes current CRM and order-history signals, explains the evidence and inference separately, and avoids contacts already covered by open work.",
-    "Every suggested task remains a review item until an administrator approves it. The scan does not silently create opportunities or change customer data."
+    "Staff can save a staged Stock Order Builder draft as a numbered quotation and continue with its populated DocStudio quotation document.",
+    "Price selection follows the account pricelist, Retail fallback, then published catalog price; a non-zero manual price requires a reason when no configured source can price the item."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Portal Copilot qualified CRM suggestions."
+      "notes": "Updated as part of Canonical stock quotations."
     }
   ],
   "migrationNotes": [

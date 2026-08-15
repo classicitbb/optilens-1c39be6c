@@ -11,9 +11,10 @@ import { useSearchParams } from "react-router";
 const DocStudioPage = () => {
   const [searchParams] = useSearchParams();
   const staffInvite = searchParams.get("staffInvite");
+  const billingDocument = searchParams.get("billingDocument");
   // The parent route carries only an opaque handoff id. The password itself is
   // held in tab-scoped session storage until the same-origin iframe consumes it.
-  const src = `/ds/studio.html?embedded=1${staffInvite ? `&staffInvite=${encodeURIComponent(staffInvite)}` : ""}`;
+  const src = `/ds/studio.html?embedded=1${staffInvite ? `&staffInvite=${encodeURIComponent(staffInvite)}` : ""}${billingDocument ? `&billingDocument=${encodeURIComponent(billingDocument)}` : ""}`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

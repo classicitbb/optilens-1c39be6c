@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Glasses, PackagePlus, Pencil, Trash2, X } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, CircleDollarSign, Glasses, PackagePlus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useStoreProducts } from "@/hooks/useStoreProducts";
+import { useAdminRole } from "@/contexts/AdminRoleContext";
 import "@/features/rx-order/embed/rx-order.css";
 import "./stock-order-builder.css";
 import {
   useStockEligibleAccounts, useStockOrderCatalog, useStockProductVariants, resolveStockCode,
-  useStageStockOrder, useReleaseStockOrder, useStockOrderDraft, useStockOrderPreview,
+  useStageStockOrder, useReleaseStockOrder, useSaveStockOrderAsQuote, useStockOrderDraft, useStockOrderPreview,
   variantSkuFor, variantIsChiral,
   type StageOrderItem, type StockCatalogItem, type StockProductType, type StockVariant,
-  type DispatchProvider,
 } from "@/hooks/useStockOrderBuilder";
 import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
 
@@ -25,12 +25,9 @@ import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
 // section); variants come from the storefront's own reader, so this form and
 // /store/product/* always show the same thing.
 //
-// Released orders go out through either transport — OptiLens (the
-// optilens-local worker drops the file into Innova's Incoming share) or
-// Gatekeeper (sent immediately by the Edge Function) — and both render the
-// same order from supabase/functions/_shared/orders/hashref.ts. The preview
-// pane below asks the server for that exact text rather than approximating
-// it here.
+// Released orders go through OptiLens. The optilens-local worker drops the
+// rendered file into Innova's Incoming share. The preview pane asks the server
+// for that exact text rather than approximating it here.
 //
 // NOT tested against a live app/database this session. The migrations this
 // depends on (20260811000000, 20260812000000) have not been run.
@@ -48,6 +45,8 @@ interface OrderLine {
   quantity: number;
   customerRef: string;
   unitPrice: number;
+  unitCost: number | null;
+  priceSource?: StockCatalogItem["price_source"];
 }
 
 type AnnotationPriority = "must" | "prefer" | "idea";
@@ -82,8 +81,6 @@ const PRODUCT_TYPE_LABEL: Record<StockProductType, string> = {
   addon: "Service",
 };
 
-const todayDate = () => new Intl.DateTimeFormat("en-CA").format(new Date());
-
 const numericAttr = (variant: StockVariant, key: string): number | null => {
   const value = (variant.attributes as any)?.[key];
   return value == null || value === "" || Number.isNaN(Number(value)) ? null : Number(value);
@@ -99,9 +96,10 @@ const StockOrderBuilderPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { canEdit } = useAdminRole();
 
   const [accountId, setAccountId] = useState<number | null>(null);
-  const [poNumber, setPoNumber] = useState(todayDate);
+  const [poNumber, setPoNumber] = useState("");
   const [orderReference, setOrderReference] = useState("");
   const [instructions, setInstructions] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,7 +110,8 @@ const StockOrderBuilderPage = () => {
   const [addDialog, setAddDialog] = useState<"supplies" | "lenses" | null>(null);
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [staged, setStaged] = useState<{ id: string; total: number } | null>(null);
-  const [provider, setProvider] = useState<DispatchProvider>("innovations");
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [autosaveError, setAutosaveError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [loadedDraftId, setLoadedDraftId] = useState<string | null>(null);
   const [annotateOn, setAnnotateOn] = useState(false);
@@ -126,6 +125,8 @@ const StockOrderBuilderPage = () => {
   const orderDetailsRef = useRef<HTMLDivElement>(null);
   const detailsEditRef = useRef<HTMLButtonElement>(null);
   const orderReferenceRef = useRef<HTMLInputElement>(null);
+  const savedSnapshotRef = useRef<string | null>(null);
+  const failedSnapshotRef = useRef<string | null>(null);
 
   const { data: eligibleAccounts = [], isLoading: accountsLoading } = useStockEligibleAccounts();
   // Catalog prices are stored in USD; the rate is USD per 1 BBD (0.5), so a
@@ -141,30 +142,12 @@ const StockOrderBuilderPage = () => {
   const selectedAccount = eligibleAccounts.find((a) => a.id === accountId) ?? null;
 
   const { data: catalog = [], isLoading: catalogLoading } = useStockOrderCatalog(accountId);
-  const { data: websiteProducts = [], isLoading: websiteProductsLoading } = useStoreProducts();
   const productKey = (item: Pick<StockCatalogItem, "product_type" | "product_id">) =>
     `${item.product_type}:${item.product_id}`;
-  const websiteSupplyCatalog = useMemo<StockCatalogItem[]>(
-    () => websiteProducts.filter((item) => item.product_type === "supply").map((item) => ({
-      product_type: "supply",
-      product_id: item.id,
-      name: item.name,
-      category: item.category || null,
-      sku: item.sku ?? null,
-      unit_price: item.sell_price_usd,
-      has_variants: item.has_variants,
-    })),
-    [websiteProducts],
-  );
-  const combinedCatalog = useMemo(() => {
-    const items = new Map(websiteSupplyCatalog.map((item) => [productKey(item), item]));
-    catalog.forEach((item) => {
-      const key = productKey(item);
-      const websiteItem = items.get(key);
-      items.set(key, websiteItem && !item.sku ? { ...item, sku: websiteItem.sku } : item);
-    });
-    return [...items.values()];
-  }, [catalog, websiteSupplyCatalog]);
+  // The server resolver is also the availability boundary. Do not merge in a
+  // broad storefront list here: non-Retail accounts must not browse products
+  // outside their assigned pricelist.
+  const combinedCatalog = catalog;
   const byKey = useMemo(
     () => new Map(combinedCatalog.map((item) => [productKey(item), item])),
     [combinedCatalog],
@@ -173,8 +156,6 @@ const StockOrderBuilderPage = () => {
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const supplies = combinedCatalog.filter((item) => item.product_type === "supply");
-    // Keep the initial test catalog intentionally broad. The website/account
-    // eligibility rules can be narrowed once the supply workflow is settled.
     if (!q) return supplies;
     return supplies.filter((item) =>
       [item.name, item.category, item.sku, PRODUCT_TYPE_LABEL[item.product_type]]
@@ -196,6 +177,7 @@ const StockOrderBuilderPage = () => {
 
   const stageMutation = useStageStockOrder();
   const releaseMutation = useReleaseStockOrder();
+  const saveAsQuoteMutation = useSaveStockOrderAsQuote();
   const preview = useStockOrderPreview(staged?.id ?? null, showPreview);
   const retailAccount = useMemo(
     () => eligibleAccounts.find((a) => a.name.trim().toLowerCase() === "retail") ?? null,
@@ -275,10 +257,9 @@ const StockOrderBuilderPage = () => {
     const payload = draft.payload ?? {};
     const account = payload.account;
     setAccountId(draft.account_id ?? account?.id ?? null);
-    setPoNumber(draft.po_number ?? payload.po_number ?? todayDate());
+    setPoNumber(draft.po_number ?? payload.po_number ?? "");
     setOrderReference(draft.order_reference ?? payload.order_reference ?? "");
     setInstructions(payload.instructions ?? "");
-    setProvider(draft.dispatch_provider ?? "innovations");
     setLines((payload.items ?? []).map((item, index) => ({
       key: `${draft.id}:${item.variant_id ?? item.product_id ?? index}:${item.side ?? "either"}`,
       productType: (item.product_type ?? "lens") as StockProductType,
@@ -292,6 +273,8 @@ const StockOrderBuilderPage = () => {
       quantity: Number(item.quantity ?? 1),
       customerRef: item.comment ?? "",
       unitPrice: Number(item.unit_price ?? 0),
+      unitCost: null,
+      priceSource: undefined,
     })));
     setStaged({ id: draft.id, total: Number(payload.order_total ?? 0) });
     setLoadedDraftId(draft.id);
@@ -331,6 +314,8 @@ const StockOrderBuilderPage = () => {
         quantity,
         customerRef: "",
         unitPrice: product.unit_price,
+        unitCost: product.unit_cost ?? null,
+        priceSource: product.price_source,
       }];
     });
   };
@@ -347,6 +332,17 @@ const StockOrderBuilderPage = () => {
   // Display-only checkout estimate. Prices are not included in buildStageItems;
   // the server resolves the actual order price when staging/releasing.
   const checkoutEstimate = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+
+  const handleSaveAsQuotation = async () => {
+    if (!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error") return;
+    try {
+      const quote = await saveAsQuoteMutation.mutateAsync({ submissionId: staged.id });
+      toast({ title: `Quotation ${quote.quote_number} saved`, description: "The quote is ready for preview, printing, or email." });
+      navigate(`/admin/docs/studio?billingDocument=${encodeURIComponent(quote.docstudio_document_id)}`);
+    } catch (err: any) {
+      toast({ title: "Could not save quotation", description: err.message ?? "Please review the order pricing and try again.", variant: "destructive" });
+    }
+  };
 
   const handleScan = async () => {
     const code = scanValue.trim();
@@ -378,38 +374,61 @@ const StockOrderBuilderPage = () => {
     }
   };
 
-  const buildStageItems = (): StageOrderItem[] =>
-    lines.map((l) => ({
+  const stageItems = useMemo<StageOrderItem[]>(() => lines.map((l) => ({
       product_type: l.productType,
       product_id: l.productId,
       variant_id: l.variantId,
       side: l.side,
       quantity: l.quantity,
       customer_ref: l.customerRef,
-    }));
+    })), [lines]);
 
-  const handleStage = async () => {
-    if (!accountId) return;
-    try {
-      const result = await stageMutation.mutateAsync({
-        accountId, poNumber, orderReference, instructions, items: buildStageItems(),
-      });
-      setStaged({ id: result.submission_id, total: result.order_total });
-      toast({ title: "Order staged", description: `Total ${money(result.order_total)}` });
-    } catch (err: any) {
-      toast({ title: "Could not stage order", description: err.message, variant: "destructive" });
+  const hasDraftContent = Boolean(stageItems.length || poNumber.trim() || orderReference.trim());
+  const autosaveSnapshot = JSON.stringify({ accountId, poNumber, orderReference, instructions, items: stageItems });
+  const { mutateAsync: saveStockOrder, isPending: isSavingStockOrder } = stageMutation;
+  const stagedId = staged?.id;
+  const canPersistDraft = Boolean(accountId && (hasDraftContent || stagedId));
+  const hasUnsavedChanges = canPersistDraft && savedSnapshotRef.current !== autosaveSnapshot;
+
+  useEffect(() => {
+    if (draftId && loadedDraftId !== draftId) return;
+    if (!canPersistDraft || !accountId) return;
+    if (savedSnapshotRef.current === autosaveSnapshot) {
+      return;
     }
-  };
+    if (failedSnapshotRef.current === autosaveSnapshot || isSavingStockOrder) return;
+
+    const timeout = window.setTimeout(() => {
+      setAutosaveStatus("saving");
+      setAutosaveError(null);
+      void saveStockOrder({
+        submissionId: stagedId,
+        accountId,
+        poNumber,
+        orderReference,
+        instructions,
+        items: stageItems,
+      }).then((result) => {
+        setStaged({ id: result.submission_id, total: result.order_total });
+        savedSnapshotRef.current = autosaveSnapshot;
+        failedSnapshotRef.current = null;
+        setAutosaveStatus("saved");
+      }).catch((err: any) => {
+        failedSnapshotRef.current = autosaveSnapshot;
+        setAutosaveError(err.message ?? "Please check the order and try again.");
+        setAutosaveStatus("error");
+      });
+    }, 500);
+    return () => window.clearTimeout(timeout);
+  }, [accountId, autosaveSnapshot, canPersistDraft, draftId, instructions, isSavingStockOrder, loadedDraftId, orderReference, poNumber, saveStockOrder, stageItems, stagedId]);
 
   const handleRelease = async () => {
     if (!staged) return;
     try {
-      await releaseMutation.mutateAsync({ id: staged.id, provider });
+      await releaseMutation.mutateAsync({ id: staged.id });
       toast({
         title: "Released",
-        description: provider === "gatekeeper"
-          ? "Gatekeeper accepted the order and its receipt is on the submission."
-          : "optilens-local will drop the file into Innova's Incoming folder shortly.",
+        description: "OptiLens will drop the file into Innova's Incoming folder shortly.",
       });
       setLines([]);
       setStaged(null);
@@ -469,7 +488,9 @@ const StockOrderBuilderPage = () => {
   };
 
   const previewText = !staged
-    ? "Save the draft to see the order file this will send."
+    ? "Add a product or enter an order detail to create this order and preview its file."
+    : !stageItems.length
+      ? "Add a product before previewing the order file."
     : preview.isLoading
       ? "Rendering…"
       : preview.error
@@ -488,9 +509,9 @@ const StockOrderBuilderPage = () => {
                <h1>Stock order form</h1>
                <div className="stock-order-toolbar-actions">
                <span className="ordno"><span>Order</span> {staged?.id ? staged.id.slice(0, 8).toUpperCase() : "—"}</span>
-               <button className="btn btn-ghost btn-sm" disabled={!lines.length || !accountId || stageMutation.isPending} onClick={handleStage}>
-                 {stageMutation.isPending ? "Saving…" : staged ? "Update draft" : "Save draft"}
-               </button>
+                <span className="stock-order-autosave" role="status" aria-live="polite">
+                  {autosaveStatus === "error" ? "Not saved" : hasUnsavedChanges || autosaveStatus === "saving" ? "Saving…" : staged ? "Saved" : ""}
+                </span>
                <label className="stock-order-account" title="Customer account">
                  <span className="stock-order-account-dot" />
                  <span>Ordering for</span>
@@ -568,7 +589,14 @@ const StockOrderBuilderPage = () => {
                       <td className="stock-order-line-description"><span>{line.description}</span></td>
                       <td><input aria-label={`Reference for line ${index + 1}`} placeholder="Ref" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} /></td>
                       <td><input aria-label={`Quantity for line ${index + 1}`} type="number" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} /></td>
-                      <td className="stock-order-money">{money(line.unitPrice)}</td>
+                      <td className="stock-order-money">
+                        <span>{money(line.unitPrice)}</span>
+                        {canEdit && (
+                          <span className="stock-order-profit" tabIndex={0} title={`Price source: ${line.priceSource ?? "saved quote"}. Cost: ${line.unitCost == null ? "not recorded" : money(line.unitCost)}. Margin: ${line.unitCost != null && line.unitPrice > 0 ? (((line.unitPrice - line.unitCost) / line.unitPrice) * 100).toFixed(1) : "—"}%`}>
+                            <CircleDollarSign aria-label="Margin and profit details" />
+                          </span>
+                        )}
+                      </td>
                       <td className="stock-order-money stock-order-line-subtotal">{money(line.unitPrice * line.quantity)}</td>
                       <td><button className="iconbtn sm stock-order-remove-line" type="button" aria-label={`Remove line ${index + 1}`} title={`Remove line ${index + 1}`} onClick={() => removeLine(line.key)}><Trash2 aria-hidden="true" /></button></td>
                     </tr>
@@ -596,21 +624,19 @@ const StockOrderBuilderPage = () => {
 
         <div className="steps" style={{ position: "static", gridColumn: "1/-1" }} data-annotatable>
           <div className="step-actions" style={{ marginLeft: 0 }}>
-            <label className="stock-order-account" title="Where this order is sent">
-              <span>Send via</span>
-              <select aria-label="Delivery route" value={provider} onChange={(e) => setProvider(e.target.value as DispatchProvider)}>
-                <option value="innovations">OptiLens</option>
-                <option value="gatekeeper">Gatekeeper</option>
-              </select>
-              <span className="stock-order-chevron">▾</span>
-            </label>
-            <button className="btn btn-ghost" onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
+            <span className="stock-order-submit-route">Sent through OptiLens</span>
+            <button className="btn btn-ghost" disabled={!staged || !stageItems.length} onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
+            <button className="btn btn-ghost" disabled={!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error" || saveAsQuoteMutation.isPending} onClick={handleSaveAsQuotation}>
+              {saveAsQuoteMutation.isPending ? "Saving quotation…" : "Save as quotation"}
+            </button>
             {staged && (
               <Link className="linkbtn" to="/admin/website/quotations">View drafts</Link>
             )}
-            {!staged && lines.length > 0 && accountId && <span id="stock-submit-gate" className="stock-submit-gate" role="status">Save draft to enable submission.</span>}
-            <button className="btn btn-primary" disabled={!staged || releaseMutation.isPending} aria-describedby={!staged ? "stock-submit-gate" : undefined} title={!staged ? "Save the draft first so this order can be submitted safely." : undefined} onClick={handleRelease}>
-              {releaseMutation.isPending ? "Submitting…" : staged ? "Submit order" : "Save draft first"}
+            <span id="stock-submit-gate" className="stock-submit-gate" role="status">
+              {!accountId ? "Select an account to start an order." : !hasDraftContent ? "Add a product or enter a PO number or order reference to create an order." : autosaveStatus === "error" ? `Changes not saved: ${autosaveError}` : hasUnsavedChanges || autosaveStatus === "saving" ? "Saving changes…" : "All changes saved."}
+            </span>
+            <button className="btn btn-primary" disabled={!staged || !stageItems.length || hasUnsavedChanges || isSavingStockOrder || autosaveStatus === "error" || releaseMutation.isPending} aria-describedby="stock-submit-gate" title={!staged ? "The order will be ready when its first change has been saved." : !stageItems.length ? "Add a product before submitting the order." : hasUnsavedChanges ? "Wait for changes to save before submitting." : undefined} onClick={handleRelease}>
+              {releaseMutation.isPending ? "Submitting…" : "Submit order"}
             </button>
           </div>
         </div>
@@ -620,22 +646,22 @@ const StockOrderBuilderPage = () => {
           </pre>
         )}
 
-        <Dialog open={addDialog === "supplies"} onOpenChange={(open) => !open && closeAddDialog()}>
-          <DialogContent className="stock-order-dialog stock-order-supplies-dialog">
-            <DialogHeader>
-              <DialogTitle>Add Stock Item</DialogTitle>
-              <DialogDescription className="sr-only">Search or scan a website-published supply for the selected account.</DialogDescription>
-            </DialogHeader>
+        <Sheet open={addDialog === "supplies"} onOpenChange={(open) => !open && closeAddDialog()}>
+          <SheetContent className="stock-order-panel stock-order-supplies-panel">
+            <SheetHeader className="stock-order-panel-header">
+              <SheetTitle>Add Stock Item</SheetTitle>
+              <SheetDescription>Search the published supplies available to the selected account.</SheetDescription>
+            </SheetHeader>
             <div className="stock-order-supply-search">
-              <label className="sr-only" htmlFor="stock-supply-search">Search items</label>
-              <input id="stock-supply-search" autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search items…" />
+              <label className="sr-only" htmlFor="stock-supply-search">Search published stock items</label>
+              <input id="stock-supply-search" autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search published items…" />
             </div>
-            <div className="stock-order-dialog-results" aria-live="polite">
+            <div className="stock-order-panel-results" aria-live="polite">
               {searchResults.map((item) => {
                 const key = productKey(item);
                 const isExpanded = expandedProductKey === key;
                 return (
-                  <div className="stock-order-dialog-result" key={key}>
+                  <div className="stock-order-panel-result" key={key}>
                     <button type="button" aria-expanded={isExpanded} onClick={() => {
                       if (!item.has_variants) {
                         addLine(item, null, "either", 1);
@@ -651,32 +677,38 @@ const StockOrderBuilderPage = () => {
                   </div>
                 );
               })}
-              {!searchResults.length && <p className="hint">{catalogLoading || websiteProductsLoading ? "Loading website supplies…" : "No website supplies available."}</p>}
+              {!searchResults.length && <p className="hint">{catalogLoading ? "Loading website supplies…" : "No website supplies available for this account."}</p>}
             </div>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
 
-        <Dialog open={addDialog === "lenses"} onOpenChange={(open) => !open && closeAddDialog()}>
-          <DialogContent className="stock-order-dialog stock-order-lenses-dialog">
-            <DialogHeader>
-              <DialogTitle>Add lens powers</DialogTitle>
-              <DialogDescription>Choose a published lens, enter quantities in the power matrix, then add the selected powers together.</DialogDescription>
-            </DialogHeader>
-            <div className="field">
-              <label htmlFor="stock-lens-product">Lens product</label>
-              <select id="stock-lens-product" autoFocus value={gridProductKey ?? ""} onChange={(e) => setGridProductKey(e.target.value || null)}>
-                <option value="">Select a lens</option>
-                {lensCatalog.filter((item) => item.has_variants).map((item) => <option key={productKey(item)} value={productKey(item)}>{item.name}</option>)}
-              </select>
+        <Sheet open={addDialog === "lenses"} onOpenChange={(open) => !open && closeAddDialog()}>
+          <SheetContent className="stock-order-panel stock-order-lenses-panel">
+            <SheetHeader className="stock-order-panel-header">
+              <SheetTitle>Add Lens Powers</SheetTitle>
+              <SheetDescription>Choose a published lens, enter quantities in the power matrix, then add the selected powers to the order.</SheetDescription>
+            </SheetHeader>
+            <div className="stock-lens-select field">
+              <span id="stock-lens-product-label">Lens product</span>
+              <Select value={gridProductKey ?? ""} onValueChange={(value) => setGridProductKey(value || null)}>
+                <SelectTrigger id="stock-lens-product" aria-labelledby="stock-lens-product-label" autoFocus className="stock-lens-select-trigger">
+                  <SelectValue placeholder="Select a published lens" />
+                </SelectTrigger>
+                <SelectContent className="stock-lens-select-menu">
+                  {lensCatalog.filter((item) => item.has_variants).map((item) => <SelectItem className="stock-lens-select-option" key={productKey(item)} value={productKey(item)}>{item.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-            {gridProduct && <VariantPicker money={money} product={gridProduct} variants={gridVariants} onAdd={(variant, side, quantity) => addLine(gridProduct, variant, side, quantity)} onBatchAdded={closeAddDialog} />}
-            {!gridProduct && (
-              <div className="stock-power-picker-placeholder" aria-hidden="true">
+            <div className="stock-order-panel-body">
+              {gridProduct && <VariantPicker money={money} product={gridProduct} variants={gridVariants} onAdd={(variant, side, quantity) => addLine(gridProduct, variant, side, quantity)} onBatchAdded={closeAddDialog} />}
+              {!gridProduct && (
+              <div className="stock-power-picker-placeholder">
                 <span>Select a lens to load its power grid</span>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
 
         {annotateOn && (
           <>

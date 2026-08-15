@@ -1199,6 +1199,13 @@ class Component extends DCLogic {
     this.loadMyFiles();
     window._dsApp = this;
     this.loadBillingFiles();
+    // A stock quotation can hand off directly to its server-created billing
+    // document. Keep this optional so normal Studio launches remain unchanged.
+    const billingDocumentId = new URLSearchParams(location.search).get('billingDocument');
+    if (billingDocumentId) {
+      this.switchTab('billing');
+      setTimeout(() => this.openBillingFile(billingDocumentId), 0);
+    }
     this.loadFileShareUsers();
     this.loadBillShareUsers();
     setTimeout(() => { this._billingReady = true; }, 900);
