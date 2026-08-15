@@ -9250,6 +9250,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           dispatch_provider: string
+          docstudio_document_id: string | null
           filename: string | null
           gatekeeper_order_id: number
           id: string
@@ -9260,6 +9261,7 @@ export type Database = {
           order_reference: string | null
           payload: Json
           po_number: string | null
+          quote_id: string | null
           receipt: Json | null
           released_at: string | null
           status: string
@@ -9275,6 +9277,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dispatch_provider?: string
+          docstudio_document_id?: string | null
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
@@ -9285,6 +9288,7 @@ export type Database = {
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          quote_id?: string | null
           receipt?: Json | null
           released_at?: string | null
           status?: string
@@ -9300,6 +9304,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dispatch_provider?: string
+          docstudio_document_id?: string | null
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
@@ -9310,6 +9315,7 @@ export type Database = {
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          quote_id?: string | null
           receipt?: Json | null
           released_at?: string | null
           status?: string
@@ -9337,6 +9343,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_lens_eligible_accounts"
             referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_docstudio_document_id_fkey"
+            columns: ["docstudio_document_id"]
+            isOneToOne: false
+            referencedRelation: "docstudio_billing_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes_customer"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11269,9 +11296,12 @@ export type Database = {
           category: string
           has_variants: boolean
           name: string
+          price_source: string
           product_id: string
           product_type: string
           sku: string
+          source_trail: Json
+          unit_cost: number
           unit_price: number
         }[]
       }
@@ -11591,6 +11621,21 @@ export type Database = {
           status: string
         }[]
       }
+      resolve_stock_order_price: {
+        Args: {
+          p_account_id: number
+          p_manual_price?: number
+          p_manual_reason?: string
+          p_product_id: string
+          p_product_type: string
+        }
+        Returns: {
+          price_source: string
+          source_trail: Json
+          unit_cost: number
+          unit_price: number
+        }[]
+      }
       revert_account_to_master: {
         Args: { p_customer_id: number }
         Returns: undefined
@@ -11604,6 +11649,28 @@ export type Database = {
         Returns: string
       }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
+      save_stock_order_as_quote: {
+        Args: { p_submission_id: string }
+        Returns: {
+          docstudio_document_id: string
+          quote_id: string
+          quote_number: string
+        }[]
+      }
+      save_stock_order_draft: {
+        Args: {
+          p_account_id?: number
+          p_instructions?: string
+          p_items?: Json
+          p_order_reference?: string
+          p_po_number?: string
+          p_submission_id?: string
+        }
+        Returns: {
+          order_total: number
+          submission_id: string
+        }[]
+      }
       send_helpdesk_ticket_message: {
         Args: {
           p_body: string
