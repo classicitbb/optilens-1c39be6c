@@ -3,7 +3,9 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, CircleDollarSign, Glasses, PackagePlus, Pencil, Trash2, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ToastAction } from "@/components/ui/toast";
+import { ArrowLeft, CircleDollarSign, Glasses, PackagePlus, Pencil, ScanLine, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
@@ -138,7 +140,8 @@ const StockOrderBuilderPage = () => {
   const money = useMemo(() => {
     const factor = displayCurrency === "BBD" && usdPerBbd > 0 ? 1 / usdPerBbd : 1;
     const prefix = displayCurrency === "BBD" ? "BBD $" : "$";
-    return (usd: number) => `${prefix}${((usd ?? 0) * factor).toFixed(2)}`;
+    const formatter = new Intl.NumberFormat("en-BB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (usd: number) => `${prefix}${formatter.format((usd ?? 0) * factor)}`;
   }, [displayCurrency, usdPerBbd]);
   const draftId = searchParams.get("draft");
   const quoteId = searchParams.get("quote");
@@ -367,8 +370,28 @@ const StockOrderBuilderPage = () => {
   };
 
   const removeLine = (key: string) => {
+    const lineIndex = lines.findIndex((line) => line.key === key);
+    const removedLine = lines[lineIndex];
+    if (!removedLine) return;
     setStaged(null);
     setLines((prev) => prev.filter((l) => l.key !== key));
+    toast({
+      title: `${removedLine.description} removed`,
+      description: "The order total has been updated.",
+      action: (
+        <ToastAction altText={`Restore ${removedLine.description}`} onClick={() => {
+          setStaged(null);
+          setLines((current) => {
+            if (current.some((line) => line.key === removedLine.key)) return current;
+            const restored = [...current];
+            restored.splice(Math.min(lineIndex, restored.length), 0, removedLine);
+            return restored;
+          });
+        }}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
   const updateLine = (key: string, patch: Partial<OrderLine>) => {
     setStaged(null);
@@ -378,6 +401,7 @@ const StockOrderBuilderPage = () => {
   // Display-only checkout estimate. Prices are not included in buildStageItems;
   // the server resolves the actual order price when staging/releasing.
   const checkoutEstimate = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  const totalQuantity = lines.reduce((sum, line) => sum + line.quantity, 0);
 
   const handleSaveAsQuotation = async () => {
     if (!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error") return;
@@ -555,8 +579,8 @@ const StockOrderBuilderPage = () => {
           <div className="pagehead" data-annotatable>
            <div className="stock-order-heading">
              <div className="stock-order-toolbar" data-annotation-ui>
-               <Button variant="ghost" size="sm" className="stock-order-back" onClick={() => navigate("/admin/website/quotations")}>
-                 <ArrowLeft className="h-4 w-4" /> Back
+               <Button variant="ghost" size="sm" className="stock-order-back" asChild>
+                 <Link to="/admin/website/quotations"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back</Link>
                </Button>
                <h1>Stock order form</h1>
                <div className="stock-order-toolbar-actions">
@@ -564,8 +588,8 @@ const StockOrderBuilderPage = () => {
                 <span className="stock-order-autosave" role="status" aria-live="polite">
                   {autosaveStatus === "error" ? "Not saved" : hasUnsavedChanges || autosaveStatus === "saving" ? "Saving…" : staged ? "Saved" : ""}
                 </span>
-               <Select value={accountId?.toString() ?? ""} disabled={accountsLoading} onValueChange={(value) => { setAccountId(value ? Number(value) : null); setLines([]); setStaged(null); }}>
-                 <SelectTrigger className="stock-order-account" aria-label="Customer account" title="Customer account">
+               <Select value={accountId?.toString() ?? ""} disabled={accountsLoading || lines.length > 0} onValueChange={(value) => { setAccountId(value ? Number(value) : null); setLines([]); setStaged(null); }}>
+                 <SelectTrigger className="stock-order-account" aria-label="Customer account" aria-describedby="stock-order-account-help" title={lines.length ? "Remove all order items before changing the account" : "Customer account"}>
                    <span className="stock-order-account-dot" />
                    <span className="stock-order-account-label">Ordering for</span>
                    <span className="stock-order-account-value">{selectedAccount?.name ?? (accountsLoading ? "Loading…" : "Select account")}</span>
@@ -574,6 +598,7 @@ const StockOrderBuilderPage = () => {
                    {eligibleAccounts.map((a) => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)}
                  </SelectContent>
                </Select>
+               <span id="stock-order-account-help" className="sr-only">{lines.length ? "Remove all order items before changing the account." : "Select the customer account for this order."}</span>
                <Select value={displayCurrency} onValueChange={(value) => setDisplayCurrency(value as "USD" | "BBD")}>
                  <SelectTrigger className="stock-order-currency" aria-label="Display currency" title="Change the currency used to display order prices">
                    <span>{displayCurrency}</span>
@@ -593,33 +618,34 @@ const StockOrderBuilderPage = () => {
           <div className="card-h">
             <div>
               <h2>Order details</h2>
-              <div className="sub">Retail is the temporary default while stock pricelists are being corrected.</div>
+              <div className="sub">PO and reference details save automatically.</div>
             </div>
-            {detailsCollapsed && <button ref={detailsEditRef} className="iconbtn sm stock-order-details-edit" type="button" title="Edit order details" aria-label="Edit order details" onClick={editOrderDetails}><Pencil aria-hidden="true" /></button>}
+            {detailsCollapsed && <button ref={detailsEditRef} className="iconbtn sm stock-order-details-edit" type="button" title="Edit order details" aria-label="Edit order details" aria-controls="stock-order-details-fields" aria-expanded="false" onClick={editOrderDetails}><Pencil aria-hidden="true" /></button>}
           </div>
-          <div className="stock-order-details-summary" aria-live="polite">
+          {detailsCollapsed && <div className="stock-order-details-summary" aria-live="polite">
             {[poNumber.trim() && `PO ${poNumber.trim()}`, orderReference.trim()].filter(Boolean).join(" · ")}
-          </div>
-          <div className="card-b" inert={detailsCollapsed}>
+          </div>}
+          {!detailsCollapsed && <div id="stock-order-details-fields" className="card-b">
             <div className="grid stock-order-details-grid">
               <div className="field stock-order-detail-field stock-order-detail-field-po">
                 <label htmlFor="stock-order-po-number">PO number <span className="opt-tag">optional</span></label>
                 <p id="stock-order-po-number-hint" className="stock-order-field-hint">Your purchase order or internal tracking number.</p>
-                <input ref={poNumberRef} id="stock-order-po-number" aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="YYYY-MM-DD" />
+                <input ref={poNumberRef} id="stock-order-po-number" name="poNumber" autoComplete="off" spellCheck={false} aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="e.g. PO-1048…" />
               </div>
               <div className="field stock-order-detail-field stock-order-detail-field-reference">
                 <label htmlFor="stock-order-reference">Order reference</label>
                 <p id="stock-order-reference-hint" className="stock-order-field-hint">A customer-facing or staff note that identifies this order.</p>
-                <input ref={orderReferenceRef} id="stock-order-reference" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale, phone order" />
+                <input ref={orderReferenceRef} id="stock-order-reference" name="orderReference" autoComplete="off" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale or phone order…" />
               </div>
             </div>
-          </div>
+          </div>}
         </div>
 
         <div className="card reveal stock-order-lines-card" style={{ gridColumn: "1/-1" }} data-annotatable>
           <div className="card-h stock-order-lines-header">
             <div>
               <h2>Order lines</h2>
+              <div className="sub">Scan an OPC or add published supplies and lens powers.</div>
             </div>
             <div className="stock-order-card-actions" aria-label="Add order items">
               <Button className="stock-order-add-button stock-order-add-supplies" type="button" onClick={() => setAddDialog("supplies")} disabled={!accountId}>
@@ -632,38 +658,63 @@ const StockOrderBuilderPage = () => {
           </div>
           <div className="card-b">
             <div className="rxwrap stock-order-lines-wrap">
-              <table className="rxtable stock-order-lines-table">
-                <thead><tr><th>Line</th><th>SKU / OPC</th><th>Description</th><th>Ref</th><th>Qty</th><th>Unit cost</th><th>Subtotal</th><th><span className="sr-only">Remove</span></th></tr></thead>
+              <table className={`rxtable stock-order-lines-table${lines.length ? "" : " is-empty"}`}>
+                <caption className="sr-only">Stock order items, quantities, prices, and subtotals</caption>
+                <thead><tr><th>Line</th><th>SKU / OPC</th><th>Description</th><th>Ref</th><th>Qty</th><th>Unit price</th><th>Subtotal</th><th><span className="sr-only">Remove</span></th></tr></thead>
                 <tbody>
                   {lines.map((line, index) => (
                     <tr key={line.key}>
                       <th scope="row">{index + 1}</th>
                       <td className="stock-order-line-sku">{line.sku}</td>
                       <td className="stock-order-line-description"><span>{line.description}</span></td>
-                      <td><input aria-label={`Reference for line ${index + 1}`} placeholder="Ref" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} /></td>
-                      <td><input aria-label={`Quantity for line ${index + 1}`} type="number" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} /></td>
+                      <td><input name={`line-${index + 1}-reference`} autoComplete="off" aria-label={`Reference for line ${index + 1}`} placeholder="Optional…" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} /></td>
+                      <td><input name={`line-${index + 1}-quantity`} autoComplete="off" aria-label={`Quantity for line ${index + 1}`} type="number" inputMode="numeric" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} /></td>
                       <td className="stock-order-money">
                         <span>{money(line.unitPrice)}</span>
                         {canEdit && (
-                          <span className="stock-order-profit" tabIndex={0} title={`Price source: ${line.priceSource ?? "saved quote"}. Cost: ${line.unitCost == null ? "not recorded" : money(line.unitCost)}. Margin: ${line.unitCost != null && line.unitPrice > 0 ? (((line.unitPrice - line.unitCost) / line.unitPrice) * 100).toFixed(1) : "—"}%`}>
-                            <CircleDollarSign aria-label="Margin and profit details" />
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button className="stock-order-profit" type="button" aria-label={`Show profit details for line ${index + 1}`}>
+                                <CircleDollarSign aria-hidden="true" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="stock-order-profit-tooltip">
+                              <strong>Profit details</strong>
+                              <span><b>Price source</b>{line.priceSource ?? "Saved quote"}</span>
+                              <span><b>Catalog cost</b>{line.unitCost == null ? "Not recorded" : money(line.unitCost)}</span>
+                              <span><b>Gross profit</b>{line.unitCost == null ? "Not recorded" : money((line.unitPrice - line.unitCost) * line.quantity)}</span>
+                              <span><b>Margin</b>{line.unitCost != null && line.unitPrice > 0 ? `${(((line.unitPrice - line.unitCost) / line.unitPrice) * 100).toFixed(1)}%` : "Not recorded"}</span>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </td>
                       <td className="stock-order-money stock-order-line-subtotal">{money(line.unitPrice * line.quantity)}</td>
                       <td><button className="iconbtn sm stock-order-remove-line" type="button" aria-label={`Remove line ${index + 1}`} title={`Remove line ${index + 1}`} onClick={() => removeLine(line.key)}><Trash2 aria-hidden="true" /></button></td>
                     </tr>
                   ))}
+                  {!lines.length && <tr className="stock-order-empty-row">
+                    <td colSpan={8}>
+                      <div className="stock-order-empty-state">
+                        <PackagePlus aria-hidden="true" />
+                        <span><strong>No items added yet</strong><small>Add a published product above or scan a SKU / OPC below.</small></span>
+                      </div>
+                    </td>
+                  </tr>}
                   <tr className="stock-order-new-line">
-                    <th scope="row">{lines.length + 1}</th>
-                    <td><input aria-label="Scan OPC for new line" value={scanValue} onChange={(e) => setScanValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleScan(); }} placeholder="Scan OPC" /></td>
-                    <td colSpan={6} className="stock-order-new-line-label">New line</td>
+                    <th scope="row"><span className="sr-only">New line</span><ScanLine aria-hidden="true" /></th>
+                    <td colSpan={7}>
+                      <div className="stock-order-scan-cell">
+                        <label className="sr-only" htmlFor="stock-order-scan-code">Scan SKU or OPC</label>
+                        <input id="stock-order-scan-code" name="scanCode" autoComplete="off" spellCheck={false} aria-describedby="stock-order-scan-hint" value={scanValue} onChange={(e) => setScanValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleScan(); }} placeholder="Scan SKU / OPC…" />
+                        <span id="stock-order-scan-hint">Press Enter to add</span>
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr>
                     <th colSpan={4} scope="row">Checkout estimate <span>Display only · not sent with this order</span></th>
-                    <td className="stock-order-qty-total">{lines.length} items</td>
+                    <td className="stock-order-qty-total">{totalQuantity} {totalQuantity === 1 ? "item" : "items"}</td>
                     <td />
                     <td className="stock-order-line-subtotal">{money(checkoutEstimate)}</td>
                     <td />
@@ -675,26 +726,28 @@ const StockOrderBuilderPage = () => {
           </div>
         </div>
 
-        <div className="steps" style={{ position: "static", gridColumn: "1/-1" }} data-annotatable>
-          <div className="step-actions" style={{ marginLeft: 0 }}>
-            <span className="stock-order-submit-route">Sent through OptiLens</span>
-            <button className="btn btn-ghost" disabled={!staged || !stageItems.length} onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
-            <button className="btn btn-ghost" disabled={!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error" || saveAsQuoteMutation.isPending} onClick={handleSaveAsQuotation}>
+        <section className="stock-order-actions" aria-label="Order actions" data-annotatable>
+          <div className="stock-order-action-status">
+            <span className="stock-order-submit-route">OptiLens order workflow</span>
+            <span id="stock-submit-gate" className={`stock-submit-gate${autosaveStatus === "error" ? " is-error" : hasUnsavedChanges || autosaveStatus === "saving" ? " is-saving" : " is-saved"}`} role="status" aria-live="polite">
+              {!accountId ? "Select an account to start an order." : !hasDraftContent ? "Add a product or enter an order detail to create a draft." : autosaveStatus === "error" ? `Changes not saved: ${autosaveError}` : hasUnsavedChanges || autosaveStatus === "saving" ? "Saving changes…" : "All changes saved."}
+            </span>
+          </div>
+          <div className="stock-order-action-buttons">
+            {staged && (
+              <Link className="linkbtn" to="/admin/website/quotations">View quotations</Link>
+            )}
+            <button className="btn btn-ghost" type="button" disabled={!staged || !stageItems.length} onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
+            <button className="btn btn-ghost" type="button" disabled={!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error" || saveAsQuoteMutation.isPending} onClick={handleSaveAsQuotation}>
               {saveAsQuoteMutation.isPending ? "Saving quotation…" : "Save as quotation"}
             </button>
-            {staged && (
-              <Link className="linkbtn" to="/admin/website/quotations">View drafts</Link>
-            )}
-            <span id="stock-submit-gate" className="stock-submit-gate" role="status">
-              {!accountId ? "Select an account to start an order." : !hasDraftContent ? "Add a product or enter a PO number or order reference to create an order." : autosaveStatus === "error" ? `Changes not saved: ${autosaveError}` : hasUnsavedChanges || autosaveStatus === "saving" ? "Saving changes…" : "All changes saved."}
-            </span>
-            <button className="btn btn-primary" disabled={!staged || !stageItems.length || hasUnsavedChanges || isSavingStockOrder || autosaveStatus === "error" || releaseMutation.isPending} aria-describedby="stock-submit-gate" title={!staged ? "The order will be ready when its first change has been saved." : !stageItems.length ? "Add a product before submitting the order." : hasUnsavedChanges ? "Wait for changes to save before submitting." : undefined} onClick={handleRelease}>
+            <button className="btn btn-primary" type="button" disabled={!staged || !stageItems.length || hasUnsavedChanges || isSavingStockOrder || autosaveStatus === "error" || releaseMutation.isPending} aria-describedby="stock-submit-gate" title={!staged ? "The order will be ready when its first change has been saved." : !stageItems.length ? "Add a product before submitting the order." : hasUnsavedChanges ? "Wait for changes to save before submitting." : undefined} onClick={handleRelease}>
               {releaseMutation.isPending ? "Submitting…" : "Submit order"}
             </button>
           </div>
-        </div>
+        </section>
         {showPreview && (
-          <pre style={{ gridColumn: "1/-1", background: "hsl(213 30% 12%)", color: "hsl(43 25% 92%)", borderRadius: 12, padding: "14px 16px", fontSize: 11.5, overflow: "auto" }}>
+          <pre className="stock-order-preview" aria-label="Order file preview">
             {previewText}
           </pre>
         )}
@@ -707,7 +760,7 @@ const StockOrderBuilderPage = () => {
             </SheetHeader>
             <div className="stock-order-supply-search">
               <label className="sr-only" htmlFor="stock-supply-search">Search published stock items</label>
-              <input id="stock-supply-search" autoFocus value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search published items…" />
+              <input id="stock-supply-search" name="supplySearch" type="search" autoComplete="off" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search published items…" />
             </div>
             <div className="stock-order-panel-results" aria-live="polite">
               {searchResults.map((item) => {
@@ -745,7 +798,7 @@ const StockOrderBuilderPage = () => {
             <div className="stock-lens-select field">
               <span id="stock-lens-product-label">Lens product</span>
               <Select value={gridProductKey ?? ""} onValueChange={(value) => setGridProductKey(value || null)}>
-                <SelectTrigger id="stock-lens-product" aria-labelledby="stock-lens-product-label" autoFocus className="stock-lens-select-trigger">
+                <SelectTrigger id="stock-lens-product" aria-labelledby="stock-lens-product-label" className="stock-lens-select-trigger">
                   <SelectValue placeholder="Select a published lens" />
                 </SelectTrigger>
                 <SelectContent className="stock-lens-select-menu">
@@ -778,7 +831,7 @@ const StockOrderBuilderPage = () => {
           <div className="stock-annotation-popover" data-annotation-ui>
             <div className="stock-annotation-label">Selected element</div>
             <div className="stock-annotation-target">{annotationTarget.label}</div>
-            <textarea autoFocus value={annotationText} onChange={(e) => setAnnotationText(e.target.value)} placeholder="What should be improved?" />
+            <textarea name="annotationText" autoComplete="off" autoFocus aria-label="Annotation text" value={annotationText} onChange={(e) => setAnnotationText(e.target.value)} placeholder="Describe the improvement…" />
             <div className="stock-annotation-priorities">
               {(["must", "prefer", "idea"] as AnnotationPriority[]).map((priority) => (
                 <button key={priority} type="button" aria-pressed={annotationPriority === priority} onClick={() => setAnnotationPriority(priority)}>{annotationPriorityLabel(priority)}</button>
@@ -838,7 +891,7 @@ const VariantPicker = ({
   const quantityCell = (id: string, variant: StockVariant | null, powerLabel?: string) => (
     <div className={powerLabel ? "stock-power-cell" : "stock-quantity-cell"}>
         <input
-          type="number" min={0} inputMode="numeric" value={qty[id] ?? ""}
+          name={`quantity-${id}`} autoComplete="off" type="number" min={0} inputMode="numeric" value={qty[id] ?? ""}
         onChange={(e) => setQty((p) => ({ ...p, [id]: Math.max(0, Number(e.target.value) || 0) }))}
         onDoubleClick={(e) => e.preventDefault()}
         aria-label={powerLabel ? `Quantity for ${powerLabel}` : "Quantity"}
@@ -888,6 +941,7 @@ const VariantPicker = ({
         </div>
         <div className="rxwrap">
           <table className="rxtable stock-power-table">
+            <caption className="sr-only">Power quantities for {product.name}</caption>
             <thead>
               <tr>
                 <th><span>Base</span><span>Sphere</span></th>

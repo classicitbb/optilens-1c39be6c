@@ -117,7 +117,17 @@ describe("admin stock order builder route accessibility", () => {
     expect(page).toContain('SelectTrigger className="stock-order-account"');
     expect(page).toContain('SelectTrigger className="stock-order-currency"');
     expect(page).not.toContain("stock-order-currency-label");
+    expect(page).toContain("new Intl.NumberFormat");
+    expect(page).toContain("Unit price");
+    expect(page).toContain("No items added yet");
+    expect(page).toContain('className="stock-order-actions"');
+    expect(page).toContain('name="poNumber"');
+    expect(page).toContain('name="orderReference"');
+    expect(page).toContain('name="scanCode"');
+    expect(page).toContain("<ToastAction");
+    expect(page).toContain('to="/admin/website/quotations"');
     expect(styles).toContain(".stock-order-panel-result.is-unavailable");
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toContain("@media (max-width: 1220px)");
   });
 });
