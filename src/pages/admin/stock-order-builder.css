@@ -114,19 +114,35 @@
   white-space: nowrap;
 }
 
+.stock-order-toolbar-select-menu {
+  z-index: 70;
+  max-height: min(22rem, var(--radix-select-content-available-height));
+  min-width: var(--radix-select-trigger-width);
+  overflow-y: auto;
+}
+
+.stock-order-toolbar-select-menu [role="option"] {
+  min-height: 36px;
+  font-size: 13px;
+}
+
 .stock-order-account {
+  width: min(26rem, 42vw);
+  justify-content: flex-start;
   gap: 7px;
   border-color: hsl(188 36% 68%);
   background: hsl(188 42% 96%);
   color: hsl(188 38% 28%);
 }
 
-.stock-order-account:focus-within {
+.stock-order-account:focus-visible,
+.stock-order-currency:focus-visible {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px var(--teal-soft);
 }
 
-.stock-order-account > span:nth-child(2) {
+.stock-order-account-label {
+  flex: 0 0 auto;
   color: hsl(188 30% 34%);
   font-size: 10px;
   font-weight: 700;
@@ -134,48 +150,25 @@
   text-transform: uppercase;
 }
 
+.stock-order-account-value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
 .stock-order-currency {
+  width: auto;
   gap: 5px;
   border-color: hsl(213 46% 70%);
   background: hsl(213 55% 97%);
   color: hsl(213 50% 29%);
-}
-
-.stock-order-currency:focus-within {
-  border-color: var(--teal);
-  box-shadow: 0 0 0 3px var(--teal-soft);
-}
-
-.stock-order-currency-label {
-  color: hsl(213 30% 42%);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
-}
-
-.stock-order-currency select {
-  width: 53px !important;
-  height: 32px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  color: hsl(213 66% 20%) !important;
-  font-size: 12px;
-  font-weight: 750;
-  box-shadow: none !important;
-}
-
-.stock-order-account select {
-  width: auto !important;
-  height: 32px !important;
-  padding: 0 17px 0 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  color: var(--fg) !important;
-  font-size: 12px;
-  font-weight: 600;
-  box-shadow: none !important;
 }
 
 .stock-order-account-dot {
@@ -183,10 +176,6 @@
   height: 6px;
   border-radius: 50%;
   background: var(--teal);
-}
-
-.stock-order-chevron {
-  opacity: .5;
 }
 
 .stock-order-details-grid {
@@ -1235,7 +1224,7 @@
     min-width: 0;
   }
 
-  .stock-order-account select { min-width: 0; max-width: 100%; }
+  .stock-order-account { max-width: 100%; }
 
   .stock-order-toolbar-actions .stock-order-currency {
     flex: 0 0 auto;

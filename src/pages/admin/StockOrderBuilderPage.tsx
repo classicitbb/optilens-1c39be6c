@@ -564,27 +564,25 @@ const StockOrderBuilderPage = () => {
                 <span className="stock-order-autosave" role="status" aria-live="polite">
                   {autosaveStatus === "error" ? "Not saved" : hasUnsavedChanges || autosaveStatus === "saving" ? "Saving…" : staged ? "Saved" : ""}
                 </span>
-               <label className="stock-order-account" title="Customer account">
-                 <span className="stock-order-account-dot" />
-                 <span>Ordering for</span>
-                 <select aria-label="Customer account" value={accountId ?? ""} disabled={accountsLoading} onChange={(e) => { setAccountId(e.target.value ? Number(e.target.value) : null); setLines([]); setStaged(null); }}>
-                   <option value="">{accountsLoading ? "Loading…" : "Select account"}</option>
-                   {eligibleAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                 </select>
-                 <span className="stock-order-chevron">▾</span>
-               </label>
-               <label className="stock-order-currency" title="Change the currency used to display order prices">
-                 <span className="stock-order-currency-label">Display</span>
-                 <select
-                   aria-label="Display currency"
-                   value={displayCurrency}
-                   onChange={(e) => setDisplayCurrency(e.target.value as "USD" | "BBD")}
-                 >
-                   <option value="USD">USD — US dollar</option>
-                   <option value="BBD">BBD — Barbadian dollar</option>
-                 </select>
-                 <span className="stock-order-chevron">▾</span>
-               </label>
+               <Select value={accountId?.toString() ?? ""} disabled={accountsLoading} onValueChange={(value) => { setAccountId(value ? Number(value) : null); setLines([]); setStaged(null); }}>
+                 <SelectTrigger className="stock-order-account" aria-label="Customer account" title="Customer account">
+                   <span className="stock-order-account-dot" />
+                   <span className="stock-order-account-label">Ordering for</span>
+                   <span className="stock-order-account-value">{selectedAccount?.name ?? (accountsLoading ? "Loading…" : "Select account")}</span>
+                 </SelectTrigger>
+                 <SelectContent className="stock-order-toolbar-select-menu">
+                   {eligibleAccounts.map((a) => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)}
+                 </SelectContent>
+               </Select>
+               <Select value={displayCurrency} onValueChange={(value) => setDisplayCurrency(value as "USD" | "BBD")}>
+                 <SelectTrigger className="stock-order-currency" aria-label="Display currency" title="Change the currency used to display order prices">
+                   <span>{displayCurrency}</span>
+                 </SelectTrigger>
+                 <SelectContent className="stock-order-toolbar-select-menu stock-order-currency-menu">
+                   <SelectItem value="USD">USD — US dollar</SelectItem>
+                   <SelectItem value="BBD">BBD — Barbadian dollar</SelectItem>
+                 </SelectContent>
+               </Select>
                <button className="iconbtn" type="button" title="Annotate improvements" aria-label="Annotate improvements" onClick={() => setAnnotateOn((current) => !current)}><Pencil aria-hidden="true" /></button>
                </div>
              </div>

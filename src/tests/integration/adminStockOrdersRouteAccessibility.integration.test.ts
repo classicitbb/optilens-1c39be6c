@@ -114,6 +114,9 @@ describe("admin stock order builder route accessibility", () => {
     expect(page).toContain('target="_blank"');
     expect(page).toContain("stock-order-product-type");
     expect(page).toContain('disabled={item.available === false}');
+    expect(page).toContain('SelectTrigger className="stock-order-account"');
+    expect(page).toContain('SelectTrigger className="stock-order-currency"');
+    expect(page).not.toContain("stock-order-currency-label");
     expect(styles).toContain(".stock-order-panel-result.is-unavailable");
     expect(styles).toContain("@media (max-width: 1220px)");
   });
