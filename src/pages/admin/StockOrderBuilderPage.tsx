@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import "@/features/rx-order/embed/rx-order.css";
 import "./stock-order-builder.css";
+import { resolveStockOrderAnnotationTarget } from "./stock-order-annotations";
 import {
   useStockEligibleAccounts, useStockOrderCatalog, useStockProductVariants, resolveStockCode,
   useStageStockOrder, useReleaseStockOrder, useSaveStockOrderAsQuote, useStockOrderDraft, useStockOrderPreview,
@@ -443,11 +444,8 @@ const StockOrderBuilderPage = () => {
     if (target.closest("[data-annotation-ui]")) return;
     event.preventDefault();
     event.stopPropagation();
-    const element = target.closest<HTMLElement>("[data-annotatable]") ?? target;
-    const fieldLabel = element.closest(".field")?.querySelector("label")?.textContent?.replace(/\s+/g, " ").trim();
-    const label = (element.getAttribute("aria-label") || fieldLabel || element.textContent || element.getAttribute("title") || "Stock order form")
-      .replace(/\s+/g, " ").trim().slice(0, 80);
-    setAnnotationTarget({ label: label || "Stock order form", rect: element.getBoundingClientRect() });
+    const annotation = resolveStockOrderAnnotationTarget(target);
+    setAnnotationTarget({ label: annotation.label, rect: annotation.element.getBoundingClientRect() });
     setAnnotationText("");
     setAnnotationPriority("prefer");
   };
