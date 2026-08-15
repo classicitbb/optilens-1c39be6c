@@ -14,6 +14,7 @@ import {
   type StageOrderItem, type StockCatalogItem, type StockProductType, type StockVariant,
   type DispatchProvider,
 } from "@/hooks/useStockOrderBuilder";
+import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
 
 // Stock Order Builder (/admin/website/stock-orders) — staff tool for
 // building SKU-identified stock orders and releasing them to Innova.
@@ -121,11 +122,20 @@ const StockOrderBuilderPage = () => {
   const [annotationPriority, setAnnotationPriority] = useState<AnnotationPriority>("prefer");
   const [showAnnotations, setShowAnnotations] = useState(false);
   const [detailsCollapsed, setDetailsCollapsed] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BBD">("USD");
   const orderDetailsRef = useRef<HTMLDivElement>(null);
   const detailsEditRef = useRef<HTMLButtonElement>(null);
   const orderReferenceRef = useRef<HTMLInputElement>(null);
 
   const { data: eligibleAccounts = [], isLoading: accountsLoading } = useStockEligibleAccounts();
+  // Catalog prices are stored in USD; the rate is USD per 1 BBD (0.5), so a
+  // BBD figure is the USD one divided by it.
+  const { data: usdPerBbd = 0.5 } = useBBDUSDRate();
+  const money = useMemo(() => {
+    const factor = displayCurrency === "BBD" && usdPerBbd > 0 ? 1 / usdPerBbd : 1;
+    const prefix = displayCurrency === "BBD" ? "BBD $" : "$";
+    return (usd: number) => `${prefix}${((usd ?? 0) * factor).toFixed(2)}`;
+  }, [displayCurrency, usdPerBbd]);
   const draftId = searchParams.get("draft");
   const { data: draft } = useStockOrderDraft(draftId);
   const selectedAccount = eligibleAccounts.find((a) => a.id === accountId) ?? null;
@@ -385,7 +395,7 @@ const StockOrderBuilderPage = () => {
         accountId, poNumber, orderReference, instructions, items: buildStageItems(),
       });
       setStaged({ id: result.submission_id, total: result.order_total });
-      toast({ title: "Order staged", description: `Total $${result.order_total.toFixed(2)}` });
+      toast({ title: "Order staged", description: `Total ${money(result.order_total)}` });
     } catch (err: any) {
       toast({ title: "Could not stage order", description: err.message, variant: "destructive" });
     }
@@ -491,7 +501,15 @@ const StockOrderBuilderPage = () => {
                  <span className="stock-order-chevron">▾</span>
                </label>
                <label className="stock-order-currency" title="Display currency">
-                 <span>USD $</span><span className="stock-order-chevron">▾</span>
+                 <select
+                   aria-label="Display currency"
+                   value={displayCurrency}
+                   onChange={(e) => setDisplayCurrency(e.target.value as "USD" | "BBD")}
+                 >
+                   <option value="USD">USD $</option>
+                   <option value="BBD">BBD $</option>
+                 </select>
+                 <span className="stock-order-chevron">▾</span>
                </label>
                <button className="iconbtn" type="button" title="Annotate improvements" aria-label="Annotate improvements" onClick={() => setAnnotateOn((current) => !current)}><Pencil aria-hidden="true" /></button>
                </div>
@@ -550,8 +568,8 @@ const StockOrderBuilderPage = () => {
                       <td className="stock-order-line-description"><span>{line.description}</span></td>
                       <td><input aria-label={`Reference for line ${index + 1}`} placeholder="Ref" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} /></td>
                       <td><input aria-label={`Quantity for line ${index + 1}`} type="number" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} /></td>
-                      <td className="stock-order-money">${line.unitPrice.toFixed(2)}</td>
-                      <td className="stock-order-money stock-order-line-subtotal">${(line.unitPrice * line.quantity).toFixed(2)}</td>
+                      <td className="stock-order-money">{money(line.unitPrice)}</td>
+                      <td className="stock-order-money stock-order-line-subtotal">{money(line.unitPrice * line.quantity)}</td>
                       <td><button className="iconbtn sm stock-order-remove-line" type="button" aria-label={`Remove line ${index + 1}`} title={`Remove line ${index + 1}`} onClick={() => removeLine(line.key)}><Trash2 aria-hidden="true" /></button></td>
                     </tr>
                   ))}
@@ -566,7 +584,7 @@ const StockOrderBuilderPage = () => {
                     <th colSpan={4} scope="row">Checkout estimate <span>Display only · not sent with this order</span></th>
                     <td className="stock-order-qty-total">{lines.length} items</td>
                     <td />
-                    <td className="stock-order-line-subtotal">${checkoutEstimate.toFixed(2)}</td>
+                    <td className="stock-order-line-subtotal">{money(checkoutEstimate)}</td>
                     <td />
                   </tr>
                 </tfoot>
@@ -627,9 +645,9 @@ const StockOrderBuilderPage = () => {
                       setExpandedProductKey(isExpanded ? null : key);
                     }}>
                       <span><b>{item.name}</b>{item.category && <small>{item.category}</small>}</span>
-                      <span>${item.unit_price.toFixed(2)}</span>
+                      <span>{money(item.unit_price)}</span>
                     </button>
-                    {isExpanded && <VariantPicker product={item} variants={expandedVariants} onAdd={(variant, side, quantity) => { addLine(item, variant, side, quantity); closeAddDialog(); }} />}
+                    {isExpanded && <VariantPicker money={money} product={item} variants={expandedVariants} onAdd={(variant, side, quantity) => { addLine(item, variant, side, quantity); closeAddDialog(); }} />}
                   </div>
                 );
               })}
@@ -651,7 +669,7 @@ const StockOrderBuilderPage = () => {
                 {lensCatalog.filter((item) => item.has_variants).map((item) => <option key={productKey(item)} value={productKey(item)}>{item.name}</option>)}
               </select>
             </div>
-            {gridProduct && <VariantPicker product={gridProduct} variants={gridVariants} onAdd={(variant, side, quantity) => addLine(gridProduct, variant, side, quantity)} onBatchAdded={closeAddDialog} />}
+            {gridProduct && <VariantPicker money={money} product={gridProduct} variants={gridVariants} onAdd={(variant, side, quantity) => addLine(gridProduct, variant, side, quantity)} onBatchAdded={closeAddDialog} />}
             {!gridProduct && (
               <div className="stock-power-picker-placeholder" aria-hidden="true">
                 <span>Select a lens to load its power grid</span>
@@ -707,10 +725,11 @@ const StockOrderBuilderPage = () => {
  *  power matrix; every other variant set lists. A product with no variants at
  *  all is ordered by its own SKU. */
 const VariantPicker = ({
-  product, variants, onAdd, onBatchAdded,
+  product, variants, onAdd, onBatchAdded, money,
 }: {
   product: StockCatalogItem;
   variants: StockVariant[];
+  money: (usd: number) => string;
   onAdd: (variant: StockVariant | null, side: "right" | "left" | "either", qty: number) => void;
   onBatchAdded?: () => void;
 }) => {
@@ -779,7 +798,7 @@ const VariantPicker = ({
       <div className="stock-power-picker">
         <div className="stock-power-picker-heading">
           <span>Cylinder / ADD</span>
-          <span>${product.unit_price.toFixed(2)} each</span>
+          <span>{money(product.unit_price)} each</span>
         </div>
         <div className="rxwrap">
           <table className="rxtable stock-power-table">
@@ -805,7 +824,7 @@ const VariantPicker = ({
           </table>
         </div>
         <div className="stock-power-picker-footer" aria-live="polite">
-          <span>{selectedPowers ? `${selectedPowers} powers selected · ${selectedLines} order lines · $${selectedTotal.toFixed(2)}` : "Enter a quantity to select a power."}</span>
+          <span>{selectedPowers ? `${selectedPowers} powers selected · ${selectedLines} order lines · ${money(selectedTotal)}` : "Enter a quantity to select a power."}</span>
           <button className="btn btn-primary" type="button" disabled={!selectedPowers} onClick={addSelected}>Add selected to order</button>
         </div>
       </div>
@@ -814,7 +833,7 @@ const VariantPicker = ({
 
   return (
     <div style={{ padding: "0 4px 14px" }}>
-      <div className="hint" style={{ marginBottom: 8 }}>${product.unit_price.toFixed(2)} per unit.</div>
+      <div className="hint" style={{ marginBottom: 8 }}>{money(product.unit_price)} per unit.</div>
       {variants.map((variant) => (
         <div key={variant.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
           <span style={{ flex: 1, minWidth: 0 }}>{variant.title}</span>
