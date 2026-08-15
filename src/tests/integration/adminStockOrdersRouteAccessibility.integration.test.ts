@@ -111,6 +111,8 @@ describe("admin stock order builder route accessibility", () => {
     expect(page).toContain("if (loadedDraftId && poNumber.trim() && orderReference.trim())");
     expect(page).toContain("useStoreProducts()");
     expect(page).toContain("Configure price & variants");
+    expect(page).toContain('target="_blank"');
+    expect(page).toContain("stock-order-product-type");
     expect(page).toContain('disabled={item.available === false}');
     expect(styles).toContain(".stock-order-panel-result.is-unavailable");
     expect(styles).toContain("@media (max-width: 1220px)");

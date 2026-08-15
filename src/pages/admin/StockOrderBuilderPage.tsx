@@ -725,10 +725,10 @@ const StockOrderBuilderPage = () => {
                       }
                       setExpandedProductKey(isExpanded ? null : key);
                     }}>
-                      <span><b>{item.name}</b>{item.category && <small>{item.category}</small>}</span>
+                      <span><b>{item.name}</b><small className="stock-order-product-type">{item.category || PRODUCT_TYPE_LABEL[item.product_type]}</small></span>
                       <span>{item.available === false ? "Unavailable" : money(item.unit_price)}</span>
                     </button>
-                    {item.available === false && <Link className="stock-order-availability-link" to={`/admin/website/store/variants/${item.product_type}/${item.product_id}`}>Configure price & variants</Link>}
+                    {item.available === false && <Link className="stock-order-availability-link" to={`/admin/website/store/variants/${item.product_type}/${item.product_id}`} target="_blank" rel="noopener noreferrer">Configure price & variants</Link>}
                     {isExpanded && <VariantPicker money={money} product={item} variants={expandedVariants} onAdd={(variant, side, quantity) => { addLine(item, variant, side, quantity); closeAddDialog(); }} />}
                   </div>
                 );

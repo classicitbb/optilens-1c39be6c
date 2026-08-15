@@ -851,9 +851,21 @@
   text-underline-offset: 2px;
 }
 
-.stock-order-panel-result b,
-.stock-order-panel-result small { display: block; }
-.stock-order-panel-result small { color: var(--muted-fg); font-size: 12px; }
+.stock-order-panel-result b { display: inline; }
+.stock-order-product-type {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 7px;
+  padding: 2px 6px;
+  border: 1px solid hsl(213 22% 80%);
+  border-radius: 999px;
+  background: hsl(213 40% 97%);
+  color: hsl(213 30% 40%);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  vertical-align: 1px;
+}
 .stock-order-panel-result .stock-quantity-cell {
   justify-content: flex-end;
   padding: 0 10px 10px;
