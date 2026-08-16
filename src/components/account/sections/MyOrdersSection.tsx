@@ -282,7 +282,7 @@ const MyOrdersSection = () => {
   const otherOrders = orders.filter((order) => !["draft", "pending", "confirmed", "processing", "completed"].includes(order.status));
 
   const groupedOrders = [
-    { key: "pending", title: "Pending orders", description: "Orders currently in progress or awaiting fulfillment.", orders: pendingOrders },
+    { key: "pending", title: "Pending Web Orders", description: "Orders currently in progress or awaiting fulfillment.", orders: pendingOrders },
     { key: "completed", title: "Completed orders", description: "Orders that have been fully completed.", orders: completedOrders },
     { key: "other", title: "Other statuses", description: "Cancelled, shipped, or other order states.", orders: otherOrders },
   ].filter((group) => group.orders.length > 0);
