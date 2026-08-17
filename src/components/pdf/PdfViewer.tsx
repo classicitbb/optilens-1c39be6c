@@ -42,10 +42,13 @@ let pdfjsPromise: Promise<any> | null = null;
 const loadPdfjs = async () => {
   if (!pdfjsPromise) {
     pdfjsPromise = (async () => {
-      const pdfjs = await import("pdfjs-dist");
-      const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+      // The legacy build targets older browsers (iOS Safari, in-app webviews)
+      // and avoids very recent JS APIs that newer pdf.js builds require.
+      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+      const workerUrl = (await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url")).default;
       pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
       return pdfjs;
+
     })();
   }
   return pdfjsPromise;
