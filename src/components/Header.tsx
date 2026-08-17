@@ -613,6 +613,17 @@ const Header = () => {
                 <span className="sr-only">Open assistant</span>
               </Button>
 
+              {!user ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:inline-flex"
+                  onClick={() => openAssistant({ formKind: "trade_signup" })}
+                >
+                  Create a trade account
+                </Button>
+              ) : null}
+
               {user ?
             <DropdownMenu>
                   <DropdownMenuTrigger asChild>

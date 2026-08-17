@@ -68,7 +68,7 @@ describe("admin-only CV Portal Copilot", () => {
     const config = read("supabase/config.toml");
     expect(edge).toContain('allowedRoles: ["admin"]');
     expect(edge).toContain('inputMode === "voice" && !transcriptConfirmed');
-    expect(edge).toContain("classifyWithClaude(command, settings.model)");
+    expect(edge).toContain("classifyWithClaude(command, settings.model, history)");
     expect(edge).toContain('operation === "decide-action"');
     expect(edge).toContain('from("copilot_audit_events")');
     expect(edge).toContain("actions,");

@@ -4,7 +4,7 @@ import type { AssistantAnswerMode, AssistantAudience, AssistantProfile, Assistan
 export type AssistantQuickAction =
   | { type: "query"; label: string; query: string; profile?: AssistantProfile; audience?: AssistantAudience }
   | { type: "web_search"; label: string; query: string }
-  | { type: "form"; label: string; profile?: AssistantProfile }
+  | { type: "form"; label: string; profile?: AssistantProfile; kind?: AssistantFormKind }
   | { type: "submit_form"; label: string }
   | { type: "cancel_form"; label: string }
   | { type: "link"; label: string; href: string; external?: boolean };
@@ -42,7 +42,7 @@ export type AssistantMessage =
       text: string;
     };
 
-export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request";
+export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request" | "trade_signup";
 
 export type AssistantTaskKind = "contact" | "support" | "quote" | "policy_help";
 
@@ -66,6 +66,9 @@ export interface AssistantFormState {
   productTopic: string;
   customerName: string;
   summary: string;
+  password: string;
+  taxId: string;
+  country: string;
   taskContext?: AssistantTaskContext;
   pendingField?: "name" | "email" | "businessName" | "requesterType" | "market" | "issueType" | "requestTitle" | "customerName" | "summary";
 }
@@ -97,7 +100,7 @@ export interface CompanionAssistantContextValue {
   startNewConversation: () => void;
   saveConversation: () => Promise<void>;
   isSavingConversation: boolean;
-  nudge: { message: string; query?: string } | null;
+  nudge: { message: string; query?: string; formKind?: AssistantFormKind } | null;
   dismissNudge: () => void;
   isSubmitting: boolean;
   openDetachedWindow: () => void;

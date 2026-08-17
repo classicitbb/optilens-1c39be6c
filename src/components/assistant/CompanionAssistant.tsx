@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Loader2, MessageCircle, MessageSquarePlus, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Expand, ExternalLink, Eye, EyeOff, Loader2, MessageCircle, MessageSquarePlus, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import { cn } from "@/lib/utils";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import type { AssistantQuickAction } from "@/features/assistant/CompanionAssistantContext";
@@ -280,41 +282,116 @@ const AssistantRequestForm = () => {
   const { user } = useAuth();
   const { identity } = usePortalIdentity();
   const { formState, updateForm, submitForm, submitQuickAction, isSubmitting } = useCompanionAssistant();
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   if (!formState) return null;
 
   const isQuoteRequest = formState.kind === "quote_request";
   const isPortalSupport = formState.kind === "portal_support";
   const isPricelistRequest = formState.kind === "pricelist_request";
+  const isTradeSignup = formState.kind === "trade_signup";
   const accountName = identity?.organizationName || identity?.customerName || formState.customerName || "Signed-in account";
   const requesterName = formState.name || user?.email || "Signed-in user";
   const requestTitle = isQuoteRequest ? (formState.requestTitle || "") : formState.issueType;
   const hasRequiredContact = isPortalSupport || (formState.name.trim().length > 0 && formState.email.trim().length > 0);
   const isEligiblePricelistRequester = /\b(optician|optical|dispens|clinic|practice|lab(?:oratory)?|retail(?:er)?|store|ophthalm|eye\s*care)\b/i.test(formState.requesterType);
-  const canSubmit = isQuoteRequest
+  const canSubmit = isTradeSignup
+    ? formState.name.trim().length > 0
+      && formState.email.trim().length > 0
+      && formState.password.trim().length >= 6
+      && formState.phone.trim().length > 0
+      && formState.businessName.trim().length > 0
+      && formState.taxId.trim().length > 0
+      && formState.country.trim().length > 0
+    : isQuoteRequest
     ? Boolean(user) && requestTitle.trim().length > 0
     : hasRequiredContact && requestTitle.trim().length > 0 && formState.summary.trim().length > 0 && (!isPricelistRequest || (formState.businessName.trim() && formState.market.trim() && isEligiblePricelistRequester));
 
   return (
     <form
       className="space-y-4 rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft"
-      aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
+      aria-label={isTradeSignup ? "Trade account signup form" : isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
         if (canSubmit) void submitForm();
       }}
     >
       <div className="space-y-1">
-        <p className="font-semibold text-foreground">Review your request before sending</p>
-        <p className="text-xs leading-5 text-muted-foreground">Nothing is sent until you choose Confirm &amp; send.</p>
+        <p className="font-semibold text-foreground">{isTradeSignup ? "Review your trade account details" : "Review your request before sending"}</p>
+        <p className="text-xs leading-5 text-muted-foreground">{isTradeSignup ? "Nothing is created until you choose Create account." : "Nothing is sent until you choose Confirm & send."}</p>
       </div>
 
-      <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
-        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
-        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Asking for</span><span className="text-right font-medium text-foreground">{requesterName}{accountName && accountName !== requesterName ? ` · ${accountName}` : ""}</span></div>
-        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Help with</span><span className="text-right font-medium text-foreground">{isQuoteRequest ? "A quotation" : "A support request"}</span></div>
-      </div>
+      {!isTradeSignup ? (
+        <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
+          <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
+          <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Asking for</span><span className="text-right font-medium text-foreground">{requesterName}{accountName && accountName !== requesterName ? ` · ${accountName}` : ""}</span></div>
+          <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Help with</span><span className="text-right font-medium text-foreground">{isQuoteRequest ? "A quotation" : "A support request"}</span></div>
+        </div>
+      ) : null}
 
-      {isQuoteRequest ? (
+      {isTradeSignup ? (
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="assistant-trade-name">Full name</Label>
+            <Input id="assistant-trade-name" value={formState.name} onChange={(event) => updateForm({ name: event.target.value })} placeholder="Jordan Smith" disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="assistant-trade-phone">Phone number</Label>
+              <Input id="assistant-trade-phone" type="tel" inputMode="tel" value={formState.phone} onChange={(event) => updateForm({ phone: event.target.value })} placeholder="+1 246 555 0101" disabled={isSubmitting} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assistant-trade-business">Business name</Label>
+              <Input id="assistant-trade-business" value={formState.businessName} onChange={(event) => updateForm({ businessName: event.target.value })} placeholder="Vision Center Ltd" disabled={isSubmitting} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="assistant-trade-tax">Tax / business registration #</Label>
+            <Input id="assistant-trade-tax" value={formState.taxId} onChange={(event) => updateForm({ taxId: event.target.value })} placeholder="e.g. VAT / TIN / business reg #" disabled={isSubmitting} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="assistant-trade-country">Country</Label>
+            <Select value={formState.country || undefined} onValueChange={(value) => updateForm({ country: value })}>
+              <SelectTrigger id="assistant-trade-country">
+                <SelectValue placeholder="Select your country" />
+              </SelectTrigger>
+              <SelectContent>
+                {COUNTRY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="assistant-trade-email">Email</Label>
+              <Input id="assistant-trade-email" type="email" value={formState.email} onChange={(event) => updateForm({ email: event.target.value })} placeholder="you@example.com" disabled={isSubmitting} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assistant-trade-password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="assistant-trade-password"
+                  type={isPasswordVisible ? "text" : "password"}
+                  value={formState.password}
+                  onChange={(event) => updateForm({ password: event.target.value })}
+                  placeholder="Min. 6 characters"
+                  className="pr-9"
+                  disabled={isSubmitting}
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
+                  aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                  onClick={() => setIsPasswordVisible((visible) => !visible)}
+                >
+                  {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs leading-5 text-muted-foreground">Business details qualify you for trade pricing and immediate ordering. We will email a confirmation link before the account activates.</p>
+        </div>
+      ) : isQuoteRequest ? (
         <div className="space-y-2">
           <Label htmlFor="assistant-quote-title">Quote title</Label>
           <Input
@@ -361,7 +438,7 @@ const AssistantRequestForm = () => {
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
         <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
-        <Button type="submit" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
+        <Button type="submit" disabled={!canSubmit || isSubmitting}>{isTradeSignup ? (isSubmitting ? "Creating…" : "Create account") : isSubmitting ? "Sending…" : "Confirm & send"}</Button>
       </div>
     </form>
   );
@@ -567,9 +644,9 @@ const CompanionAssistant = () => {
             </Button>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button size="sm" className="rounded-full" onClick={() => { setIsCollapsed(false); openAssistant({ query: nudge.query, autoSubmit: Boolean(nudge.query) }); }}>
+            <Button size="sm" className="rounded-full" onClick={() => { setIsCollapsed(false); openAssistant({ query: nudge.query, autoSubmit: Boolean(nudge.query), formKind: nudge.formKind }); }}>
               <Sparkles className="mr-2 h-4 w-4" />
-              Open assistant
+              {nudge.formKind === "trade_signup" ? "Create a trade account" : "Open assistant"}
             </Button>
             <Button size="sm" variant="outline" className="rounded-full border-border/60 bg-background/70 text-foreground backdrop-blur-md hover:bg-muted/80" onClick={handleNudgeDismiss}>
               Not now

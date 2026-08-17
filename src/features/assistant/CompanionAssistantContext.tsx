@@ -90,6 +90,7 @@ const getStarterActions = (pathname: string, isAuthenticated: boolean): Assistan
       ]
     : [
         ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" as const }]),
+        ...(isAuthenticated ? [] : [{ type: "form" as const, label: "Create a trade account", profile: "customer_support" as const, kind: "trade_signup" as const }]),
         { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=patient" },
         { type: "web_search", label: "Search the web", query: "Best lens coatings for digital screen use" },
         { type: "form", label: "Get support", profile: "customer_support" },
@@ -101,9 +102,17 @@ const isKeyPage = (pathname: string) =>
   pathname.startsWith("/knowledge") ||
   pathname.startsWith("/lenses") ||
   pathname.startsWith("/coatings") ||
+  pathname.startsWith("/store") ||
   pathname.startsWith("/profile");
 
 const getRouteNudge = (pathname: string, isAuthenticated: boolean) => {
+  if (pathname.startsWith("/store") && !isAuthenticated) {
+    return {
+      message: "Trade pricing is hidden until you're signed in. Set up a trade account without leaving this page?",
+      formKind: "trade_signup" as const,
+    };
+  }
+
   if (pathname.startsWith("/find-a-retailer") && !isAuthenticated) {
     return {
       message: "Need help narrowing down a retailer or clinic?",
@@ -164,6 +173,9 @@ const createInitialFormState = ({
     productTopic: "",
     customerName: accountName,
     summary: "",
+    password: "",
+    taxId: "",
+    country: "",
   };
 };
 
@@ -196,7 +208,7 @@ const getNextFormField = (form: AssistantFormState): AssistantFormState["pending
     if (!form.market.trim()) return "market";
     return !form.summary.trim() ? "summary" : undefined;
   }
-  if (form.kind === "portal_support") return undefined;
+  if (form.kind === "portal_support" || form.kind === "trade_signup") return undefined;
   return !form.name.trim() ? "name" : !form.email.trim() ? "email" : !form.summary.trim() ? "summary" : undefined;
 };
 
@@ -205,7 +217,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const navigate = useNavigate();
   const pathname = location.pathname;
   const isDetachedRoute = pathname === "/assistant/window";
-  const { user } = useAuth();
+  const { user, signUp } = useAuth();
   const { identity } = usePortalIdentity();
   const { data: products = [] } = useStoreProducts();
   const { data: knowledge = [] } = usePublicKnowledge();
@@ -224,7 +236,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const [currentQuery, setCurrentQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingConversation, setIsSavingConversation] = useState(false);
-  const [nudge, setNudge] = useState<{ message: string; query?: string } | null>(null);
+  const [nudge, setNudge] = useState<{ message: string; query?: string; formKind?: AssistantFormKind } | null>(null);
   const [formState, setFormState] = useState<AssistantFormState | null>(null);
   const lastQueryRef = useRef<string | null>(null);
   const negativeFeedbackRef = useRef(false);
@@ -440,6 +452,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       id: messageId, role: "assistant", kind: "text",
       text: next.kind === "quote_request"
         ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
+        : next.kind === "trade_signup"
+        ? "Let's get your trade account set up. Fill in your business details below — nothing is created until you confirm, and you can keep browsing here while it's pending."
         : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
     }]);
   }, [accountName, activeProfile, pathname, userEmail, userName]);
@@ -789,6 +803,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         id: messageId, role: "assistant", kind: "text",
         text: next.kind === "quote_request"
           ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
+          : next.kind === "trade_signup"
+          ? "Let's get your trade account set up. Fill in your business details below — nothing is created until you confirm, and you can keep browsing here while it's pending."
           : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
       }]);
     }
@@ -883,7 +899,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
 
     if (action.type === "form") {
-      openForm(action.profile ?? activeProfile);
+      openForm(action.profile ?? activeProfile, action.kind ? { kind: action.kind } : undefined);
       return;
     }
 
@@ -910,6 +926,84 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
   const submitForm = useCallback(async () => {
     if (!formState) return;
+
+    if (formState.kind === "trade_signup") {
+      const fullName = formState.name.trim();
+      const email = formState.email.trim();
+      const password = formState.password.trim();
+      const phone = formState.phone.trim();
+      const businessName = formState.businessName.trim();
+      const taxId = formState.taxId.trim();
+      const country = formState.country.trim();
+      if (!fullName || !email || password.length < 6 || !phone || !businessName || !taxId || !country) return;
+
+      setIsSubmitting(true);
+      try {
+        const onboardingCompletedAt = new Date().toISOString();
+        const { error } = await signUp(email, password, {
+          fullName,
+          phone,
+          organizationName: businessName,
+          audience: "professional",
+          interestIntent: "products",
+          onboardingCompletedAt,
+        });
+
+        if (error) {
+          const alreadyRegistered = error.message.includes("User already registered");
+          setMessages((current) => [...current, {
+            id: createId("assistant"),
+            role: "assistant",
+            kind: "text",
+            text: alreadyRegistered
+              ? "This email is already registered. Sign in instead, or use a different email to create a new trade account."
+              : `I could not create that account: ${error.message}`,
+            quickActions: alreadyRegistered
+              ? [{ type: "link", label: "Sign in instead", href: `/auth?mode=signin&redirect=${encodeURIComponent(pathname)}` }]
+              : undefined,
+          }]);
+          return;
+        }
+
+        try {
+          await submitPublicInquiry({
+            inquiryType: "auth_onboarding_interest",
+            name: fullName,
+            email,
+            phone,
+            businessName,
+            message: "Trade account created via the assistant.",
+            notes: JSON.stringify({ audience: "professional", intent: "products", tax_id: taxId, country, onboarding_completed_at: onboardingCompletedAt }),
+            pageSlug: `${pathname}${location.search}${location.hash}`,
+            sourceChannel: "ai_assistant",
+            honeypot: "",
+            startedAt: formState.startedAt,
+          });
+        } catch {
+          // Lead signal is best-effort — the account itself is already created.
+        }
+
+        setFormState(null);
+        setMessages((current) => [
+          ...current,
+          {
+            id: createId("assistant"),
+            role: "assistant",
+            kind: "confirmation",
+            title: "Trade account created",
+            text: `We sent a confirmation link to ${email}. Open it to activate your account — trade pricing and ordering unlock as soon as it is confirmed. You can keep browsing here in the meantime.`,
+            quickActions: [
+              { type: "link", label: "Browse the catalog", href: "/store" },
+              { type: "link", label: "View knowledge hub", href: "/knowledge" },
+              { type: "query", label: "Ask another question", query: "Help me find the best page for my next question." },
+            ],
+          },
+        ]);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     const summary = formState.summary.trim();
     const isQuoteRequest = formState.kind === "quote_request";
@@ -1026,7 +1120,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [accountName, activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, user]);
+  }, [accountName, activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, signUp, user]);
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,

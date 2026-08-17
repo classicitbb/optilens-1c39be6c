@@ -63,7 +63,7 @@ const audit = async (
   if (error) throw error;
 };
 
-const classifyWithClaude = async (command: string, configuredModel?: unknown): Promise<boolean> => {
+const classifyWithClaude = async (command: string, configuredModel?: unknown, history: { role: "user" | "assistant"; content: string }[] = []): Promise<boolean> => {
   if (isErpPortalRolloutCommand(command)) return true;
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
   const model = stringValue(configuredModel, 160) || Deno.env.get("PORTAL_COPILOT_CLAUDE_MODEL")?.trim();
@@ -81,7 +81,10 @@ const classifyWithClaude = async (command: string, configuredModel?: unknown): P
       max_tokens: 80,
       temperature: 0,
       system: "Classify an admin command. Return only ERP_PORTAL_ROLLOUT when it asks to identify ERP/Innovations customers without portal access and prepare onboarding actions. Otherwise return UNSUPPORTED.",
-      messages: [{ role: "user", content: command }],
+      messages: [
+        ...history.slice(-8),
+        { role: "user", content: command },
+      ],
     }),
   });
   if (!response.ok) return false;
@@ -120,7 +123,17 @@ const touchConversation = async (db: any, conversationId: string, title?: string
   if (error) throw error;
 };
 
-const loadState = async (db: any, actorUserId: string, conversationId?: string, runId?: string) => {
+const loadConversationMessages = async (db: any, conversationId: string) => {
+  const { data, error } = await db.from("copilot_messages")
+    .select("role,content")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return (data ?? []).reverse() as { role: "user" | "assistant"; content: string }[];
+};
+
+const loadState = async (db: any, actorUserId: string, conversationId?: string, runId?: string | null) => {
   const { data: conversations, error: conversationsError } = await db
     .from("copilot_conversations")
     .select("id,title,created_by,created_at,updated_at")
@@ -139,9 +152,13 @@ const loadState = async (db: any, actorUserId: string, conversationId?: string, 
     .order("created_at", { ascending: false })
     .limit(12);
   if (runsError) throw runsError;
-  const selectedRunId = runId && runs?.some((run: { id: string }) => run.id === runId)
-    ? runId
-    : runs?.[0]?.id;
+  // The conversation is the primary view. A null runId is used after a normal
+  // chat turn so the thread does not snap back to an older workflow review.
+  const selectedRunId = runId === null
+    ? undefined
+    : runId && runs?.some((run: { id: string }) => run.id === runId)
+      ? runId
+      : runs?.[0]?.id;
   let actions: unknown[] = [];
   let auditEvents: unknown[] = [];
   let messages: unknown[] = [];
@@ -458,9 +475,15 @@ Deno.serve(async (req) => {
         .eq("workflow", "erp_portal_rollout")
         .single();
       if (settingsError) throw settingsError;
-      if (!(await classifyWithClaude(command, settings.model))) {
+      const requestedConversationId = stringValue(body.conversationId, 80) || undefined;
+      const existingConversation = requestedConversationId
+        ? await requireOwnedConversation(db, actorUserId, requestedConversationId)
+        : null;
+      const history = existingConversation ? await loadConversationMessages(db, existingConversation.id) : [];
+      if (!(await classifyWithClaude(command, settings.model, history))) {
         // Not a rollout command — answer as a normal chat turn instead of failing.
-        const chatConversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
+        const chatConversation = existingConversation ?? await requireOwnedConversation(db, actorUserId);
+        const chatHistory = existingConversation ? history : [];
         const apiKey = Deno.env.get("LOVABLE_API_KEY")?.trim();
         let reply = "I can help with ERP portal rollout commands (for example: \"roll out portal access to ERP customers\"). AI chat is not configured in this environment.";
         if (apiKey) {
@@ -472,8 +495,9 @@ Deno.serve(async (req) => {
               messages: [
                 {
                   role: "system",
-                  content: "You are the Classic Visions Portal Copilot assisting an internal admin. Answer helpfully and concisely. You can prepare ERP portal rollout actions when asked (invites and follow-up tasks); for anything else, answer directly. Never invent prices, discounts, credit terms or delivery dates.",
+                  content: "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, ask a concise clarifying question when needed, and answer directly when you can. You can prepare ERP portal rollout actions and evidence-backed CRM follow-up tasks when asked; those workflows appear as approval cards and never execute without explicit approval. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions. Clearly distinguish known data from suggestions or missing information.",
                 },
+                ...chatHistory.slice(-12),
                 { role: "user", content: command },
               ],
             }),
@@ -493,7 +517,7 @@ Deno.serve(async (req) => {
         ]);
         if (chatMessagesError) throw chatMessagesError;
         await touchConversation(db, chatConversation.id, chatConversation.title === "New chat" ? command : undefined);
-        return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id));
+        return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, null));
       }
       const conversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
       const isUntitled = conversation.title === "New chat";
@@ -722,7 +746,7 @@ Deno.serve(async (req) => {
       await audit(db, actorUserId, "attachment_analyzed", {
         metadata: { files: names, hasMessage: message.length > 0 },
       });
-      return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id));
+      return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id, null));
     }
 
     return jsonResponse(req, 400, { error: "Unknown Copilot operation" });

@@ -330,7 +330,9 @@ const PortalCopilotPage = () => {
   );
   const conversationMessages = useMemo(() => displayedState?.messages ?? [], [displayedState]);
   const selectedRun = useMemo(
-    () => displayedState?.runs.find((run) => run.id === displayedState.selectedRunId) ?? displayedState?.runs[0] ?? null,
+    () => displayedState?.selectedRunId
+      ? displayedState.runs.find((run) => run.id === displayedState.selectedRunId) ?? null
+      : null,
     [displayedState],
   );
   const visibleConversationMessages = useMemo(
@@ -477,14 +479,14 @@ const PortalCopilotPage = () => {
           ) : null}
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold">{selectedConversation?.title ?? "CV Portal Copilot"}</h1>
-            <p className="truncate text-xs text-muted-foreground">Admin only · prepares safe actions, never sends without approval</p>
+            <p className="truncate text-xs text-muted-foreground">Your operational conversation · live changes always need approval</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <Button size="sm" variant="outline" className="rounded-none" disabled={newConversationMutation.isPending} onClick={startNewConversation}>
               {newConversationMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} New chat
             </Button>
-            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><ShieldCheck className="h-3 w-3" /> Level 2 prepare</Badge>
-            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> Governed CRM + ERP data</Badge>
+            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><ShieldCheck className="h-3 w-3" /> Approval protected</Badge>
+            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> CRM + ERP context</Badge>
           </div>
 
         </header>
@@ -504,8 +506,8 @@ const PortalCopilotPage = () => {
             {!selectedRun && !conversationMessages.length && !localMessages.length ? (
               <div className="flex flex-col items-center py-16 text-center">
                 <div className="bg-slate-900 p-3 text-white"><Bot className="h-6 w-6 text-cyan-300" /></div>
-                <h2 className="mt-4 text-xl font-semibold">What should I take care of?</h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask in plain English, hold the mic, or drop in a prescription or order file. I can prepare portal operations and evidence-backed CRM follow-ups, then wait for your approval before changing live records.</p>
+                <h2 className="mt-4 text-xl font-semibold">What can I help you with?</h2>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask a question, think out loud, or give me a task in your own words. I’ll keep the thread in context, surface what I know, and turn approved next steps into governed actions.</p>
 
                 <div className="mt-6 grid w-full max-w-xl gap-2">
                   {SUGGESTIONS.map((suggestion) => (
@@ -784,7 +786,7 @@ const PortalCopilotPage = () => {
               >
                 {speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
-              <Button type="button" size="icon" className="rounded-none" aria-label={attachments.length ? "Analyse attachment" : "Prepare safe actions"} disabled={!canPrepare} onClick={submit}>
+              <Button type="button" size="icon" className="rounded-none" aria-label={attachments.length ? "Analyse attachment" : "Send message"} disabled={!canPrepare} onClick={submit}>
                 {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
               </Button>
 

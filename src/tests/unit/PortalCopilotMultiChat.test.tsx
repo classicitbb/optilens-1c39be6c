@@ -124,7 +124,7 @@ describe("Portal Copilot multi-chat workspace", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "New chat" })[0]);
 
     await waitFor(() => expect(createCopilotConversation).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole("heading", { name: "What should I take care of?" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "What can I help you with?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /First chat/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Second chat/i })).toBeInTheDocument();
   });
