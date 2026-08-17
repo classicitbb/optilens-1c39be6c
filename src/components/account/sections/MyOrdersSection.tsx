@@ -49,6 +49,37 @@ const getStatusColor = (status: string) => {
   }
 };
 
+type OrderBucket = "pending" | "completed" | "other";
+
+const PENDING_STATUSES = ["draft", "pending", "pending_payment", "confirmed", "processing"];
+
+const bucketForStatus = (status: string): OrderBucket => {
+  if (PENDING_STATUSES.includes(status)) return "pending";
+  if (status === "completed") return "completed";
+  return "other";
+};
+
+const ORDER_FILTERS: { value: OrderBucket | "all"; label: string }[] = [
+  { value: "pending", label: "Pending" },
+  { value: "all", label: "All" },
+  { value: "completed", label: "Completed" },
+  { value: "other", label: "Other" },
+];
+
+type OrderRow = {
+  key: string;
+  kind: "order" | "payment";
+  reference: string;
+  typeLabel: string;
+  date: string;
+  status: string;
+  statusLabel: string;
+  bucket: OrderBucket;
+  itemCount: number;
+  total: number;
+  order: OrderEntity | null;
+};
+
 type LiveDelivery = {
   shipment_session_id: string;
   source_shipment_id: string | number | null;
