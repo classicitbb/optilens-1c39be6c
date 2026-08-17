@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import PdfViewer from "@/components/pdf/PdfViewer";
+
 
 const HANDBOOK_URL = "/downloads/Classic_Visions_Dispenser_Handbook.pdf";
 
@@ -97,16 +99,16 @@ const HandbookSection = () => {
                 Expand
               </Button>
             </div>
-            <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
-              <iframe
-                src={HANDBOOK_URL}
-                title="Classic Visions Dispenser Handbook preview"
-                className="h-[600px] w-full"
-              />
-            </div>
+            <PdfViewer
+              url={HANDBOOK_URL}
+              title="Classic Visions Dispenser Handbook preview"
+              downloadName="Classic_Visions_Dispenser_Handbook.pdf"
+              className="h-[600px]"
+            />
             <p className="mt-2 text-xs text-muted-foreground">
-              Preview not loading? Open it in a new tab instead.
+              Pages render directly in the browser — works on desktop, tablet and phone.
             </p>
+
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -129,13 +131,13 @@ const HandbookSection = () => {
             <DialogTitle>Classic Visions Dispenser Handbook</DialogTitle>
             <DialogDescription>Edition 2026.1 · PDF · 15 pages</DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
-            <iframe
-              src={HANDBOOK_URL}
-              title="Classic Visions Dispenser Handbook"
-              className="h-full w-full"
-            />
-          </div>
+          <PdfViewer
+            url={HANDBOOK_URL}
+            title="Classic Visions Dispenser Handbook"
+            downloadName="Classic_Visions_Dispenser_Handbook.pdf"
+            className="min-h-0 flex-1"
+          />
+
           <DialogFooter>
             <Button asChild variant="outline">
               <a href={HANDBOOK_URL} target="_blank" rel="noopener noreferrer">
