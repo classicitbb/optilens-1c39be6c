@@ -280,15 +280,73 @@ const MyOrdersSection = () => {
   const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
 
-  const pendingOrders = orders.filter((order) => ["draft", "pending", "confirmed", "processing"].includes(order.status));
-  const completedOrders = orders.filter((order) => order.status === "completed");
-  const otherOrders = orders.filter((order) => !["draft", "pending", "confirmed", "processing", "completed"].includes(order.status));
+  const paymentsQuery = useAccountPayments(emulation?.userId);
+  const [orderFilter, setOrderFilter] = useState<OrderBucket | "all">("pending");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
 
-  const groupedOrders = [
-    { key: "pending", title: "Pending Web Orders", description: "Orders currently in progress or awaiting fulfillment.", orders: pendingOrders },
-    { key: "completed", title: "Completed orders", description: "Orders that have been fully completed.", orders: completedOrders },
-    { key: "other", title: "Other statuses", description: "Cancelled, shipped, or other order states.", orders: otherOrders },
-  ].filter((group) => group.orders.length > 0);
+  const orderRows = useMemo<OrderRow[]>(() => {
+    const webRows: OrderRow[] = orders.map((order) => ({
+      key: `order-${order.id}`,
+      kind: "order",
+      reference: `#${order.id.slice(0, 8).toUpperCase()}`,
+      typeLabel: "Web order",
+      date: order.createdAt,
+      status: order.status,
+      statusLabel: order.status === "pending_payment"
+        ? "Awaiting payment"
+        : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace(/_/g, " "),
+      bucket: bucketForStatus(order.status),
+      itemCount: order.items?.length ?? 0,
+      total: order.totalAmount,
+      order,
+    }));
+    const paymentRows: OrderRow[] = (paymentsQuery.data ?? []).map((payment) => ({
+      key: `payment-${payment.id}`,
+      kind: "payment",
+      reference: `#${(payment.reference ?? payment.id.slice(0, 8)).toUpperCase()}`,
+      typeLabel: "Statement payment",
+      date: payment.confirmedAt ?? payment.createdAt,
+      status: "completed",
+      statusLabel: "Paid",
+      bucket: "completed",
+      itemCount: 0,
+      total: payment.amount,
+      order: null,
+    }));
+    return [...webRows, ...paymentRows].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+  }, [orders, paymentsQuery.data]);
+
+  const bucketCounts = useMemo(() => ({
+    pending: orderRows.filter((row) => row.bucket === "pending").length,
+    completed: orderRows.filter((row) => row.bucket === "completed").length,
+    other: orderRows.filter((row) => row.bucket === "other").length,
+    all: orderRows.length,
+  }), [orderRows]);
+
+  const visibleOrderRows = useMemo(() => {
+    const query = orderSearch.trim().toLocaleLowerCase();
+    return orderRows.filter((row) => {
+      if (orderFilter !== "all" && row.bucket !== orderFilter) return false;
+      if (!query) return true;
+      const haystack = [
+        row.reference,
+        row.typeLabel,
+        row.statusLabel,
+        row.total.toFixed(2),
+        format(new Date(row.date), "PPP"),
+        ...(row.order?.items ?? []).map((item) => item.productName),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase();
+      return haystack.includes(query);
+    });
+  }, [orderRows, orderFilter, orderSearch]);
+
+  const pendingCount = bucketCounts.pending;
 
   return (
     <section className="space-y-6">
