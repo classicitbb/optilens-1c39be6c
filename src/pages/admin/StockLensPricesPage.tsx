@@ -1,4 +1,5 @@
 import { useState, useRef, ReactNode } from "react";
+import { useSearchParams } from "react-router";
 
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
@@ -10,17 +11,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
 import type { PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 
+// Namespaced per pricelist page — a single shared "admin-selected-version-id"
+// key used to silently clobber whichever pricelist page was opened last.
+const VERSION_STORAGE_KEY = "admin-selected-version-id:stock";
+
 const StockLensPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { data: versions } = usePricelistVersions();
+  const [searchParams] = useSearchParams();
+  const highlightItemId = searchParams.get("id");
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
-    const stored = localStorage.getItem("admin-selected-version-id");
+    const stored = localStorage.getItem(VERSION_STORAGE_KEY);
     return stored ? Number(stored) : null;
   });
 
   const handleVersionChange = (id: number | null) => {
     setSelectedVersionId(id);
-    if (id !== null) localStorage.setItem("admin-selected-version-id", String(id));
+    if (id !== null) localStorage.setItem(VERSION_STORAGE_KEY, String(id));
   };
   const [showUSD, setShowUSD] = useState(false);
   const previewFormat = "list" as const;
@@ -71,6 +78,7 @@ const StockLensPricesPage = () => {
                 versionId={resolvedId}
                 renderSaveBar={setSaveBar}
                 onRowsChange={setLiveCatalogRows}
+                highlightItemId={highlightItemId}
               />
 
               {/* Live Preview */}

@@ -1,11 +1,13 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { useLenses } from "@/hooks/useLenses";
 import { useAddons } from "@/hooks/useAddons";
 import { useSupplies } from "@/hooks/useSupplies";
 import { usePricelistCatalogRows, PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 import { Button } from "@/components/ui/button";
-import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Pencil, Link2Off } from "lucide-react";
+import { FileText, Table2, FileSpreadsheet, Loader2, Plus, X, Search, Save, ArrowUpDown, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Pencil, Link2Off, ExternalLink } from "lucide-react";
+import { getProductHubRoute, type ProductType } from "@/lib/productLinks";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { writeAoaWorkbook } from "@/lib/excelExport";
@@ -62,6 +64,8 @@ interface ListCatalogTabProps {
   renderSaveBar?: (saveBar: React.ReactNode) => void;
   /** Emits current in-editor rows so external previews can update without save */
   onRowsChange?: (rows: Omit<PricelistCatalogRow, "id">[]) => void;
+  /** A catalog item id to open-and-scroll-to on load (Product Tunnel deep link) */
+  highlightItemId?: string | null;
 }
 
 const ListCatalogTab = ({
@@ -76,8 +80,10 @@ const ListCatalogTab = ({
   pendingMatrixRowKeys,
   onSaved,
   renderSaveBar,
-  onRowsChange
+  onRowsChange,
+  highlightItemId
 }: ListCatalogTabProps) => {
+  const navigate = useNavigate();
   const { data: allLenses, isLoading: lLoading } = useLenses();
   const { data: allAddons, isLoading: aLoading } = useAddons();
   const { data: allSupplies, isLoading: sLoading } = useSupplies();
@@ -117,6 +123,21 @@ const ListCatalogTab = ({
   const [hasViewed, setHasViewed] = useState(false);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const [editingSectionName, setEditingSectionName] = useState<{oldName: string; value: string; rowType: "lens"|"addon"|"supply"} | null>(null);
+
+  // Product Tunnel: which accordion section(s) are open, once the user has
+  // touched them manually — until then, `null` means "still computing from
+  // defaults + any highlighted deep-link row" on every render below.
+  const [openStockAccordion, setOpenStockAccordion] = useState<string[] | null>(null);
+  const [openBuysellAccordion, setOpenBuysellAccordion] = useState<string[] | null>(null);
+  const appliedScrollRef = useRef(false);
+
+  const findSectionForId = useCallback((id: string | null | undefined, map: Map<string, CatalogRow[]>) => {
+    if (!id) return null;
+    for (const [section, rows] of map) {
+      if (rows.some((r) => r.lensId === id || r.addonId === id || r.supplyId === id)) return section;
+    }
+    return null;
+  }, []);
 
   const [lensPickerOpen, setLensPickerOpen] = useState(false);
   const [supplyPickerOpen, setSupplyPickerOpen] = useState(false);
@@ -274,6 +295,23 @@ const ListCatalogTab = ({
   const effectiveLensRows = useMemo<Map<string, CatalogRow[]>>(() => {if (usePersistedRows) return lensRows;const m = new Map(defaultLensRows);lensRows.forEach((r, s) => m.set(s, r));return m;}, [defaultLensRows, lensRows, usePersistedRows]);
   const effectiveAddonRows = useMemo<Map<string, CatalogRow[]>>(() => {if (usePersistedRows) return addonRows;const m = new Map(defaultAddonRows);addonRows.forEach((r, s) => m.set(s, r));return m;}, [defaultAddonRows, addonRows, usePersistedRows]);
   const effectiveSupplyRows = useMemo<Map<string, CatalogRow[]>>(() => {if (usePersistedRows) return supplyRows;const m = new Map(defaultSupplyRows);supplyRows.forEach((r, s) => m.set(s, r));return m;}, [defaultSupplyRows, supplyRows, usePersistedRows]);
+
+  // Product Tunnel: scroll to and briefly highlight a deep-linked row once
+  // its section has opened. Only wired for "stock" (WSPL) and "buysell"
+  // (Supplies) — those two use a flat, one-row-per-item accordion; "rx" uses
+  // a different matrix-derived grouping that isn't safe to reverse-map here.
+  useEffect(() => {
+    if (appliedScrollRef.current || !highlightItemId || isLoading) return;
+    if (catalogType !== "stock" && catalogType !== "buysell") return;
+    const map = catalogType === "stock" ? effectiveLensRows : effectiveSupplyRows;
+    const section = findSectionForId(highlightItemId, map);
+    if (!section) return;
+    appliedScrollRef.current = true;
+    const timer = setTimeout(() => {
+      document.getElementById(`catalog-row-${highlightItemId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [highlightItemId, catalogType, isLoading, effectiveLensRows, effectiveSupplyRows, findSectionForId]);
 
   const toggleSort = (section: string, col: string) => {
     setSortState((prev) => {const next = new Map(prev);const cur = prev.get(section);if (!cur || cur.col !== col) {next.set(section, { col, dir: "asc" });} else if (cur.dir === "asc") {next.set(section, { col, dir: "desc" });} else {next.set(section, { col: "", dir: null });}return next;});
@@ -804,9 +842,21 @@ const ListCatalogTab = ({
     const displayMargin = rowCost != null && rowCost > 0 && displayBbd != null && displayBbd > 0
       ? parseFloat(((displayBbd - rowCost) / displayBbd * 100).toFixed(1))
       : row.margin;
+    const isHighlighted = !!refId && refId === highlightItemId;
 
     return (
-      <tr key={row.key} className="group/row" style={{ background: isPending ? "hsl(var(--admin-table-row-pending))" : i % 2 === 0 ? "hsl(var(--admin-table-row-even))" : "hsl(var(--admin-table-row-odd))" }}>
+      <tr
+        key={row.key}
+        id={refId ? `catalog-row-${refId}` : undefined}
+        className="group/row"
+        style={{
+          background: isHighlighted
+            ? "hsl(var(--admin-table-row-pending))"
+            : isPending ? "hsl(var(--admin-table-row-pending))" : i % 2 === 0 ? "hsl(var(--admin-table-row-even))" : "hsl(var(--admin-table-row-odd))",
+          outline: isHighlighted ? "2px solid hsl(215 65% 50%)" : undefined,
+          outlineOffset: isHighlighted ? "-2px" : undefined,
+        }}
+      >
         {/* Reorder arrows for addon/supply rows */}
         {showReorder &&
         <td className="border border-border p-0 no-print w-8">
@@ -909,6 +959,17 @@ const ListCatalogTab = ({
             </button>
           }
         </td>
+        {/* Tunnel icon — jump to this item's Product Hub */}
+        <td className="border border-border p-0 no-print w-7">
+          {refId &&
+          <button
+            className="w-full h-full flex items-center justify-center p-1 hover:bg-primary/10 transition-colors"
+            title="Open in Product Hub"
+            onClick={() => navigate(getProductHubRoute(refType as ProductType, refId))}>
+              <ExternalLink className="h-3 w-3" style={{ color: "hsl(var(--admin-table-link-fg))" }} />
+            </button>
+          }
+        </td>
         <td className="border border-border p-0 no-print">
           <button className="w-full h-full flex items-center justify-center p-1 hover:bg-destructive/10 transition-colors" onClick={() => removeRow(section, row.key, rowType)}>
             <X className="h-3 w-3 text-destructive/60 hover:text-destructive" />
@@ -989,6 +1050,7 @@ const ListCatalogTab = ({
                   <th className="px-3 py-2 text-right font-semibold border border-border w-28" style={{ background: "hsl(var(--admin-table-col-usd))", color: "hsl(var(--admin-table-col-usd-fg))" }}>USD <SortIcon section={title} col="usd" /></th>
                   <th className="px-3 py-2 text-center font-semibold border border-border w-20 no-print" style={{ background: "hsl(var(--admin-table-col-margin))", color: "hsl(var(--admin-table-col-margin-fg))" }}>Margin % <SortIcon section={title} col="margin" /></th>
                   <th className="w-7 no-print border border-border" title="Override" />
+                  <th className="w-7 no-print border border-border" title="Open in Hub" />
                   <th className="w-6 no-print border border-border" />
                 </tr>
               </thead>
@@ -1176,7 +1238,12 @@ const ListCatalogTab = ({
                 <Plus className="h-3 w-3" /> Add Group
               </button>
             </div>
-            <Accordion type="multiple" defaultValue={[...effectiveSupplyRows.keys()]} className="space-y-0">
+            <Accordion
+              type="multiple"
+              value={openBuysellAccordion ?? [...new Set([...effectiveSupplyRows.keys(), ...([findSectionForId(highlightItemId, effectiveSupplyRows)].filter(Boolean) as string[])])]}
+              onValueChange={setOpenBuysellAccordion}
+              className="space-y-0"
+            >
               {[...effectiveSupplyRows.entries()].map(([sec, rows]) => renderSection(sec, rows, "supply"))}
             </Accordion>
           </>
@@ -1194,8 +1261,15 @@ const ListCatalogTab = ({
               items.push({ sec: mfName, rows: [] });
             }
           }
+          const defaultOpen = items.filter(i => i.rows.length > 0).map(i => i.sec);
+          const highlightSection = findSectionForId(highlightItemId, effectiveLensRows);
           return (
-            <Accordion type="multiple" defaultValue={items.filter(i => i.rows.length > 0).map(i => i.sec)} className="space-y-0">
+            <Accordion
+              type="multiple"
+              value={openStockAccordion ?? [...new Set([...defaultOpen, ...(highlightSection ? [highlightSection] : [])])]}
+              onValueChange={setOpenStockAccordion}
+              className="space-y-0"
+            >
               {items.map(({ sec, rows }) => renderSection(sec, rows, "lens"))}
             </Accordion>
           );

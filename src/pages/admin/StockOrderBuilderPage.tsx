@@ -5,7 +5,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToastAction } from "@/components/ui/toast";
-import { ArrowLeft, CircleDollarSign, Glasses, PackagePlus, Pencil, ScanLine, Trash2, X } from "lucide-react";
+import { ArrowLeft, CircleDollarSign, ExternalLink, Glasses, PackagePlus, Pencil, ScanLine, Trash2, X } from "lucide-react";
+import { getProductHubRoute } from "@/lib/productLinks";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
@@ -191,6 +192,27 @@ const StockOrderBuilderPage = () => {
         .some((v) => String(v).toLowerCase().includes(q)),
     );
   }, [combinedCatalog, searchQuery]);
+
+  // Product Tunnel: /admin/website/stock-orders?highlight=type:id opens the
+  // matching add-item panel once an account is selected (the catalog is
+  // account-scoped, so there's nothing meaningful to highlight before then).
+  const highlightParam = searchParams.get("highlight");
+  const appliedHighlightRef = useRef(false);
+  useEffect(() => {
+    if (appliedHighlightRef.current || !highlightParam || !accountId) return;
+    const [highlightType, highlightId] = highlightParam.split(":");
+    if (!highlightType || !highlightId) return;
+    const item = combinedCatalog.find((candidate) => candidate.product_type === highlightType && candidate.product_id === highlightId);
+    if (!item) return;
+    appliedHighlightRef.current = true;
+    if (item.product_type === "lens") {
+      setAddDialog("lenses");
+      if (item.has_variants) setGridProductKey(productKey(item));
+    } else {
+      setAddDialog("supplies");
+      setSearchQuery(item.name);
+    }
+  }, [highlightParam, accountId, combinedCatalog]);
 
   const lensCatalog = useMemo(() => combinedCatalog.filter((item) => item.product_type === "lens"), [combinedCatalog]);
 
@@ -780,6 +802,18 @@ const StockOrderBuilderPage = () => {
                       <span>{item.available === false ? "Unavailable" : money(item.unit_price)}</span>
                     </button>
                     {item.available === false && <Link className="stock-order-availability-link" to={`/admin/website/store/variants/${item.product_type}/${item.product_id}`} target="_blank" rel="noopener noreferrer">Configure price & variants</Link>}
+                    {canEdit && (
+                      <Link
+                        className="stock-order-availability-link"
+                        to={getProductHubRoute(item.product_type, item.product_id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Open ${item.name} in Product Hub`}
+                        aria-label={`Open ${item.name} in Product Hub`}
+                      >
+                        <ExternalLink className="h-3 w-3" style={{ display: "inline", verticalAlign: "-2px", marginRight: "4px" }} /> Product Hub
+                      </Link>
+                    )}
                     {isExpanded && <VariantPicker money={money} product={item} variants={expandedVariants} onAdd={(variant, side, quantity) => { addLine(item, variant, side, quantity); closeAddDialog(); }} />}
                   </div>
                 );

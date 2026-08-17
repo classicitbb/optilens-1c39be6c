@@ -3,10 +3,11 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, Eye, Expand, ArrowDownUp, LayoutGrid, List, Lock } from "lucide-react";
+import { ShoppingCart, Search, Eye, Expand, ArrowDownUp, LayoutGrid, List, Lock, Settings } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { LensChatbot } from "@/components/LensChatbot";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -16,6 +17,7 @@ import {
   getStableStoreProductCartId,
   getStoreProductRoute,
 } from "@/hooks/useStoreProducts";
+import { getProductHubRoute } from "@/lib/productLinks";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createAuthHref } from "@/lib/authFlow";
 import StorageImage from "@/components/StorageImage";
@@ -32,6 +34,7 @@ type SortMode = "price_low_high" | "price_high_low";
 const ProductCard = ({ product, index, layout }: { product: StoreProduct; index: number; layout: ProductLayout }) => {
   const { addToCart } = useCartContext();
   const { user } = useAuth();
+  const { canEdit } = useUserRole();
   const navigate = useNavigate();
 
   const handleAdd = () => {
@@ -97,6 +100,13 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
                     View
                   </Link>
                 </Button>
+                {canEdit && (
+                  <Button variant="outline" size="sm" asChild title="Open in Product Hub" aria-label="Open in Product Hub">
+                    <Link to={getProductHubRoute(product.product_type, product.id)}>
+                      <Settings className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
@@ -216,6 +226,13 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
                 View
               </Link>
             </Button>
+            {canEdit && (
+              <Button variant="outline" size="sm" asChild title="Open in Product Hub" aria-label="Open in Product Hub">
+                <Link to={getProductHubRoute(product.product_type, product.id)}>
+                  <Settings className="h-4 w-4" />
+                </Link>
+              </Button>
+            )}
           </>
         ) : (
           <div className="flex w-full items-center justify-between">

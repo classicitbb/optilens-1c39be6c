@@ -7,14 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { getStableStoreProductCartId, useStoreProducts } from "@/hooks/useStoreProducts";
 import { useBulkAddVariantsToCart, useProductVariantSettings, useProductVariants } from "@/hooks/useProductVariants";
 import LensVariantGrid from "@/components/lenses/LensVariantGrid";
 import { useToast } from "@/hooks/use-toast";
-import { Expand, Lock, ShoppingCart } from "lucide-react";
+import { Expand, Lock, Settings, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { createAuthHref } from "@/lib/authFlow";
 import StorageImage from "@/components/StorageImage";
+import { getProductHubRoute } from "@/lib/productLinks";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -31,6 +33,7 @@ const StoreProductPage = () => {
   const { data: variants = [] } = useProductVariants(productType as any, productId);
   const { data: variantSettings } = useProductVariantSettings(productType as any, productId);
   const { user } = useAuth();
+  const { canEdit } = useUserRole();
   const navigate = useNavigate();
 
   if (!productId || (productType !== "lens" && productType !== "supply" && productType !== "addon")) {
@@ -95,9 +98,18 @@ const StoreProductPage = () => {
             <div className="mx-auto max-w-5xl">
               <div className="mb-6 flex items-center justify-between">
                 <Button variant="outline" onClick={() => navigate("/store")}>Back to catalog</Button>
-                <Badge variant="outline" className="capitalize">
-                  {product.product_type === "supply" ? (SUPPLY_CATEGORY_LABELS[product.category] || product.category) : product.category}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {canEdit && (
+                    <Button variant="outline" size="icon" asChild title="Open in Product Hub" aria-label="Open in Product Hub">
+                      <Link to={getProductHubRoute(product.product_type, product.id)}>
+                        <Settings className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
+                  <Badge variant="outline" className="capitalize">
+                    {product.product_type === "supply" ? (SUPPLY_CATEGORY_LABELS[product.category] || product.category) : product.category}
+                  </Badge>
+                </div>
               </div>
 
               <Card variant="feature">

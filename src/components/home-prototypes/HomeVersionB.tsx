@@ -219,9 +219,9 @@ const HomeVersionB = () => {
 
               <h1
                 id="hero-heading"
-                className="mt-5 max-w-[15ch] hyphens-auto break-words font-serif text-[2rem] font-semibold leading-[1.06] tracking-[-0.02em] min-[400px]:text-[2.4rem] sm:text-6xl sm:leading-[1.04] xl:text-[4.25rem]"
+                className="mt-5 max-w-[15ch] hyphens-none break-normal font-serif text-[2rem] font-semibold leading-[1.06] tracking-[-0.02em] min-[400px]:text-[2.4rem] sm:text-6xl sm:leading-[1.04] xl:text-[4.25rem]"
               >
-                Wholesale prescription lenses, <span className="text-accent">made in the Caribbean.</span>
+                Wholesale prescription lenses, <span className="text-accent">produced in the Caribbean.</span>
               </h1>
 
               {/* Answer-first definition sentence — the quotable line for AI answer engines. */}
