@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import PdfViewer from "@/components/pdf/PdfViewer";
+
 
 const HANDBOOK_URL = "/downloads/Classic_Visions_Dispenser_Handbook.pdf";
 
@@ -129,13 +131,13 @@ const HandbookSection = () => {
             <DialogTitle>Classic Visions Dispenser Handbook</DialogTitle>
             <DialogDescription>Edition 2026.1 · PDF · 15 pages</DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
-            <iframe
-              src={HANDBOOK_URL}
-              title="Classic Visions Dispenser Handbook"
-              className="h-full w-full"
-            />
-          </div>
+          <PdfViewer
+            url={HANDBOOK_URL}
+            title="Classic Visions Dispenser Handbook"
+            downloadName="Classic_Visions_Dispenser_Handbook.pdf"
+            className="min-h-0 flex-1"
+          />
+
           <DialogFooter>
             <Button asChild variant="outline">
               <a href={HANDBOOK_URL} target="_blank" rel="noopener noreferrer">
