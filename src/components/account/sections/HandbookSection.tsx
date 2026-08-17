@@ -97,16 +97,16 @@ const HandbookSection = () => {
                 Expand
               </Button>
             </div>
-            <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
-              <iframe
-                src={HANDBOOK_URL}
-                title="Classic Visions Dispenser Handbook preview"
-                className="h-[600px] w-full"
-              />
-            </div>
+            <PdfViewer
+              url={HANDBOOK_URL}
+              title="Classic Visions Dispenser Handbook preview"
+              downloadName="Classic_Visions_Dispenser_Handbook.pdf"
+              className="h-[600px]"
+            />
             <p className="mt-2 text-xs text-muted-foreground">
-              Preview not loading? Open it in a new tab instead.
+              Pages render directly in the browser — works on desktop, tablet and phone.
             </p>
+
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
