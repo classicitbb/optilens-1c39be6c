@@ -535,7 +535,7 @@ const MyOrdersSection = () => {
         <div className="flex items-center justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
-      ) : orders.length === 0 ? (
+      ) : orderRows.length === 0 ? (
         <Card className="mx-auto max-w-md text-center">
           <CardContent className="py-12">
             <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -544,105 +544,180 @@ const MyOrdersSection = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {groupedOrders.map((group) => (
-            <section key={group.key} id={`${group.key}-orders`} className="space-y-3 scroll-mt-6">
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">{group.title}</h3>
-                <p className="text-sm text-muted-foreground">{group.description}</p>
+        <section className="space-y-3 scroll-mt-6" id="pending-orders" aria-labelledby="web-orders-heading">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 id="web-orders-heading" className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <ShoppingBag className="h-5 w-5" /> Web orders &amp; payments
+              </h3>
+              <p className="text-sm text-muted-foreground">Orders placed online, plus statement payments received.</p>
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <div
+                role="tablist"
+                aria-label="Filter orders by status"
+                className="inline-flex items-center gap-1 border bg-muted p-1"
+              >
+                {ORDER_FILTERS.map((filter) => (
+                  <button
+                    key={filter.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={orderFilter === filter.value}
+                    onClick={() => setOrderFilter(filter.value)}
+                    className={cn(
+                      "px-3 py-1.5 text-sm font-medium transition-colors",
+                      orderFilter === filter.value
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {filter.label} {bucketCounts[filter.value]}
+                  </button>
+                ))}
               </div>
-              {group.orders.map((order, index) => (
-                <Card key={order.id} className="animate-fade-in opacity-0" style={{ animationDelay: `${index * 50}ms` }}>
-                  <CardHeader className="p-3 sm:px-4 sm:py-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Package className="h-5 w-5" />
-                          Order #{order.id.slice(0, 8).toUpperCase()}
-                        </CardTitle>
-                        <CardDescription className="mt-1 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(order.createdAt), "PPP 'at' p")}
-                        </CardDescription>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className={getStatusColor(order.status)}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
-                        <span className="text-xl font-bold text-foreground">${order.totalAmount.toFixed(2)}</span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => printOrderDocument({
-                            id: order.id,
-                            createdAt: order.createdAt,
-                            totalAmount: order.totalAmount,
-                            status: order.status,
-                            customerName: order.customerName,
-                            contactEmail: order.contactEmail,
-                            contactPhone: order.contactPhone,
-                            shippingAddress: order.shippingAddress,
-                            checkoutMethod: order.checkoutMethod,
-                            items: order.items.map((item) => ({
-                              id: item.id,
-                              productName: item.productName,
-                              productType: item.productType,
-                              unitPrice: item.unitPrice,
-                              quantity: item.quantity,
-                            })),
-                          })}
-                        >
-                          <Printer className="mr-1.5 h-4 w-4" />
-                          Print order
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-3 pb-3 sm:px-4 sm:pb-3">
-                    <Accordion type="single" collapsible>
-                      <AccordionItem value="items" className="border-none">
-                        <AccordionTrigger className="py-1 text-sm hover:no-underline">
-                          View {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? "s" : ""}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Product</TableHead>
-                                <TableHead className="text-right">Price</TableHead>
-                                <TableHead className="text-right">Qty</TableHead>
-                                <TableHead className="text-right">Total</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {order.items?.map((item) => (
-                                <TableRow key={item.id}>
-                                  <TableCell className="font-medium">{item.productName}</TableCell>
-                                  <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
-                                  <TableCell className="text-right">{item.quantity}</TableCell>
-                                  <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                    {order.status === "draft" && order.checkoutMethod === "on_account" ? (
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 p-3">
-                        <p className="text-sm text-muted-foreground">This account order was returned for changes. Restore its saved draft to your cart, update the items, then check out again.</p>
-                        <Button asChild size="sm">
-                          <Link to="/profile/drafts">Open saved draft</Link>
-                        </Button>
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              ))}
-            </section>
-          ))}
-        </div>
+              <div className="relative sm:w-64">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  type="search"
+                  value={orderSearch}
+                  onChange={(event) => setOrderSearch(event.target.value)}
+                  placeholder="Search orders"
+                  aria-label="Search orders by number, status, date, total or product"
+                  className="h-9 pl-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Card>
+            <CardContent className="overflow-x-auto p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order #</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Items</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleOrderRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                        No orders match this filter or search.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    visibleOrderRows.map((row) => {
+                      const isExpanded = expandedOrderKey === row.key;
+                      return (
+                        <Fragment key={row.key}>
+                          <TableRow>
+                            <TableCell className="font-medium">Order {row.reference}</TableCell>
+                            <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                              {format(new Date(row.date), "PPP 'at' p")}
+                            </TableCell>
+                            <TableCell className="text-sm">{row.typeLabel}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={getStatusColor(row.bucket === "completed" ? "completed" : row.status)}>
+                                {row.statusLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">{row.kind === "payment" ? "—" : row.itemCount}</TableCell>
+                            <TableCell className="text-right font-semibold">${row.total.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {row.order ? (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => printOrderDocument({
+                                        id: row.order!.id,
+                                        createdAt: row.order!.createdAt,
+                                        totalAmount: row.order!.totalAmount,
+                                        status: row.order!.status,
+                                        customerName: row.order!.customerName,
+                                        contactEmail: row.order!.contactEmail,
+                                        contactPhone: row.order!.contactPhone,
+                                        shippingAddress: row.order!.shippingAddress,
+                                        checkoutMethod: row.order!.checkoutMethod,
+                                        items: (row.order!.items ?? []).map((item) => ({
+                                          id: item.id,
+                                          productName: item.productName,
+                                          productType: item.productType,
+                                          unitPrice: item.unitPrice,
+                                          quantity: item.quantity,
+                                        })),
+                                      })}
+                                    >
+                                      <Printer className="mr-1.5 h-4 w-4" />
+                                      Print
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      aria-expanded={isExpanded}
+                                      onClick={() => setExpandedOrderKey(isExpanded ? null : row.key)}
+                                    >
+                                      {isExpanded ? "Hide items" : `View ${row.itemCount} item${row.itemCount === 1 ? "" : "s"}`}
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">Applied to account</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {isExpanded && row.order ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="bg-muted/40">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Product</TableHead>
+                                      <TableHead className="text-right">Price</TableHead>
+                                      <TableHead className="text-right">Qty</TableHead>
+                                      <TableHead className="text-right">Total</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {(row.order.items ?? []).map((item) => (
+                                      <TableRow key={item.id}>
+                                        <TableCell className="font-medium">{item.productName}</TableCell>
+                                        <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">{item.quantity}</TableCell>
+                                        <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                                {row.order.status === "draft" && row.order.checkoutMethod === "on_account" ? (
+                                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-primary/20 bg-primary/5 p-3">
+                                    <p className="text-sm text-muted-foreground">This account order was returned for changes. Restore its saved draft to your cart, update the items, then check out again.</p>
+                                    <Button asChild size="sm">
+                                      <Link to="/profile/drafts">Open saved draft</Link>
+                                    </Button>
+                                  </div>
+                                ) : null}
+                              </TableCell>
+                            </TableRow>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </section>
       )}
     </section>
   );
