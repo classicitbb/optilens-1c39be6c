@@ -13,6 +13,8 @@ import {
   type CrmOrderHealth,
   type CrmScanContact,
 } from "../_shared/copilot/crmOpportunityScan.ts";
+import { COPILOT_SYSTEM_CONTEXT } from "../_shared/copilot/systemContext.ts";
+import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/copilot/lookupTools.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -105,33 +107,82 @@ const ROUTER_TOOLS = [
   },
 ] as const;
 
-const COPILOT_SYSTEM_PROMPT = "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, ask a concise clarifying question when needed, and answer directly when you can. Use the tools available to you to start the ERP portal rollout or CRM opportunity scan workflows when the admin's request matches; those workflows appear as approval cards and never execute without explicit approval. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions. Clearly distinguish known data from suggestions or missing information.";
+const COPILOT_PERSONA = "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, ask a concise clarifying question when needed, and answer directly when you can. Use the tools available to you to start the ERP portal rollout or CRM opportunity scan workflows when the admin's request matches, or to look up real contacts, web orders, or help articles before answering a question about them; those workflows appear as approval cards and never execute without explicit approval, and lookups never write anything. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions. Clearly distinguish known data from suggestions or missing information.";
+
+const COPILOT_SYSTEM_PROMPT = `${COPILOT_PERSONA}\n\n${COPILOT_SYSTEM_CONTEXT}`;
+
+const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportunity_scan"> = {
+  start_erp_portal_rollout: "erp_portal_rollout",
+  start_crm_opportunity_scan: "crm_opportunity_scan",
+};
+
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS];
+const MAX_LOOKUP_ITERATIONS = 4;
 
 type RouteResult =
   | { kind: "workflow"; workflow: "erp_portal_rollout" | "crm_opportunity_scan" }
   | { kind: "reply"; text: string };
 
-const routeCommand = async (
+const runCopilotTurn = async (
   apiKey: string,
   model: string,
   command: string,
   history: { role: "user" | "assistant"; content: string }[],
+  db: any,
 ): Promise<{ ok: true; result: RouteResult } | { ok: false; status: number; message: string }> => {
-  const response = await callClaude(apiKey, model, {
+  const messages: JsonRecord[] = [...history.slice(-12), { role: "user", content: command }];
+
+  for (let iteration = 0; iteration < MAX_LOOKUP_ITERATIONS; iteration += 1) {
+    const response = await callClaude(apiKey, model, {
+      max_tokens: 1024,
+      system: COPILOT_SYSTEM_PROMPT,
+      tools: COPILOT_TOOLS,
+      tool_choice: { type: "auto" },
+      messages,
+    });
+    if (!response.ok) return { ok: false, status: response.status, message: await claudeErrorMessage(response) };
+    const data = await response.json().catch(() => null) as JsonRecord | null;
+    const blocks: JsonRecord[] = Array.isArray(data?.content) ? (data?.content as JsonRecord[]) : [];
+    const toolUses = blocks.filter((block) => block?.type === "tool_use");
+
+    const workflowUse = toolUses.find((use) => WORKFLOW_BY_TOOL_NAME[use.name as string]);
+    if (workflowUse) {
+      // Short-circuit into the deterministic planner. Any lookups made earlier
+      // in this turn are discarded — the planners read fresh data themselves
+      // and don't consume conversation history.
+      return { ok: true, result: { kind: "workflow", workflow: WORKFLOW_BY_TOOL_NAME[workflowUse.name as string] } };
+    }
+
+    const lookupUses = toolUses.filter((use) => LOOKUP_TOOL_NAMES.has(use.name as string));
+    if (lookupUses.length === 0) {
+      const text = claudeTextFromContent(blocks);
+      return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
+    }
+
+    const toolResults = await Promise.all(lookupUses.map(async (use) => {
+      try {
+        const output = await dispatchLookupTool(db, use.name as string, (use.input ?? {}) as Record<string, unknown>);
+        return { type: "tool_result", tool_use_id: use.id, content: JSON.stringify(output) };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Lookup failed";
+        return { type: "tool_result", tool_use_id: use.id, content: message, is_error: true };
+      }
+    }));
+    messages.push({ role: "assistant", content: blocks });
+    messages.push({ role: "user", content: toolResults });
+  }
+
+  // Iteration cap reached — force one final best-effort answer from whatever
+  // was gathered rather than looping forever or erroring.
+  const finalResponse = await callClaude(apiKey, model, {
     max_tokens: 1024,
     system: COPILOT_SYSTEM_PROMPT,
-    tools: ROUTER_TOOLS,
-    tool_choice: { type: "auto" },
-    messages: [...history.slice(-12), { role: "user", content: command }],
+    messages,
   });
-  if (!response.ok) return { ok: false, status: response.status, message: await claudeErrorMessage(response) };
-  const data = await response.json().catch(() => null) as JsonRecord | null;
-  const blocks: JsonRecord[] = Array.isArray(data?.content) ? (data?.content as JsonRecord[]) : [];
-  const toolUse = blocks.find((block) => block?.type === "tool_use");
-  if (toolUse?.name === "start_erp_portal_rollout") return { ok: true, result: { kind: "workflow", workflow: "erp_portal_rollout" } };
-  if (toolUse?.name === "start_crm_opportunity_scan") return { ok: true, result: { kind: "workflow", workflow: "crm_opportunity_scan" } };
-  const text = claudeTextFromContent(data?.content);
-  return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
+  if (!finalResponse.ok) return { ok: false, status: finalResponse.status, message: await claudeErrorMessage(finalResponse) };
+  const finalData = await finalResponse.json().catch(() => null) as JsonRecord | null;
+  const finalText = claudeTextFromContent(finalData?.content);
+  return { ok: true, result: { kind: "reply", text: finalText || "I gathered some information but couldn't finish putting together an answer — could you narrow your question?" } };
 };
 
 const createConversation = async (db: any, actorUserId: string, title = "New chat") => {
@@ -512,7 +563,7 @@ Deno.serve(async (req) => {
 
       const claudeApiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
       const claudeModel = resolveClaudeModel(settings.model);
-      const routed = claudeApiKey && claudeModel ? await routeCommand(claudeApiKey, claudeModel, command, history) : null;
+      const routed = claudeApiKey && claudeModel ? await runCopilotTurn(claudeApiKey, claudeModel, command, history, db) : null;
       if (routed && !routed.ok) {
         const status = routed.status === 429 || routed.status === 529 ? routed.status : 502;
         return jsonResponse(req, status, { error: routed.message });

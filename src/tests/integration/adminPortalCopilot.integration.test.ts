@@ -68,7 +68,7 @@ describe("admin-only CV Portal Copilot", () => {
     const config = read("supabase/config.toml");
     expect(edge).toContain('allowedRoles: ["admin"]');
     expect(edge).toContain('inputMode === "voice" && !transcriptConfirmed');
-    expect(edge).toContain("routeCommand(claudeApiKey, claudeModel, command, history)");
+    expect(edge).toContain("runCopilotTurn(claudeApiKey, claudeModel, command, history, db)");
     expect(edge).toContain('operation === "decide-action"');
     expect(edge).toContain('from("copilot_audit_events")');
     expect(edge).toContain("actions,");
@@ -100,5 +100,41 @@ describe("admin-only CV Portal Copilot", () => {
     expect(planner).toContain("Inference:");
     expect(page).toContain("Evidence used");
     expect(page).toContain("No CRM task or opportunity has been created yet.");
+  });
+
+  it("grounds the Copilot in OpticAdmin's own modules and gives it real read-only lookups", () => {
+    const edge = read("supabase/functions/portal-copilot/index.ts");
+    const systemContext = read("supabase/functions/_shared/copilot/systemContext.ts");
+    const lookupTools = read("supabase/functions/_shared/copilot/lookupTools.ts");
+    const apps = read("src/features/admin/core/config/apps.ts");
+
+    expect(edge).toContain('from "../_shared/copilot/systemContext.ts"');
+    expect(edge).toContain('from "../_shared/copilot/lookupTools.ts"');
+    expect(edge).toContain("COPILOT_SYSTEM_CONTEXT");
+
+    expect(systemContext).toContain("OpticAdmin");
+    expect(systemContext).toContain("ERP");
+    expect(systemContext).toContain("Google Contacts");
+
+    // Drift guard: every module title in apps.ts (the frontend source of
+    // truth) must appear verbatim in the copilot's grounding context, so a
+    // renamed or newly added module doesn't silently go unmentioned.
+    const titles = [...apps.matchAll(/title:\s*'([^']+)'/g)].map((match) => match[1]);
+    expect(titles.length).toBeGreaterThan(0);
+    for (const title of titles) {
+      expect(systemContext).toContain(title);
+    }
+
+    expect(lookupTools).toContain("search_contacts");
+    expect(lookupTools).toContain("get_contact");
+    expect(lookupTools).toContain("search_web_orders");
+    expect(lookupTools).toContain("search_help_articles");
+    expect(lookupTools).toContain('from("contacts")');
+    expect(lookupTools).toContain('from("orders")');
+    expect(lookupTools).toContain('from("help_articles")');
+    expect(lookupTools).toContain("dispatchLookupTool");
+
+    expect(edge).toContain("MAX_LOOKUP_ITERATIONS");
+    expect(edge).toContain("WORKFLOW_BY_TOOL_NAME");
   });
 });
