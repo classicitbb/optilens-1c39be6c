@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
+  ArrowUp,
   Bot,
   Check,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Database,
   FileCheck2,
@@ -19,7 +21,6 @@ import {
   Plus,
   RotateCcw,
   Save,
-  SendHorizontal,
   Settings2,
   ShieldCheck,
   UserRoundSearch,
@@ -29,9 +30,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -132,92 +142,92 @@ const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) => {
   const partialAccountCreated = action.result?.portalAccountCreated === true && action.result?.emailQueued === false;
 
   return (
-    <Card className={cn("overflow-hidden rounded-none shadow-none", action.status === "failed" && "border-red-300")}>
-      <CardHeader className="space-y-3 pb-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 gap-3">
-            <div className={cn("mt-0.5 p-2", action.action_type === "send_portal_invite" ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700")}>
-              {action.action_type === "send_portal_invite" ? <Mail className="h-4 w-4" /> : <UserRoundSearch className="h-4 w-4" />}
+    <Card className={cn("overflow-hidden rounded-sm shadow-none border", action.status === "failed" && "border-red-300")}>
+      <CardHeader className="space-y-2 pb-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex min-w-0 gap-2">
+            <div className={cn("mt-0.5 p-1", action.action_type === "send_portal_invite" ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700")}>
+              {action.action_type === "send_portal_invite" ? <Mail className="h-3 w-3" /> : <UserRoundSearch className="h-3 w-3" />}
             </div>
             <div className="min-w-0">
-              <CardTitle className="text-base">{action.title}</CardTitle>
-              <CardDescription className="mt-1">{action.summary}</CardDescription>
+              <CardTitle className="text-xs font-semibold">{action.title}</CardTitle>
+              <CardDescription className="mt-0.5 text-[11px]">{action.summary}</CardDescription>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className={statusTone(action.status)}>{statusLabel(action.status)}</Badge>
-            <Badge variant="outline">Level {action.risk_level}</Badge>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant="outline" className={cn(statusTone(action.status), "text-[10px]")}>{statusLabel(action.status)}</Badge>
+            <Badge variant="outline" className="text-[10px]">Level {action.risk_level}</Badge>
           </div>
         </div>
         {action.last_error ? (
-          <div role="alert" className="border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-            <p className="flex items-center gap-2 font-medium"><AlertCircle className="h-4 w-4" /> Action needs attention</p>
-            <p className="mt-1">{action.last_error}</p>
-            {partialAccountCreated ? <p className="mt-1 font-medium">The portal account remains created. Retry will only prepare a fresh secure link and queue the email.</p> : null}
+          <div role="alert" className="border border-red-200 bg-red-50 p-2 text-xs text-red-900">
+            <p className="flex items-center gap-1.5 font-medium"><AlertCircle className="h-3 w-3" /> Action needs attention</p>
+            <p className="mt-0.5 text-[11px]">{action.last_error}</p>
+            {partialAccountCreated ? <p className="mt-0.5 text-[11px] font-medium">The portal account remains created. Retry will only prepare a fresh secure link and queue the email.</p> : null}
           </div>
         ) : null}
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2">
         {action.action_type === "send_portal_invite" ? (
-          <div className="space-y-3 border bg-muted/20 p-4">
-            <div className="grid gap-1 text-sm sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipient</span><span>{action.payload.recipientName} &lt;{action.payload.recipientEmail}&gt;</span></div>
-            <div className="grid gap-1 text-sm sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Template rule</span><span>{action.payload.templateName}</span></div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`subject-${action.id}`}>Subject</Label>
-              <Input id={`subject-${action.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} />
+          <div className="space-y-2 border bg-muted/20 p-2">
+            <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipient</span><span>{action.payload.recipientName} &lt;{action.payload.recipientEmail}&gt;</span></div>
+            <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Template rule</span><span>{action.payload.templateName}</span></div>
+            <div className="space-y-0.5">
+              <Label htmlFor={`subject-${action.id}`} className="text-[11px]">Subject</Label>
+              <Input id={`subject-${action.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} className="h-6 text-xs" />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`body-${action.id}`}>Email draft</Label>
-              <Textarea id={`body-${action.id}`} value={body} onChange={(event) => setBody(event.target.value)} rows={6} />
+            <div className="space-y-0.5">
+              <Label htmlFor={`body-${action.id}`} className="text-[11px]">Email draft</Label>
+              <Textarea id={`body-${action.id}`} value={body} onChange={(event) => setBody(event.target.value)} rows={4} className="text-xs" />
             </div>
           </div>
         ) : (
-          <div className="space-y-3 border bg-muted/20 p-4">
+          <div className="space-y-2 border bg-muted/20 p-2">
             {action.payload.evidence?.length ? (
-              <div className="space-y-2 text-sm">
-                <div className="flex flex-wrap gap-2">
-                  {action.payload.priority ? <Badge variant="outline">Priority: {action.payload.priority}</Badge> : null}
-                  {action.payload.dueAt ? <Badge variant="outline">Due: {new Date(action.payload.dueAt).toLocaleDateString()}</Badge> : null}
-                  {action.payload.suggestedOwnerId ? <Badge variant="outline">Owner: current admin</Badge> : null}
+              <div className="space-y-1.5 text-xs">
+                <div className="flex flex-wrap gap-1">
+                  {action.payload.priority ? <Badge variant="outline" className="text-[10px]">Priority: {action.payload.priority}</Badge> : null}
+                  {action.payload.dueAt ? <Badge variant="outline" className="text-[10px]">Due: {new Date(action.payload.dueAt).toLocaleDateString()}</Badge> : null}
+                  {action.payload.suggestedOwnerId ? <Badge variant="outline" className="text-[10px]">Owner: current admin</Badge> : null}
                 </div>
                 <p className="font-medium">Evidence used</p>
-                <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                <ul className="list-disc space-y-0.5 pl-5 text-muted-foreground text-[11px]">
                   {action.payload.evidence.map((item) => <li key={item}>{item}</li>)}
                 </ul>
                 {action.payload.inference ? (
-                  <p><span className="font-medium">Inference:</span> {action.payload.inference}</p>
+                  <p className="text-[11px]"><span className="font-medium">Inference:</span> {action.payload.inference}</p>
                 ) : null}
                 {action.payload.recommendedNextAction ? (
-                  <p><span className="font-medium">Recommended next action:</span> {action.payload.recommendedNextAction}</p>
+                  <p className="text-[11px]"><span className="font-medium">Recommended next action:</span> {action.payload.recommendedNextAction}</p>
                 ) : null}
                 {action.payload.outreachDraft ? (
-                  <div className="border-l-2 border-cyan-500 pl-3">
-                    <p className="font-medium">Optional outreach draft</p>
-                    <div className="mt-1 text-muted-foreground"><CopilotMarkdown content={action.payload.outreachDraft} /></div>
+                  <div className="border-l-2 border-cyan-500 pl-2">
+                    <p className="text-[11px] font-medium">Optional outreach draft</p>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground"><CopilotMarkdown content={action.payload.outreachDraft} /></div>
                   </div>
                 ) : null}
               </div>
             ) : null}
-            <Label htmlFor={`task-${action.id}`}>Internal follow-up task</Label>
-            <Textarea id={`task-${action.id}`} value={taskContent} onChange={(event) => setTaskContent(event.target.value)} rows={4} />
+            <Label htmlFor={`task-${action.id}`} className="text-[11px]">Internal follow-up task</Label>
+            <Textarea id={`task-${action.id}`} value={taskContent} onChange={(event) => setTaskContent(event.target.value)} rows={3} className="text-xs" />
           </div>
         )}
 
         {canAct ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {changed ? (
-              <Button variant="outline" disabled={busy} onClick={() => onSave(action, action.action_type === "send_portal_invite" ? { subject, body } : { taskContent })}>
-                <Save className="mr-2 h-4 w-4" /> Save edit
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => onSave(action, action.action_type === "send_portal_invite" ? { subject, body } : { taskContent })} className="h-6 text-xs">
+                <Save className="mr-1 h-3 w-3" /> Save edit
               </Button>
             ) : null}
-            <Button disabled={busy || changed} onClick={() => onDecide(action, "approve")}>
-              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : action.status === "failed" ? <RotateCcw className="mr-2 h-4 w-4" /> : <Check className="mr-2 h-4 w-4" />}
-              {action.status === "failed" ? "Retry approved action" : action.action_type === "send_portal_invite" ? "Approve & send" : "Approve task"}
+            <Button size="sm" disabled={busy || changed} onClick={() => onDecide(action, "approve")} className="h-6 text-xs">
+              {busy ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : action.status === "failed" ? <RotateCcw className="mr-1 h-3 w-3" /> : <Check className="mr-1 h-3 w-3" />}
+              {action.status === "failed" ? "Retry" : action.action_type === "send_portal_invite" ? "Approve & send" : "Approve"}
             </Button>
-            <Button variant="ghost" disabled={busy} onClick={() => onDecide(action, "reject")}>
-              <X className="mr-2 h-4 w-4" /> Reject
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => onDecide(action, "reject")} className="h-6 text-xs">
+              <X className="mr-1 h-3 w-3" /> Reject
             </Button>
-            {changed ? <span className="text-xs text-amber-700">Save the edit before approval.</span> : null}
+            {changed ? <span className="text-[11px] text-amber-700">Save the edit before approval.</span> : null}
           </div>
         ) : null}
       </CardContent>
@@ -232,6 +242,7 @@ const PortalCopilotPage = () => {
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
   const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
+  const [holdToRecord, setHoldToRecord] = useState(true);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [state, setState] = useState<CopilotState | null>(null);
@@ -455,81 +466,81 @@ const PortalCopilotPage = () => {
       ) : null}
       {showSidebar ? (
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
-          <div className="flex items-center justify-between gap-2 border-b p-3">
-            <span className="flex items-center gap-2 text-sm font-semibold"><Bot className="h-4 w-4 text-cyan-600" /> Portal Copilot</span>
-            <Button size="icon" variant="ghost" aria-label="Hide chat history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-4 w-4" /></Button>
+          <div className="flex items-center justify-between gap-1.5 border-b px-3 py-2">
+            <span className="flex items-center gap-1.5 text-xs font-semibold"><Bot className="h-3.5 w-3.5 text-cyan-600" /> Portal Copilot</span>
+            <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Hide chat history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-3.5 w-3.5" /></Button>
           </div>
-          <div className="p-3">
-            <Button variant="outline" className="w-full justify-start rounded-none" disabled={newConversationMutation.isPending} onClick={startNewConversation}>
-              {newConversationMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} New chat
+          <div className="px-2 py-1.5">
+            <Button variant="outline" className="h-7 w-full justify-start rounded-sm text-xs" disabled={newConversationMutation.isPending} onClick={startNewConversation}>
+              {newConversationMutation.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />} New chat
             </Button>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
-            <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Chats</p>
+          <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
+            <p className="px-1 py-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Chats</p>
             {(displayedState?.conversations ?? []).map((conversation) => (
               <button
                 key={conversation.id}
                 type="button"
                 onClick={() => chooseConversation(conversation.id)}
                 className={cn(
-                  "group w-full border-l-2 border-transparent px-3 py-2 text-left transition-all duration-200 hover:translate-x-0.5 hover:bg-muted",
+                  "group w-full border-l-2 border-transparent px-2 py-1.5 text-left text-xs transition-all duration-200 hover:translate-x-0.5 hover:bg-muted",
                   conversation.id === displayedState?.selectedConversationId && "border-l-cyan-500 bg-background shadow-sm",
                 )}
               >
-                <p className={cn("line-clamp-2 text-sm transition-colors", conversation.id === displayedState?.selectedConversationId ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{conversation.title}</p>
-                <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><Clock3 className="h-3 w-3" /> {new Date(conversation.updated_at).toLocaleString()}</p>
+                <p className={cn("line-clamp-2 transition-colors", conversation.id === displayedState?.selectedConversationId ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{conversation.title}</p>
+                <p className="mt-0.5 flex items-center gap-0.5 text-[10px] text-muted-foreground"><Clock3 className="h-2.5 w-2.5" /> {new Date(conversation.updated_at).toLocaleString()}</p>
               </button>
             ))}
 
-            {!(displayedState?.conversations ?? []).length ? <p className="px-1 text-xs text-muted-foreground">No chats yet.</p> : null}
+            {!(displayedState?.conversations ?? []).length ? <p className="px-1 text-[11px] text-muted-foreground">No chats yet.</p> : null}
           </div>
         </aside>
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b px-4 py-3">
+        <header className="flex items-center gap-2 border-b px-4 py-2">
           {!showSidebar ? (
-            <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-4 w-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden h-7 w-7 lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-3.5 w-3.5" /></Button>
           ) : null}
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold">{selectedConversation?.title ?? "CV Portal Copilot"}</h1>
-            <p className="truncate text-xs text-muted-foreground">Your operational conversation · live changes always need approval</p>
+            <h1 className="truncate text-xs font-semibold">{selectedConversation?.title ?? "CV Portal Copilot"}</h1>
+            <p className="truncate text-[11px] text-muted-foreground">Your operational conversation · live changes always need approval</p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Button size="sm" variant="outline" className="rounded-none" disabled={newConversationMutation.isPending} onClick={startNewConversation}>
-              {newConversationMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />} New chat
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button size="sm" variant="outline" className="h-7 rounded-sm text-xs" disabled={newConversationMutation.isPending} onClick={startNewConversation}>
+              {newConversationMutation.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Plus className="mr-1 h-3 w-3" />} New chat
             </Button>
-            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><ShieldCheck className="h-3 w-3" /> Approval protected</Badge>
-            <Badge variant="outline" className="hidden gap-1 md:inline-flex"><Database className="h-3 w-3" /> CRM + ERP context</Badge>
+            <Badge variant="outline" className="hidden gap-0.5 text-[10px] md:inline-flex"><ShieldCheck className="h-2.5 w-2.5" /> Approval protected</Badge>
+            <Badge variant="outline" className="hidden gap-0.5 text-[10px] md:inline-flex"><Database className="h-2.5 w-2.5" /> CRM + ERP context</Badge>
           </div>
 
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6">
+          <div className="mx-auto w-full max-w-3xl space-y-3 px-4 py-3">
             {stateQuery.isError && !state ? (
-              <div className="flex gap-3 border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="flex gap-2 border border-amber-300 bg-amber-50 p-2 text-xs text-amber-950">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div>
                   <p className="font-medium">Copilot backend is not available in this environment.</p>
-                  <p className="mt-1">Apply the Portal Copilot migration and deploy the portal-copilot, admin-user-management, docstudio-api and mcp functions.</p>
+                  <p className="mt-0.5 text-[11px]">Apply the Portal Copilot migration and deploy the portal-copilot, admin-user-management, docstudio-api and mcp functions.</p>
                 </div>
               </div>
             ) : null}
 
             {!selectedRun && !conversationMessages.length && !localMessages.length ? (
-              <div className="flex flex-col items-center py-16 text-center">
-                <div className="bg-slate-900 p-3 text-white"><Bot className="h-6 w-6 text-cyan-300" /></div>
-                <h2 className="mt-4 text-xl font-semibold">What can I help you with?</h2>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">Ask a question, think out loud, or give me a task in your own words. I’ll keep the thread in context, surface what I know, and turn approved next steps into governed actions.</p>
+              <div className="flex flex-col items-center py-8 text-center">
+                <div className="bg-slate-900 p-2 text-white"><Bot className="h-5 w-5 text-cyan-300" /></div>
+                <h2 className="mt-3 text-lg font-semibold">What can I help you with?</h2>
+                <p className="mt-1 max-w-md text-xs text-muted-foreground">Ask a question or give me a task. I’ll surface what I know and turn approved steps into governed actions.</p>
 
-                <div className="mt-6 grid w-full max-w-xl gap-2">
+                <div className="mt-4 grid w-full max-w-xl gap-1.5">
                   {SUGGESTIONS.map((suggestion) => (
                     <button
                       key={suggestion}
                       type="button"
-                      className="border px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
+                      className="border px-3 py-2 text-left text-xs transition-colors hover:bg-muted"
                       onClick={() => {
                         setCommand(suggestion);
                         setInputMode("text");
@@ -544,14 +555,14 @@ const PortalCopilotPage = () => {
               <>
 
                 <div className="flex justify-end">
-                  <div className="max-w-[85%] bg-primary px-4 py-3 text-sm text-primary-foreground">{selectedRun.command_text}</div>
+                  <div className="max-w-[85%] bg-primary px-3 py-2 text-xs text-primary-foreground">{selectedRun.command_text}</div>
                 </div>
 
-                <div className="flex gap-3">
-                  <div className="mt-1 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 text-cyan-300" /></div>
-                  <div className="min-w-0 flex-1 space-y-4">
+                <div className="flex gap-2">
+                  <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white"><Bot className="h-3.5 w-3.5 text-cyan-300" /></div>
+                  <div className="min-w-0 flex-1 space-y-2">
                     {selectedRun.workflow === "crm_opportunity_scan" ? (
-                      <div className="space-y-2 text-sm leading-6">
+                      <div className="space-y-1 text-xs leading-5">
                         <p>
                           I reviewed <strong>{selectedRun.summary.contactsReviewed ?? 0}</strong> pipeline contacts and <strong>{selectedRun.summary.orderSignalsReviewed ?? 0}</strong> order-health records.
                           {" "}<strong>{selectedRun.summary.suggestionsPrepared ?? 0}</strong> qualified follow-up tasks are ready for review.
@@ -561,7 +572,7 @@ const PortalCopilotPage = () => {
                         </p>
                       </div>
                     ) : (
-                      <p className="text-sm leading-6">
+                      <p className="text-xs leading-5">
                         I reviewed <strong>{selectedRun.summary.erpCustomers ?? 0}</strong> ERP customers. <strong>{selectedRun.summary.alreadyActive ?? 0}</strong> already have portal access,
                         {" "}<strong>{selectedRun.summary.invitationsReady ?? 0}</strong> invitations are drafted and waiting for your approval, and <strong>{selectedRun.summary.followUpsNeeded ?? 0}</strong> customers need a follow-up before I can invite anyone.
                         {" "}Nothing customer-facing has been sent.
@@ -570,9 +581,9 @@ const PortalCopilotPage = () => {
 
                     {(displayedState?.actions ?? []).length ? (
                       <>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1">
                           {([["pending", `Needs approval (${pendingActions.length})`], ["resolved", `Resolved (${resolvedActions.length})`], ["all", `All (${displayedState.actions.length})`]] as const).map(([value, label]) => (
-                            <Button key={value} type="button" size="sm" className="rounded-none" variant={actionFilter === value ? "default" : "outline"} onClick={() => setActionFilter(value)}>
+                            <Button key={value} type="button" size="sm" className="h-6 rounded-sm text-xs" variant={actionFilter === value ? "default" : "outline"} onClick={() => setActionFilter(value)}>
                               {label}
                             </Button>
                           ))}
@@ -586,41 +597,41 @@ const PortalCopilotPage = () => {
                             onSave={(selected, draft) => editMutation.mutate({ action: selected, draft })}
                           />
                         )) : (
-                          <div className="flex flex-col items-center border py-10 text-center">
-                            <CheckCircle2 className="h-7 w-7 text-emerald-600" />
-                            <p className="mt-3 font-medium">Nothing in this view.</p>
-                            <p className="mt-1 text-sm text-muted-foreground">Switch filters to see the rest of this run.</p>
+                          <div className="flex flex-col items-center border py-6 text-center">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                            <p className="mt-2 text-xs font-medium">Nothing in this view.</p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">Switch filters to see the rest of this run.</p>
                           </div>
                         )}
                       </>
                     ) : (
-                      <div className="flex flex-col items-center border py-10 text-center">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-                        <p className="mt-3 font-medium">No actions need approval for this run.</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{selectedRun.workflow === "crm_opportunity_scan" ? "No contact met the qualified-suggestion rules, or existing open work already covers them." : "All synced ERP customers already have access, or the run completed without proposed changes."}</p>
+                      <div className="flex flex-col items-center border py-6 text-center">
+                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                        <p className="mt-2 text-xs font-medium">No actions need approval for this run.</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{selectedRun.workflow === "crm_opportunity_scan" ? "No contact met the qualified-suggestion rules, or existing open work already covers them." : "All synced ERP customers already have access, or the run completed without proposed changes."}</p>
                       </div>
                     )}
 
                     <div className="border">
-                      <button type="button" className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium hover:bg-muted" onClick={() => setShowAudit((open) => !open)} aria-expanded={showAudit}>
-                        <span className="flex items-center gap-2"><FileCheck2 className="h-4 w-4" /> Audit trail ({auditEvents.length})</span>
-                        <span className="text-xs text-muted-foreground">{showAudit ? "Hide" : "Show"}</span>
+                      <button type="button" className="flex w-full items-center justify-between gap-1.5 px-3 py-2 text-left text-xs font-medium hover:bg-muted" onClick={() => setShowAudit((open) => !open)} aria-expanded={showAudit}>
+                        <span className="flex items-center gap-1.5"><FileCheck2 className="h-3.5 w-3.5" /> Audit trail ({auditEvents.length})</span>
+                        <span className="text-[11px] text-muted-foreground">{showAudit ? "Hide" : "Show"}</span>
                       </button>
                       {showAudit ? (
-                        <div className="space-y-3 border-t p-4">
+                        <div className="space-y-2 border-t p-2">
                           {auditEvents.length ? auditEvents.map((event) => (
-                            <div key={event.id} className="border p-3 text-sm">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="font-medium">{statusLabel(event.event_type)}</span>
-                                <span className="text-xs text-muted-foreground">{new Date(event.created_at).toLocaleString()}</span>
+                            <div key={event.id} className="border p-2 text-xs">
+                              <div className="flex flex-wrap items-center justify-between gap-1">
+                                <span className="font-medium text-[11px]">{statusLabel(event.event_type)}</span>
+                                <span className="text-[10px] text-muted-foreground">{new Date(event.created_at).toLocaleString()}</span>
                               </div>
-                              {event.transcript ? <p className="mt-2 bg-muted/50 p-2 text-xs"><span className="font-medium">Transcript:</span> {event.transcript}</p> : null}
+                              {event.transcript ? <p className="mt-1 bg-muted/50 p-1.5 text-[10px]"><span className="font-medium">Transcript:</span> {event.transcript}</p> : null}
                               {Object.keys(event.metadata ?? {}).length ? (
-                                <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words bg-slate-950 p-2 text-[11px] text-slate-100">{JSON.stringify(event.metadata, null, 2)}</pre>
+                                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-words bg-slate-950 p-1.5 text-[10px] text-slate-100">{JSON.stringify(event.metadata, null, 2)}</pre>
                               ) : null}
-                              <p className="mt-2 text-[11px] text-muted-foreground">Actor {event.actor_user_id ?? "system"}{event.action_id ? ` · Action ${event.action_id}` : ""}</p>
+                              <p className="mt-1 text-[10px] text-muted-foreground">Actor {event.actor_user_id ?? "system"}{event.action_id ? ` · Action ${event.action_id}` : ""}</p>
                             </div>
-                          )) : <p className="text-sm text-muted-foreground">No audit events have been recorded for this run yet.</p>}
+                          )) : <p className="text-[11px] text-muted-foreground">No audit events have been recorded for this run yet.</p>}
                         </div>
                       ) : null}
                     </div>
@@ -640,7 +651,7 @@ const PortalCopilotPage = () => {
             ].map((message) => (
               message.role === "user" ? (
                 <div key={message.id} className="flex animate-fade-in justify-end">
-                  <div className="max-w-[85%] space-y-2 bg-primary px-4 py-3 text-sm text-primary-foreground shadow-sm">
+                  <div className="max-w-[85%] space-y-1.5 bg-primary px-3 py-2 text-xs text-primary-foreground shadow-sm">
                     {message.text ? <CopilotMarkdown content={message.text} tone="user" /> : null}
                     {message.files?.length ? (
                       <div className="flex flex-wrap gap-2">
@@ -658,9 +669,9 @@ const PortalCopilotPage = () => {
                   </div>
                 </div>
               ) : (
-                <div key={message.id} className="group flex animate-fade-in gap-3">
-                  <div className="mt-1 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white shadow-sm"><Bot className="h-4 w-4 text-cyan-300" /></div>
-                  <div className="min-w-0 flex-1">
+                <div key={message.id} className="group flex animate-fade-in gap-2">
+                  <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white shadow-sm"><Bot className="h-3.5 w-3.5 text-cyan-300" /></div>
+                  <div className="min-w-0 flex-1 text-xs">
                     <CopilotMarkdown content={message.text ?? ""} />
                   </div>
                 </div>
@@ -668,9 +679,9 @@ const PortalCopilotPage = () => {
             ))}
 
             {isAnalyzing ? (
-              <div className="flex animate-fade-in items-center gap-3 text-sm text-muted-foreground">
-                <div className="mt-0.5 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
-                <span className="flex items-center gap-2">
+              <div className="flex animate-fade-in items-center gap-2 text-xs text-muted-foreground">
+                <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white"><Bot className="h-3.5 w-3.5 animate-pulse text-cyan-300" /></div>
+                <span className="flex items-center gap-1.5">
                   Reading your attachment
                   <ThinkingDots />
                 </span>
@@ -678,9 +689,9 @@ const PortalCopilotPage = () => {
             ) : null}
 
             {prepareMutation.isPending ? (
-              <div className="flex animate-fade-in items-center gap-3 text-sm text-muted-foreground">
-                <div className="mt-0.5 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
-                <span className="flex items-center gap-2">
+              <div className="flex animate-fade-in items-center gap-2 text-xs text-muted-foreground">
+                <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white"><Bot className="h-3.5 w-3.5 animate-pulse text-cyan-300" /></div>
+                <span className="flex items-center gap-1.5">
                   Working through the ERP customer layer
                   <ThinkingDots />
                 </span>
@@ -695,15 +706,15 @@ const PortalCopilotPage = () => {
         <div className="border-t bg-background">
           <div className="mx-auto w-full max-w-3xl space-y-3 px-4 py-4">
             {inputMode === "voice" ? (
-              <div className={cn("border p-3 text-sm", lowConfidence ? "border-amber-300 bg-amber-50" : "border-sky-200 bg-sky-50")}>
-                <div className="flex items-start gap-2">
-                  {lowConfidence ? <AlertCircle className="mt-0.5 h-4 w-4 text-amber-700" /> : <FileCheck2 className="mt-0.5 h-4 w-4 text-sky-700" />}
+              <div className={cn("border p-2 text-xs", lowConfidence ? "border-amber-300 bg-amber-50" : "border-sky-200 bg-sky-50")}>
+                <div className="flex items-start gap-1.5">
+                  {lowConfidence ? <AlertCircle className="mt-0.5 h-3.5 w-3.5 text-amber-700" /> : <FileCheck2 className="mt-0.5 h-3.5 w-3.5 text-sky-700" />}
                   <div>
                     <p className="font-medium">Transcript review required</p>
-                    <p className="text-muted-foreground">{lowConfidence ? "Recognition confidence was below your threshold. Correct any customer or lens terms before confirming." : "Edit any recognition errors, then confirm this is what you said."}</p>
-                    <label className="mt-3 flex cursor-pointer items-center gap-2 font-medium">
-                      <Checkbox checked={transcriptConfirmed} onCheckedChange={(checked) => setTranscriptConfirmed(checked === true)} />
-                      I reviewed this transcript
+                    <p className="text-[11px] text-muted-foreground">{lowConfidence ? "Recognition confidence was below your threshold. Correct any customer or lens terms before confirming." : "Edit any recognition errors, then confirm this is what you said."}</p>
+                    <label className="mt-2 flex cursor-pointer items-center gap-1.5 font-medium">
+                      <Checkbox checked={transcriptConfirmed} onCheckedChange={(checked) => setTranscriptConfirmed(checked === true)} className="h-3 w-3" />
+                      <span className="text-[11px]">I reviewed this transcript</span>
                     </label>
                   </div>
                 </div>
@@ -711,22 +722,22 @@ const PortalCopilotPage = () => {
             ) : null}
 
             {attachments.length ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {attachments.map((file) => (
-                  <div key={file.id} className="flex items-center gap-2 border px-2 py-1 text-xs">
+                  <div key={file.id} className="flex items-center gap-1.5 border px-2 py-1 text-[11px]">
                     {file.kind === "image" && file.previewUrl ? (
-                      <img src={file.previewUrl} alt="" className="h-8 w-8 object-cover" />
+                      <img src={file.previewUrl} alt="" className="h-6 w-6 object-cover" />
                     ) : (
-                      <FileText className="h-3.5 w-3.5" />
+                      <FileText className="h-3 w-3" />
                     )}
-                    <span className="max-w-[12rem] truncate">{file.name}</span>
+                    <span className="max-w-[10rem] truncate">{file.name}</span>
                     <button
                       type="button"
                       aria-label={`Remove ${file.name}`}
                       className="text-muted-foreground hover:text-foreground"
                       onClick={() => setAttachments((current) => current.filter((item) => item.id !== file.id))}
                     >
-                      <X className="h-3.5 w-3.5" />
+                      <X className="h-3 w-3" />
                     </button>
                   </div>
                 ))}
@@ -745,118 +756,172 @@ const PortalCopilotPage = () => {
               }}
             />
 
-            <div className="flex items-end gap-2 border p-2">
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="rounded-none"
-                aria-label="Attach a prescription or order file"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <Textarea
-                aria-label="Message the Copilot"
-                value={command}
-                onChange={(event) => {
-                  setCommand(event.target.value);
-                  if (inputMode === "voice") setTranscriptConfirmed(false);
-                }}
-                onPaste={(event) => {
-                  const files = Array.from(event.clipboardData.files ?? []);
-                  if (files.length) {
-                    event.preventDefault();
-                    void addFiles(files);
-                  }
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    submit();
-                  }
-                }}
-                rows={1}
-                className="max-h-40 min-h-10 resize-none border-0 bg-transparent p-2 text-base shadow-none focus-visible:ring-0"
-                placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : `Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
-              />
+            <div className="rounded-2xl border border-input bg-muted/30 shadow-sm transition-colors focus-within:border-foreground/30 focus-within:bg-background focus-within:shadow-md">
+              <div className="flex items-end gap-2 px-4 pt-3.5">
+                <Textarea
+                  aria-label="Message the Copilot"
+                  value={command}
+                  onChange={(event) => {
+                    setCommand(event.target.value);
+                    if (inputMode === "voice") setTranscriptConfirmed(false);
+                  }}
+                  onPaste={(event) => {
+                    const files = Array.from(event.clipboardData.files ?? []);
+                    if (files.length) {
+                      event.preventDefault();
+                      void addFiles(files);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      submit();
+                    }
+                  }}
+                  rows={1}
+                  className="max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent p-0 text-base leading-6 shadow-none focus-visible:ring-0"
+                  placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : `Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  className="mb-0.5 h-8 w-8 shrink-0 rounded-lg"
+                  aria-label={attachments.length ? "Analyse attachment" : "Send message"}
+                  disabled={!canPrepare}
+                  onClick={submit}
+                >
+                  {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+                </Button>
+              </div>
 
-              <Button
-                type="button"
-                size="icon"
-                variant={speech.isListening ? "destructive" : "ghost"}
-                className="rounded-none"
-                aria-label="Hold to talk, then release to review the transcript"
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  void speech.start();
-                }}
-                onPointerUp={speech.stop}
-                onPointerCancel={speech.stop}
-                onKeyDown={(event) => {
-                  if ((event.key === " " || event.key === "Enter") && !event.repeat) {
-                    event.preventDefault();
-                    void speech.start();
-                  }
-                }}
-                onKeyUp={(event) => {
-                  if (event.key === " " || event.key === "Enter") {
-                    event.preventDefault();
-                    speech.stop();
-                  }
-                }}
-                onClick={(event) => event.preventDefault()}
-              >
-                {speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
-              <Button type="button" size="icon" className="rounded-none" aria-label={attachments.length ? "Analyse attachment" : "Send message"} disabled={!canPrepare} onClick={submit}>
-                {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
-              </Button>
+              <div className="flex items-center justify-between gap-1.5 px-2.5 pb-2.5 pt-1.5">
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                    aria-label="Attach a prescription or order file"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
 
-            </div>
+                  <div className="flex items-center overflow-hidden rounded-full border border-transparent hover:border-input">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={speech.isListening ? "destructive" : "ghost"}
+                      className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground data-[state=listening]:text-foreground"
+                      aria-label={holdToRecord ? "Hold to talk, then release to review the transcript" : "Click to start or stop recording"}
+                      onPointerDown={(event) => {
+                        if (!holdToRecord) return;
+                        event.preventDefault();
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        void speech.start();
+                      }}
+                      onPointerUp={() => holdToRecord && speech.stop()}
+                      onPointerCancel={() => holdToRecord && speech.stop()}
+                      onKeyDown={(event) => {
+                        if (!holdToRecord) return;
+                        if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+                          event.preventDefault();
+                          void speech.start();
+                        }
+                      }}
+                      onKeyUp={(event) => {
+                        if (!holdToRecord) return;
+                        if (event.key === " " || event.key === "Enter") {
+                          event.preventDefault();
+                          speech.stop();
+                        }
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (holdToRecord) return;
+                        if (speech.isListening) speech.stop();
+                        else void speech.start();
+                      }}
+                    >
+                      {speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setShowAudioSettings((open) => !open)} aria-expanded={showAudioSettings}>
-                <Settings2 className="h-3.5 w-3.5" /> Audio settings
-              </button>
-              <span className="truncate">{speech.activeDeviceLabel}</span>
-              <div className="h-1.5 w-24 overflow-hidden bg-muted"><div className="h-full bg-cyan-500 transition-[width]" style={{ width: `${speech.level}%` }} /></div>
-              {speech.isTranscribing ? <span>Transcribing your recording…</span> : null}
-              <span className="ml-auto hidden sm:inline">Enter to send · Shift+Enter for a new line</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-6 rounded-full text-muted-foreground hover:text-foreground" aria-label="Microphone settings">
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-72">
+                        <DropdownMenuLabel className="px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Microphone</DropdownMenuLabel>
+                        <div className="max-h-64 overflow-y-auto">
+                          <DropdownMenuItem
+                            className="flex items-center justify-between gap-2"
+                            onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: "default" }))}
+                          >
+                            <span className="truncate">System default</span>
+                            {speech.settings.deviceId === "default" ? <Check className="h-4 w-4 shrink-0" /> : null}
+                          </DropdownMenuItem>
+                          {speech.devices.filter((device) => device.deviceId && device.deviceId !== "default").map((device, index) => (
+                            <DropdownMenuItem
+                              key={device.deviceId}
+                              className="flex items-center justify-between gap-2"
+                              onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: device.deviceId }))}
+                            >
+                              <span className="truncate">{device.label || `Microphone ${index + 1}`}</span>
+                              {speech.settings.deviceId === device.deviceId ? <Check className="h-4 w-4 shrink-0" /> : null}
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <div className="flex items-center justify-between px-2 py-1 text-[11px]">
+                          <Label htmlFor="hold-to-record" className="cursor-pointer font-normal">Hold to record</Label>
+                          <Switch id="hold-to-record" checked={holdToRecord} onCheckedChange={setHoldToRecord} />
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={() => setShowAudioSettings(true)}>
+                          <Settings2 className="mr-1.5 h-3 w-3" /> More voice settings
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {speech.isListening ? (
+                    <div className="ml-1 h-1 w-12 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-cyan-500 transition-[width]" style={{ width: `${speech.level}%` }} />
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {speech.isTranscribing ? <span>Transcribing…</span> : null}
+                  <span className="hidden truncate sm:inline">{speech.activeDeviceLabel}</span>
+                  <span className="hidden lg:inline">Enter to send · Shift+Enter for a new line</span>
+                </div>
+              </div>
             </div>
             {speech.error ? <p role="alert" className="text-sm text-red-700">{speech.error}</p> : null}
 
             {showAudioSettings ? (
-              <div className="grid gap-4 border bg-muted/20 p-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1.5">
-                  <Label>Microphone</Label>
-                  <Select value={speech.settings.deviceId} onValueChange={(deviceId) => speech.setSettings((current) => ({ ...current, deviceId }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">System default</SelectItem>
-                      {speech.devices.filter((device) => device.deviceId && device.deviceId !== "default").map((device, index) => <SelectItem key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${index + 1}`}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Language</Label>
+              <div className="grid gap-2 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Language</Label>
                   <Select value={speech.settings.language} onValueChange={(language: "en-BB" | "en-US" | "en-GB") => speech.setSettings((current) => ({ ...current, language }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="en-BB">English (Caribbean)</SelectItem><SelectItem value="en-US">English (US)</SelectItem><SelectItem value="en-GB">English (UK)</SelectItem></SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="silence-timeout">Silence timeout (ms)</Label>
-                  <Input id="silence-timeout" type="number" min={500} max={5000} step={250} value={speech.settings.silenceTimeoutMs} onChange={(event) => speech.setSettings((current) => ({ ...current, silenceTimeoutMs: Number(event.target.value) || 1500 }))} />
+                <div className="space-y-1">
+                  <Label htmlFor="silence-timeout" className="text-xs">Silence timeout (ms)</Label>
+                  <Input id="silence-timeout" type="number" min={500} max={5000} step={250} value={speech.settings.silenceTimeoutMs} onChange={(event) => speech.setSettings((current) => ({ ...current, silenceTimeoutMs: Number(event.target.value) || 1500 }))} className="h-7 text-xs" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="confidence-threshold">Confidence threshold</Label>
-                  <Input id="confidence-threshold" type="number" min={0} max={1} step={0.05} value={speech.settings.confidenceThreshold} onChange={(event) => speech.setSettings((current) => ({ ...current, confidenceThreshold: Math.min(1, Math.max(0, Number(event.target.value))) }))} />
+                <div className="space-y-1">
+                  <Label htmlFor="confidence-threshold" className="text-xs">Confidence threshold</Label>
+                  <Input id="confidence-threshold" type="number" min={0} max={1} step={0.05} value={speech.settings.confidenceThreshold} onChange={(event) => speech.setSettings((current) => ({ ...current, confidenceThreshold: Math.min(1, Math.max(0, Number(event.target.value))) }))} className="h-7 text-xs" />
                 </div>
-                <div className="space-y-1.5 md:col-span-2 lg:col-span-4">
-                  <Label htmlFor="custom-vocabulary">Customer and lens vocabulary</Label>
-                  <Input id="custom-vocabulary" value={speech.settings.vocabulary} onChange={(event) => speech.setSettings((current) => ({ ...current, vocabulary: event.target.value }))} />
+                <div className="space-y-1 md:col-span-3">
+                  <Label htmlFor="custom-vocabulary" className="text-xs">Customer and lens vocabulary</Label>
+                  <Input id="custom-vocabulary" value={speech.settings.vocabulary} onChange={(event) => speech.setSettings((current) => ({ ...current, vocabulary: event.target.value }))} className="h-7 text-xs" />
                 </div>
               </div>
             ) : null}
