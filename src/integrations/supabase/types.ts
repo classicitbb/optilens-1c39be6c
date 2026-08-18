@@ -653,7 +653,7 @@ export type Database = {
           last_error?: string | null
           last_tested_at?: string | null
           model?: string | null
-          provider?: string
+          provider: string
           status?: string
           tenant_key?: string
           updated_at?: string
@@ -11116,6 +11116,10 @@ export type Database = {
           quote_acceptance_rate: number
         }[]
       }
+      delete_ai_agent_settings: {
+        Args: { p_actor_user_id?: string; p_provider: string }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -11171,7 +11175,7 @@ export type Database = {
         }[]
       }
       get_ai_agent_credentials: {
-        Args: never
+        Args: { p_provider: string }
         Returns: {
           api_key: string
           enabled: boolean
@@ -11641,6 +11645,7 @@ export type Database = {
         Args: {
           p_actor_user_id?: string
           p_error_message?: string
+          p_provider: string
           p_success: boolean
         }
         Returns: undefined
@@ -11920,6 +11925,7 @@ export type Database = {
           p_api_key?: string
           p_enabled?: boolean
           p_model?: string
+          p_provider: string
         }
         Returns: string
       }
