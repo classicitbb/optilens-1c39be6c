@@ -479,6 +479,26 @@ async function upsertStatementRow(
   return { error, isNew: !error };
 }
 
+async function enqueueStatementDocumentJob(
+  supabase: ReturnType<typeof createClient>,
+  statementRow: Record<string, unknown>,
+  options: { suppress?: boolean } = {},
+): Promise<void> {
+  const statementId = statementRow.innovations_statement_id;
+  if (statementId === undefined || statementId === null) return;
+  const isVoid = statementRow.void === true;
+  const skipped = options.suppress || isVoid;
+  await supabase.from("statement_document_jobs").upsert({
+    innovations_statement_id: Number(statementId),
+    idempotency_key: `innovations-statement:${statementId}`,
+    status: skipped ? "skipped" : "pending",
+    skip_reason: options.suppress ? "suppressed_backfill" : isVoid ? "void_statement" : null,
+    upload_status: skipped ? "skipped" : "pending",
+    email_status: skipped ? "suppressed" : "not_sent",
+    completed_at: skipped ? new Date().toISOString() : null,
+  }, { onConflict: "innovations_statement_id", ignoreDuplicates: true });
+}
+
 async function upsertBalanceRow(
   supabase: ReturnType<typeof createClient>,
   row: Record<string, unknown>,
@@ -875,7 +895,7 @@ Deno.serve(async (req: Request) => {
         });
       } else {
         upserted++;
-        if (isNew && !suppressEmail) await enqueueStatementReadyEmail(supabase, row);
+        if (isNew) await enqueueStatementDocumentJob(supabase, row, { suppress: suppressEmail });
       }
     }
   } else if (!dryRun && mapped.length && entity === "balances") {

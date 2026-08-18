@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-18 — Statement PDF access remains customer-scoped
+- Area: Portal Statements
+- Impact: statement PDF links must not become public OneDrive URLs.
+- Resolution: the portal download flow calls a server-side authenticated endpoint, which checks the signed-in profile's customer relationship before streaming the uploaded document.
+- Regression prevention: retain authenticated endpoint coverage and never put Microsoft Graph secrets or unrestricted drive links in browser code.
+
 ## 2026-08-15 — Stock quotes could diverge from account pricing and documents
 - Area: Admin Website stock ordering and quotations
 - Impact: a staged stock order could depend on a browser price and did not create a linked authoritative quote or DocStudio document.

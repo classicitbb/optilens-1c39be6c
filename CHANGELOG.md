@@ -4,6 +4,14 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-18 — Statement document automation
+
+### Release Notes
+- Newly discovered non-void Innovations statements now enter a durable PDF, OneDrive, and authenticated portal-download workflow.
+
+### Technical Changelog
+- Added idempotent statement document jobs, activation baselining, Microsoft Graph upload orchestration, and post-upload canonical email gating.
+
 ## 2026-08-15 — Canonical stock quotations
 
 ### Release Notes

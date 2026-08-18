@@ -1,16 +1,15 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-15T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-18T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Staff can save a staged Stock Order Builder draft as a numbered quotation and continue with its populated DocStudio quotation document.",
-    "Price selection follows the account pricelist, Retail fallback, then published catalog price; a non-zero manual price requires a reason when no configured source can price the item."
+    "New Innovations statements can be rendered as Letter PDFs, stored in the governed OneDrive folder hierarchy, and downloaded through the authenticated portal."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Canonical stock quotations."
+      "notes": "Updated as part of Statement document automation."
     }
   ],
   "migrationNotes": [

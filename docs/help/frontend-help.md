@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-08-18 — Downloading a statement PDF
+
+- Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose OneDrive credentials.
+
 ## 2026-08-15 — Saving a stock quotation
 
 - Build the stock order, wait for the automatic draft save, then select **Save as quotation**. The saved quotation opens in DocStudio for the document workflow.

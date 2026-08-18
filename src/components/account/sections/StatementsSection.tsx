@@ -349,7 +349,7 @@ const StatementsSection = () => {
   };
 
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   // The same modal handles both "adjust the amount and pay" and the
   // thank-you state the buyer lands back on after Scotia redirects home.
@@ -400,6 +400,30 @@ const StatementsSection = () => {
     retry: 1,
   });
   const rawLines = useMemo(() => linesQuery.data?.lines ?? [], [linesQuery.data?.lines]);
+
+  useEffect(() => {
+    if (searchParams.get("download") !== "1" || !activeStatementId) return;
+    let cancelled = false;
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || cancelled) return;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/statement-document?statement_id=${encodeURIComponent(activeStatementId)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!response.ok || cancelled) return;
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `Statement-${activeStatementId}.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      const next = new URLSearchParams(searchParams);
+      next.delete("download");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [activeStatementId, searchParams, setSearchParams]);
 
   const printStatement = () => {
     const statementDocument = statementPrintRef.current;
