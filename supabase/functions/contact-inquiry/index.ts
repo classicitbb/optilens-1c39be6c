@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { z } from "npm:zod@3.25.76";
+import { z } from "npm:zod@^4.4.3";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
 import { getOrCreateUnsubscribeToken, getSmtpConfig, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
