@@ -46,11 +46,25 @@ import {
   type CopilotState,
 } from "@/features/admin/copilot/api";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { cn } from "@/lib/utils";
 
 const MAX_ATTACHMENTS = 4;
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 const TEXT_TYPES = /^(text\/|application\/(json|csv|xml))/;
+
+const ThinkingDots = () => (
+  <span className="inline-flex items-center gap-1" aria-hidden="true">
+    {[0, 150, 300].map((delay) => (
+      <span
+        key={delay}
+        className="h-1.5 w-1.5 animate-bounce bg-muted-foreground/70"
+        style={{ animationDelay: `${delay}ms`, animationDuration: "1s" }}
+      />
+    ))}
+  </span>
+);
+
 
 const toBase64 = async (file: Blob) => {
   const buffer = new Uint8Array(await file.arrayBuffer());
@@ -179,7 +193,7 @@ const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) => {
                 {action.payload.outreachDraft ? (
                   <div className="border-l-2 border-cyan-500 pl-3">
                     <p className="font-medium">Optional outreach draft</p>
-                    <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{action.payload.outreachDraft}</p>
+                    <div className="mt-1 text-muted-foreground"><CopilotMarkdown content={action.payload.outreachDraft} /></div>
                   </div>
                 ) : null}
               </div>
@@ -459,14 +473,15 @@ const PortalCopilotPage = () => {
                 type="button"
                 onClick={() => chooseConversation(conversation.id)}
                 className={cn(
-                  "w-full border border-transparent px-3 py-2 text-left transition-colors hover:bg-muted",
-                  conversation.id === displayedState?.selectedConversationId && "border-border bg-background",
+                  "group w-full border-l-2 border-transparent px-3 py-2 text-left transition-all duration-200 hover:translate-x-0.5 hover:bg-muted",
+                  conversation.id === displayedState?.selectedConversationId && "border-l-cyan-500 bg-background shadow-sm",
                 )}
               >
-                <p className="line-clamp-2 text-sm">{conversation.title}</p>
+                <p className={cn("line-clamp-2 text-sm transition-colors", conversation.id === displayedState?.selectedConversationId ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{conversation.title}</p>
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><Clock3 className="h-3 w-3" /> {new Date(conversation.updated_at).toLocaleString()}</p>
               </button>
             ))}
+
             {!(displayedState?.conversations ?? []).length ? <p className="px-1 text-xs text-muted-foreground">No chats yet.</p> : null}
           </div>
         </aside>
@@ -624,14 +639,14 @@ const PortalCopilotPage = () => {
               ...localMessages,
             ].map((message) => (
               message.role === "user" ? (
-                <div key={message.id} className="flex justify-end">
-                  <div className="max-w-[85%] space-y-2 bg-primary px-4 py-3 text-sm text-primary-foreground">
-                    {message.text ? <p className="whitespace-pre-wrap">{message.text}</p> : null}
+                <div key={message.id} className="flex animate-fade-in justify-end">
+                  <div className="max-w-[85%] space-y-2 bg-primary px-4 py-3 text-sm text-primary-foreground shadow-sm">
+                    {message.text ? <CopilotMarkdown content={message.text} tone="user" /> : null}
                     {message.files?.length ? (
                       <div className="flex flex-wrap gap-2">
                         {message.files.map((file) => (
                           file.kind === "image" && file.previewUrl ? (
-                            <img key={file.name} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover" />
+                            <img key={file.name} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover transition-transform duration-200 hover:scale-105" />
                           ) : (
                             <span key={file.name} className="flex items-center gap-1 border border-primary-foreground/30 px-2 py-1 text-xs">
                               <FileText className="h-3 w-3" /> {file.name}
@@ -643,26 +658,35 @@ const PortalCopilotPage = () => {
                   </div>
                 </div>
               ) : (
-                <div key={message.id} className="flex gap-3">
-                  <div className="mt-1 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 text-cyan-300" /></div>
-                  <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-6">{message.text}</p>
+                <div key={message.id} className="group flex animate-fade-in gap-3">
+                  <div className="mt-1 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white shadow-sm"><Bot className="h-4 w-4 text-cyan-300" /></div>
+                  <div className="min-w-0 flex-1">
+                    <CopilotMarkdown content={message.text ?? ""} />
+                  </div>
                 </div>
               )
             ))}
 
             {isAnalyzing ? (
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
-                Reading your attachment…
+              <div className="flex animate-fade-in items-center gap-3 text-sm text-muted-foreground">
+                <div className="mt-0.5 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
+                <span className="flex items-center gap-2">
+                  Reading your attachment
+                  <ThinkingDots />
+                </span>
               </div>
             ) : null}
 
             {prepareMutation.isPending ? (
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
-                Working through the ERP customer layer…
+              <div className="flex animate-fade-in items-center gap-3 text-sm text-muted-foreground">
+                <div className="mt-0.5 h-7 w-7 shrink-0 bg-slate-900 p-1.5 text-white"><Bot className="h-4 w-4 animate-pulse text-cyan-300" /></div>
+                <span className="flex items-center gap-2">
+                  Working through the ERP customer layer
+                  <ThinkingDots />
+                </span>
               </div>
             ) : null}
+
 
             <div ref={transcriptEndRef} />
           </div>
