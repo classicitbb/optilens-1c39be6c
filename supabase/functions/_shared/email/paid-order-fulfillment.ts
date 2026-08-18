@@ -2,6 +2,8 @@
 // settled. Both the browser return and the server notification webhook may
 // reach this path, so the message id is deliberately stable per order.
 
+import { getOrCreateUnsubscribeToken } from "./smtp.ts";
+
 const FULFILLMENT_RECIPIENT = "orders@classicvisions.net";
 
 type AdminClient = {
@@ -56,6 +58,8 @@ export async function queuePaidOrderFulfillmentEmail(admin: AdminClient, orderId
   });
   if (logError) return;
 
+  const unsubscribeToken = await getOrCreateUnsubscribeToken(admin, FULFILLMENT_RECIPIENT);
+
   const { error: enqueueError } = await admin.rpc("enqueue_email", {
     queue_name: "transactional_emails",
     payload: {
@@ -69,6 +73,7 @@ export async function queuePaidOrderFulfillmentEmail(admin: AdminClient, orderId
       purpose: "transactional",
       label: "paid-order-fulfillment",
       idempotency_key: messageId,
+      unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
     },
   });

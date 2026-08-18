@@ -16,7 +16,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
-import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { getOrCreateUnsubscribeToken, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 import { buildOrderHashref, canonicalOrderFor, type OrderKind } from "../_shared/orders/hashref.ts";
 
 const corsHeaders: Record<string, string> = {
@@ -530,6 +530,7 @@ async function enqueueStatementReadyEmail(
     const template = TEMPLATES["statement-ready"];
     if (!template) return;
 
+    const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient);
     const templateData = {
       customerName: (customer as any)?.name || "there",
       accountNumber: (customer as any)?.account_number || statementRow.account_number || "",
@@ -538,6 +539,7 @@ async function enqueueStatementReadyEmail(
       closingBalance: Number(statementRow.closing_balance ?? 0),
       dueDate: statementRow.due_date,
       siteUrl: Deno.env.get("APP_BASE_URL") ?? "https://classicvisions.net",
+      unsubscribeUrl: `https://classicvisions.net/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
     };
 
     const html = await renderAsync(React.createElement(template.component, templateData));
@@ -565,6 +567,7 @@ async function enqueueStatementReadyEmail(
         purpose: "transactional",
         label: "statement-ready",
         idempotency_key: messageId,
+        unsubscribe_token: unsubscribeToken,
         queued_at: new Date().toISOString(),
       },
     });
