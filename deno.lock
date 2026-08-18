@@ -6,6 +6,7 @@
     "npm:@fontsource/plus-jakarta-sans@^5.2.8": "5.3.0",
     "npm:@hookform/resolvers@^5.4.0": "5.9.1_react-hook-form@7.85.0__react@19.2.8_zod@4.4.3_react@19.2.8",
     "npm:@lovable.dev/cloud-auth-js@^1.1.2": "1.1.2",
+    "npm:@lovable.dev/email-js@*": "0.1.2_react@19.2.8_react-dom@19.2.8__react@19.2.8",
     "npm:@lovable.dev/mcp-js@0.26.1": "0.26.1_vite@8.2.1__@types+node@26.2.0__tsx@4.23.12__esbuild@0.27.7_zod@4.4.3_@types+node@26.2.0_esbuild@0.27.7_tsx@4.23.12",
     "npm:@lovable.dev/mcp-js@~0.26.1": "0.26.1_vite@8.2.1__@types+node@26.2.0__tsx@4.23.12__esbuild@0.27.7_zod@4.4.3_@types+node@26.2.0_esbuild@0.27.7_tsx@4.23.12",
     "npm:@radix-ui/react-accordion@^1.2.16": "1.2.20_@types+react@19.2.18_@types+react-dom@19.2.4__@types+react@19.2.18_react@19.2.8_react-dom@19.2.8__react@19.2.8",
@@ -864,6 +865,19 @@
       "integrity": "sha512-xz8ocewsgwkp8giau272/eWWU3XrchCg5uba4yQPPYtevHTXaVU3sD+fO1JjyPBHacVcOcwhmgUiU9TKHt63cg==",
       "tarball": "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@lovable.dev/cloud-auth-js/-/cloud-auth-js-1.1.2.tgz"
     },
+    "@lovable.dev/email-js@0.1.2_react@19.2.8_react-dom@19.2.8__react@19.2.8": {
+      "integrity": "sha512-+lYPJl807b9gGBJaeoFd/hElW3/0Ir/K79J8dGZRU/Y0K7FlpEYvaAPQMWL3WDm7gZIUsZY7fZKGPhOb8IWrBA==",
+      "dependencies": [
+        "@lovable.dev/webhooks-js",
+        "react",
+        "react-dom"
+      ],
+      "optionalPeers": [
+        "react",
+        "react-dom"
+      ],
+      "tarball": "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@lovable.dev/email-js/-/email-js-0.1.2.tgz"
+    },
     "@lovable.dev/mcp-js@0.26.1_vite@8.2.1__@types+node@26.2.0__tsx@4.23.12__esbuild@0.27.7_zod@4.4.3_@types+node@26.2.0_esbuild@0.27.7_tsx@4.23.12": {
       "integrity": "sha512-O0GibXX6vfl+ADcsk8Wy90NPHNym/IR5hzaTod1JOzmbys3n5lyKsBspgRVDRA7mQKkuWwHy+XVqy5w67RoK5w==",
       "dependencies": [
@@ -875,6 +889,10 @@
       ],
       "bin": true,
       "tarball": "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@lovable.dev/mcp-js/-/mcp-js-0.26.1.tgz"
+    },
+    "@lovable.dev/webhooks-js@0.0.1": {
+      "integrity": "sha512-TdaXXNszX2r9VAWdHpxgpF7cb/aLvejfkVD5S6jTCmH0ArUjAMPkkTlFnG52kkOdWlD5dtW2sNWvqptqVJYVIg==",
+      "tarball": "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@lovable.dev/webhooks-js/-/webhooks-js-0.0.1.tgz"
     },
     "@modelcontextprotocol/sdk@1.28.0_zod@4.4.3_hono@4.13.3_ajv@8.20.0_express@5.2.1": {
       "integrity": "sha512-gmloF+i+flI8ouQK7MWW4mOwuMh4RePBuPFAEPC6+pdqyWOUMDOixb6qZ69owLJpz6XmyllCouc4t8YWO+E2Nw==",
