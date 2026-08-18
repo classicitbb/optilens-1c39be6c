@@ -85,11 +85,13 @@ export type Database = {
         Row: {
           account_number: string | null
           amount: number
+          amount_bbd: number | null
           bank_reference: string | null
           confirmed_at: string | null
           created_at: string
           crm_customer_id: number | null
           currency: string
+          fx_rate_bbd_per_usd: number | null
           gateway_fail_rc: string | null
           gateway_oid: string | null
           gateway_response_code: string | null
@@ -103,11 +105,13 @@ export type Database = {
         Insert: {
           account_number?: string | null
           amount: number
+          amount_bbd?: number | null
           bank_reference?: string | null
           confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
+          fx_rate_bbd_per_usd?: number | null
           gateway_fail_rc?: string | null
           gateway_oid?: string | null
           gateway_response_code?: string | null
@@ -121,11 +125,13 @@ export type Database = {
         Update: {
           account_number?: string | null
           amount?: number
+          amount_bbd?: number | null
           bank_reference?: string | null
           confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
+          fx_rate_bbd_per_usd?: number | null
           gateway_fail_rc?: string | null
           gateway_oid?: string | null
           gateway_response_code?: string | null
@@ -11021,7 +11027,12 @@ export type Database = {
           p_crm_customer_id?: number
           p_statement_id?: string
         }
-        Returns: string
+        Returns: {
+          amount_bbd: number
+          amount_usd: number
+          fx_rate_bbd_per_usd: number
+          payment_id: string
+        }[]
       }
       crm_dashboard_kpis: {
         Args: { p_end_date?: string; p_period?: string; p_start_date?: string }
@@ -11070,6 +11081,7 @@ export type Database = {
           name: string
         }[]
       }
+      get_active_usd_fx_rate: { Args: never; Returns: number }
       get_addons_safe: {
         Args: never
         Returns: {
