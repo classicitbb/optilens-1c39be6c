@@ -9140,6 +9140,110 @@ export type Database = {
         }
         Relationships: []
       }
+      statement_document_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          discovered_at: string
+          email_message_id: string | null
+          email_status: string
+          emailed_at: string | null
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          innovations_statement_id: number
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number
+          next_retry_at: string
+          one_drive_drive_id: string | null
+          one_drive_item_id: string | null
+          one_drive_path: string | null
+          one_drive_url: string | null
+          pdf_bytes: number | null
+          pdf_filename: string | null
+          pdf_template_version: string
+          retry_count: number
+          skip_reason: string | null
+          statement_id: number | null
+          status: string
+          updated_at: string
+          upload_status: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          discovered_at?: string
+          email_message_id?: string | null
+          email_status?: string
+          emailed_at?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          innovations_statement_id: number
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          one_drive_drive_id?: string | null
+          one_drive_item_id?: string | null
+          one_drive_path?: string | null
+          one_drive_url?: string | null
+          pdf_bytes?: number | null
+          pdf_filename?: string | null
+          pdf_template_version?: string
+          retry_count?: number
+          skip_reason?: string | null
+          statement_id?: number | null
+          status?: string
+          updated_at?: string
+          upload_status?: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          discovered_at?: string
+          email_message_id?: string | null
+          email_status?: string
+          emailed_at?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          innovations_statement_id?: number
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          one_drive_drive_id?: string | null
+          one_drive_item_id?: string | null
+          one_drive_path?: string | null
+          one_drive_url?: string | null
+          pdf_bytes?: number | null
+          pdf_filename?: string | null
+          pdf_template_version?: string
+          retry_count?: number
+          skip_reason?: string | null
+          statement_id?: number | null
+          status?: string
+          updated_at?: string
+          upload_status?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statement_document_jobs_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statement_lines: {
         Row: {
           amount: number | null
