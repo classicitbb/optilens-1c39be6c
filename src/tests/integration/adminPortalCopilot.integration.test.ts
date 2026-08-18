@@ -137,4 +137,38 @@ describe("admin-only CV Portal Copilot", () => {
     expect(edge).toContain("MAX_LOOKUP_ITERATIONS");
     expect(edge).toContain("WORKFLOW_BY_TOOL_NAME");
   });
+
+  it("lets an admin manage the Claude API key from /admin/settings/integrations instead of a raw function secret", () => {
+    const migration = read("supabase/migrations/20260818120000_ai_agent_secret_store.sql");
+    const edge = read("supabase/functions/portal-copilot/index.ts");
+    const credentials = read("supabase/functions/_shared/copilot/aiAgentCredentials.ts");
+    const page = read("src/pages/admin/settings/IntegrationsPage.tsx");
+
+    // Settings are readable directly by admins; the encrypted secret table
+    // and both credential-touching RPCs are locked down (writes only via
+    // upsert_ai_agent_settings, decrypt only via service_role).
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS public.ai_agent_settings");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS public.ai_agent_secrets");
+    expect(migration).toContain('USING (false) WITH CHECK (false)');
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.upsert_ai_agent_settings");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_ai_agent_credentials");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.record_ai_agent_test");
+    expect(migration).toContain("extensions.pgp_sym_encrypt(p_api_key, public.payment_secret_encryption_key())");
+    expect(migration).toContain("extensions.pgp_sym_decrypt(sec.encrypted_secret, public.payment_secret_encryption_key())");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.upsert_ai_agent_settings(text, boolean, text, uuid) TO authenticated");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_ai_agent_credentials() FROM PUBLIC");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.get_ai_agent_credentials() TO service_role");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.record_ai_agent_test(boolean, text, uuid) TO authenticated");
+
+    expect(credentials).toContain('db.rpc("get_ai_agent_credentials")');
+    expect(edge).toContain('from "../_shared/copilot/aiAgentCredentials.ts"');
+    expect(edge).toContain("resolveClaudeCredentials(db");
+    expect(edge).toContain('operation === "test-ai-agent"');
+    expect(edge).toContain('db.rpc("record_ai_agent_test"');
+
+    expect(page).toContain("AI Agents");
+    expect(page).toContain('from("ai_agent_settings")');
+    expect(page).toContain('"upsert_ai_agent_settings"');
+    expect(page).toContain('operation: "test-ai-agent"');
+  });
 });

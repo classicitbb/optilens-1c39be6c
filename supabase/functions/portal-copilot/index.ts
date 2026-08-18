@@ -15,6 +15,7 @@ import {
 } from "../_shared/copilot/crmOpportunityScan.ts";
 import { COPILOT_SYSTEM_CONTEXT } from "../_shared/copilot/systemContext.ts";
 import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/copilot/lookupTools.ts";
+import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -65,9 +66,6 @@ const audit = async (
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
-
-const resolveClaudeModel = (configuredModel?: unknown) =>
-  stringValue(configuredModel, 160) || Deno.env.get("PORTAL_COPILOT_CLAUDE_MODEL")?.trim() || "";
 
 const callClaude = (apiKey: string, model: string, body: JsonRecord) =>
   fetch(ANTHROPIC_API_URL, {
@@ -561,8 +559,7 @@ Deno.serve(async (req) => {
         : null;
       const history = existingConversation ? await loadConversationMessages(db, existingConversation.id) : [];
 
-      const claudeApiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
-      const claudeModel = resolveClaudeModel(settings.model);
+      const { apiKey: claudeApiKey, model: claudeModel } = await resolveClaudeCredentials(db, settings.model);
       const routed = claudeApiKey && claudeModel ? await runCopilotTurn(claudeApiKey, claudeModel, command, history, db) : null;
       if (routed && !routed.ok) {
         const status = routed.status === 429 || routed.status === 529 ? routed.status : 502;
@@ -757,8 +754,7 @@ Deno.serve(async (req) => {
       const rawAttachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 4) : [];
       if (rawAttachments.length === 0) return jsonResponse(req, 400, { error: "Attach a prescription or order file first" });
 
-      const apiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
-      const model = resolveClaudeModel();
+      const { apiKey, model } = await resolveClaudeCredentials(db);
       if (!apiKey || !model) return jsonResponse(req, 500, { error: "AI is not configured for this environment" });
 
       // Attachments are placed before the text instruction — Claude reads documents/images more
@@ -818,6 +814,25 @@ Deno.serve(async (req) => {
         metadata: { files: names, hasMessage: message.length > 0 },
       });
       return jsonResponse(req, 200, await loadState(db, actorUserId, conversation.id, null));
+    }
+
+    if (operation === "test-ai-agent") {
+      const { apiKey, model } = await resolveClaudeCredentials(db);
+      if (!apiKey || !model) {
+        const message = "No API key or model is configured.";
+        const { error: recordError } = await db.rpc("record_ai_agent_test", { p_success: false, p_error_message: message });
+        if (recordError) throw recordError;
+        return jsonResponse(req, 200, { ok: false, error: message });
+      }
+      const response = await callClaude(apiKey, model, {
+        max_tokens: 8,
+        messages: [{ role: "user", content: "Reply with the single word: ok" }],
+      });
+      const success = response.ok;
+      const errorMessage = success ? null : await claudeErrorMessage(response);
+      const { error: recordError } = await db.rpc("record_ai_agent_test", { p_success: success, p_error_message: errorMessage });
+      if (recordError) throw recordError;
+      return jsonResponse(req, 200, { ok: success, error: errorMessage ?? undefined });
     }
 
     return jsonResponse(req, 400, { error: "Unknown Copilot operation" });

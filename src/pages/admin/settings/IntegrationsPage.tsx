@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
+import { Bot, CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
 import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
 import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrationTab";
 import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
@@ -42,6 +42,16 @@ interface DhlExpressSettings {
   environment: "test" | "production";
   enabled: boolean;
   has_credentials: boolean;
+  status: GatewayStatus;
+  last_tested_at: string | null;
+  last_error: string | null;
+  updated_at: string;
+}
+
+interface AiAgentSettings {
+  model: string | null;
+  enabled: boolean;
+  has_secret: boolean;
   status: GatewayStatus;
   last_tested_at: string | null;
   last_error: string | null;
@@ -88,6 +98,19 @@ export default function IntegrationsPage() {
     enabled: isAdmin,
   });
 
+  const { data: aiAgentData, isLoading: aiAgentLoading } = useQuery({
+    queryKey: ["ai-agent-settings"],
+    queryFn: async () => {
+      const { data, error } = await ((supabase as any).from("ai_agent_settings") as any)
+        .select("model,enabled,has_secret,status,last_tested_at,last_error,updated_at")
+        .eq("tenant_key", "default")
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as AiAgentSettings | null;
+    },
+    enabled: isAdmin,
+  });
+
   const [form, setForm] = useState({
     store_id: "",
     environment: "test" as "test" | "production",
@@ -104,6 +127,8 @@ export default function IntegrationsPage() {
   }>>({});
   const [dhlUsername, setDhlUsername] = useState("");
   const [dhlPassword, setDhlPassword] = useState("");
+  const [aiAgentForm, setAiAgentForm] = useState({ model: "", enabled: false });
+  const [aiAgentApiKey, setAiAgentApiKey] = useState("");
 
   useEffect(() => {
     if (!data) return;
@@ -115,6 +140,11 @@ export default function IntegrationsPage() {
       enabled: data.enabled,
     });
   }, [data]);
+
+  useEffect(() => {
+    if (!aiAgentData) return;
+    setAiAgentForm({ model: aiAgentData.model ?? "", enabled: aiAgentData.enabled });
+  }, [aiAgentData]);
 
   const resolvedDhlForm = {
     account_number: dhlForm.account_number ?? dhlData?.account_number ?? "",
@@ -235,10 +265,45 @@ export default function IntegrationsPage() {
     },
   });
 
+  const saveAiAgentMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("upsert_ai_agent_settings" as never, {
+        p_model: aiAgentForm.model || null,
+        p_enabled: aiAgentForm.enabled,
+        p_api_key: aiAgentApiKey || null,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-agent-settings"] });
+      setAiAgentApiKey("");
+      toast({ title: "AI Agents saved", description: "Portal Copilot's Claude credentials were updated." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Unable to save", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const testAiAgentMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("portal-copilot", { body: { operation: "test-ai-agent" } });
+      if (error) throw new Error(error.message);
+      if (!data?.ok) throw new Error(data?.error || "The AI agent did not confirm the configuration.");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-agent-settings"] });
+      toast({ title: "AI Agents connected", description: "The Claude API key and model were verified." });
+    },
+    onError: (error: any) => {
+      qc.invalidateQueries({ queryKey: ["ai-agent-settings"] });
+      toast({ title: "AI Agents test failed", description: error.message, variant: "destructive" });
+    },
+  });
+
   const currentStatus = useMemo<GatewayStatus>(() => data?.status ?? "not_configured", [data]);
   const requiresSecret = !data?.has_secret;
 
-  if (roleLoading || isLoading || dhlLoading) {
+  if (roleLoading || isLoading || dhlLoading || aiAgentLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -275,6 +340,7 @@ export default function IntegrationsPage() {
         <TabsList>
           <TabsTrigger value="services">Service integrations</TabsTrigger>
           <TabsTrigger value="gatekeeper">Gatekeeper</TabsTrigger>
+          <TabsTrigger value="ai-agents">AI Agents</TabsTrigger>
         </TabsList>
         <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
@@ -505,6 +571,82 @@ export default function IntegrationsPage() {
         </TabsContent>
         <TabsContent value="gatekeeper" className="mt-0">
           <GatekeeperIntegrationTab />
+        </TabsContent>
+        <TabsContent value="ai-agents" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bot className="h-4 w-4" /> Portal Copilot — Claude API
+              </CardTitle>
+              <CardDescription>
+                The API key Portal Copilot uses for chat, workflow routing and lookups. Stored encrypted
+                server-side and never returned to the browser. Leave it unset to fall back to the
+                ANTHROPIC_API_KEY function secret, if configured.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Model</Label>
+                  <Input
+                    value={aiAgentForm.model}
+                    onChange={(e) => setAiAgentForm((p) => ({ ...p, model: e.target.value }))}
+                    placeholder="claude-sonnet-5"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2">
+                    <Lock className="h-4 w-4" /> API key
+                  </Label>
+                  <Input
+                    type="password"
+                    value={aiAgentApiKey}
+                    onChange={(e) => setAiAgentApiKey(e.target.value)}
+                    placeholder={aiAgentData?.has_secret ? "Leave empty to keep the stored key" : "sk-ant-…"}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={aiAgentForm.enabled}
+                  onChange={(e) => setAiAgentForm((p) => ({ ...p, enabled: e.target.checked }))}
+                />
+                Use this key for Portal Copilot
+              </label>
+              {aiAgentData?.has_secret && (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-3 w-3 text-emerald-600" /> A key is stored. Enter a new value only to rotate it.
+                </p>
+              )}
+              {aiAgentData?.last_error && <p className="text-xs text-destructive">Last test: {aiAgentData.last_error}</p>}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => saveAiAgentMutation.mutate()}
+                  disabled={saveAiAgentMutation.isPending || (!aiAgentApiKey && !aiAgentData?.has_secret)}
+                >
+                  {saveAiAgentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save AI Agents
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => testAiAgentMutation.mutate()}
+                  disabled={testAiAgentMutation.isPending || !aiAgentData?.has_secret}
+                >
+                  {testAiAgentMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlugZap className="mr-2 h-4 w-4" />}
+                  Test configuration
+                </Button>
+                <Badge variant="outline" className={statusMeta[aiAgentData?.status ?? "not_configured"].className}>
+                  {statusMeta[aiAgentData?.status ?? "not_configured"].label}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Test sends a minimal request to Anthropic to confirm the key and model resolve — it does not
+                start a conversation or use up any Copilot approval workflow.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
