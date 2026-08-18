@@ -193,7 +193,7 @@ const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) => {
                 {action.payload.outreachDraft ? (
                   <div className="border-l-2 border-cyan-500 pl-3">
                     <p className="font-medium">Optional outreach draft</p>
-                    <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{action.payload.outreachDraft}</p>
+                    <div className="mt-1 text-muted-foreground"><CopilotMarkdown content={action.payload.outreachDraft} /></div>
                   </div>
                 ) : null}
               </div>
