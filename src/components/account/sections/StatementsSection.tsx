@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -457,6 +459,15 @@ const StatementsSection = () => {
   });
   const cardFeatureEnabled = cardFeatureQuery.data ?? false;
 
+  // Testing bypass for the per-customer `pay_by_card` CRM flag, set from the
+  // Feature Board so QA doesn't depend on a CRM edit landing on a specific
+  // customer. "Public" bypasses it for every customer; "Admin" bypasses it
+  // for staff/admin accounts only, so it can be validated before going public.
+  const { isAdmin } = useUserRole();
+  const cardBypassAdmin = useWebsiteFeature("card_payments_bypass_admin", false);
+  const cardBypassPublic = useWebsiteFeature("card_payments_bypass_public", false);
+  const cardApprovalBypassed = cardBypassPublic.enabled || (isAdmin && cardBypassAdmin.enabled);
+
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -501,8 +512,9 @@ const StatementsSection = () => {
   const currentBalance = liveAccountQuery.data?.balance?.current_balance ?? 0;
 
   // Card payments require the gateway build flag, the admin website feature
-  // switch, and the per-customer CRM flag. Bank transfer is always offered.
-  const cardPaymentsEnabled = isScotiaEnabled() && cardFeatureEnabled && !!paymentProfile?.pay_by_card;
+  // switch, and (unless a Feature Board testing bypass is active) the
+  // per-customer CRM flag. Bank transfer is always offered.
+  const cardPaymentsEnabled = isScotiaEnabled() && cardFeatureEnabled && (!!paymentProfile?.pay_by_card || cardApprovalBypassed);
 
   const statementBalance = Number(activeStatement?.closing_balance ?? 0);
   const parsedPayAmount = Number(payAmount);

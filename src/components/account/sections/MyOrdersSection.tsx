@@ -587,7 +587,7 @@ const MyOrdersSection = () => {
               <div
                 role="tablist"
                 aria-label="Filter orders by status"
-                className="inline-flex items-center gap-1 border bg-muted p-1"
+                className="inline-flex items-center gap-1 rounded-md border bg-muted p-1"
               >
                 {ORDER_FILTERS.map((filter) => (
                   <button
@@ -597,7 +597,7 @@ const MyOrdersSection = () => {
                     aria-selected={orderFilter === filter.value}
                     onClick={() => setOrderFilter(filter.value)}
                     className={cn(
-                      "px-3 py-1.5 text-sm font-medium transition-colors",
+                      "rounded-sm px-3 py-1.5 text-sm font-medium transition-colors",
                       orderFilter === filter.value
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
@@ -667,7 +667,10 @@ const MyOrdersSection = () => {
                                     <Button
                                       type="button"
                                       variant="outline"
-                                      size="sm"
+                                      size="icon"
+                                      className="h-9 w-9"
+                                      aria-label="Print order"
+                                      title="Print order"
                                       onClick={() => printOrderDocument({
                                         id: row.order!.id,
                                         createdAt: row.order!.createdAt,
@@ -687,8 +690,7 @@ const MyOrdersSection = () => {
                                         })),
                                       })}
                                     >
-                                      <Printer className="mr-1.5 h-4 w-4" />
-                                      Print
+                                      <Printer className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       type="button"
