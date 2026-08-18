@@ -46,11 +46,25 @@ import {
   type CopilotState,
 } from "@/features/admin/copilot/api";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { cn } from "@/lib/utils";
 
 const MAX_ATTACHMENTS = 4;
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
 const TEXT_TYPES = /^(text\/|application\/(json|csv|xml))/;
+
+const ThinkingDots = () => (
+  <span className="inline-flex items-center gap-1" aria-hidden="true">
+    {[0, 150, 300].map((delay) => (
+      <span
+        key={delay}
+        className="h-1.5 w-1.5 animate-bounce bg-muted-foreground/70"
+        style={{ animationDelay: `${delay}ms`, animationDuration: "1s" }}
+      />
+    ))}
+  </span>
+);
+
 
 const toBase64 = async (file: Blob) => {
   const buffer = new Uint8Array(await file.arrayBuffer());
