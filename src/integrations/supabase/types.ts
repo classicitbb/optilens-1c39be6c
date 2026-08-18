@@ -605,6 +605,74 @@ export type Database = {
           },
         ]
       }
+      ai_agent_secrets: {
+        Row: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          encrypted_secret?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "ai_agent_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          has_secret: boolean
+          id: string
+          last_error: string | null
+          last_tested_at: string | null
+          model: string | null
+          provider: string
+          status: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          has_secret?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          model?: string | null
+          provider: string
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          has_secret?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          model?: string | null
+          provider?: string
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       api_audit_log: {
         Row: {
           api_key_id: string | null
@@ -11048,6 +11116,10 @@ export type Database = {
           quote_acceptance_rate: number
         }[]
       }
+      delete_ai_agent_settings: {
+        Args: { p_actor_user_id?: string; p_provider: string }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -11100,6 +11172,14 @@ export type Database = {
           sort_order: number
           supplier_id: string
           updated_at: string
+        }[]
+      }
+      get_ai_agent_credentials: {
+        Args: { p_provider: string }
+        Returns: {
+          api_key: string
+          enabled: boolean
+          model: string
         }[]
       }
       get_all_orders_admin: {
@@ -11561,6 +11641,15 @@ export type Database = {
         }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
+      record_ai_agent_test: {
+        Args: {
+          p_actor_user_id?: string
+          p_error_message?: string
+          p_provider: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
       record_assistant_editorial_signal: {
         Args: {
           p_audience: string
@@ -11829,6 +11918,16 @@ export type Database = {
       update_api_key_scopes: {
         Args: { p_id: string; p_scopes: string[] }
         Returns: undefined
+      }
+      upsert_ai_agent_settings: {
+        Args: {
+          p_actor_user_id?: string
+          p_api_key?: string
+          p_enabled?: boolean
+          p_model?: string
+          p_provider: string
+        }
+        Returns: string
       }
       upsert_dhl_express_settings: {
         Args: {
