@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
     }
 
     if (result.approved) {
-      await queuePaidOrderFulfillmentEmail(supabaseAdmin, oid);
+      await queuePaidOrderFulfillmentEmail(supabaseAdmin as never, oid);
     }
 
     return redirect(req, orderReturnPath, { scotia: outcome });

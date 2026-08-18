@@ -21,7 +21,7 @@
 //   SCOTIA_CURRENCY        ISO numeric, e.g. "840" USD (default "840")
 // ============================================================
 
-import { z } from "npm:zod@3.25.76";
+import { z } from "npm:zod@^4.4.3";
 import {
   createCorsPolicy,
   getCorsHeaders,
