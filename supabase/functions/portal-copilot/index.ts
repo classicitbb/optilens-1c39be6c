@@ -2,14 +2,12 @@ import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowed
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import {
   buildErpPortalRolloutPlan,
-  isErpPortalRolloutCommand,
   type CopilotCustomer,
   type CopilotMembership,
   type CopilotPersonContact,
 } from "../_shared/copilot/portalRollout.ts";
 import {
   buildQualifiedCrmPlan,
-  isQualifiedCrmScanCommand,
   type CrmActivitySignal,
   type CrmOpportunitySignal,
   type CrmOrderHealth,
@@ -63,36 +61,77 @@ const audit = async (
   if (error) throw error;
 };
 
-const classifyWithClaude = async (command: string, configuredModel?: unknown, history: { role: "user" | "assistant"; content: string }[] = []): Promise<boolean> => {
-  if (isErpPortalRolloutCommand(command)) return true;
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
-  const model = stringValue(configuredModel, 160) || Deno.env.get("PORTAL_COPILOT_CLAUDE_MODEL")?.trim();
-  if (!apiKey || !model) return false;
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+const resolveClaudeModel = (configuredModel?: unknown) =>
+  stringValue(configuredModel, 160) || Deno.env.get("PORTAL_COPILOT_CLAUDE_MODEL")?.trim() || "";
+
+const callClaude = (apiKey: string, model: string, body: JsonRecord) =>
+  fetch(ANTHROPIC_API_URL, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      "anthropic-version": ANTHROPIC_VERSION,
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      max_tokens: 80,
-      temperature: 0,
-      system: "Classify an admin command. Return only ERP_PORTAL_ROLLOUT when it asks to identify ERP/Innovations customers without portal access and prepare onboarding actions. Otherwise return UNSUPPORTED.",
-      messages: [
-        ...history.slice(-8),
-        { role: "user", content: command },
-      ],
-    }),
+    body: JSON.stringify({ model, ...body }),
   });
-  if (!response.ok) return false;
-  const data = await response.json();
-  const text = Array.isArray(data?.content)
-    ? data.content.map((part: { text?: string }) => part?.text ?? "").join(" ")
+
+const claudeErrorMessage = async (response: Response) => {
+  if (response.status === 429) return "AI rate limit reached. Try again shortly.";
+  if (response.status === 529) return "AI is temporarily overloaded. Try again shortly.";
+  const data = await response.json().catch(() => null) as JsonRecord | null;
+  const errorObject = (data?.error ?? null) as JsonRecord | null;
+  const detail = stringValue(errorObject?.message, 300);
+  return detail ? `AI request failed (${response.status}). ${detail}` : `AI request failed (${response.status}).`;
+};
+
+const claudeTextFromContent = (content: unknown) =>
+  Array.isArray(content)
+    ? (content as JsonRecord[]).map((block) => block?.type === "text" ? stringValue(block.text, 20000) : "").join("").trim()
     : "";
-  return text.includes("ERP_PORTAL_ROLLOUT");
+
+const ROUTER_TOOLS = [
+  {
+    name: "start_erp_portal_rollout",
+    description: "Start the ERP portal rollout workflow. Call this when the admin asks to identify ERP/Innovations customers who do not yet have Classic Visions portal access and prepare onboarding or invitation actions for them — for example \"roll out portal access to ERP customers\" or \"prepare portal invitations for Innovations customers without logins\". Do not call this for questions about existing portal accounts or anything unrelated to preparing new ERP customer invitations.",
+    input_schema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "start_crm_opportunity_scan",
+    description: "Start the qualified CRM opportunity scan workflow. Call this when the admin asks to find lapsed buyers, overdue follow-ups, incomplete contact details, or qualified CRM follow-up opportunities across pipeline contacts — for example \"scan CRM for lapsed buyers\" or \"find qualified follow-up opportunities\". Do not call this for ERP portal access requests or general questions.",
+    input_schema: { type: "object", properties: {}, additionalProperties: false },
+  },
+] as const;
+
+const COPILOT_SYSTEM_PROMPT = "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, ask a concise clarifying question when needed, and answer directly when you can. Use the tools available to you to start the ERP portal rollout or CRM opportunity scan workflows when the admin's request matches; those workflows appear as approval cards and never execute without explicit approval. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions. Clearly distinguish known data from suggestions or missing information.";
+
+type RouteResult =
+  | { kind: "workflow"; workflow: "erp_portal_rollout" | "crm_opportunity_scan" }
+  | { kind: "reply"; text: string };
+
+const routeCommand = async (
+  apiKey: string,
+  model: string,
+  command: string,
+  history: { role: "user" | "assistant"; content: string }[],
+): Promise<{ ok: true; result: RouteResult } | { ok: false; status: number; message: string }> => {
+  const response = await callClaude(apiKey, model, {
+    max_tokens: 1024,
+    system: COPILOT_SYSTEM_PROMPT,
+    tools: ROUTER_TOOLS,
+    tool_choice: { type: "auto" },
+    messages: [...history.slice(-12), { role: "user", content: command }],
+  });
+  if (!response.ok) return { ok: false, status: response.status, message: await claudeErrorMessage(response) };
+  const data = await response.json().catch(() => null) as JsonRecord | null;
+  const blocks: JsonRecord[] = Array.isArray(data?.content) ? (data?.content as JsonRecord[]) : [];
+  const toolUse = blocks.find((block) => block?.type === "tool_use");
+  if (toolUse?.name === "start_erp_portal_rollout") return { ok: true, result: { kind: "workflow", workflow: "erp_portal_rollout" } };
+  if (toolUse?.name === "start_crm_opportunity_scan") return { ok: true, result: { kind: "workflow", workflow: "crm_opportunity_scan" } };
+  const text = claudeTextFromContent(data?.content);
+  return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
 };
 
 const createConversation = async (db: any, actorUserId: string, title = "New chat") => {
@@ -459,16 +498,6 @@ Deno.serve(async (req) => {
       if (inputMode === "voice" && !transcriptConfirmed) {
         return jsonResponse(req, 400, { error: "Review and confirm the transcript before preparing actions" });
       }
-      if (isQualifiedCrmScanCommand(command)) {
-        return jsonResponse(req, 200, await prepareCrmOpportunityScan(
-          db,
-          actorUserId,
-          command,
-          inputMode,
-          transcriptConfirmed,
-          stringValue(body.conversationId, 80) || undefined,
-        ));
-      }
       const { data: settings, error: settingsError } = await db
         .from("copilot_workflow_settings")
         .select("email_template_key,email_template_name,email_subject_pattern,provider,model")
@@ -480,37 +509,33 @@ Deno.serve(async (req) => {
         ? await requireOwnedConversation(db, actorUserId, requestedConversationId)
         : null;
       const history = existingConversation ? await loadConversationMessages(db, existingConversation.id) : [];
-      if (!(await classifyWithClaude(command, settings.model, history))) {
-        // Not a rollout command — answer as a normal chat turn instead of failing.
+
+      const claudeApiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
+      const claudeModel = resolveClaudeModel(settings.model);
+      const routed = claudeApiKey && claudeModel ? await routeCommand(claudeApiKey, claudeModel, command, history) : null;
+      if (routed && !routed.ok) {
+        const status = routed.status === 429 || routed.status === 529 ? routed.status : 502;
+        return jsonResponse(req, status, { error: routed.message });
+      }
+      const route = routed?.result ?? null;
+
+      if (route?.kind === "workflow" && route.workflow === "crm_opportunity_scan") {
+        return jsonResponse(req, 200, await prepareCrmOpportunityScan(
+          db,
+          actorUserId,
+          command,
+          inputMode,
+          transcriptConfirmed,
+          requestedConversationId,
+        ));
+      }
+
+      if (!route || route.kind === "reply") {
+        // Not a recognized workflow — answer as a normal chat turn instead of failing.
         const chatConversation = existingConversation ?? await requireOwnedConversation(db, actorUserId);
-        const chatHistory = existingConversation ? history : [];
-        const apiKey = Deno.env.get("LOVABLE_API_KEY")?.trim();
-        let reply = "I can help with ERP portal rollout commands (for example: \"roll out portal access to ERP customers\"). AI chat is not configured in this environment.";
-        if (apiKey) {
-          const chatResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-            body: JSON.stringify({
-              model: "google/gemini-3.6-flash",
-              messages: [
-                {
-                  role: "system",
-                  content: "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, ask a concise clarifying question when needed, and answer directly when you can. You can prepare ERP portal rollout actions and evidence-backed CRM follow-up tasks when asked; those workflows appear as approval cards and never execute without explicit approval. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions. Clearly distinguish known data from suggestions or missing information.",
-                },
-                ...chatHistory.slice(-12),
-                { role: "user", content: command },
-              ],
-            }),
-          });
-          if (chatResponse.status === 429) return jsonResponse(req, 429, { error: "AI rate limit reached. Try again shortly." });
-          if (chatResponse.status === 402) return jsonResponse(req, 402, { error: "AI credits exhausted. Add credits to continue." });
-          if (chatResponse.ok) {
-            const chatData = await chatResponse.json().catch(() => null);
-            reply = stringValue(chatData?.choices?.[0]?.message?.content, 20000) || reply;
-          } else {
-            await chatResponse.text().catch(() => "");
-          }
-        }
+        const reply = route?.kind === "reply"
+          ? route.text
+          : "AI chat is not configured in this environment. Set ANTHROPIC_API_KEY and PORTAL_COPILOT_CLAUDE_MODEL to enable it.";
         const { error: chatMessagesError } = await db.from("copilot_messages").insert([
           { conversation_id: chatConversation.id, role: "user", content: command, attachments: [] },
           { conversation_id: chatConversation.id, role: "assistant", content: reply, attachments: [] },
@@ -519,7 +544,9 @@ Deno.serve(async (req) => {
         await touchConversation(db, chatConversation.id, chatConversation.title === "New chat" ? command : undefined);
         return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, null));
       }
-      const conversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
+
+      // route.kind === "workflow" && route.workflow === "erp_portal_rollout"
+      const conversation = await requireOwnedConversation(db, actorUserId, requestedConversationId);
       const isUntitled = conversation.title === "New chat";
 
       const [{ data: customers, error: customerError }, { data: contacts, error: contactError }, { data: memberships, error: membershipError }] = await Promise.all([
@@ -679,13 +706,13 @@ Deno.serve(async (req) => {
       const rawAttachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 4) : [];
       if (rawAttachments.length === 0) return jsonResponse(req, 400, { error: "Attach a prescription or order file first" });
 
-      const apiKey = Deno.env.get("LOVABLE_API_KEY")?.trim();
-      if (!apiKey) return jsonResponse(req, 500, { error: "AI is not configured for this environment" });
+      const apiKey = Deno.env.get("ANTHROPIC_API_KEY")?.trim();
+      const model = resolveClaudeModel();
+      if (!apiKey || !model) return jsonResponse(req, 500, { error: "AI is not configured for this environment" });
 
-      const content: JsonRecord[] = [{
-        type: "text",
-        text: message || "Read the attached prescription or order and summarise it for our team.",
-      }];
+      // Attachments are placed before the text instruction — Claude reads documents/images more
+      // reliably when they precede the prompt that references them.
+      const content: JsonRecord[] = [];
       const names: string[] = [];
       for (const raw of rawAttachments as JsonRecord[]) {
         const name = stringValue(raw?.name, 200) || "attachment";
@@ -696,34 +723,27 @@ Deno.serve(async (req) => {
         if (text) {
           content.push({ type: "text", text: `File: ${name}\n---\n${text}` });
         } else if (data && mimeType.startsWith("image/")) {
-          content.push({ type: "image_url", image_url: { url: `data:${mimeType};base64,${data}` } });
+          content.push({ type: "image", source: { type: "base64", media_type: mimeType, data } });
         } else if (data && mimeType === "application/pdf") {
-          content.push({ type: "file", file: { filename: name, file_data: `data:${mimeType};base64,${data}` } });
+          content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data } });
         }
       }
-
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey },
-        body: JSON.stringify({
-          model: "google/gemini-3.6-flash",
-          messages: [
-            {
-              role: "system",
-              content: "You are the Classic Visions Portal Copilot assisting an internal admin. Read attached prescriptions, order forms or invoices and extract the key details: patient/customer, Rx values (sphere, cylinder, axis, add, PD, prism), lens type, material, coatings, quantities, and any special instructions. Present a short structured summary, then list anything missing or ambiguous that must be clarified before the order can be placed. Never invent prices, discounts, credit terms or delivery dates. If the file is unreadable, say so plainly.",
-            },
-            { role: "user", content },
-          ],
-        }),
+      content.push({
+        type: "text",
+        text: message || "Read the attached prescription or order and summarise it for our team.",
       });
-      if (aiResponse.status === 429) return jsonResponse(req, 429, { error: "AI rate limit reached. Try again shortly." });
-      if (aiResponse.status === 402) return jsonResponse(req, 402, { error: "AI credits exhausted. Add credits to continue." });
+
+      const aiResponse = await callClaude(apiKey, model, {
+        max_tokens: 2048,
+        system: "You are the Classic Visions Portal Copilot assisting an internal admin. Read attached prescriptions, order forms or invoices and extract the key details: patient/customer, Rx values (sphere, cylinder, axis, add, PD, prism), lens type, material, coatings, quantities, and any special instructions. Present a short structured summary, then list anything missing or ambiguous that must be clarified before the order can be placed. Never invent prices, discounts, credit terms or delivery dates. If the file is unreadable, say so plainly.",
+        messages: [{ role: "user", content }],
+      });
       if (!aiResponse.ok) {
-        const detail = await aiResponse.text().catch(() => "");
-        return jsonResponse(req, 502, { error: `AI could not read the attachment (${aiResponse.status}). ${detail.slice(0, 300)}` });
+        const status = aiResponse.status === 429 || aiResponse.status === 529 ? aiResponse.status : 502;
+        return jsonResponse(req, status, { error: await claudeErrorMessage(aiResponse) });
       }
-      const aiData = await aiResponse.json().catch(() => null);
-      const reply = stringValue(aiData?.choices?.[0]?.message?.content, 20000);
+      const aiData = await aiResponse.json().catch(() => null) as JsonRecord | null;
+      const reply = claudeTextFromContent(aiData?.content);
       if (!reply) return jsonResponse(req, 502, { error: "AI returned an empty response" });
 
       const conversation = await requireOwnedConversation(db, actorUserId, stringValue(body.conversationId, 80) || undefined);
