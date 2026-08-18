@@ -1,9 +1,13 @@
 import { createContext } from "react";
 import type { AssistantAnswerMode, AssistantAudience, AssistantProfile, AssistantQueryResult } from "./companionAssistantEngine";
 
+export type LensGuideAnswers = { audience?: AssistantAudience; useCase?: string; hasRx?: boolean };
+
 export type AssistantQuickAction =
   | { type: "query"; label: string; query: string; profile?: AssistantProfile; audience?: AssistantAudience }
   | { type: "web_search"; label: string; query: string }
+  | { type: "web_search_prompt"; label: string }
+  | { type: "lens_guide"; label: string; step: 1 | 2 | 3 | 4; answers: LensGuideAnswers }
   | { type: "form"; label: string; profile?: AssistantProfile; kind?: AssistantFormKind }
   | { type: "submit_form"; label: string }
   | { type: "cancel_form"; label: string }
@@ -40,7 +44,10 @@ export type AssistantMessage =
       role: "user";
       kind: "user";
       text: string;
+      attachments?: { name: string; previewUrl: string }[];
     };
+
+export type AssistantOutgoingAttachment = { name: string; previewUrl: string };
 
 export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request" | "trade_signup";
 
@@ -94,7 +101,7 @@ export interface CompanionAssistantContextValue {
   setCurrentQuery: (value: string) => void;
   openAssistant: (options?: OpenAssistantOptions) => void;
   closeAssistant: () => void;
-  submitQuery: (query?: string, profile?: AssistantProfile, audience?: AssistantAudience) => Promise<void>;
+  submitQuery: (query?: string, profile?: AssistantProfile, audience?: AssistantAudience, attachments?: AssistantOutgoingAttachment[]) => Promise<void>;
   submitQuickAction: (action: AssistantQuickAction) => void;
   markFeedback: (messageId: string, feedback: "helpful" | "not_helpful") => void;
   startNewConversation: () => void;

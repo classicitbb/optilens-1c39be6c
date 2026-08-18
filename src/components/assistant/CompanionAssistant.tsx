@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Eye, EyeOff, Loader2, MessageCircle, MessageSquarePlus, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Loader2, MessageCircle, MessageSquarePlus, Paperclip, Save, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +48,7 @@ const MessageQuickActions = ({
               type="button"
               size="sm"
               variant="outline"
-              className="h-auto rounded-full border-border/50 bg-card/80 px-3 py-1.5 text-xs font-normal text-secondary shadow-soft hover:bg-muted"
+              className="h-auto rounded-full border-border/50 bg-card/80 px-3 py-1.5 text-xs font-normal text-secondary shadow-soft hover:bg-muted hover:text-secondary"
               onClick={() => onAction(action)}
             >
               {action.label}
@@ -89,82 +89,72 @@ const AssistantResultCard = ({
     );
   };
 
+  const sources = result.citations ?? result.topLinks;
+  const isLocalSampleMode = import.meta.env.DEV;
+
   return (
-    <div className="space-y-3 rounded-[22px] border border-border/50 bg-card/80 p-4 shadow-soft backdrop-blur-md">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="secondary" className="border border-secondary/20 bg-secondary/10 capitalize text-secondary">{result.intent}</Badge>
-        <Badge variant="outline" className="border-foreground/20 capitalize text-foreground/60">{result.confidence} confidence{result.errorState ? " · controlled fallback" : ""}</Badge>
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-1">
+        <Badge variant="secondary" className="h-5 border border-secondary/20 bg-secondary/10 px-1.5 py-0 text-[10px] capitalize leading-5 text-secondary">{result.intent}</Badge>
+        {isLocalSampleMode ? (
+          <Badge variant="outline" className="h-5 border-foreground/20 px-1.5 py-0 text-[10px] capitalize leading-5 text-foreground/60">{result.confidence} confidence{result.errorState ? " · controlled fallback (sample)" : ""}</Badge>
+        ) : (
+          <Badge variant="outline" className="h-5 border-foreground/20 px-1.5 py-0 text-[10px] leading-5 text-foreground/60">AI-generated response</Badge>
+        )}
         {isEnhancing ? (
-          <Badge variant="outline" className="border-amber-400/30 bg-amber-400/10 text-amber-100">
-            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          <Badge variant="outline" className="h-5 border-amber-400/30 bg-amber-400/10 px-1.5 py-0 text-[10px] leading-5 text-amber-100">
+            <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
             Refining
           </Badge>
         ) : null}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Assistant response</p>
-        <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
-          <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
-            <ReactMarkdown>{result.answer}</ReactMarkdown>
-          </div>
-        </div>
+      <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground [&_p]:mb-1 [&_p]:last:mb-0 [&_ul]:mt-1 [&_li]:my-0.5">
+        <ReactMarkdown>{result.answer}</ReactMarkdown>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
-        <span className="text-xs text-foreground/50">Was this helpful?</span>
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            size="sm"
-            variant={feedback === "helpful" ? "secondary" : "ghost"}
-            className="h-8 gap-1.5 text-xs"
-            aria-label="Helpful answer"
-            aria-pressed={feedback === "helpful"}
-            onClick={() => markFeedback(messageId, "helpful")}
-          >
-            <ThumbsUp className="h-3.5 w-3.5" /> Helpful
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={feedback === "not_helpful" ? "secondary" : "ghost"}
-            className="h-8 gap-1.5 text-xs"
-            aria-label="Not helpful answer"
-            aria-pressed={feedback === "not_helpful"}
-            onClick={() => markFeedback(messageId, "not_helpful")}
-          >
-            <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
-          </Button>
-        </div>
-      </div>
-
-      {(result.citations ?? result.topLinks).length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Sources</p>
-          <ul className="space-y-1.5">
-            {(result.citations ?? result.topLinks).map((link, i) => (
-              <li key={link.path}>
-                {link.external ? (
-                  <a href={link.website || link.path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-secondary/80">
-                    <span className="text-foreground/40">[{i + 1}]</span>
-                    {link.title}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  <Link to={link.path} className="inline-flex items-center gap-1.5 text-xs text-secondary hover:text-secondary/80">
-                    <span className="text-foreground/40">[{i + 1}]</span>
-                    {link.title}
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
+      {sources.length > 0 ? (
+        <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+          {sources.map((link, i) => (
+            link.external ? (
+              <a key={link.path} href={link.website || link.path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-secondary hover:text-secondary/80">
+                <span className="text-foreground/40">[{i + 1}]</span>
+                {link.title}
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+            ) : (
+              <Link key={link.path} to={link.path} className="inline-flex items-center gap-0.5 text-[11px] text-secondary hover:text-secondary/80">
+                <span className="text-foreground/40">[{i + 1}]</span>
+                {link.title}
+              </Link>
+            )
+          ))}
         </div>
       ) : null}
 
-      <div className="border-t border-border/50 pt-3 text-xs leading-5 text-foreground/50">
-        Ask a follow-up in plain language for a tighter answer or a different topic.
+      <div className="flex items-center gap-0.5">
+        <Button
+          type="button"
+          size="icon"
+          variant={feedback === "helpful" ? "secondary" : "ghost"}
+          className="h-5 w-5"
+          aria-label="Helpful answer"
+          aria-pressed={feedback === "helpful"}
+          onClick={() => markFeedback(messageId, "helpful")}
+        >
+          <ThumbsUp className="h-2.5 w-2.5" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant={feedback === "not_helpful" ? "secondary" : "ghost"}
+          className="h-5 w-5"
+          aria-label="Not helpful answer"
+          aria-pressed={feedback === "not_helpful"}
+          onClick={() => markFeedback(messageId, "not_helpful")}
+        >
+          <ThumbsDown className="h-2.5 w-2.5" />
+        </Button>
       </div>
     </div>
   );
@@ -194,7 +184,7 @@ const AssistantMessageList = () => {
           wasNearBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 96;
         }}
       >
-        <div className="space-y-4 pb-2">
+        <div className="space-y-3 pb-2">
           {messages.map((message, index) => (
             <div
               key={message.id}
@@ -203,19 +193,29 @@ const AssistantMessageList = () => {
             >
               <div className={cn("max-w-[88%]", message.role === "user" ? "items-end" : "items-start")}>
                 {message.kind === "user" ? (
-                  <div className="rounded-[20px] rounded-br-lg bg-primary px-4 py-3 text-sm text-primary-foreground shadow-soft">
-                    {message.text}
+                  <div className="space-y-1.5 rounded-[20px] rounded-br-lg bg-primary px-4 py-3 text-sm text-primary-foreground shadow-soft">
+                    {message.attachments?.length ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {message.attachments.map((attachment) => (
+                          <img
+                            key={attachment.previewUrl}
+                            src={attachment.previewUrl}
+                            alt={attachment.name}
+                            className="h-24 w-24 rounded-[14px] border border-primary-foreground/25 object-cover"
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                    {message.text ? <div>{message.text}</div> : null}
                   </div>
                 ) : null}
 
                 {message.kind === "text" ? (
-                  <div className="space-y-2">
-                    <div className="rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
-                      <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
-                        <ReactMarkdown>{message.text}</ReactMarkdown>
-                      </div>
-                      {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
+                  <div className="space-y-1">
+                    <div className="prose prose-sm max-w-none text-sm leading-6 text-foreground [&_p]:mb-1 [&_p]:last:mb-0 [&_ul]:mt-1 [&_li]:my-0.5">
+                      <ReactMarkdown>{message.text}</ReactMarkdown>
                     </div>
+                    {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} onAction={submitQuickAction} />
                     ) : null}
@@ -256,13 +256,12 @@ const AssistantMessageList = () => {
 const AssistantFeedbackControls = ({ messageId, feedback }: { messageId: string; feedback?: "helpful" | "not_helpful" }) => {
   const { markFeedback } = useCompanionAssistant();
   return (
-    <div className="flex items-center justify-end gap-1 border-t border-border/40 pt-2">
-      <span className="mr-1 text-[11px] text-foreground/40">Helpful?</span>
-      <Button type="button" size="icon" variant={feedback === "helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Helpful answer" aria-pressed={feedback === "helpful"} onClick={() => markFeedback(messageId, "helpful")}>
-        <ThumbsUp className="h-3.5 w-3.5" />
+    <div className="flex items-center gap-0.5">
+      <Button type="button" size="icon" variant={feedback === "helpful" ? "secondary" : "ghost"} className="h-5 w-5" aria-label="Helpful answer" aria-pressed={feedback === "helpful"} onClick={() => markFeedback(messageId, "helpful")}>
+        <ThumbsUp className="h-2.5 w-2.5" />
       </Button>
-      <Button type="button" size="icon" variant={feedback === "not_helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Not helpful answer" aria-pressed={feedback === "not_helpful"} onClick={() => markFeedback(messageId, "not_helpful")}>
-        <ThumbsDown className="h-3.5 w-3.5" />
+      <Button type="button" size="icon" variant={feedback === "not_helpful" ? "secondary" : "ghost"} className="h-5 w-5" aria-label="Not helpful answer" aria-pressed={feedback === "not_helpful"} onClick={() => markFeedback(messageId, "not_helpful")}>
+        <ThumbsDown className="h-2.5 w-2.5" />
       </Button>
     </div>
   );
@@ -461,7 +460,6 @@ const CompanionAssistant = () => {
     nudge,
     dismissNudge,
     isSubmitting,
-    openDetachedWindow,
   } = useCompanionAssistant();
 
   // Track whether the user dismissed the nudge ("Not now") — collapse to icon-only bubble
@@ -469,6 +467,36 @@ const CompanionAssistant = () => {
   const handleNudgeDismiss = () => {
     setIsCollapsed(true);
     dismissNudge();
+  };
+
+  const MAX_ATTACHMENTS = 4;
+  const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+  const [attachments, setAttachments] = useState<{ id: string; name: string; previewUrl: string }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const addAttachmentFiles = (files: File[]) => {
+    const images = files.filter((file) => file.type.startsWith("image/") && file.size <= MAX_ATTACHMENT_BYTES);
+    if (!images.length) return;
+    setAttachments((current) => [
+      ...current,
+      ...images.map((file) => ({ id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`, name: file.name, previewUrl: URL.createObjectURL(file) })),
+    ].slice(0, MAX_ATTACHMENTS));
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((current) => {
+      const target = current.find((attachment) => attachment.id === id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return current.filter((attachment) => attachment.id !== id);
+    });
+  };
+
+  const submitWithAttachments = () => {
+    const trimmed = currentQuery.trim();
+    if (!trimmed && attachments.length === 0) return;
+    void submitQuery(trimmed, undefined, undefined, attachments.length ? attachments.map(({ name, previewUrl }) => ({ name, previewUrl })) : undefined);
+    // Object URLs are kept alive so the sent images keep rendering inline in the chat history.
+    setAttachments([]);
   };
 
   // Track cookie-consent state so we can hide the launcher while the banner is showing
@@ -518,38 +546,50 @@ const CompanionAssistant = () => {
   const assistantWindow = (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border border-[#c9a227]/65 shadow-elegant backdrop-blur-md",
-        "bg-background/80",
+        "flex flex-col overflow-hidden border border-[#c9a227]/65 backdrop-blur-md",
+        "bg-card/95 shadow-[0_10px_40px_-10px_hsl(213_66%_13%/0.15),0_30px_80px_-20px_rgba(2,6,23,0.45)]",
         isDetachedRoute
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
           : "h-full rounded-[28px]",
       )}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
-              <Search className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="text-xs text-foreground/50">Immediate help first, grounded site context second.</p>
-            </div>
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
+            <Search className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold leading-tight text-foreground">{title}</p>
+            <p className="truncate text-[11px] leading-tight text-foreground/50">
+              Answering for <span className="font-medium capitalize text-foreground/70">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span>
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          {!isDetachedRoute ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 shrink-0 text-foreground/60 hover:bg-muted hover:text-foreground"
-              onClick={openDetachedWindow}
-              aria-label="Pop out assistant"
-            >
-              <Expand className="h-4 w-4" />
-            </Button>
-          ) : null}
+        <div className="flex shrink-0 items-center gap-0.5">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-foreground/60 hover:text-foreground"
+            aria-label="New chat"
+            title="New chat"
+            onClick={startNewConversation}
+            disabled={isSubmitting || isSavingConversation}
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-foreground/60 hover:text-foreground"
+            aria-label="Save this chat"
+            title="Save this chat"
+            onClick={() => void saveConversation()}
+            disabled={isSavingConversation}
+          >
+            {isSavingConversation ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-4 w-4" />}
+          </Button>
           <Button
             type="button"
             size="icon"
@@ -562,45 +602,53 @@ const CompanionAssistant = () => {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-4 py-2">
-        <span className="text-xs text-foreground/60">Answering for: <span className="font-semibold capitalize text-foreground/80">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span></span>
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 text-xs text-foreground/60 hover:text-foreground"
-            onClick={startNewConversation}
-            disabled={isSubmitting || isSavingConversation}
-          >
-            <MessageSquarePlus className="h-3.5 w-3.5" />
-            New chat
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs text-foreground/60 hover:text-foreground"
-            onClick={() => void saveConversation()}
-            disabled={isSavingConversation}
-          >
-            {isSavingConversation ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-            Save this chat
-          </Button>
-        </div>
-      </div>
-
-      <div className="border-b border-border/50 bg-muted/30 px-4 py-2 text-[11px] uppercase tracking-[0.22em] text-foreground/40">
-        Search, products, retailers, support
-      </div>
-
       <div className="flex min-h-0 flex-1 flex-col">
         <AssistantMessageList />
       </div>
 
-      <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
-        <div className="rounded-full border border-accent/55 bg-card/90 p-1 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
-          <div className="flex items-center gap-2">
+      <div className="border-t border-border/50 bg-muted/30 px-3 py-2">
+        {attachments.length ? (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {attachments.map((attachment) => (
+              <div key={attachment.id} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border/60">
+                <img src={attachment.previewUrl} alt={attachment.name} className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  aria-label={`Remove ${attachment.name}`}
+                  className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl bg-background/80 text-foreground/70 hover:text-foreground"
+                  onClick={() => removeAttachment(attachment.id)}
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => {
+            addAttachmentFiles(Array.from(event.target.files ?? []));
+            event.target.value = "";
+          }}
+        />
+        <div className="rounded-full border border-accent/55 bg-card/90 p-0.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 shrink-0 rounded-full text-foreground/50 hover:text-foreground"
+              aria-label="Attach an image"
+              title="Attach an image"
+              disabled={isSubmitting || attachments.length >= MAX_ATTACHMENTS}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
             <Input
               dir="ltr"
               value={currentQuery}
@@ -608,19 +656,26 @@ const CompanionAssistant = () => {
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
-                  void submitQuery();
+                  submitWithAttachments();
+                }
+              }}
+              onPaste={(event) => {
+                const files = Array.from(event.clipboardData?.files ?? []).filter((file) => file.type.startsWith("image/"));
+                if (files.length) {
+                  event.preventDefault();
+                  addAttachmentFiles(files);
                 }
               }}
               placeholder="Ask anything"
               disabled={isSubmitting}
-              className="h-11 border-0 bg-transparent px-4 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="h-9 border-0 bg-transparent px-2 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button
               type="button"
               size="icon"
-              className="h-11 w-11 shrink-0 rounded-full"
-              disabled={!currentQuery.trim() || isSubmitting}
-              onClick={() => void submitQuery()}
+              className="h-9 w-9 shrink-0 rounded-full"
+              disabled={(!currentQuery.trim() && attachments.length === 0) || isSubmitting}
+              onClick={submitWithAttachments}
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
@@ -648,7 +703,7 @@ const CompanionAssistant = () => {
               <Sparkles className="mr-2 h-4 w-4" />
               {nudge.formKind === "trade_signup" ? "Create a trade account" : "Open assistant"}
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full border-border/60 bg-background/70 text-foreground backdrop-blur-md hover:bg-muted/80" onClick={handleNudgeDismiss}>
+            <Button size="sm" variant="outline" className="rounded-full border-border/60 bg-background/70 text-foreground backdrop-blur-md hover:bg-muted/80 hover:text-foreground" onClick={handleNudgeDismiss}>
               Not now
             </Button>
           </div>
@@ -684,7 +739,7 @@ const CompanionAssistant = () => {
             {assistantWindow}
           </div>
         ) : (
-          <div className="fixed inset-x-3 bottom-20 top-20 z-50 sm:inset-x-auto sm:right-6 sm:top-24 sm:h-[calc(100vh-8.5rem)] sm:w-[28rem]">
+          <div className="fixed inset-x-3 bottom-20 top-20 z-50 sm:inset-x-auto sm:right-4 sm:top-28 sm:bottom-8 sm:w-[28rem]">
             {assistantWindow}
           </div>
         )
