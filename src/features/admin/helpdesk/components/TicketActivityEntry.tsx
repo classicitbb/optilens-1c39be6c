@@ -45,8 +45,10 @@ const humanizeEvent = (
 };
 
 export const TicketActivityEntry = ({ event }: TicketActivityEntryProps) => {
+  const { data: stages = [] } = useHelpdeskStages();
+  const stageNames = Object.fromEntries(stages.map((s) => [s.id, s.name]));
   const timeAgo = formatDistanceToNow(new Date(event.created_at), { addSuffix: true });
-  const label = humanizeEvent(event);
+  const label = humanizeEvent(event, stageNames);
 
   return (
     <div className="flex items-center gap-3 text-xs text-muted-foreground py-1">
