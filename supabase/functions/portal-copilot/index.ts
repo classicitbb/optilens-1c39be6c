@@ -820,7 +820,7 @@ Deno.serve(async (req) => {
       const { apiKey, model } = await resolveClaudeCredentials(db);
       if (!apiKey || !model) {
         const message = "No API key or model is configured.";
-        const { error: recordError } = await db.rpc("record_ai_agent_test", { p_success: false, p_error_message: message });
+        const { error: recordError } = await db.rpc("record_ai_agent_test", { p_provider: "anthropic", p_success: false, p_error_message: message });
         if (recordError) throw recordError;
         return jsonResponse(req, 200, { ok: false, error: message });
       }
@@ -830,7 +830,7 @@ Deno.serve(async (req) => {
       });
       const success = response.ok;
       const errorMessage = success ? null : await claudeErrorMessage(response);
-      const { error: recordError } = await db.rpc("record_ai_agent_test", { p_success: success, p_error_message: errorMessage });
+      const { error: recordError } = await db.rpc("record_ai_agent_test", { p_provider: "anthropic", p_success: success, p_error_message: errorMessage });
       if (recordError) throw recordError;
       return jsonResponse(req, 200, { ok: success, error: errorMessage ?? undefined });
     }

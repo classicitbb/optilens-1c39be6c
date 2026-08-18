@@ -10,7 +10,7 @@ const stringValue = (value: unknown, max = 500) =>
 export type ClaudeCredentials = { apiKey: string; model: string };
 
 export const resolveClaudeCredentials = async (db: any, fallbackModel?: unknown): Promise<ClaudeCredentials> => {
-  const { data, error } = await db.rpc("get_ai_agent_credentials");
+  const { data, error } = await db.rpc("get_ai_agent_credentials", { p_provider: "anthropic" });
   if (!error) {
     const row = Array.isArray(data) ? data[0] : data;
     const apiKey = stringValue(row?.api_key, 400);

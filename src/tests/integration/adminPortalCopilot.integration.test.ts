@@ -143,32 +143,46 @@ describe("admin-only CV Portal Copilot", () => {
     const edge = read("supabase/functions/portal-copilot/index.ts");
     const credentials = read("supabase/functions/_shared/copilot/aiAgentCredentials.ts");
     const page = read("src/pages/admin/settings/IntegrationsPage.tsx");
+    const card = read("src/pages/admin/settings/AiAgentProviderCard.tsx");
 
     // Settings are readable directly by admins; the encrypted secret table
-    // and both credential-touching RPCs are locked down (writes only via
-    // upsert_ai_agent_settings, decrypt only via service_role).
+    // and every credential-touching RPC is locked down (writes/deletes only
+    // via their own admin-gated RPCs, decrypt only via service_role).
     expect(migration).toContain("CREATE TABLE IF NOT EXISTS public.ai_agent_settings");
     expect(migration).toContain("CREATE TABLE IF NOT EXISTS public.ai_agent_secrets");
     expect(migration).toContain('USING (false) WITH CHECK (false)');
+    expect(migration).toContain("CONSTRAINT ai_agent_settings_tenant_provider_key UNIQUE (tenant_key, provider)");
+    expect(migration).toContain("ai_agent_settings_provider_format_check CHECK (provider ~");
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.upsert_ai_agent_settings");
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_ai_agent_credentials");
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.record_ai_agent_test");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.delete_ai_agent_settings");
     expect(migration).toContain("extensions.pgp_sym_encrypt(p_api_key, public.payment_secret_encryption_key())");
     expect(migration).toContain("extensions.pgp_sym_decrypt(sec.encrypted_secret, public.payment_secret_encryption_key())");
-    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.upsert_ai_agent_settings(text, boolean, text, uuid) TO authenticated");
-    expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_ai_agent_credentials() FROM PUBLIC");
-    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.get_ai_agent_credentials() TO service_role");
-    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.record_ai_agent_test(boolean, text, uuid) TO authenticated");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.upsert_ai_agent_settings(text, text, boolean, text, uuid) TO authenticated");
+    expect(migration).toContain("REVOKE ALL ON FUNCTION public.get_ai_agent_credentials(text) FROM PUBLIC");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.get_ai_agent_credentials(text) TO service_role");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.record_ai_agent_test(text, boolean, text, uuid) TO authenticated");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.delete_ai_agent_settings(text, uuid) TO authenticated");
 
-    expect(credentials).toContain('db.rpc("get_ai_agent_credentials")');
+    // Portal Copilot always resolves the 'anthropic' row specifically —
+    // unaffected by whatever other provider rows exist.
+    expect(credentials).toContain('db.rpc("get_ai_agent_credentials", { p_provider: "anthropic" })');
     expect(edge).toContain('from "../_shared/copilot/aiAgentCredentials.ts"');
     expect(edge).toContain("resolveClaudeCredentials(db");
     expect(edge).toContain('operation === "test-ai-agent"');
-    expect(edge).toContain('db.rpc("record_ai_agent_test"');
+    expect(edge).toContain('db.rpc("record_ai_agent_test", { p_provider: "anthropic"');
 
+    // The settings page renders one card per provider row plus an
+    // open-ended add-provider flow; each card owns its own save/test/remove.
     expect(page).toContain("AI Agents");
     expect(page).toContain('from("ai_agent_settings")');
-    expect(page).toContain('"upsert_ai_agent_settings"');
-    expect(page).toContain('operation: "test-ai-agent"');
+    expect(page).toContain('from "./AiAgentProviderCard"');
+    expect(page).toContain("QUICK_PICK_PROVIDERS");
+    expect(page).toContain("draftProviders");
+    expect(card).toContain('"upsert_ai_agent_settings"');
+    expect(card).toContain('"delete_ai_agent_settings"');
+    expect(card).toContain('operation: "test-ai-agent"');
+    expect(card).toContain("p_provider: provider");
   });
 });
