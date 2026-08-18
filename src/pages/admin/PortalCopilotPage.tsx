@@ -473,14 +473,15 @@ const PortalCopilotPage = () => {
                 type="button"
                 onClick={() => chooseConversation(conversation.id)}
                 className={cn(
-                  "w-full border border-transparent px-3 py-2 text-left transition-colors hover:bg-muted",
-                  conversation.id === displayedState?.selectedConversationId && "border-border bg-background",
+                  "group w-full border-l-2 border-transparent px-3 py-2 text-left transition-all duration-200 hover:translate-x-0.5 hover:bg-muted",
+                  conversation.id === displayedState?.selectedConversationId && "border-l-cyan-500 bg-background shadow-sm",
                 )}
               >
-                <p className="line-clamp-2 text-sm">{conversation.title}</p>
+                <p className={cn("line-clamp-2 text-sm transition-colors", conversation.id === displayedState?.selectedConversationId ? "font-medium text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{conversation.title}</p>
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><Clock3 className="h-3 w-3" /> {new Date(conversation.updated_at).toLocaleString()}</p>
               </button>
             ))}
+
             {!(displayedState?.conversations ?? []).length ? <p className="px-1 text-xs text-muted-foreground">No chats yet.</p> : null}
           </div>
         </aside>
