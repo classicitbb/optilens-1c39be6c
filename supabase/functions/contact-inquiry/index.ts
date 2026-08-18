@@ -331,7 +331,8 @@ Deno.serve(async (req) => {
       const enqueueRenderedEmail = async (
         label: string,
         recipient: string,
-        template: typeof notificationTemplate,
+        // deno-lint-ignore no-explicit-any
+        template: { component: any; subject: any },
         data: Record<string, unknown>,
         idempotencyKey: string,
         replyTo?: string,

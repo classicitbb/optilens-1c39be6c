@@ -55,7 +55,8 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
@@ -87,7 +88,8 @@ async function moveToDlq(
 // The auth-vs-everything-else rule lives in _shared/email/suppression.ts so it
 // can be unit-tested without Deno.
 async function checkSuppression(
-  supabase: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
   email: string,
   queue: string
 ): Promise<{ blocked: boolean; reason: string | null; lookupError: string | null }> {

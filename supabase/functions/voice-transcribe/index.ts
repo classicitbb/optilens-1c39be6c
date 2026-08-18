@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Primary: purpose-built speech-to-text endpoint.
     const form = new FormData();
     form.append("model", "openai/gpt-4o-mini-transcribe");
-    form.append("file", new Blob([bytes], { type: base || "audio/webm" }), `recording.${extension}`);
+    form.append("file", new Blob([bytes.buffer as ArrayBuffer], { type: base || "audio/webm" }), `recording.${extension}`);
     if (vocabulary) form.append("prompt", `Domain terms: ${vocabulary}`);
 
     const speech = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
