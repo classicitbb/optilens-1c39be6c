@@ -658,7 +658,7 @@ const StatementsSection = () => {
     <section className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
-        <p className="text-sm text-muted-foreground">Live Innovations balance and statements, fetched only when you open this page.</p>
+        <p className="text-sm text-muted-foreground">Live account balance and statements, fetched only when you open this page.</p>
       </header>
 
       {/* Returning from Scotia (redirect mode) */}
