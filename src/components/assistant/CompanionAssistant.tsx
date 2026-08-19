@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Search, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
+import { Expand, ExternalLink, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Search, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,48 +121,45 @@ const AssistantResultCard = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
-        <span className="text-xs text-foreground/50">Was this helpful?</span>
-        <div className="flex items-center gap-1">
-          {onSpeak ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="h-8 gap-1 text-xs text-foreground/60 hover:text-foreground"
-              aria-label="Read answer aloud"
-              onClick={() => onSpeak(result.answer)}
-            >
-              <Volume2 className="h-3.5 w-3.5 text-secondary" /> Read
-            </Button>
-          ) : null}
+      <div className="flex items-center justify-end gap-1 border-t border-border/50 pt-2.5">
+        {onSpeak ? (
           <Button
             type="button"
             size="sm"
-            variant={feedback === "helpful" ? "secondary" : "ghost"}
-            className="h-8 gap-1.5 text-xs"
-            aria-label="Helpful answer"
-            aria-pressed={feedback === "helpful"}
-            onClick={() => markFeedback(messageId, "helpful")}
+            variant="ghost"
+            className="h-8 gap-1 text-xs text-foreground/60 hover:text-foreground"
+            aria-label="Read answer aloud"
+            onClick={() => onSpeak(result.answer)}
           >
-            <ThumbsUp className="h-3.5 w-3.5" /> Helpful
+            <Volume2 className="h-3.5 w-3.5 text-secondary" /> Read
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={feedback === "not_helpful" ? "secondary" : "ghost"}
-            className="h-8 gap-1.5 text-xs"
-            aria-label="Not helpful answer"
-            aria-pressed={feedback === "not_helpful"}
-            onClick={() => markFeedback(messageId, "not_helpful")}
-          >
-            <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
-          </Button>
-        </div>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          variant={feedback === "helpful" ? "secondary" : "ghost"}
+          className="h-8 gap-1.5 text-xs"
+          aria-label="Helpful answer"
+          aria-pressed={feedback === "helpful"}
+          onClick={() => markFeedback(messageId, "helpful")}
+        >
+          <ThumbsUp className="h-3.5 w-3.5" /> Helpful
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={feedback === "not_helpful" ? "secondary" : "ghost"}
+          className="h-8 gap-1.5 text-xs"
+          aria-label="Not helpful answer"
+          aria-pressed={feedback === "not_helpful"}
+          onClick={() => markFeedback(messageId, "not_helpful")}
+        >
+          <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
+        </Button>
       </div>
 
       {sources.length > 0 ? (
-        <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+        <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 pt-1">
           {sources.map((link, i) => (
             link.external ? (
               <a key={link.path} href={link.website || link.path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-[11px] text-secondary hover:text-secondary/80">
@@ -179,31 +176,6 @@ const AssistantResultCard = ({
           ))}
         </div>
       ) : null}
-
-      <div className="flex items-center gap-0.5">
-        <Button
-          type="button"
-          size="icon"
-          variant={feedback === "helpful" ? "secondary" : "ghost"}
-          className="h-5 w-5"
-          aria-label="Helpful answer"
-          aria-pressed={feedback === "helpful"}
-          onClick={() => markFeedback(messageId, "helpful")}
-        >
-          <ThumbsUp className="h-2.5 w-2.5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={feedback === "not_helpful" ? "secondary" : "ghost"}
-          className="h-5 w-5"
-          aria-label="Not helpful answer"
-          aria-pressed={feedback === "not_helpful"}
-          onClick={() => markFeedback(messageId, "not_helpful")}
-        >
-          <ThumbsDown className="h-2.5 w-2.5" />
-        </Button>
-      </div>
     </div>
   );
 };
@@ -339,12 +311,11 @@ const AssistantFeedbackControls = ({
           <Volume2 className="h-3.5 w-3.5 text-secondary" />
         </Button>
       ) : null}
-      <span className="mr-1 text-[11px] text-foreground/40">Helpful?</span>
       <Button type="button" size="icon" variant={feedback === "helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Helpful answer" aria-pressed={feedback === "helpful"} onClick={() => markFeedback(messageId, "helpful")}>
         <ThumbsUp className="h-3.5 w-3.5" />
       </Button>
-      <Button type="button" size="icon" variant={feedback === "not_helpful" ? "secondary" : "ghost"} className="h-5 w-5" aria-label="Not helpful answer" aria-pressed={feedback === "not_helpful"} onClick={() => markFeedback(messageId, "not_helpful")}>
-        <ThumbsDown className="h-2.5 w-2.5" />
+      <Button type="button" size="icon" variant={feedback === "not_helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Not helpful answer" aria-pressed={feedback === "not_helpful"} onClick={() => markFeedback(messageId, "not_helpful")}>
+        <ThumbsDown className="h-3.5 w-3.5" />
       </Button>
     </div>
   );
@@ -544,6 +515,7 @@ const CompanionAssistant = () => {
     nudge,
     dismissNudge,
     isSubmitting,
+    openDetachedWindow,
   } = useCompanionAssistant();
 
   // Handle Voice Engine integration
