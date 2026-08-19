@@ -58,7 +58,7 @@ const Hero = () => {
         <div className="absolute -left-10 top-44 h-40 w-40 rounded-full border border-[#d7a83f]/25" aria-hidden="true" />
 
         <div className="container relative z-10 mx-auto max-w-[1500px]">
-          <div className="flex min-h-[720px] flex-col justify-center py-14 sm:py-20 lg:max-w-[51%] lg:px-12 xl:px-16">
+          <div className="flex min-h-[720px] flex-col justify-start pb-14 pt-24 sm:justify-center sm:py-20 lg:max-w-[51%] lg:px-12 xl:px-16">
             <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/85 backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-[#55d3dc] shadow-[0_0_16px_rgba(85,211,220,.9)]" />
               Made in Barbados · Serving the Caribbean
