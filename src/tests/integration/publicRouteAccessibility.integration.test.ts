@@ -28,6 +28,22 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers and declares the canonical privacy policy and terms routes", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.privacy-policy" && route.path === "/privacy-policy" && route.status === "active"),
+    ).toBeTruthy();
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.terms" && route.path === "/terms" && route.status === "active"),
+    ).toBeTruthy();
+
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+    expect(source).toContain('<Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />');
+    expect(source).toContain('<Route path="terms" element={<LegalPage slug="terms" />} />');
+    expect(source).toContain('<Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />');
+    expect(source).toContain('<Route path="legal/terms" element={<Navigate to="/terms" replace />} />');
+  });
+
   it("registers and declares the canonical About Us page", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.about-us" && route.path === "/about-us" && route.status === "active"),
