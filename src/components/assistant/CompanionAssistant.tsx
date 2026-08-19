@@ -531,6 +531,7 @@ const CompanionAssistant = () => {
   const {
     isOpen,
     isDetachedRoute,
+    openDetachedWindow,
     currentQuery,
     setCurrentQuery,
     openAssistant,
