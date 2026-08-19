@@ -9,7 +9,6 @@ import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
 import RouteLoadingFallback from "@/routes/shared/RouteLoadingFallback";
 import RuntimeAnalytics from "@/components/analytics/RuntimeAnalytics";
 import ScrollToTop from "@/components/ScrollToTop";
-import AdminHostRedirect from "@/components/AdminHostRedirect";
 import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
