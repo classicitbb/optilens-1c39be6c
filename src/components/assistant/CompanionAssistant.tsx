@@ -502,6 +502,7 @@ const CompanionAssistant = () => {
   const {
     isOpen,
     isDetachedRoute,
+    openDetachedWindow,
     currentQuery,
     setCurrentQuery,
     openAssistant,
@@ -595,7 +596,7 @@ const CompanionAssistant = () => {
     const update = () => setConsentGiven(hasGivenConsent());
     update();
     window.addEventListener(COOKIE_PREFERENCES_EVENT, update);
-    return () => window.clearTimeout(update);
+    return () => window.removeEventListener(COOKIE_PREFERENCES_EVENT, update);
   }, []);
 
   const title = useMemo(
