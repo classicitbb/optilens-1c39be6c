@@ -12,6 +12,7 @@ import { useHomeVersion } from "@/components/home-prototypes/homeVersionStore";
 const Index = () => {
   const version = useHomeVersion();
 
+
   return version === "b" ? <HomeVersionB /> : <HomeVersionA />;
 };
 
