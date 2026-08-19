@@ -36,7 +36,7 @@ serve(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req, corsPolicy);
 
   const authContext = await requirePrivilegedAccess(req, corsHeaders, {
-    allowedRoles: ["admin", "ops"],
+    allowedRoles: ["admin", "operator"],
     sourceFunction: "vercel-analytics-proxy",
   });
   if (authContext instanceof Response) return authContext;
