@@ -212,7 +212,7 @@ const HomeVersionB = () => {
           <OpticalRings className="-left-48 top-1/2 -translate-y-1/2 opacity-70" />
 
           <div className="container relative mx-auto grid max-w-[1500px] gap-0 px-5 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:px-0">
-            <div className="flex min-w-0 flex-col justify-center py-14 sm:py-20 lg:py-24 lg:pl-12 lg:pr-14 xl:pl-16">
+            <div className="flex min-w-0 flex-col justify-center pt-24 pb-14 sm:pt-28 sm:pb-20 lg:py-24 lg:pl-12 lg:pr-14 xl:pl-16">
               <Eyebrow >
                 Barbados optical laboratory{PLACEHOLDERS.foundingYear ? ` · Est. ${PLACEHOLDERS.foundingYear}` : ""}
               </Eyebrow>
