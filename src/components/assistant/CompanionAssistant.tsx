@@ -669,7 +669,6 @@ const CompanionAssistant = () => {
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="text-xs text-foreground/50">Immediate help first, grounded site context second.</p>
             </div>
           </div>
         </div>
