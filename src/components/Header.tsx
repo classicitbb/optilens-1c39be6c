@@ -613,6 +613,17 @@ const Header = () => {
                 <span className="sr-only">Open assistant</span>
               </Button>
 
+              {!user ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:inline-flex"
+                  onClick={() => openAssistant({ formKind: "trade_signup" })}
+                >
+                  Create a trade account
+                </Button>
+              ) : null}
+
               {user ?
             <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -621,7 +632,7 @@ const Header = () => {
                       size="sm"
                       className="h-11 rounded-full border border-border bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
                     >
-                      <Avatar className="h-8 w-8 border border-border/60">
+                      <Avatar className="h-8 w-8">
                         <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
                         <AvatarFallback className="bg-primary/15 text-xs font-semibold text-foreground">
                           {activeUserInitials}
@@ -642,7 +653,7 @@ const Header = () => {
                   >
                     <div className="space-y-1 p-2.5 sm:p-3">
                       <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
-                        <Avatar className="h-10 w-10 border border-primary/15 shadow-sm">
+                        <Avatar className="h-10 w-10 shadow-sm">
                           <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
                           <AvatarFallback className="bg-primary/25 text-sm font-semibold text-foreground">
                             {activeUserInitials}

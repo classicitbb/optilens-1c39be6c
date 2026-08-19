@@ -11,6 +11,9 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   [functions.portal-copilot]
     verify_jwt = false
+  [functions.voice-transcribe]
+    verify_jwt = false
+
   [functions.lens-assistant]
     verify_jwt = true
   [functions.crm-draft-outreach]
@@ -48,6 +51,13 @@ verify_jwt = false
 # Innovations -> CV outbound sync receiver. Auth is x-api-key in code
 # (verify_api_key + per-resource write scope), so the platform JWT gate is off.
 # MUST stay false: the office optilens-local caller sends no Authorization header.
+[functions.statement-document-worker]
+verify_jwt = false
+# Internal worker authentication is performed with STATEMENT_DOCUMENT_WORKER_SECRET.
+[functions.statement-document]
+verify_jwt = false
+# Customer session authorization is performed inside the function so the portal
+# can call it with its Supabase bearer token.
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
   # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).

@@ -4,12 +4,19 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-08-13
+Last updated: 2026-08-14
 
 ---
 
 ## Active work
 
+- **CV Portal Copilot connected capabilities** — source implementation now includes
+  a deterministic qualified-CRM scan using contacts, order-health, opportunity
+  and activity data. It prepares evidence/inference-labelled follow-up tasks and
+  requires per-item approval before creating a CRM activity; it never auto-creates
+  opportunities. The new workflow migration and updated `portal-copilot` function
+  require deployment before live verification. Pricing-advisor and public-web
+  enrichment data seams are mapped but not yet enabled.
 - **CV Portal Copilot ERP rollout MVP** — source implementation is complete at
   `/admin/copilot`: admin-only route, live Innovations-synced rollout planning,
   Level 2 preparation with Level 4 invitation approvals, push-to-talk transcript

@@ -72,7 +72,8 @@ const getPasswordRedirectTo = (req: Request) => {
 };
 
 async function linkCustomerPortalAccount(
-  adminClient: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
   userId: string,
   customerId: number | undefined,
   displayName?: string,
@@ -210,7 +211,8 @@ const allowedActions = new Set([
 
 /** True if the login holds any staff role (admin/operator/viewer). */
 async function loginHasStaffRole(
-  adminClient: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
   userId: string,
 ): Promise<boolean> {
   const { data, error } = await (adminClient.from("user_roles") as any)
@@ -581,7 +583,7 @@ Deno.serve(async (req) => {
       const roles = (targetRoles ?? [])
         .map((entry: { role?: string | null }) => entry.role)
         .filter((role: unknown): role is string => typeof role === "string");
-      if (roles.some((role) => role === "admin" || role === "operator" || role === "viewer")) {
+      if (roles.some((role: string) => role === "admin" || role === "operator" || role === "viewer")) {
         return jsonResponse(req, 403, { error: "Privileged staff accounts cannot be emulated from Website Portals." });
       }
 

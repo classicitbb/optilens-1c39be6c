@@ -22,10 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDown, ArrowUp, Eye, ImagePlus, Layers, Plus, Search, Settings, Store, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, Eye, ImagePlus, Layers, Plus, Search, Settings, Store, Trash2 } from "lucide-react";
 import { useLenses, type Lens } from "@/hooks/useLenses";
 import { useSupplies, type Supply } from "@/hooks/useSupplies";
 import { useAddons, type Addon } from "@/hooks/useAddons";
+import { getCatalogEditRoute, getProductHubRoute } from "@/lib/productLinks";
 import LensFormDialog from "@/components/admin/LensFormDialog";
 import SupplyFormDialog from "@/components/admin/SupplyFormDialog";
 import AddonFormDialog from "@/components/admin/AddonFormDialog";
@@ -41,7 +42,6 @@ type ProductFilter = "all" | "lenses" | "supplies" | "services";
 type StatusFilter = "all" | "active";
 type SortMode = "az" | "za" | "price-high";
 
-const CATALOG_FILTER_KEY = "catalog_filter_store_v1";
 const PRODUCT_IMAGE_BUCKET = "product-images";
 const DEFAULT_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='600' height='600' fill='white'/><rect x='30' y='30' width='540' height='540' fill='none' stroke='#e5e7eb' stroke-width='2'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='#9ca3af'>No image</text></svg>`)}`;
 
@@ -88,12 +88,6 @@ const sortProducts = (items: ProductRow[], sortMode: SortMode) => {
   if (sortMode === "za") sorted.sort((a, b) => b.name.localeCompare(a.name));
   if (sortMode === "price-high") sorted.sort((a, b) => b.priceBbd - a.priceBbd || a.name.localeCompare(b.name));
   return sorted;
-};
-
-const toCatalogTab = (type: ProductType): "lenses" | "supplies" | "addons" => {
-  if (type === "lens") return "lenses";
-  if (type === "supply") return "supplies";
-  return "addons";
 };
 
 const WebsiteStorePage = () => {
@@ -311,22 +305,7 @@ const WebsiteStorePage = () => {
   };
 
   const openInCatalogForPriceEdit = (row: ProductRow) => {
-    const tab = toCatalogTab(row.type);
-    try {
-      const raw = localStorage.getItem(CATALOG_FILTER_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      const next = {
-        ...parsed,
-        activeTab: tab,
-      };
-      if (tab === "lenses") next.lens = { ...(parsed?.lens ?? {}), search: row.name };
-      if (tab === "supplies") next.supply = { ...(parsed?.supply ?? {}), search: row.name };
-      if (tab === "addons") next.addon = { ...(parsed?.addon ?? {}), search: row.name };
-      localStorage.setItem(CATALOG_FILTER_KEY, JSON.stringify(next));
-    } catch {
-      // noop
-    }
-    navigate("/admin/pricing/catalog");
+    navigate(getCatalogEditRoute(row.type, row.id));
   };
 
   const openEditor = (row: ProductRow) => {
@@ -519,6 +498,11 @@ const WebsiteStorePage = () => {
                           <Layers className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
+                      <Button size="icon" variant="outline" className="h-7 w-7" asChild>
+                        <Link to={getProductHubRoute(row.type, row.id)} title={`Open ${row.name} in Product Hub`} aria-label={`Open ${row.name} in Product Hub`}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
                       {(row.type === "lens" || row.type === "supply" || row.type === "addon") && (
                         <Button size="icon" variant="outline" className="h-7 w-7" asChild>
                           <Link to={`/store/product/${row.type}/${row.id}`} target="_blank" rel="noreferrer" title={`View ${row.name}`} aria-label={`View ${row.name}`}>
@@ -606,6 +590,9 @@ const WebsiteStorePage = () => {
                   <ImagePlus className="h-4 w-4 mr-1" /> Manage Images
                 </Button>
                 <Button variant="outline" onClick={() => openInCatalogForPriceEdit(selected)}>Edit price in Catalog</Button>
+                <Button variant="outline" asChild>
+                  <Link to={getProductHubRoute(selected.type, selected.id)}><ExternalLink className="h-4 w-4 mr-1" /> Open in Product Hub</Link>
+                </Button>
                 <Button variant="outline" onClick={() => {
                   if (selected.type === "lens") setLensEditorOpen(true);
                   if (selected.type === "supply") setSupplyEditorOpen(true);

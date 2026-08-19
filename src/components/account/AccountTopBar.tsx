@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, CircleHelp, House, KeyRound, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Sun } from "lucide-react";
+import { ArrowLeft, CircleHelp, House, KeyRound, LifeBuoy, LogOut, Menu, Monitor, Moon, Search, Shield, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
   const { openAssistant } = useCompanionAssistant();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, hasAccess } = useUserRole();
   const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
   const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
   const { theme, setTheme } = useTheme();
@@ -184,6 +184,14 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                       Change password
                     </Link>
                   </DropdownMenuItem>
+                  {hasAccess ? (
+                    <DropdownMenuItem asChild className="gap-2 rounded-md px-2.5 py-2 text-sm">
+                      <Link to="/admin">
+                        <Shield className="h-4 w-4" />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem onSelect={onSignOut} className="gap-2 rounded-md px-2.5 py-2 text-sm">
                     <LogOut className="h-4 w-4" />
                     Sign out

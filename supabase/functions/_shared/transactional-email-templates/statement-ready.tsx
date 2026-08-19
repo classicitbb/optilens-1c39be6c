@@ -4,14 +4,15 @@ import { Button, Hr, Section, Text } from 'npm:@react-email/components@0.0.22'
 import { ClassicVisionsEmailLayout } from '../email-templates/classic-visions-layout.tsx'
 import type { TemplateEntry } from './registry.ts'
 
-interface StatementReadyProps { customerName?: string; accountNumber?: string; periodStart?: string; periodEnd?: string; closingBalance?: number; dueDate?: string; siteUrl?: string; unsubscribeUrl?: string }
+interface StatementReadyProps { customerName?: string; accountNumber?: string; periodStart?: string; periodEnd?: string; closingBalance?: number; dueDate?: string; siteUrl?: string; statementUrl?: string; pdfUrl?: string; unsubscribeUrl?: string }
 const fmtDate = (value?: string) => { if (!value) return ''; const d = new Date(value); return isNaN(d.getTime()) ? value : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
 
-const StatementReadyEmail = ({ customerName = 'there', accountNumber = '', periodStart, periodEnd, closingBalance = 0, dueDate, siteUrl = 'https://classicvisions.net', unsubscribeUrl }: StatementReadyProps) => (
+const StatementReadyEmail = ({ customerName = 'there', accountNumber = '', periodStart, periodEnd, closingBalance = 0, dueDate, siteUrl = 'https://classicvisions.net', statementUrl, pdfUrl, unsubscribeUrl }: StatementReadyProps) => (
   <ClassicVisionsEmailLayout preview={`Your Classic Visions statement is ready — balance $${closingBalance.toFixed(2)}`} eyebrow="Account Statement" title="Your statement is ready" unsubscribeUrl={unsubscribeUrl}>
     <Text style={text}>Hi {customerName}, your Classic Visions account statement{accountNumber ? ` (${accountNumber})` : ''} for {fmtDate(periodStart)}{periodEnd ? ` – ${fmtDate(periodEnd)}` : ''} is now available to view online.</Text>
     <Section style={summarySection}><Section style={summaryRow}><Text style={summaryLabel}>Balance due</Text><Text style={summaryValue}>${closingBalance.toFixed(2)}</Text></Section>{dueDate && <Section style={summaryRow}><Text style={summaryLabel}>Due date</Text><Text style={summaryValue}>{fmtDate(dueDate)}</Text></Section>}</Section>
-    <Button style={button} href={`${siteUrl}/profile/statements`}>View Statement</Button>
+    <Button style={button} href={statementUrl || `${siteUrl}/profile/statements`}>View Statement</Button>
+    {pdfUrl && <Button style={secondaryButton} href={pdfUrl}>Download PDF</Button>}
     <Hr style={divider} />
     <Text style={footer}>Sign in to your Classic Visions account to view the full statement, transaction detail, and payment options.</Text>
   </ClassicVisionsEmailLayout>
@@ -28,5 +29,6 @@ const summaryRow = { display: 'flex' as const, justifyContent: 'space-between', 
 const summaryLabel = { fontSize: '14px', color: '#3d4a57', margin: '0' }
 const summaryValue = { fontSize: '14px', color: '#0B1E35', fontWeight: '700' as const, margin: '0', textAlign: 'right' as const }
 const button = { backgroundColor: '#C89130', color: '#0B1E35', fontSize: '14px', fontWeight: '700' as const, borderRadius: '8px', padding: '13px 28px', textDecoration: 'none', margin: '10px 0 2px' }
+const secondaryButton = { ...button, backgroundColor: '#0B1E35', color: '#ffffff', marginLeft: '8px' }
 const divider = { borderColor: '#ece9e0', margin: '24px 0 16px' }
 const footer = { fontSize: '14px', color: '#3d4a57', lineHeight: '1.62', margin: '0' }

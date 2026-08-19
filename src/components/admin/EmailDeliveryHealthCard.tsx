@@ -127,17 +127,18 @@ export default function EmailDeliveryHealthCard() {
 
             {!!data?.recent.length && (
               <div className="rounded-md border">
-                <table className="w-full text-left text-xs">
-                  <thead className="text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">When</th>
-                      <th className="px-3 py-2 font-medium">Recipient</th>
-                      <th className="px-3 py-2 font-medium">Source</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.recent.slice(0, 8).map((row) => {
+                <div className="max-h-[420px] overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 bg-background text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">When</th>
+                        <th className="px-3 py-2 font-medium">Recipient</th>
+                        <th className="px-3 py-2 font-medium">Source</th>
+                        <th className="px-3 py-2 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                    {data.recent.map((row) => {
                       const isError = ["failed", "dlq", "bounced", "complained"].includes(row.status);
                       return (
                         <tr key={`${row.message_id ?? row.created_at}-${row.recipient_email}-${row.status}-${row.created_at}`} className="border-t align-top">
@@ -151,8 +152,9 @@ export default function EmailDeliveryHealthCard() {
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </>

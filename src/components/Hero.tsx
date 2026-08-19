@@ -57,8 +57,8 @@ const Hero = () => {
         <div className="absolute -left-28 top-28 h-72 w-72 rounded-full border border-white/10" aria-hidden="true" />
         <div className="absolute -left-10 top-44 h-40 w-40 rounded-full border border-[#d7a83f]/25" aria-hidden="true" />
 
-        <div className="container relative mx-auto grid min-h-[720px] max-w-[1500px] lg:grid-cols-[1.02fr_.98fr]">
-          <div className="relative z-10 flex flex-col justify-center px-5 py-14 sm:px-8 sm:py-20 lg:px-12 xl:px-16">
+        <div className="container relative z-10 mx-auto max-w-[1500px]">
+          <div className="flex min-h-[720px] flex-col justify-start pb-14 pt-24 sm:justify-center sm:py-20 lg:max-w-[51%] lg:px-12 xl:px-16">
             <div className="mb-6 flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/85 backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-[#55d3dc] shadow-[0_0_16px_rgba(85,211,220,.9)]" />
               Made in Barbados · Serving the Caribbean
@@ -115,28 +115,31 @@ const Hero = () => {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="relative min-h-[430px] overflow-hidden lg:min-h-full">
-            <img
-              src={caribbeanHero}
-              alt="Caribbean customers wearing glasses beside an optical technician finishing a prescription lens"
-              className="absolute inset-0 h-full w-full object-cover object-[58%_center]"
-              loading="eager"
-              fetchPriority="high"
-              width={1680}
-              height={945}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#071d35]/15 via-transparent to-[#071d35]/75 lg:bg-gradient-to-r lg:from-[#0b2745] lg:via-[#0b2745]/10 lg:to-transparent" aria-hidden="true" />
+        {/* Full-bleed image: a section-level sibling (not nested in the padded,
+            max-w-[1500px] text container) so it can sit flush against the true
+            browser edge at lg+ instead of being cut off by container padding. */}
+        <div className="relative min-h-[430px] overflow-hidden lg:absolute lg:inset-y-0 lg:right-0 lg:min-h-0 lg:w-[49%]">
+          <img
+            src={caribbeanHero}
+            alt="Caribbean customers wearing glasses beside an optical technician finishing a prescription lens"
+            className="absolute inset-0 h-full w-full object-cover object-[58%_center]"
+            loading="eager"
+            fetchPriority="high"
+            width={1680}
+            height={945}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#071d35]/15 via-transparent to-[#071d35]/75 lg:bg-gradient-to-r lg:from-[#0b2745] lg:via-[#0b2745]/10 lg:to-transparent" aria-hidden="true" />
 
-            <div className="absolute bottom-6 left-5 right-5 flex items-center gap-4 rounded-2xl border border-white/25 bg-[#071d35]/75 p-4 shadow-2xl backdrop-blur-md sm:bottom-8 sm:left-8 sm:right-auto sm:max-w-sm">
-              <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full border border-[#67d8df]/60 bg-[#0b2745]">
-                <div className="absolute inset-1 rounded-full border border-dashed border-[#efbd4f]/80 motion-safe:animate-spin [animation-duration:9s]" />
-                <ScanEye className="h-6 w-6 text-white" aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#67d8df]">Precision in motion</p>
-                <p className="mt-1 text-sm font-semibold leading-5 text-white">Crafted carefully in Barbados. Supported by real people.</p>
-              </div>
+          <div className="absolute bottom-6 left-5 right-5 flex items-center gap-4 rounded-2xl border border-white/25 bg-[#071d35]/75 p-4 shadow-2xl backdrop-blur-md sm:bottom-8 sm:left-8 sm:right-auto sm:max-w-sm">
+            <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full border border-[#67d8df]/60 bg-[#0b2745]">
+              <div className="absolute inset-1 rounded-full border border-dashed border-[#efbd4f]/80 motion-safe:animate-spin [animation-duration:9s]" />
+              <ScanEye className="h-6 w-6 text-white" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#67d8df]">Precision in motion</p>
+              <p className="mt-1 text-sm font-semibold leading-5 text-white">Crafted carefully in Barbados. Supported by real people.</p>
             </div>
           </div>
         </div>

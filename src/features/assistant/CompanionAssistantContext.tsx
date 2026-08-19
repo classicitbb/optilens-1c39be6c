@@ -26,6 +26,7 @@ import {
   CompanionAssistantContext,
   type AssistantFormState,
   type AssistantMessage,
+  type AssistantOutgoingAttachment,
   type AssistantQuickAction,
   type AssistantTaskContext,
   type CompanionAssistantContextValue,
@@ -36,6 +37,7 @@ export type {
   AssistantFormKind,
   AssistantFormState,
   AssistantMessage,
+  AssistantOutgoingAttachment,
   AssistantQuickAction,
   AssistantTaskContext,
   CompanionAssistantContextValue,
@@ -83,15 +85,16 @@ const getStarterActions = (pathname: string, isAuthenticated: boolean): Assistan
   pathname.startsWith("/profile")
     ? [
         ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" as const }]),
-        { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=professional" },
-        { type: "web_search", label: "Search the web", query: "Latest trends in progressive lens technology" },
+        { type: "lens_guide", label: "Find the right lens", step: 1, answers: {} },
+        { type: "web_search_prompt", label: "Search the web" },
         { type: "form", label: "Get support", profile: "portal_support" },
         { type: "link", label: "Track an order", href: "/profile/orders" },
       ]
     : [
         ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" as const }]),
-        { type: "link", label: "Find the right lens", href: "/lens-assistant?audience=patient" },
-        { type: "web_search", label: "Search the web", query: "Best lens coatings for digital screen use" },
+        ...(isAuthenticated ? [] : [{ type: "form" as const, label: "Create a trade account", profile: "customer_support" as const, kind: "trade_signup" as const }]),
+        { type: "lens_guide", label: "Find the right lens", step: 1, answers: {} },
+        { type: "web_search_prompt", label: "Search the web" },
         { type: "form", label: "Get support", profile: "customer_support" },
         { type: "form", label: "Contact us", profile: "customer_support" },
       ];
@@ -101,9 +104,17 @@ const isKeyPage = (pathname: string) =>
   pathname.startsWith("/knowledge") ||
   pathname.startsWith("/lenses") ||
   pathname.startsWith("/coatings") ||
+  pathname.startsWith("/store") ||
   pathname.startsWith("/profile");
 
 const getRouteNudge = (pathname: string, isAuthenticated: boolean) => {
+  if (pathname.startsWith("/store") && !isAuthenticated) {
+    return {
+      message: "Trade pricing is hidden until you're signed in. Set up a trade account without leaving this page?",
+      formKind: "trade_signup" as const,
+    };
+  }
+
   if (pathname.startsWith("/find-a-retailer") && !isAuthenticated) {
     return {
       message: "Need help narrowing down a retailer or clinic?",
@@ -164,6 +175,9 @@ const createInitialFormState = ({
     productTopic: "",
     customerName: accountName,
     summary: "",
+    password: "",
+    taxId: "",
+    country: "",
   };
 };
 
@@ -196,7 +210,7 @@ const getNextFormField = (form: AssistantFormState): AssistantFormState["pending
     if (!form.market.trim()) return "market";
     return !form.summary.trim() ? "summary" : undefined;
   }
-  if (form.kind === "portal_support") return undefined;
+  if (form.kind === "portal_support" || form.kind === "trade_signup") return undefined;
   return !form.name.trim() ? "name" : !form.email.trim() ? "email" : !form.summary.trim() ? "summary" : undefined;
 };
 
@@ -205,7 +219,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const navigate = useNavigate();
   const pathname = location.pathname;
   const isDetachedRoute = pathname === "/assistant/window";
-  const { user } = useAuth();
+  const { user, signUp } = useAuth();
   const { identity } = usePortalIdentity();
   const { data: products = [] } = useStoreProducts();
   const { data: knowledge = [] } = usePublicKnowledge();
@@ -224,7 +238,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const [currentQuery, setCurrentQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingConversation, setIsSavingConversation] = useState(false);
-  const [nudge, setNudge] = useState<{ message: string; query?: string } | null>(null);
+  const [nudge, setNudge] = useState<{ message: string; query?: string; formKind?: AssistantFormKind } | null>(null);
   const [formState, setFormState] = useState<AssistantFormState | null>(null);
   const lastQueryRef = useRef<string | null>(null);
   const negativeFeedbackRef = useRef(false);
@@ -232,6 +246,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const formMessageIdsRef = useRef<Set<string>>(new Set());
   const nudgeTimerRef = useRef<number | null>(null);
   const hasRestoredPopoutRef = useRef(false);
+  const pendingWebSearchRef = useRef(false);
   const runtimeHeadings = useMemo(
     () => collectRuntimeHeadings(pathname),
     [pathname, currentQuery],
@@ -264,6 +279,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     negativeFeedbackRef.current = false;
     taskContextRef.current = undefined;
     formMessageIdsRef.current.clear();
+    pendingWebSearchRef.current = false;
     try { window.sessionStorage.removeItem(POPOUT_SNAPSHOT_KEY); } catch { /* best effort */ }
     resetConversation();
   }, [resetConversation]);
@@ -440,6 +456,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       id: messageId, role: "assistant", kind: "text",
       text: next.kind === "quote_request"
         ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
+        : next.kind === "trade_signup"
+        ? "Let's get your trade account set up. Fill in your business details below — nothing is created until you confirm, and you can keep browsing here while it's pending."
         : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
     }]);
   }, [accountName, activeProfile, pathname, userEmail, userName]);
@@ -527,9 +545,13 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     ]);
   }, [activeAudience, messages, pathname, persistFeedback]);
 
-  const submitQueryInternal = useCallback(async (queryValue: string, profile: AssistantProfile, audience: AssistantAudience = activeAudience) => {
+  const submitQueryInternal = useCallback(async (queryValue: string, profile: AssistantProfile, audience: AssistantAudience = activeAudience, attachments?: AssistantOutgoingAttachment[]) => {
     const trimmedQuery = queryValue.trim();
-    if (!trimmedQuery) return;
+    if (!trimmedQuery && !attachments?.length) return;
+
+    const queryForModel = attachments?.length
+      ? `${trimmedQuery}${trimmedQuery ? "\n\n" : ""}[Attached image${attachments.length === 1 ? "" : "s"}: ${attachments.map((attachment) => attachment.name).join(", ")}]`
+      : trimmedQuery;
 
     const repeatedUnsatisfied = shouldAskClarifier({
       previousNegativeFeedback: negativeFeedbackRef.current,
@@ -548,6 +570,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         role: "user",
         kind: "user",
         text: trimmedQuery,
+        attachments,
       },
     ]);
 
@@ -686,7 +709,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
     try {
       const result = runAssistantQuery({
-        query: trimmedQuery,
+        query: queryForModel,
         route: pathname,
         profile,
         audience,
@@ -710,12 +733,12 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
       setIsSubmitting(true);
       const generatedAnswer = await generateAssistantAnswer({
-        query: trimmedQuery,
+        query: queryForModel,
         route: pathname,
         profile,
         audience: result.audience,
         result,
-        conversation: [...conversation, { role: "user", text: trimmedQuery }],
+        conversation: [...conversation, { role: "user", text: queryForModel }],
         anonymousSessionId: getAnonymousSessionId(),
         taskContext: taskContextRef.current,
       });
@@ -746,7 +769,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
   }, [activeAudience, audienceOverride, corpus, messages, pathname, user]);
 
-  const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile, audience?: AssistantAudience) => {
+  const submitQuery = useCallback(async (queryValue?: string, profile?: AssistantProfile, audience?: AssistantAudience, attachments?: AssistantOutgoingAttachment[]) => {
     const formAnswer = (queryValue ?? currentQuery).trim();
     if (formState?.pendingField && formAnswer) {
       const completed = { ...formState, [formState.pendingField]: formAnswer };
@@ -764,8 +787,15 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       setFormState({ ...completed, pendingField });
       return;
     }
+    if (pendingWebSearchRef.current && formAnswer) {
+      pendingWebSearchRef.current = false;
+      // submitWebSearch is defined later in this component body, but by the time this
+      // closure actually runs (a later user interaction) it is already assigned.
+      await submitWebSearch(formAnswer);
+      return;
+    }
     if (audience) setAudienceOverride(audience);
-    await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile, audience ?? activeAudience);
+    await submitQueryInternal(queryValue ?? currentQuery, profile ?? activeProfile, audience ?? activeAudience, attachments);
   }, [activeAudience, activeProfile, currentQuery, formState, submitQueryInternal]);
 
   const openAssistant = useCallback((options?: OpenAssistantOptions) => {
@@ -789,6 +819,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         id: messageId, role: "assistant", kind: "text",
         text: next.kind === "quote_request"
           ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
+          : next.kind === "trade_signup"
+          ? "Let's get your trade account set up. Fill in your business details below — nothing is created until you confirm, and you can keep browsing here while it's pending."
           : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
       }]);
     }
@@ -871,7 +903,72 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
   }, [messages, pathname]);
 
+  const handleLensGuideStep = useCallback((step: 1 | 2 | 3 | 4, answers: { audience?: AssistantAudience; useCase?: string; hasRx?: boolean }) => {
+    setIsOpen(true);
+    setNudge(null);
+
+    if (step === 1) {
+      setMessages((current) => [...current, {
+        id: createId("assistant"), role: "assistant", kind: "text",
+        text: "Let's find the right lens together. Who is this for?",
+        quickActions: [
+          { type: "lens_guide", label: "Myself", step: 2, answers: { audience: "patient" } },
+          { type: "lens_guide", label: "A patient I'm dispensing for", step: 2, answers: { audience: "dispenser" } },
+        ],
+      }]);
+      return;
+    }
+
+    if (step === 2) {
+      setMessages((current) => [...current, {
+        id: createId("assistant"), role: "assistant", kind: "text",
+        text: "What will this lens mainly be used for?",
+        quickActions: [
+          { type: "lens_guide", label: "Everyday / general wear", step: 3, answers: { ...answers, useCase: "everyday" } },
+          { type: "lens_guide", label: "Reading & close-up work", step: 3, answers: { ...answers, useCase: "reading" } },
+          { type: "lens_guide", label: "Computer & screens", step: 3, answers: { ...answers, useCase: "screens" } },
+          { type: "lens_guide", label: "Driving & outdoors", step: 3, answers: { ...answers, useCase: "driving" } },
+        ],
+      }]);
+      return;
+    }
+
+    if (step === 3) {
+      setMessages((current) => [...current, {
+        id: createId("assistant"), role: "assistant", kind: "text",
+        text: "Do you already have a current prescription?",
+        quickActions: [
+          { type: "lens_guide", label: "Yes, I have my Rx", step: 4, answers: { ...answers, hasRx: true } },
+          { type: "lens_guide", label: "Not yet / not sure", step: 4, answers: { ...answers, hasRx: false } },
+        ],
+      }]);
+      return;
+    }
+
+    const audience = answers.audience ?? "patient";
+    const useCaseLabel = {
+      everyday: "everyday, general wear",
+      reading: "reading and close-up work",
+      screens: "computer and screen use",
+      driving: "driving and outdoor use",
+    }[answers.useCase ?? "everyday"];
+    const rxNote = answers.hasRx
+      ? "Since you already have a prescription, the finder can match it directly against approved lens options."
+      : "Since you don't have a prescription yet, the finder will show general option types you can review with your eye care professional.";
+
+    setMessages((current) => [...current, {
+      id: createId("assistant"), role: "assistant", kind: "text",
+      text: `Got it — a lens mainly for ${useCaseLabel}. ${rxNote} Want me to open the lens finder now with that in mind?`,
+      quickActions: [
+        { type: "link", label: "Open the lens finder", href: `/lens-assistant?audience=${audience}` },
+        { type: "query", label: "Ask something else instead", query: "Help me with something else." },
+      ],
+    }]);
+  }, []);
+
   const submitQuickAction = useCallback((action: AssistantQuickAction) => {
+    pendingWebSearchRef.current = false;
+
     if (action.type === "query") {
       void submitQuery(action.query, action.profile ?? activeProfile, action.audience);
       return;
@@ -882,8 +979,24 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       return;
     }
 
+    if (action.type === "web_search_prompt") {
+      setIsOpen(true);
+      setNudge(null);
+      pendingWebSearchRef.current = true;
+      setMessages((current) => [...current, {
+        id: createId("assistant"), role: "assistant", kind: "text",
+        text: "What do you want to know? I'll search the web for it.",
+      }]);
+      return;
+    }
+
+    if (action.type === "lens_guide") {
+      handleLensGuideStep(action.step, action.answers);
+      return;
+    }
+
     if (action.type === "form") {
-      openForm(action.profile ?? activeProfile);
+      openForm(action.profile ?? activeProfile, action.kind ? { kind: action.kind } : undefined);
       return;
     }
 
@@ -906,10 +1019,88 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         window.location.href = action.href;
       }
     }
-  }, [activeProfile, cancelForm, openForm, submitQuery, submitWebSearch]);
+  }, [activeProfile, cancelForm, handleLensGuideStep, openForm, submitQuery, submitWebSearch]);
 
   const submitForm = useCallback(async () => {
     if (!formState) return;
+
+    if (formState.kind === "trade_signup") {
+      const fullName = formState.name.trim();
+      const email = formState.email.trim();
+      const password = formState.password.trim();
+      const phone = formState.phone.trim();
+      const businessName = formState.businessName.trim();
+      const taxId = formState.taxId.trim();
+      const country = formState.country.trim();
+      if (!fullName || !email || password.length < 6 || !phone || !businessName || !taxId || !country) return;
+
+      setIsSubmitting(true);
+      try {
+        const onboardingCompletedAt = new Date().toISOString();
+        const { error } = await signUp(email, password, {
+          fullName,
+          phone,
+          organizationName: businessName,
+          audience: "professional",
+          interestIntent: "products",
+          onboardingCompletedAt,
+        });
+
+        if (error) {
+          const alreadyRegistered = error.message.includes("User already registered");
+          setMessages((current) => [...current, {
+            id: createId("assistant"),
+            role: "assistant",
+            kind: "text",
+            text: alreadyRegistered
+              ? "This email is already registered. Sign in instead, or use a different email to create a new trade account."
+              : `I could not create that account: ${error.message}`,
+            quickActions: alreadyRegistered
+              ? [{ type: "link", label: "Sign in instead", href: `/auth?mode=signin&redirect=${encodeURIComponent(pathname)}` }]
+              : undefined,
+          }]);
+          return;
+        }
+
+        try {
+          await submitPublicInquiry({
+            inquiryType: "auth_onboarding_interest",
+            name: fullName,
+            email,
+            phone,
+            businessName,
+            message: "Trade account created via the assistant.",
+            notes: JSON.stringify({ audience: "professional", intent: "products", tax_id: taxId, country, onboarding_completed_at: onboardingCompletedAt }),
+            pageSlug: `${pathname}${location.search}${location.hash}`,
+            sourceChannel: "ai_assistant",
+            honeypot: "",
+            startedAt: formState.startedAt,
+          });
+        } catch {
+          // Lead signal is best-effort — the account itself is already created.
+        }
+
+        setFormState(null);
+        setMessages((current) => [
+          ...current,
+          {
+            id: createId("assistant"),
+            role: "assistant",
+            kind: "confirmation",
+            title: "Trade account created",
+            text: `We sent a confirmation link to ${email}. Open it to activate your account — trade pricing and ordering unlock as soon as it is confirmed. You can keep browsing here in the meantime.`,
+            quickActions: [
+              { type: "link", label: "Browse the catalog", href: "/store" },
+              { type: "link", label: "View knowledge hub", href: "/knowledge" },
+              { type: "query", label: "Ask another question", query: "Help me find the best page for my next question." },
+            ],
+          },
+        ]);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     const summary = formState.summary.trim();
     const isQuoteRequest = formState.kind === "quote_request";
@@ -1026,7 +1217,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     } finally {
       setIsSubmitting(false);
     }
-  }, [accountName, activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, user]);
+  }, [accountName, activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, signUp, user]);
 
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,

@@ -42,11 +42,17 @@ const QuotationsListPage = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [newQuoteOpen, setNewQuoteOpen] = useState(false);
 
-  // RX quotes open in the in-house Rx order form; STOCK quotes keep the flat editor.
+  // RX quotes open in the in-house Rx order form; STOCK has one canonical
+  // editor in the Stock Order Builder.
   const quoteEditPath = (q: Pick<Quote, "id" | "quote_type">) =>
-    q.quote_type === "RX" ? `/admin/website/quotations/rx/${q.id}` : `/admin/website/quotations/${q.id}`;
+    q.quote_type === "RX" ? `/admin/website/quotations/rx/${q.id}` : `/admin/website/stock-orders?quote=${encodeURIComponent(q.id)}`;
 
   const handleCreate = (quoteType: "STOCK" | "RX") => {
+    if (quoteType === "STOCK") {
+      setNewQuoteOpen(false);
+      navigate("/admin/website/stock-orders");
+      return;
+    }
     createMutation.mutate(
       { quote_type: quoteType },
       {

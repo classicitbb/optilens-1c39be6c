@@ -4,6 +4,39 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-18 — Statement document automation
+
+### Release Notes
+- Newly discovered non-void Innovations statements now enter a durable PDF, OneDrive, and authenticated portal-download workflow.
+
+### Technical Changelog
+- Added idempotent statement document jobs, activation baselining, Microsoft Graph upload orchestration, and post-upload canonical email gating.
+
+## 2026-08-15 — Canonical stock quotations
+
+### Release Notes
+- The Stock Order Builder now saves a linked STOCK quotation using the same protected non-zero price resolution as the account catalogue, and opens the populated quotation in DocStudio.
+
+### Technical Changelog
+- Added an account/Retail/catalog/manual pricing resolver, atomic stock-draft-to-quote command, linked DocStudio billing document, and editing-staff-only profit context.
+
+## 2026-08-14 — Portal Copilot qualified CRM suggestions
+
+### Release Notes
+- Administrators can scan current CRM and order-health signals for a focused queue of lapsed-buyer, overdue-follow-up, incomplete-contact and opportunity-review suggestions, then approve only the tasks they want created.
+
+### Technical Changelog
+- Added a deterministic CRM recommendation planner, real contact/order-health/opportunity/activity adapters, evidence-versus-inference UI, and an approval-only bridge to existing CRM activities.
+- Documented the verified pricing-advisor and public-web enrichment seams without enabling guessed or automatic writes.
+
+## 2026-08-14 — Portal Copilot multi-chat workspace
+
+### Release Notes
+- Administrators can start a new Copilot chat, keep multiple conversations, and switch between them without losing prior messages or workflow results.
+
+### Technical Changelog
+- Added user-owned conversation/message storage, linked rollout runs to conversations, backfilled existing runs, and replaced the run-only sidebar with persistent chat history.
+
 ## 2026-08-13 — Admin Portal Copilot MVP
 
 ### Release Notes

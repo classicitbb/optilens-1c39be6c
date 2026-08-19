@@ -79,8 +79,29 @@ describe("buildErpPortalRolloutPlan", () => {
     expect(plan.actions[0].summary).toContain("email");
   });
 
+  it("resolves the recipient by matching the customer email domain when only one person shares it", () => {
+    const plan = buildErpPortalRolloutPlan(
+      [customer()],
+      [person(), person({ id: "person-9", name: "Gina Reid", email: "gina@personal.test" })],
+      [],
+    );
+    expect(plan.actions).toHaveLength(1);
+    expect(plan.actions[0]).toMatchObject({ actionType: "send_portal_invite", contactId: "person-7" });
+  });
+
+  it("lists the candidate names in the follow-up so an admin can decide quickly", () => {
+    const plan = buildErpPortalRolloutPlan(
+      [customer()],
+      [person(), person({ id: "person-8", name: "David Clarke", email: "david@acme.test" })],
+      [],
+    );
+    expect(plan.actions[0].summary).toContain("Alicia Clarke");
+    expect(plan.actions[0].summary).toContain("David Clarke");
+  });
+
   it("never treats a company contact as the portal login identity", () => {
     const plan = buildErpPortalRolloutPlan([customer()], [person({ is_company: true })], []);
     expect(plan.actions[0]).toMatchObject({ actionType: "create_followup_task", contactId: "company-7" });
   });
 });
+

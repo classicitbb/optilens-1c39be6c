@@ -11,10 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
+import { Bot, CheckCircle2, Loader2, Lock, Plus, PlugZap, ShieldCheck } from "lucide-react";
 import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
 import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrationTab";
 import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
+import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scotia eCom+ (Fiserv IPG Connect) hosted-payment credential store.
@@ -47,6 +48,16 @@ interface DhlExpressSettings {
   last_error: string | null;
   updated_at: string;
 }
+
+const QUICK_PICK_PROVIDERS = [
+  { slug: "anthropic", label: "Anthropic" },
+  { slug: "openai", label: "OpenAI" },
+  { slug: "grok", label: "Grok (xAI)" },
+  { slug: "copilot", label: "Copilot" },
+];
+
+const normalizeProviderSlug = (value: string) =>
+  value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 const statusMeta: Record<GatewayStatus, { label: string; className: string }> = {
   connected: { label: "Connected", className: "bg-emerald-500/10 text-emerald-700 border-emerald-300" },
@@ -88,6 +99,19 @@ export default function IntegrationsPage() {
     enabled: isAdmin,
   });
 
+  const { data: aiAgentRows, isLoading: aiAgentLoading } = useQuery({
+    queryKey: ["ai-agent-settings"],
+    queryFn: async () => {
+      const { data, error } = await ((supabase as any).from("ai_agent_settings") as any)
+        .select("provider,model,enabled,has_secret,status,last_tested_at,last_error,updated_at")
+        .eq("tenant_key", "default")
+        .order("provider");
+      if (error) throw error;
+      return (data ?? []) as AiAgentSettingsRow[];
+    },
+    enabled: isAdmin,
+  });
+
   const [form, setForm] = useState({
     store_id: "",
     environment: "test" as "test" | "production",
@@ -104,6 +128,8 @@ export default function IntegrationsPage() {
   }>>({});
   const [dhlUsername, setDhlUsername] = useState("");
   const [dhlPassword, setDhlPassword] = useState("");
+  const [draftProviders, setDraftProviders] = useState<string[]>([]);
+  const [newProviderInput, setNewProviderInput] = useState("");
 
   useEffect(() => {
     if (!data) return;
@@ -236,9 +262,18 @@ export default function IntegrationsPage() {
   });
 
   const currentStatus = useMemo<GatewayStatus>(() => data?.status ?? "not_configured", [data]);
+  const existingProviders = useMemo(() => (aiAgentRows ?? []).map((row) => row.provider), [aiAgentRows]);
+  const draftOnlyProviders = draftProviders.filter((slug) => !existingProviders.includes(slug));
+
+  const addProvider = (rawSlug: string) => {
+    const slug = normalizeProviderSlug(rawSlug);
+    if (!slug || existingProviders.includes(slug) || draftProviders.includes(slug)) return;
+    setDraftProviders((prev) => [...prev, slug]);
+    setNewProviderInput("");
+  };
   const requiresSecret = !data?.has_secret;
 
-  if (roleLoading || isLoading || dhlLoading) {
+  if (roleLoading || isLoading || dhlLoading || aiAgentLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -275,6 +310,7 @@ export default function IntegrationsPage() {
         <TabsList>
           <TabsTrigger value="services">Service integrations</TabsTrigger>
           <TabsTrigger value="gatekeeper">Gatekeeper</TabsTrigger>
+          <TabsTrigger value="ai-agents">AI Agents</TabsTrigger>
         </TabsList>
         <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
@@ -505,6 +541,61 @@ export default function IntegrationsPage() {
         </TabsContent>
         <TabsContent value="gatekeeper" className="mt-0">
           <GatekeeperIntegrationTab />
+        </TabsContent>
+        <TabsContent value="ai-agents" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bot className="h-4 w-4" /> AI provider keys
+              </CardTitle>
+              <CardDescription>
+                API keys for AI providers, stored encrypted server-side and never returned to the browser.
+                Only the Anthropic key is actually used today — by Portal Copilot, for chat, workflow routing
+                and lookups (it falls back to the ANTHROPIC_API_KEY function secret if this isn't set). Other
+                providers are stored for whenever something is built to use them.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {QUICK_PICK_PROVIDERS.filter((p) => !existingProviders.includes(p.slug) && !draftProviders.includes(p.slug)).map((p) => (
+                  <Button key={p.slug} variant="outline" size="sm" onClick={() => addProvider(p.slug)}>
+                    <Plus className="mr-2 h-4 w-4" /> {p.label}
+                  </Button>
+                ))}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newProviderInput}
+                    onChange={(e) => setNewProviderInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") addProvider(newProviderInput); }}
+                    placeholder="Other provider name"
+                    className="h-9 w-48"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => addProvider(newProviderInput)} disabled={!newProviderInput.trim()}>
+                    <Plus className="mr-2 h-4 w-4" /> Add
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {(aiAgentRows ?? []).map((row) => (
+            <AiAgentProviderCard
+              key={row.provider}
+              provider={row.provider}
+              row={row}
+              canTest={row.provider === "anthropic"}
+              onRemoveDraft={() => {}}
+            />
+          ))}
+          {draftOnlyProviders.map((slug) => (
+            <AiAgentProviderCard
+              key={slug}
+              provider={slug}
+              row={null}
+              canTest={slug === "anthropic"}
+              onRemoveDraft={() => setDraftProviders((prev) => prev.filter((p) => p !== slug))}
+            />
+          ))}
         </TabsContent>
       </Tabs>
     </div>

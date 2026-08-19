@@ -407,7 +407,9 @@ export const runAssistantQuery = ({
   const topLinks = preferUsefulLinks(Array.from(uniqueLinks.values()), intent).slice(0, 4);
   const confidence = inferConfidence(topLinks[0]?.score ?? 0, errorState);
   const answer = topLinks[0] ? buildAnswerFromLink(topLinks[0], intent) : buildNoMatchAnswer(intent, query);
-  const citations: AssistantLinkResult[] = topLinks.map((link) => ({
+  // The fallback answer text only discusses the single top match, so only cite that one —
+  // listing every candidate link here surfaces sources the answer never actually references.
+  const citations: AssistantLinkResult[] = topLinks.slice(0, 1).map((link) => ({
     ...link,
     id: link.sourceId ?? link.id,
     sourceTier: link.sourceTier ?? "site_content",

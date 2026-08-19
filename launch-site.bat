@@ -35,7 +35,6 @@ set "EXIT_CODE=1"
 if not "%EXIT_CODE%"=="0" (
   echo.
   echo [ERROR] The launcher stopped with exit code %EXIT_CODE%.
-  pause
 )
 
 endlocal & exit /b %EXIT_CODE%
@@ -77,6 +76,14 @@ if not errorlevel 1 (
   for /f "tokens=1 delims=." %%N in ('node -p "process.versions.node" 2^>nul') do set "NODE_MAJOR=%%N"
   if "%NODE_MAJOR%"=="22" exit /b 0
 )
+
+echo Installing a supported Node.js runtime...
+call :InstallNodeToolchain
+if errorlevel 1 exit /b 1
+call :RefreshPath
+for /f "tokens=1 delims=." %%N in ('node -p "process.versions.node" 2^>nul') do set "NODE_MAJOR=%%N"
+if "%NODE_MAJOR%"=="20" exit /b 0
+if "%NODE_MAJOR%"=="22" exit /b 0
 
 echo.
 echo [ERROR] A supported Node.js runtime could not be selected.
@@ -156,25 +163,27 @@ if "%NPM_MAJOR%"=="10" (
   exit /b 0
 )
 
-echo Installing npm 10.x for this project...
-call npm install -g npm@10 --no-audit --no-fund
+REM Do not replace the machine-wide npm installation.  That requires elevation
+REM on many Windows setups and made the previous launcher fail for normal users.
+REM npx keeps the project's npm 10 requirement isolated to this invocation.
+where npx >nul 2>nul
 if errorlevel 1 (
   echo.
-  echo [ERROR] npm 10.x installation failed.
+  echo [ERROR] npm %NPM_MAJOR%.x is installed, but npx is unavailable to run npm 10.x.
   echo.
   exit /b 1
 )
 
-call :RefreshPath
-for /f "tokens=1 delims=." %%N in ('npm --version 2^>nul') do set "NPM_MAJOR=%%N"
-if not "%NPM_MAJOR%"=="10" (
+set "NPM_CMD=npx --yes npm@10"
+for /f "tokens=1 delims=." %%N in ('%NPM_CMD% --version 2^>nul') do set "PROJECT_NPM_MAJOR=%%N"
+if not "%PROJECT_NPM_MAJOR%"=="10" (
   echo.
-  echo [ERROR] npm %NPM_MAJOR%.x is active, but this repo requires npm 10.x.
+  echo [ERROR] Could not start the required npm 10.x toolchain.
   echo.
   exit /b 1
 )
 
-set "NPM_CMD=npm"
+echo Using npm 10.x for this project without changing the system installation.
 exit /b 0
 
 :InstallDependencies
@@ -238,7 +247,15 @@ exit /b 0
 :UseInstalledNode22
 set "NODE22_DIR="
 for /f "delims=" %%P in ('where node 2^>nul') do (
-  echo %%~fP | findstr /i "OpenJS.NodeJS.22 node-v22" >nul && set "NODE22_DIR=%%~dpP"
+  for /f "tokens=1 delims=." %%V in ('"%%~fP" -p "process.versions.node" 2^>nul') do (
+    if "%%V"=="22" set "NODE22_DIR=%%~dpP"
+  )
+)
+
+if not defined NODE22_DIR (
+  for /d %%D in ("%APPDATA%\nvm\v22*" "%ProgramFiles%\nvm\v22*" "%LOCALAPPDATA%\nvm\v22*") do (
+    if exist "%%~fD\node.exe" set "NODE22_DIR=%%~fD\"
+  )
 )
 
 if not defined NODE22_DIR (

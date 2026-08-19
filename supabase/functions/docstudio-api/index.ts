@@ -395,7 +395,7 @@ serve(async (req) => {
         .select("message_id,template_name,recipient_email,status,error_message,created_at")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(200);
       if (logError) throw logError;
 
       const { data: state } = await supabase
@@ -466,7 +466,9 @@ serve(async (req) => {
         latestAttempt: latest,
         counts24h,
         rateLimitedUntil,
-        recent: list.slice(0, 15),
+        // Scoped to a scrollable admin panel, not a paginated log — 200 rows
+        // comfortably covers at least a day's worth of normal send volume.
+        recent: list.slice(0, 200),
       });
     }
 
