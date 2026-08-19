@@ -186,25 +186,32 @@
 
   /* Sitewide unified interactive scrollbars:
      - Minimal & slender (4px visible thumb) when resting / no mouse near
-     - Completely transparent scrollbar track background
+     - Completely transparent scrollbar track background (no background on sliding area)
      - Ultra-subtle, nearly transparent glass thumb (15% opacity) that smoothly grows on hover
   */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--foreground) / 0.15) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.15) transparent !important;
   }
 
   *:hover {
-    scrollbar-color: hsl(var(--foreground) / 0.4) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.4) transparent !important;
   }
 
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
+    background: transparent !important;
+    background-color: transparent !important;
   }
 
-  ::-webkit-scrollbar-track {
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-track-piece,
+  ::-webkit-scrollbar-corner {
     background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -228,11 +235,11 @@
   }
 
   .dark * {
-    scrollbar-color: hsl(var(--foreground) / 0.18) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.18) transparent !important;
   }
 
   .dark *:hover {
-    scrollbar-color: hsl(var(--foreground) / 0.45) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.45) transparent !important;
   }
 
   .dark ::-webkit-scrollbar-thumb {
@@ -564,26 +571,35 @@
 .admin-tool,
 .admin-tool * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--admin-scrollbar-thumb)) hsl(var(--admin-scrollbar-track));
+  scrollbar-color: hsl(var(--admin-scrollbar-thumb)) transparent;
 }
 
 .admin-tool ::-webkit-scrollbar {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 8px;
+  height: 8px;
+  background: transparent !important;
 }
 
-.admin-tool ::-webkit-scrollbar-track {
-  background: hsl(var(--admin-scrollbar-track));
+.admin-tool ::-webkit-scrollbar-track,
+.admin-tool ::-webkit-scrollbar-track-piece,
+.admin-tool ::-webkit-scrollbar-corner {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .admin-tool ::-webkit-scrollbar-thumb {
   background-color: hsl(var(--admin-scrollbar-thumb));
-  border: 2px solid hsl(var(--admin-scrollbar-track));
+  background-clip: padding-box;
+  border: 2px solid transparent;
   border-radius: 9999px;
+  transition: background-color 0.2s ease, border-width 0.2s ease;
 }
 
 .admin-tool ::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--admin-scrollbar-thumb-hover));
+  border: 0px solid transparent;
 }
 
 /* Print/PDF preview areas must have no rounded corners */
