@@ -31,6 +31,7 @@ Summarized release outcomes for each major date-stamped update.
 - Administrators can open **Portal Copilot**, type a rollout request or confirm a voice transcript, and prepare portal access for every ERP-linked customer from live portal data.
 - Invitations always wait for explicit approval. Ambiguous or incomplete contacts become editable follow-up tasks, while every decision and execution result remains in the audit history.
 - A portal account that succeeds before its email fails is preserved and shown as a partial failure that can be retried safely.
+- Push-to-talk now starts speech recognition during the original press, preventing Edge from showing a false permission-denied message after microphone access is approved.
 
 ## 2026-08-12 — Unified Order Dispatch and MCP Artifact Stability
 

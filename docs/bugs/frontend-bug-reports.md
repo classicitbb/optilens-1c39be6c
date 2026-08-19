@@ -2,32 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
-## 2026-08-18 — Statement PDF access remains customer-scoped
-- Area: Portal Statements
-- Impact: statement PDF links must not become public OneDrive URLs.
-- Resolution: the portal download flow calls a server-side authenticated endpoint, which checks the signed-in profile's customer relationship before streaming the uploaded document.
-- Regression prevention: retain authenticated endpoint coverage and never put Microsoft Graph secrets or unrestricted drive links in browser code.
-
-## 2026-08-15 — Stock quotes could diverge from account pricing and documents
-- Area: Admin Website stock ordering and quotations
-- Impact: a staged stock order could depend on a browser price and did not create a linked authoritative quote or DocStudio document.
-- Root cause: stock drafts, pricing lookup, quotation creation, and document handoff were separate workflows.
-- Resolution: introduced a server-side non-zero price resolver, an atomic stock-draft-to-STOCK-quote command, and a linked DocStudio billing document handoff.
-- Regression prevention: retain resolver precedence, access-control, quote-link, and DocStudio handoff coverage; do not reintroduce client-supplied monetary values.
-
-## 2026-08-14 — CRM pipeline surfaced contacts without a qualified review queue
-- Area: Admin Portal Copilot and CRM follow-up planning
-- Impact: staff had order-health and pipeline data but no focused, evidence-backed way to turn it into reviewed work without manually scanning broad contact lists.
-- Root cause: CRM contacts, order health, opportunities and existing activities had no shared deterministic recommendation boundary.
-- Resolution: added a ranked Copilot planner that suppresses existing open work, labels evidence and inference, and prepares approval-only CRM task proposals.
-- Regression prevention: retain pure planner coverage plus integration assertions that preparation reads existing sources and creates only pending Copilot actions.
-
-## 2026-08-14 — New Copilot chat replaced the current local thread
-- Area: Admin Portal Copilot conversations
-- Impact: **New chat** only cleared component state; attachment messages disappeared on navigation or refresh, and the sidebar represented workflow runs rather than independent conversations.
-- Root cause: chat messages had no durable parent model, while only ERP execution runs were persisted.
-- Resolution: added user-owned conversations and messages, linked runs to their parent chat, and made chat creation and switching server-backed.
-- Regression prevention: retain the conversation schema/API integration assertions and external-browser switching test with direct keyboard input.
+## 2026-08-13 — Edge reported denied speech permission after microphone approval
+- Area: Admin Portal Copilot push-to-talk
+- Impact: approving microphone access could still immediately show **Microphone or speech permission was denied** and produce no transcript.
+- Root cause: the hook awaited `getUserMedia` and device/meter setup before calling `SpeechRecognition.start()`, detaching Web Speech startup from the initiating user press.
+- Resolution: configure and start recognition synchronously inside the press, then initialize the selected-device meter asynchronously.
+- Regression prevention: retain the hook test that makes recognition emit `not-allowed` whenever startup loses the initiating gesture, plus external Edge activation verification.
 
 ## 2026-08-13 — Portal rollout lacked governed bulk operations
 - Area: Admin portal-access operations
