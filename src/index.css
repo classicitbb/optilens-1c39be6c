@@ -788,3 +788,140 @@
   --input: 220 15% 20%;
   --ring: 200 55% 55%;
 }
+
+/* ─── Voice Assistant Animations ──────────────────────────────────────────────
+   Meridian Precision design language: teal signal rings for precision state,
+   gold accents for structural affordances, disciplined motion.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Concentric teal pulse rings for active listening */
+@keyframes voice-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes voice-pulse-delay {
+  0%, 25% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  25.1% {
+    opacity: 0.4;
+  }
+  75% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Waveform bar bounce for TTS playback */
+@keyframes voice-wave-bar {
+  0%, 100% {
+    height: 4px;
+  }
+  50% {
+    height: 16px;
+  }
+}
+
+/* Gentle mic glow while listening */
+@keyframes voice-mic-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 hsl(188 71% 36% / 0),
+      0 0 8px hsl(188 71% 36% / 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px hsl(188 71% 36% / 0.12),
+      0 0 20px hsl(188 71% 36% / 0.25);
+  }
+}
+
+/* Live transcript text fade-in */
+@keyframes voice-transcript-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.voice-listening-indicator {
+  position: relative;
+}
+
+.voice-listening-indicator::before,
+.voice-listening-indicator::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid hsl(188 71% 36% / 0.5);
+  pointer-events: none;
+}
+
+.voice-listening-indicator::before {
+  animation: voice-pulse 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.voice-listening-indicator::after {
+  animation: voice-pulse-delay 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.voice-mic-active {
+  animation: voice-mic-glow 1.8s ease-in-out infinite;
+}
+
+/* TTS waveform bar container */
+.voice-wave-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+}
+
+.voice-wave-bars > span {
+  display: block;
+  width: 3px;
+  border-radius: 1.5px;
+  background: hsl(188 71% 36%);
+  animation: voice-wave-bar 0.8s ease-in-out infinite;
+}
+
+.voice-wave-bars > span:nth-child(1) { animation-delay: 0s; }
+.voice-wave-bars > span:nth-child(2) { animation-delay: 0.1s; }
+.voice-wave-bars > span:nth-child(3) { animation-delay: 0.2s; }
+.voice-wave-bars > span:nth-child(4) { animation-delay: 0.3s; }
+.voice-wave-bars > span:nth-child(5) { animation-delay: 0.15s; }
+
+.voice-transcript-live {
+  animation: voice-transcript-fade 0.3s ease-out;
+}
+
+/* Dark mode adjustments for voice indicators */
+.dark .voice-listening-indicator::before,
+.dark .voice-listening-indicator::after {
+  border-color: hsl(188 71% 46% / 0.5);
+}
+
+.dark .voice-wave-bars > span {
+  background: hsl(188 71% 46%);
+}

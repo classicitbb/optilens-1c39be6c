@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { ExternalLink, Eye, EyeOff, Loader2, MessageCircle, MessageSquarePlus, Paperclip, Save, Search, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Expand, ExternalLink, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Search, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import type { AssistantQuickAction } from "@/features/assistant/CompanionAssista
 import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useVoiceEngine } from "@/hooks/useVoiceEngine";
 
 const MessageQuickActions = ({
   quickActions,
@@ -65,11 +66,13 @@ const AssistantResultCard = ({
   isEnhancing,
   messageId,
   feedback,
+  onSpeak,
 }: {
   result: Extract<ReturnType<typeof useCompanionAssistant>["messages"][number], { kind: "result" }>["result"];
   isEnhancing?: boolean;
   messageId: string;
   feedback?: "helpful" | "not_helpful";
+  onSpeak?: (text: string) => void;
 }) => {
   const { markFeedback } = useCompanionAssistant();
   const renderLink = (path: string, title: string, external?: boolean, website?: string) => {
@@ -109,8 +112,53 @@ const AssistantResultCard = ({
         ) : null}
       </div>
 
-      <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground [&_p]:mb-1 [&_p]:last:mb-0 [&_ul]:mt-1 [&_li]:my-0.5">
-        <ReactMarkdown>{result.answer}</ReactMarkdown>
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Assistant response</p>
+        <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
+          <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
+            <ReactMarkdown>{result.answer}</ReactMarkdown>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+        <span className="text-xs text-foreground/50">Was this helpful?</span>
+        <div className="flex items-center gap-1">
+          {onSpeak ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 gap-1 text-xs text-foreground/60 hover:text-foreground"
+              aria-label="Read answer aloud"
+              onClick={() => onSpeak(result.answer)}
+            >
+              <Volume2 className="h-3.5 w-3.5 text-secondary" /> Read
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback === "helpful" ? "secondary" : "ghost"}
+            className="h-8 gap-1.5 text-xs"
+            aria-label="Helpful answer"
+            aria-pressed={feedback === "helpful"}
+            onClick={() => markFeedback(messageId, "helpful")}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" /> Helpful
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback === "not_helpful" ? "secondary" : "ghost"}
+            className="h-8 gap-1.5 text-xs"
+            aria-label="Not helpful answer"
+            aria-pressed={feedback === "not_helpful"}
+            onClick={() => markFeedback(messageId, "not_helpful")}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
+          </Button>
+        </div>
       </div>
 
       {sources.length > 0 ? (
@@ -160,7 +208,7 @@ const AssistantResultCard = ({
   );
 };
 
-const AssistantMessageList = () => {
+const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void }) => {
   const { messages, formState, submitQuickAction } = useCompanionAssistant();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const wasNearBottomRef = useRef(true);
@@ -211,9 +259,18 @@ const AssistantMessageList = () => {
                 ) : null}
 
                 {message.kind === "text" ? (
-                  <div className="space-y-1">
-                    <div className="prose prose-sm max-w-none text-sm leading-6 text-foreground [&_p]:mb-1 [&_p]:last:mb-0 [&_ul]:mt-1 [&_li]:my-0.5">
-                      <ReactMarkdown>{message.text}</ReactMarkdown>
+                  <div className="space-y-2">
+                    <div className="rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
+                      <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
+                        <ReactMarkdown>{message.text}</ReactMarkdown>
+                      </div>
+                      {index > 0 ? (
+                        <AssistantFeedbackControls
+                          messageId={message.id}
+                          feedback={message.feedback}
+                          onSpeak={onSpeak ? () => onSpeak(message.text) : undefined}
+                        />
+                      ) : null}
                     </div>
                     {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
                     {message.quickActions?.length ? (
@@ -228,6 +285,7 @@ const AssistantMessageList = () => {
                     isEnhancing={message.isEnhancing}
                     messageId={message.id}
                     feedback={message.feedback}
+                    onSpeak={onSpeak}
                   />
                 ) : null}
 
@@ -240,7 +298,11 @@ const AssistantMessageList = () => {
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} onAction={submitQuickAction} />
                     ) : null}
-                    <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} />
+                    <AssistantFeedbackControls
+                      messageId={message.id}
+                      feedback={message.feedback}
+                      onSpeak={onSpeak ? () => onSpeak(`${message.title}. ${message.text}`) : undefined}
+                    />
                   </div>
                 ) : null}
               </div>
@@ -253,12 +315,33 @@ const AssistantMessageList = () => {
   );
 };
 
-const AssistantFeedbackControls = ({ messageId, feedback }: { messageId: string; feedback?: "helpful" | "not_helpful" }) => {
+const AssistantFeedbackControls = ({
+  messageId,
+  feedback,
+  onSpeak,
+}: {
+  messageId: string;
+  feedback?: "helpful" | "not_helpful";
+  onSpeak?: () => void;
+}) => {
   const { markFeedback } = useCompanionAssistant();
   return (
-    <div className="flex items-center gap-0.5">
-      <Button type="button" size="icon" variant={feedback === "helpful" ? "secondary" : "ghost"} className="h-5 w-5" aria-label="Helpful answer" aria-pressed={feedback === "helpful"} onClick={() => markFeedback(messageId, "helpful")}>
-        <ThumbsUp className="h-2.5 w-2.5" />
+    <div className="flex items-center justify-end gap-1 border-t border-border/40 pt-2">
+      {onSpeak ? (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-foreground/50 hover:text-foreground"
+          aria-label="Read message aloud"
+          onClick={onSpeak}
+        >
+          <Volume2 className="h-3.5 w-3.5 text-secondary" />
+        </Button>
+      ) : null}
+      <span className="mr-1 text-[11px] text-foreground/40">Helpful?</span>
+      <Button type="button" size="icon" variant={feedback === "helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Helpful answer" aria-pressed={feedback === "helpful"} onClick={() => markFeedback(messageId, "helpful")}>
+        <ThumbsUp className="h-3.5 w-3.5" />
       </Button>
       <Button type="button" size="icon" variant={feedback === "not_helpful" ? "secondary" : "ghost"} className="h-5 w-5" aria-label="Not helpful answer" aria-pressed={feedback === "not_helpful"} onClick={() => markFeedback(messageId, "not_helpful")}>
         <ThumbsDown className="h-2.5 w-2.5" />
@@ -453,6 +536,7 @@ const CompanionAssistant = () => {
     openAssistant,
     closeAssistant,
     submitQuery,
+    messages,
     activeAudience,
     startNewConversation,
     saveConversation,
@@ -461,6 +545,40 @@ const CompanionAssistant = () => {
     dismissNudge,
     isSubmitting,
   } = useCompanionAssistant();
+
+  // Handle Voice Engine integration
+  const handleFinalTranscript = useCallback(
+    (text: string) => {
+      setCurrentQuery(text);
+      void submitQuery(text);
+    },
+    [setCurrentQuery, submitQuery],
+  );
+
+  const voiceEngine = useVoiceEngine({
+    onFinalTranscript: handleFinalTranscript,
+  });
+
+  // Automatically read aloud new assistant messages when autoSpeak is enabled
+  const lastSpokenMessageIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!voiceEngine.autoSpeak) return;
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant" || lastMessage.id === lastSpokenMessageIdRef.current) return;
+
+    lastSpokenMessageIdRef.current = lastMessage.id;
+    let textToSpeak = "";
+    if (lastMessage.kind === "text" || lastMessage.kind === "confirmation") {
+      textToSpeak = lastMessage.text;
+    } else if (lastMessage.kind === "result" && !lastMessage.isEnhancing) {
+      textToSpeak = lastMessage.result.answer;
+    }
+
+    if (textToSpeak) {
+      voiceEngine.speak(textToSpeak);
+    }
+  }, [messages, voiceEngine]);
 
   // Track whether the user dismissed the nudge ("Not now") — collapse to icon-only bubble
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -505,7 +623,7 @@ const CompanionAssistant = () => {
     const update = () => setConsentGiven(hasGivenConsent());
     update();
     window.addEventListener(COOKIE_PREFERENCES_EVENT, update);
-    return () => window.removeEventListener(COOKIE_PREFERENCES_EVENT, update);
+    return () => window.clearTimeout(update);
   }, []);
 
   const title = useMemo(
@@ -565,7 +683,46 @@ const CompanionAssistant = () => {
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex items-center gap-1">
+          {voiceEngine.ttsSupported ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 text-xs transition-colors rounded-full px-2.5",
+                voiceEngine.autoSpeak
+                  ? "bg-secondary/15 text-secondary font-medium"
+                  : "text-foreground/60 hover:text-foreground"
+              )}
+              onClick={voiceEngine.toggleAutoSpeak}
+              title={voiceEngine.autoSpeak ? "Voice responses ON (click to mute)" : "Voice responses OFF (click to enable)"}
+            >
+              {voiceEngine.autoSpeak ? (
+                <>
+                  <Volume2 className="h-3.5 w-3.5 text-secondary" />
+                  <span className="hidden sm:inline">Voice ON</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Voice OFF</span>
+                </>
+              )}
+            </Button>
+          ) : null}
+          {!isDetachedRoute ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 shrink-0 text-foreground/60 hover:bg-muted hover:text-foreground"
+              onClick={openDetachedWindow}
+              aria-label="Pop out assistant"
+            >
+              <Expand className="h-4 w-4" />
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="icon"
@@ -578,6 +735,28 @@ const CompanionAssistant = () => {
           >
             <MessageSquarePlus className="h-4 w-4" />
           </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-4 py-2">
+        <span className="text-xs text-foreground/60">Answering for: <span className="font-semibold capitalize text-foreground/80">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span></span>
+        <div className="flex items-center gap-1">
+          {voiceEngine.isSpeaking ? (
+            <div className="flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/10 px-2.5 py-1 text-xs text-secondary">
+              <div className="voice-wave-bars">
+                <span /><span /><span /><span /><span />
+              </div>
+              <span className="font-medium text-[11px]">Speaking</span>
+              <button
+                type="button"
+                onClick={voiceEngine.stopSpeaking}
+                className="ml-1 text-secondary/70 hover:text-secondary font-bold text-xs"
+                title="Stop speaking"
+              >
+                ✕
+              </button>
+            </div>
+          ) : null}
           <Button
             type="button"
             size="icon"
@@ -603,52 +782,56 @@ const CompanionAssistant = () => {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <AssistantMessageList />
+        <AssistantMessageList onSpeak={voiceEngine.ttsSupported ? voiceEngine.speak : undefined} />
       </div>
 
-      <div className="border-t border-border/50 bg-muted/30 px-3 py-2">
-        {attachments.length ? (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {attachments.map((attachment) => (
-              <div key={attachment.id} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border/60">
-                <img src={attachment.previewUrl} alt={attachment.name} className="h-full w-full object-cover" />
-                <button
-                  type="button"
-                  aria-label={`Remove ${attachment.name}`}
-                  className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-bl bg-background/80 text-foreground/70 hover:text-foreground"
-                  onClick={() => removeAttachment(attachment.id)}
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => {
-            addAttachmentFiles(Array.from(event.target.files ?? []));
-            event.target.value = "";
-          }}
-        />
-        <div className="rounded-full border border-accent/55 bg-card/90 p-0.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
-          <div className="flex items-center gap-1">
+      <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
+        {/* Live speech transcription feedback banner */}
+        {voiceEngine.isListening ? (
+          <div className="flex items-center gap-2 rounded-xl border border-secondary/40 bg-secondary/10 px-3 py-2 text-xs text-foreground shadow-soft voice-transcript-live">
+            <div className="voice-listening-indicator h-3 w-3 shrink-0 rounded-full bg-secondary" />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-secondary">Listening...</p>
+              <p className="truncate text-foreground/80">
+                {voiceEngine.interimTranscript || voiceEngine.transcript || "Speak clearly into your microphone..."}
+              </p>
+            </div>
             <Button
               type="button"
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 shrink-0 rounded-full text-foreground/50 hover:text-foreground"
-              aria-label="Attach an image"
-              title="Attach an image"
-              disabled={isSubmitting || attachments.length >= MAX_ATTACHMENTS}
-              onClick={() => fileInputRef.current?.click()}
+              size="sm"
+              variant="outline"
+              className="h-7 rounded-full text-[11px] border-secondary/40 text-secondary hover:bg-secondary/20"
+              onClick={voiceEngine.toggleListening}
             >
-              <Paperclip className="h-4 w-4" />
+              Done
             </Button>
+          </div>
+        ) : null}
+
+        <div className="rounded-full border border-accent/55 bg-card/90 p-1 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
+          <div className="flex items-center gap-2">
+            {voiceEngine.sttSupported ? (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className={cn(
+                  "ml-1 h-9 w-9 shrink-0 rounded-full transition-all",
+                  voiceEngine.isListening
+                    ? "voice-listening-indicator voice-mic-active bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    : "text-foreground/60 hover:bg-muted hover:text-foreground"
+                )}
+                onClick={voiceEngine.toggleListening}
+                title={voiceEngine.isListening ? "Stop voice input" : "Speak your question"}
+                aria-label={voiceEngine.isListening ? "Stop voice input" : "Start voice input"}
+              >
+                {voiceEngine.isListening ? (
+                  <MicOff className="h-4 w-4 animate-pulse" />
+                ) : (
+                  <Mic className="h-4 w-4 text-accent" />
+                )}
+              </Button>
+            ) : null}
             <Input
               dir="ltr"
               value={currentQuery}
@@ -666,9 +849,9 @@ const CompanionAssistant = () => {
                   addAttachmentFiles(files);
                 }
               }}
-              placeholder="Ask anything"
+              placeholder={voiceEngine.isListening ? "Listening..." : "Ask anything"}
               disabled={isSubmitting}
-              className="h-9 border-0 bg-transparent px-2 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="h-11 border-0 bg-transparent px-2 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button
               type="button"
