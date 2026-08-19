@@ -120,44 +120,6 @@ const AssistantResultCard = ({
           </div>
         </div>
       </div>
-
-      <div className="flex items-center justify-end gap-1 border-t border-border/50 pt-2.5">
-        {onSpeak ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-8 gap-1 text-xs text-foreground/60 hover:text-foreground"
-            aria-label="Read answer aloud"
-            onClick={() => onSpeak(result.answer)}
-          >
-            <Volume2 className="h-3.5 w-3.5 text-secondary" /> Read
-          </Button>
-        ) : null}
-        <Button
-          type="button"
-          size="sm"
-          variant={feedback === "helpful" ? "secondary" : "ghost"}
-          className="h-8 gap-1.5 text-xs"
-          aria-label="Helpful answer"
-          aria-pressed={feedback === "helpful"}
-          onClick={() => markFeedback(messageId, "helpful")}
-        >
-          <ThumbsUp className="h-3.5 w-3.5" /> Helpful
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={feedback === "not_helpful" ? "secondary" : "ghost"}
-          className="h-8 gap-1.5 text-xs"
-          aria-label="Not helpful answer"
-          aria-pressed={feedback === "not_helpful"}
-          onClick={() => markFeedback(messageId, "not_helpful")}
-        >
-          <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
-        </Button>
-      </div>
-
       {sources.length > 0 ? (
         <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 pt-1">
           {sources.map((link, i) => (
@@ -176,6 +138,46 @@ const AssistantResultCard = ({
           ))}
         </div>
       ) : null}
+
+      <div className="flex items-center justify-end gap-1 border-t border-border/40 pt-2">
+        {onSpeak ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-foreground/50 hover:text-foreground"
+            aria-label="Read answer aloud"
+            title="Read answer aloud"
+            onClick={() => onSpeak(result.answer)}
+          >
+            <Volume2 className="h-3.5 w-3.5 text-secondary" />
+          </Button>
+        ) : null}
+        <Button
+          type="button"
+          size="icon"
+          variant={feedback === "helpful" ? "secondary" : "ghost"}
+          className="h-7 w-7"
+          aria-label="Helpful answer"
+          title="Helpful"
+          aria-pressed={feedback === "helpful"}
+          onClick={() => markFeedback(messageId, "helpful")}
+        >
+          <ThumbsUp className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant={feedback === "not_helpful" ? "secondary" : "ghost"}
+          className="h-7 w-7"
+          aria-label="Not helpful answer"
+          title="Not helpful"
+          aria-pressed={feedback === "not_helpful"}
+          onClick={() => markFeedback(messageId, "not_helpful")}
+        >
+          <ThumbsDown className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   );
 };
@@ -244,7 +246,6 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
                         />
                       ) : null}
                     </div>
-                    {index > 0 ? <AssistantFeedbackControls messageId={message.id} feedback={message.feedback} /> : null}
                     {message.quickActions?.length ? (
                       <MessageQuickActions quickActions={message.quickActions} onAction={submitQuickAction} />
                     ) : null}
@@ -306,15 +307,34 @@ const AssistantFeedbackControls = ({
           variant="ghost"
           className="h-7 w-7 text-foreground/50 hover:text-foreground"
           aria-label="Read message aloud"
+          title="Read message aloud"
           onClick={onSpeak}
         >
           <Volume2 className="h-3.5 w-3.5 text-secondary" />
         </Button>
       ) : null}
-      <Button type="button" size="icon" variant={feedback === "helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Helpful answer" aria-pressed={feedback === "helpful"} onClick={() => markFeedback(messageId, "helpful")}>
+      <Button
+        type="button"
+        size="icon"
+        variant={feedback === "helpful" ? "secondary" : "ghost"}
+        className="h-7 w-7"
+        aria-label="Helpful answer"
+        title="Helpful"
+        aria-pressed={feedback === "helpful"}
+        onClick={() => markFeedback(messageId, "helpful")}
+      >
         <ThumbsUp className="h-3.5 w-3.5" />
       </Button>
-      <Button type="button" size="icon" variant={feedback === "not_helpful" ? "secondary" : "ghost"} className="h-7 w-7" aria-label="Not helpful answer" aria-pressed={feedback === "not_helpful"} onClick={() => markFeedback(messageId, "not_helpful")}>
+      <Button
+        type="button"
+        size="icon"
+        variant={feedback === "not_helpful" ? "secondary" : "ghost"}
+        className="h-7 w-7"
+        aria-label="Not helpful answer"
+        title="Not helpful"
+        aria-pressed={feedback === "not_helpful"}
+        onClick={() => markFeedback(messageId, "not_helpful")}
+      >
         <ThumbsDown className="h-3.5 w-3.5" />
       </Button>
     </div>
@@ -362,24 +382,22 @@ const AssistantRequestForm = () => {
   return (
     <form
       className="space-y-4 rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft"
-      aria-label={isTradeSignup ? "Trade account signup form" : isQuoteRequest ? "Quote request form" : "Support request form"}
+      aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
         if (canSubmit) void submitForm();
       }}
     >
       <div className="space-y-1">
-        <p className="font-semibold text-foreground">{isTradeSignup ? "Review your trade account details" : "Review your request before sending"}</p>
-        <p className="text-xs leading-5 text-muted-foreground">{isTradeSignup ? "Nothing is created until you choose Create account." : "Nothing is sent until you choose Confirm & send."}</p>
+        <p className="font-semibold text-foreground">Review your request before sending</p>
+        <p className="text-xs leading-5 text-muted-foreground">Nothing is sent until you choose Confirm & send.</p>
       </div>
 
-      {!isTradeSignup ? (
-        <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
-          <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
-          <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Asking for</span><span className="text-right font-medium text-foreground">{requesterName}{accountName && accountName !== requesterName ? ` · ${accountName}` : ""}</span></div>
-          <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Help with</span><span className="text-right font-medium text-foreground">{isQuoteRequest ? "A quotation" : "A support request"}</span></div>
-        </div>
-      ) : null}
+      <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
+        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
+        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Asking for</span><span className="text-right font-medium text-foreground">{requesterName}{accountName && accountName !== requesterName ? ` · ${accountName}` : ""}</span></div>
+        <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Help with</span><span className="text-right font-medium text-foreground">{isQuoteRequest ? "A quotation" : "A support request"}</span></div>
+      </div>
 
       {isTradeSignup ? (
         <div className="space-y-3">
@@ -491,7 +509,7 @@ const AssistantRequestForm = () => {
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
         <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
-        <Button type="submit" disabled={!canSubmit || isSubmitting}>{isTradeSignup ? (isSubmitting ? "Creating…" : "Create account") : isSubmitting ? "Sending…" : "Confirm & send"}</Button>
+        <Button type="submit" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
       </div>
     </form>
   );
@@ -515,7 +533,7 @@ const CompanionAssistant = () => {
     nudge,
     dismissNudge,
     isSubmitting,
-    openDetachedWindow,
+    openDetachedWindow: _openDetachedWindow,
   } = useCompanionAssistant();
 
   // Handle Voice Engine integration
@@ -595,7 +613,7 @@ const CompanionAssistant = () => {
     const update = () => setConsentGiven(hasGivenConsent());
     update();
     window.addEventListener(COOKIE_PREFERENCES_EVENT, update);
-    return () => window.clearTimeout(update);
+    return () => window.removeEventListener(COOKIE_PREFERENCES_EVENT, update);
   }, []);
 
   const title = useMemo(
@@ -636,65 +654,26 @@ const CompanionAssistant = () => {
   const assistantWindow = (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border border-[#c9a227]/65 backdrop-blur-md",
-        "bg-card/95 shadow-[0_10px_40px_-10px_hsl(213_66%_13%/0.15),0_30px_80px_-20px_rgba(2,6,23,0.45)]",
+        "flex flex-col overflow-hidden border border-[#c9a227]/65 shadow-elegant backdrop-blur-md",
+        "bg-background/80",
         isDetachedRoute
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
           : "h-full rounded-[28px]",
       )}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-border/50 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
-            <Search className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight text-foreground">{title}</p>
-            <p className="truncate text-[11px] leading-tight text-foreground/50">
-              Answering for <span className="font-medium capitalize text-foreground/70">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span>
-            </p>
+      <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
+              <Search className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">{title}</p>
+              <p className="text-xs text-foreground/50">Immediate help first, grounded site context second.</p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {voiceEngine.ttsSupported ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 gap-1.5 text-xs transition-colors rounded-full px-2.5",
-                voiceEngine.autoSpeak
-                  ? "bg-secondary/15 text-secondary font-medium"
-                  : "text-foreground/60 hover:text-foreground"
-              )}
-              onClick={voiceEngine.toggleAutoSpeak}
-              title={voiceEngine.autoSpeak ? "Voice responses ON (click to mute)" : "Voice responses OFF (click to enable)"}
-            >
-              {voiceEngine.autoSpeak ? (
-                <>
-                  <Volume2 className="h-3.5 w-3.5 text-secondary" />
-                  <span className="hidden sm:inline">Voice ON</span>
-                </>
-              ) : (
-                <>
-                  <VolumeX className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Voice OFF</span>
-                </>
-              )}
-            </Button>
-          ) : null}
-          {!isDetachedRoute ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 shrink-0 text-foreground/60 hover:bg-muted hover:text-foreground"
-              onClick={openDetachedWindow}
-              aria-label="Pop out assistant"
-            >
-              <Expand className="h-4 w-4" />
-            </Button>
-          ) : null}
           <Button
             type="button"
             size="icon"
@@ -707,28 +686,6 @@ const CompanionAssistant = () => {
           >
             <MessageSquarePlus className="h-4 w-4" />
           </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-4 py-2">
-        <span className="text-xs text-foreground/60">Answering for: <span className="font-semibold capitalize text-foreground/80">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span></span>
-        <div className="flex items-center gap-1">
-          {voiceEngine.isSpeaking ? (
-            <div className="flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/10 px-2.5 py-1 text-xs text-secondary">
-              <div className="voice-wave-bars">
-                <span /><span /><span /><span /><span />
-              </div>
-              <span className="font-medium text-[11px]">Speaking</span>
-              <button
-                type="button"
-                onClick={voiceEngine.stopSpeaking}
-                className="ml-1 text-secondary/70 hover:text-secondary font-bold text-xs"
-                title="Stop speaking"
-              >
-                ✕
-              </button>
-            </div>
-          ) : null}
           <Button
             type="button"
             size="icon"
@@ -747,10 +704,31 @@ const CompanionAssistant = () => {
             variant="ghost"
             className="h-9 w-9 shrink-0 rounded-full border border-border/50 bg-card/80 text-foreground/70 shadow-soft hover:bg-muted hover:text-foreground"
             onClick={closeAssistant}
+            aria-label="Close assistant"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 bg-muted/20 px-4 py-2">
+        <span className="text-xs text-foreground/60">Answering for: <span className="font-semibold capitalize text-foreground/80">{activeAudience === "visitor" ? "just browsing" : activeAudience}</span></span>
+        {voiceEngine.isSpeaking ? (
+          <div className="flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/10 px-2.5 py-1 text-xs text-secondary">
+            <div className="voice-wave-bars">
+              <span /><span /><span /><span /><span />
+            </div>
+            <span className="font-medium text-[11px]">Speaking</span>
+            <button
+              type="button"
+              onClick={voiceEngine.stopSpeaking}
+              className="ml-1 text-secondary/70 hover:text-secondary font-bold text-xs"
+              title="Stop speaking"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">
