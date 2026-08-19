@@ -186,15 +186,16 @@
 
   /* Sitewide unified interactive scrollbars:
      - Minimal & slender (4px visible thumb) when resting / no mouse near
-     - Smoothly expands and grows (to 8px wide) with soft translucent grey tone on hover / interaction
+     - Completely transparent scrollbar track background
+     - Ultra-subtle, nearly transparent glass thumb (15% opacity) that smoothly grows on hover
   */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.15) transparent;
   }
 
   *:hover {
-    scrollbar-color: hsl(var(--muted-foreground) / 0.6) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.4) transparent;
   }
 
   ::-webkit-scrollbar {
@@ -203,20 +204,21 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: transparent !important;
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
+    background-color: hsl(var(--foreground) / 0.15);
     background-clip: padding-box;
     border: 2px solid transparent;
     border-radius: 9999px;
+    backdrop-filter: blur(8px);
     transition: background-color 0.2s ease, border-width 0.2s ease;
   }
 
   *:hover::-webkit-scrollbar-thumb,
   ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.6);
+    background-color: hsl(var(--foreground) / 0.4);
     border: 0px solid transparent;
   }
 
@@ -226,20 +228,20 @@
   }
 
   .dark * {
-    scrollbar-color: hsl(var(--foreground) / 0.25) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.18) transparent;
   }
 
   .dark *:hover {
-    scrollbar-color: hsl(var(--foreground) / 0.6) transparent;
+    scrollbar-color: hsl(var(--foreground) / 0.45) transparent;
   }
 
   .dark ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--foreground) / 0.25);
+    background-color: hsl(var(--foreground) / 0.18);
   }
 
   .dark *:hover::-webkit-scrollbar-thumb,
   .dark ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--foreground) / 0.6);
+    background-color: hsl(var(--foreground) / 0.45);
     border: 0px solid transparent;
   }
 
@@ -993,7 +995,7 @@
 /* Companion Assistant slender translucent scrollbar with hover expansion */
 .assistant-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  scrollbar-color: hsl(var(--foreground) / 0.15) transparent;
 }
 
 .assistant-scrollbar::-webkit-scrollbar {
@@ -1002,11 +1004,11 @@
 }
 
 .assistant-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent !important;
 }
 
 .assistant-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.3);
+  background-color: hsl(var(--foreground) / 0.15);
   background-clip: padding-box;
   border: 2px solid transparent;
   border-radius: 9999px;
@@ -1017,22 +1019,22 @@
 *:hover > .assistant-scrollbar::-webkit-scrollbar-thumb,
 .assistant-scrollbar:hover::-webkit-scrollbar-thumb,
 .assistant-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.6);
+  background-color: hsl(var(--foreground) / 0.4);
   border: 0px solid transparent;
 }
 
 .dark .assistant-scrollbar {
-  scrollbar-color: hsl(var(--foreground) / 0.25) transparent;
+  scrollbar-color: hsl(var(--foreground) / 0.18) transparent;
 }
 
 .dark .assistant-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--foreground) / 0.25);
+  background-color: hsl(var(--foreground) / 0.18);
 }
 
 .dark *:hover > .assistant-scrollbar::-webkit-scrollbar-thumb,
 .dark .assistant-scrollbar:hover::-webkit-scrollbar-thumb,
 .dark .assistant-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--foreground) / 0.6);
+  background-color: hsl(var(--foreground) / 0.45);
   border: 0px solid transparent;
 }
 
