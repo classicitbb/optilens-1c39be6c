@@ -43,15 +43,34 @@ export const CartSheet = ({
     return linkedProduct ? getStoreProductRoute(linkedProduct) : null;
   };
 
+  // When the cart is empty, the button navigates to the store instead of opening an empty sheet.
+  const emptyCartButton = (
+    <Button
+      variant={triggerVariant}
+      size={triggerSize}
+      className={cn("relative", showLabel && "gap-2 px-4", className)}
+      aria-label="Go to shop"
+      asChild
+    >
+      <Link to="/store">
+        <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+        {showLabel ? <span className="hidden sm:inline">Shop</span> : <span className="sr-only">Shop</span>}
+      </Link>
+    </Button>
+  );
+
   return (
     <>
+      {totalItems === 0 && !loading ? (
+        emptyCartButton
+      ) : (
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetTrigger asChild>
         <Button
           variant={triggerVariant}
           size={triggerSize}
           className={cn("relative", showLabel && "gap-2 px-4", className)}
-          aria-label={totalItems > 0 ? `Open cart with ${totalItems} item${totalItems === 1 ? "" : "s"}` : "Open cart"}
+          aria-label={`Open cart with ${totalItems} item${totalItems === 1 ? "" : "s"}`}
         >
           <ShoppingCart className="h-5 w-5" aria-hidden="true" />
           {showLabel ? <span className="hidden sm:inline">Cart</span> : <span className="sr-only">Open cart</span>}
@@ -190,7 +209,7 @@ export const CartSheet = ({
         )}
       </SheetContent>
     </Sheet>
-
+      )}
     </>
   );
 };
