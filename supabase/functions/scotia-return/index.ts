@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
         console.error("scotia-return: settle_statement_payment failed", { paymentId, error });
         return redirect(req, returnPath, { scotia: "error" });
       }
-      return redirect(returnPath, {
+      return redirect(req, returnPath, {
         scotia: outcome,
         ...(result.chargetotal ? { amt: String(result.chargetotal) } : {}),
       });
@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
     }
 
     if (result.approved) {
-      await queuePaidOrderFulfillmentEmail(supabaseAdmin, oid);
+      await queuePaidOrderFulfillmentEmail(supabaseAdmin as never, oid);
     }
 
     return redirect(req, orderReturnPath, { scotia: outcome });

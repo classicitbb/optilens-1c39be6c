@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AtSign, Building2, Check, CheckCircle2, IdCard, KeyRound, LogOut, Pencil, Phone, Shield, User, X } from "lucide-react";
+import { AtSign, Building2, Check, CheckCircle2, IdCard, KeyRound, LogOut, Pencil, Phone, User, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,7 @@ const inlineProfileMaxLength: Record<InlineProfileField, number> = {
 
 const MyAccountSection = () => {
   const { user, signOut } = useAuth();
-  const { role, hasAccess } = useUserRole();
+  const { role } = useUserRole();
   const { identity, emulation, effectiveUserId } = usePortalIdentity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -339,14 +339,6 @@ const MyAccountSection = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {hasAccess ? (
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin">
-                <Shield className="mr-2 h-4 w-4" />
-                Admin
-              </Link>
-            </Button>
-          ) : null}
           <Button variant="outline" size="sm" onClick={handleSendReauthCode} disabled={sendingReauthCode || !!emulation}>
             <KeyRound className="mr-2 h-4 w-4" />
             {sendingReauthCode ? "Sending..." : "Change password"}

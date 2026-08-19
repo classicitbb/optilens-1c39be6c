@@ -2,6 +2,29 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-18 — Statement document automation
+
+### Release Notes
+- New Innovations statements can be rendered as Letter PDFs, stored in the governed OneDrive folder hierarchy, and downloaded through the authenticated portal.
+
+## 2026-08-15 — Canonical stock quotations
+
+### Release Notes
+- Staff can save a staged Stock Order Builder draft as a numbered quotation and continue with its populated DocStudio quotation document.
+- Price selection follows the account pricelist, Retail fallback, then published catalog price; a non-zero manual price requires a reason when no configured source can price the item.
+
+## 2026-08-14 — Portal Copilot qualified CRM suggestions
+
+### Release Notes
+- Ask Portal Copilot to scan CRM for qualified follow-up opportunities. It prioritizes current CRM and order-history signals, explains the evidence and inference separately, and avoids contacts already covered by open work.
+- Every suggested task remains a review item until an administrator approves it. The scan does not silently create opportunities or change customer data.
+
+## 2026-08-14 — Portal Copilot multi-chat workspace
+
+### Release Notes
+- **New chat** now creates a separate, durable Copilot conversation.
+- The Chats sidebar keeps up to 50 recent conversations available for switching, including prior attachment analyses and ERP rollout results.
+
 ## 2026-08-13 — Admin Portal Copilot MVP
 
 ### Release Notes

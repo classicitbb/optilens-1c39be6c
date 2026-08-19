@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, ReactNode } from "react";
+import { useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
@@ -16,20 +17,28 @@ import { Button } from "@/components/ui/button";
 import { Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Namespaced per pricelist page — a single shared "admin-selected-version-id"
+// key used to silently clobber whichever pricelist page was opened last.
+const VERSION_STORAGE_KEY = "admin-selected-version-id:rx";
+
 const RxLensPricesPage = () => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { data: versions } = usePricelistVersions();
+  const [searchParams] = useSearchParams();
+  const highlightItemId = searchParams.get("id");
   const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
-    const stored = localStorage.getItem("admin-selected-version-id");
+    const stored = localStorage.getItem(VERSION_STORAGE_KEY);
     return stored ? Number(stored) : null;
   });
 
   const handleVersionChange = (id: number | null) => {
     setSelectedVersionId(id);
-    if (id !== null) localStorage.setItem("admin-selected-version-id", String(id));
+    if (id !== null) localStorage.setItem(VERSION_STORAGE_KEY, String(id));
   };
   const [showUSD, setShowUSD] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("matrix");
+  // A tunnel link into a specific catalog row lands on the Price List tab —
+  // the matrix tab (the default) has no id-addressable rows to land on.
+  const [activeTab, setActiveTab] = useState<string>(highlightItemId ? "catalog" : "matrix");
 
   // Pending matrix→catalog row keys
   const [pendingMatrixRowKeys, setPendingMatrixRowKeys] = useState<Set<string>>(new Set());
@@ -163,6 +172,7 @@ const RxLensPricesPage = () => {
                 pendingMatrixRowKeys={pendingMatrixRowKeys}
                 onSaved={handleCatalogSaved}
                 renderSaveBar={setCatalogSaveBar}
+                highlightItemId={highlightItemId}
               />
             </TabsContent>
           </Tabs>

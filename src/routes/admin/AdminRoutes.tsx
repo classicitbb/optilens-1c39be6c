@@ -66,6 +66,7 @@ const FeatureBoardPage = lazy(() => import("@/pages/admin/website/FeatureBoardPa
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
 const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
+const ProductHubPage = lazy(() => import("@/pages/admin/ProductHubPage"));
 const AssistantQualityPage = lazy(() => import("@/pages/admin/assistant/AssistantQualityPage"));
 
 const AdminRoutes = () => (
@@ -136,6 +137,7 @@ const AdminRoutes = () => (
       <Route path="docs/studio" element={<DocStudioPage />} />
       <Route path="website/store" element={<WebsiteStorePage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
+      <Route path="products/:productType/:productId" element={<ProductHubPage />} />
 
       <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
       <Route path="knowledge/wiki" element={<AdminWikiPage />} />

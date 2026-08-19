@@ -85,11 +85,13 @@ export type Database = {
         Row: {
           account_number: string | null
           amount: number
+          amount_bbd: number | null
           bank_reference: string | null
           confirmed_at: string | null
           created_at: string
           crm_customer_id: number | null
           currency: string
+          fx_rate_bbd_per_usd: number | null
           gateway_fail_rc: string | null
           gateway_oid: string | null
           gateway_response_code: string | null
@@ -103,11 +105,13 @@ export type Database = {
         Insert: {
           account_number?: string | null
           amount: number
+          amount_bbd?: number | null
           bank_reference?: string | null
           confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
+          fx_rate_bbd_per_usd?: number | null
           gateway_fail_rc?: string | null
           gateway_oid?: string | null
           gateway_response_code?: string | null
@@ -121,11 +125,13 @@ export type Database = {
         Update: {
           account_number?: string | null
           amount?: number
+          amount_bbd?: number | null
           bank_reference?: string | null
           confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
           currency?: string
+          fx_rate_bbd_per_usd?: number | null
           gateway_fail_rc?: string | null
           gateway_oid?: string | null
           gateway_response_code?: string | null
@@ -598,6 +604,74 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_agent_secrets: {
+        Row: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          encrypted_secret: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          encrypted_secret?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "ai_agent_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agent_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          has_secret: boolean
+          id: string
+          last_error: string | null
+          last_tested_at: string | null
+          model: string | null
+          provider: string
+          status: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          has_secret?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          model?: string | null
+          provider: string
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          has_secret?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          model?: string | null
+          provider?: string
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       api_audit_log: {
         Row: {
@@ -2300,6 +2374,327 @@ export type Database = {
             referencedColumns: ["key"]
           },
         ]
+      }
+      copilot_actions: {
+        Row: {
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          contact_id: string | null
+          created_at: string
+          customer_id: number | null
+          executed_at: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          payload: Json
+          result: Json | null
+          retry_count: number
+          risk_level: number
+          run_id: string
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          customer_id?: number | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
+          risk_level: number
+          run_id: string
+          status?: string
+          summary: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          customer_id?: number | null
+          executed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          payload?: Json
+          result?: Json | null
+          retry_count?: number
+          risk_level?: number
+          run_id?: string
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_actions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "copilot_actions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_audit_events: {
+        Row: {
+          action_id: string | null
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          run_id: string | null
+          transcript: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          run_id?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          run_id?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_audit_events_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_audit_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_conversations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      copilot_messages: {
+        Row: {
+          attachments: Json
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          attachments?: Json
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          attachments?: Json
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_runs: {
+        Row: {
+          autonomy_level: number
+          command_text: string
+          conversation_id: string | null
+          created_at: string
+          id: string
+          input_mode: string
+          requested_by: string
+          source_snapshot_at: string
+          source_system: string
+          status: string
+          summary: Json
+          transcript: string | null
+          transcript_confirmed: boolean
+          updated_at: string
+          workflow: string
+        }
+        Insert: {
+          autonomy_level?: number
+          command_text: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          input_mode?: string
+          requested_by: string
+          source_snapshot_at?: string
+          source_system?: string
+          status?: string
+          summary?: Json
+          transcript?: string | null
+          transcript_confirmed?: boolean
+          updated_at?: string
+          workflow: string
+        }
+        Update: {
+          autonomy_level?: number
+          command_text?: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          input_mode?: string
+          requested_by?: string
+          source_snapshot_at?: string
+          source_system?: string
+          status?: string
+          summary?: Json
+          transcript?: string | null
+          transcript_confirmed?: boolean
+          updated_at?: string
+          workflow?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "copilot_runs_workflow_fkey"
+            columns: ["workflow"]
+            isOneToOne: false
+            referencedRelation: "copilot_workflow_settings"
+            referencedColumns: ["workflow"]
+          },
+        ]
+      }
+      copilot_workflow_settings: {
+        Row: {
+          created_at: string
+          email_subject_pattern: string
+          email_template_key: string
+          email_template_name: string
+          model: string | null
+          provider: string
+          updated_at: string
+          updated_by: string | null
+          workflow: string
+        }
+        Insert: {
+          created_at?: string
+          email_subject_pattern: string
+          email_template_key: string
+          email_template_name: string
+          model?: string | null
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+          workflow: string
+        }
+        Update: {
+          created_at?: string
+          email_subject_pattern?: string
+          email_template_key?: string
+          email_template_name?: string
+          model?: string | null
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+          workflow?: string
+        }
+        Relationships: []
       }
       crm_pipelines: {
         Row: {
@@ -8745,6 +9140,110 @@ export type Database = {
         }
         Relationships: []
       }
+      statement_document_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          discovered_at: string
+          email_message_id: string | null
+          email_status: string
+          emailed_at: string | null
+          error_details: Json | null
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          innovations_statement_id: number
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number
+          next_retry_at: string
+          one_drive_drive_id: string | null
+          one_drive_item_id: string | null
+          one_drive_path: string | null
+          one_drive_url: string | null
+          pdf_bytes: number | null
+          pdf_filename: string | null
+          pdf_template_version: string
+          retry_count: number
+          skip_reason: string | null
+          statement_id: number | null
+          status: string
+          updated_at: string
+          upload_status: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          discovered_at?: string
+          email_message_id?: string | null
+          email_status?: string
+          emailed_at?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          innovations_statement_id: number
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          one_drive_drive_id?: string | null
+          one_drive_item_id?: string | null
+          one_drive_path?: string | null
+          one_drive_url?: string | null
+          pdf_bytes?: number | null
+          pdf_filename?: string | null
+          pdf_template_version?: string
+          retry_count?: number
+          skip_reason?: string | null
+          statement_id?: number | null
+          status?: string
+          updated_at?: string
+          upload_status?: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          discovered_at?: string
+          email_message_id?: string | null
+          email_status?: string
+          emailed_at?: string | null
+          error_details?: Json | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          innovations_statement_id?: number
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_retry_at?: string
+          one_drive_drive_id?: string | null
+          one_drive_item_id?: string | null
+          one_drive_path?: string | null
+          one_drive_url?: string | null
+          pdf_bytes?: number | null
+          pdf_filename?: string | null
+          pdf_template_version?: string
+          retry_count?: number
+          skip_reason?: string | null
+          statement_id?: number | null
+          status?: string
+          updated_at?: string
+          upload_status?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statement_document_jobs_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       statement_lines: {
         Row: {
           amount: number | null
@@ -8929,6 +9428,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           dispatch_provider: string
+          docstudio_document_id: string | null
           filename: string | null
           gatekeeper_order_id: number
           id: string
@@ -8939,6 +9439,7 @@ export type Database = {
           order_reference: string | null
           payload: Json
           po_number: string | null
+          quote_id: string | null
           receipt: Json | null
           released_at: string | null
           status: string
@@ -8954,6 +9455,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dispatch_provider?: string
+          docstudio_document_id?: string | null
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
@@ -8964,6 +9466,7 @@ export type Database = {
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          quote_id?: string | null
           receipt?: Json | null
           released_at?: string | null
           status?: string
@@ -8979,6 +9482,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dispatch_provider?: string
+          docstudio_document_id?: string | null
           filename?: string | null
           gatekeeper_order_id?: number
           id?: string
@@ -8989,6 +9493,7 @@ export type Database = {
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
+          quote_id?: string | null
           receipt?: Json | null
           released_at?: string | null
           status?: string
@@ -9016,6 +9521,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_lens_eligible_accounts"
             referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_docstudio_document_id_fkey"
+            columns: ["docstudio_document_id"]
+            isOneToOne: false
+            referencedRelation: "docstudio_billing_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes_customer"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -10673,7 +11199,12 @@ export type Database = {
           p_crm_customer_id?: number
           p_statement_id?: string
         }
-        Returns: string
+        Returns: {
+          amount_bbd: number
+          amount_usd: number
+          fx_rate_bbd_per_usd: number
+          payment_id: string
+        }[]
       }
       crm_dashboard_kpis: {
         Args: { p_end_date?: string; p_period?: string; p_start_date?: string }
@@ -10688,6 +11219,10 @@ export type Database = {
           price_items_count: number
           quote_acceptance_rate: number
         }[]
+      }
+      delete_ai_agent_settings: {
+        Args: { p_actor_user_id?: string; p_provider: string }
+        Returns: undefined
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -10722,6 +11257,7 @@ export type Database = {
           name: string
         }[]
       }
+      get_active_usd_fx_rate: { Args: never; Returns: number }
       get_addons_safe: {
         Args: never
         Returns: {
@@ -10740,6 +11276,14 @@ export type Database = {
           sort_order: number
           supplier_id: string
           updated_at: string
+        }[]
+      }
+      get_ai_agent_credentials: {
+        Args: { p_provider: string }
+        Returns: {
+          api_key: string
+          enabled: boolean
+          model: string
         }[]
       }
       get_all_orders_admin: {
@@ -10948,9 +11492,12 @@ export type Database = {
           category: string
           has_variants: boolean
           name: string
+          price_source: string
           product_id: string
           product_type: string
           sku: string
+          source_trail: Json
+          unit_cost: number
           unit_price: number
         }[]
       }
@@ -11198,6 +11745,15 @@ export type Database = {
         }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
+      record_ai_agent_test: {
+        Args: {
+          p_actor_user_id?: string
+          p_error_message?: string
+          p_provider: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
       record_assistant_editorial_signal: {
         Args: {
           p_audience: string
@@ -11270,6 +11826,21 @@ export type Database = {
           status: string
         }[]
       }
+      resolve_stock_order_price: {
+        Args: {
+          p_account_id: number
+          p_manual_price?: number
+          p_manual_reason?: string
+          p_product_id: string
+          p_product_type: string
+        }
+        Returns: {
+          price_source: string
+          source_trail: Json
+          unit_cost: number
+          unit_price: number
+        }[]
+      }
       revert_account_to_master: {
         Args: { p_customer_id: number }
         Returns: undefined
@@ -11283,6 +11854,28 @@ export type Database = {
         Returns: string
       }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
+      save_stock_order_as_quote: {
+        Args: { p_submission_id: string }
+        Returns: {
+          docstudio_document_id: string
+          quote_id: string
+          quote_number: string
+        }[]
+      }
+      save_stock_order_draft: {
+        Args: {
+          p_account_id?: number
+          p_instructions?: string
+          p_items?: Json
+          p_order_reference?: string
+          p_po_number?: string
+          p_submission_id?: string
+        }
+        Returns: {
+          order_total: number
+          submission_id: string
+        }[]
+      }
       send_helpdesk_ticket_message: {
         Args: {
           p_body: string
@@ -11429,6 +12022,16 @@ export type Database = {
       update_api_key_scopes: {
         Args: { p_id: string; p_scopes: string[] }
         Returns: undefined
+      }
+      upsert_ai_agent_settings: {
+        Args: {
+          p_actor_user_id?: string
+          p_api_key?: string
+          p_enabled?: boolean
+          p_model?: string
+          p_provider: string
+        }
+        Returns: string
       }
       upsert_dhl_express_settings: {
         Args: {

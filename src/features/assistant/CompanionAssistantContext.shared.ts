@@ -1,10 +1,14 @@
 import { createContext } from "react";
 import type { AssistantAnswerMode, AssistantAudience, AssistantProfile, AssistantQueryResult } from "./companionAssistantEngine";
 
+export type LensGuideAnswers = { audience?: AssistantAudience; useCase?: string; hasRx?: boolean };
+
 export type AssistantQuickAction =
   | { type: "query"; label: string; query: string; profile?: AssistantProfile; audience?: AssistantAudience }
   | { type: "web_search"; label: string; query: string }
-  | { type: "form"; label: string; profile?: AssistantProfile }
+  | { type: "web_search_prompt"; label: string }
+  | { type: "lens_guide"; label: string; step: 1 | 2 | 3 | 4; answers: LensGuideAnswers }
+  | { type: "form"; label: string; profile?: AssistantProfile; kind?: AssistantFormKind }
   | { type: "submit_form"; label: string }
   | { type: "cancel_form"; label: string }
   | { type: "link"; label: string; href: string; external?: boolean };
@@ -40,9 +44,12 @@ export type AssistantMessage =
       role: "user";
       kind: "user";
       text: string;
+      attachments?: { name: string; previewUrl: string }[];
     };
 
-export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request";
+export type AssistantOutgoingAttachment = { name: string; previewUrl: string };
+
+export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request" | "trade_signup";
 
 export type AssistantTaskKind = "contact" | "support" | "quote" | "policy_help";
 
@@ -66,6 +73,9 @@ export interface AssistantFormState {
   productTopic: string;
   customerName: string;
   summary: string;
+  password: string;
+  taxId: string;
+  country: string;
   taskContext?: AssistantTaskContext;
   pendingField?: "name" | "email" | "businessName" | "requesterType" | "market" | "issueType" | "requestTitle" | "customerName" | "summary";
 }
@@ -91,13 +101,13 @@ export interface CompanionAssistantContextValue {
   setCurrentQuery: (value: string) => void;
   openAssistant: (options?: OpenAssistantOptions) => void;
   closeAssistant: () => void;
-  submitQuery: (query?: string, profile?: AssistantProfile, audience?: AssistantAudience) => Promise<void>;
+  submitQuery: (query?: string, profile?: AssistantProfile, audience?: AssistantAudience, attachments?: AssistantOutgoingAttachment[]) => Promise<void>;
   submitQuickAction: (action: AssistantQuickAction) => void;
   markFeedback: (messageId: string, feedback: "helpful" | "not_helpful") => void;
   startNewConversation: () => void;
   saveConversation: () => Promise<void>;
   isSavingConversation: boolean;
-  nudge: { message: string; query?: string } | null;
+  nudge: { message: string; query?: string; formKind?: AssistantFormKind } | null;
   dismissNudge: () => void;
   isSubmitting: boolean;
   openDetachedWindow: () => void;

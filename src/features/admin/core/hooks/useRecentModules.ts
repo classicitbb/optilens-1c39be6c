@@ -27,7 +27,7 @@ export function useRecentModules() {
       setRecentPaths(prev => {
         // Remove if exists, then prepend to top
         const filtered = prev.filter(p => p !== currentPath);
-        const updated = [currentPath, ...filtered].slice(0, 5);
+        const updated = [currentPath, ...filtered].slice(0, 10);
         
         try {
           window.localStorage.setItem(RECENT_MODULES_KEY, JSON.stringify(updated));

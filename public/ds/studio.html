@@ -1171,7 +1171,7 @@ class Component extends DCLogic {
     fileSaveState: 'DB save ready', fileSaveDialogOpen: false, fileSaveDialogKind: '', fileSaveDialogMode: 'save', fileSaveDialogType: '', fileSaveDialogName: '', fileSaveDialogError: '', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
     emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
     emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
-    emailContacts: [],
+    emailContacts: [], staffInviteDraft: false,
     dsCustomers: [],
     selectedStatementCustomer: '', selectedShipCustomer: '', selectedBillingCustomer: ''
   };
@@ -1185,6 +1185,7 @@ class Component extends DCLogic {
         this.setState(s, () => { this.refreshTinyContent(); });
       }
     } catch (e) {}
+    this.consumeStaffInviteHandoff();
     if (!this.state.ltDate) {
       const dt = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
       this.set('ltDate', dt);
@@ -1198,6 +1199,13 @@ class Component extends DCLogic {
     this.loadMyFiles();
     window._dsApp = this;
     this.loadBillingFiles();
+    // A stock quotation can hand off directly to its server-created billing
+    // document. Keep this optional so normal Studio launches remain unchanged.
+    const billingDocumentId = new URLSearchParams(location.search).get('billingDocument');
+    if (billingDocumentId) {
+      this.switchTab('billing');
+      setTimeout(() => this.openBillingFile(billingDocumentId), 0);
+    }
     this.loadFileShareUsers();
     this.loadBillShareUsers();
     setTimeout(() => { this._billingReady = true; }, 900);
@@ -1212,6 +1220,37 @@ class Component extends DCLogic {
   scheduleControlMetadata = () => {
     cancelAnimationFrame(this._controlMetadataFrame);
     this._controlMetadataFrame = requestAnimationFrame(() => this.applyControlMetadata());
+  };
+
+  consumeStaffInviteHandoff = () => {
+    try {
+      const handoff = new URLSearchParams(window.location.search).get('staffInvite');
+      if (!handoff) return;
+      const key = 'cv_doc_studio_staff_invite:' + handoff;
+      const raw = sessionStorage.getItem(key);
+      sessionStorage.removeItem(key);
+      if (!raw) return;
+      const invite = JSON.parse(raw);
+      const name = String(invite.name || '').trim();
+      const email = String(invite.email || '').trim();
+      const password = String(invite.password || '');
+      if (!name || !email || !password) return;
+      const firstName = name.split(/\s+/)[0] || 'there';
+      this.setState({
+        tab: 'email',
+        emEyebrow: 'Staff access',
+        emPreheader: 'Your Classic Visions access is ready.',
+        emHeading: 'Your Classic Visions access is ready',
+        emBody: `<p>Hi ${this.esc(firstName)},</p><p>Your Classic Visions access has been set up.</p><p><strong>Email:</strong> ${this.esc(email)}<br><strong>Temporary password:</strong> ${this.esc(password)}</p><p>Please sign in and change this temporary password as soon as possible.</p><p>If you need help, simply reply to this email.</p>`,
+        emCta: 'Open Classic Visions',
+        emCtaUrl: window.location.origin,
+        emailTo: email,
+        emailSubject: 'Your Classic Visions access is ready',
+        emailSendOpen: true,
+        emailSendError: '',
+        staffInviteDraft: true
+      }, () => { this.refreshTinyContent(); this.loadEmailSendData(); });
+    } catch (e) {}
   };
 
   applyControlMetadata = () => {
@@ -1254,7 +1293,7 @@ class Component extends DCLogic {
   };
 
   // ---------- persistence ----------
-  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -2845,7 +2884,14 @@ class Component extends DCLogic {
       fileCollaborators: file.shares || [],
       fileShareOpen: false,
       fileSaveState: file.accessLevel === 'view' ? 'Read-only shared file' : (file.hasNewerAutosave ? 'Recovered latest autosave' : 'Saved')
-    }, () => { this.refreshTinyContent(); this.persist(); });
+     }, () => {
+       this.refreshTinyContent();
+       // Applying a file can destroy an editor without changing tabs. React
+       // reuses the host node in that case, so its ref callback does not fire
+       // again; explicitly remount the editor on the reused host.
+       const host = this.TINY_HOSTS[type]; if (host) this.mountTiny(type, host);
+       this.persist();
+     });
   };
 
   openFile = async (item) => {

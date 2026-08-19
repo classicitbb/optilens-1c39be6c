@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -112,6 +114,11 @@ type SortDirection = "asc" | "desc";
 const money = (n: number | null | undefined) =>
   (n ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Statement/ledger figures come from the Innovations ERP in Barbados dollars —
+// always label them explicitly so they're never mistaken for the USD amount a
+// card payment actually charges.
+const bbd = (n: number | null | undefined) => `BBD $${money(n)}`;
+
 const fmtDate = (value: string | null | undefined, opts?: Intl.DateTimeFormatOptions) => {
   if (!value) return "—";
   const d = new Date(value);
@@ -194,6 +201,9 @@ const StatementTemplate = ({
           <div style={{ fontSize: "6pt", fontWeight: "700", letterSpacing: "0.22em", textTransform: "uppercase", color: "#1A8A9C" }}>
             Account Statement
           </div>
+          <div style={{ fontSize: "6pt", fontWeight: "600", letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a9aaa" }}>
+            All amounts in Barbados Dollars (BBD)
+          </div>
           <div style={{ fontSize: "36pt", fontWeight: "800", letterSpacing: "-0.03em", color: "rgba(11,30,53,0.07)", lineHeight: "0.9", textTransform: "uppercase", userSelect: "none" }}>
             Statement
           </div>
@@ -242,7 +252,7 @@ const StatementTemplate = ({
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", fontSize: "7pt", borderBottom: "1px solid #c9d4de" }}>
                 <span>Opening Balance</span>
-                <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>${money(statement.opening_balance)}</span>
+                <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>{bbd(statement.opening_balance)}</span>
               </div>
               {[
                 ["Transactions for Period", statement.transactions],
@@ -252,12 +262,12 @@ const StatementTemplate = ({
               ].map(([label, amount]) => (
                 <div key={String(label)} style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", fontSize: "7pt", borderBottom: "1px solid #c9d4de" }}>
                   <span>{label}</span>
-                  <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>${money(amount as number | null)}</span>
+                  <span style={{ fontWeight: "600", fontVariantNumeric: "tabular-nums" }}>{bbd(amount as number | null)}</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 10px", background: "#0B1E35", color: "#F4F2ED", fontWeight: "700", fontSize: "7pt" }}>
                 <span>New Balance</span>
-                <span style={{ color: "#C89130", fontSize: "8pt", fontVariantNumeric: "tabular-nums" }}>${money(statement.closing_balance)}</span>
+                <span style={{ color: "#C89130", fontSize: "8pt", fontVariantNumeric: "tabular-nums" }}>{bbd(statement.closing_balance)}</span>
               </div>
             </div>
           </div>
@@ -339,7 +349,7 @@ const StatementsSection = () => {
   };
 
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   // The same modal handles both "adjust the amount and pay" and the
   // thank-you state the buyer lands back on after Scotia redirects home.
@@ -390,6 +400,30 @@ const StatementsSection = () => {
     retry: 1,
   });
   const rawLines = useMemo(() => linesQuery.data?.lines ?? [], [linesQuery.data?.lines]);
+
+  useEffect(() => {
+    if (searchParams.get("download") !== "1" || !activeStatementId) return;
+    let cancelled = false;
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || cancelled) return;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/statement-document?statement_id=${encodeURIComponent(activeStatementId)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!response.ok || cancelled) return;
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `Statement-${activeStatementId}.pdf`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      const next = new URLSearchParams(searchParams);
+      next.delete("download");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [activeStatementId, searchParams, setSearchParams]);
 
   const printStatement = () => {
     const statementDocument = statementPrintRef.current;
@@ -457,6 +491,31 @@ const StatementsSection = () => {
   });
   const cardFeatureEnabled = cardFeatureQuery.data ?? false;
 
+  // Testing bypass for the per-customer `pay_by_card` CRM flag, set from the
+  // Feature Board so QA doesn't depend on a CRM edit landing on a specific
+  // customer. "Public" bypasses it for every customer; "Admin" bypasses it
+  // for staff/admin accounts only, so it can be validated before going public.
+  const { isAdmin } = useUserRole();
+  const cardBypassAdmin = useWebsiteFeature("card_payments_bypass_admin", false);
+  const cardBypassPublic = useWebsiteFeature("card_payments_bypass_public", false);
+  const cardApprovalBypassed = cardBypassPublic.enabled || (isAdmin && cardBypassAdmin.enabled);
+
+  // Statements are BBD; the Scotia gateway only ever charges USD. This reads
+  // the same admin-configured rate the create_pending_statement_payment RPC
+  // converts with (pricing_settings is staff-only, so a customer's browser
+  // can't select it directly — get_active_usd_fx_rate exposes just the rate).
+  // Preview only: the RPC recomputes and is the authority on the real charge.
+  const usdFxRateQuery = useQuery({
+    queryKey: ["active-usd-fx-rate"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_active_usd_fx_rate");
+      if (error) throw error;
+      return typeof data === "number" && data > 0 ? data : null;
+    },
+    staleTime: 5 * 60_000,
+  });
+  const usdFxRate = usdFxRateQuery.data ?? null;
+  const bbdToUsd = (bbdAmount: number) => (usdFxRate ? bbdAmount / usdFxRate : null);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -501,8 +560,9 @@ const StatementsSection = () => {
   const currentBalance = liveAccountQuery.data?.balance?.current_balance ?? 0;
 
   // Card payments require the gateway build flag, the admin website feature
-  // switch, and the per-customer CRM flag. Bank transfer is always offered.
-  const cardPaymentsEnabled = isScotiaEnabled() && cardFeatureEnabled && !!paymentProfile?.pay_by_card;
+  // switch, and (unless a Feature Board testing bypass is active) the
+  // per-customer CRM flag. Bank transfer is always offered.
+  const cardPaymentsEnabled = isScotiaEnabled() && cardFeatureEnabled && (!!paymentProfile?.pay_by_card || cardApprovalBypassed);
 
   const statementBalance = Number(activeStatement?.closing_balance ?? 0);
   const parsedPayAmount = Number(payAmount);
@@ -535,19 +595,24 @@ const StatementsSection = () => {
     setScotiaError(null);
     setCardStep("paying");
     try {
-      const { data: paymentId, error } = await (supabase.rpc as any)("create_pending_statement_payment", {
+      // Statement balances are BBD; the RPC converts to the USD amount Scotia
+      // actually charges (using pricing_settings.fx_rates — the same rate the
+      // rest of the pricing engine uses) and returns both, plus the rate used,
+      // so we never send the raw BBD figure to the card gateway.
+      const { data, error } = await (supabase.rpc as any)("create_pending_statement_payment", {
         p_amount: parsedPayAmount,
         p_statement_id: activeStatementId,
         p_crm_customer_id: typeof crmCustomerId === "number" ? crmCustomerId : null,
         p_account_number: paymentProfile?.account_number ?? balance?.account_number ?? null,
       });
-      if (error || !paymentId) throw new Error(error?.message || "Could not start payment.");
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row?.payment_id) throw new Error(error?.message || "Could not start payment.");
 
       const prepared = await prepareScotiaPayment({
-        chargetotal: parsedPayAmount,
+        chargetotal: Number(row.amount_usd),
         responseSuccessURL: SCOTIA_RETURN_URL,
         responseFailURL: SCOTIA_RETURN_URL,
-        orderId: `STMT-${paymentId}`,
+        orderId: `STMT-${row.payment_id}`,
       });
       redirectToScotiaPayment(prepared);
       // No further code runs — the page is navigating away.
@@ -617,7 +682,7 @@ const StatementsSection = () => {
     <section className="space-y-6">
       <header className="space-y-1">
         <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
-        <p className="text-sm text-muted-foreground">Live Innovations balance and statements, fetched only when you open this page.</p>
+        <p className="text-sm text-muted-foreground">Live account balance and statements, fetched only when you open this page.</p>
       </header>
 
       {/* Returning from Scotia (redirect mode) */}
@@ -665,11 +730,14 @@ const StatementsSection = () => {
               ].map(([label, amount]) => (
                 <div key={String(label)} className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-slate-400">{label}</p>
-                  <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">${money(amount as number | null)}</p>
+                  <p className="text-lg font-semibold text-foreground dark:text-slate-50 sm:text-xl">{bbd(amount as number | null)}</p>
                 </div>
               ))}
             </div>
           )}
+          <p className="text-xs text-muted-foreground dark:text-slate-400">
+            Statement and account balances are in Barbados Dollars (BBD). Card payments are charged in USD at the current exchange rate.
+          </p>
 
           <div className="flex flex-wrap gap-3 items-end justify-between">
             <div className="w-full sm:w-auto sm:min-w-xs">
@@ -684,7 +752,7 @@ const StatementsSection = () => {
                 <SelectContent className="dark:bg-slate-900 dark:border-slate-700">
                   {statements.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      Statement #{s.id} · {periodLabel(s)} · ${money(s.closing_balance)}
+                      Statement #{s.id} · {periodLabel(s)} · {bbd(s.closing_balance)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -715,7 +783,7 @@ const StatementsSection = () => {
               <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm">
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                   <span><strong>Statement ID:</strong> {activeStatement.id}</span>
-                  <span><strong>Volume Discount:</strong> {money(activeStatement.volume_discount)}</span>
+                  <span><strong>Volume Discount:</strong> {bbd(activeStatement.volume_discount)}</span>
                   <span><strong>Due Date:</strong> {fmtDate(activeStatement.due_date)}</span>
                 </div>
                 <InquireButton
@@ -727,7 +795,7 @@ const StatementsSection = () => {
                     `Statement date: ${fmtDate(activeStatement.statement_date)}`,
                     `Period: ${periodLabel(activeStatement)}`,
                     `Due date: ${fmtDate(activeStatement.due_date)}`,
-                    `Closing balance: $${money(activeStatement.closing_balance)}`,
+                    `Closing balance: ${bbd(activeStatement.closing_balance)}`,
                     "",
                     "Question: ",
                   ].join("\n")}
@@ -736,7 +804,7 @@ const StatementsSection = () => {
               <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
                 <thead><tr className="bg-muted/50"><th className="px-3 py-2 text-left">30 Days</th><th className="px-3 py-2 text-left">60 Days</th><th className="px-3 py-2 text-left">90 Days</th><th className="px-3 py-2 text-left">Over 120</th></tr></thead>
-                <tbody><tr><td className="px-3 py-2">${money(activeStatement.aging_amount_1)}</td><td className="px-3 py-2">${money(activeStatement.aging_amount_2)}</td><td className="px-3 py-2">${money(activeStatement.aging_amount_3)}</td><td className="px-3 py-2">${money(activeStatement.aging_amount_4)}</td></tr></tbody>
+                <tbody><tr><td className="px-3 py-2">{bbd(activeStatement.aging_amount_1)}</td><td className="px-3 py-2">{bbd(activeStatement.aging_amount_2)}</td><td className="px-3 py-2">{bbd(activeStatement.aging_amount_3)}</td><td className="px-3 py-2">{bbd(activeStatement.aging_amount_4)}</td></tr></tbody>
               </table>
               </div>
             </div>
@@ -789,7 +857,7 @@ const StatementsSection = () => {
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.patient || "—"}</td>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.payment_method || "—"}</td>
                       <td className="px-4 py-3 font-medium text-foreground dark:text-slate-50">{lineDetail(line)}</td>
-                      <td className="px-4 py-3 text-right font-medium text-foreground dark:text-slate-50">${money(line.amount)}</td>
+                      <td className="px-4 py-3 text-right font-medium text-foreground dark:text-slate-50">{bbd(line.amount)}</td>
                       <td className="px-4 py-3 text-right">
                         <InquireButton
                           label="Ask about this line"
@@ -803,7 +871,7 @@ const StatementsSection = () => {
                             `Patient: ${line.patient || "—"}`,
                             `Payment method: ${line.payment_method || "—"}`,
                             `Reference: ${lineDetail(line)}`,
-                            `Amount: $${money(line.amount)}`,
+                            `Amount: ${bbd(line.amount)}`,
                             "",
                             "Question: ",
                           ].join("\n")}
@@ -846,8 +914,8 @@ const StatementsSection = () => {
             </DialogTitle>
             <DialogDescription className="dark:text-slate-400">
               {dialogMode === "result" && scotiaReturn === "success"
-                ? `Payment received${returnedAmountValid ? `: $${money(returnedAmount)}` : ""}`
-                : `Current balance: $${money(currentBalance)}`}
+                ? `Payment received${returnedAmountValid ? `: $${money(returnedAmount)} USD` : ""}`
+                : `Current balance: ${bbd(currentBalance)}`}
             </DialogDescription>
           </DialogHeader>
 
@@ -857,7 +925,7 @@ const StatementsSection = () => {
                 <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
                   <AlertDescription className="text-emerald-900 dark:text-emerald-300">
-                    Thank you for your payment{returnedAmountValid ? ` of $${money(returnedAmount)}` : ""}. A receipt has
+                    Thank you for your payment{returnedAmountValid ? ` of $${money(returnedAmount)} USD` : ""}. A receipt has
                     been emailed to you. Your payment will appear on your account once it has been verified with the
                     bank, and we'll send a confirmation as soon as that happens.
                   </AlertDescription>
@@ -898,7 +966,7 @@ const StatementsSection = () => {
                   className={`flex items-center justify-between border px-3 py-2 text-left text-sm ${amountSource === "current" ? "border-primary bg-primary/5" : "border-border"}`}
                 >
                   <span>Current balance</span>
-                  <span className="font-medium">${money(currentBalance)}</span>
+                  <span className="font-medium">{bbd(currentBalance)}</span>
                 </button>
                 <button
                   type="button"
@@ -906,7 +974,7 @@ const StatementsSection = () => {
                   className={`flex items-center justify-between border px-3 py-2 text-left text-sm ${amountSource === "statement" ? "border-primary bg-primary/5" : "border-border"}`}
                 >
                   <span>Statement balance{activeStatement?.statement_date ? ` (${fmtDate(activeStatement.statement_date)})` : ""}</span>
-                  <span className="font-medium">${money(statementBalance)}</span>
+                  <span className="font-medium">{bbd(statementBalance)}</span>
                 </button>
                 <button
                   type="button"
@@ -933,6 +1001,14 @@ const StatementsSection = () => {
                   }}
                   className="h-10"
                 />
+                {payAmountValid && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {bbd(parsedPayAmount)}
+                    {usdFxRate
+                      ? ` ≈ $${money(bbdToUsd(parsedPayAmount))} USD if you pay by card (rate: 1 USD = ${usdFxRate.toFixed(2)} BBD)`
+                      : " — bank transfer is billed in BBD; card payment amounts are converted to USD"}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -984,8 +1060,15 @@ const StatementsSection = () => {
                 )}
                 {cardStep === "paying"
                   ? "Redirecting to Scotiabank…"
-                  : `Pay ${payAmountValid ? `$${money(parsedPayAmount)}` : "$0.00"} by card`}
+                  : payAmountValid && usdFxRate
+                    ? `Pay $${money(bbdToUsd(parsedPayAmount))} USD by card`
+                    : "Pay by card"}
               </Button>
+              {cardStep !== "paying" && payAmountValid && (
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Charged in USD · pays off {bbd(parsedPayAmount)} of your balance
+                </p>
+              )}
               {cardStep !== "paying" && (
                 <p className="text-center text-[11px] text-muted-foreground">
                   You'll enter your card on Scotiabank's secure page, then return here automatically.
@@ -1001,7 +1084,7 @@ const StatementsSection = () => {
                 <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900/40 dark:bg-blue-900/20">
                   <AlertDescription className="text-blue-900 dark:text-blue-300">
                     You'll be taken to {bankPortal.bank_name} online banking to transfer{" "}
-                    ${money(parsedPayAmount || 0)}. Please quote your account number
+                    {bbd(parsedPayAmount || 0)}. Please quote your account number
                     {paymentProfile?.account_number ? ` (${paymentProfile.account_number})` : ""} as the reference.
                   </AlertDescription>
                 </Alert>
@@ -1015,7 +1098,7 @@ const StatementsSection = () => {
             ) : (
               <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
                 <AlertDescription className="text-amber-800 dark:text-amber-300">
-                  To pay ${money(parsedPayAmount || 0)} by bank transfer
+                  To pay {bbd(parsedPayAmount || 0)} by bank transfer
                   {paymentProfile?.eft_institution_name ? ` from ${paymentProfile.eft_institution_name}` : ""}, contact
                   us at <a href="tel:+12464334928" className="underline">246-433-4928</a> or{" "}
                   <a href="mailto:accounts@classicvisions.net" className="underline">accounts@classicvisions.net</a> for

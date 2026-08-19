@@ -21,6 +21,8 @@ Source priority (use in this order):
 Formatting rules:
 - Format your answer in markdown. Use **bold** for key terms, bullet lists when comparing options or listing steps.
 - Cite sources inline using numbered references like [1], [2] that match the numbered "Website context links" list provided.
+- Only cite a source [n] when it directly supports something you actually stated in your answer. Never cite or list a source that is not directly relevant to the question asked, and never cite a source just because it was supplied to you.
+- Answer only what was asked. Do not volunteer extra topics, alternate products, or additional suggestions the visitor did not request.
 - Answer the actual question first. Use 2–6 sentences or a short list when that is clearer.
 - Do not truncate or trail off mid-sentence.
 - Return your answer only — no preamble like "Here is your answer:".
@@ -267,7 +269,20 @@ serve(async (req) => {
       : groundedPayload.fallbackAnswer ?? null;
 
     const answer = (rawAnswer ?? groundedPayload.fallbackAnswer ?? "").trim() || null;
-    const citations = (groundedPayload.topLinks ?? []).slice(0, 4);
+
+    // Only surface sources the answer actually cited (via [n] markers), instead of
+    // dumping every candidate link that happened to be supplied as context. When the
+    // model didn't cite anything (e.g. the fallback text, or an off-topic reply), fall
+    // back to at most the single strongest match rather than offering unrelated links.
+    const availableLinks = groundedPayload.topLinks ?? [];
+    const citedIndices = rawAnswer
+      ? Array.from(new Set(Array.from(rawAnswer.matchAll(/\[(\d+)\]/g), (match) => Number(match[1]))))
+          .filter((index) => index >= 1 && index <= availableLinks.length)
+          .sort((a, b) => a - b)
+      : [];
+    const citations = citedIndices.length > 0
+      ? citedIndices.map((index) => availableLinks[index - 1])
+      : availableLinks.slice(0, 1);
     await recordEditorialSignal(groundedPayload).catch((error) => console.error("assistant editorial signal failed", error));
 
     return new Response(JSON.stringify({

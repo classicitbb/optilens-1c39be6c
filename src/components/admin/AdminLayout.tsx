@@ -8,6 +8,7 @@ import { pathnameToContextSlug } from "@/lib/adminContexts";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import CrmActivityDialog from "./CrmActivityDialog";
 import OperatorAttentionAlert from "./OperatorAttentionAlert";
+import AdminCopilotAssistant from "./copilot/AdminCopilotAssistant";
 import { useLiveHelpdeskInboxUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
 
 const AdminLayout = () => {
@@ -41,6 +42,7 @@ const AdminLayout = () => {
             <CrmActivityDialog />
           </div>
         </div>
+        <AdminCopilotAssistant />
       </div>
     </AdminRoleProvider>
   );

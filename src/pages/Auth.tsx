@@ -63,6 +63,8 @@ const Auth = () => {
   const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [magicLinkMode, setMagicLinkMode] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
+  const [passwordResetEmail, setPasswordResetEmail] = useState<string | null>(null);
+  const [sendingPasswordReset, setSendingPasswordReset] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const emulationHandled = useRef(false);
 
@@ -150,6 +152,26 @@ const Auth = () => {
       step: nextAudience || audience ? "details" : "welcome",
       intent: intent ?? null,
     });
+  };
+
+  const sendPasswordReset = async () => {
+    const email = form.getValues("email").trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({ title: "Enter your email", description: "Please enter the email address for the account you want to recover.", variant: "destructive" });
+      return;
+    }
+    try {
+      setSendingPasswordReset(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setPasswordResetEmail(email);
+    } catch {
+      toast({ title: "Could not send reset email", description: "Please try again in a moment or contact support if the problem continues.", variant: "destructive" });
+    } finally {
+      setSendingPasswordReset(false);
+    }
   };
 
   const validateDetails = () => {
@@ -734,24 +756,10 @@ const Auth = () => {
                             <button
                               type="button"
                               className="text-xs font-medium text-primary underline-offset-4 hover:underline"
-                              onClick={async () => {
-                                const email = form.getValues("email").trim();
-                                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                                  toast({ title: "Enter your email", description: "Please enter your email address first.", variant: "destructive" });
-                                  return;
-                                }
-                                try {
-                                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                                    redirectTo: `${window.location.origin}/reset-password`,
-                                  });
-                                  if (error) throw error;
-                                  toast({ title: "Reset email sent", description: `Check ${email} for a reset link.` });
-                                } catch {
-                                  toast({ title: "Error", description: "Failed to send reset email.", variant: "destructive" });
-                                }
-                              }}
+                              onClick={() => { void sendPasswordReset(); }}
+                              disabled={sendingPasswordReset}
                             >
-                              Forgot password?
+                              {sendingPasswordReset ? "Sending reset link…" : "Forgot password?"}
                             </button>
                           </div>
                         ) : null}
@@ -761,6 +769,20 @@ const Auth = () => {
                   />
                   )}
                 </div>
+
+                {passwordResetEmail && mode === "signin" ? (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm" role="status">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                      <div className="space-y-2">
+                        <p className="font-semibold text-foreground">Check your email to continue</p>
+                        <p className="text-muted-foreground">We sent a password-reset link to <strong className="font-medium text-foreground">{passwordResetEmail}</strong>. Open that inbox, look for an email from Classic Visions, then select <strong className="font-medium text-foreground">Reset Password</strong>. The link brings you back here to choose a new password.</p>
+                        <p className="text-xs text-muted-foreground">If it is not in your inbox shortly, check Spam or Junk. You can request another link below.</p>
+                        <Button type="button" variant="outline" size="sm" onClick={() => { void sendPasswordReset(); }} disabled={sendingPasswordReset}>{sendingPasswordReset ? "Sending reset link…" : "Send another link"}</Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 {mode === "signup" && currentStep === "intent" ? (
                   <div className="rounded-xl border border-border bg-muted/30 p-3">

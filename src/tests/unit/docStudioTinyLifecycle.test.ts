@@ -30,4 +30,10 @@ describe("Doc Studio TinyMCE lifecycle guard", () => {
       "node.querySelectorAll('.tox-tinymce, textarea').forEach(child => child.remove());",
     );
   });
+
+  it("remounts the reused editor host after applying a saved file", () => {
+    expect(studioSource).toContain(
+      "const host = this.TINY_HOSTS[type]; if (host) this.mountTiny(type, host);",
+    );
+  });
 });

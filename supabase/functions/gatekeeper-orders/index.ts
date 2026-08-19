@@ -517,7 +517,7 @@ Deno.serve(async (req) => {
       if (readError) throw new Error(`Could not read the submission: ${readError.message}`);
       if (!row) return json(req, { error: "Submission not found." }, 404);
       const config = await credentialsFor(authContext).catch(() => null);
-      const hashref = buildOrderHashref(canonicalOrderFor(orderKind, row as Submission), {
+      const hashref = buildOrderHashref(canonicalOrderFor(orderKind, row as unknown as Submission), {
         // Without a connected contract there is nothing to route to yet, but
         // the order body is still worth showing; the placeholders make it
         // obvious which two fields the contract supplies.
@@ -543,7 +543,7 @@ Deno.serve(async (req) => {
     try {
       const config = await credentialsFor(authContext);
       const authToken = await validAuthToken(authContext, config, log);
-      const rxContent = buildOrderHashref(canonicalOrderFor(orderKind, claimed as Submission), {
+      const rxContent = buildOrderHashref(canonicalOrderFor(orderKind, claimed as unknown as Submission), {
         labNum: config.receiver_lab_id,
         custNum: config.receiver_retailer_name,
       });

@@ -148,7 +148,7 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
       }
 
       if (result.approved) {
-        await queuePaidOrderFulfillmentEmail(deps.admin as unknown as typeof supabaseAdmin, oid);
+        await queuePaidOrderFulfillmentEmail(deps.admin as never, oid);
       }
 
       return ok({ received: true, settled: true, flow: "order", approved: result.approved });

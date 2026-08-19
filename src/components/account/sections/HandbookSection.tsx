@@ -1,6 +1,17 @@
-import { BookOpen, Download, GraduationCap, Layers, Wrench, Palette } from "lucide-react";
+import { useState } from "react";
+import { BookOpen, Download, GraduationCap, Layers, Maximize2, Wrench, Palette } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import PdfViewer from "@/components/pdf/PdfViewer";
+
 
 const HANDBOOK_URL = "/downloads/Classic_Visions_Dispenser_Handbook.pdf";
 
@@ -28,6 +39,8 @@ const CONTENTS = [
 ];
 
 const HandbookSection = () => {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div className="space-y-6">
       <div>
@@ -78,6 +91,26 @@ const HandbookSection = () => {
             ))}
           </div>
 
+          <div className="mt-6">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Preview</h3>
+              <Button variant="ghost" size="sm" onClick={() => setExpanded(true)}>
+                <Maximize2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                Expand
+              </Button>
+            </div>
+            <PdfViewer
+              url={HANDBOOK_URL}
+              title="Classic Visions Dispenser Handbook preview"
+              downloadName="Classic_Visions_Dispenser_Handbook.pdf"
+              className="h-[600px]"
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Pages render directly in the browser — works on desktop, tablet and phone.
+            </p>
+
+          </div>
+
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button asChild variant="outline">
               <a href={HANDBOOK_URL} target="_blank" rel="noopener noreferrer">
@@ -91,6 +124,35 @@ const HandbookSection = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={expanded} onOpenChange={setExpanded}>
+        <DialogContent className="flex h-[90vh] max-w-5xl flex-col">
+          <DialogHeader>
+            <DialogTitle>Classic Visions Dispenser Handbook</DialogTitle>
+            <DialogDescription>Edition 2026.1 · PDF · 15 pages</DialogDescription>
+          </DialogHeader>
+          <PdfViewer
+            url={HANDBOOK_URL}
+            title="Classic Visions Dispenser Handbook"
+            downloadName="Classic_Visions_Dispenser_Handbook.pdf"
+            className="min-h-0 flex-1"
+          />
+
+          <DialogFooter>
+            <Button asChild variant="outline">
+              <a href={HANDBOOK_URL} target="_blank" rel="noopener noreferrer">
+                Open in new tab
+              </a>
+            </Button>
+            <Button asChild>
+              <a href={HANDBOOK_URL} download>
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                Download PDF
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

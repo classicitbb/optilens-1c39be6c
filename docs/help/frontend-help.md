@@ -1,5 +1,26 @@
 # Frontend Help Docs
 
+## 2026-08-18 — Downloading a statement PDF
+
+- Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose OneDrive credentials.
+
+## 2026-08-15 — Saving a stock quotation
+
+- Build the stock order, wait for the automatic draft save, then select **Save as quotation**. The saved quotation opens in DocStudio for the document workflow.
+- A product price follows the selected account's pricelist, Retail fallback, then the published catalog. If none applies, an editing staff member must enter a non-zero manual price and explain why.
+
+## 2026-08-14 — Reviewing Copilot CRM suggestions
+
+- In **Admin → Portal Copilot**, enter **Scan CRM for lapsed buyers and qualified follow-up opportunities**.
+- Review the source evidence separately from Copilot's inference, plus the priority, due date and recommended next action. Edit the internal task if needed.
+- Select **Approve task** only when it should become live CRM work. Rejecting leaves the CRM unchanged; the scan never creates an opportunity automatically.
+
+## 2026-08-14 — Using multiple Portal Copilot chats
+
+- Select **New chat** to open a separate conversation. Start as many as needed; each appears in the **Chats** sidebar after creation.
+- Select any chat in the sidebar to restore its messages and associated ERP approval cards. Starting or switching chats does not delete earlier work.
+- A new chat is titled automatically from its first command or attachment note.
+
 ## 2026-08-13 — Portal Copilot ERP rollout
 
 - Open **Admin → Portal Copilot** and enter **Roll out portal access to all ERP customers**. Voice input must be reviewed and confirmed before the workflow can prepare actions.

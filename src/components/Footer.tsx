@@ -147,6 +147,9 @@ const Footer = () => {
           <p>{copyrightText}</p>
           <p className="mt-2 sm:mt-0">Powered by Classic Visions Digital</p>
         </div>
+        <p className="mt-3 text-center text-xs text-primary-foreground/50 sm:text-left">
+          Prices on this site are shown in US Dollars (USD). Account statements and Barbados invoicing are in Barbados Dollars (BBD).
+        </p>
       </div>
     </footer>);
 
