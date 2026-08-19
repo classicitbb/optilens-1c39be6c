@@ -1,5 +1,4 @@
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 
 interface CopilotMarkdownProps {
@@ -10,7 +9,7 @@ interface CopilotMarkdownProps {
 
 /**
  * Shared rich-text renderer for Copilot messages.
- * Renders GitHub-flavoured markdown (headings, lists, tables, code, links)
+ * Renders markdown (headings, lists, tables, code, links)
  * with the app's 0px-radius design language.
  */
 export function CopilotMarkdown({ content, className, tone = "assistant" }: CopilotMarkdownProps) {
@@ -41,7 +40,6 @@ export function CopilotMarkdown({ content, className, tone = "assistant" }: Copi
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
         components={{
           a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noreferrer noopener" />,
           table: ({ node: _node, ...props }) => (
