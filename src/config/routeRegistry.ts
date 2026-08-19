@@ -51,6 +51,8 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.professionals.lens-ordering-tips", path: "/professionals/lens-ordering-tips", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.professionals.lab-process-overview", path: "/professionals/lab-process-overview", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.professionals.tracing-cutting-guide", path: "/professionals/tracing-cutting-guide", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
+  { id: "public.privacy-policy", path: "/privacy-policy", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-legal", status: "active" },
+  { id: "public.terms", path: "/terms", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-legal", status: "active" },
   { id: "public.legal", path: "/legal/:slug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-legal", status: "active" },
   { id: "public.return-policy", path: "/return-policy", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-legal", status: "active" },
   { id: "public.lenses.lens-types", path: "/lenses/lens-types", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
