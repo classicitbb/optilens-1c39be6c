@@ -106,7 +106,7 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     if (gotLiveTranscriptRef.current || chunks.length === 0) return;
     const blob = new Blob(chunks, { type: recorderMimeRef.current || "audio/webm" });
     if (blob.size < 2000 || peakLevelRef.current < 4) {
-      setError("No speech was picked up — check the selected microphone, then hold the button and speak.");
+      setError("No speech was picked up — check the selected microphone, then click the button and speak.");
       return;
     }
     setIsTranscribing(true);

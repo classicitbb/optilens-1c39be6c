@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -54,6 +54,8 @@ type LocalMessage = {
 
 const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
+const MAX_COMMAND_INPUT_LINES = 4;
+
 /**
  * Admin-only floating Copilot. Structurally modeled on the public
  * CompanionAssistant widget's shell (same card/composer/launcher look), but
@@ -80,6 +82,7 @@ const AdminCopilotAssistant = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const commandInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const onTranscript = useCallback((transcript: string, confidence: number) => {
     setCommand(transcript);
@@ -179,6 +182,22 @@ const AdminCopilotAssistant = () => {
     if (!isOpen) return;
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [isOpen, conversationMessages.length, localMessages.length, pendingActions.length, prepareMutation.isPending, isAnalyzing]);
+
+  const resizeCommandInput = useCallback(() => {
+    const el = commandInputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const style = window.getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight) || 16;
+    const maxHeight = lineHeight * MAX_COMMAND_INPUT_LINES + (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+    const nextHeight = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = `${nextHeight}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, []);
+
+  useEffect(() => {
+    resizeCommandInput();
+  }, [command, resizeCommandInput]);
 
   const addFiles = useCallback(async (files: File[]) => {
     const usable = files.filter((file) => {
@@ -466,8 +485,8 @@ const AdminCopilotAssistant = () => {
                 }}
               />
 
-              <div className="rounded-full border border-accent/55 bg-card/90 p-0.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
-                <div className="flex items-center gap-1">
+              <div className="rounded-[22px] border border-accent/55 bg-card/90 p-0.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
+                <div className="flex items-end gap-1">
                   <Button
                     type="button"
                     size="icon"
@@ -485,21 +504,29 @@ const AdminCopilotAssistant = () => {
                     size="icon"
                     variant={speech.isListening ? "destructive" : "ghost"}
                     className="h-9 w-9 shrink-0 rounded-full text-foreground/50 hover:text-foreground"
-                    aria-label={speech.isListening ? "Release to stop recording" : "Hold to talk"}
-                    title={speech.isListening ? "Release to stop recording" : "Hold to talk"}
-                    disabled={prepareMutation.isPending || isAnalyzing}
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      event.currentTarget.setPointerCapture(event.pointerId);
-                      void speech.start();
+                    aria-label={speech.isListening ? "Stop recording and transcribe" : speech.isTranscribing ? "Transcribing" : "Start recording"}
+                    title={speech.isListening ? "Click to stop and transcribe" : speech.isTranscribing ? "Transcribing…" : "Click to record"}
+                    disabled={prepareMutation.isPending || isAnalyzing || speech.isTranscribing}
+                    onClick={() => {
+                      if (speech.isListening) {
+                        speech.stop();
+                      } else {
+                        void speech.start();
+                      }
                     }}
-                    onPointerUp={() => speech.stop()}
-                    onPointerCancel={() => speech.stop()}
                   >
-                    {speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    {speech.isTranscribing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : speech.isListening ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
                   </Button>
-                  <Input
+                  <Textarea
+                    ref={commandInputRef}
                     dir="ltr"
+                    rows={1}
                     value={command}
                     onChange={(event) => {
                       setCommand(event.target.value);
@@ -518,9 +545,9 @@ const AdminCopilotAssistant = () => {
                         void addFiles(files);
                       }
                     }}
-                    placeholder={attachments.length ? "Add a note (optional) and press Enter" : "Ask anything, or hold the mic to speak"}
+                    placeholder={attachments.length ? "Add a note (optional) and press Enter" : "Ask anything, or click the mic to speak"}
                     disabled={prepareMutation.isPending || isAnalyzing}
-                    className="h-9 border-0 bg-transparent px-2 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-0 resize-none border-0 bg-transparent px-2 py-2.5 text-left text-[12px] leading-[16px] text-foreground placeholder:text-foreground/40 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <Button
                     type="button"
