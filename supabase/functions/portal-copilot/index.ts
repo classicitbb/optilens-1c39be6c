@@ -817,28 +817,48 @@ Deno.serve(async (req) => {
     }
 
     if (operation === "test-ai-agent") {
+      const recordTest = async (success: boolean, errorMessage: string | null) => {
+        const { error: recordError } = await db.rpc("record_ai_agent_test", {
+          p_provider: "anthropic",
+          p_success: success,
+          p_error_message: errorMessage,
+        });
+        // Never fail the test request just because the audit write failed.
+        if (recordError) console.warn("record_ai_agent_test failed", recordError.message ?? recordError);
+      };
+
       const { apiKey, model } = await resolveClaudeCredentials(db);
       if (!apiKey || !model) {
         const message = "No API key or model is configured.";
-        const { error: recordError } = await db.rpc("record_ai_agent_test", { p_provider: "anthropic", p_success: false, p_error_message: message });
-        if (recordError) throw recordError;
+        await recordTest(false, message);
         return jsonResponse(req, 200, { ok: false, error: message });
       }
-      const response = await callClaude(apiKey, model, {
-        max_tokens: 8,
-        messages: [{ role: "user", content: "Reply with the single word: ok" }],
-      });
-      const success = response.ok;
-      const errorMessage = success ? null : await claudeErrorMessage(response);
-      const { error: recordError } = await db.rpc("record_ai_agent_test", { p_provider: "anthropic", p_success: success, p_error_message: errorMessage });
-      if (recordError) throw recordError;
-      return jsonResponse(req, 200, { ok: success, error: errorMessage ?? undefined });
+      try {
+        const response = await callClaude(apiKey, model, {
+          max_tokens: 8,
+          messages: [{ role: "user", content: "Reply with the single word: ok" }],
+        });
+        const success = response.ok;
+        const errorMessage = success ? null : await claudeErrorMessage(response);
+        await recordTest(success, errorMessage);
+        return jsonResponse(req, 200, { ok: success, error: errorMessage ?? undefined });
+      } catch (providerError) {
+        const errorMessage = providerError instanceof Error ? providerError.message : "Provider request failed";
+        await recordTest(false, errorMessage);
+        return jsonResponse(req, 200, { ok: false, error: errorMessage });
+      }
     }
 
     return jsonResponse(req, 400, { error: "Unknown Copilot operation" });
 
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Portal Copilot failed";
-    return jsonResponse(req, 500, { error: message });
+    const detail = error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && typeof (error as { message?: unknown }).message === "string"
+        ? (error as { message: string }).message
+        : JSON.stringify(error);
+    console.error("portal-copilot failed", detail);
+    return jsonResponse(req, 500, { error: detail || "Portal Copilot failed" });
   }
 });
+
