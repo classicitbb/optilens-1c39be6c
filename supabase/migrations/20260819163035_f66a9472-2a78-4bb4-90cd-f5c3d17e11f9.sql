@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.record_ai_agent_test(text, boolean, text, uuid) TO service_role;
