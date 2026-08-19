@@ -925,3 +925,42 @@
 .dark .voice-wave-bars > span {
   background: hsl(188 71% 46%);
 }
+
+/* Companion Assistant slender translucent scrollbar */
+.assistant-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--foreground) / 0.2) transparent;
+}
+
+.assistant-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.assistant-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.assistant-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--foreground) / 0.2);
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  transition: background-color 0.2s ease;
+}
+
+.assistant-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground) / 0.35);
+}
+
+.dark .assistant-scrollbar {
+  scrollbar-color: hsl(var(--foreground) / 0.25) transparent;
+}
+
+.dark .assistant-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--foreground) / 0.25);
+}
+
+.dark .assistant-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground) / 0.45);
+}
+

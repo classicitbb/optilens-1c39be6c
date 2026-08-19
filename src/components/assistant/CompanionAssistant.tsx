@@ -200,7 +200,7 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4"
+        className="flex-1 overflow-y-auto assistant-scrollbar px-4 py-4"
         onScroll={(event) => {
           const element = event.currentTarget;
           wasNearBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 96;
@@ -480,6 +480,7 @@ const AssistantRequestForm = () => {
             onChange={(event) => updateForm({ summary: event.target.value })}
             placeholder="Add quantities, products, or other details."
             disabled={isSubmitting}
+            className="assistant-scrollbar"
           />
         </div>
       ) : (
@@ -502,7 +503,7 @@ const AssistantRequestForm = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="assistant-request-details">What do you need help with?</Label>
-            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} />
+            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="assistant-scrollbar" />
           </div>
         </div>
       )}
