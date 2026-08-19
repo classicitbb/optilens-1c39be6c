@@ -420,8 +420,13 @@ const SLUG_MAP: Record<string, string> = {
   accessibility: "accessibility",
 };
 
-const LegalPage = () => {
-  const { slug = "" } = useParams();
+interface LegalPageProps {
+  slug?: string;
+}
+
+const LegalPage = ({ slug: fixedSlug }: LegalPageProps) => {
+  const { slug: routeSlug = "" } = useParams();
+  const slug = fixedSlug || routeSlug;
   const dbSlug = SLUG_MAP[slug] || slug;
   const { data: article, isLoading } = useLegalPage(dbSlug);
   const fallback = LEGAL_FALLBACKS[dbSlug];

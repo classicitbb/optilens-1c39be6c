@@ -164,6 +164,10 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
     chunksRef.current = [];
     peakLevelRef.current = 0;
     try {
+      // Web Speech must start inside the initiating press. Waiting for
+      // getUserMedia/device enumeration first can make Chromium treat the
+      // later recognition.start() as detached from the user's gesture and
+      // emit `not-allowed` even after microphone access was granted.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: settings.deviceId === "default" ? true : { deviceId: { exact: settings.deviceId } },
       });
@@ -262,15 +266,18 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
         if (!recorderRef.current) stop();
       };
       recognition.onend = () => {
-        if (!recorderRef.current) {
-          setIsListening(false);
-          releaseAudio();
-        }
+        recognitionRef.current = null;
+        setIsListening(false);
+        releaseAudio();
       };
       recognitionRef.current = recognition;
       recognition.start();
       setIsListening(true);
     } catch (caught) {
+
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+      setIsListening(false);
       setError(caught instanceof Error ? caught.message : "Could not start the selected microphone.");
       releaseAudio();
     }

@@ -8818,6 +8818,120 @@ export type Database = {
         }
         Relationships: []
       }
+      security_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string
+          dedupe_key: string
+          details: Json
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          occurrence_count: number
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          state: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string
+          dedupe_key: string
+          details?: Json
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          state?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string
+          dedupe_key?: string
+          details?: Json
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          state?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      security_audit_events: {
+        Row: {
+          actor_role: string | null
+          actor_user_id: string | null
+          category: string
+          created_at: string
+          event_type: string
+          id: string
+          ip_hint: string | null
+          occurred_at: string
+          payload: Json
+          redacted_payload: Json
+          request_id: string | null
+          severity: string
+          source_function: string | null
+          source_path: string | null
+          status_code: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          category: string
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_hint?: string | null
+          occurred_at?: string
+          payload?: Json
+          redacted_payload?: Json
+          request_id?: string | null
+          severity?: string
+          source_function?: string | null
+          source_path?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          actor_role?: string | null
+          actor_user_id?: string | null
+          category?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_hint?: string | null
+          occurred_at?: string
+          payload?: Json
+          redacted_payload?: Json
+          request_id?: string | null
+          severity?: string
+          source_function?: string | null
+          source_path?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       shipment_charges: {
         Row: {
           amount_bbd: number
@@ -11616,6 +11730,24 @@ export type Database = {
         }
         Returns: string
       }
+      log_security_event: {
+        Args: {
+          p_actor_role?: string
+          p_actor_user_id?: string
+          p_category: string
+          p_event_type: string
+          p_ip_hint?: string
+          p_occurred_at?: string
+          p_payload?: Json
+          p_request_id?: string
+          p_severity?: string
+          p_source_function?: string
+          p_source_path?: string
+          p_status_code?: number
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       manage_integration_sync_error: {
         Args: { p_action: string; p_error_id: string }
         Returns: undefined
@@ -11801,11 +11933,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_incident_runbook_execution: {
+        Args: {
+          p_completed_at?: string
+          p_executed_by: string
+          p_incident_key: string
+          p_notes?: string
+          p_runbook_name: string
+          p_started_at?: string
+          p_status?: string
+        }
+        Returns: string
+      }
       record_payment_gateway_test: {
         Args: { p_actor_user_id?: string; p_success: boolean }
         Returns: undefined
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
+      redact_security_payload: { Args: { p_payload: Json }; Returns: Json }
       release_stock_order_submission: {
         Args: { p_dispatch_provider?: string; p_id: string }
         Returns: undefined
@@ -12139,6 +12284,16 @@ export type Database = {
       upsert_presence_heartbeat: {
         Args: { p_role_scope?: string; p_status?: string }
         Returns: undefined
+      }
+      upsert_security_alert: {
+        Args: {
+          p_alert_type: string
+          p_dedupe_key: string
+          p_details?: Json
+          p_severity: string
+          p_title: string
+        }
+        Returns: string
       }
       verify_api_key: {
         Args: { p_token: string }

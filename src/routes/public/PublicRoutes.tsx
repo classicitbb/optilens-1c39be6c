@@ -123,6 +123,10 @@ const PublicRoutes = () => (
     />
     <Route path="knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+    <Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />
+    <Route path="terms" element={<LegalPage slug="terms" />} />
+    <Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />
+    <Route path="legal/terms" element={<Navigate to="/terms" replace />} />
     <Route path="legal/:slug" element={<LegalPage />} />
 
     <Route path="lenses/lens-types" element={<LensDesignGuidePage />} />

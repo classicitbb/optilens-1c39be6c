@@ -46,6 +46,7 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 ### Technical Changelog
 - Added Claude-only Copilot settings, run/action/audit storage, a strict admin Edge Function, deterministic rollout planning, existing portal-provisioning and Doc Studio email reuse, and MCP tools for prepare/list/decide operations.
 - Added the registry-backed `/admin/copilot` surface, push-to-talk controls, approval editing, and Windows-safe admin smoke-process launching.
+- Corrected Edge push-to-talk startup so Web Speech begins inside the initiating press instead of falsely reporting denied permission after microphone approval.
 
 ## 2026-08-12 — Unified Order Dispatch and MCP Artifact Stability
 
