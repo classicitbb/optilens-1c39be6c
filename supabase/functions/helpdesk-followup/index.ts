@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       .from('helpdesk_ticket_sla_status')
       .select(`
         ticket_id,
-        policy_id,
+        sla_policy_id,
         status,
         deadline_at,
         ticket:helpdesk_tickets!inner(

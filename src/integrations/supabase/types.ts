@@ -7950,6 +7950,108 @@ export type Database = {
         }
         Relationships: []
       }
+      qbo_integration_state: {
+        Row: {
+          company_name: string | null
+          connected_at: string | null
+          created_by: string | null
+          environment: string
+          last_error_code: string | null
+          last_error_message_sanitized: string | null
+          last_reconciliation_at: string | null
+          last_reconciliation_status: string | null
+          last_refresh_at: string | null
+          provider: string
+          realm_id_masked: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          connected_at?: string | null
+          created_by?: string | null
+          environment?: string
+          last_error_code?: string | null
+          last_error_message_sanitized?: string | null
+          last_reconciliation_at?: string | null
+          last_reconciliation_status?: string | null
+          last_refresh_at?: string | null
+          provider?: string
+          realm_id_masked?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          connected_at?: string | null
+          created_by?: string | null
+          environment?: string
+          last_error_code?: string | null
+          last_error_message_sanitized?: string | null
+          last_reconciliation_at?: string | null
+          last_reconciliation_status?: string | null
+          last_refresh_at?: string | null
+          provider?: string
+          realm_id_masked?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qbo_oauth_transactions: {
+        Row: {
+          authorization_code_ciphertext: string | null
+          callback_received_at: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          environment: string
+          expires_at: string
+          failure_code: string | null
+          failure_message_sanitized: string | null
+          id: string
+          realm_id_masked: string | null
+          redirect_uri: string
+          state_hash: string
+        }
+        Insert: {
+          authorization_code_ciphertext?: string | null
+          callback_received_at?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          environment?: string
+          expires_at: string
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
+          id?: string
+          realm_id_masked?: string | null
+          redirect_uri: string
+          state_hash: string
+        }
+        Update: {
+          authorization_code_ciphertext?: string | null
+          callback_received_at?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          environment?: string
+          expires_at?: string
+          failure_code?: string | null
+          failure_message_sanitized?: string | null
+          id?: string
+          realm_id_masked?: string | null
+          redirect_uri?: string
+          state_hash?: string
+        }
+        Relationships: []
+      }
       quote_frame_details: {
         Row: {
           a_mm: number | null

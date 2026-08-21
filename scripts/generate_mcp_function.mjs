@@ -34,9 +34,9 @@ function npmSpecifier(specifier) {
 const result = await build({
   stdin: {
     contents: [
-      'import mcp from "./src/lib/mcp/index.ts";',
+      'import mcpDefinition from "./src/lib/mcp/index.ts";',
       'import { createSupabaseHandler } from "@lovable.dev/mcp-js/stacks/supabase";',
-      'Deno.serve(createSupabaseHandler(mcp, { functionName: "mcp" }));',
+      'Deno.serve(createSupabaseHandler(mcpDefinition, { functionName: "mcp" }));',
     ].join("\n"),
     resolveDir: repoRoot,
     sourcefile: "classic-visions-mcp-entry.ts",

@@ -58,7 +58,7 @@ export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
   const removeSla = useRemoveHelpdeskSlaPolicy();
 
   // Policies not yet applied
-  const appliedPolicyIds = new Set(slaStatuses.map((s) => s.policy_id));
+  const appliedPolicyIds = new Set(slaStatuses.map((s) => s.sla_policy_id));
   const unappliedPolicies = teamPolicies.filter((p) => !appliedPolicyIds.has(p.id));
 
   // Forward-only stage progression: hide stages earlier than the current stage.
