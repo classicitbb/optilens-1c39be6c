@@ -101,6 +101,23 @@ export default async function handler(req: any, res: any) {
       await supabase("/rest/v1/qbo_integration_state?on_conflict=provider", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ provider: "quickbooks_online", environment: "production", status: body.status, company_name: body.company_name || null, realm_id_masked: body.realm_id_masked || null, connected_at: body.status === "connected" ? (body.connected_at || new Date().toISOString()) : null, updated_at: new Date().toISOString(), last_error_message_sanitized: body.status === "error" ? "QuickBooks authorization could not be completed." : null }) });
       return json(res, 200, { ok: true });
     }
+    if (action === "commands/claim") {
+      if (req.method !== "POST") return json(res, 405, { error: "Method not allowed." });
+      const supplied = Buffer.from(String(req.headers["x-qbo-handoff-token"] || "")); const expected = Buffer.from(env("QBO_LOCAL_HANDOFF_TOKEN"));
+      if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return json(res, 401, { error: "Unauthorized." });
+      const pending = await supabase("/rest/v1/qbo_integration_commands?status=eq.queued&order=requested_at.asc&limit=1&select=id,command"); const command = (await pending.json())[0];
+      if (!command) return json(res, 200, { command: null });
+      const claimed = await supabase(`/rest/v1/qbo_integration_commands?id=eq.${command.id}&status=eq.queued`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ status: "claimed", claimed_at: new Date().toISOString() }) });
+      return json(res, 200, { command: (await claimed.json())[0] || null });
+    }
+    if (action === "commands/result") {
+      if (req.method !== "POST") return json(res, 405, { error: "Method not allowed." });
+      const supplied = Buffer.from(String(req.headers["x-qbo-handoff-token"] || "")); const expected = Buffer.from(env("QBO_LOCAL_HANDOFF_TOKEN"));
+      if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return json(res, 401, { error: "Unauthorized." });
+      const body = req.body || {}; if (!body.id || !["completed", "error"].includes(body.status)) return json(res, 400, { error: "Invalid result." });
+      await supabase(`/rest/v1/qbo_integration_commands?id=eq.${encodeURIComponent(body.id)}&status=eq.claimed`, { method: "PATCH", body: JSON.stringify({ status: body.status, completed_at: new Date().toISOString(), result_sanitized: body.result_sanitized || null, error_message_sanitized: body.status === "error" ? "The Local QBO command could not be completed." : null }) });
+      return json(res, 200, { ok: true });
+    }
     if (action === "oauth/callback") {
       const code = String(req.query.code || ""); const state = String(req.query.state || ""); const tx = /qbo_tx=([^;]+)/.exec(String(req.headers.cookie || ""))?.[1];
       if (!code || !state || !tx) return json(res, 400, { error: "The authorization response could not be validated." });
