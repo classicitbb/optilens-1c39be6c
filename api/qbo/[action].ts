@@ -60,6 +60,12 @@ export default async function handler(req: any, res: any) {
       await supabase("/rest/v1/qbo_integration_state?on_conflict=provider", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ provider: "quickbooks_online", status: "connection_pending", created_by: user.id }) });
       return json(res, 201, { transaction_id: id, connect_url: `https://qbo.classicvisions.net/qbo/connect?transaction=${encodeURIComponent(id)}` });
     }
+    if (action === "command") {
+      const user = await requireAdmin(req); if (!user) return json(res, 401, { error: "Authentication required." });
+      if (req.method !== "POST" || !["disconnect", "reconcile"].includes(req.body?.command)) return json(res, 400, { error: "Invalid command." });
+      const response = await supabase("/rest/v1/qbo_integration_commands", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ command: req.body.command, requested_by: user.id }) });
+      return json(res, 202, { id: (await response.json())[0].id, status: "queued" });
+    }
     if (action === "connect") {
       const transaction = String(req.query.transaction || "");
       if (!/^[0-9a-f-]{36}$/i.test(transaction)) return json(res, 400, { error: "Invalid connection request." });
