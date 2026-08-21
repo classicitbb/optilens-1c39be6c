@@ -24,11 +24,20 @@ Configure these in Vercel production only; do not prefix any with `VITE_`.
 - `QBO_CLIENT_ID`
 - `QBO_CODE_HANDOFF_ENCRYPTION_KEY` (32-byte base64url key)
 - `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `QBO_GATEWAY_RATE_LIMIT_SECRET`
+- `QBO_LOCAL_HANDOFF_TOKEN`
+- `QBO_ADMIN_ORIGIN` (the exact HTTPS origin hosting CV Web admin)
+- `QBO_ADMIN_SUCCESS_URL` (the exact HTTPS CV Web integrations-page URL)
 
 `QBO_CLIENT_ID` may be shared with the Local service. The client secret is
 never configured in Vercel.
+
+The CV Web frontend needs the non-secret build variable
+`VITE_QBO_GATEWAY_URL=https://qbo.classicvisions.net`. It must not contain any
+credential. The Vercel CORS allow-list is deliberately restricted to
+`QBO_ADMIN_ORIGIN`.
 
 ## Required Local service configuration
 
@@ -47,7 +56,9 @@ back to CV Web. `OPTILENS_QBO_PRODUCTION_APPLY_ENABLED` remains unset.
 
 ## Deployment order
 
-1. Apply `20260820193539_qbo_oauth_gateway.sql` and run Supabase advisors.
+1. Apply `20260820193539_qbo_oauth_gateway.sql`,
+   `20260821045024_qbo_command_queue.sql`, and
+   `20260821131231_qbo_gateway_rate_limit.sql`; then run Supabase advisors.
 2. Deploy and externally verify the Vercel gateway on a preview domain.
 3. Point `qbo.classicvisions.net` DNS/TLS to Vercel and verify HTTPS routes.
 4. Deploy the Local outbound worker and host-only token store.
