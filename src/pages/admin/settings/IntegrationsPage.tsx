@@ -16,6 +16,7 @@ import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusC
 import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrationTab";
 import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderCard";
+import { QboIntegrationCard } from "@/components/admin/QboIntegrationCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scotia eCom+ (Fiserv IPG Connect) hosted-payment credential store.
@@ -314,6 +315,7 @@ export default function IntegrationsPage() {
         </TabsList>
         <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
+      <QboIntegrationCard />
 
       <Card>
         <CardHeader>

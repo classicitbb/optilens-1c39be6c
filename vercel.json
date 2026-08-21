@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/qbo/:action*", "destination": "/api/qbo/:action*" },
     {
       "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
