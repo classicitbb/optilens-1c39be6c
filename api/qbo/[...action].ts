@@ -46,7 +46,7 @@ function decryptCode(value: string) {
 }
 
 export default async function handler(req: any, res: any) {
-  const action = String(req.query.action || "");
+  const action = Array.isArray(req.query.action) ? req.query.action.join("/") : String(req.query.action || "");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   try {
