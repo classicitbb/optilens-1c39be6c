@@ -4,10 +4,10 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts.
 // src/lib/mcp/index.ts
-import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.26.2";
 
 // src/lib/mcp/tools/whoami.ts
-import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool } from "npm:@lovable.dev/mcp-js@0.26.2";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.110.7";
@@ -117,7 +117,7 @@ var whoami_default = defineTool({
 });
 
 // src/lib/mcp/tools/search-products.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z } from "npm:zod@^4.4.3";
 var matches = (row, needle) => String(row.name ?? "").toLowerCase().includes(needle) || String(row.description ?? "").toLowerCase().includes(needle) || String(row.sku ?? "").toLowerCase().includes(needle);
 var search_products_default = defineTool2({
@@ -156,7 +156,7 @@ var search_products_default = defineTool2({
 });
 
 // src/lib/mcp/tools/list-my-orders.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z2 } from "npm:zod@^4.4.3";
 var list_my_orders_default = defineTool3({
   name: "list_orders",
@@ -180,7 +180,7 @@ var list_my_orders_default = defineTool3({
 });
 
 // src/lib/mcp/tools/get-order.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z3 } from "npm:zod@^4.4.3";
 var get_order_default = defineTool4({
   name: "get_order",
@@ -204,7 +204,7 @@ var get_order_default = defineTool4({
 });
 
 // src/lib/mcp/tools/list-statements.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z4 } from "npm:zod@^4.4.3";
 var list_statements_default = defineTool5({
   name: "list_statements",
@@ -228,7 +228,7 @@ var list_statements_default = defineTool5({
 });
 
 // src/lib/mcp/tools/get-statement.ts
-import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z5 } from "npm:zod@^4.4.3";
 var get_statement_default = defineTool6({
   name: "get_statement",
@@ -253,7 +253,7 @@ var get_statement_default = defineTool6({
 });
 
 // src/lib/mcp/tools/get-account-balance.ts
-import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z6 } from "npm:zod@^4.4.3";
 var get_account_balance_default = defineTool7({
   name: "get_account_balance",
@@ -276,7 +276,7 @@ var get_account_balance_default = defineTool7({
 });
 
 // src/lib/mcp/tools/list-quotes.ts
-import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z7 } from "npm:zod@^4.4.3";
 var list_quotes_default = defineTool8({
   name: "list_quotes",
@@ -300,7 +300,7 @@ var list_quotes_default = defineTool8({
 });
 
 // src/lib/mcp/tools/get-quote.ts
-import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z8 } from "npm:zod@^4.4.3";
 var get_quote_default = defineTool9({
   name: "get_quote",
@@ -322,7 +322,7 @@ var get_quote_default = defineTool9({
 });
 
 // src/lib/mcp/tools/list-support-tickets.ts
-import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z9 } from "npm:zod@^4.4.3";
 var list_support_tickets_default = defineTool10({
   name: "list_support_tickets",
@@ -349,7 +349,7 @@ var list_support_tickets_default = defineTool10({
 });
 
 // src/lib/mcp/tools/get-support-ticket.ts
-import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z10 } from "npm:zod@^4.4.3";
 var get_support_ticket_default = defineTool11({
   name: "get_support_ticket",
@@ -373,7 +373,7 @@ var get_support_ticket_default = defineTool11({
 });
 
 // src/lib/mcp/tools/create-support-ticket.ts
-import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z11 } from "npm:zod@^4.4.3";
 var create_support_ticket_default = defineTool12({
   name: "create_support_ticket",
@@ -402,7 +402,7 @@ var create_support_ticket_default = defineTool12({
 });
 
 // src/lib/mcp/tools/reply-to-support-ticket.ts
-import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z12 } from "npm:zod@^4.4.3";
 var reply_to_support_ticket_default = defineTool13({
   name: "reply_to_support_ticket",
@@ -430,7 +430,7 @@ var reply_to_support_ticket_default = defineTool13({
 });
 
 // src/lib/mcp/tools/search-knowledge-base.ts
-import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z13 } from "npm:zod@^4.4.3";
 var search_knowledge_base_default = defineTool14({
   name: "search_knowledge_base",
@@ -456,7 +456,7 @@ var search_knowledge_base_default = defineTool14({
 });
 
 // src/lib/mcp/tools/search-crm.ts
-import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z14 } from "npm:zod@^4.4.3";
 var search_crm_default = defineTool15({
   name: "search_crm",
@@ -483,7 +483,7 @@ var search_crm_default = defineTool15({
 });
 
 // src/lib/mcp/tools/list-crm-tasks.ts
-import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z15 } from "npm:zod@^4.4.3";
 var list_crm_tasks_default = defineTool16({
   name: "list_crm_tasks",
@@ -509,7 +509,7 @@ var list_crm_tasks_default = defineTool16({
 });
 
 // src/lib/mcp/tools/create-crm-task.ts
-import { defineTool as defineTool17 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool17 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z16 } from "npm:zod@^4.4.3";
 var create_crm_task_default = defineTool17({
   name: "create_crm_task",
@@ -542,7 +542,7 @@ var create_crm_task_default = defineTool17({
 });
 
 // src/lib/mcp/tools/list-opportunities.ts
-import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z17 } from "npm:zod@^4.4.3";
 var list_opportunities_default = defineTool18({
   name: "list_opportunities",
@@ -566,7 +566,7 @@ var list_opportunities_default = defineTool18({
 });
 
 // src/lib/mcp/tools/list-pricelists.ts
-import { defineTool as defineTool19 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool19 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z18 } from "npm:zod@^4.4.3";
 var list_pricelists_default = defineTool19({
   name: "list_pricelists",
@@ -591,7 +591,7 @@ var list_pricelists_default = defineTool19({
 });
 
 // src/lib/mcp/tools/list-shipments.ts
-import { defineTool as defineTool20 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool20 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z19 } from "npm:zod@^4.4.3";
 var list_shipments_default = defineTool20({
   name: "list_shipments",
@@ -615,7 +615,7 @@ var list_shipments_default = defineTool20({
 });
 
 // src/lib/mcp/tools/prepare-erp-portal-rollout.ts
-import { defineTool as defineTool21 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool21 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z20 } from "npm:zod@^4.4.3";
 var prepare_erp_portal_rollout_default = defineTool21({
   name: "prepare_erp_portal_rollout",
@@ -642,7 +642,7 @@ var prepare_erp_portal_rollout_default = defineTool21({
 });
 
 // src/lib/mcp/tools/list-copilot-approvals.ts
-import { defineTool as defineTool22 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool22 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z21 } from "npm:zod@^4.4.3";
 var list_copilot_approvals_default = defineTool22({
   name: "list_copilot_approvals",
@@ -664,7 +664,7 @@ var list_copilot_approvals_default = defineTool22({
 });
 
 // src/lib/mcp/tools/decide-copilot-action.ts
-import { defineTool as defineTool23 } from "npm:@lovable.dev/mcp-js@0.26.1";
+import { defineTool as defineTool23 } from "npm:@lovable.dev/mcp-js@0.26.2";
 import { z as z22 } from "npm:zod@^4.4.3";
 var decide_copilot_action_default = defineTool23({
   name: "decide_copilot_action",
@@ -687,7 +687,7 @@ var decide_copilot_action_default = defineTool23({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "dzsalnvmlvjoatryhqfz";
+var projectRef = "xstmeirxhfbiyayrrsob";
 var mcp_default = defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",
@@ -735,5 +735,5 @@ var mcp_default = defineMcp({
 });
 
 // classic-visions-mcp-entry.ts
-import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.26.1/stacks/supabase";
-Deno.serve(createSupabaseHandler(mcp, { functionName: "mcp" }));
+import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.26.2/stacks/supabase";
+Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));
