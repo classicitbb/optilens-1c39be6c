@@ -38,6 +38,12 @@ vi.mock("@/hooks/useCustomerAddresses", () => ({
   useCustomerAddresses: () => ({ addresses: [{}] }),
 }));
 
+vi.mock("@/components/account/sections/PaymentMethodsSection", () => ({
+  default: ({ allowCreate }: { allowCreate?: boolean }) => (
+    <section aria-label="Saved payment methods" data-allow-create={String(allowCreate)} />
+  ),
+}));
+
 vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: mocks.toast }),
 }));
@@ -87,6 +93,9 @@ describe("MyAccountSection", () => {
     expect(screen.queryByText("Display Name")).not.toBeInTheDocument();
     expect(screen.queryByText("Avatar URL")).not.toBeInTheDocument();
     expect(screen.queryByText("Bio")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Saved payment methods" })).toHaveAttribute("data-allow-create", "false");
+    expect(screen.queryByText("CRM contact linked")).not.toBeInTheDocument();
+    expect(screen.queryByText("Customer approved")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(mocks.signOut).toHaveBeenCalledOnce();
   });

@@ -381,7 +381,7 @@ const AssistantRequestForm = () => {
 
   return (
     <form
-      className="flex min-h-full flex-col space-y-4 rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft"
+      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
       aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
@@ -484,7 +484,7 @@ const AssistantRequestForm = () => {
           />
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex min-h-0 flex-1 flex-col space-y-3">
           {!isPortalSupport ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2"><Label htmlFor="assistant-requester-name">Your name</Label><Input id="assistant-requester-name" value={formState.name} onChange={(event) => updateForm({ name: event.target.value })} disabled={isSubmitting} /></div>
@@ -501,9 +501,9 @@ const AssistantRequestForm = () => {
             <Label htmlFor="assistant-request-title">Request title</Label>
             <Input id="assistant-request-title" value={formState.issueType} onChange={(event) => updateForm({ issueType: event.target.value })} placeholder="A short title for this request" disabled={isSubmitting} />
           </div>
-          <div className="space-y-2">
+          <div className="flex min-h-40 flex-1 flex-col space-y-2">
             <Label htmlFor="assistant-request-details">What do you need help with?</Label>
-            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="min-h-40 resize-y assistant-scrollbar" />
+            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="min-h-32 flex-1 resize-none overflow-y-auto assistant-scrollbar" />
           </div>
         </div>
       )}
@@ -808,7 +808,7 @@ const CompanionAssistant = () => {
             <div className="space-y-2">{savedConversations.map((conversation) => <button key={conversation.id} type="button" className="w-full rounded-lg border p-3 text-left hover:bg-muted" onClick={async () => { await loadConversation(conversation.id); setHistoryOpen(false); }}><p className="truncate text-sm font-medium">{conversation.title}</p><p className="mt-1 text-xs capitalize text-muted-foreground">{conversation.audience} · {new Date(conversation.updated_at).toLocaleString()}</p></button>)}</div>
           </div>
         ) : formState ? (
-          <div className="flex-1 overflow-y-auto p-4 assistant-scrollbar"><AssistantRequestForm /></div>
+          <div className="flex min-h-0 flex-1 p-4"><AssistantRequestForm /></div>
         ) : <AssistantMessageList onSpeak={voiceEngine.ttsSupported ? voiceEngine.speak : undefined} />}
       </div>
 

@@ -89,6 +89,12 @@ describe("AccountSidebar", () => {
     expect(screen.getByRole("link", { name: "Statements" })).toHaveAttribute("href", "/profile/statements");
   });
 
+  it("keeps payment methods inside My Profile instead of the sidebar", () => {
+    renderSidebar();
+
+    expect(screen.queryByRole("link", { name: "Payment Methods" })).not.toBeInTheDocument();
+  });
+
   it("hides statements entirely when the feature is disabled", () => {
     mocks.statementsEnabled = false;
     mocks.isAdmin = false;

@@ -8,6 +8,8 @@
 - Portal Rx branches receive explicit currency and `order-prices` authorization. Hidden-price users receive no copy advertising a separate pricing mode.
 - `PdfViewer` statically imports the legacy PDF.js runtime/worker and verifies/retries PDF bytes before rendering, preventing bare module imports from escaping the production bundle.
 - Profile edits update both the durable `profiles` row and non-authoritative auth display metadata; blank auth metadata is omitted during profile seeding so it cannot erase later edits.
+- `MyAccountSection` owns the customer-facing saved-payment-method view. Creation remains a checkout concern; `/profile/payment-methods` redirects to the embedded profile section for compatibility.
+- Portal support request details flex to the remaining assistant-panel height and scroll internally when their content exceeds that space.
 
 ## 2026-08-18 — Statement PDF download
 

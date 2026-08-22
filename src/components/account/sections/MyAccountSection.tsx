@@ -17,6 +17,7 @@ import { capitalizeDisplayName, resolveUserFullName } from "@/lib/profileData";
 import { type ProfileFormValues, profileSchema } from "@/features/portal/profileSchema";
 import { getMissingProfileRequirements } from "@/features/portal/profileCompletion";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
+import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -338,8 +339,6 @@ const MyAccountSection = () => {
     `Email ${identity?.emailVerified ? "verified" : "pending"}`,
     `Profile ${identity?.profileCompleted ? "complete" : "incomplete"}`,
     `Access ${identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}`,
-    ...(identity?.crmContactId ? ["CRM contact linked"] : []),
-    ...(identity?.crmCustomerId ? ["Customer approved"] : []),
   ];
 
   return (
@@ -661,6 +660,14 @@ const MyAccountSection = () => {
               </div>
             </CardContent>
           </Card>
+
+          <div id="payment-methods" className="scroll-mt-20">
+            <PaymentMethodsSection
+              title="Saved payment methods"
+              description="Cards saved during checkout appear here. You can update their saved details or remove them."
+              allowCreate={false}
+            />
+          </div>
 
           {reauthSent ? (
             <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">

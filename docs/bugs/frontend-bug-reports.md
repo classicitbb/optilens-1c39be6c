@@ -8,6 +8,7 @@ Track frontend regressions and customer-facing issues.
 - Root cause: auth metadata was treated as profile authority, PDF.js was nested behind unresolved dynamic imports, several persisted records exposed only summary rows, and assistant forms/history shared message-list presentation instead of dedicated modes.
 - Resolution: made profile-table edits durable, statically bundled/retried PDF.js, added draft/order detail interactions and explicit currency labels, passed server-derived price authorization into Rx rendering, and consolidated support/history into a movable full-height assistant.
 - Regression prevention: retain focused profile/Rx tests, production bundle inspection, header checks, authenticated portal browser checks, and an external Chrome/Edge microphone-permission test.
+- Follow-up: moved checkout-saved payment methods into My Profile, removed customer-side card creation and internal CRM badges, reduced the navigation divider control, and made request details fill the assistant form.
 
 ## 2026-08-13 — Edge reported denied speech permission after microphone approval
 - Area: Admin Portal Copilot push-to-talk

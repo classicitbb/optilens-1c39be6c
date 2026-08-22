@@ -79,7 +79,7 @@ const AccountLayout = () => {
             type="button"
             variant="outline"
             size="icon"
-            className="absolute -right-4 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-background shadow-sm"
+            className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border-border/70 bg-background p-0 shadow-xs"
             aria-label={sidebarCollapsed ? "Expand account navigation" : "Collapse account navigation"}
             onClick={() => setSidebarCollapsed((current) => {
               const next = !current;
@@ -87,7 +87,7 @@ const AccountLayout = () => {
               return next;
             })}
           >
-            {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            {sidebarCollapsed ? <PanelLeftOpen className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
           </Button>
         </aside>
 
