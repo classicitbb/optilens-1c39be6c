@@ -9,6 +9,7 @@
     "build": "vite build",
     "mcp:generate": "node scripts/generate_mcp_function.mjs",
     "build:dev": "vite build --mode development",
+    "build:sites-preview": "node scripts/build-sites-preview.mjs",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",
     "preview": "vite preview",

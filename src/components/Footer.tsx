@@ -2,6 +2,7 @@ import { ExternalLink, MapPin, Phone } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router";
 import { useLegalPage } from "@/hooks/useContentArticles";
+import { COMPANY_CONTACT } from "@/config/companyContact";
 
 type FooterLink = {
   label: string;
@@ -120,23 +121,23 @@ const Footer = () => {
             <div className="space-y-3 text-sm text-primary-foreground/70">
               <p className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>Uplands Factory, Four Roads, Saint George BB20031 Barbados</span>
+                <span>{COMPANY_CONTACT.addressLine}</span>
               </p>
               <a
 
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 transition-colors hover:text-primary-foreground" href="https://www.google.com/maps/dir//Classic+Visions,+Barbados/@13.1232918,-59.5772745,13z/data=!4m8!4m7!1m0!1m5!1m1!1s0x8c43f24ff1e738cb:0xc8d2dbeed2e8c9c8!2m2!1d-59.5306801!2d13.1653583">
+                className="flex items-center gap-2 transition-colors hover:text-primary-foreground" href={COMPANY_CONTACT.mapUrl}>
                 
                 <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 Directions
               </a>
               <a
-                href="tel:+12464334928"
+                href={COMPANY_CONTACT.phoneHref}
                 className="flex items-center gap-2 transition-colors hover:text-primary-foreground">
                 
                 <Phone className="h-4 w-4" aria-hidden="true" />
-                <span>Call +1 246 433-4928</span>
+                <span>Call {COMPANY_CONTACT.phoneDisplay}</span>
               </a>
             </div>
           </div>

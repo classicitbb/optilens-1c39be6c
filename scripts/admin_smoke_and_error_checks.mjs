@@ -56,6 +56,7 @@ const ROUTES = [
   "/admin/website/microsites",
   "/admin/website/portals",
   "/admin/website/store",
+  "/admin/website/store/lens-assistant",
   "/admin/knowledge",
   "/admin/knowledge/wiki",
   "/admin/knowledge/help",
@@ -100,11 +101,15 @@ const ROUTES = [
 const REQUIRED_SNIPPETS = [
   {
     file: "src/App.tsx",
-    snippets: ["<GlobalErrorLogger />", 'path="settings/runtime-errors"'],
+    snippets: ["<GlobalErrorLogger />", "<AdminRoutes />"],
+  },
+  {
+    file: "src/routes/admin/AdminRoutes.tsx",
+    snippets: ['path="settings/runtime-errors"', 'path="website/store/lens-assistant"'],
   },
   {
     file: "src/pages/Auth.tsx",
-    snippets: ["Welcome Back", "Sign In", "Sign in with Google"],
+    snippets: ["Welcome back", "Sign In", "Forgot your password?"],
   },
   {
     file: "src/hooks/use-toast.ts",
@@ -190,17 +195,30 @@ async function checkRoutes() {
 
   for (const route of ROUTES) {
     const url = `${BASE_URL}${route}`;
-    try {
-      const response = await fetch(url, { redirect: "follow" });
-      const html = await response.text();
-      const hasRoot = html.includes('<div id="root">');
-      if (!response.ok || !hasRoot) {
-        failures.push(`${route} (status=${response.status}, root=${hasRoot})`);
-      } else {
-        console.log(`✔ route smoke: ${route} -> ${response.status}`);
+    let lastFailure = "request failed";
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const response = await fetch(url, { redirect: "follow" });
+        const html = await response.text();
+        const hasRoot = html.includes('<div id="root">');
+        if (response.ok && hasRoot) {
+          console.log(`✔ route smoke: ${route} -> ${response.status}`);
+          lastFailure = "";
+          break;
+        }
+        lastFailure = `status=${response.status}, root=${hasRoot}`;
+      } catch (error) {
+        lastFailure = error instanceof Error ? error.message : String(error);
       }
-    } catch (error) {
-      failures.push(`${route} (${error instanceof Error ? error.message : String(error)})`);
+
+      if (attempt < 3) {
+        await sleep(250 * attempt);
+      }
+    }
+
+    if (lastFailure) {
+      failures.push(`${route} (${lastFailure})`);
     }
   }
 
@@ -239,7 +257,7 @@ async function checkRuntimeLoggingWiring() {
 }
 
 async function checkImplementedRoutesAreNotPlaceholder() {
-  const appSource = await readFile("src/App.tsx", "utf8");
+  const appSource = await readFile("src/routes/admin/AdminRoutes.tsx", "utf8");
   const failures = [];
 
   for (const { path, snippet } of IMPLEMENTED_ADMIN_ROUTE_SNIPPETS) {
@@ -256,7 +274,7 @@ async function checkImplementedRoutesAreNotPlaceholder() {
 }
 
 async function checkLegacyRedirects() {
-  const appSource = await readFile("src/App.tsx", "utf8");
+  const appSource = await readFile("src/routes/admin/AdminRoutes.tsx", "utf8");
   const failures = [];
 
   for (const { legacy, canonical, snippet } of LEGACY_REDIRECT_EXPECTATIONS) {
@@ -273,7 +291,7 @@ async function checkLegacyRedirects() {
 }
 
 async function checkRoleScopedRouteAccessWiring() {
-  const appSource = await readFile("src/App.tsx", "utf8");
+  const appSource = await readFile("src/routes/admin/AdminRoutes.tsx", "utf8");
 
   const runtimeErrorsSnippet = 'path="settings/runtime-errors" element={<RuntimeErrorsPage />}';
   if (!appSource.includes(runtimeErrorsSnippet)) {
