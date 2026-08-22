@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { requestLiveData } from "@/lib/liveDataGateway";
 import InquireButton from "@/components/account/InquireButton";
 
@@ -231,7 +232,7 @@ const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; sh
                   <TableHead>Patient / item</TableHead>
                   <TableHead className="text-right">Qty</TableHead>
                   <TableHead>Status</TableHead>
-                  {showPrices ? <TableHead className="text-right">Price</TableHead> : null}
+                  {showPrices ? <TableHead className="text-right">Price (BBD)</TableHead> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -315,6 +316,7 @@ const MyOrdersSection = () => {
   const [orderFilter, setOrderFilter] = useState<OrderBucket | "all">("pending");
   const [orderSearch, setOrderSearch] = useState("");
   const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
+  const [selectedLabOrder, setSelectedLabOrder] = useState<LiveInnovationsOrder | null>(null);
 
   const orderRows = useMemo<OrderRow[]>(() => {
     const webRows: OrderRow[] = orders.map((order) => ({
@@ -460,12 +462,17 @@ const MyOrdersSection = () => {
                         <TableHead>Received</TableHead>
                         <TableHead>Promise Date</TableHead>
                         <TableHead>Status</TableHead>
-                        {showPrices ? <TableHead className="text-right">Price</TableHead> : null}
+                        {showPrices ? <TableHead className="text-right">Price (BBD)</TableHead> : null}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                     {visibleInnovationsOrders.map((order, index) => (
-                      <TableRow key={`${order.rx_number ?? "order"}-${order.received_at ?? "unknown"}`}>
+                      <TableRow
+                        key={`${order.rx_number ?? "order"}-${order.received_at ?? "unknown"}`}
+                        className="cursor-pointer focus-within:bg-muted/50 hover:bg-muted/50"
+                        onClick={() => setSelectedLabOrder(order)}
+                        aria-label={`View invoice details for ${order.patient ?? order.rx_number ?? "lab order"}`}
+                      >
                         <TableCell>{order.rx_number ?? "—"}</TableCell>
                         <TableCell>{order.patient ?? "—"}</TableCell>
                         <TableCell>{formatLiveDate(order.received_at)}</TableCell>
@@ -473,7 +480,7 @@ const MyOrdersSection = () => {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Badge variant="outline">{order.status_name ?? "—"}</Badge>
-                            <InquireButton
+                            <span onClick={(event) => event.stopPropagation()}><InquireButton
                               label="Ask about this order"
                               title={`Inquiry about ${order.patient ?? "patient"} — Rx ${order.rx_number ?? "—"}`}
                               description={[
@@ -485,10 +492,10 @@ const MyOrdersSection = () => {
                                 "",
                                 "Question: ",
                               ].join("\n")}
-                            />
+                            /></span>
                           </div>
                         </TableCell>
-                        {showPrices ? <TableCell className="text-right">{formatLivePrice(innovationsPrices[index])}</TableCell> : null}
+                        {showPrices ? <TableCell className="text-right">{formatLivePrice(innovationsPrices[index])} BBD</TableCell> : null}
                       </TableRow>
                     ))}
                   </TableBody>
@@ -517,6 +524,22 @@ const MyOrdersSection = () => {
           ) : null}
         </section>
       ) : null}
+
+      <Dialog open={!!selectedLabOrder} onOpenChange={(open) => !open && setSelectedLabOrder(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Invoice details · Rx {selectedLabOrder?.rx_number ?? "—"}</DialogTitle>
+            <DialogDescription>Lab-order information for {selectedLabOrder?.patient ?? "this patient"}.</DialogDescription>
+          </DialogHeader>
+          <dl className="grid gap-3 rounded-lg border bg-muted/20 p-4 text-sm sm:grid-cols-2">
+            <div><dt className="text-muted-foreground">Patient</dt><dd className="font-medium">{selectedLabOrder?.patient ?? "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Status</dt><dd className="font-medium">{selectedLabOrder?.status_name ?? "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Received</dt><dd className="font-medium">{formatLiveDate(selectedLabOrder?.received_at ?? null)}</dd></div>
+            <div><dt className="text-muted-foreground">Promise date</dt><dd className="font-medium">{formatLiveDate(selectedLabOrder?.promise_date ?? null)}</dd></div>
+          </dl>
+          {showPrices ? <div className="rounded-lg border p-4"><div className="flex items-center justify-between"><span className="font-medium">Invoice total</span><span className="font-semibold">{formatLivePrice(readItemPrice(selectedLabOrder))} BBD</span></div><p className="mt-2 text-xs text-muted-foreground">Itemized invoice lines appear here when the billing connector provides them.</p></div> : null}
+        </DialogContent>
+      </Dialog>
 
       {canSeeLiveOrderStatus ? (
         <section className="space-y-3" aria-labelledby="live-deliveries-heading">
@@ -631,7 +654,7 @@ const MyOrdersSection = () => {
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Items</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Total (USD)</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -659,7 +682,7 @@ const MyOrdersSection = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">{row.kind === "payment" ? "—" : row.itemCount}</TableCell>
-                            <TableCell className="text-right font-semibold">${row.total.toFixed(2)}</TableCell>
+                            <TableCell className="text-right font-semibold">${row.total.toFixed(2)} USD</TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
                                 {row.order ? (
@@ -715,18 +738,18 @@ const MyOrdersSection = () => {
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead>Product</TableHead>
-                                      <TableHead className="text-right">Price</TableHead>
+                                      <TableHead className="text-right">Price (USD)</TableHead>
                                       <TableHead className="text-right">Qty</TableHead>
-                                      <TableHead className="text-right">Total</TableHead>
+                                      <TableHead className="text-right">Total (USD)</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {(row.order.items ?? []).map((item) => (
                                       <TableRow key={item.id}>
                                         <TableCell className="font-medium">{item.productName}</TableCell>
-                                        <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">${item.unitPrice.toFixed(2)} USD</TableCell>
                                         <TableCell className="text-right">{item.quantity}</TableCell>
-                                        <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">${(item.unitPrice * item.quantity).toFixed(2)} USD</TableCell>
                                       </TableRow>
                                     ))}
                                   </TableBody>

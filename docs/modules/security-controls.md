@@ -2,6 +2,11 @@
 
 Operational notes for code in `security/**`.
 
+## 2026-08-22 — Portal microphone scope
+
+- `Permissions-Policy` allows microphone capture only for the same origin (`microphone=(self)`). Camera, geolocation, payment and other unused capabilities remain disabled.
+- The portal assistant still requires a direct user gesture and browser permission before recognition starts; the header does not grant device access by itself.
+
 ## 2026-05-27 — Edge header policy synchronization
 
 - `security/http-header-policy.json` is the canonical source for frontend edge security headers and CSP directives.

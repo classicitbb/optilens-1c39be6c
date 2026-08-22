@@ -15,7 +15,7 @@ import { buildPrefillBanner, buildRxPrefillPayload } from "@/features/rx-order/p
 const PortalRxOrderForm = () => {
   const { toast } = useToast();
   const { createMutation } = useQuotes();
-  const { identity, isLoading: identityLoading, isStaff } = usePortalIdentity();
+  const { identity, isLoading: identityLoading, isStaff, canAccessFeature } = usePortalIdentity();
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const creatingRef = useRef(false);
   const [searchParams] = useSearchParams();
@@ -88,6 +88,8 @@ const PortalRxOrderForm = () => {
       onStartAnother={() => { setQuoteId(null); creatingRef.current = false; }}
       prefill={prefill}
       prefillBanner={prefillBanner}
+      pricesVisible={isStaff || canAccessFeature("order-prices")}
+      currency="BBD"
     />
   ) : (
     <div className="p-12 text-center text-sm text-muted-foreground">

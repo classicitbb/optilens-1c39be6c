@@ -20,6 +20,7 @@ import { getLastNonProfilePath } from "@/lib/lastExternalPath";
 import { CartSheet } from "@/components/CartSheet";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import AccountSwitcher from "@/features/portal-account-access/AccountSwitcher";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AccountTopBarProps {
   displayName: string;
@@ -30,7 +31,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const location = useLocation();
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
-  const { openAssistant } = useCompanionAssistant();
+  const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useCompanionAssistant();
   const { isAdmin, hasAccess } = useUserRole();
   const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
   const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
@@ -47,12 +48,14 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   const openSupportAssistant = useCallback(() => {
+    if (isAssistantOpen) {
+      closeAssistant();
+      return;
+    }
     openAssistant({
-      query: "Help me with my account or support request.",
-      autoSubmit: true,
       profile: "portal_support",
     });
-  }, [openAssistant]);
+  }, [closeAssistant, isAssistantOpen, openAssistant]);
 
   const lensAssistantEnabled = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
     && canAccessFeature("lens-assistant");
@@ -70,19 +73,17 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
         <div className="grid h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-3 md:px-4">
           {/* Left: return to the previous website page, then go home. */}
+          <TooltipProvider delayDuration={250}>
           <div className="flex min-w-0 items-center">
-            <Button variant="ghost" size="icon" asChild className="h-7 w-7 shrink-0" title="Back to website">
-              <Link to={backToWebsitePath} aria-label="Back to website">
-                <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
-              </Link>
-            </Button>
+            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" asChild className="h-7 w-7 shrink-0">
+              <Link to={backToWebsitePath} aria-label="Back to website"><ArrowLeft className="h-3.5 w-3.5 shrink-0" /></Link>
+            </Button></TooltipTrigger><TooltipContent side="bottom">Return to the website page you were viewing</TooltipContent></Tooltip>
             <Separator orientation="vertical" className="mx-1 h-4" />
-            <Button variant="ghost" size="icon" asChild className="h-7 w-7 shrink-0" title="Classic Visions homepage">
-              <Link to="/" aria-label="Classic Visions homepage">
-                <House className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
+            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" asChild className="h-7 w-7 shrink-0">
+              <Link to="/" aria-label="Classic Visions homepage"><House className="h-3.5 w-3.5" /></Link>
+            </Button></TooltipTrigger><TooltipContent side="bottom">Go to the Classic Visions homepage</TooltipContent></Tooltip>
           </div>
+          </TooltipProvider>
 
           {/* Center: title and active account */}
           <div className="flex items-center gap-2">
@@ -121,7 +122,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
 
             {/* Desktop only: display name + help + avatar */}
             <div className="hidden items-center gap-2 lg:flex">
-              <CartSheet triggerVariant="ghost" triggerSize="icon" className="h-7 w-7" />
+              <CartSheet triggerVariant="ghost" triggerSize="icon" className="h-7 min-w-7 w-auto" />
               <div className="flex items-center rounded-full border bg-muted/30 p-0.5" aria-label="Appearance">
                 {[
                   { value: "system", label: "Use system theme", icon: Monitor },

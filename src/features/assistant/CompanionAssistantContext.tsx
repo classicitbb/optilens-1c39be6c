@@ -48,6 +48,7 @@ const createId = (prefix: string) => `${prefix}-${Math.random().toString(36).sli
 const POPOUT_SNAPSHOT_KEY = "companion-assistant-popout";
 const PENDING_SAVE_KEY = "companion-assistant-pending-save";
 const ANONYMOUS_SESSION_KEY = "companion-assistant-anonymous-session";
+const NUDGE_DISMISSED_SESSION_KEY = "companion-assistant-nudge-dismissed";
 
 const getAssistantLaunchPrompt = (context: AssistantTaskContext) => {
   const label = context.label.replace(/\s+/g, " ").trim().slice(0, 120) || "this request";
@@ -245,6 +246,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const taskContextRef = useRef<AssistantTaskContext | undefined>(undefined);
   const formMessageIdsRef = useRef<Set<string>>(new Set());
   const nudgeTimerRef = useRef<number | null>(null);
+  const nudgeHideTimerRef = useRef<number | null>(null);
+  const [nudgeSnoozeVersion, setNudgeSnoozeVersion] = useState(0);
   const hasRestoredPopoutRef = useRef(false);
   const pendingWebSearchRef = useRef(false);
   const runtimeHeadings = useMemo(
@@ -399,17 +402,30 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
     const routeNudge = getRouteNudge(pathname, Boolean(user));
     if (!routeNudge) return;
+    try { if (sessionStorage.getItem(NUDGE_DISMISSED_SESSION_KEY) === "true") return; } catch { /* optional */ }
 
     if (nudgeTimerRef.current) window.clearTimeout(nudgeTimerRef.current);
-    nudgeTimerRef.current = window.setTimeout(() => setNudge(routeNudge), 1800);
+    if (nudgeHideTimerRef.current) window.clearTimeout(nudgeHideTimerRef.current);
+    const showAfter = nudgeSnoozeVersion === 0 ? 60_000 : 5 * 60_000;
+    nudgeTimerRef.current = window.setTimeout(() => {
+      setNudge(routeNudge);
+      nudgeHideTimerRef.current = window.setTimeout(() => {
+        setNudge(null);
+        setNudgeSnoozeVersion((current) => current + 1);
+      }, 15_000);
+    }, showAfter);
 
     return () => {
       if (nudgeTimerRef.current) {
         window.clearTimeout(nudgeTimerRef.current);
         nudgeTimerRef.current = null;
       }
+      if (nudgeHideTimerRef.current) {
+        window.clearTimeout(nudgeHideTimerRef.current);
+        nudgeHideTimerRef.current = null;
+      }
     };
-  }, [isOpen, pathname, user]);
+  }, [isOpen, nudgeSnoozeVersion, pathname, user]);
 
   useEffect(() => {
     setFormState((current) => {
@@ -422,7 +438,14 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     });
   }, [userEmail, userName]);
 
-  const dismissNudge = useCallback(() => setNudge(null), []);
+  const dismissNudge = useCallback(() => {
+    setNudge(null);
+    try { sessionStorage.setItem(NUDGE_DISMISSED_SESSION_KEY, "true"); } catch { /* optional */ }
+  }, []);
+  const snoozeNudge = useCallback(() => {
+    setNudge(null);
+    setNudgeSnoozeVersion((current) => current + 1);
+  }, []);
 
   const closeAssistant = useCallback(() => {
     if (isDetachedRoute) {
@@ -450,16 +473,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     const next = { ...initial, kind: options?.kind ?? initial.kind, taskContext: taskContextRef.current, ...options?.values };
     const pendingField = undefined;
     setFormState({ ...next, pendingField });
-    const messageId = createId("assistant");
-    formMessageIdsRef.current = new Set([messageId]);
-    setMessages((current) => [...current, {
-      id: messageId, role: "assistant", kind: "text",
-      text: next.kind === "quote_request"
-        ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
-        : next.kind === "trade_signup"
-        ? "Let's get your trade account set up. Fill in your business details below — nothing is created until you confirm, and you can keep browsing here while it's pending."
-        : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
-    }]);
+    formMessageIdsRef.current = new Set();
   }, [accountName, activeProfile, pathname, userEmail, userName]);
 
   const closeForm = useCallback(() => setFormState(null), []);
@@ -813,16 +827,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       const next = { ...initial, kind: options.formKind, taskContext, ...options.formValues };
       const pendingField = undefined;
       setFormState({ ...next, pendingField });
-      const messageId = createId("assistant");
-      formMessageIdsRef.current = new Set([messageId]);
-      setMessages((current) => [...current, {
-        id: messageId, role: "assistant", kind: "text",
-        text: next.kind === "quote_request"
-          ? `Thank you for your request, ${accountName || "your signed-in account"}. What would you like a quote for?`
-          : next.kind === "trade_signup"
-          ? "Let's get your trade account set up. Fill in your business details below — nothing is created until you confirm, and you can keep browsing here while it's pending."
-          : "I have the current page and signed-in account context. Please review and edit the request details before sending it.",
-      }]);
+      formMessageIdsRef.current = new Set();
     }
     if ((options?.autoSubmit || taskContext) && launchQuery) {
       window.setTimeout(() => {
@@ -1219,6 +1224,21 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
   }, [accountName, activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, signUp, user]);
 
+  const loadConversation = useCallback(async (conversationId: string) => {
+    const { data, error } = await (supabase as any)
+      .from("assistant_messages")
+      .select("id,role,content,metadata,created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    setMessages((data ?? []).map((row: any) => row.role === "user"
+      ? { id: row.id, role: "user", kind: "user", text: row.content }
+      : { id: row.id, role: "assistant", kind: "text", text: row.content }) as AssistantMessage[]);
+    setFormState(null);
+    setCurrentQuery("");
+    setIsOpen(true);
+  }, []);
+
   const value = useMemo<CompanionAssistantContextValue>(() => ({
     isOpen,
     isDetachedRoute,
@@ -1235,9 +1255,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     markFeedback,
     startNewConversation,
     saveConversation,
+    loadConversation,
     isSavingConversation,
     nudge,
     dismissNudge,
+    snoozeNudge,
     isSubmitting,
     openDetachedWindow,
     formState,
@@ -1253,6 +1275,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     closeAssistant,
     currentQuery,
     dismissNudge,
+    snoozeNudge,
     formState,
     isOpen,
     isDetachedRoute,
@@ -1269,6 +1292,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     submitQuickAction,
     submitQuery,
     saveConversation,
+    loadConversation,
     setAudienceOverride,
     startNewConversation,
     updateForm,

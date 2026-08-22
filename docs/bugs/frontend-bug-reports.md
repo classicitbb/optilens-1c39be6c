@@ -2,6 +2,22 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-22 — Portal Copilot ticket creation and recording lifecycle
+- Area: admin Portal Copilot, shared admin-resource tools, and voice transcription.
+- Impact: Copilot could not create a Helpdesk ticket because `ticket_number` was absent and a named priority was sent to an integer column; browser speech recognition could also end immediately and hide the Stop action while the recorder remained open, and silent audio could echo the domain vocabulary hint into the composer.
+- Root cause: the generic Helpdesk resource registry drifted from the actual table contract (`owner_user_id`, required `ticket_number`, integer priority), the optional Web Speech service incorrectly controlled the recording UI lifecycle, and prompt-echo responses were not filtered.
+- Resolution: generate UUID-derived ticket numbers and AI-source metadata inside the shared dispatcher, normalize priority labels to 0-5, and make `MediaRecorder` run exclusively from explicit Start/Stop actions before server transcription.
+- Regression prevention: retain the red-capable dispatcher and recorder lifecycle tests, plus external Chrome/Edge permission and deployed-function verification.
+
+## 2026-08-22 — Portal persistence, previews, and assistant usability
+- Area: customer portal profile, handbook, orders, drafts, Rx ordering, navigation and support assistant.
+- Impact: organization edits could be overwritten, handbook PDF imports failed after bundling, draft/order contents were hard to inspect, price currency/authorization copy was ambiguous, and support entry was cramped and fragmented.
+- Root cause: auth metadata was treated as profile authority, PDF.js was nested behind unresolved dynamic imports, several persisted records exposed only summary rows, and assistant forms/history shared message-list presentation instead of dedicated modes.
+- Resolution: made profile-table edits durable, statically bundled/retried PDF.js, added draft/order detail interactions and explicit currency labels, passed server-derived price authorization into Rx rendering, and consolidated support/history into a movable full-height assistant.
+- Regression prevention: retain focused profile/Rx tests, production bundle inspection, header checks, authenticated portal browser checks, and an external Chrome/Edge microphone-permission test.
+- Follow-up: moved checkout-saved payment methods into My Profile, removed customer-side card creation and internal CRM badges, reduced the navigation divider control, and made request details fill the assistant form.
+- Follow-up: moved saved addresses into My Profile, added Enter-to-apply for inline profile edits, and kept the multiline assistant composer rectangular with its controls anchored along the bottom.
+
 ## 2026-08-13 — Edge reported denied speech permission after microphone approval
 - Area: Admin Portal Copilot push-to-talk
 - Impact: approving microphone access could still immediately show **Microphone or speech permission was denied** and produce no transcript.

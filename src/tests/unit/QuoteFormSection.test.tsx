@@ -123,7 +123,7 @@ describe("QuoteFormSection", () => {
     expect(screen.getByLabelText("Quote title")).toBeInTheDocument();
     expect(screen.getByLabelText("Description (optional)")).toBeInTheDocument();
     expect(screen.getByText("This quote will be prepared for Example Optical.")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Ask anything")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Ask anything")).not.toBeInTheDocument();
     expect(rpc).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));

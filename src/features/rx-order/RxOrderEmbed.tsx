@@ -45,6 +45,8 @@ export interface RxOrderEmbedProps {
   prefill?: unknown;
   /** HTML for the banner shown above a prefilled form. */
   prefillBanner?: string;
+  pricesVisible?: boolean;
+  currency?: string;
 }
 
 interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
@@ -55,7 +57,7 @@ export const RxOrderEmbed = ({
   quoteId, quoteNumber, surface, lockedAccountId = null,
   checkoutPath = "/checkout", storePath = "/store",
   onStartAnother,
-  prefill, prefillBanner,
+  prefill, prefillBanner, pricesVisible = true, currency = "BBD",
 }: RxOrderEmbedProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -142,6 +144,8 @@ export const RxOrderEmbed = ({
       clashRules,
       accounts: scopedAccounts,
       addonPriceFor: (id, fallback) => scope?.priceByItemId?.get?.(id) ?? fallback,
+      currency,
+      pricesVisible,
     });
     const catalog = buildInnovationsCatalog(catalogAliases);
     return {
@@ -150,7 +154,7 @@ export const RxOrderEmbed = ({
       aliasIndex: catalog.aliasIndex,
       ambiguous: catalog.ambiguous,
     };
-  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent, catalogAliases, currencies]);
+  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent, catalogAliases, currencies, currency, pricesVisible]);
 
   useEffect(() => {
     // Settings gear (prototype/account-simulation controls) is admin-only.

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Download, ExternalLink, Loader2, Minus, Plus, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 /**
  * Cross-platform PDF viewer.
@@ -37,21 +39,28 @@ type PdfPageProxy = {
   cleanup?: () => void;
 };
 
-let pdfjsPromise: Promise<any> | null = null;
+// Keep these imports statically analyzable. The prior nested dynamic imports
+// survived production bundling as bare module specifiers, so the viewer failed
+// before it ever requested the handbook PDF.
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
-const loadPdfjs = async () => {
-  if (!pdfjsPromise) {
-    pdfjsPromise = (async () => {
-      // The legacy build targets older browsers (iOS Safari, in-app webviews)
-      // and avoids very recent JS APIs that newer pdf.js builds require.
-      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-      const workerUrl = (await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url")).default;
-      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-      return pdfjs;
-
-    })();
+const fetchPdfBytes = async (url: string, attempts = 3) => {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, { credentials: "same-origin", cache: attempt === 1 ? "default" : "reload" });
+      if (!response.ok) throw new Error(`Document request failed (${response.status})`);
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength < 5 || new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") {
+        throw new Error("The document response was not a PDF.");
+      }
+      return bytes;
+    } catch (cause) {
+      lastError = cause;
+      if (attempt < attempts) await new Promise((resolve) => window.setTimeout(resolve, 250 * attempt));
+    }
   }
-  return pdfjsPromise;
+  throw lastError;
 };
 
 const MIN_SCALE = 0.5;
@@ -172,8 +181,9 @@ const PdfViewer = ({ url, title, className, downloadName }: PdfViewerProps) => {
 
     (async () => {
       try {
-        const pdfjs = await loadPdfjs();
-        const task = pdfjs.getDocument({ url, withCredentials: false });
+        const bytes = await fetchPdfBytes(url);
+        if (cancelled) return;
+        const task = pdfjs.getDocument({ data: bytes });
         task.onProgress = ({ loaded: done, total }: { loaded: number; total: number }) => {
           if (total > 0 && !cancelled) setProgress(Math.round((done / total) * 100));
         };

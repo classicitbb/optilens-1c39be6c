@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Eye, X } from "lucide-react";
+import { Eye, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import AccountSidebar from "@/components/account/AccountSidebar";
@@ -60,6 +60,9 @@ const AccountLayout = () => {
   const { user, signOut } = useAuth();
   const { emulation, portalSessionEmulation } = usePortalIdentity();
   usePresenceHeartbeat("customer");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem("cv.portal.sidebar-collapsed") === "true"; } catch { return false; }
+  });
 
   const visibleEmulation = portalSessionEmulation ?? emulation;
   const displayName = visibleEmulation ? capitalizeDisplayName(visibleEmulation.label, "Customer") : getDisplayName(user?.email);
@@ -69,12 +72,26 @@ const AccountLayout = () => {
       <EmulationBanner />
       <AccountTopBar displayName={displayName} onSignOut={signOut} />
 
-      <div className="mx-auto flex w-full max-w-[1600px] gap-6 px-4 py-6 sm:px-6 xl:px-8 2xl:px-10">
-        <aside className="sticky top-16 hidden w-64 shrink-0 self-start border-r pr-4 lg:block xl:w-72 xl:pr-6">
-          <AccountSidebar pathname={location.pathname} />
+      <div className="flex w-full gap-6 px-4 py-6 sm:px-6 xl:px-8 2xl:px-10">
+        <aside className={`sticky top-16 hidden shrink-0 self-start border-r pr-4 transition-[width] lg:block ${sidebarCollapsed ? "w-14" : "w-64 xl:w-72 xl:pr-6"}`}>
+          <AccountSidebar pathname={location.pathname} collapsed={sidebarCollapsed} />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border-border/70 bg-background p-0 shadow-xs"
+            aria-label={sidebarCollapsed ? "Expand account navigation" : "Collapse account navigation"}
+            onClick={() => setSidebarCollapsed((current) => {
+              const next = !current;
+              try { localStorage.setItem("cv.portal.sidebar-collapsed", String(next)); } catch { /* optional */ }
+              return next;
+            })}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
+          </Button>
         </aside>
 
-        <main className="min-w-0 flex-1">
+        <main className="mx-auto min-w-0 w-full max-w-[1280px] flex-1">
           <Outlet />
         </main>
       </div>

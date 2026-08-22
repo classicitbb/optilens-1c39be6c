@@ -31,12 +31,14 @@ interface PaymentMethodsSectionProps {
   targetUserId?: string;
   title?: string;
   description?: string;
+  allowCreate?: boolean;
 }
 
 const PaymentMethodsSection = ({
   targetUserId,
   title = "Payment Methods",
-  description = "Store tokenized demo cards for fast checkout. No full card number or CVV is stored.",
+  description = "Cards saved securely during checkout appear here. No full card number or CVV is stored.",
+  allowCreate = true,
 }: PaymentMethodsSectionProps) => {
   const { toast } = useToast();
   const { emulation } = usePortalIdentity();
@@ -50,7 +52,7 @@ const PaymentMethodsSection = ({
         ...draft,
         cardholderName: draft.cardholderName.trim() || "Account holder",
       });
-      toast({ title: editingId ? "Payment method updated" : "Payment method saved", description: "Your tokenized demo card is ready for future checkout." });
+      toast({ title: editingId ? "Payment method updated" : "Payment method saved", description: "Your saved card is ready for future checkout." });
       setDraft(emptyDraft());
       setEditingId(null);
     } catch (error: any) {
@@ -61,7 +63,7 @@ const PaymentMethodsSection = ({
   const handleArchive = async (id: string) => {
     try {
       await archivePaymentMethod.mutateAsync(id);
-      toast({ title: "Payment method removed", description: "The saved demo card is no longer available for checkout." });
+      toast({ title: "Payment method removed", description: "The saved card is no longer available for checkout." });
       if (editingId === id) {
         setDraft(emptyDraft());
         setEditingId(null);
@@ -99,7 +101,7 @@ const PaymentMethodsSection = ({
                   <p className="font-semibold text-foreground">{method.brand} •••• {method.last4}</p>
                   <p className="text-sm text-muted-foreground">{method.cardholderName}</p>
                   <p className="mt-2 text-sm text-muted-foreground">Expires {String(method.expiryMonth).padStart(2, "0")}/{method.expiryYear}</p>
-                  <p className="mt-2 text-[11px] text-muted-foreground">{method.isDefault ? "Default saved card" : "Saved demo card"}</p>
+                  <p className="mt-2 text-[11px] text-muted-foreground">{method.isDefault ? "Default saved card" : "Saved card"}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => { setEditingId(method.id); setDraft(toDraft(method)); }}>
@@ -114,13 +116,13 @@ const PaymentMethodsSection = ({
           ))}
           {!paymentMethods.length ? (
             <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground md:col-span-2">
-              No saved payment methods yet. Add a demo card below to allow saved-card checkout and staff-assisted payment flows.
+              No saved payment methods yet. Choose to save a card during checkout and it will appear here.
             </div>
           ) : null}
         </div>
 
-        <div className="space-y-4 rounded-xl border p-4">
-          <p className="text-sm font-semibold text-foreground">{editingId ? "Edit saved demo card" : "Add saved demo card"}</p>
+        {allowCreate || editingId ? <div className="space-y-4 rounded-xl border p-4">
+          <p className="text-sm font-semibold text-foreground">{editingId ? "Edit saved card" : "Add saved card"}</p>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label>Cardholder name</Label>
@@ -158,7 +160,7 @@ const PaymentMethodsSection = ({
             </Button>
             {editingId ? <Button variant="outline" onClick={() => { setEditingId(null); setDraft(emptyDraft()); }}>Cancel edit</Button> : null}
           </div>
-        </div>
+        </div> : null}
       </CardContent>
     </Card>
   );

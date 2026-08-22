@@ -504,9 +504,9 @@ const AdminCopilotAssistant = () => {
                     size="icon"
                     variant={speech.isListening ? "destructive" : "ghost"}
                     className="h-9 w-9 shrink-0 rounded-full text-foreground/50 hover:text-foreground"
-                    aria-label={speech.isListening ? "Stop recording and transcribe" : speech.isTranscribing ? "Transcribing" : "Start recording"}
-                    title={speech.isListening ? "Click to stop and transcribe" : speech.isTranscribing ? "Transcribing…" : "Click to record"}
-                    disabled={prepareMutation.isPending || isAnalyzing || speech.isTranscribing}
+                    aria-label={speech.isListening ? "Stop recording and transcribe" : speech.isStarting ? "Starting microphone" : speech.isTranscribing ? "Transcribing" : "Start recording"}
+                    title={speech.isListening ? "Click to stop and transcribe" : speech.isStarting ? "Starting microphone…" : speech.isTranscribing ? "Transcribing…" : "Click to record"}
+                    disabled={prepareMutation.isPending || isAnalyzing || speech.isStarting || speech.isTranscribing}
                     onClick={() => {
                       if (speech.isListening) {
                         speech.stop();
@@ -515,7 +515,7 @@ const AdminCopilotAssistant = () => {
                       }
                     }}
                   >
-                    {speech.isTranscribing ? (
+                    {speech.isStarting || speech.isTranscribing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : speech.isListening ? (
                       <MicOff className="h-4 w-4" />

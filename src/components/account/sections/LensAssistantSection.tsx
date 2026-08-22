@@ -8,7 +8,7 @@ const LensAssistantSection = () => (
         <ClipboardCheck className="h-6 w-6" /> Rx Order Form
       </h2>
       <p className="text-sm text-muted-foreground">
-        Enter the prescription, frame and patient details to prepare an Rx order. Live-priced as you type. Price locks the moment you submit to cart.
+        Enter the prescription, frame and patient details to prepare an Rx order.
       </p>
     </header>
     <PortalRxOrderForm />

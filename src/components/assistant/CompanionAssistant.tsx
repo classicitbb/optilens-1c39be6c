@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Eye, EyeOff, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Search, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
+import { Expand, ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Search, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useVoiceEngine } from "@/hooks/useVoiceEngine";
+import { supabase } from "@/integrations/supabase/client";
 
 const MessageQuickActions = ({
   quickActions,
@@ -183,7 +184,7 @@ const AssistantResultCard = ({
 };
 
 const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void }) => {
-  const { messages, formState, submitQuickAction } = useCompanionAssistant();
+  const { messages, submitQuickAction } = useCompanionAssistant();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const wasNearBottomRef = useRef(true);
 
@@ -281,7 +282,6 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
               </div>
             </div>
           ))}
-          {formState ? <AssistantRequestForm /> : null}
         </div>
       </div>
     </div>
@@ -381,7 +381,7 @@ const AssistantRequestForm = () => {
 
   return (
     <form
-      className="space-y-4 rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft"
+      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
       aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
@@ -389,7 +389,7 @@ const AssistantRequestForm = () => {
       }}
     >
       <div className="space-y-1">
-        <p className="font-semibold text-foreground">Review your request before sending</p>
+        <p className="font-semibold text-foreground">{isQuoteRequest ? "What would you like a quote for?" : "Review your request before sending"}</p>
         <p className="text-xs leading-5 text-muted-foreground">Nothing is sent until you choose Confirm & send.</p>
       </div>
 
@@ -484,7 +484,7 @@ const AssistantRequestForm = () => {
           />
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex min-h-0 flex-1 flex-col space-y-3">
           {!isPortalSupport ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2"><Label htmlFor="assistant-requester-name">Your name</Label><Input id="assistant-requester-name" value={formState.name} onChange={(event) => updateForm({ name: event.target.value })} disabled={isSubmitting} /></div>
@@ -501,14 +501,14 @@ const AssistantRequestForm = () => {
             <Label htmlFor="assistant-request-title">Request title</Label>
             <Input id="assistant-request-title" value={formState.issueType} onChange={(event) => updateForm({ issueType: event.target.value })} placeholder="A short title for this request" disabled={isSubmitting} />
           </div>
-          <div className="space-y-2">
+          <div className="flex min-h-40 flex-1 flex-col space-y-2">
             <Label htmlFor="assistant-request-details">What do you need help with?</Label>
-            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="assistant-scrollbar" />
+            <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="min-h-32 flex-1 resize-none overflow-y-auto assistant-scrollbar" />
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
+      <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
         <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
         <Button type="submit" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
       </div>
@@ -531,19 +531,37 @@ const CompanionAssistant = () => {
     activeAudience,
     startNewConversation,
     saveConversation,
+    loadConversation,
     isSavingConversation,
     nudge,
     dismissNudge,
+    snoozeNudge,
     isSubmitting,
+    formState,
   } = useCompanionAssistant();
+  const { user } = useAuth();
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [savedConversations, setSavedConversations] = useState<Array<{ id: string; title: string; audience: string; updated_at: string }>>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  useEffect(() => {
+    if (!user || !historyOpen) return;
+    let cancelled = false;
+    setHistoryLoading(true);
+    void (async () => {
+      const { data, error } = await (supabase as any).from("assistant_conversations")
+        .select("id,title,audience,updated_at").order("updated_at", { ascending: false });
+      if (!cancelled && !error) setSavedConversations(data ?? []);
+      if (!cancelled) setHistoryLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [historyOpen, user]);
 
   // Handle Voice Engine integration
   const handleFinalTranscript = useCallback(
     (text: string) => {
-      setCurrentQuery(text);
-      void submitQuery(text);
+      setCurrentQuery([currentQuery.trim(), text.trim()].filter(Boolean).join(" "));
     },
-    [setCurrentQuery, submitQuery],
+    [currentQuery, setCurrentQuery],
   );
 
   const voiceEngine = useVoiceEngine({
@@ -577,6 +595,22 @@ const CompanionAssistant = () => {
     setIsCollapsed(true);
     dismissNudge();
   };
+
+  useEffect(() => {
+    if (!nudge) return;
+    try {
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const context = new AudioContextCtor();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = 660;
+      gain.gain.value = 0.025;
+      oscillator.connect(gain); gain.connect(context.destination);
+      oscillator.start(); oscillator.stop(context.currentTime + 0.12);
+      oscillator.onended = () => void context.close();
+    } catch { /* Autoplay policy may suppress the optional chime. */ }
+  }, [nudge]);
 
   const MAX_ATTACHMENTS = 4;
   const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
@@ -621,6 +655,23 @@ const CompanionAssistant = () => {
     () => (location.pathname.startsWith("/profile") ? "Search and support assistant" : "Search and help assistant"),
     [location.pathname],
   );
+  const [panelOffset, setPanelOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ x: number; y: number; originX: number; originY: number } | null>(null);
+  const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isDetachedRoute || window.innerWidth < 640 || (event.target as Element).closest("button,a,input,textarea")) return;
+    dragRef.current = { x: event.clientX, y: event.clientY, originX: panelOffset.x, originY: panelOffset.y };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const continueDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current) return;
+    const x = dragRef.current.originX + event.clientX - dragRef.current.x;
+    const y = dragRef.current.originY + event.clientY - dragRef.current.y;
+    setPanelOffset({
+      x: Math.max(-window.innerWidth + 480, Math.min(0, x)),
+      y: Math.max(-96, Math.min(window.innerHeight - 260, y)),
+    });
+  };
+  const endDrag = () => { dragRef.current = null; };
 
   useEffect(() => {
     const routeKeepsExplicitControls = location.pathname.startsWith("/checkout")
@@ -662,7 +713,13 @@ const CompanionAssistant = () => {
           : "h-full rounded-[28px]",
       )}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-4">
+      <div
+        className="flex touch-none items-start justify-between gap-3 border-b border-border/50 px-4 py-4 sm:cursor-move"
+        onPointerDown={beginDrag}
+        onPointerMove={continueDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
@@ -670,10 +727,22 @@ const CompanionAssistant = () => {
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">{title}</p>
+              <p className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:flex"><GripHorizontal className="h-3 w-3" />Drag to move</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="icon"
+            variant={historyOpen ? "secondary" : "ghost"}
+            className="h-8 w-8 text-foreground/60 hover:text-foreground"
+            aria-label="Saved chat history"
+            title="Saved chat history"
+            onClick={() => setHistoryOpen((open) => !open)}
+          >
+            <History className="h-4 w-4" />
+          </Button>
           <Button
             type="button"
             size="icon"
@@ -730,11 +799,20 @@ const CompanionAssistant = () => {
         ) : null}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col">
-        <AssistantMessageList onSpeak={voiceEngine.ttsSupported ? voiceEngine.speak : undefined} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {historyOpen ? (
+          <div className="flex-1 overflow-y-auto p-4 assistant-scrollbar">
+            <div className="mb-3"><p className="font-semibold">Saved chats</p><p className="text-xs text-muted-foreground">Open a previous chat here without leaving the page.</p></div>
+            {historyLoading ? <p className="text-sm text-muted-foreground">Loading saved chats…</p> : null}
+            {!historyLoading && savedConversations.length === 0 ? <p className="rounded-lg border p-4 text-sm text-muted-foreground">No saved chats yet.</p> : null}
+            <div className="space-y-2">{savedConversations.map((conversation) => <button key={conversation.id} type="button" className="w-full rounded-lg border p-3 text-left hover:bg-muted" onClick={async () => { await loadConversation(conversation.id); setHistoryOpen(false); }}><p className="truncate text-sm font-medium">{conversation.title}</p><p className="mt-1 text-xs capitalize text-muted-foreground">{conversation.audience} · {new Date(conversation.updated_at).toLocaleString()}</p></button>)}</div>
+          </div>
+        ) : formState ? (
+          <div className="flex min-h-0 flex-1 p-4"><AssistantRequestForm /></div>
+        ) : <AssistantMessageList onSpeak={voiceEngine.ttsSupported ? voiceEngine.speak : undefined} />}
       </div>
 
-      <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
+      {!formState && !historyOpen ? <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
         {/* Live speech transcription feedback banner */}
         {voiceEngine.isListening ? (
           <div className="flex items-center gap-2 rounded-xl border border-secondary/40 bg-secondary/10 px-3 py-2 text-xs text-foreground shadow-soft voice-transcript-live">
@@ -757,8 +835,8 @@ const CompanionAssistant = () => {
           </div>
         ) : null}
 
-        <div className="rounded-full border border-accent/55 bg-card/90 p-1 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
-          <div className="flex items-center gap-2">
+        <div className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
+          <div className="flex items-end gap-2">
             {voiceEngine.sttSupported ? (
               <Button
                 type="button"
@@ -781,10 +859,14 @@ const CompanionAssistant = () => {
                 )}
               </Button>
             ) : null}
-            <Input
+            <Textarea
               dir="ltr"
               value={currentQuery}
-              onChange={(event) => setCurrentQuery(event.target.value)}
+              onChange={(event) => {
+                setCurrentQuery(event.target.value);
+                event.currentTarget.style.height = "auto";
+                event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 144)}px`;
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
@@ -800,7 +882,8 @@ const CompanionAssistant = () => {
               }}
               placeholder={voiceEngine.isListening ? "Listening..." : "Ask anything"}
               disabled={isSubmitting}
-              className="h-11 border-0 bg-transparent px-2 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0"
+              rows={1}
+              className="max-h-36 min-h-11 resize-none border-0 bg-transparent px-2 py-3 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0 assistant-scrollbar"
             />
             <Button
               type="button"
@@ -813,7 +896,7 @@ const CompanionAssistant = () => {
             </Button>
           </div>
         </div>
-      </div>
+      </div> : null}
     </div>
   );
 
@@ -835,7 +918,7 @@ const CompanionAssistant = () => {
               <Sparkles className="mr-2 h-4 w-4" />
               {nudge.formKind === "trade_signup" ? "Create a trade account" : "Open assistant"}
             </Button>
-            <Button size="sm" variant="outline" className="rounded-full border-border/60 bg-background/70 text-foreground backdrop-blur-md hover:bg-muted/80 hover:text-foreground" onClick={handleNudgeDismiss}>
+            <Button size="sm" variant="outline" className="rounded-full border-border/60 bg-background/70 text-foreground backdrop-blur-md hover:bg-muted/80 hover:text-foreground" onClick={() => { setIsCollapsed(true); snoozeNudge(); }}>
               Not now
             </Button>
           </div>
@@ -871,7 +954,7 @@ const CompanionAssistant = () => {
             {assistantWindow}
           </div>
         ) : (
-          <div className="fixed inset-x-3 bottom-20 top-20 z-50 sm:inset-x-auto sm:right-4 sm:top-28 sm:bottom-8 sm:w-[28rem]">
+          <div className="fixed inset-x-3 bottom-20 top-20 z-50 transition-none sm:inset-x-auto sm:right-4 sm:top-28 sm:bottom-8 sm:w-[28rem]" style={{ transform: `translate3d(${panelOffset.x}px, ${panelOffset.y}px, 0)` }}>
             {assistantWindow}
           </div>
         )

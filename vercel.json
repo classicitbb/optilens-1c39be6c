@@ -1,6 +1,9 @@
 {
   "rewrites": [
-    { "source": "/qbo/:action*", "destination": "/api/qbo/:action*" },
+    {
+      "source": "/qbo/:action*",
+      "destination": "/api/qbo/:action*"
+    },
     {
       "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
@@ -28,11 +31,11 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "accelerometer=(), autoplay=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+          "value": "accelerometer=(), autoplay=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(), usb=()"
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.openai.com; worker-src 'self' blob:; manifest-src 'self'; form-action 'self' https://test.ipg-online.com https://www.ipg-online.com; frame-src 'self' https://test.ipg-online.com https://www.ipg-online.com; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.openai.com; worker-src 'self' blob:; manifest-src 'self'; form-action 'self' https://test.ipg-online.com https://www.ipg-online.com; frame-src 'self' https://test.ipg-online.com https://www.ipg-online.com; upgrade-insecure-requests"
         }
       ]
     }

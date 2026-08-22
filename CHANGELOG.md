@@ -4,6 +4,22 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-22 — Customer portal experience pass
+
+### Release Notes
+- Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.
+- Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.
+- Saved payment methods now live inside My Profile as checkout-created records that customers can edit or remove; internal CRM approval markers are no longer exposed.
+- Saved addresses now live inside My Profile, and inline profile edits can be applied with Enter.
+- Portal Copilot can create Helpdesk tickets through its shared admin tool and records voice until the user explicitly stops it for punctuated transcription.
+
+### Technical Changelog
+- Fixed profile metadata synchronization, bundled the PDF renderer statically with retries, enabled same-origin microphone permission, and added permission-aware Rx account configuration.
+- Added assistant drag, recurring snoozable nudges, a six-line composer, full-height request forms, and inline saved-conversation loading.
+- Refined the assistant request form to give its details field all remaining panel height, and retained the former payment-method URL as a redirect to My Profile.
+- Stabilized the multiline assistant composer as a rounded rectangle with bottom-aligned voice/send actions, and retained the former address-book URL as a redirect to My Profile.
+- Aligned Copilot Helpdesk writes with the live schema contract by generating ticket IDs/numbers, translating priority labels to 0-5, and replacing browser speech-recognition lifecycle coupling with MediaRecorder plus the governed transcription function; silent prompt echoes are now rejected instead of inserted as dictated text.
+
 ## 2026-08-18 — Statement document automation
 
 ### Release Notes

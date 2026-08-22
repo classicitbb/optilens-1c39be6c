@@ -4,11 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-08-14
+Last updated: 2026-08-22
 
 ---
 
 ## Active work
+
+- **Portal Copilot Helpdesk + voice reliability** — source now generates schema-valid Helpdesk ticket numbers, normalizes named priorities to the database's 0-5 scale, records through explicit click-to-start/click-to-stop audio capture, and formats the returned transcript for review. The `portal-copilot` and `voice-transcribe` functions still require deployment before live shared-environment verification.
 
 - **CV Portal Copilot connected capabilities** — source implementation now includes
   a deterministic qualified-CRM scan using contacts, order-health, opportunity

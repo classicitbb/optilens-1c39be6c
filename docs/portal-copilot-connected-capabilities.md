@@ -9,6 +9,10 @@ The Portal Copilot uses one governed pattern for connected work:
 
 Models may classify a request or draft wording. They do not invent records, execute SQL, or bypass the action queue.
 
+## Shared Helpdesk write contract
+
+The shared Copilot/MCP admin-resource dispatcher—not the language model—supplies Helpdesk creation fields that are required by the database. It generates a UUID and derived ticket number, stamps the opened time and `ai_assistant` source, maps the legacy `assigned_to` alias to `owner_user_id`, and converts Low/Normal/Medium/High/Urgent/Critical to the canonical 0-5 integer priority. The model supplies the customer-facing title and description; invalid or missing values fail with an actionable tool error before the insert.
+
 ## Read-only grounding lookups
 
 Separately from the connected-work pattern above, the Copilot may call bounded, read-only lookup tools (`search_contacts`, `get_contact`, `search_web_orders`, `search_help_articles`) mid-conversation to ground a plain question in real OpticAdmin data — for example "who is contact X" or "show me web orders for Y". These run through the same service-role database access the deterministic planners already use, return small, high-signal result sets, and never write anything. A lookup result is never used to justify or auto-execute a write — any action that changes data still has to go through the propose → approve → execute pattern described above.
