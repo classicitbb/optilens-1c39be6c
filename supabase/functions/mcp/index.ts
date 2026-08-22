@@ -1386,7 +1386,7 @@ var admin_search_records_default = defineTool25({
   inputSchema: {
     resource: z24.string().min(1).describe("Resource key from admin_list_resources."),
     query: z24.string().min(1).optional().describe("Free-text search across the resource's searchable columns."),
-    filters: z24.record(z24.any()).optional().describe('Exact-match column filters, e.g. {"status":"open"}.'),
+    filters: z24.record(z24.string(), z24.any()).optional().describe('Exact-match column filters, e.g. {"status":"open"}.'),
     limit: z24.number().int().min(1).max(50).optional().describe("Max rows (default 20).")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
@@ -1440,7 +1440,7 @@ var admin_write_record_default = defineTool27({
     resource: z26.string().min(1).describe("Resource key from admin_list_resources."),
     operation: z26.enum(["create", "update", "delete"]).describe("What to do."),
     id: z26.union([z26.string().min(1), z26.number()]).optional().describe("Record id (required for update and delete)."),
-    values: z26.record(z26.any()).optional().describe("Column/value pairs for create and update. Only writable columns are accepted.")
+    values: z26.record(z26.string(), z26.any()).optional().describe("Column/value pairs for create and update. Only writable columns are accepted.")
   },
   annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   handler: async ({ resource, operation, id, values }, ctx) => {
