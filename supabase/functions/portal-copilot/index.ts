@@ -15,6 +15,7 @@ import {
 } from "../_shared/copilot/crmOpportunityScan.ts";
 import { COPILOT_SYSTEM_CONTEXT } from "../_shared/copilot/systemContext.ts";
 import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/copilot/lookupTools.ts";
+import { ADMIN_RESOURCE_TOOLS, ADMIN_RESOURCE_TOOL_NAMES, dispatchAdminResourceTool } from "../_shared/copilot/adminResources.ts";
 import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -105,7 +106,7 @@ const ROUTER_TOOLS = [
   },
 ] as const;
 
-const COPILOT_PERSONA = "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, ask a concise clarifying question when needed, and answer directly when you can. Use the tools available to you to start the ERP portal rollout or CRM opportunity scan workflows when the admin's request matches, or to look up real contacts, web orders, or help articles before answering a question about them; those workflows appear as approval cards and never execute without explicit approval, and lookups never write anything. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions. Clearly distinguish known data from suggestions or missing information.";
+const COPILOT_PERSONA = "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, and complete the work you are asked to do instead of pushing it back to the admin. You have read and write access to every admin module through the admin_* resource tools: call admin_list_resources when you are unsure which resource covers a request, then search, read, create or update records directly. Ordinary changes execute immediately with no approval step. Deletes and price-bearing changes come back as an approval proposal — present that clearly and let the admin approve it. Also use the dedicated ERP portal rollout and CRM opportunity scan workflows when the request matches them. Chain several tool calls in one turn when a task needs it, and only ask a clarifying question when the request is genuinely ambiguous or a required identifier is missing. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions; report exactly what you did and what still needs approval."
 
 const COPILOT_SYSTEM_PROMPT = `${COPILOT_PERSONA}\n\n${COPILOT_SYSTEM_CONTEXT}`;
 
@@ -114,8 +115,8 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS];
-const MAX_LOOKUP_ITERATIONS = 4;
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS];
+const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =
   | { kind: "workflow"; workflow: "erp_portal_rollout" | "crm_opportunity_scan" }
@@ -151,7 +152,8 @@ const runCopilotTurn = async (
       return { ok: true, result: { kind: "workflow", workflow: WORKFLOW_BY_TOOL_NAME[workflowUse.name as string] } };
     }
 
-    const lookupUses = toolUses.filter((use) => LOOKUP_TOOL_NAMES.has(use.name as string));
+    const lookupUses = toolUses.filter((use) =>
+      LOOKUP_TOOL_NAMES.has(use.name as string) || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
       return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
@@ -159,7 +161,10 @@ const runCopilotTurn = async (
 
     const toolResults = await Promise.all(lookupUses.map(async (use) => {
       try {
-        const output = await dispatchLookupTool(db, use.name as string, (use.input ?? {}) as Record<string, unknown>);
+        const input = (use.input ?? {}) as Record<string, unknown>;
+        const output = ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
+          ? await dispatchAdminResourceTool(db, use.name as string, input)
+          : await dispatchLookupTool(db, use.name as string, input);
         return { type: "tool_result", tool_use_id: use.id, content: JSON.stringify(output) };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Lookup failed";

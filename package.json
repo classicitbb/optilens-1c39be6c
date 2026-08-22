@@ -20,6 +20,7 @@
     "security:product-cost-rls-audit": "node scripts/audit_product_cost_rls.mjs",
     "security:customer-data-access-audit": "node scripts/audit_customer_data_access.mjs",
     "qa:smoke": "node scripts/admin_smoke_and_error_checks.mjs",
+    "qa:agent-health": "node scripts/qa_agent_health.mjs",
     "qa:edge-smoke": "node scripts/edge_functions_smoke.mjs",
     "qa:email-pipeline-smoke": "node scripts/email_pipeline_smoke.mjs",
     "qa:email-previews": "node scripts/check_email_preview_health.mjs",
