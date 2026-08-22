@@ -95,3 +95,9 @@ verify_jwt = false
   # own admin-role check and keeps the one-time PIN/JWT/bearer token server-side.
   [functions.gatekeeper-orders]
     verify_jwt = true
+
+  # Scheduled agent-surface health probe (MCP, Portal Copilot, helpdesk SLA
+  # schema). Runs from pg_cron with the service role; it also validates its
+  # own caller-independent probes, so no user JWT is required.
+  [functions.platform-health-check]
+    verify_jwt = false
