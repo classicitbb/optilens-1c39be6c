@@ -12,6 +12,15 @@ const json = (req: Request, status: number, payload: unknown) =>
     headers: { ...getCorsHeaders(req, corsPolicy), "Content-Type": "application/json" },
   });
 
+const isPromptEcho = (value: string, vocabulary: string) => {
+  const normalize = (text: string) => text.toLocaleLowerCase("en")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+  const transcript = normalize(value)
+    .replace(/^(domain terms|domain vocabulary|likely domain terms)\s+/u, "");
+  return Boolean(vocabulary && transcript === normalize(vocabulary));
+};
+
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
   if (preflight) return preflight;
@@ -30,6 +39,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const audio = typeof body?.audio === "string" ? body.audio : "";
     const mimeType = typeof body?.mimeType === "string" && body.mimeType ? body.mimeType : "audio/webm";
+    const language = ["en-BB", "en-US", "en-GB"].includes(body?.language) ? body.language : "en-BB";
     const vocabulary = typeof body?.vocabulary === "string" ? body.vocabulary.slice(0, 500) : "";
     if (!audio) return json(req, 400, { error: "No audio was provided." });
     if (audio.length > 12_000_000) return json(req, 413, { error: "Recording is too long. Keep it under about a minute." });
@@ -59,7 +69,7 @@ Deno.serve(async (req) => {
     const form = new FormData();
     form.append("model", "openai/gpt-4o-mini-transcribe");
     form.append("file", new Blob([bytes.buffer as ArrayBuffer], { type: base || "audio/webm" }), `recording.${extension}`);
-    if (vocabulary) form.append("prompt", `Domain terms: ${vocabulary}`);
+    form.append("prompt", `Transcribe in ${language} English with natural sentence casing and punctuation. Preserve meaning and use these domain terms when spoken: ${vocabulary || "Classic Visions, portal access, pricelist, lens"}.`);
 
     const speech = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
       method: "POST",
@@ -72,7 +82,9 @@ Deno.serve(async (req) => {
     if (speech.ok) {
       const payload = await speech.json().catch(() => null);
       const transcript = String(payload?.text ?? "").trim();
-      if (transcript) return json(req, 200, { transcript, confidence: 0.92, engine: "speech" });
+      if (transcript && !isPromptEcho(transcript, vocabulary)) {
+        return json(req, 200, { transcript, confidence: 0.92, engine: "speech" });
+      }
     } else {
       console.error("voice-transcribe speech endpoint error", speech.status, (await speech.text()).slice(0, 500));
     }
@@ -86,7 +98,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Transcribe the audio verbatim in English. Return only the transcript text, no commentary. Likely domain terms: ${vocabulary || "Classic Visions, portal access, pricelist, lens"}.`,
+            content: `Transcribe the audio faithfully in ${language} English. Add natural sentence casing, punctuation, and paragraph breaks without changing meaning. Return only the polished transcript, with no commentary. Likely domain terms: ${vocabulary || "Classic Visions, portal access, pricelist, lens"}.`,
           },
           {
             role: "user",
@@ -109,7 +121,9 @@ Deno.serve(async (req) => {
 
     const payload = await response.json();
     const transcript = String(payload?.choices?.[0]?.message?.content ?? "").trim();
-    if (!transcript) return json(req, 200, { transcript: "", confidence: 0 });
+    if (!transcript || isPromptEcho(transcript, vocabulary)) {
+      return json(req, 200, { transcript: "", confidence: 0 });
+    }
     return json(req, 200, { transcript, confidence: 0.9, engine: "chat" });
 
   } catch (error) {

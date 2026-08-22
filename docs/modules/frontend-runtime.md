@@ -12,6 +12,8 @@
 - Portal support request details flex to the remaining assistant-panel height and scroll internally when their content exceeds that space.
 - `MyAccountSection` embeds the shared address book and handles Enter through the same validated inline-save actions as its checkmark controls; `/profile/address-book` remains a compatibility redirect.
 - The assistant composer uses a stable rounded-rectangle shell and bottom alignment so multiline growth occurs upward without moving its microphone or send actions.
+- `usePushToTalk` uses `MediaRecorder` as the sole recording lifecycle and invokes `voice-transcribe` only after an explicit stop; provider output is normalized for sentence casing and terminal punctuation before entering the composer.
+- The shared Copilot/MCP admin-resource dispatcher owns Helpdesk creation defaults, UUID-derived ticket numbers, assignee aliasing, and named-to-numeric priority normalization.
 
 ## 2026-08-18 — Statement PDF download
 

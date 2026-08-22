@@ -92,10 +92,10 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     key: "helpdesk_tickets",
     table: "helpdesk_tickets",
     module: "Helpdesk",
-    description: "Support tickets: title, stage, priority, team, assignee, customer contact.",
+    description: "Support tickets. On create, ticket number, opened time, and AI-assistant source are supplied automatically. Priority accepts Low, Normal, Medium, High, Urgent, Critical, or 0-5.",
     select: "*",
     searchColumns: ["title", "ticket_number", "description"],
-    writable: ["title", "description", "stage_id", "priority", "team_id", "assigned_to", "ticket_type_id", "partner_contact_id", "closed_at", "tag_ids"],
+    writable: ["title", "description", "stage_id", "priority", "team_id", "owner_user_id", "ticket_type_id", "partner_contact_id", "deadline", "closed_at", "source_channel"],
     orderBy: "created_at",
   },
   {
@@ -551,6 +551,39 @@ const pickWritable = (resource: AdminResource, values: Record<string, unknown>) 
   return { allowed, rejected };
 };
 
+const HELPDESK_PRIORITY_BY_LABEL: Record<string, number> = {
+  low: 0,
+  normal: 1,
+  medium: 2,
+  high: 3,
+  urgent: 4,
+  critical: 5,
+};
+
+const normalizeHelpdeskPriority = (value: unknown): number => {
+  const label = typeof value === "string" ? value.trim().toLowerCase() : "";
+  const numeric = label in HELPDESK_PRIORITY_BY_LABEL ? HELPDESK_PRIORITY_BY_LABEL[label] : Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0 || numeric > 5) {
+    throw new Error("Helpdesk priority must be Low, Normal, Medium, High, Urgent, Critical, or an integer from 0 to 5.");
+  }
+  return numeric;
+};
+
+const normalizeAdminWriteValues = (
+  resource: AdminResource,
+  input: Record<string, unknown>,
+) => {
+  const values = { ...input };
+  if (resource.key !== "helpdesk_tickets") return values;
+
+  if (values.assigned_to !== undefined && values.owner_user_id === undefined) {
+    values.owner_user_id = values.assigned_to;
+  }
+  delete values.assigned_to;
+  if (values.priority !== undefined) values.priority = normalizeHelpdeskPriority(values.priority);
+  return values;
+};
+
 const clampLimit = (value: unknown, fallback = 20) => {
   const num = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(num)) return fallback;
@@ -621,7 +654,20 @@ export const dispatchAdminResourceTool = async (
 
   if (name === "admin_create_record" || name === "admin_update_record") {
     const operation = name === "admin_create_record" ? "create" : "update";
-    const { allowed, rejected } = pickWritable(resource, (input.values ?? {}) as Record<string, unknown>);
+    const rawValues = normalizeAdminWriteValues(resource, (input.values ?? {}) as Record<string, unknown>);
+    const { allowed, rejected } = pickWritable(resource, rawValues);
+    if (resource.key === "helpdesk_tickets" && operation === "create") {
+      const title = typeof allowed.title === "string" ? allowed.title.trim() : "";
+      if (!title) throw new Error("A title is required to create a Helpdesk ticket.");
+      const generatedId = crypto.randomUUID();
+      allowed.id = generatedId;
+      allowed.ticket_number = `TCK-${generatedId.replaceAll("-", "").slice(0, 12).toUpperCase()}`;
+      allowed.title = title;
+      allowed.description = typeof allowed.description === "string" ? allowed.description : "";
+      allowed.priority = allowed.priority ?? 1;
+      allowed.source_channel = "ai_assistant";
+      allowed.opened_at = new Date().toISOString();
+    }
     const id = input.id;
     if (operation === "update" && (id === undefined || id === null || id === "")) {
       throw new Error("An id is required to update a record.");

@@ -80,7 +80,7 @@ const PortalCopilotPage = () => {
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
   const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
-  const [holdToRecord, setHoldToRecord] = useState(true);
+  const [holdToRecord, setHoldToRecord] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [state, setState] = useState<CopilotState | null>(null);
@@ -651,7 +651,8 @@ const PortalCopilotPage = () => {
                       size="icon"
                       variant={speech.isListening ? "destructive" : "ghost"}
                       className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground data-[state=listening]:text-foreground"
-                      aria-label={holdToRecord ? "Hold to talk, then release to review the transcript" : "Click to start or stop recording"}
+                      aria-label={speech.isStarting ? "Starting microphone" : speech.isTranscribing ? "Transcribing recording" : holdToRecord ? "Hold to talk, then release to review the transcript" : "Click to start or stop recording"}
+                      disabled={speech.isStarting || speech.isTranscribing}
                       onPointerDown={(event) => {
                         if (!holdToRecord) return;
                         event.preventDefault();
@@ -681,7 +682,7 @@ const PortalCopilotPage = () => {
                         else void speech.start();
                       }}
                     >
-                      {speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                      {speech.isStarting || speech.isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
 
                     <DropdownMenu>
@@ -741,7 +742,7 @@ const PortalCopilotPage = () => {
             {speech.error ? <p role="alert" className="text-sm text-red-700">{speech.error}</p> : null}
 
             {showAudioSettings ? (
-              <div className="grid gap-2 rounded-lg border bg-muted/20 p-3 md:grid-cols-3">
+              <div className="grid gap-2 rounded-lg border bg-muted/20 p-3 md:grid-cols-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Language</Label>
                   <Select value={speech.settings.language} onValueChange={(language: "en-BB" | "en-US" | "en-GB") => speech.setSettings((current) => ({ ...current, language }))}>
@@ -750,14 +751,10 @@ const PortalCopilotPage = () => {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="silence-timeout" className="text-xs">Silence timeout (ms)</Label>
-                  <Input id="silence-timeout" type="number" min={500} max={5000} step={250} value={speech.settings.silenceTimeoutMs} onChange={(event) => speech.setSettings((current) => ({ ...current, silenceTimeoutMs: Number(event.target.value) || 1500 }))} className="h-7 text-xs" />
-                </div>
-                <div className="space-y-1">
                   <Label htmlFor="confidence-threshold" className="text-xs">Confidence threshold</Label>
                   <Input id="confidence-threshold" type="number" min={0} max={1} step={0.05} value={speech.settings.confidenceThreshold} onChange={(event) => speech.setSettings((current) => ({ ...current, confidenceThreshold: Math.min(1, Math.max(0, Number(event.target.value))) }))} className="h-7 text-xs" />
                 </div>
-                <div className="space-y-1 md:col-span-3">
+                <div className="space-y-1 md:col-span-2">
                   <Label htmlFor="custom-vocabulary" className="text-xs">Customer and lens vocabulary</Label>
                   <Input id="custom-vocabulary" value={speech.settings.vocabulary} onChange={(event) => speech.setSettings((current) => ({ ...current, vocabulary: event.target.value }))} className="h-7 text-xs" />
                 </div>
