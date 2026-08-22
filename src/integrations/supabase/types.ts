@@ -7950,6 +7950,63 @@ export type Database = {
         }
         Relationships: []
       }
+      qbo_gateway_rate_limits: {
+        Row: {
+          bucket_key: string
+          request_count: number
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          bucket_key: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          bucket_key?: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      qbo_integration_commands: {
+        Row: {
+          claimed_at: string | null
+          command: string
+          completed_at: string | null
+          error_message_sanitized: string | null
+          id: string
+          requested_at: string
+          requested_by: string
+          result_sanitized: Json | null
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          command: string
+          completed_at?: string | null
+          error_message_sanitized?: string | null
+          id?: string
+          requested_at?: string
+          requested_by: string
+          result_sanitized?: Json | null
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          command?: string
+          completed_at?: string | null
+          error_message_sanitized?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string
+          result_sanitized?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       qbo_integration_state: {
         Row: {
           company_name: string | null
@@ -11961,6 +12018,14 @@ export type Database = {
       publish_lens_recommendation_rule_set: {
         Args: { p_rule_set_id: string }
         Returns: undefined
+      }
+      qbo_consume_rate_limit: {
+        Args: {
+          p_bucket_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: boolean
       }
       queue_abandoned_cart_alerts: {
         Args: { p_cutoff_hours?: number }
