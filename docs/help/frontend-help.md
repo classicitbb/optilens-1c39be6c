@@ -8,6 +8,7 @@
 - Select **Help** again to close the assistant. The history icon opens saved chats in the same panel; drag the desktop panel header to move it.
 - Microphone dictation fills the composer for review and editing. Enter sends; Shift+Enter adds a line, and the composer scrolls after six lines.
 - Cards saved during checkout appear under **My Profile → Saved payment methods**. Edit their saved details or remove them there; new cards are added only through checkout.
+- Shipping and billing addresses appear under **My Profile → Saved addresses**. While editing a profile contact field, press Enter or select the checkmark to apply it.
 
 ## 2026-08-18 — Downloading a statement PDF
 

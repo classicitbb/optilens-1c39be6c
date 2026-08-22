@@ -18,6 +18,7 @@ import { type ProfileFormValues, profileSchema } from "@/features/portal/profile
 import { getMissingProfileRequirements } from "@/features/portal/profileCompletion";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
+import AddressBookSection from "@/components/account/sections/AddressBookSection";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -380,6 +381,12 @@ const MyAccountSection = () => {
                         name="full_name"
                         value={profileDraft}
                         onChange={(e) => setProfileDraft(e.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void handleSaveProfileField("full_name");
+                          }
+                        }}
                         className="h-7 text-sm"
                         autoFocus
                         disabled={savingProfileField === "full_name"}
@@ -438,6 +445,12 @@ const MyAccountSection = () => {
                           type="email"
                           value={newEmail}
                           onChange={(e) => setNewEmail(e.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void handleSaveEmail();
+                            }
+                          }}
                           className="h-7 text-sm"
                           autoFocus
                           disabled={changingEmail}
@@ -494,6 +507,12 @@ const MyAccountSection = () => {
                           name="phone"
                           value={profileDraft}
                           onChange={(e) => setProfileDraft(e.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void handleSaveProfileField("phone");
+                            }
+                          }}
                           className="h-7 text-sm"
                           autoFocus
                           disabled={savingProfileField === "phone"}
@@ -550,6 +569,12 @@ const MyAccountSection = () => {
                           name="organization_name"
                           value={profileDraft}
                           onChange={(e) => setProfileDraft(e.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void handleSaveProfileField("organization_name");
+                            }
+                          }}
                           className="h-7 text-sm"
                           autoFocus
                           disabled={savingProfileField === "organization_name"}
@@ -611,6 +636,12 @@ const MyAccountSection = () => {
                             name="claimed_account_number"
                             value={claimDraft}
                             onChange={(e) => setClaimDraft(e.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void handleSaveClaim();
+                              }
+                            }}
                             placeholder="Account # from your invoice (optional)"
                             className="h-7 font-mono text-sm"
                             disabled={savingClaim}
@@ -660,6 +691,13 @@ const MyAccountSection = () => {
               </div>
             </CardContent>
           </Card>
+
+          <div id="address-book" className="scroll-mt-20">
+            <AddressBookSection
+              title="Saved addresses"
+              description="Manage the shipping and billing addresses available during checkout."
+            />
+          </div>
 
           <div id="payment-methods" className="scroll-mt-20">
             <PaymentMethodsSection

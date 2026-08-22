@@ -10,6 +10,8 @@
 - Profile edits update both the durable `profiles` row and non-authoritative auth display metadata; blank auth metadata is omitted during profile seeding so it cannot erase later edits.
 - `MyAccountSection` owns the customer-facing saved-payment-method view. Creation remains a checkout concern; `/profile/payment-methods` redirects to the embedded profile section for compatibility.
 - Portal support request details flex to the remaining assistant-panel height and scroll internally when their content exceeds that space.
+- `MyAccountSection` embeds the shared address book and handles Enter through the same validated inline-save actions as its checkmark controls; `/profile/address-book` remains a compatibility redirect.
+- The assistant composer uses a stable rounded-rectangle shell and bottom alignment so multiline growth occurs upward without moving its microphone or send actions.
 
 ## 2026-08-18 — Statement PDF download
 

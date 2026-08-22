@@ -8,6 +8,7 @@ Summarized release outcomes for each major date-stamped update.
 - Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.
 - Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.
 - My Profile now contains checkout-saved payment methods for editing or removal; customers no longer see a separate card-creation page or internal CRM linkage badges.
+- My Profile now also contains saved addresses, and Enter applies an active inline contact-detail edit.
 
 ## 2026-08-18 — Statement document automation
 

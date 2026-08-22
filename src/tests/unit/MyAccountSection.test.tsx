@@ -44,6 +44,10 @@ vi.mock("@/components/account/sections/PaymentMethodsSection", () => ({
   ),
 }));
 
+vi.mock("@/components/account/sections/AddressBookSection", () => ({
+  default: () => <section aria-label="Saved addresses" />,
+}));
+
 vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: mocks.toast }),
 }));
@@ -94,6 +98,7 @@ describe("MyAccountSection", () => {
     expect(screen.queryByText("Avatar URL")).not.toBeInTheDocument();
     expect(screen.queryByText("Bio")).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Saved payment methods" })).toHaveAttribute("data-allow-create", "false");
+    expect(screen.getByRole("region", { name: "Saved addresses" })).toBeInTheDocument();
     expect(screen.queryByText("CRM contact linked")).not.toBeInTheDocument();
     expect(screen.queryByText("Customer approved")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
@@ -115,7 +120,7 @@ describe("MyAccountSection", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Edit organization" }));
     const input = screen.getByRole("textbox", { name: "" });
     fireEvent.change(input, { target: { value: "Bridgetown Eyecare" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save organization" }));
+    fireEvent.keyDown(input, { key: "Enter" });
 
     await vi.waitFor(() => expect(mocks.upsert).toHaveBeenCalled());
     expect(mocks.updateUser).toHaveBeenCalledWith({

@@ -10,7 +10,6 @@ import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 const Profile = lazy(() => import("@/pages/Profile"));
 const MyAccountSection = lazy(() => import("@/components/account/sections/MyAccountSection"));
 const MyOrdersSection = lazy(() => import("@/components/account/sections/MyOrdersSection"));
-const AddressBookSection = lazy(() => import("@/components/account/sections/AddressBookSection"));
 const QuoteFormSection = lazy(() => import("@/components/account/sections/QuoteFormSection"));
 const HelpdeskTicketsSection = lazy(() => import("@/components/account/sections/HelpdeskTicketsSection"));
 const HelpdeskTicketDetailSection = lazy(() => import("@/components/account/sections/HelpdeskTicketDetailSection"));
@@ -56,7 +55,7 @@ const PortalRoutes = () => {
         <Route index element={<Profile />} />
         <Route path="account" element={<MyAccountSection />} />
         <Route path="orders" element={<MyOrdersSection />} />
-        <Route path="address-book" element={<AddressBookSection />} />
+        <Route path="address-book" element={<Navigate to="/profile/account#address-book" replace />} />
         <Route path="payment-methods" element={<Navigate to="/profile/account#payment-methods" replace />} />
         <Route path="quotes" element={<PortalFeatureGate feature="quotes"><QuoteFormSection /></PortalFeatureGate>} />
         <Route path="helpdesk" element={<PortalFeatureGate feature="helpdesk"><HelpdeskTicketsSection /></PortalFeatureGate>} />

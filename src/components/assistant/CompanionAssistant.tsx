@@ -835,8 +835,8 @@ const CompanionAssistant = () => {
           </div>
         ) : null}
 
-        <div className="rounded-full border border-accent/55 bg-card/90 p-1 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
-          <div className="flex items-center gap-2">
+        <div className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
+          <div className="flex items-end gap-2">
             {voiceEngine.sttSupported ? (
               <Button
                 type="button"

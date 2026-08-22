@@ -1,6 +1,5 @@
 import {
   BadgeDollarSign,
-  BookUser,
   DollarSign,
   FileSignature,
   FileText,
@@ -18,7 +17,6 @@ export const ACCOUNT_NAV_ITEMS: SidebarNavItem[] = [
   { label: "My Orders", to: "/profile/orders", icon: Package },
   { label: "Saved Drafts", to: "/profile/drafts", icon: FileText },
   { label: "Rx Order Form", to: "/profile/rx-order", icon: Glasses },
-  { label: "Address Book", to: "/profile/address-book", icon: BookUser },
   { label: "Quote Requests", to: "/profile/quotes", icon: FileSignature },
   { label: "Helpdesk Tickets", to: "/profile/helpdesk", icon: LifeBuoy },
   { label: "Assigned Pricelist", to: "/profile/pricelists", icon: BadgeDollarSign },
