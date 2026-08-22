@@ -24,7 +24,8 @@ const corsPolicy = createCorsPolicy({
   allowMethods: "POST, GET, OPTIONS",
 });
 
-type Check = { function_name: string; is_healthy: boolean; error?: string | null; checked_at: string };
+// Shape required by public.record_edge_function_health.
+type Check = { name: string; healthy: boolean; error?: string | null; checkedAt: string };
 
 const now = () => new Date().toISOString();
 
@@ -39,7 +40,7 @@ const probeMcp = async (): Promise<Check> => {
     });
     await preflight.text().catch(() => "");
     if (preflight.status >= 400) {
-      return { function_name: "mcp", is_healthy: false, error: `preflight returned ${preflight.status}`, checked_at: now() };
+      return { name: "mcp", healthy: false, error: `preflight returned ${preflight.status}`, checkedAt: now() };
     }
     const post = await fetch(url, {
       method: "POST",
@@ -49,11 +50,11 @@ const probeMcp = async (): Promise<Check> => {
     const body = (await post.text().catch(() => "")).slice(0, 300);
     // 401 = healthy server correctly demanding OAuth. 5xx = broken bundle.
     if (post.status >= 500) {
-      return { function_name: "mcp", is_healthy: false, error: `POST returned ${post.status}: ${body}`, checked_at: now() };
+      return { name: "mcp", healthy: false, error: `POST returned ${post.status}: ${body}`, checkedAt: now() };
     }
-    return { function_name: "mcp", is_healthy: true, error: null, checked_at: now() };
+    return { name: "mcp", healthy: true, error: null, checkedAt: now() };
   } catch (error) {
-    return { function_name: "mcp", is_healthy: false, error: error instanceof Error ? error.message : "probe failed", checked_at: now() };
+    return { name: "mcp", healthy: false, error: error instanceof Error ? error.message : "probe failed", checkedAt: now() };
   }
 };
 
@@ -65,10 +66,10 @@ const probeCopilot = async (): Promise<Check> => {
     });
     await response.text().catch(() => "");
     return response.status < 400
-      ? { function_name: "portal-copilot", is_healthy: true, error: null, checked_at: now() }
-      : { function_name: "portal-copilot", is_healthy: false, error: `preflight returned ${response.status}`, checked_at: now() };
+      ? { name: "portal-copilot", healthy: true, error: null, checkedAt: now() }
+      : { name: "portal-copilot", healthy: false, error: `preflight returned ${response.status}`, checkedAt: now() };
   } catch (error) {
-    return { function_name: "portal-copilot", is_healthy: false, error: error instanceof Error ? error.message : "probe failed", checked_at: now() };
+    return { name: "portal-copilot", healthy: false, error: error instanceof Error ? error.message : "probe failed", checkedAt: now() };
   }
 };
 
@@ -78,10 +79,10 @@ const probeSlaSchema = async (db: any): Promise<Check> => {
     .select("id,ticket_id,sla_policy_id,deadline_at,reached_at,status")
     .limit(1);
   return {
-    function_name: "helpdesk-sla-schema",
-    is_healthy: !error,
+    name: "helpdesk-sla-schema",
+    healthy: !error,
     error: error ? error.message : null,
-    checked_at: now(),
+    checkedAt: now(),
   };
 };
 
@@ -91,13 +92,13 @@ const alert = async (db: any, failures: Check[]) => {
     const to = (settings?.feedback_email ?? "").trim();
     if (!to || !getSmtpConfig()) return;
     const rows = failures
-      .map((check) => `<li><strong>${check.function_name}</strong>: ${check.error ?? "unhealthy"}</li>`)
+      .map((check) => `<li><strong>${check.name}</strong>: ${check.error ?? "unhealthy"}</li>`)
       .join("");
     await sendSmtpEmail({
       to,
       subject: `[OpticAdmin] Platform health check failed (${failures.length})`,
       html: `<p>The scheduled platform health check found failing agent surfaces:</p><ul>${rows}</ul><p>Checked at ${now()}.</p>`,
-      text: failures.map((check) => `${check.function_name}: ${check.error ?? "unhealthy"}`).join("\n"),
+      text: failures.map((check) => `${check.name}: ${check.error ?? "unhealthy"}`).join("\n"),
     });
   } catch {
     // Alerting must never fail the health check itself.
@@ -120,7 +121,7 @@ Deno.serve(async (req) => {
 
   const source = new URL(req.url).searchParams.get("source") === "manual" ? "manual" : "scheduled";
   const checks = [await probeMcp(), await probeCopilot(), await probeSlaSchema(db)];
-  const failures = checks.filter((check) => !check.is_healthy);
+  const failures = checks.filter((check) => !check.healthy);
 
   const { error: recordError } = await db.rpc("record_edge_function_health", {
     p_source: source,
