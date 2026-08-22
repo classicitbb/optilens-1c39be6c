@@ -6,6 +6,7 @@ import Auth from "@/pages/Auth";
 const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signUp: vi.fn(),
+  resetPasswordForEmail: vi.fn(),
   toast: vi.fn(),
   insert: vi.fn(),
   oAuth: vi.fn(),
@@ -43,6 +44,9 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: () => ({
       insert: mocks.insert,
     }),
+    auth: {
+      resetPasswordForEmail: mocks.resetPasswordForEmail,
+    },
   },
 }));
 
@@ -94,11 +98,13 @@ describe("Auth page onboarding flow", () => {
     mocks.authState.user = null;
     mocks.signIn.mockReset();
     mocks.signUp.mockReset();
+    mocks.resetPasswordForEmail.mockReset();
     mocks.toast.mockReset();
     mocks.insert.mockReset();
     mocks.oAuth.mockReset();
     mocks.signIn.mockResolvedValue({ error: null });
     mocks.signUp.mockResolvedValue({ error: null });
+    mocks.resetPasswordForEmail.mockResolvedValue({ error: null });
     mocks.insert.mockResolvedValue({ error: null });
     mocks.oAuth.mockResolvedValue({ error: null });
   });
@@ -178,5 +184,21 @@ describe("Auth page onboarding flow", () => {
       expect(mocks.signIn).toHaveBeenCalledWith("existing@example.com", "secret12");
       expect(screen.getByText("Store Page")).toBeInTheDocument();
     });
+  });
+
+  it("explains the inbox handoff after requesting a password reset", async () => {
+    renderAuth("/auth?mode=signin");
+
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "existing@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
+
+    await waitFor(() => {
+      expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith("existing@example.com", {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    });
+    expect(screen.getByText("Check your email to continue")).toBeInTheDocument();
+    expect(screen.getByText(/Open that inbox, look for an email from Classic Visions/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send another link" })).toBeInTheDocument();
   });
 });

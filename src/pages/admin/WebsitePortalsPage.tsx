@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Building2,
   CreditCard,
   ExternalLink,
   Eye,
@@ -16,7 +17,7 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
-import { clearStoredPortalAdminSession, startPortalEmulation, stopPortalEmulation } from "@/lib/portalEmulation";
+import { clearStoredPortalAdminSession, stopPortalEmulation } from "@/lib/portalEmulation";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ import {
 import { describePortalFeatureOverrideError } from "@/lib/portalFeatureOverrideErrors";
 import { detectFeatureOverrideConflicts } from "@/lib/portalFeatureConflicts";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
+import { paginate } from "@/lib/pagination";
 
 interface PortalCustomerListItem {
   userId: string;
@@ -156,6 +158,7 @@ interface ContactLookupRow {
 }
 
 const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices", "lens-assistant"] as const;
+const PORTAL_ACCOUNTS_PAGE_SIZE = 100;
 
 const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   quotes: "Quotes",
@@ -211,9 +214,10 @@ const WebsitePortalsPage = () => {
   const { user } = useAuth();
   const { users, resetPassword, inviteUser, createUser, emulatePortalUser, isLoading: usersLoading } = useAdminUsers();
   const { data: pricelistVersions = [] } = usePricelistVersions();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>("active");
   const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [accountsPage, setAccountsPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>(() => (searchParams.get("status") as AccountStatusFilter) ?? "active");
   // Older deep links still open the requested account, but ordinary row clicks
   // keep their selection in component state and do not change the page URL.
   const legacySelectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
@@ -267,6 +271,7 @@ const WebsitePortalsPage = () => {
 
       const erpCustomerRows = (erpCustomers ?? []) as Array<Record<string, any>>;
       const erpCustomerIds = erpCustomerRows.map((customer) => Number(customer.id)).filter(Number.isFinite);
+      const erpCustomerIdSet = new Set(erpCustomerIds);
       const innovationsCustomerIds = erpCustomerRows
         .map((customer) => Number(customer.innovations_customer_id))
         .filter(Number.isFinite);
@@ -319,7 +324,7 @@ const WebsitePortalsPage = () => {
         if (typeof contact.id === "string") resolvedContactById.set(contact.id, contact);
       }
       const resolveCustomerIdForContact = (contact: ContactLookupRow) => {
-        if (typeof contact.linked_customer_id === "number" && erpCustomerIds.includes(contact.linked_customer_id)) return contact.linked_customer_id;
+        if (typeof contact.linked_customer_id === "number" && erpCustomerIdSet.has(contact.linked_customer_id)) return contact.linked_customer_id;
         if (typeof contact.innovations_parent_customer_id === "number") {
           const customerId = customerIdByInnovationsId.get(contact.innovations_parent_customer_id);
           if (typeof customerId === "number") return customerId;
@@ -355,7 +360,7 @@ const WebsitePortalsPage = () => {
       });
       const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
 
-      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }] = await Promise.all([
+      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }, { data: membershipRows, error: membershipError }] = await Promise.all([
         (supabase as any)
           .from("cart_items")
           .select("user_id,quantity")
@@ -369,16 +374,34 @@ const WebsitePortalsPage = () => {
           .from("user_presence")
           .select("user_id,status,last_heartbeat_at")
           .in("user_id", customerUserIds),
+        // Every account a login has been granted, not just their single
+        // default profiles.crm_customer_id pointer — a login may hold active
+        // memberships on several customer accounts (e.g. a manager across
+        // branches). Without this, a granted secondary account never shows up
+        // as "linked" here even though the grant succeeded.
+        (supabase as any)
+          .from("portal_account_memberships")
+          .select("user_id,customer_id")
+          .in("user_id", customerUserIds)
+          .eq("status", "active"),
       ]);
 
       if (cartError) throw cartError;
       if (alertError) throw alertError;
       if (presenceError) throw presenceError;
+      if (membershipError) throw membershipError;
 
-      const cartCountByUser = ((cartRows ?? []) as Array<{ user_id: string; quantity: number }>).reduce<Record<string, number>>(
-        (acc, row) => ({ ...acc, [row.user_id]: (acc[row.user_id] ?? 0) + Number(row.quantity ?? 0) }),
-        {},
-      );
+      const membershipCustomerIdsByUserId = new Map<string, Set<number>>();
+      for (const row of (membershipRows ?? []) as Array<{ user_id: string; customer_id: number }>) {
+        const set = membershipCustomerIdsByUserId.get(row.user_id) ?? new Set<number>();
+        set.add(row.customer_id);
+        membershipCustomerIdsByUserId.set(row.user_id, set);
+      }
+
+      const cartCountByUser: Record<string, number> = {};
+      for (const row of (cartRows ?? []) as Array<{ user_id: string; quantity: number }>) {
+        cartCountByUser[row.user_id] = (cartCountByUser[row.user_id] ?? 0) + Number(row.quantity ?? 0);
+      }
 
       const openAlertByUser = new Set(((alertRows ?? []) as Array<{ user_id: string }>).map((row) => row.user_id));
       const presenceByUser = new Map(((presenceRows ?? []) as Array<{ user_id: string; status: string; last_heartbeat_at: string }>).map((row) => [row.user_id, row]));
@@ -444,6 +467,9 @@ const WebsitePortalsPage = () => {
           const contactCustomerId = customerIdByContactId.get(portalUser.crmContactId);
           if (typeof contactCustomerId === "number") relatedCustomerIds.add(contactCustomerId);
         }
+        for (const customerId of membershipCustomerIdsByUserId.get(portalUser.userId) ?? []) {
+          relatedCustomerIds.add(customerId);
+        }
         for (const customerId of relatedCustomerIds) {
           const list = linkedPortalUsersByCustomerId.get(customerId) ?? [];
           if (!list.some((entry) => entry.userId === portalUser.userId)) list.push(portalUser);
@@ -503,12 +529,39 @@ const WebsitePortalsPage = () => {
         return false;
       }
       if (!q) return true;
-      return [customer.fullName, customer.email, customer.organizationName, customer.phone]
+      // Build a searchable corpus that covers every field staff might type.
+      const primaryFields = [
+        customer.fullName,
+        customer.email,
+        customer.organizationName,
+        customer.phone,
+        customer.accountNumber,
+        customer.crmCustomerId != null ? String(customer.crmCustomerId) : null,
+        customer.crmContactId,
+      ];
+      // Also search across any linked portal users on the same account so
+      // typing a sub-user's name/email surfaces the parent account row.
+      const linkedFields = customer.linkedPortalUsers.flatMap((u) => [
+        u.fullName,
+        u.email,
+        u.organizationName,
+        u.phone,
+      ]);
+      return [...primaryFields, ...linkedFields]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
   }, [customersQuery.data, search, statusFilter]);
+  const accountsPagination = useMemo(
+    () => paginate(accounts, accountsPage, PORTAL_ACCOUNTS_PAGE_SIZE),
+    [accounts, accountsPage],
+  );
+  useEffect(() => {
+    if (accountsPage !== accountsPagination.page) setAccountsPage(accountsPagination.page);
+  }, [accountsPage, accountsPagination.page]);
+  useEffect(() => setAccountsPage(1), [search, statusFilter]);
 
   const accountCounts = useMemo(() => {
     const allAccounts = customersQuery.data ?? [];
@@ -536,12 +589,12 @@ const WebsitePortalsPage = () => {
   // Normal row clicks open the contact editor directly without route navigation.
   useEffect(() => {
     if (!selectedAccountId || !selectedAccount || contactEditor) return;
-    if (selectedAccount.crmContactId) {
+    if (selectedAccount.crmContactId && searchParams.get("force_dialog") !== "true") {
       openContactEditor(selectedAccount.crmContactId, "portal-settings");
       return;
     }
     setAccountDialogOpen(true);
-  }, [contactEditor, selectedAccount, selectedAccountId]);
+  }, [contactEditor, selectedAccount, selectedAccountId, searchParams]);
 
   const detailQuery = useQuery({
     queryKey: ["website-portals-customer-detail", selectedCustomer?.userId, selectedAccount?.crmCustomerId, selectedAccount?.accountNumber],
@@ -638,6 +691,30 @@ const WebsitePortalsPage = () => {
         quotes: (quotes ?? []) as PortalCustomerDetail["quotes"],
         tickets: (tickets ?? []) as PortalCustomerDetail["tickets"],
       } satisfies PortalCustomerDetail;
+    },
+  });
+
+  // Every account this login currently has access to — not just the single
+  // default profiles.crm_customer_id pointer shown above. A person may hold
+  // active memberships on several customer accounts (e.g. a manager across
+  // branches); this is the only place that surfaces the full list to staff.
+  const membershipsQuery = useQuery({
+    queryKey: ["website-portals-user-memberships", selectedCustomer?.userId],
+    enabled: !!selectedCustomer?.userId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_portal_account_memberships", {
+        p_user_id: selectedCustomer!.userId,
+      });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        membership_id: string;
+        customer_id: number;
+        customer_name: string;
+        account_number: string | null;
+        access_role: string;
+        membership_status: string;
+        is_default: boolean;
+      }>;
     },
   });
 
@@ -1067,24 +1144,26 @@ const WebsitePortalsPage = () => {
     if (!account.portalUser) return;
     const label = account.fullName || account.email || "customer";
     try {
-      const {
-        data: { session: adminSession },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      const { data: { session: adminSession }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       if (!adminSession) throw new Error("No active admin session. Please sign in again.");
 
       const token = await emulatePortalUser.mutateAsync(account.portalUser.userId);
-      startPortalEmulation({ userId: account.portalUser.userId, label, mode: "signed-in-as" }, adminSession);
+      const portalOrigin = window.location.hostname === "admin.classicvisions.net"
+        ? "https://www.classicvisions.net"
+        : window.location.origin;
+      const previewUrl = new URL("/auth", portalOrigin);
+      previewUrl.searchParams.set("mode", "signin");
+      previewUrl.searchParams.set("redirect", "/profile");
+      previewUrl.searchParams.set("emulate_token_hash", token.tokenHash);
+      previewUrl.searchParams.set("emulate_type", token.verificationType ?? "magiclink");
+      previewUrl.searchParams.set("emulate_user_id", account.portalUser.userId);
+      previewUrl.searchParams.set("emulate_label", label);
 
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: token.tokenHash,
-        type: token.verificationType ?? "magiclink",
-      });
-      if (error) throw error;
-
-      queryClient.clear();
-      navigate("/profile", { replace: true });
+      // Admin and customer portals use different subdomains, so auth storage
+      // cannot be shared through a relative in-app navigation. Let the public
+      // host redeem the one-time token in a separate preview tab instead.
+      window.open(previewUrl.toString(), "_blank", "noopener,noreferrer");
     } catch (error) {
       stopPortalEmulation();
       clearStoredPortalAdminSession();
@@ -1296,7 +1375,7 @@ const WebsitePortalsPage = () => {
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <div className="relative w-full md:w-1/2">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search accounts, email, ERP number…" className="h-10 pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by account name, email, ERP ACC#, organization, phone…" className="h-10 pl-9" />
               </div>
               <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccountStatusFilter)} className="md:ml-auto">
                 <TabsList>
@@ -1323,7 +1402,7 @@ const WebsitePortalsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {accounts.map((account) => {
+                  {accountsPagination.items.map((account) => {
                     const user = account.portalUser;
                     const linkedLoginCount = account.linkedPortalUsers.length;
                     return (
@@ -1418,6 +1497,16 @@ const WebsitePortalsPage = () => {
                 </tbody>
               </table>
             </div>
+            {accountsPagination.pageCount > 1 ? (
+              <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground">
+                <span>Showing {accountsPagination.start}–{accountsPagination.end} of {accounts.length}</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="h-7" disabled={accountsPagination.page === 1} onClick={() => setAccountsPage((page) => page - 1)}>Previous</Button>
+                  <span>Page {accountsPagination.page} of {accountsPagination.pageCount}</span>
+                  <Button variant="outline" size="sm" className="h-7" disabled={accountsPagination.page === accountsPagination.pageCount} onClick={() => setAccountsPage((page) => page + 1)}>Next</Button>
+                </div>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -1572,6 +1661,43 @@ const WebsitePortalsPage = () => {
                       {formatMoney(detailQuery.data.cartItems.reduce((sum, item) => sum + item.product_price * item.quantity, 0))}
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shrink-0 shadow-none hover:shadow-none">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Building2 className="h-4 w-4" />
+                    Accounts this login can access
+                  </CardTitle>
+                  <CardDescription>Every customer account this person has been granted access to, and which one is their default.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {membershipsQuery.isLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading accounts…</p>
+                  ) : !membershipsQuery.data?.length ? (
+                    <p className="text-sm text-muted-foreground">No account memberships found for this login yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {membershipsQuery.data.map((membership) => (
+                        <div key={membership.membership_id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {membership.customer_name}
+                              {membership.account_number ? <span className="text-muted-foreground"> · {membership.account_number}</span> : null}
+                            </p>
+                            <p className="text-xs capitalize text-muted-foreground">{membership.access_role} access</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {membership.is_default ? <Badge variant="outline">Default</Badge> : null}
+                            <Badge variant={membership.membership_status === "active" ? "default" : "secondary"} className="capitalize">
+                              {membership.membership_status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

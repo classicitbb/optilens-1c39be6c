@@ -21,7 +21,7 @@
 //   SCOTIA_CURRENCY        ISO numeric, e.g. "840" USD (default "840")
 // ============================================================
 
-import { z } from "npm:zod@3.25.76";
+import { z } from "npm:zod@^4.4.3";
 import {
   createCorsPolicy,
   getCorsHeaders,
@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
 
   try {
     if (parsed.action === "validate") {
-      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret);
+      const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret, cfg.storeId);
       return json({
         hashValid: result.hashValid,
         approved: result.approved,
@@ -236,7 +236,10 @@ Deno.serve(async (req) => {
     const formParams: Record<string, string> = {
       chargetotal: normalizeAmount(p.chargetotal),
       checkoutoption: DEFAULT_CHECKOUT_OPTION,
-      currency: cfg.currency,
+      // Required by the Scotia hosted-page contract for this site. Keep this
+      // fixed even if an old credential-store row still has another value.
+      currency: "840",
+      language: "en_GB",
       hash_algorithm: ALWAYS_HASH_ALGORITHM,
       responseFailURL: p.responseFailURL,
       responseSuccessURL: p.responseSuccessURL,
@@ -259,7 +262,7 @@ Deno.serve(async (req) => {
       ?? (Deno.env.get("SUPABASE_URL")
         ? `${Deno.env.get("SUPABASE_URL")}/functions/v1/scotia-notify`
         : undefined);
-    if (notificationURL) formParams.notificationURL = notificationURL;
+    if (notificationURL) formParams.transactionNotificationURL = notificationURL;
 
     // Tokenization
     if (p.assignToken) formParams.assignToken = "true";

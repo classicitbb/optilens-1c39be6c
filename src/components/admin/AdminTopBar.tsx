@@ -304,7 +304,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                     <AvatarImage src={avatarUrl || undefined} alt={displayName} />
                     <AvatarFallback className="bg-[hsl(var(--admin-accent))]/15 font-medium text-[hsl(var(--admin-content-fg))]">{initials}</AvatarFallback>
                   </Avatar>
-                  <span className="text-[11px] font-medium text-[hsl(var(--admin-content-fg))] hidden sm:inline max-w-[100px] truncate">{displayName}</span>
+                  <span className="text-[11px] font-medium text-[hsl(var(--admin-content-fg))] hidden sm:inline max-w-[220px] truncate">{displayName}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent

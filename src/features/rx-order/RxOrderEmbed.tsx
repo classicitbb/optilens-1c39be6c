@@ -8,7 +8,11 @@ import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { usePricelistScope } from "./hooks/useOrderableCatalog";
+import { useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
+import { isRxOrderableAddon, isRxOrderableLens, usePricelistScope } from "./hooks/useOrderableCatalog";
+import { useInnovationsCatalogAliases, useRxCurrencies, useRxMatrixPrices } from "./hooks/useInnovationsCatalog";
+import { buildInnovationsCatalog, comboKey, type CatalogAlias } from "./embed/innovations-catalog";
+import { priceForAlias, type PriceLookup } from "./pricing/matrixPricing";
 import { buildEngineData, persistPayload, syntheticCartProductId, LensRef } from "./embed/rx-order-adapter";
 // The prototype, verbatim: scoped styles + markup + engine (see embed/ files).
 import "./embed/rx-order.css";
@@ -27,6 +31,13 @@ export interface RxOrderEmbedProps {
   checkoutPath?: string;
   storePath?: string;
   /**
+   * "Start another Rx order" — must start a genuinely new quote, not reset
+   * this one in place (the cart's synthetic product id is a hash of quoteId,
+   * so a second submit under the same quote collides with the first job's
+   * cart row). Falls back to the old in-place reset if not supplied.
+   */
+  onStartAnother?: () => void;
+  /**
    * Partial `cv.rxorder/1` payload replayed into the form on mount — the Lens
    * Assistant handoff. Must be settled before the embed renders; the engine
    * applies it during its own init and does not re-read the prop afterwards.
@@ -34,6 +45,8 @@ export interface RxOrderEmbedProps {
   prefill?: unknown;
   /** HTML for the banner shown above a prefilled form. */
   prefillBanner?: string;
+  pricesVisible?: boolean;
+  currency?: string;
 }
 
 interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
@@ -43,7 +56,8 @@ interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
 export const RxOrderEmbed = ({
   quoteId, quoteNumber, surface, lockedAccountId = null,
   checkoutPath = "/checkout", storePath = "/store",
-  prefill, prefillBanner,
+  onStartAnother,
+  prefill, prefillBanner, pricesVisible = true, currency = "BBD",
 }: RxOrderEmbedProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -51,11 +65,13 @@ export const RxOrderEmbed = ({
   const engineRef = useRef<any>(null);
   const engineDataRef = useRef<any>(null);
   const lensIndexRef = useRef<Map<string, LensRef>>(new Map());
+  const aliasIndexRef = useRef<Map<string, CatalogAlias>>(new Map());
   const [hasMountedEngine, setHasMountedEngine] = useState(false);
   const { data: lenses = [], isLoading: lensesLoading } = useLenses();
   const { data: addons = [], isLoading: addonsLoading } = useAddons();
   const { data: accounts = [], isLoading: accountsLoading } = useCustomerAccounts();
   const { addToCart } = useCart();
+  const saveEmbeddedRxDraft = useSaveEmbeddedRxOrderDraft();
   const { isAdmin } = useUserRole();
 
   const { data: clashRules = [] } = useQuery<ClashRule[]>({
@@ -89,13 +105,29 @@ export const RxOrderEmbed = ({
   const scopeIsCurrent = effectiveAccountId == null || scope?.accountId === effectiveAccountId;
   const scopeRef = useRef(scope);
   scopeRef.current = scopeIsCurrent ? scope : undefined;
-  const ready = !lensesLoading && !addonsLoading && !accountsLoading
-    && (hasMountedEngine || effectiveAccountId == null || (scopeIsCurrent && !scopeLoading));
+
+  // Innovations is the catalogue; the matrix is the price. Neither goes through
+  // the CV lenses table — see docs/rx-order-innovations-catalogue.md §2.1/§2.3.
+  const { data: catalogAliases = [], isLoading: aliasesLoading } = useInnovationsCatalogAliases();
+  const { data: priceLookup, isLoading: pricesLoading } = useRxMatrixPrices(
+    scopeIsCurrent ? scope?.pricelistVersionId : undefined,
+  );
+  const priceLookupRef = useRef<PriceLookup | undefined>(priceLookup);
+  priceLookupRef.current = priceLookup;
+  // Rates come from the active pricing_settings row, inverted in one place —
+  // that table stores BBD-per-foreign, the engine wants foreign-per-BBD (§2.8).
+  const { data: currencies, isLoading: currenciesLoading } = useRxCurrencies();
+
+  const ready = !lensesLoading && !addonsLoading && !accountsLoading && !aliasesLoading && !currenciesLoading
+    && (hasMountedEngine || effectiveAccountId == null || (scopeIsCurrent && !scopeLoading && !pricesLoading));
 
   const engineInput = useMemo(() => {
     if (!ready) return null;
-    const activeLenses = lenses.filter((l) => l.is_active && l.show_on_website && (l.sell_price > 0 || l.base_price > 0));
-    const activeAddons = addons.filter((a) => a.is_active && a.show_on_website);
+    // Shared predicates — the Rx availability rule lives in one place, and
+    // deliberately excludes show_on_website (that gates the website store's
+    // bulk-box channel, not prescription ordering).
+    const activeLenses = lenses.filter(isRxOrderableLens);
+    const activeAddons = addons.filter(isRxOrderableAddon);
     const scopedLenses = scopeIsCurrent && scope?.hasLensRows
       ? activeLenses.filter((l) => scope.lensIds.has(l.id))
       : activeLenses;
@@ -103,14 +135,26 @@ export const RxOrderEmbed = ({
       ? activeAddons.filter((a) => scope.addonIds.has(a.id))
       : activeAddons;
     const scopedAccounts = lockedAccountId != null ? accounts.filter((a) => a.id === lockedAccountId) : accounts;
-    return buildEngineData({
+    // Accounts, treatments and clash rules stay CV-sourced — misc items are not
+    // in the alias feed yet (docs §5.3). The three catalogue axes come from
+    // Innovations and replace the lens-row derivation entirely.
+    const cv = buildEngineData({
       lenses: scopedLenses,
       addons: scopedAddons,
       clashRules,
       accounts: scopedAccounts,
       addonPriceFor: (id, fallback) => scope?.priceByItemId?.get?.(id) ?? fallback,
+      currency,
+      pricesVisible,
     });
-  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent]);
+    const catalog = buildInnovationsCatalog(catalogAliases);
+    return {
+      data: { ...cv.data, ...catalog.data, ...(currencies ? { currencies } : {}) },
+      lensIndex: cv.lensIndex,
+      aliasIndex: catalog.aliasIndex,
+      ambiguous: catalog.ambiguous,
+    };
+  }, [ready, lenses, addons, accounts, clashRules, lockedAccountId, scope, scopeIsCurrent, catalogAliases, currencies, currency, pricesVisible]);
 
   useEffect(() => {
     // Settings gear (prototype/account-simulation controls) is admin-only.
@@ -121,6 +165,7 @@ export const RxOrderEmbed = ({
     // Portal surface sits under the site's fixed Header; admin surface
     // scrolls inside AdminLayout's own container, below its top bar.
     hostRef.current?.classList.toggle("has-fixed-header", surface === "portal");
+    hostRef.current?.classList.toggle("portal-account-toolbar", surface === "portal");
   }, [surface]);
 
   useEffect(() => {
@@ -135,22 +180,39 @@ export const RxOrderEmbed = ({
 
   useEffect(() => {
     if (!hostRef.current || !engineInput || engineRef.current) return;
-    const { data, lensIndex } = engineInput;
+    const { data, lensIndex, aliasIndex } = engineInput;
     engineDataRef.current = data;
     lensIndexRef.current = lensIndex;
+    aliasIndexRef.current = aliasIndex;
+
+    const aliasFor = (m: string, d: string, c: string) => aliasIndexRef.current.get(comboKey(m, d, c));
+    // Price is the matrix cell the alias classifies into. Null is not an error:
+    // it means the combination is not offered, and the form routes it to the
+    // quote-only / request-assistance path (docs §2.4).
     const lensPriceBBD = (m: string, d: string, c: string): number | null => {
-      const ref: LensRef | undefined = lensIndexRef.current.get(`${m}|${d}|${c}`);
-      if (!ref) return null;
-      return scopeRef.current?.priceByItemId?.get?.(ref.lensId) ?? ref.listPrice;
+      const alias = aliasFor(m, d, c);
+      const lookup = priceLookupRef.current;
+      if (!alias || !lookup) return null;
+      return priceForAlias(alias, lookup);
+    };
+    const resolveAlias = (m: string, d: string, c: string) => {
+      const alias = aliasFor(m, d, c);
+      if (!alias) return null;
+      return {
+        alias: alias.alias,
+        label: `${alias.pricing_key.split("|")[0].trim()} ${alias.mf_type} ${alias.style_description} ${alias.color_description}`,
+      };
     };
     const persist = async (payload: any) => persistPayload(quoteId, payload, {
       lensIndex: lensIndexRef.current,
       addons,
       lensPriceBBD,
+      resolveAlias,
     });
 
     hostRef.current.innerHTML = markup;
-    const engine = createRxOrderEngine(hostRef.current, {
+    const host = hostRef.current;
+    const engine = createRxOrderEngine(host, {
       data: engineDataRef.current,
       lockedBranchId: lockedAccountId != null ? String(lockedAccountId) : undefined,
       defaultBranchId: defaultAccountId != null ? String(defaultAccountId) : undefined,
@@ -160,8 +222,9 @@ export const RxOrderEmbed = ({
       prefillBanner,
       lensPrice: lensPriceBBD,
       onBranchChange: (branchId: string) => { setSelectedAccountId(Number(branchId) || null); },
-      onDraftSaved: (payload: any) => {
-        persist(payload).catch((e: any) => toast({ title: "Draft not fully saved to the cloud", description: e.message, variant: "destructive" }));
+      onDraftSaved: async (payload: any) => {
+        await persist(payload);
+        await saveEmbeddedRxDraft.mutateAsync(payload);
       },
       onSubmitted: async (payload: any) => {
         const { totalBBD } = await persist(payload);
@@ -170,6 +233,7 @@ export const RxOrderEmbed = ({
           name: `Rx Order ${quoteNumber ?? ""} — ${[payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || ""}`.trim(),
           price: totalBBD,
           productType: "lens",
+          priceUnit: "job",
           variantMetadata: { rx_quote_id: quoteId, kind: "rx_order" },
           quantity: 1,
         });
@@ -177,6 +241,7 @@ export const RxOrderEmbed = ({
       },
       onCheckout: () => navigate(checkoutPath),
       onStore: () => navigate(storePath),
+      onAnother: onStartAnother,
     });
     engineRef.current = engine;
     setHasMountedEngine(true);
@@ -200,7 +265,7 @@ export const RxOrderEmbed = ({
   }, [engineInput, effectiveAccountId, scopeIsCurrent, scopeLoading]);
 
   return (
-    <div className="cv-rx-embed" ref={hostRef}>
+    <div className={`cv-rx-embed${surface === "admin" ? " admin-rx-order" : ""}`} ref={hostRef}>
       {!engineInput && (
         <div style={{ padding: "48px", textAlign: "center", fontSize: 13, color: "#667" }}>
           Loading the Rx order form…

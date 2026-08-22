@@ -1,13 +1,15 @@
 # Automation and QA Module Docs
 
-## 2026-07-10 — Windows smoke-server launcher
+## 2026-08-13 — Windows admin smoke process launch
 
-- `scripts/admin_smoke_and_error_checks.mjs` now starts the repository-installed Vite entrypoint with the current Node executable instead of spawning an npm command shim.
-- This keeps `npm run qa:smoke` compatible with Windows and Node 25, where directly spawning `npm` or `npm.cmd` can fail before the application starts.
-- The smoke route list now includes `/admin/website/store/lens-assistant` so the new governed admin surface is exercised with the existing admin routes.
-- Static route/auth wiring checks now inspect the centralized `src/routes/admin/AdminRoutes.tsx` module and the current email/password authentication copy instead of obsolete pre-route-split and Google-sign-in snippets.
-- Individual route requests retry up to three times with short backoff so Vite's first-run dependency optimization cannot create a false one-off network failure; persistent HTTP or missing-root failures still fail the suite.
-- `npm run build:sites-preview` creates an isolated SPA-compatible Sites package with a navigation fallback; the standard Vite/Vercel `dist` output and production domain configuration are unchanged.
+- `scripts/admin_smoke_and_error_checks.mjs` starts npm through the active Node executable and `npm_execpath` when available, avoiding Windows `spawn npm ENOENT` and `.cmd` `EINVAL` failures.
+- The smoke route matrix includes `/admin/copilot`, so a production preview must return the admin shell for the new route before source assertions run.
+
+## 2026-08-12 — MCP deployment artifact generation
+
+- `scripts/generate_mcp_function.mjs` bundles `src/lib/mcp/index.ts` into the portable `supabase/functions/mcp/index.ts` artifact for the explicit `SUPABASE_PROJECT_REF` target.
+- Run `SUPABASE_PROJECT_REF=<target> npm run mcp:generate` before a manual MCP deployment. The normal Vite build and Vitest configuration intentionally do not generate this file.
+- `scripts/deploy_supabase_functions.mjs` and the edge-function GitHub workflow generate the artifact immediately before deploying MCP, preventing a local test run from producing an unusable filesystem import.
 
 ## Purpose
 This module covers repository automation scripts in `scripts/**`, including PR checks and quality gates.

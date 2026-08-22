@@ -9,16 +9,44 @@ const mocks = vi.hoisted(() => ({
   lensAssistantPublic: false,
   lensAssistantAdmin: true,
   lensAssistantProfileEnabled: true,
+  cartDrafts: [] as Array<{ id: string }>,
+  rxDrafts: [] as Array<{ id: string }>,
+  statementRows: [] as Array<{ id: string; period_end: string | null }>,
+  orderRows: [] as Array<{ id: string }>,
 }));
 
 vi.mock("@/hooks/usePortalIdentity", () => ({
   usePortalIdentity: () => ({
+    identity: null,
+    emulation: null,
+    effectiveUserId: null,
     canAccessFeature: (feature: string) => {
       if (feature === "statements") return mocks.statementsEnabled;
       if (feature === "lens-assistant") return mocks.lensAssistantProfileEnabled;
       return true;
     },
   }),
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
+vi.mock("@/hooks/useCartDrafts", () => ({
+  useCartDrafts: () => ({ drafts: mocks.cartDrafts }),
+}));
+
+vi.mock("@/features/lens-assistant/api", () => ({
+  useRxDrafts: () => ({ data: mocks.rxDrafts }),
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: (options: { queryKey?: unknown[] }) => {
+    const key = options.queryKey?.[0];
+    if (key === "customer-statement-indicator") return { data: mocks.statementRows };
+    if (key === "customer-order-indicator") return { data: mocks.orderRows };
+    return { data: [] };
+  },
 }));
 
 vi.mock("@/hooks/useUserRole", () => ({
@@ -33,9 +61,9 @@ vi.mock("@/hooks/useWebsiteFeatures", () => ({
   }),
 }));
 
-const renderSidebar = () => render(
+const renderSidebar = (pathname = "/profile/account") => render(
   <MemoryRouter>
-    <AccountSidebar pathname="/profile/account" />
+    <AccountSidebar pathname={pathname} />
   </MemoryRouter>,
 );
 
@@ -46,6 +74,11 @@ describe("AccountSidebar", () => {
     mocks.lensAssistantPublic = false;
     mocks.lensAssistantAdmin = true;
     mocks.lensAssistantProfileEnabled = true;
+    mocks.cartDrafts = [];
+    mocks.rxDrafts = [];
+    mocks.statementRows = [];
+    mocks.orderRows = [];
+    localStorage.clear();
   });
 
   it("lets approved customers open statements", () => {
@@ -54,6 +87,18 @@ describe("AccountSidebar", () => {
     renderSidebar();
 
     expect(screen.getByRole("link", { name: "Statements" })).toHaveAttribute("href", "/profile/statements");
+  });
+
+  it("keeps payment methods inside My Profile instead of the sidebar", () => {
+    renderSidebar();
+
+    expect(screen.queryByRole("link", { name: "Payment Methods" })).not.toBeInTheDocument();
+  });
+
+  it("keeps saved addresses inside My Profile instead of the sidebar", () => {
+    renderSidebar();
+
+    expect(screen.queryByRole("link", { name: "Address Book" })).not.toBeInTheDocument();
   });
 
   it("hides statements entirely when the feature is disabled", () => {
@@ -65,29 +110,54 @@ describe("AccountSidebar", () => {
     expect(screen.queryByText("Statements")).not.toBeInTheDocument();
   });
 
-  it("hides Lens Assistant entirely for customers until the public flag is enabled", () => {
+  it("hides the Rx Order Form entirely for customers until the public flag is enabled", () => {
     mocks.isAdmin = false;
     mocks.lensAssistantPublic = false;
     renderSidebar();
 
-    expect(screen.queryByRole("link", { name: "Lens Assistant" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Lens Assistant")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rx Order Form" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Rx Order Form")).not.toBeInTheDocument();
   });
 
-  it("lets admins open Lens Assistant when the admin flag is enabled", () => {
+  it("lets admins open the Rx Order Form when the admin flag is enabled", () => {
     mocks.isAdmin = true;
     mocks.lensAssistantAdmin = true;
     renderSidebar();
 
-    expect(screen.getByRole("link", { name: "Lens Assistant" })).toHaveAttribute("href", "/profile/lens-assistant?audience=professional");
+    expect(screen.getByRole("link", { name: "Rx Order Form" })).toHaveAttribute("href", "/profile/rx-order");
   });
 
-  it("hides Lens Assistant when this profile has an explicit disabled override", () => {
+  it("hides the Rx Order Form when this profile has an explicit disabled override", () => {
     mocks.isAdmin = false;
     mocks.lensAssistantPublic = true;
     mocks.lensAssistantProfileEnabled = false;
     renderSidebar();
 
-    expect(screen.queryByRole("link", { name: "Lens Assistant" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rx Order Form" })).not.toBeInTheDocument();
+  });
+
+  it("counts saved cart and Rx drafts together", () => {
+    mocks.cartDrafts = [{ id: "cart-1" }];
+    mocks.rxDrafts = [{ id: "rx-1" }, { id: "rx-2" }];
+    renderSidebar();
+
+    expect(screen.getByLabelText("3 saved drafts")).toBeInTheDocument();
+  });
+
+  it("shows unique order and unseen-statement counts", () => {
+    mocks.orderRows = [{ id: "order-1" }, { id: "order-1" }, { id: "order-2" }];
+    mocks.statementRows = [{ id: "statement-1", period_end: "2026-08-01T00:00:00.000Z" }];
+    renderSidebar();
+
+    expect(screen.getByLabelText("2 unique orders")).toBeInTheDocument();
+    expect(screen.getByLabelText("1 new statement")).toBeInTheDocument();
+  });
+
+  it("does not keep My Account active on a child account route", () => {
+    mocks.lensAssistantPublic = true;
+    renderSidebar("/profile/rx-order");
+
+    expect(screen.getByRole("link", { name: "My Account" })).not.toHaveClass("bg-primary/10");
+    expect(screen.getByRole("link", { name: "Rx Order Form" })).toHaveClass("bg-primary/10");
   });
 });

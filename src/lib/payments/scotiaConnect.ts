@@ -4,11 +4,10 @@
 // Talks to the `scotia-payment` Edge Function which holds the SharedSecret.
 // The browser never sees the secret and never computes a hash.
 //
-// Flow ("Direct Sale" / full-page redirect, manual page 11):
-//   test.ipg-online.com refuses to be framed cross-origin, so we don't use
-//   the IFRAME mode described on pages 12–13 — the buyer's whole browser
-//   navigates to Scotia and back, rather than paying inside an embedded
-//   frame.
+// Flow: use the hosted page in top-level Direct Sale redirect mode. The app
+// can itself be hosted inside a preview iframe, so the form explicitly targets
+// `_top`; otherwise a targetless form would navigate only the preview iframe
+// and Fiserv would reject the page via frame-ancestors/X-Frame-Options.
 //   1. prepareScotiaPayment()   → { gatewayUrl, formParams } (incl. hashExtended)
 //   2. redirectToScotiaPayment() → builds a hidden form (no target — full
 //                                  top-level navigation) and submits it.
@@ -26,9 +25,15 @@ import { supabase } from "@/integrations/supabase/client";
 /** Public URL of the scotia-return Edge Function — where Scotia posts the
  * buyer's browser back to after payment. Both responseSuccessURL and
  * responseFailURL point here; the function reads the actual response params
- * to determine the true outcome regardless of which URL Fiserv used. */
-export const SCOTIA_RETURN_URL =
-  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scotia-return`;
+ * to determine the true outcome regardless of which URL Fiserv used.
+ * The `origin` param tells scotia-return which host to send the buyer back
+ * to (allowlisted server-side), so checkout started on a preview/admin host
+ * doesn't land on the apex domain. */
+export const SCOTIA_RETURN_URL = (() => {
+  const base = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scotia-return`;
+  if (typeof window === "undefined") return base;
+  return `${base}?origin=${encodeURIComponent(window.location.origin)}`;
+})();
 
 /** Gateway origin used to validate inbound postMessage events (manual page 12). */
 export const SCOTIA_TEST_ORIGIN = "https://test.ipg-online.com";
@@ -51,6 +56,8 @@ export interface PreparePaymentInput {
   hostURI?: string;
   /** Internal order reference (becomes the gateway `oid`). */
   orderId?: string;
+  /** Admin-only signed-form probe; never used by customer checkout. */
+  testMode?: boolean;
   // Tokenization
   assignToken?: boolean;
   hosteddataid?: string;
@@ -85,9 +92,7 @@ export async function prepareScotiaPayment(input: PreparePaymentInput): Promise<
 
 /**
  * Build a hidden form from prepared params and POST it into the iframe.
- * Mirrors the IFRAME sale form shape in the manual (pages 12–13). Kept for
- * reference / possible future use if Fiserv enables cross-origin embedding
- * for this StoreID — not called by the current (redirect-mode) checkout.
+ * Mirrors the IFRAME sale form shape in the manual (pages 12–13).
  */
 export function submitScotiaForm(prepared: PreparedPayment, iframeName: string): void {
   const form = document.createElement("form");
@@ -121,6 +126,7 @@ export function redirectToScotiaPayment(prepared: PreparedPayment): void {
   const form = document.createElement("form");
   form.method = "POST";
   form.action = prepared.gatewayUrl;
+  form.target = "_top";
   form.style.display = "none";
 
   for (const [name, value] of Object.entries(prepared.formParams)) {

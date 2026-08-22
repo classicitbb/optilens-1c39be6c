@@ -16,7 +16,7 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
-import { useCart } from "@/hooks/useCart";
+import { useCartContext } from "@/contexts/CartContext";
 import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { cn } from "@/lib/utils";
@@ -90,6 +90,11 @@ const groupBySection = (rows: CatalogRow[]) => {
   return map;
 };
 
+const isLabSupplyRow = (row: CatalogRow) => {
+  const section = row.section?.trim().toLowerCase() ?? "";
+  return section === "lab" || section === "lab supplies";
+};
+
 const AssignedPricelistsSection = () => {
   const { identity } = usePortalIdentity();
   const assignedPricelistId = identity?.assignedPricelistId ?? null;
@@ -97,7 +102,7 @@ const AssignedPricelistsSection = () => {
   const [pricesHidden, setPricesHidden] = useState(true);
   const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
-  const { addToCart } = useCart();
+  const { addToCart } = useCartContext();
   const navigate = useNavigate();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
@@ -137,6 +142,7 @@ const AssignedPricelistsSection = () => {
       name: row.display_description,
       price: row.bbd_price,
       productType,
+      priceUnit: productType === "lens" ? "pair" : undefined,
     });
   };
 
@@ -151,41 +157,69 @@ const AssignedPricelistsSection = () => {
 
   const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
 
-  const { data: rows = [], isLoading: rowsLoading, isError } = useQuery<MatrixRow[]>({
-    queryKey: ["portal-assigned-pricelist-matrix", assignedPricelistId],
+  const { data: canAccessLabPricing = false } = useQuery<boolean>({
+    queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_matrix");
+      const { data, error } = await (supabase.rpc as any)("can_access_customer_lab_pricing", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
+      if (error) throw error;
+      return data === true;
+    },
+    // This authorization can change while the portal is already open when an
+    // administrator updates the CRM contact's tags. Recheck on return instead
+    // of preserving a denied decision for five minutes.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
+  });
+
+  const { data: rows = [], isLoading: rowsLoading, isError } = useQuery<MatrixRow[]>({
+    queryKey: ["portal-assigned-pricelist-matrix", assignedPricelistId, identity?.crmCustomerId ?? null],
+    enabled: hasPricelist,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_matrix", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as MatrixRow[];
     },
   });
 
   const { data: addonRows = [], isLoading: addonsLoading } = useQuery<CatalogRow[]>({
-    queryKey: ["portal-assigned-pricelist-addons", assignedPricelistId],
+    queryKey: ["portal-assigned-pricelist-addons", assignedPricelistId, identity?.crmCustomerId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_addons");
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_addons", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as CatalogRow[];
     },
   });
 
   const { data: stockRows = [], isLoading: stockLoading, isError: stockError } = useQuery<CatalogRow[]>({
-    queryKey: ["portal-assigned-pricelist-catalog", "stock", assignedPricelistId],
-    enabled: hasPricelist,
+    queryKey: ["portal-assigned-pricelist-catalog", "stock", assignedPricelistId, identity?.crmCustomerId ?? null],
+    enabled: hasPricelist && canAccessLabPricing,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", { p_catalog_type: "stock" });
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", {
+        p_catalog_type: "stock",
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as CatalogRow[];
     },
   });
 
   const { data: supplyRows = [], isLoading: suppliesLoading, isError: suppliesError } = useQuery<CatalogRow[]>({
-    queryKey: ["portal-assigned-pricelist-catalog", "buysell", assignedPricelistId],
+    queryKey: ["portal-assigned-pricelist-catalog", "buysell", assignedPricelistId, identity?.crmCustomerId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", { p_catalog_type: "buysell" });
+      const { data, error } = await (supabase.rpc as any)("portal_assigned_pricelist_catalog", {
+        p_catalog_type: "buysell",
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       if (error) throw error;
       return (data ?? []) as CatalogRow[];
     },
@@ -217,7 +251,9 @@ const AssignedPricelistsSection = () => {
         };
       }
 
-      const { data: updatedAt } = await (supabase.rpc as any)("portal_assigned_pricelist_updated_at");
+      const { data: updatedAt } = await (supabase.rpc as any)("portal_assigned_pricelist_updated_at", {
+        p_customer_id: identity?.crmCustomerId ?? null,
+      });
       return { name: null, updated_at: (updatedAt as string | null) ?? null };
     },
   });
@@ -246,12 +282,19 @@ const AssignedPricelistsSection = () => {
 
   const addonsBySection = useMemo(() => groupBySection(addonRows), [addonRows]);
   const stockBySection = useMemo(() => groupBySection(stockRows), [stockRows]);
-  const suppliesBySection = useMemo(() => groupBySection(supplyRows), [supplyRows]);
+  // The RPC is authoritative. Keep the same presentation rule here as a
+  // defense in depth while a response is cached or a deployment is rolling
+  // out, so a Lab section never flashes into view for an untagged user.
+  const visibleSupplyRows = useMemo(
+    () => canAccessLabPricing ? supplyRows : supplyRows.filter((row) => !isLabSupplyRow(row)),
+    [canAccessLabPricing, supplyRows],
+  );
+  const suppliesBySection = useMemo(() => groupBySection(visibleSupplyRows), [visibleSupplyRows]);
 
   const rxLoading = structureLoading || rowsLoading || addonsLoading;
   const assignedPricelistName = pricelistDetails?.name?.trim() || null;
   const updatedAt = pricelistDetails?.updated_at ?? null;
-  const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || supplyRows.length > 0;
+  const hasAnyPrices = rows.length > 0 || addonRows.length > 0 || stockRows.length > 0 || visibleSupplyRows.length > 0;
 
   const { user } = useAuth();
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
@@ -285,7 +328,7 @@ const AssignedPricelistsSection = () => {
       });
     };
     addCatalogSection("Add-ons, Extras & Coatings", addonsBySection);
-    addCatalogSection("Stock Lenses", stockBySection);
+    if (canAccessLabPricing) addCatalogSection("Stock Lenses", stockBySection);
     addCatalogSection("Supplies", suppliesBySection);
 
     return toCsv(csvRows);
@@ -431,7 +474,7 @@ const AssignedPricelistsSection = () => {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <TabsList className="flex h-auto flex-wrap justify-start gap-1">
             <TabsTrigger value="rx">RX Lens Prices + Add-ons</TabsTrigger>
-            <TabsTrigger value="stock">Stock Lenses</TabsTrigger>
+            {canAccessLabPricing && <TabsTrigger value="stock">Stock Lenses</TabsTrigger>}
             <TabsTrigger value="supplies">Supplies</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-4">
@@ -520,7 +563,7 @@ const AssignedPricelistsSection = () => {
                                     const price = priceByKey.get(`${grouping.key}::${category.key}::${column.key}`);
                                     const rowKey = buildMatrixRowKey(grouping.key, category.key, column.key);
                                     return (
-                                      <td key={column.key} className="px-3 py-2 text-right font-semibold text-foreground">
+                                      <td key={column.key} className="px-3 py-2 text-center font-semibold text-foreground">
                                         {price != null ? (
                                           <PriceOverrideCell
                                             wholesaleDisplay={displayMoney(price)}
@@ -529,6 +572,7 @@ const AssignedPricelistsSection = () => {
                                             onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
                                             onClear={() => clearOverride.mutate(rowKey)}
                                             isSaving={setOverride.isPending}
+                                            centered
                                             action={{
                                               type: "rx",
                                               onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),
@@ -565,16 +609,18 @@ const AssignedPricelistsSection = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="stock">
-          {renderCatalogTab(
-            "Stock Lenses",
-            "Semi-finished stock lens wholesale pricing, grouped by MF type.",
-            stockBySection,
-            stockLoading,
-            stockError,
-            "Your assigned pricelist doesn't have any stock lens prices published yet.",
-          )}
-        </TabsContent>
+        {canAccessLabPricing && (
+          <TabsContent value="stock">
+            {renderCatalogTab(
+              "Stock Lenses",
+              "Semi-finished stock lens wholesale pricing, grouped by MF type.",
+              stockBySection,
+              stockLoading,
+              stockError,
+              "Your assigned pricelist doesn't have any stock lens prices published yet.",
+            )}
+          </TabsContent>
+        )}
 
         <TabsContent value="supplies">
           {renderCatalogTab(

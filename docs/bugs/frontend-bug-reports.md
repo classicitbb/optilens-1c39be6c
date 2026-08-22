@@ -2,6 +2,75 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-22 — Portal Copilot ticket creation and recording lifecycle
+- Area: admin Portal Copilot, shared admin-resource tools, and voice transcription.
+- Impact: Copilot could not create a Helpdesk ticket because `ticket_number` was absent and a named priority was sent to an integer column; browser speech recognition could also end immediately and hide the Stop action while the recorder remained open, and silent audio could echo the domain vocabulary hint into the composer.
+- Root cause: the generic Helpdesk resource registry drifted from the actual table contract (`owner_user_id`, required `ticket_number`, integer priority), the optional Web Speech service incorrectly controlled the recording UI lifecycle, and prompt-echo responses were not filtered.
+- Resolution: generate UUID-derived ticket numbers and AI-source metadata inside the shared dispatcher, normalize priority labels to 0-5, and make `MediaRecorder` run exclusively from explicit Start/Stop actions before server transcription.
+- Regression prevention: retain the red-capable dispatcher and recorder lifecycle tests, plus external Chrome/Edge permission and deployed-function verification.
+
+## 2026-08-22 — Portal persistence, previews, and assistant usability
+- Area: customer portal profile, handbook, orders, drafts, Rx ordering, navigation and support assistant.
+- Impact: organization edits could be overwritten, handbook PDF imports failed after bundling, draft/order contents were hard to inspect, price currency/authorization copy was ambiguous, and support entry was cramped and fragmented.
+- Root cause: auth metadata was treated as profile authority, PDF.js was nested behind unresolved dynamic imports, several persisted records exposed only summary rows, and assistant forms/history shared message-list presentation instead of dedicated modes.
+- Resolution: made profile-table edits durable, statically bundled/retried PDF.js, added draft/order detail interactions and explicit currency labels, passed server-derived price authorization into Rx rendering, and consolidated support/history into a movable full-height assistant.
+- Regression prevention: retain focused profile/Rx tests, production bundle inspection, header checks, authenticated portal browser checks, and an external Chrome/Edge microphone-permission test.
+- Follow-up: moved checkout-saved payment methods into My Profile, removed customer-side card creation and internal CRM badges, reduced the navigation divider control, and made request details fill the assistant form.
+- Follow-up: moved saved addresses into My Profile, added Enter-to-apply for inline profile edits, and kept the multiline assistant composer rectangular with its controls anchored along the bottom.
+
+## 2026-08-13 — Edge reported denied speech permission after microphone approval
+- Area: Admin Portal Copilot push-to-talk
+- Impact: approving microphone access could still immediately show **Microphone or speech permission was denied** and produce no transcript.
+- Root cause: the hook awaited `getUserMedia` and device/meter setup before calling `SpeechRecognition.start()`, detaching Web Speech startup from the initiating user press.
+- Resolution: configure and start recognition synchronously inside the press, then initialize the selected-device meter asynchronously.
+- Regression prevention: retain the hook test that makes recognition emit `not-allowed` whenever startup loses the initiating gesture, plus external Edge activation verification.
+
+## 2026-08-13 — Portal rollout lacked governed bulk operations
+- Area: Admin portal-access operations
+- Impact: staff had to identify ERP customers and provision invitations one at a time, with no consistent approval queue, ambiguity handling, or consolidated audit history.
+- Root cause: existing portal-provisioning and email functions were transactional endpoints rather than a governed workflow spanning live selection, review, execution, and recovery.
+- Resolution: added an admin-only Copilot workflow that deterministically prepares actions, requires approval for invitations, reuses existing provisioning/email boundaries, and records every transition.
+- Regression prevention: retain admin authorization, deterministic recipient selection, idempotency keys, transcript confirmation, explicit level-4 approval, and partial-failure retry coverage.
+
+## 2026-08-12 — Inconsistent outbound-order transport and preview behavior
+- Area: Rx and Stock Order forms
+- Impact: stock and Rx orders could diverge in rendered order text or transport routing, making the release result difficult to verify.
+- Resolution: both forms now use the shared Hashref writer and select Innovations or Gatekeeper explicitly at release time; the preview is rendered by that same writer.
+
+## 2026-08-11 — Stock order form discovery and draft recovery
+- Area: Admin Website stock ordering and navigation
+- Impact: the stock form was not a distinct header-launcher tile, newly registered routes were not consistently discoverable in global search, and staged stock orders had no drafts-page entry.
+- Root cause: launcher deduplication collapsed the Website child route into the Website app, while global search depended on sidebar items and the stock outbox had no list/reopen surface.
+- Resolution: added a permission-aware Stock Order Form shortcut, route-registry search fallback, lab-only account scope, explicit form title/action copy, and draft list/reopen links on Quotations.
+- Regression prevention: keep concrete admin routes registered in `APP_ROUTE_REGISTRY`, preserve the `stock-order` navigation shortcut, and retain the stock route accessibility test plus the lab-tag migration guard.
+
+## 2026-08-06 — Missing header launcher shortcuts
+- Area: Admin header app launcher
+- Impact: staff had to navigate through CRM or Website sidebars to reach Activities or the Rx Order Form.
+- Resolution: added direct, permission-aware launcher tiles that open the existing canonical admin pages.
+- Regression prevention: keep both shortcuts registry-driven and covered by the admin Rx route-accessibility integration test.
+
+## 2026-08-06
+- Area: customer portal Quote Requests and Helpdesk
+- Impact: submitting a quote created only an editable quotation row, so the request was absent from the Helpdesk queue and follow-up replies had no shared conversation.
+- Root cause: `QuoteFormSection` inserted directly into `quotes` without a transactional Helpdesk handoff or canonical record link.
+- Resolution: atomically create and link the quote, ticket, and creation event; render the immutable request with ticket status and route all replies through the existing Helpdesk detail screen.
+- Regression prevention: keep STOCK requests customer-immutable, preserve RX draft editing, and never split quote and ticket creation across browser writes.
+
+## 2026-08-04 — Multi-account portal access
+- Area: customer portal identity, live account data, and Deploy access
+- Impact: one login could point to only one `profiles.crm_customer_id`; linking another customer replaced the first and the browser could not select a deliberate account context.
+- Root cause: person identity, default account selection, and authorization were represented by the same profile column.
+- Resolution: introduced active user/customer memberships, membership-scoped feature overrides, a visible account selector, and server-side membership enforcement for live-data requests. The profile customer remains a compatibility/default pointer only.
+- Follow-up: keep carts, drafts, payments, orders, and future portal data explicitly customer-scoped. Never treat the browser's stored selection as authorization.
+
+## 2026-08-04
+- Area: customer portal assigned pricelists and Admin → Contacts tags
+- Impact: selecting **Is Lab** on a valid CRM company could leave Stock Lenses and Lab Supplies hidden, and an already-open portal could preserve the denied result for five minutes.
+- Root cause: authorization omitted the `contacts.linked_customer_id` customer relationship used by the CRM editor, while the client treated the false decision as fresh. The tag mutation also ignored an error while deleting prior links.
+- Resolution: include the resolved CRM-company relationship, recheck access on portal return/focus, and surface failed tag-link replacement.
+- Follow-up: deploy `20260804171342_fix_portal_lab_tag_resolution.sql` before validating production behavior.
+
 ## 2026-07-30
 - Area: customer portal Helpdesk, operator Helpdesk, and assistant handoff
 - Impact: ticket messages required a manual page refresh, so customers and operators could miss a new reply even while both were using the website.

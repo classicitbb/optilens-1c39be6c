@@ -1,6 +1,82 @@
 # Frontend Help Docs
 
+## 2026-08-22 — Using the updated customer portal
+
+- Select **Preview** on Saved Drafts for a quick read-only view; choose **Continue** or **Restore** only when you want to edit or return items to the cart.
+- Select a lab-order row to review its received date, promise date, status and available invoice total. Prices shown there are Barbados dollars (BBD); web-store/cart prices are US dollars (USD).
+- Use the divider control to collapse account navigation to icons; hover or focus an icon to see its destination.
+- Select **Help** again to close the assistant. The history icon opens saved chats in the same panel; drag the desktop panel header to move it.
+- Microphone dictation fills the composer for review and editing. Enter sends; Shift+Enter adds a line, and the composer scrolls after six lines.
+- Cards saved during checkout appear under **My Profile → Saved payment methods**. Edit their saved details or remove them there; new cards are added only through checkout.
+- Shipping and billing addresses appear under **My Profile → Saved addresses**. While editing a profile contact field, press Enter or select the checkmark to apply it.
+- In Portal Copilot, click the microphone once to begin recording and again to stop. Wait for **Transcribing…**, then review the punctuated text and confirm it before sending.
+
+## 2026-08-18 — Downloading a statement PDF
+
+- Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose OneDrive credentials.
+
+## 2026-08-15 — Saving a stock quotation
+
+- Build the stock order, wait for the automatic draft save, then select **Save as quotation**. The saved quotation opens in DocStudio for the document workflow.
+- A product price follows the selected account's pricelist, Retail fallback, then the published catalog. If none applies, an editing staff member must enter a non-zero manual price and explain why.
+
+## 2026-08-14 — Reviewing Copilot CRM suggestions
+
+- In **Admin → Portal Copilot**, enter **Scan CRM for lapsed buyers and qualified follow-up opportunities**.
+- Review the source evidence separately from Copilot's inference, plus the priority, due date and recommended next action. Edit the internal task if needed.
+- Select **Approve task** only when it should become live CRM work. Rejecting leaves the CRM unchanged; the scan never creates an opportunity automatically.
+
+## 2026-08-14 — Using multiple Portal Copilot chats
+
+- Select **New chat** to open a separate conversation. Start as many as needed; each appears in the **Chats** sidebar after creation.
+- Select any chat in the sidebar to restore its messages and associated ERP approval cards. Starting or switching chats does not delete earlier work.
+- A new chat is titled automatically from its first command or attachment note.
+
+## 2026-08-13 — Portal Copilot ERP rollout
+
+- Open **Admin → Portal Copilot** and enter **Roll out portal access to all ERP customers**. Voice input must be reviewed and confirmed before the workflow can prepare actions.
+- For voice input, press and hold **Hold to talk**, approve microphone access if Edge asks, continue holding while speaking, then release to review the transcript.
+- Review the live summary and each action. Correct editable email or follow-up details, then approve invitations individually; rejecting an action records the decision without provisioning access.
+- A partial-failure badge means the portal account exists but the invitation email was not queued. Resolve the email issue and use retry; do not create a second account manually.
+- If the page reports that Copilot storage or the Edge Function is unavailable, deploy the Copilot migration and functions before using the workflow.
+
+## 2026-08-12 — Releasing an order through Gatekeeper or Innovations
+
+- In the Rx and Stock Order forms, choose the transport at release time. A Gatekeeper release sends immediately; an Innovations release waits for the office worker.
+- Use **Preview file** to inspect the exact Hashref order before release. If a stock item cannot be released, correct its website publication, pricelist price, or variant OPC/SKU first.
+- If Gatekeeper contract refresh fails, reconnect or refresh contracts in Admin → Settings → Integrations; the sender requires an active contract with lab number, customer number, and routing key.
+
 Support-facing notes for the frontend runtime.
+
+## 2026-08-11 — Stock order form
+
+- Open the header grid and select **Stock Order Builder**, or type **stock order** into the header search bar.
+- The account picker intentionally lists only lab accounts with stock-lens pricing. If an expected account is missing, confirm its CRM **Is Lab** tag and assigned stock pricing.
+- Select **Add to drafts** to save a staged order. Open **Website → Quotations** to see Stock order drafts, then choose **Open draft** to continue it.
+
+## 2026-08-06 — Header launcher shortcuts
+
+- Open the grid icon in the admin header, then select **Activities** to go directly to CRM follow-ups and scheduled work.
+- Select **Rx Order Form** to start an admin Rx quotation without first opening Website → Quotations.
+- A shortcut is hidden when the signed-in staff member does not have access to its owning CRM or Website app.
+
+## 2026-08-06 — Quote requests and replies
+
+- A customer sends the original product and quantity details once from **Quote Requests**. The sent request cannot be edited afterward.
+- Open **View conversation** beside the request to send corrections or additional details. Staff replies and customer replies remain in the linked Helpdesk ticket.
+- A **Legacy request · No Helpdesk conversation** label means the request predates ticket linking; it remains visible but has no fabricated conversation.
+
+## 2026-08-04 — Multiple accounts on one login
+
+- Customers with more than one active company account use the account selector beside **My Account**. Customers with one account do not see the selector.
+- Confirm the company name or account number shown in the selector before placing an order, opening a statement, or starting a payment.
+- To grant another account, use Deploy access with the person's existing login and the additional customer. This adds access without changing the original default account.
+- If an expected account is absent, verify that its membership is active. Do not create a second login or change `profiles.crm_customer_id` to force access.
+
+## 2026-08-04 — Lab pricelist access
+
+- In Admin → Contacts, select **Is Lab** on the portal person or their linked company and save the contact. When the customer returns to My Pricelists, Stock Lenses and the Lab Supplies section should appear.
+- If access remains hidden, confirm the contact is linked to the same customer account as the portal profile and confirm the tag save did not show an error.
 
 ## 2026-07-30 — Live Helpdesk conversations
 

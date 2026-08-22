@@ -6,6 +6,21 @@ import path from "node:path";
 const repoRoot = process.cwd();
 const functionsDir = path.join(repoRoot, "supabase", "functions");
 
+function generateMcpFunction(projectRef) {
+  const generator = path.join(repoRoot, "scripts", "generate_mcp_function.mjs");
+  const result = spawnSync(process.execPath, [generator], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    shell: false,
+    env: { ...process.env, SUPABASE_PROJECT_REF: projectRef },
+  });
+
+  if (result.status !== 0) {
+    console.error("Could not generate the portable MCP Edge Function.");
+    process.exit(result.status ?? 1);
+  }
+}
+
 function printUsage() {
   console.log(`Usage:
   node scripts/deploy_supabase_functions.mjs --project-ref <ref> [--dry-run]
@@ -70,6 +85,12 @@ if (requested) {
 if (functions.length === 0) {
   console.log("No function folders selected.");
   process.exit(0);
+}
+
+// Keep the generated MCP function in sync only at the explicit deployment
+// boundary. Vite/Vitest must never mutate this artifact during normal work.
+if (!dryRun && (!requested || requested.has("mcp"))) {
+  generateMcpFunction(projectRef);
 }
 
 for (const functionName of functions) {

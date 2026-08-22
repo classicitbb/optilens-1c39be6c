@@ -32,7 +32,7 @@ const sections = [
     links: [
       { label: "Apply for a Trade Account", to: "/professionals/trade-account" },
       { label: "Optician Website Design", to: "/optical-retail-websites" },
-      { label: "Online Ordering Portal", to: "/rx-order" },
+      { label: "Rx Order Form", to: "/profile/rx-order" },
       { label: "Order Tracking", to: "/profile/orders" },
       { label: "Price List Request", to: "/professionals/price-list-request" },
       { label: "Rx Lab Services", to: "/rx-lab-services" },
@@ -95,7 +95,7 @@ const ProfessionalsPage = () => {
                 </Button>
               )}
               <Button variant="outline" asChild>
-                <Link to="/rx-order">Open LabLink</Link>
+                <Link to="/profile/rx-order">Open Rx order form</Link>
               </Button>
               <Button variant="outline" asChild>
                 <Link to="/profile">Go to my account</Link>

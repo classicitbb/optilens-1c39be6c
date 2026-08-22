@@ -8,7 +8,10 @@ export default {
   theme: {
   	container: {
   		center: true,
-  		padding: '2rem',
+  		padding: {
+  			DEFAULT: '1.25rem',
+  			sm: '2rem'
+  		},
   		screens: {
   			'2xl': '1400px'
   		}
@@ -25,27 +28,18 @@ export default {
   				'Segoe UI Symbol',
   				'Noto Color Emoji'
   			],
-  			/* Meridian Precision — classical serif for monumental headlines */
+  			/* Plus Jakarta Sans everywhere — no serif, no mono per brand direction */
   			serif: [
-  				'Playfair Display',
-  				'ui-serif',
-  				'Georgia',
-  				'Cambria',
-  				'Times New Roman',
-  				'Times',
-  				'serif'
+  				'Plus Jakarta Sans',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
   			],
-  			/* Meridian Precision — geometric monospace for precision labels */
   			mono: [
-  				'Space Mono',
-  				'ui-monospace',
-  				'SFMono-Regular',
-  				'Menlo',
-  				'Monaco',
-  				'Consolas',
-  				'Liberation Mono',
-  				'Courier New',
-  				'monospace'
+  				'Plus Jakarta Sans',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
   			]
   		},
   		colors: {
@@ -61,6 +55,11 @@ export default {
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
+  			},
+  			/* Deep navy anchoring field — navy in both light and dark themes. */
+  			'surface-deep': {
+  				DEFAULT: 'hsl(var(--surface-deep))',
+  				foreground: 'hsl(var(--surface-deep-foreground))'
   			},
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',

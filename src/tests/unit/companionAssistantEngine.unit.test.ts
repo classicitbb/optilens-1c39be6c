@@ -6,6 +6,7 @@ describe("companion assistant engine", () => {
     products: [
       {
         id: "lens-1",
+        sku: "LENS-1",
         name: "ZenVue Brilliance Progressive",
         description: "Premium progressive lens for all-day wear.",
         quantity_label: "pair",

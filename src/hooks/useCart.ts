@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { safeError } from "@/lib/safeLog";
+import { CartPriceUnit, normalizeCartAddition } from "@/lib/cartUnits";
 
 export interface CartItem {
   id: string;
@@ -104,6 +105,8 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     variantOpcCode?: string;
     variantMetadata?: Record<string, unknown>;
     quantity?: number;
+    /** The price supplied by this caller's product source. */
+    priceUnit?: CartPriceUnit;
   }) => {
     if (!user) {
       toast({
@@ -115,38 +118,43 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     }
 
     try {
-      const quantityToAdd = Math.max(1, Math.floor(product.quantity ?? 1));
+      const normalizedProduct = normalizeCartAddition(product);
+      const quantityToAdd = normalizedProduct.quantity;
 
       // Check if item already exists
-      const existingItem = items.find((item) => item.product_id === product.id && (item.variant_id ?? null) === (product.variantId ?? null));
+      const existingItem = items.find((item) => item.product_id === normalizedProduct.id && (item.variant_id ?? null) === (normalizedProduct.variantId ?? null));
 
       if (existingItem) {
         const newQuantity = existingItem.quantity + quantityToAdd;
 
         const { error } = await (supabase.from("cart_items") as any)
-          .update({ quantity: newQuantity })
+          .update({
+            quantity: newQuantity,
+            product_price: normalizedProduct.price,
+            variant_metadata: normalizedProduct.variantMetadata as unknown as import("@/integrations/supabase/types").Json,
+          })
           .eq("id", existingItem.id)
           .eq("user_id", user.id);
 
         if (error) throw error;
 
         setItems((prev) =>
-          prev.map((item) => (item.id === existingItem.id ? { ...item, quantity: newQuantity } : item)),
+          prev.map((item) => (item.id === existingItem.id ? { ...item, quantity: newQuantity, product_price: normalizedProduct.price, variant_metadata: normalizedProduct.variantMetadata } : item)),
         );
       } else {
         // Insert new item
         const cartInsertPayload = {
           user_id: user.id,
-          product_id: product.id,
-          product_name: product.name,
-          product_price: product.price,
-          product_type: product.productType,
+          product_id: normalizedProduct.id,
+          product_name: normalizedProduct.name,
+          product_price: normalizedProduct.price,
+          product_type: normalizedProduct.productType,
           quantity: quantityToAdd,
-          variant_id: product.variantId ?? null,
-          variant_label: product.variantLabel ?? null,
-          variant_sku: product.variantSku ?? null,
-          variant_opc_code: product.variantOpcCode ?? null,
-          variant_metadata: (product.variantMetadata ?? {}) as unknown as import("@/integrations/supabase/types").Json,
+          variant_id: normalizedProduct.variantId ?? null,
+          variant_label: normalizedProduct.variantLabel ?? null,
+          variant_sku: normalizedProduct.variantSku ?? null,
+          variant_opc_code: normalizedProduct.variantOpcCode ?? null,
+          variant_metadata: (normalizedProduct.variantMetadata ?? {}) as unknown as import("@/integrations/supabase/types").Json,
         };
 
         const { data, error } = await (supabase.from("cart_items") as any)

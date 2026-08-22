@@ -4,12 +4,29 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-07-10
+Last updated: 2026-08-22
 
 ---
 
 ## Active work
 
+- **Portal Copilot Helpdesk + voice reliability** — source now generates schema-valid Helpdesk ticket numbers, normalizes named priorities to the database's 0-5 scale, records through explicit click-to-start/click-to-stop audio capture, and formats the returned transcript for review. The `portal-copilot` and `voice-transcribe` functions still require deployment before live shared-environment verification.
+
+- **CV Portal Copilot connected capabilities** — source implementation now includes
+  a deterministic qualified-CRM scan using contacts, order-health, opportunity
+  and activity data. It prepares evidence/inference-labelled follow-up tasks and
+  requires per-item approval before creating a CRM activity; it never auto-creates
+  opportunities. The new workflow migration and updated `portal-copilot` function
+  require deployment before live verification. Pricing-advisor and public-web
+  enrichment data seams are mapped but not yet enabled.
+- **CV Portal Copilot ERP rollout MVP** — source implementation is complete at
+  `/admin/copilot`: admin-only route, live Innovations-synced rollout planning,
+  Level 2 preparation with Level 4 invitation approvals, push-to-talk transcript
+  review, audit history, email retry/partial-failure handling, and three new
+  Classic Visions MCP tools. The
+  `20260813130000_portal_copilot_mvp.sql` migration and the `portal-copilot`,
+  regenerated `mcp`, updated `admin-user-management`, and `docstudio-api`
+  functions still require deployment before live workflow verification.
 - **Classic Visions MCP deployment** — Codex is registered against the streamable-HTTP endpoint and the local OAuth-protected function exposes three read-only tools. The live endpoint still returns `404 Requested function was not found`; direct deployment is blocked because the currently authenticated Supabase account returns `403` for function access.
 - **On-demand live-data gateway** — the CV Web request/response function,
   short-lived gateway migration, live Innovations statements/balances, and live
@@ -47,6 +64,7 @@ Last updated: 2026-07-10
 - Wiki article renderer — shared renderer in place; preview and published views both use it
 - Customer assignment — list-page assign dialog is correct and stable
 - Auth guards — `/admin/**`, `/admin/moonshot/**`, `/ops/**` all behind `AdminProtectedRoute`
+- Portal Lab pricelist access — `Is Lab` resolves through person, parent, customer contact, or `contacts.linked_customer_id`; follow-up migration must be deployed before production verification
 
 ---
 

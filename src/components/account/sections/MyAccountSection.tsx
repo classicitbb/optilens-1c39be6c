@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AtSign, Building2, Check, CheckCircle2, IdCard, KeyRound, LogOut, Pencil, Phone, Shield, User, X } from "lucide-react";
+import { AtSign, Building2, Check, CheckCircle2, IdCard, KeyRound, LogOut, Pencil, Phone, User, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,8 @@ import { capitalizeDisplayName, resolveUserFullName } from "@/lib/profileData";
 import { type ProfileFormValues, profileSchema } from "@/features/portal/profileSchema";
 import { getMissingProfileRequirements } from "@/features/portal/profileCompletion";
 import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
+import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
+import AddressBookSection from "@/components/account/sections/AddressBookSection";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -43,7 +45,7 @@ const inlineProfileMaxLength: Record<InlineProfileField, number> = {
 
 const MyAccountSection = () => {
   const { user, signOut } = useAuth();
-  const { role, hasAccess } = useUserRole();
+  const { role } = useUserRole();
   const { identity, emulation, effectiveUserId } = usePortalIdentity();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -140,6 +142,19 @@ const MyAccountSection = () => {
       return false;
     }
 
+    // Keep editable profile metadata aligned with the durable profile row so
+    // a later auth refresh cannot restore stale signup values.
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: {
+        full_name: fullName,
+        phone: values.phone.trim(),
+        organization_name: values.organization_name?.trim() || "",
+      },
+    });
+    if (metadataError) {
+      toast({ title: "Profile saved", description: "Your profile was saved, but sign-in metadata will refresh next time.", variant: "default" });
+    }
+
     await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: user.id });
     await queryClient.invalidateQueries({ queryKey: ["portal-identity", user.id] });
     toast({ title: "Success", description: successDescription });
@@ -183,7 +198,7 @@ const MyAccountSection = () => {
   const handleSaveProfileField = async (field: InlineProfileField) => {
     const trimmed = profileDraft.trim();
     const label = inlineProfileLabels[field];
-    if (!trimmed) {
+    if (!trimmed && field !== "organization_name") {
       toast({ title: `${label} is required`, description: `Enter a ${label.toLowerCase()} before saving.`, variant: "destructive" });
       return;
     }
@@ -194,7 +209,10 @@ const MyAccountSection = () => {
 
     const values = { ...form.getValues(), [field]: trimmed };
     setSavingProfileField(field);
-    const saved = await saveProfileValues(values, `${label} updated.`);
+    const saved = await saveProfileValues(
+      values,
+      field === "organization_name" && !trimmed ? "Organization cleared." : `${label} updated.`,
+    );
     setSavingProfileField(null);
     if (!saved) return;
     form.setValue(field, trimmed, { shouldDirty: false, shouldTouch: false });
@@ -322,8 +340,6 @@ const MyAccountSection = () => {
     `Email ${identity?.emailVerified ? "verified" : "pending"}`,
     `Profile ${identity?.profileCompleted ? "complete" : "incomplete"}`,
     `Access ${identity?.portalAccessStatus?.replace(/_/g, " ") || "pending profile"}`,
-    ...(identity?.crmContactId ? ["CRM contact linked"] : []),
-    ...(identity?.crmCustomerId ? ["Customer approved"] : []),
   ];
 
   return (
@@ -339,14 +355,6 @@ const MyAccountSection = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {hasAccess ? (
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin">
-                <Shield className="mr-2 h-4 w-4" />
-                Admin
-              </Link>
-            </Button>
-          ) : null}
           <Button variant="outline" size="sm" onClick={handleSendReauthCode} disabled={sendingReauthCode || !!emulation}>
             <KeyRound className="mr-2 h-4 w-4" />
             {sendingReauthCode ? "Sending..." : "Change password"}
@@ -373,6 +381,12 @@ const MyAccountSection = () => {
                         name="full_name"
                         value={profileDraft}
                         onChange={(e) => setProfileDraft(e.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void handleSaveProfileField("full_name");
+                          }
+                        }}
                         className="h-7 text-sm"
                         autoFocus
                         disabled={savingProfileField === "full_name"}
@@ -431,6 +445,12 @@ const MyAccountSection = () => {
                           type="email"
                           value={newEmail}
                           onChange={(e) => setNewEmail(e.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void handleSaveEmail();
+                            }
+                          }}
                           className="h-7 text-sm"
                           autoFocus
                           disabled={changingEmail}
@@ -487,6 +507,12 @@ const MyAccountSection = () => {
                           name="phone"
                           value={profileDraft}
                           onChange={(e) => setProfileDraft(e.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void handleSaveProfileField("phone");
+                            }
+                          }}
                           className="h-7 text-sm"
                           autoFocus
                           disabled={savingProfileField === "phone"}
@@ -543,6 +569,12 @@ const MyAccountSection = () => {
                           name="organization_name"
                           value={profileDraft}
                           onChange={(e) => setProfileDraft(e.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void handleSaveProfileField("organization_name");
+                            }
+                          }}
                           className="h-7 text-sm"
                           autoFocus
                           disabled={savingProfileField === "organization_name"}
@@ -604,6 +636,12 @@ const MyAccountSection = () => {
                             name="claimed_account_number"
                             value={claimDraft}
                             onChange={(e) => setClaimDraft(e.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void handleSaveClaim();
+                              }
+                            }}
                             placeholder="Account # from your invoice (optional)"
                             className="h-7 font-mono text-sm"
                             disabled={savingClaim}
@@ -653,6 +691,21 @@ const MyAccountSection = () => {
               </div>
             </CardContent>
           </Card>
+
+          <div id="address-book" className="scroll-mt-20">
+            <AddressBookSection
+              title="Saved addresses"
+              description="Manage the shipping and billing addresses available during checkout."
+            />
+          </div>
+
+          <div id="payment-methods" className="scroll-mt-20">
+            <PaymentMethodsSection
+              title="Saved payment methods"
+              description="Cards saved during checkout appear here. You can update their saved details or remove them."
+              allowCreate={false}
+            />
+          </div>
 
           {reauthSent ? (
             <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">

@@ -21,6 +21,8 @@ Source priority (use in this order):
 Formatting rules:
 - Format your answer in markdown. Use **bold** for key terms, bullet lists when comparing options or listing steps.
 - Cite sources inline using numbered references like [1], [2] that match the numbered "Website context links" list provided.
+- Only cite a source [n] when it directly supports something you actually stated in your answer. Never cite or list a source that is not directly relevant to the question asked, and never cite a source just because it was supplied to you.
+- Answer only what was asked. Do not volunteer extra topics, alternate products, or additional suggestions the visitor did not request.
 - Answer the actual question first. Use 2–6 sentences or a short list when that is clearer.
 - Do not truncate or trail off mid-sentence.
 - Return your answer only — no preamble like "Here is your answer:".
@@ -57,12 +59,53 @@ type CompanionRequest = {
   intent?: string;
   confidence?: string;
   answerMode?: string;
+  anonymousSessionId?: string;
+  taskContext?: {
+    kind?: string;
+    label?: string;
+    sourceRoute?: string;
+  };
   fallbackAnswer?: string;
   topLinks?: ContextLink[];
   conversation?: Array<{
     role?: string;
     text?: string;
   }>;
+};
+
+const normalizeRoute = (route?: string) => {
+  const value = (route ?? "/").trim();
+  return value.startsWith("/") ? value.split(/[?#]/, 1)[0].slice(0, 180) : "/";
+};
+
+const editorialTopicKey = (payload: CompanionRequest) => {
+  const taskKind = payload.taskContext?.kind?.toLowerCase().replace(/[^a-z_]/g, "");
+  const intent = payload.intent?.toLowerCase().replace(/[^a-z_]/g, "") || "general";
+  const route = normalizeRoute(payload.taskContext?.sourceRoute ?? payload.route)
+    .split("/").filter(Boolean).slice(0, 2).join("-") || "home";
+  return `${taskKind || intent}:${route}`.slice(0, 120);
+};
+
+const sha256 = async (value: string) => {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const recordEditorialSignal = async (payload: CompanionRequest) => {
+  if (payload.answerMode !== "support_handoff" || !payload.anonymousSessionId) return;
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRoleKey) return;
+
+  const db = createClient(url, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  await (db.rpc as any)("record_assistant_editorial_signal", {
+    p_topic_key: editorialTopicKey(payload),
+    p_audience: (payload.audience ?? "visitor").slice(0, 32),
+    p_route: normalizeRoute(payload.taskContext?.sourceRoute ?? payload.route),
+    p_outcome: "unresolved",
+    p_session_hash: await sha256(payload.anonymousSessionId),
+  });
 };
 
 const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -226,7 +269,21 @@ serve(async (req) => {
       : groundedPayload.fallbackAnswer ?? null;
 
     const answer = (rawAnswer ?? groundedPayload.fallbackAnswer ?? "").trim() || null;
-    const citations = (groundedPayload.topLinks ?? []).slice(0, 4);
+
+    // Only surface sources the answer actually cited (via [n] markers), instead of
+    // dumping every candidate link that happened to be supplied as context. When the
+    // model didn't cite anything (e.g. the fallback text, or an off-topic reply), fall
+    // back to at most the single strongest match rather than offering unrelated links.
+    const availableLinks = groundedPayload.topLinks ?? [];
+    const citedIndices = rawAnswer
+      ? Array.from(new Set(Array.from(rawAnswer.matchAll(/\[(\d+)\]/g), (match) => Number(match[1]))))
+          .filter((index) => index >= 1 && index <= availableLinks.length)
+          .sort((a, b) => a - b)
+      : [];
+    const citations = citedIndices.length > 0
+      ? citedIndices.map((index) => availableLinks[index - 1])
+      : availableLinks.slice(0, 1);
+    await recordEditorialSignal(groundedPayload).catch((error) => console.error("assistant editorial signal failed", error));
 
     return new Response(JSON.stringify({
       answer,

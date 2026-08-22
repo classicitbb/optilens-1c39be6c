@@ -6,6 +6,7 @@ import Store from "@/pages/Store";
 const anonymousProduct = {
   id: "lens-safe-1",
   name: "Safe Storefront Lens",
+  sku: null,
   description: "Public product description",
   quantity_label: "pair",
   sell_price: 40,
@@ -39,7 +40,7 @@ vi.mock("@/hooks/useStoreProducts", async () => {
 });
 
 describe("anonymous storefront cost safety (e2e)", () => {
-  it("renders the public price without rendering cost fields", () => {
+  it("gates the sell price behind authentication and never renders cost fields", () => {
     render(
       <MemoryRouter initialEntries={["/store"]}>
         <Store />
@@ -47,7 +48,8 @@ describe("anonymous storefront cost safety (e2e)", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Safe Storefront Lens" })).toBeInTheDocument();
-    expect(screen.getByText("$20.00")).toBeInTheDocument();
+    expect(screen.queryByText("$20.00")).not.toBeInTheDocument();
+    expect(screen.getByText(/sign in for pricing/i)).toBeInTheDocument();
     expect(screen.queryByText(/base price|\bcost\b/i)).not.toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("7.25");
     expect(document.body).not.toHaveTextContent("9.5");

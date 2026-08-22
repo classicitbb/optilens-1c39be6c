@@ -2,6 +2,84 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-22 — Customer portal experience pass
+
+### Release Notes
+- Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.
+- Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.
+- My Profile now contains checkout-saved payment methods for editing or removal; customers no longer see a separate card-creation page or internal CRM linkage badges.
+- My Profile now also contains saved addresses, and Enter applies an active inline contact-detail edit.
+- Portal Copilot voice input now uses a predictable Record → Stop → Transcribe flow, and its Helpdesk ticket tool supplies the required ticket number and numeric priority automatically.
+
+## 2026-08-18 — Statement document automation
+
+### Release Notes
+- New Innovations statements can be rendered as Letter PDFs, stored in the governed OneDrive folder hierarchy, and downloaded through the authenticated portal.
+
+## 2026-08-15 — Canonical stock quotations
+
+### Release Notes
+- Staff can save a staged Stock Order Builder draft as a numbered quotation and continue with its populated DocStudio quotation document.
+- Price selection follows the account pricelist, Retail fallback, then published catalog price; a non-zero manual price requires a reason when no configured source can price the item.
+
+## 2026-08-14 — Portal Copilot qualified CRM suggestions
+
+### Release Notes
+- Ask Portal Copilot to scan CRM for qualified follow-up opportunities. It prioritizes current CRM and order-history signals, explains the evidence and inference separately, and avoids contacts already covered by open work.
+- Every suggested task remains a review item until an administrator approves it. The scan does not silently create opportunities or change customer data.
+
+## 2026-08-14 — Portal Copilot multi-chat workspace
+
+### Release Notes
+- **New chat** now creates a separate, durable Copilot conversation.
+- The Chats sidebar keeps up to 50 recent conversations available for switching, including prior attachment analyses and ERP rollout results.
+
+## 2026-08-13 — Admin Portal Copilot MVP
+
+### Release Notes
+- Administrators can open **Portal Copilot**, type a rollout request or confirm a voice transcript, and prepare portal access for every ERP-linked customer from live portal data.
+- Invitations always wait for explicit approval. Ambiguous or incomplete contacts become editable follow-up tasks, while every decision and execution result remains in the audit history.
+- A portal account that succeeds before its email fails is preserved and shown as a partial failure that can be retried safely.
+- Push-to-talk now starts speech recognition during the original press, preventing Edge from showing a false permission-denied message after microphone access is approved.
+
+## 2026-08-12 — Unified Order Dispatch and MCP Artifact Stability
+
+### Release Notes
+- Rx and stock orders now share one Hashref v2.5 writer and can be released through either Innovations or Gatekeeper without duplicate claims.
+- MCP Edge Function generation is now explicit at deployment time; normal Vite builds and Vitest runs no longer overwrite the portable function artifact.
+
+## 2026-08-11 — Stock Order Form Discovery and Drafts
+
+### Release Notes
+- The **Stock Order Form** is available from the header app launcher and global search.
+- Stock-order account selection now shows only lab accounts with priced stock-lens rows.
+- Adding a stock order to drafts persists the staged order and makes it reopenable from the quotations page.
+
+## 2026-08-06 — Header Launcher Shortcuts
+
+### Release Notes
+- **Activities** and **Rx Order Form** now appear in the header app launcher for staff with access to their owning CRM or Website app.
+- Selecting either shortcut opens the existing page directly; CRM and Website navigation remain unchanged.
+
+## 2026-08-06 — Quote Requests Routed Through Helpdesk
+
+### Release Notes
+- Sending a request from **Quote Requests** creates a Helpdesk ticket automatically and shows the complete request as locked, submitted history.
+- Use **View conversation** for corrections, questions, and support replies. Older requests remain visible and are labeled when they predate Helpdesk linking.
+
+## 2026-08-04 — Multi-account Portal Access
+
+### Release Notes
+- A person keeps one email login while authorized company accounts appear in a switcher in My Account.
+- Orders, deliveries, statements, pricing, and other live account data follow the selected account; the server rejects an account that is not an active membership.
+- Adding another account to an existing login no longer replaces its original primary customer link.
+
+## 2026-08-04 — Portal Lab Pricelist Tag Resolution
+
+### Release Notes
+- The **Is Lab** contact tag now enables Stock Lenses and Lab Supplies when it is assigned to the portal person, parent company, customer-linked contact, or CRM company resolved to that customer account.
+- An open portal rechecks this permission when the pricelist page is revisited or the browser regains focus.
+
 ## 2026-07-30 — Live Helpdesk Conversations
 
 ### Release Notes

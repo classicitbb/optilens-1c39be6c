@@ -22,10 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDown, ArrowUp, Eye, ImagePlus, Plus, Search, Settings, Store, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, Eye, ImagePlus, Layers, Plus, Search, Settings, Store, Trash2 } from "lucide-react";
 import { useLenses, type Lens } from "@/hooks/useLenses";
 import { useSupplies, type Supply } from "@/hooks/useSupplies";
 import { useAddons, type Addon } from "@/hooks/useAddons";
+import { getCatalogEditRoute, getProductHubRoute } from "@/lib/productLinks";
 import LensFormDialog from "@/components/admin/LensFormDialog";
 import SupplyFormDialog from "@/components/admin/SupplyFormDialog";
 import AddonFormDialog from "@/components/admin/AddonFormDialog";
@@ -38,9 +39,9 @@ import StorageImage from "@/components/StorageImage";
 
 type ProductType = "lens" | "supply" | "addon";
 type ProductFilter = "all" | "lenses" | "supplies" | "services";
+type StatusFilter = "all" | "active";
 type SortMode = "az" | "za" | "price-high";
 
-const CATALOG_FILTER_KEY = "catalog_filter_store_v1";
 const PRODUCT_IMAGE_BUCKET = "product-images";
 const DEFAULT_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><rect width='600' height='600' fill='white'/><rect x='30' y='30' width='540' height='540' fill='none' stroke='#e5e7eb' stroke-width='2'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='20' fill='#9ca3af'>No image</text></svg>`)}`;
 
@@ -60,12 +61,14 @@ interface ProductOverride {
   is_vat_taxable: boolean;
   quantity_label: string | null;
   website_badges: string[] | null;
+  is_published: boolean | null;
 }
 
 interface ProductRow {
   id: string;
   type: ProductType;
   name: string;
+  sku: string;
   category: string;
   subcategory: string;
   description: string;
@@ -87,12 +90,6 @@ const sortProducts = (items: ProductRow[], sortMode: SortMode) => {
   return sorted;
 };
 
-const toCatalogTab = (type: ProductType): "lenses" | "supplies" | "addons" => {
-  if (type === "lens") return "lenses";
-  if (type === "supply") return "supplies";
-  return "addons";
-};
-
 const WebsiteStorePage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -106,6 +103,7 @@ const WebsiteStorePage = () => {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ProductFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("az");
   const [selected, setSelected] = useState<ProductRow | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -152,7 +150,7 @@ const WebsiteStorePage = () => {
     queryKey: ["store-product-overrides"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("store_product_overrides") as any)
-        .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges");
+        .select("id, product_type, product_id, is_vat_taxable, quantity_label, website_badges, is_published");
 
       if (error) return [] as ProductOverride[];
       return (data ?? []) as unknown as ProductOverride[];
@@ -187,10 +185,11 @@ const WebsiteStorePage = () => {
         id: lens.id,
         type: "lens" as const,
         name: lens.name,
+        sku: "",
         category: lens.lenstype?.name ?? "Lens",
         subcategory: lens.material?.name ?? "",
         description: lens.notes ?? "",
-        showOnWebsite: lens.show_on_website,
+        showOnWebsite: override?.is_published ?? lens.show_on_website,
         isActive: lens.is_active,
         priceBbd: Number(lens.sell_price ?? 0),
         priceUsd: normalizeUsd(Number(lens.sell_price ?? 0)),
@@ -209,10 +208,11 @@ const WebsiteStorePage = () => {
         id: supply.id,
         type: "supply" as const,
         name: supply.name,
+        sku: supply.sku ?? "",
         category: supply.category || "Supply",
         subcategory: `${supply.quantity_per_unit} ${supply.unit}`.trim(),
         description: supply.description ?? "",
-        showOnWebsite: supply.show_on_website,
+        showOnWebsite: override?.is_published ?? supply.show_on_website,
         isActive: supply.is_active,
         priceBbd: Number(supply.sell_price ?? 0),
         priceUsd: normalizeUsd(Number(supply.sell_price ?? 0)),
@@ -231,10 +231,11 @@ const WebsiteStorePage = () => {
         id: addon.id,
         type: "addon" as const,
         name: addon.name,
+        sku: "",
         category: addon.category || "Service",
         subcategory: "service",
         description: addon.description ?? "",
-        showOnWebsite: addon.show_on_website,
+        showOnWebsite: override?.is_published ?? addon.show_on_website,
         isActive: addon.is_active,
         priceBbd: Number(addon.price ?? 0),
         priceUsd: normalizeUsd(Number(addon.price ?? 0)),
@@ -252,14 +253,15 @@ const WebsiteStorePage = () => {
     const query = search.trim().toLowerCase();
     const filtered = allProducts.filter((row) => {
       if (!row.showOnWebsite) return false;
+      if (statusFilter === "active" && !row.isActive) return false;
       if (filter === "lenses" && row.type !== "lens") return false;
       if (filter === "supplies" && row.type !== "supply") return false;
       if (filter === "services" && row.type !== "addon") return false;
       if (!query) return true;
-      return [row.name, row.category, row.description, row.tags.join(" ")].some((field) => field.toLowerCase().includes(query));
+      return [row.name, row.sku, row.category, row.description, row.tags.join(" ")].some((field) => field.toLowerCase().includes(query));
     });
     return sortProducts(filtered, sortMode);
-  }, [allProducts, filter, search, sortMode]);
+  }, [allProducts, filter, search, sortMode, statusFilter]);
 
   const pickerRows = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -269,141 +271,41 @@ const WebsiteStorePage = () => {
       if (filter === "supplies" && row.type !== "supply") return false;
       if (filter === "services" && row.type !== "addon") return false;
       if (!query) return true;
-      return [row.name, row.category, row.description].some((field) => field.toLowerCase().includes(query));
+      return [row.name, row.sku, row.category, row.description].some((field) => field.toLowerCase().includes(query));
     });
     return sortProducts(candidates, sortMode);
   }, [allProducts, filter, search, sortMode]);
 
   const isLoading = loadingLenses || loadingSupplies || loadingAddons;
 
-  const updateVisibility = (row: ProductRow, showOnWebsite: boolean) => {
-    if (row.type === "lens") {
-      const lens = lenses.find((item) => item.id === row.id);
-      if (!lens) return;
-      updateLensMutation.mutate(
-        {
-          id: lens.id,
-          form: {
-            name: lens.name,
-            supplier_id: lens.supplier_id,
-            brand_id: lens.brand_id,
-            material_id: lens.material_id,
-            mftype_id: lens.mftype_id,
-            lenstype_id: lens.lenstype_id,
-            finishtype_id: lens.finishtype_id,
-            index_value: lens.index_value,
-            base_price: lens.base_price,
-            sell_price: lens.sell_price,
-            sph_min: lens.sph_min,
-            sph_max: lens.sph_max,
-            cyl_min: lens.cyl_min,
-            cyl_max: lens.cyl_max,
-            add_min: lens.add_min,
-            add_max: lens.add_max,
-            is_active: lens.is_active,
-            show_in_pricelist: lens.show_in_pricelist,
-            full_lab: lens.full_lab,
-            show_in_ws_pricelist: lens.show_in_ws_pricelist,
-            show_on_website: showOnWebsite,
-            notes: lens.notes,
-            option: lens.lens_lens_options[0] ? { lens_option_id: lens.lens_lens_options[0].lens_option_id, extra_cost: lens.lens_lens_options[0].extra_cost } : null,
-          },
-        },
-        {
-          onSuccess: () => toast({ title: showOnWebsite ? "Product published to website" : "Product removed from website" }),
-          onError: (error: any) => toast({ title: "Unable to update", description: error?.message || "Unexpected error", variant: "destructive" }),
-        },
-      );
-      return;
+  const updateVisibility = async (row: ProductRow, showOnWebsite: boolean) => {
+    const existing = overrideMap.get(`${row.type}:${row.id}`);
+    const payload = {
+      product_type: row.type,
+      product_id: row.id,
+      is_published: showOnWebsite,
+      is_vat_taxable: existing?.is_vat_taxable ?? row.isVatTaxable,
+      quantity_label: existing?.quantity_label ?? row.quantityLabel,
+      website_badges: existing?.website_badges ?? row.tags,
+    };
+    try {
+      if (existing?.id) {
+        const { error } = await (supabase.from("store_product_overrides") as any).update(payload).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("store_product_overrides") as any).insert(payload as any);
+        if (error) throw error;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["store-product-overrides"] });
+      await queryClient.invalidateQueries({ queryKey: ["store-products"] });
+      toast({ title: showOnWebsite ? "Product published to storefront" : "Product removed from storefront" });
+    } catch (error: any) {
+      toast({ title: "Unable to update storefront visibility", description: error?.message || "Unexpected error", variant: "destructive" });
     }
-
-    if (row.type === "supply") {
-      const supply = supplies.find((item) => item.id === row.id);
-      if (!supply) return;
-      updateSupplyMutation.mutate(
-        {
-          id: supply.id,
-          form: {
-            name: supply.name,
-            category: supply.category,
-            description: supply.description,
-            sku: supply.sku,
-            base_price: supply.base_price,
-            sell_price: supply.sell_price,
-            unit: supply.unit,
-            quantity_per_unit: supply.quantity_per_unit,
-            is_active: supply.is_active,
-            show_on_website: showOnWebsite,
-            image_url: supply.image_url,
-            notes: supply.notes,
-            supplier_id: supply.supplier_id,
-            brand_id: supply.brand_id,
-            preferred: supply.preferred,
-            stocked: supply.stocked,
-            show_in_pricelist: supply.show_in_pricelist,
-            bin: supply.bin,
-            detail: supply.detail,
-            currency: supply.currency,
-            bb_item: supply.bb_item,
-            duty_added: supply.duty_added,
-            vat_paid: supply.vat_paid,
-            labour_added: supply.labour_added,
-            stk_wspl: supply.stk_wspl,
-          },
-        },
-        {
-          onSuccess: () => toast({ title: showOnWebsite ? "Product published to website" : "Product removed from website" }),
-          onError: (error: any) => toast({ title: "Unable to update", description: error?.message || "Unexpected error", variant: "destructive" }),
-        },
-      );
-      return;
-    }
-
-    const addon = addons.find((item) => item.id === row.id);
-    if (!addon) return;
-
-    updateAddonMutation.mutate(
-      {
-        id: addon.id,
-        form: {
-          name: addon.name,
-          sku: addon.sku,
-          category: addon.category,
-          description: addon.description,
-          cost: addon.cost,
-          price: addon.price,
-          is_auto: addon.is_auto,
-          auto_rule: addon.auto_rule,
-          is_active: addon.is_active,
-          show_on_website: showOnWebsite,
-          sort_order: addon.sort_order,
-          supplier_id: addon.supplier_id,
-        },
-      },
-      {
-        onSuccess: () => toast({ title: showOnWebsite ? "Service published to website" : "Service removed from website" }),
-        onError: (error: any) => toast({ title: "Unable to update", description: error?.message || "Unexpected error", variant: "destructive" }),
-      },
-    );
   };
 
   const openInCatalogForPriceEdit = (row: ProductRow) => {
-    const tab = toCatalogTab(row.type);
-    try {
-      const raw = localStorage.getItem(CATALOG_FILTER_KEY);
-      const parsed = raw ? JSON.parse(raw) : {};
-      const next = {
-        ...parsed,
-        activeTab: tab,
-      };
-      if (tab === "lenses") next.lens = { ...(parsed?.lens ?? {}), search: row.name };
-      if (tab === "supplies") next.supply = { ...(parsed?.supply ?? {}), search: row.name };
-      if (tab === "addons") next.addon = { ...(parsed?.addon ?? {}), search: row.name };
-      localStorage.setItem(CATALOG_FILTER_KEY, JSON.stringify(next));
-    } catch {
-      // noop
-    }
-    navigate("/admin/pricing/catalog");
+    navigate(getCatalogEditRoute(row.type, row.id));
   };
 
   const openEditor = (row: ProductRow) => {
@@ -425,6 +327,7 @@ const WebsiteStorePage = () => {
       is_vat_taxable: existing?.is_vat_taxable ?? false,
       quantity_label: existing?.quantity_label ?? selected.quantityLabel,
       website_badges: existing?.website_badges ?? selected.tags,
+      is_published: existing?.is_published ?? selected.showOnWebsite,
       ...patch,
     };
 
@@ -506,11 +409,19 @@ const WebsiteStorePage = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 shrink-0">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input className="pl-8 h-8 text-xs" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by product, category, tag" />
         </div>
+
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Select value={filter} onValueChange={(value) => setFilter(value as ProductFilter)}>
           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Filter" /></SelectTrigger>
@@ -540,7 +451,7 @@ const WebsiteStorePage = () => {
                 <th className="text-left font-medium px-3 py-2">Product</th>
                 <th className="text-left font-medium px-3 py-2">Type</th>
                 <th className="text-left font-medium px-3 py-2">Category / Qty</th>
-                <th className="text-right font-medium px-3 py-2">Price (BBD / USD)</th>
+                <th className="text-right font-medium px-3 py-2 whitespace-nowrap min-w-[112px]">Price (BBD / USD)</th>
                 <th className="text-center font-medium px-3 py-2">VAT</th>
                 <th className="text-center font-medium px-3 py-2">Visible</th>
                 <th className="text-right font-medium px-3 py-2">Actions</th>
@@ -557,14 +468,17 @@ const WebsiteStorePage = () => {
                     <div className="flex items-center gap-2">
                       <img src={row.imageUrl} alt={`${row.name} preview`} className="h-10 w-10 rounded border object-cover bg-white" />
                       <div>
-                        <div className="font-medium">{row.name}</div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-medium">{row.name} | {row.sku || "—"}</span>
+                          {!row.isActive && <Badge variant="secondary">Inactive</Badge>}
+                        </div>
                         <div className="text-muted-foreground">{row.description || "No description"}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-3 py-2"><Badge variant="outline">{row.type === "addon" ? "service" : row.type}</Badge></td>
                   <td className="px-3 py-2 text-muted-foreground">{row.category} · {row.quantityLabel}</td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right whitespace-nowrap min-w-[112px]">
                     <div>${row.priceBbd.toFixed(2)} BBD</div>
                     <div className="text-muted-foreground">${row.priceUsd.toFixed(2)} USD</div>
                   </td>
@@ -576,18 +490,23 @@ const WebsiteStorePage = () => {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => openEditor(row)}>
-                        <Settings className="h-3 w-3 mr-1" /> Edit
+                      <Button size="icon" variant="outline" className="h-7 w-7" title={`Edit ${row.name}`} aria-label={`Edit ${row.name}`} onClick={() => openEditor(row)}>
+                        <Settings className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
-                        <Link to={`/admin/website/store/variants/${row.type}/${row.id}`}>
-                          Variants
+                      <Button size="icon" variant="outline" className="h-7 w-7" asChild>
+                        <Link to={`/admin/website/store/variants/${row.type}/${row.id}`} title={`Edit variants for ${row.name}`} aria-label={`Edit variants for ${row.name}`}>
+                          <Layers className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                      <Button size="icon" variant="outline" className="h-7 w-7" asChild>
+                        <Link to={getProductHubRoute(row.type, row.id)} title={`Open ${row.name} in Product Hub`} aria-label={`Open ${row.name} in Product Hub`}>
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
                       {(row.type === "lens" || row.type === "supply" || row.type === "addon") && (
-                        <Button size="sm" variant="outline" className="h-7 text-[11px]" asChild>
-                          <Link to={`/store/product/${row.type}/${row.id}`} target="_blank" rel="noreferrer">
-                            <Eye className="h-3 w-3 mr-1" /> View
+                        <Button size="icon" variant="outline" className="h-7 w-7" asChild>
+                          <Link to={`/store/product/${row.type}/${row.id}`} target="_blank" rel="noreferrer" title={`View ${row.name}`} aria-label={`View ${row.name}`}>
+                            <Eye className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
                       )}
@@ -620,6 +539,9 @@ const WebsiteStorePage = () => {
                     <Badge variant={selected.isVatTaxable ? "default" : "secondary"}>{selected.isVatTaxable ? "VAT taxable" : "No VAT"}</Badge>
                   </div>
                   <div className="font-semibold">{selected.name}</div>
+                  {selected.type !== "lens" && selected.sku && (
+                    <div className="text-xs text-muted-foreground">SKU: {selected.sku}</div>
+                  )}
                   <div className="text-xs text-muted-foreground">{selected.description || "No description"}</div>
                   <div className="text-xs">{selected.subcategory ? `Sold as: ${selected.quantityLabel} (${selected.subcategory})` : `Sold as: ${selected.quantityLabel}`}</div>
                   <div className="text-xs">{selected.priceBbd.toFixed(2)} BBD · {selected.priceUsd.toFixed(2)} USD</div>
@@ -668,6 +590,9 @@ const WebsiteStorePage = () => {
                   <ImagePlus className="h-4 w-4 mr-1" /> Manage Images
                 </Button>
                 <Button variant="outline" onClick={() => openInCatalogForPriceEdit(selected)}>Edit price in Catalog</Button>
+                <Button variant="outline" asChild>
+                  <Link to={getProductHubRoute(selected.type, selected.id)}><ExternalLink className="h-4 w-4 mr-1" /> Open in Product Hub</Link>
+                </Button>
                 <Button variant="outline" onClick={() => {
                   if (selected.type === "lens") setLensEditorOpen(true);
                   if (selected.type === "supply") setSupplyEditorOpen(true);

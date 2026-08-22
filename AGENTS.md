@@ -20,6 +20,7 @@ relevant to your work area — do not load everything upfront.
 | AI assistant architecture | `docs/ai-knowledge-assistant-architecture.md` |
 | Architecture overview | `docs/architecture/README.md` |
 | Module doc index | `docs/ai/module-doc-index.json` |
+| Office↔cloud ERP sync (innovations-sync): auth contract, entity checklist, deploy gotchas | `supabase/functions/innovations-sync/AGENTS.md` |
 
 ## Scope discipline
 
@@ -56,6 +57,7 @@ relevant to your work area — do not load everything upfront.
 - Run `npm run build`
 - Run `npm run qa:vercel-headers` and `npm run test:headers` when touching `security/http-header-policy.json`, `vercel.json`, or the header sync scripts/tests
 - Run `npm run qa:smoke` when touching admin routing, legacy redirects, or runtime error logging wiring
+- Run `npm run qa:edge-smoke` after **any** Supabase edge function deploy, including manual redeploys triggered outside `git push` (e.g. via the Lovable chat/dashboard) — that path does not go through `.github/workflows/edge-function-release.yml`'s automatic gate, so nothing else verifies it. See `supabase/functions/innovations-sync/AGENTS.md` for the incident this rule comes from.
 - Run `npm run security:product-cost-rls-audit` when touching product-cost RLS migrations or the audit script; include service-role credentials before shared-environment database-security applies
 
 ## Browser verification

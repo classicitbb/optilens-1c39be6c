@@ -2,6 +2,8 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { sendLovableEmail, parseEmailWebhookPayload } from 'npm:@lovable.dev/email-js'
 import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import { getOrCreateUnsubscribeToken } from '../_shared/email/smtp.ts'
 import { SignupEmail } from '../_shared/email-templates/signup.tsx'
 import { InviteEmail } from '../_shared/email-templates/invite.tsx'
 import { MagicLinkEmail } from '../_shared/email-templates/magic-link.tsx'
@@ -251,6 +253,30 @@ async function handleWebhook(req: Request, corsHeaders: Record<string, string>):
     })
   }
 
+  // The email API rejects any purpose:"transactional" send that lacks an
+  // unsubscribe_token, even for account-security mail like this. We fetch the
+  // token but deliberately don't thread it into templateProps/unsubscribeUrl —
+  // an unsubscribe link on a password reset would be misleading, since
+  // suppression.ts already keeps auth mail flowing to unsubscribed addresses.
+  let unsubscribeToken: string
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Missing SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY')
+    }
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, payload.data.email)
+  } catch (error) {
+    console.error('Failed to prepare unsubscribe token', { error, run_id })
+    return new Response(JSON.stringify({ error: 'Failed to prepare email' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   let result: { message_id?: string }
   try {
     result = await sendLovableEmail(
@@ -263,6 +289,7 @@ async function handleWebhook(req: Request, corsHeaders: Record<string, string>):
         html,
         text,
         purpose: 'transactional',
+        unsubscribe_token: unsubscribeToken,
       },
       { apiKey, sendUrl: callbackUrl }
     )

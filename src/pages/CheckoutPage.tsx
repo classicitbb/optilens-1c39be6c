@@ -35,9 +35,11 @@ import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
 import { supabase } from "@/integrations/supabase/client";
 import { EMPTY_ADDRESS, type ProfileAddress, resolveUserFullName } from "@/lib/profileData";
 import { cn } from "@/lib/utils";
+import { getCartItemUnit } from "@/lib/cartUnits";
 import { createAuthHref } from "@/lib/authFlow";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import { COUNTRY_OPTIONS, getStateOptionsByCountry } from "@/lib/locationOptions";
+import NpsPrompt from "@/components/feedback/NpsPrompt";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   isScotiaEnabled,
@@ -45,6 +47,7 @@ import {
   redirectToScotiaPayment,
   SCOTIA_RETURN_URL,
 } from "@/lib/payments/scotiaConnect";
+
 
 // Scotia eCom+ embedded gateway. Off unless VITE_SCOTIA_ENABLED=true — the
 // existing offline methods + on-account always remain available as fallback.
@@ -176,7 +179,7 @@ const OrderSummarySidebar = ({
         <div key={item.id} className="flex items-start justify-between gap-2 text-sm">
           <span className="text-foreground leading-snug">
             {item.product_name}
-            <span className="ml-1 text-muted-foreground">× {item.quantity}</span>
+            <span className="ml-1 text-muted-foreground">× {item.quantity} {getCartItemUnit(item.product_type, item.variant_metadata)}</span>
           </span>
           <span className="shrink-0 tabular-nums text-sm font-semibold text-foreground">
             ${(item.product_price * item.quantity).toFixed(2)}
@@ -248,6 +251,7 @@ const CheckoutPage = () => {
   // ── State ──
   const [step, setStep] = useState<Step>(1);
   const [isComplete, setIsComplete] = useState(false);
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [formData, setFormData] = useState<CheckoutFormData>(() => emptyForm(false));
@@ -271,11 +275,15 @@ const CheckoutPage = () => {
   const [scotiaError, setScotiaError] = useState<string | null>(null);
 
   // Redirect-mode Scotia checkout: create the order first (pending — no
-  // payment captured yet), then send the buyer's whole browser to Scotia's
-  // hosted page. Nothing runs after redirectToScotiaPayment(); the gateway
-  // POSTs the buyer back to scotia-return, which settles the order via
-  // service role and 302s back here with a `?scotia=` result flag (handled
-  // by the returning-from-Scotia effect below).
+  // payment captured yet), prepare a freshly-signed form, then send the
+  // buyer's whole browser to Scotia's hosted page in a single top-level POST.
+  // The hosted page cannot be iframed (Fiserv sends X-Frame-Options:
+  // SAMEORIGIN / frame-ancestors 'self'), and a prepared form may only be
+  // posted ONCE — re-posting the same oid + txndatetime makes the gateway
+  // answer "Unknown application error". Nothing runs after
+  // redirectToScotiaPayment(); the gateway POSTs the buyer back to
+  // scotia-return, which settles the order via service role and 302s back
+  // here with a `?scotia=` result flag.
   const handleScotiaCheckout = async () => {
     setScotiaError(null);
     setIsProcessing(true);
@@ -297,9 +305,8 @@ const CheckoutPage = () => {
       }
 
       const prepared = await prepareScotiaPayment({
-        // The server returns the persisted payable total. Do not calculate a
-        // second amount in the browser: the signed gateway amount must match
-        // the order-payment record exactly.
+        // The server signs the persisted payable total. Do not calculate a
+        // second amount in the browser: it must match the order-payment row.
         chargetotal: order.totalAmount,
         responseSuccessURL: SCOTIA_RETURN_URL,
         responseFailURL: SCOTIA_RETURN_URL,
@@ -308,7 +315,6 @@ const CheckoutPage = () => {
         assignToken: selectedScotiaToken === null ? saveScotiaCard : undefined,
       });
       redirectToScotiaPayment(prepared);
-      // No further code runs — the page is navigating away.
     } catch (err) {
       setScotiaError(err instanceof Error ? err.message : "Could not start payment. Please try again.");
       setIsProcessing(false);
@@ -466,7 +472,7 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
-    const success = await createOrder(items, totalPrice, {
+    const order = await createOrder(items, totalPrice, {
       ...formData,
       billingAddress: sameAsShipping ? formData.shippingAddress : formData.billingAddress,
       billingAddressId: sameAsShipping ? formData.shippingAddressId : formData.billingAddressId,
@@ -476,7 +482,8 @@ const CheckoutPage = () => {
       shippingAmount: shippingCost ?? 0,
     });
     setIsProcessing(false);
-    if (success) {
+    if (order) {
+      setCompletedOrderId(order.id);
       setIsComplete(true);
       await clearCart();
     }
@@ -494,7 +501,7 @@ const CheckoutPage = () => {
   };
 
   // ── Step labels ──
-  const stepLabel = step < 4 ? "Continue" : payWithScotia ? "Continue to Scotiabank" : "Place order";
+  const stepLabel = step < 4 ? "Continue" : payWithScotia ? "Open secure payment" : "Place order";
 
   // ─────────────────────────────────────────────────────────────────────────
   // STORE LOCKDOWN — checkout stays closed until the store_checkout feature
@@ -556,7 +563,7 @@ const CheckoutPage = () => {
                 </p>
               </div>
             )}
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button variant="default" asChild>
                 <Link to="/profile/orders">View my orders</Link>
               </Button>
@@ -564,6 +571,14 @@ const CheckoutPage = () => {
                 <Link to="/store">Continue shopping</Link>
               </Button>
             </div>
+
+            {scotiaReturnOrderId && (
+              <NpsPrompt
+                triggerContext="order"
+                sourceId={scotiaReturnOrderId}
+                sourceLabel={`Order ${scotiaReturnOrderId}`}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -679,7 +694,7 @@ const CheckoutPage = () => {
               )}
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button variant="default" asChild>
                 <Link to="/profile/orders">View my orders</Link>
               </Button>
@@ -687,6 +702,12 @@ const CheckoutPage = () => {
                 <Link to="/store">Continue shopping</Link>
               </Button>
             </div>
+
+            <NpsPrompt
+              triggerContext="order"
+              sourceId={completedOrderId}
+              sourceLabel={`Order ${completedOrderNum}`}
+            />
           </div>
         </main>
       </div>
@@ -1315,6 +1336,9 @@ const CheckoutPage = () => {
               {/* ───── STEP 4: Review ───── */}
               {step === 4 && (
                 <div className="space-y-4">
+                  {/* Scotia's hosted page cannot be embedded (frame-ancestors
+                      'self'), so checkout redirects out to it instead of
+                      rendering an iframe here. */}
                   <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                     <SectionHead>Review your order</SectionHead>
 
@@ -1435,7 +1459,7 @@ const CheckoutPage = () => {
               )}
 
               {/* ── Action bar ── */}
-              <div className="flex items-center gap-3">
+              {<div className="flex items-center gap-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -1470,7 +1494,7 @@ const CheckoutPage = () => {
                     </>
                   )}
                 </Button>
-              </div>
+              </div>}
             </div>
 
             {/* ── Sidebar ── */}

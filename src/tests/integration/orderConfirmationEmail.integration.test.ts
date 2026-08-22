@@ -29,4 +29,18 @@ describe("order confirmation email routing", () => {
     expect(edgeFunction).toContain("requireUserRole");
     expect(edgeFunction).toContain("['admin', 'operator']");
   });
+
+  it("queues an idempotent operations notice only after a Scotia order is paid", () => {
+    const fulfillment = read("supabase/functions/_shared/email/paid-order-fulfillment.ts");
+    const callback = read("supabase/functions/scotia-return/index.ts");
+    const notification = read("supabase/functions/scotia-notify/index.ts");
+    const useOrders = read("src/hooks/useOrders.ts");
+
+    expect(fulfillment).toContain("orders@classicvisions.net");
+    expect(fulfillment).toContain('order.status !== "confirmed"');
+    expect(fulfillment).toContain("paid-order-fulfillment-");
+    expect(callback).toContain("queuePaidOrderFulfillmentEmail");
+    expect(notification).toContain("queuePaidOrderFulfillmentEmail");
+    expect(useOrders).toContain('checkout.checkoutMethod !== "scotia_ecom"');
+  });
 });

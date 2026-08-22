@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, HelpCircle, LayoutDashboard, X } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Glasses, HelpCircle, LayoutDashboard, Package, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -9,6 +9,7 @@ import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 // Color map per app key for icon tinting
 const APP_COLORS: Record<string, string> = {
   launchpad: "hsl(172 72% 40%)",
+  copilot: "hsl(188 78% 42%)",
   pricing: "hsl(215 65% 50%)",
   contacts: "hsl(168 76% 42%)",
   leads: "hsl(38 92% 50%)",
@@ -18,6 +19,8 @@ const APP_COLORS: Record<string, string> = {
   docstudio: "hsl(250 55% 58%)",
   knowledge: "hsl(140 50% 45%)",
   settings: "hsl(215 15% 50%)",
+  activities: "hsl(280 60% 55%)",
+  "rx-order": "hsl(200 60% 50%)",
 };
 
 const LAUNCH_PAD_APP = {
@@ -25,6 +28,30 @@ const LAUNCH_PAD_APP = {
   title: "Launch Pad",
   icon: LayoutDashboard,
   defaultRoute: "/admin/dashboard",
+} as const;
+
+const LAUNCHER_SHORTCUTS = {
+  activities: {
+    key: "activities",
+    title: "Activities",
+    icon: CalendarCheck,
+    defaultRoute: "/admin/crm/activities",
+    featurePrefix: "crm",
+  },
+  "rx-order": {
+    key: "rx-order",
+    title: "Rx Order Form",
+    icon: Glasses,
+    defaultRoute: "/admin/website/quotations/new-rx",
+    featurePrefix: "website",
+  },
+  "stock-order": {
+    key: "stock-order",
+    title: "Stock Order Builder",
+    icon: Package,
+    defaultRoute: "/admin/website/stock-orders",
+    featurePrefix: "website",
+  },
 } as const;
 
 interface AppLauncherProps {
@@ -43,6 +70,9 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
       ACTIVE_NAVIGATION_REGISTRY
         .filter((item) => item.group === "launcher")
         .map((item) => {
+          if (item.shortcutKey) {
+            return LAUNCHER_SHORTCUTS[item.shortcutKey];
+          }
           if (!item.appKey) {
             return LAUNCH_PAD_APP;
           }

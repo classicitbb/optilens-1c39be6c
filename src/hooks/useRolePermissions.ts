@@ -13,6 +13,7 @@ export interface RolePermission {
 }
 
 export const FEATURES = [
+  "copilot",
   "catalog",
   "reference",
   "pricing",
@@ -48,6 +49,8 @@ export type Feature = (typeof FEATURES)[number];
 
 /** Map sidebar paths to feature keys */
 export const PATH_FEATURE_MAP: Record<string, Feature> = {
+  // Admin-only Copilot
+  "/admin/copilot": "copilot",
   // Pricing
   "/admin/pricing/catalog": "catalog",
   "/admin/pricing/reference": "reference",
@@ -91,7 +94,9 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/website/portals": "website",
   "/admin/website/store": "website",
   "/admin/website/quotations": "quotations",
+  "/admin/website/stock-orders": "website",
   "/admin/website/orders": "orders",
+  "/admin/website/nps": "website",
   "/admin/docs/studio": "website",
   "/admin/website/features": "website",
   // Knowledge

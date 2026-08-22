@@ -22,6 +22,10 @@ const ALL_SCOPES = [
   "balances:write",
   "statements:read",
   "statements:write",
+  // Physical stocked items pushed from optilens-local's dbo.MiscItems sync
+  // into the Supplies catalog — see docs/ERP_ITEM_SYNC_PLAN.md.
+  "supplies:read",
+  "supplies:write",
   // Machine-to-machine calls that skip the admin-JWT gate on one narrow,
   // low-risk route within an otherwise-privileged function. See
   // docstudio-api/index.ts and customer-onboarding/index.ts for the checks.

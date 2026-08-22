@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "sdk_version": "0.23.0",
-  "path": "/functions/v1/mcp",
+  "sdk_version": "0.26.2",
+  "path": "/mcp",
   "auth": {
     "type": "oauth",
     "issuer": "https://xstmeirxhfbiyayrrsob.supabase.co/auth/v1",
@@ -12,14 +12,14 @@
   "mcp": {
     "server": {
       "name": "classic-visions-mcp",
-      "version": "0.1.0",
+      "version": "0.4.0",
       "title": "Classic Visions"
     },
     "tools": [
       {
         "name": "whoami",
         "title": "Who am I",
-        "description": "Return the signed-in Classic Visions user's id, email, and any roles.",
+        "description": "Return the signed-in Classic Visions user's id, email, roles, portal profile and linked customer accounts. Call this first to understand what the caller can access.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -34,8 +34,8 @@
       },
       {
         "name": "search_products",
-        "title": "Search store products",
-        "description": "Search the Classic Visions public store catalog by name or description. Returns up to `limit` products.",
+        "title": "Search catalog",
+        "description": "Search the Classic Visions catalog (lenses, supplies, add-ons) by name, SKU or description. Cost data is never returned.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -48,10 +48,20 @@
             "query": {
               "type": "string",
               "minLength": 1,
-              "description": "Search text matched against product name/description."
+              "description": "Search text matched against name, SKU or description."
+            },
+            "category": {
+              "description": "Restrict the search to one catalog type (default: all).",
+              "type": "string",
+              "enum": [
+                "all",
+                "lenses",
+                "supplies",
+                "addons"
+              ]
             },
             "limit": {
-              "description": "Max rows to return (default 10).",
+              "description": "Max rows per category (default 10).",
               "type": "integer",
               "minimum": 1,
               "maximum": 50
@@ -64,9 +74,492 @@
         "outputSchema": null
       },
       {
-        "name": "list_my_orders",
-        "title": "List my orders",
-        "description": "List the signed-in user's Classic Visions orders (most recent first). RLS restricts results to the caller.",
+        "name": "list_orders",
+        "title": "List orders",
+        "description": "List Classic Visions orders visible to the signed-in user (most recent first). RLS limits customers to their own orders; staff see all.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by order status (e.g. pending, paid, cancelled).",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Max orders to return (default 10).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_order",
+        "title": "Get order details",
+        "description": "Fetch one order with its line items, payments and activity. RLS restricts access to orders the caller may see.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "order_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Order id returned by list_orders."
+            }
+          },
+          "required": [
+            "order_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_statements",
+        "title": "List account statements",
+        "description": "List billing statements visible to the caller (most recent first), optionally for one customer account number.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "account_number": {
+              "description": "Filter by customer account number.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Max statements to return (default 12).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_statement",
+        "title": "Get statement transactions",
+        "description": "Fetch one statement with its transaction lines (invoices, payments, credits).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "statement_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Statement id returned by list_statements."
+            },
+            "limit": {
+              "description": "Max transaction lines (default 200).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "statement_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_account_balance",
+        "title": "Get account balance",
+        "description": "Return current balance, credit limit and last statement/payment info for the caller's customer account(s).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "account_number": {
+              "description": "Limit to one customer account number.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_quotes",
+        "title": "List quotes",
+        "description": "List quotes visible to the caller (most recent first). Cost and margin fields are hidden from customers by policy.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by quote status.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Max quotes to return (default 10).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_quote",
+        "title": "Get quote details",
+        "description": "Fetch one quote with its lines. Lines are read through the cost-safe server function, so customers never receive cost or margin data.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "quote_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Quote id returned by list_quotes."
+            }
+          },
+          "required": [
+            "quote_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_support_tickets",
+        "title": "List support tickets",
+        "description": "List helpdesk tickets visible to the caller (most recent first).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "search": {
+              "description": "Match against ticket title or description.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Max tickets to return (default 10).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_support_ticket",
+        "title": "Get support ticket",
+        "description": "Fetch one helpdesk ticket with its message thread.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "ticket_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Ticket id returned by list_support_tickets."
+            }
+          },
+          "required": [
+            "ticket_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_support_ticket",
+        "title": "Create support ticket",
+        "description": "Open a new Classic Visions helpdesk ticket on behalf of the signed-in user. Use only when the user explicitly asks for support.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 200,
+              "description": "Short subject line for the ticket."
+            },
+            "description": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 5000,
+              "description": "Full description of the issue or request."
+            },
+            "priority": {
+              "description": "Optional priority label recognised by the helpdesk.",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "title",
+            "description"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "reply_to_support_ticket",
+        "title": "Reply to support ticket",
+        "description": "Append a message from the signed-in user to an existing helpdesk ticket thread.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "ticket_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Ticket id returned by list_support_tickets."
+            },
+            "body": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 5000,
+              "description": "Message text to append."
+            }
+          },
+          "required": [
+            "ticket_id",
+            "body"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_knowledge_base",
+        "title": "Search help articles",
+        "description": "Search Classic Visions help/wiki articles by title, summary or body. Visibility rules limit results to what the caller may read.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Search text."
+            },
+            "limit": {
+              "description": "Max articles to return (default 8).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_crm",
+        "title": "Search CRM contacts and customers",
+        "description": "Search CRM contacts and customer accounts by name, email or account number. Staff-only in practice: RLS returns nothing for customer-role callers.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Name, email, business name or account number."
+            },
+            "limit": {
+              "description": "Max rows per collection (default 10).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_crm_tasks",
+        "title": "List CRM tasks and activities",
+        "description": "List CRM activities/tasks visible to the caller, newest first. Optionally filter to open tasks or one contact.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "contact_id": {
+              "description": "Restrict to one CRM contact id.",
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "description": "Filter by activity status (e.g. open, done).",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Max rows (default 15).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_crm_task",
+        "title": "Create a CRM task or note",
+        "description": "Log a CRM activity (note or task) against a contact. Staff-only in practice: RLS rejects callers without CRM write access.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "contact_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "CRM contact id from search_crm."
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000,
+              "description": "Note text or task description."
+            },
+            "activity_type": {
+              "description": "Activity type label (e.g. note, call, email, task).",
+              "type": "string",
+              "minLength": 1
+            },
+            "due_at": {
+              "description": "ISO timestamp when the task is due.",
+              "type": "string",
+              "minLength": 1
+            },
+            "priority": {
+              "description": "Priority label.",
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "contact_id",
+            "content"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_opportunities",
+        "title": "List sales opportunities",
+        "description": "List CRM opportunities visible to the caller, newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "stage": {
+              "description": "Filter by pipeline stage.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Max rows (default 15).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_pricelists",
+        "title": "List pricelists and catalogs",
+        "description": "List pricelist versions and catalog templates the caller may see, to identify which pricelist applies to an account.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -77,12 +570,282 @@
           "type": "object",
           "properties": {
             "limit": {
-              "description": "Max orders to return (default 10).",
+              "description": "Max rows per collection (default 20).",
               "type": "integer",
               "minimum": 1,
               "maximum": 50
             }
           }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_shipments",
+        "title": "List inbound shipments",
+        "description": "List supplier shipments visible to the caller (most recent first). Staff-only in practice under RLS.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "status": {
+              "description": "Filter by shipment status (draft, reviewed, locked).",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "description": "Max rows (default 10).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "prepare_erp_portal_rollout",
+        "title": "Prepare ERP portal rollout",
+        "description": "Admin-only. Queries live Innovations-synced customers, excludes active portal members, and prepares invite or follow-up action cards. It never sends an email without later explicit approval.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "command": {
+              "description": "The admin's plain-English rollout instruction.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_copilot_approvals",
+        "title": "List Portal Copilot approvals",
+        "description": "Admin-only. Lists recent Copilot runs and the action cards for one run, including partial failures and audit-safe execution state.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "description": "Copilot run id. Defaults to the latest run.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "decide_copilot_action",
+        "title": "Approve or reject a Portal Copilot action",
+        "description": "Admin-only. Explicitly approves or rejects one prepared action. Approval can create an internal task or create/link a portal login and queue the customer invitation email.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "action_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Prepared Copilot action id."
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "approve",
+                "reject"
+              ],
+              "description": "The admin's explicit decision."
+            }
+          },
+          "required": [
+            "action_id",
+            "decision"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "admin_list_resources",
+        "title": "List admin data resources",
+        "description": "List every admin module data resource this server can read or write (CRM, helpdesk, orders, Rx, pricing, catalog, customers, billing, shipments, docs, knowledge, settings), with writable fields and whether writes need approval. Call this first when you are unsure which resource covers a task.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "module": {
+              "description": "Optional module filter, e.g. \"Helpdesk\" or \"Pricing\".",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "admin_search_records",
+        "title": "Search admin records",
+        "description": "Search or list records in any admin resource (see admin_list_resources for keys). Row-level security still applies, so only data the caller may see is returned.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "resource": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Resource key from admin_list_resources."
+            },
+            "query": {
+              "description": "Free-text search across the resource's searchable columns.",
+              "type": "string",
+              "minLength": 1
+            },
+            "filters": {
+              "description": "Exact-match column filters, e.g. {\"status\":\"open\"}.",
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "limit": {
+              "description": "Max rows (default 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "resource"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "admin_get_record",
+        "title": "Get one admin record",
+        "description": "Fetch a single record by id from any admin resource (see admin_list_resources for keys).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "resource": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Resource key from admin_list_resources."
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Record id."
+            }
+          },
+          "required": [
+            "resource",
+            "id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "admin_write_record",
+        "title": "Create, update or delete an admin record",
+        "description": "Create, update or delete a record in any admin resource. Ordinary changes execute immediately. Deletes and price-bearing changes are not executed: the tool returns an approval proposal describing exactly what would change, which an admin must approve in the Portal Copilot.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "resource": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Resource key from admin_list_resources."
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "create",
+                "update",
+                "delete"
+              ],
+              "description": "What to do."
+            },
+            "id": {
+              "description": "Record id (required for update and delete).",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "values": {
+              "description": "Column/value pairs for create and update. Only writable columns are accepted.",
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "resource",
+            "operation"
+          ]
         },
         "outputSchema": null
       }

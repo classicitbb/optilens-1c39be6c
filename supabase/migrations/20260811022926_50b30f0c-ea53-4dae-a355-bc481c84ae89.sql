@@ -1,0 +1,1 @@
+UPDATE public.website_features SET enabled = true, updated_at = now() WHERE key = 'card_payments_on_statements';

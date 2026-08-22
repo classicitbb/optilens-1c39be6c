@@ -16,6 +16,7 @@ import GovernanceAlert from "@/components/admin/GovernanceAlert";
 import ConcessionReasonDialog from "@/components/admin/ConcessionReasonDialog";
 import UnsavedChangesDialog from "@/components/admin/UnsavedChangesDialog";
 import type { Lens, LensFormData } from "@/hooks/useLenses";
+import { useLensAliasLinks } from "@/features/alias-mapping/useLensAliasLinks";
 
 interface Props {
   open: boolean;
@@ -69,6 +70,8 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
   const lenstypes = useReferenceData("lenstypes", open);
   const finishtypes = useReferenceData("finishtypes", open);
   const lensOptions = useReferenceData("lens_options", open);
+  const { data: aliasLinks } = useLensAliasLinks(open);
+  const aliasLink = lens?.id ? aliasLinks?.get(lens.id) : undefined;
 
   const activeSuppliers = useMemo(() => (suppliers.data ?? []).filter((i) => i.is_active), [suppliers.data]);
   const activeBrands = useMemo(() => (brands.data ?? []).filter((i) => i.is_active), [brands.data]);
@@ -457,6 +460,41 @@ const LensFormDialog = ({ open, onOpenChange, lens, lenses, onSubmit, onSubmitAn
 
               {/* Governance Alert */}
               {governance.blocked && <GovernanceAlert reasons={governance.blockReasons} />}
+
+              {/* Innovations linkage — read-only; curated on the alias mapping
+                  screen. Without a link an Rx order cannot resolve an alias to
+                  submit for this lens. */}
+              {lens?.id && (
+                <div className="mt-3 border-t border-[hsl(var(--admin-border))] pt-2">
+                  <span className="text-[10px] text-[hsl(var(--admin-muted-fg))]">Innovations aliases</span>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    {aliasLink ? (
+                      <>
+                        <Badge variant="outline" className="text-[10px]">
+                          {aliasLink.count} colour{aliasLink.count === 1 ? "" : "s"} linked
+                        </Badge>
+                        {aliasLink.primary && (
+                          <span className="text-[10px] font-mono text-[hsl(var(--admin-muted-fg))]">
+                            default {aliasLink.primary}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-orange-600 dark:text-orange-400">
+                        Not mapped — Rx orders can't resolve an Innovations alias for this lens.
+                      </span>
+                    )}
+                    <a
+                      className="text-[10px] underline text-[hsl(var(--admin-accent))]"
+                      href={`/admin/pricing/alias-mapping?lens=${encodeURIComponent(lens.name ?? "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open alias mapping
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

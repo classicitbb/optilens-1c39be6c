@@ -143,7 +143,7 @@ const TodayQueue = () => {
     const endOfToday = new Date();
     endOfToday.setHours(23, 59, 59, 999);
     return activities
-      .filter((a) => a.status !== "completed" && a.due_at && new Date(a.due_at) <= endOfToday)
+      .filter((a) => a.status !== "completed" && a.status !== "cancelled" && a.due_at && new Date(a.due_at) <= endOfToday)
       .sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime());
   }, [activities]);
 

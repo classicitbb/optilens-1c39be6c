@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Link2, Mail, Search, ShieldAlert, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ const roleLabels: Record<Exclude<AppRole, "customer">, string> = {
 
 export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, onCreateContact, onEditContact, onOpenTraining, lockedCustomerId = null }: AccessDeploymentAssistantDialogProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAdmin } = useUserRole();
   const { users, isLoading: usersLoading, inviteUser, createUser, assignRole, linkCustomerPortalAccount } = useAdminUsers();
@@ -102,7 +104,16 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
   const customerMatches = useMemo(() => {
     const term = normalize(query);
     if (term.length < 2) return [];
-    return customers.filter((customer) => [customer.name, customer.email, customer.account_number].some((value) => normalize(value).includes(term))).slice(0, 8);
+    return customers
+      .filter((customer) =>
+        [
+          customer.name,
+          customer.email,
+          customer.account_number,
+          customer.innovations_customer_id != null ? String(customer.innovations_customer_id) : null,
+        ].some((value) => normalize(value).includes(term))
+      )
+      .slice(0, 8);
   }, [customers, query]);
   const contactCustomers = useMemo(() => {
     return resolveCompatibleCustomerAccounts(selectedContact, customers);
@@ -253,6 +264,17 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
 
   const noMatchName = query.includes("@") ? "" : query.trim();
   const noMatchEmail = query.includes("@") ? query.trim() : "";
+  const draftInviteEmail = () => {
+    if (!selectedContact || method !== "password" || !email || !password) return;
+    // A password must never appear in the route, browser history, or referrer.
+    // The embedded, same-origin Studio consumes this tab-scoped payload once.
+    const handoff = typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem(`cv_doc_studio_staff_invite:${handoff}`, JSON.stringify({ name: selectedContact.name, email, password }));
+    close(false);
+    navigate(`/admin/docs/studio?staffInvite=${encodeURIComponent(handoff)}`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={close}>
@@ -265,6 +287,7 @@ export function AccessDeploymentAssistantDialog({ contacts, open, onOpenChange, 
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
             <div className="flex items-center gap-2 font-medium"><CheckCircle2 className="h-4 w-4" /> {success}</div>
             <p className="mt-1 text-emerald-800">The contact, login, and customer link were kept as one deployment record.</p>
+            {method === "password" ? <Button size="sm" className="mt-3" onClick={draftInviteEmail}><Mail className="mr-1.5 h-3.5 w-3.5" />Draft Invite Email</Button> : null}
           </div>
         ) : (
           <div className="space-y-5 py-1">

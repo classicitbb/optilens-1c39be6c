@@ -1,16 +1,12 @@
 <div class="wrap">
 
   <div class="pagehead">
-    <div>
-      <h1>New Rx order</h1>
-      <p>Live-priced as you type. Price locks the moment you submit to cart.</p>
-    </div>
     <div class="spacer"></div>
     <span class="prefill hide" id="prefillChip"></span>
     <span class="ordno" id="ordNo"><span>Order</span> —</span>
     <button class="btn btn-ghost btn-sm" id="saveDraft">Save draft</button>
     <button class="chip btnchip" id="branchChip"><span class="dot"></span>Ordering for <b id="branchName">—</b> <span style="opacity:.5">▾</span></button>
-    <span class="chip" title="Account-level setting"><span class="lockicon">🔒</span> <b id="curChip">BBD $</b></span>
+    <span class="chip" title="Display currency"><span class="lockicon">🔒</span> <b id="curChip">USD $</b></span>
     <div class="headtools">
       <button class="iconbtn" id="coachBtn" title="Order coach">?</button>
       <div class="gearwrap">
@@ -20,8 +16,9 @@
           <div class="gearrow">
             <span style="flex:none">Currency</span>
             <select id="curSim">
-              <option value="BBD">BBD $</option><option value="USD">USD $</option><option value="EUR">EUR €</option>
-              <option value="TTD">TTD $</option><option value="JMD">JMD $</option><option value="XCD">XCD $</option>
+              <option value="USD">USD $</option><option value="EUR">EUR €</option><option value="CAD">CAD $</option>
+              <option value="XCD">XCD $</option><option value="TTD">TTD $</option><option value="JMD">JMD $</option>
+              <option value="BBD">BBD $</option><option value="GYD">GYD $</option>
             </select>
           </div>
           <label class="sw"><input type="checkbox" id="pricesOn" checked> Prices visible on account</label>
@@ -61,8 +58,10 @@
         <div class="hx">
           <button class="iconbtn sm clear-sec" data-sec="patient" title="Clear this section">✕</button>
           <button class="iconbtn sm coach-open" data-coach="patient" title="Help">?</button>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-patient" title="Edit patient and order" aria-label="Edit patient and order">✎</button>
         </div>
       </div>
+      <div class="section-summary" aria-live="polite"></div>
       <div class="card-b">
         <div class="grid g3">
           <div class="field" data-key="pfirst">
@@ -70,8 +69,7 @@
             <input type="text" id="pfirst" placeholder="Marcus">
           </div>
           <div class="field" data-key="plast">
-            <label>Patient last name <span class="req">*</span>
-              <button class="assistbtn" data-assist="Patient details">? assist</button></label>
+            <label>Patient last name <span class="req">*</span></label>
             <input type="text" id="plast" placeholder="Grant">
           </div>
           <div class="field">
@@ -92,8 +90,10 @@
           <button class="iconbtn sm clear-sec" data-sec="frame" title="Clear this section">✕</button>
           <button class="iconbtn sm coach-open" data-coach="frame" title="Help">?</button>
           <a class="iconbtn sm" href="https://classicvisions.net/rx-lab-services" target="_blank" rel="noopener" title="Rx lab services">↗</a>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-frame" title="Edit frame and measurements" aria-label="Edit frame and measurements">✎</button>
         </div>
       </div>
+      <div class="section-summary" aria-live="polite"></div>
       <div class="card-b">
         <div class="blk">How should we supply this job? <span class="req">*</span></div>
         <div class="seg" id="scopeSeg" role="group">
@@ -125,8 +125,9 @@
             <input type="text" id="fname" placeholder="e.g. Ray-Ban RB5154">
           </div>
           <div class="field">
-            <label>Mount type</label>
+            <label>Mount type <span class="req">*</span></label>
             <select id="mount">
+              <option value="" disabled selected>Choose…</option>
               <option value="full">Full rim</option>
               <option value="supra">Supra / nylon</option>
               <option value="rimless">Rimless — drill mount</option>
@@ -178,8 +179,10 @@
           <button class="iconbtn sm clear-sec" data-sec="lens" title="Clear this section">✕</button>
           <button class="iconbtn sm coach-open" data-coach="lens" title="Help">?</button>
           <a class="iconbtn sm" href="https://classicvisions.net/lens-design-guide" target="_blank" rel="noopener" title="Lens design guide">↗</a>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-lens" title="Edit lens selection" aria-label="Edit lens selection">✎</button>
         </div>
       </div>
+      <div class="section-summary" aria-live="polite"></div>
 
       <div class="card-b">
         <div class="grid g2">
@@ -262,15 +265,18 @@
         <div class="hx">
           <button class="iconbtn sm clear-sec" data-sec="rx" title="Clear this section">✕</button>
           <button class="iconbtn sm coach-open" data-coach="rx" title="Help">?</button>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-rx" title="Edit prescription" aria-label="Edit prescription">✎</button>
         </div>
       </div>
+      <div class="section-summary" aria-live="polite"></div>
       <div class="card-b">
         <div class="rxwrap">
           <table class="rxtable">
             <thead><tr>
               <th></th><th>Sphere</th><th>Cylinder</th><th>Axis</th>
-              <th class="c-add">Add</th><th>Prism</th><th>Base</th>
-              <th class="c-pd">Dist PD</th><th class="c-npd">Near PD</th><th class="c-ht">Fitting ht</th>
+              <th class="c-add">Add</th>
+              <th class="c-pd">Dist PD</th><th class="c-npd">Near PD</th><th class="c-ht" id="htLabel">Fitting ht</th>
+              <th>Prism</th><th>Base</th>
             </tr></thead>
             <tbody>
               <tr data-eye="od">
@@ -279,11 +285,11 @@
                 <td><input type="text" inputmode="decimal" data-f="cyl" placeholder="-0.00"></td>
                 <td><input type="text" inputmode="numeric" data-f="axis" placeholder="—"></td>
                 <td class="c-add"><input type="text" inputmode="decimal" data-f="add" placeholder="+0.00"></td>
-                <td><input type="text" inputmode="decimal" data-f="prism" placeholder="0.00"></td>
-                <td><select data-f="base"><option value="">—</option><option>IN</option><option>OUT</option><option>UP</option><option>DOWN</option></select></td>
                 <td class="c-pd"><input type="text" inputmode="decimal" data-f="pd" placeholder="32.0"></td>
                 <td class="c-npd"><input type="text" inputmode="decimal" data-f="npd" placeholder="30.0"></td>
                 <td class="c-ht"><input type="text" inputmode="decimal" data-f="ht" placeholder="22.0"></td>
+                <td><input type="text" inputmode="decimal" data-f="prism" placeholder="0.00"></td>
+                <td><select data-f="base"><option value="">—</option><option>IN</option><option>OUT</option><option>UP</option><option>DOWN</option></select></td>
               </tr>
               <tr data-eye="os">
                 <td><span class="eye"><b>OS</b><span>LEFT</span></span></td>
@@ -291,11 +297,11 @@
                 <td><input type="text" inputmode="decimal" data-f="cyl" placeholder="-0.00"></td>
                 <td><input type="text" inputmode="numeric" data-f="axis" placeholder="—"></td>
                 <td class="c-add"><input type="text" inputmode="decimal" data-f="add" placeholder="+0.00"></td>
-                <td><input type="text" inputmode="decimal" data-f="prism" placeholder="0.00"></td>
-                <td><select data-f="base"><option value="">—</option><option>IN</option><option>OUT</option><option>UP</option><option>DOWN</option></select></td>
                 <td class="c-pd"><input type="text" inputmode="decimal" data-f="pd" placeholder="31.5"></td>
                 <td class="c-npd"><input type="text" inputmode="decimal" data-f="npd" placeholder="29.5"></td>
                 <td class="c-ht"><input type="text" inputmode="decimal" data-f="ht" placeholder="22.0"></td>
+                <td><input type="text" inputmode="decimal" data-f="prism" placeholder="0.00"></td>
+                <td><select data-f="base"><option value="">—</option><option>IN</option><option>OUT</option><option>UP</option><option>DOWN</option></select></td>
               </tr>
             </tbody>
           </table>
@@ -303,10 +309,33 @@
         <div class="rxtools">
           <button class="linkbtn" id="copyOD">⇊ Copy OD to OS</button>
           <button class="linkbtn" id="clearRx">✕ Clear Rx</button>
-          <button class="linkbtn assistbtn" data-assist="PD not yet measured" style="position:static;border:1px dashed var(--border);padding:6px 11px;font-size:12.5px">? No PD yet — flag for assistance</button>
         </div>
         <div id="rxPrompts"></div>
         <div id="rxErrors" style="margin-top:11px"></div>
+        <label class="confirmrow" style="margin-top:13px"><input type="checkbox" id="plusCylOn">
+          <span>Prescription written in plus cylinder — enter it as prescribed, we'll convert to minus cyl above</span></label>
+        <div class="card-b hide" id="plusCylBlock" style="padding:13px 0 0">
+          <div class="blk">As prescribed <span class="opt-tag">plus cylinder — converts to the minus-cyl table above; both print</span></div>
+          <div class="rxwrap">
+            <table class="rxtable">
+              <thead><tr><th></th><th>Sphere</th><th>Cylinder</th><th>Axis</th></tr></thead>
+              <tbody>
+                <tr data-eye="od">
+                  <td><span class="eye"><b>OD</b><span>RIGHT</span></span></td>
+                  <td><input type="text" inputmode="decimal" id="pc-od-sph" data-pf="sph" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="decimal" id="pc-od-cyl" data-pf="cyl" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="numeric" id="pc-od-axis" data-pf="axis" placeholder="—"></td>
+                </tr>
+                <tr data-eye="os">
+                  <td><span class="eye"><b>OS</b><span>LEFT</span></span></td>
+                  <td><input type="text" inputmode="decimal" id="pc-os-sph" data-pf="sph" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="decimal" id="pc-os-cyl" data-pf="cyl" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="numeric" id="pc-os-axis" data-pf="axis" placeholder="—"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -319,8 +348,10 @@
           <button class="iconbtn sm clear-sec" data-sec="treat" title="Clear this section">✕</button>
           <button class="iconbtn sm coach-open" data-coach="treat" title="Help">?</button>
           <a class="iconbtn sm" href="https://classicvisions.net/coatings" target="_blank" rel="noopener" title="Coatings">↗</a>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-treat" title="Edit coatings and treatments" aria-label="Edit coatings and treatments">✎</button>
         </div>
       </div>
+      <div class="section-summary" aria-live="polite"></div>
       <div class="card-b">
         <div class="blk">Popular choices</div>
         <div class="opts" id="popOpts"></div>
@@ -353,8 +384,10 @@
         <div class="hx">
           <button class="iconbtn sm clear-sec" data-sec="notes" title="Clear this section">✕</button>
           <button class="iconbtn sm coach-open" data-coach="delivery" title="Help">?</button>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-notes" title="Edit delivery and notes" aria-label="Edit delivery and notes">✎</button>
         </div>
       </div>
+      <div class="section-summary" aria-live="polite"></div>
       <div class="card-b">
         <div class="grid g2">
           <div class="field"><label>Service level</label>
@@ -364,6 +397,8 @@
         </div>
         <div class="field" style="margin-top:13px"><label>Notes to the lab</label>
           <textarea id="notes" placeholder="e.g. Patient is a previous progressive wearer — match old fitting height."></textarea></div>
+        <label class="confirmrow" style="margin-top:13px"><input type="checkbox" id="notesConfirmed">
+          <span>Nothing else to add — mark this section done</span></label>
       </div>
     </section>
 

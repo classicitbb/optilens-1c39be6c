@@ -6,7 +6,6 @@ All admin-only business logic and UI. Each subfolder is a discrete feature:
 
 | Folder | Purpose |
 |---|---|
-| `catalog-editor-v2/` | New canvas-based catalog editor (in development, not live route yet) |
 | `catalog-publisher-v2/` | Catalog publisher shell and section composition |
 | `core/` | Admin shell config — sidebar apps, auth guards, shared admin layout |
 | `crm/` | Customer relationship management views |
@@ -42,7 +41,11 @@ _Avoid_: Company login, duplicate customer login
 The customer account identifier that connects a customer contact to its Innovations data and online statements.
 _Avoid_: Generic account number, portal account number
 
-## Active development focus (2026-05-26)
+## Active development focus (2026-08-07)
 
-The catalog editor (`catalog-editor-v2/`) is the current primary work area.
+The free-placement canvas editor (`catalog-editor-v2/`) was retired in favor of extending the
+existing section-composition model into an automated catalog generator — see
+`docs/CATALOG_GENERATOR_PLAN.md` for the design and phased build plan. The retired editor's
+`generateCatalogPdf` export helper moved to `src/lib/generateCatalogPdf.ts` (it's a plain export
+utility used by the live `/admin/pricing/publisher` list page, not part of the canvas editor).
 See `STATUS.md` at the project root for known bugs and what's in flight.

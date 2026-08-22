@@ -12,7 +12,7 @@ import {
   Ticket, UsersRound, ShieldCheck,
   Layout, Palette, UserCircle, Store, Glasses,
   BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -25,6 +25,17 @@ export interface SidebarItem {
 }
 
 export const ADMIN_APPS = {
+  copilot: {
+    key: 'copilot' as const,
+    title: 'Portal Copilot',
+    icon: Bot,
+    baseRoute: '/admin/copilot',
+    defaultRoute: '/admin/copilot',
+    featurePrefix: 'copilot',
+    sidebarItems: [
+      { label: 'ERP Rollout', route: '/admin/copilot', icon: Bot },
+    ] satisfies SidebarItem[],
+  },
   pricing: {
     key: 'pricing' as const,
     title: 'Pricing',
@@ -115,12 +126,14 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
-      { label: 'Quotations', route: '/admin/website/quotations', icon: FileEdit },
-      { label: 'Rx Order Form', route: '/admin/website/quotations/new-rx', icon: Eye },
-      { label: 'Innovations Submissions', route: '/admin/website/rx-submissions', icon: Upload },
       { label: 'Orders', route: '/admin/website/orders', icon: Package },
       { label: 'Lens Assistant Rules', route: '/admin/website/store/lens-assistant', icon: Glasses },
       { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
+      { label: 'Quotations', route: '/admin/website/quotations', icon: FileEdit },
+      { label: 'Rx Order Form', route: '/admin/website/quotations/new-rx', icon: Eye },
+      { label: 'Stock Order Builder', route: '/admin/website/stock-orders', icon: Package },
+      { label: 'Innovations Submissions', route: '/admin/website/rx-submissions', icon: Upload },
+      { label: 'Customer Feedback (NPS)', route: '/admin/website/nps', icon: Smile },
       { label: 'Feature Board', route: '/admin/website/features', icon: SlidersHorizontal },
       { label: 'Assistant Quality', route: '/admin/website/assistant/quality', icon: MessageSquare },
     ] satisfies SidebarItem[],

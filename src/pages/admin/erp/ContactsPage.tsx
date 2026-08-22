@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
+import { paginate } from "@/lib/pagination";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -312,6 +313,7 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
 
 const EMPTY_CONTACTS: Contact[] = [];
 const EMPTY_STRING_LIST: string[] = [];
+const CONTACTS_PAGE_SIZE = 100;
 const FILTER_LABELS: Record<FilterMode, string> = {
   all: "All",
   companies: "Companies",
@@ -551,6 +553,7 @@ const ContactsPage = ({
   const [groupBy, setGroupBy] = useState<GroupByMode>("none");
   const [countryFilter, setCountryFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [contactsPage, setContactsPage] = useState(1);
   // Debounced so typing doesn't re-filter and re-render the full contacts
   // table (hundreds of rows) on every keystroke.
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -817,16 +820,39 @@ const ContactsPage = ({
     if (countryFilter !== "all") list = list.filter((c) => c.country_code === countryFilter);
     if (debouncedSearch) {
       const s = debouncedSearch.toLowerCase();
-      list = list.filter(
-        (c) =>
-          c.name.toLowerCase().includes(s) ||
-          c.email.toLowerCase().includes(s) ||
-          c.phone.includes(s) ||
-          c.city.toLowerCase().includes(s)
-      );
+      list = list.filter((c) => {
+        // Resolve linked ERP account info for this contact so staff can find
+        // contacts by typing an account number or ERP account name.
+        const linked = c.linked_customer_id != null ? linkedCustomersById[c.linked_customer_id] : undefined;
+        return [
+          c.name,
+          c.email,
+          c.phone,
+          c.business_name,
+          c.salesperson,
+          c.city,
+          c.state,
+          c.country_code,
+          c.street,
+          c.street2,
+          c.zip,
+          c.tax_id,
+          c.website,
+          c.notes,
+          // ERP account fields resolved from linked_customer_id
+          linked?.account_number,
+          linked?.name,
+          // Raw innovations parent customer id so typing the numeric ID works
+          c.innovations_parent_customer_id != null ? String(c.innovations_parent_customer_id) : null,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(s);
+      });
     }
     return list;
-  }, [contacts, countryFilter, filter, debouncedSearch, showArchived]);
+  }, [contacts, countryFilter, filter, debouncedSearch, showArchived, linkedCustomersById]);
 
   const filteredImportedCustomers = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
@@ -848,6 +874,20 @@ const ContactsPage = ({
         .includes(q);
     });
   }, [countryFilter, importedCustomers, debouncedSearch]);
+
+  const contactsPagination = useMemo(
+    () => paginate(filtered, contactsPage, CONTACTS_PAGE_SIZE),
+    [filtered, contactsPage],
+  );
+  const importedCustomersPagination = useMemo(
+    () => paginate(filteredImportedCustomers, contactsPage, CONTACTS_PAGE_SIZE),
+    [filteredImportedCustomers, contactsPage],
+  );
+  useEffect(() => {
+    const current = isErpAccountsMode ? importedCustomersPagination.page : contactsPagination.page;
+    if (contactsPage !== current) setContactsPage(current);
+  }, [contactsPage, contactsPagination.page, importedCustomersPagination.page, isErpAccountsMode]);
+  useEffect(() => setContactsPage(1), [countryFilter, debouncedSearch, filter, groupBy, showArchived]);
 
   const groupedByCountry = useMemo(() => {
     if (groupBy !== "country") return [] as { countryCode: string; contacts: Contact[] }[];
@@ -981,8 +1021,8 @@ const ContactsPage = ({
   }, [clearInterimTimer, flushPendingTranscript, toast]);
 
   useEffect(() => {
-    const speechApi = (window as Window & { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).SpeechRecognition
-      ?? (window as Window & { webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).webkitSpeechRecognition;
+    const speechWindow = window as unknown as { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor };
+    const speechApi = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
     setDictationSupported(!!speechApi);
     if (typeof navigator !== "undefined" && navigator.language) {
       setDictationLanguage(navigator.language);
@@ -998,8 +1038,8 @@ const ContactsPage = ({
   }, [editContact, stopDictation]);
 
   const startDictation = useCallback(() => {
-    const speechApi = (window as Window & { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).SpeechRecognition
-      ?? (window as Window & { webkitSpeechRecognition?: BrowserSpeechRecognitionCtor }).webkitSpeechRecognition;
+    const speechWindow = window as unknown as { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor };
+    const speechApi = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 
     if (!speechApi) {
       toast({
@@ -1272,7 +1312,7 @@ const ContactsPage = ({
     }));
   };
 
-  const isAllVisibleSelected = filtered.length > 0 && filtered.every((contact) => selectedContactIds.includes(contact.id));
+  const isAllVisibleSelected = contactsPagination.items.length > 0 && contactsPagination.items.every((contact) => selectedContactIds.includes(contact.id));
 
   const toggleContactSelection = useCallback((contactId: string, checked: boolean) => {
     setSelectedContactIds((prev) => checked ? [...prev, contactId] : prev.filter((id) => id !== contactId));
@@ -1280,12 +1320,12 @@ const ContactsPage = ({
 
   const toggleSelectAllVisible = (checked: boolean) => {
     if (!checked) {
-      setSelectedContactIds((prev) => prev.filter((id) => !filtered.some((contact) => contact.id === id)));
+      setSelectedContactIds((prev) => prev.filter((id) => !contactsPagination.items.some((contact) => contact.id === id)));
       return;
     }
     setSelectedContactIds((prev) => {
       const merged = new Set(prev);
-      filtered.forEach((contact) => merged.add(contact.id));
+      contactsPagination.items.forEach((contact) => merged.add(contact.id));
       return [...merged];
     });
   };
@@ -1999,7 +2039,7 @@ const ContactsPage = ({
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
           <Input
-            placeholder={isErpAccountsMode ? "Search ERP accounts..." : "Search contacts..."}
+            placeholder={isErpAccountsMode ? "Search ERP accounts by name, account #, email…" : "Search by name, email, ERP ACC#, business name, phone, city, salesperson…"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-8 text-xs"
@@ -2116,7 +2156,7 @@ const ContactsPage = ({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredImportedCustomers.map((customer) => (
+                importedCustomersPagination.items.map((customer) => (
                   <ImportedCustomerRow
                     key={customer.id}
                     customer={customer}
@@ -2161,12 +2201,24 @@ const ContactsPage = ({
                 );
               })
             ) : (
-              filtered.map((c) => renderContactRow(c))
+              contactsPagination.items.map((c) => renderContactRow(c))
             )}
           </TableBody>
         </Table>
         </div>
       </div>
+      {groupBy === "none" && (isErpAccountsMode ? importedCustomersPagination.pageCount : contactsPagination.pageCount) > 1 ? (
+        <div className="flex items-center justify-between text-xs" style={{ color: "hsl(215 15% 50%)" }}>
+          <span>
+            Showing {isErpAccountsMode ? importedCustomersPagination.start : contactsPagination.start}–{isErpAccountsMode ? importedCustomersPagination.end : contactsPagination.end} of {isErpAccountsMode ? filteredImportedCustomers.length : filtered.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-7 text-xs" disabled={contactsPage === 1} onClick={() => setContactsPage((page) => page - 1)}>Previous</Button>
+            <span>Page {isErpAccountsMode ? importedCustomersPagination.page : contactsPagination.page} of {isErpAccountsMode ? importedCustomersPagination.pageCount : contactsPagination.pageCount}</span>
+            <Button variant="outline" size="sm" className="h-7 text-xs" disabled={contactsPage === (isErpAccountsMode ? importedCustomersPagination.pageCount : contactsPagination.pageCount)} onClick={() => setContactsPage((page) => page + 1)}>Next</Button>
+          </div>
+        </div>
+      ) : null}
 
       <Dialog open={isImportPreviewOpen} onOpenChange={(open) => !isImporting && setIsImportPreviewOpen(open)}>
         <DialogContent className="max-w-5xl">
@@ -2720,7 +2772,7 @@ const ContactsPage = ({
                                   size="sm"
                                   variant="outline"
                                   className="h-8 text-xs"
-                                  onClick={() => accountSettingsCustomer && navigate(`/admin/website/portals?account=erp:${accountSettingsCustomer.id}`)}
+                                  onClick={() => accountSettingsCustomer && navigate(`/admin/website/portals?search=${encodeURIComponent(accountSettingsCustomer.account_number || accountSettingsCustomer.name)}&status=all&account=erp:${accountSettingsCustomer.id}&force_dialog=true`)}
                                   disabled={!accountSettingsCustomer}
                                 >
                                   <ExternalLink className="mr-1.5 h-3.5 w-3.5" />

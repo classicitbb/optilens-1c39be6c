@@ -16,7 +16,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
-import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { getOrCreateUnsubscribeToken, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { buildOrderHashref, canonicalOrderFor, type OrderKind } from "../_shared/orders/hashref.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -219,7 +220,77 @@ const ENTITIES: Record<string, EntityConfig> = {
       "synced_at",
     ],
   },
+  // Lens Local's stock-lens catalogue, including the configurator axes. This
+  // is intentionally independent of Website Visible/WSPL: Store Variants
+  // needs every enabled semi-finished or finished candidate.
+  store_lenses: {
+    table: "innovations_store_lenses", conflictKey: "innovations_lens_id", required: "innovations_lens_id", scope: "supplies:write",
+    allow: ["innovations_lens_id", "name", "lens_state", "material_group", "material", "lens_type", "option_name", "mf_type", "manufacturer", "finish_type", "is_enabled", "synced_at"],
+  },
+  store_lens_power_rows: {
+    table: "innovations_store_lens_power_rows", conflictKey: "innovations_power_row_id", required: "innovations_power_row_id", scope: "supplies:write",
+    allow: ["innovations_power_row_id", "innovations_lens_id", "diameter", "sphere", "base", "cylinder", "add", "stock_on_hand", "right_opc", "left_opc", "synced_at"],
+  },
+  // Physical stocked items (source: Innovations dbo.MiscItems, filtered to
+  // "Stocked Item" checked and not Inactive — see docs/ERP_ITEM_SYNC_PLAN.md §7).
+  // Replaces manual CSV entry into the Supplies catalog for items that already
+  // exist in the ERP. Generic batch-upsert keyed on the immutable MiscItemID;
+  // manually-entered rows keep source='manual' until reconciled/backfilled
+  // (see docs/ERP_ITEM_SYNC_PLAN.md §3) so a first sync never duplicates them.
+  //
+  // sell_price is deliberately NOT in this allowlist. The ERP's own Price
+  // column is always 0 for stocked items — real prices live in a separate
+  // multi-pricelist system with no single canonical value per item — so this
+  // sync only ever supplies cost. Setting sell_price for a newly-synced item
+  // stays a reviewed staff step through the existing supplies pricing-review
+  // UI (src/hooks/usePricingEngine.ts / ImportSuppliesTab.tsx), same as manual
+  // entry today — never silently computed and never overwritten by re-sync.
+  supplies: {
+    table: "supplies",
+    conflictKey: "innovations_misc_item_id",
+    required: "innovations_misc_item_id",
+    scope: "supplies:write",
+    allow: [
+      "innovations_misc_item_id",
+      "sku",
+      "name",
+      "category",
+      "base_price",
+      "inventory_qty",
+      "is_active",
+      "source",
+      "last_synced_at",
+    ],
+  },
 };
+
+// Both outboxes hand the office worker the same normalised order alongside
+// the raw payload it already consumes. `canonical_order` is the exact model
+// the Gatekeeper transport renders its Hashref v2.5 from
+// (../_shared/orders/hashref.ts), so an order released through optilens-local
+// and the same order released through Gatekeeper describe one thing.
+//
+// Routing (lab_num / cust_num) is deliberately absent: on this path it comes
+// from the office's own data/rx/config.json, which the cloud does not hold.
+// `hashref_body` is therefore rendered with placeholders for those two fields
+// only — useful for eyeballing an order, not for sending as-is.
+//
+// Best-effort throughout. A payload the builder rejects (a lens with no
+// confirmed alias, say) must still be claimable, so the worker can report the
+// real failure back rather than the claim silently disappearing.
+function withCanonicalOrder(kind: OrderKind, submission: Record<string, unknown> | null) {
+  if (!submission) return submission;
+  try {
+    const canonical = canonicalOrderFor(kind, submission as any);
+    return {
+      ...submission,
+      canonical_order: canonical,
+      hashref_body: buildOrderHashref(canonical, { labNum: "{{lab_num}}", custNum: "{{cust_num}}" }),
+    };
+  } catch (err) {
+    return { ...submission, canonical_order: null, canonical_error: String((err as Error)?.message ?? err) };
+  }
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -238,7 +309,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-08-01.1-lens-aliases-and-rx-submissions";
+const VERSION = "2026-08-12.1-unified-order-dispatch";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
@@ -408,6 +479,26 @@ async function upsertStatementRow(
   return { error, isNew: !error };
 }
 
+async function enqueueStatementDocumentJob(
+  supabase: ReturnType<typeof createClient>,
+  statementRow: Record<string, unknown>,
+  options: { suppress?: boolean } = {},
+): Promise<void> {
+  const statementId = statementRow.innovations_statement_id;
+  if (statementId === undefined || statementId === null) return;
+  const isVoid = statementRow.void === true;
+  const skipped = options.suppress || isVoid;
+  await supabase.from("statement_document_jobs").upsert({
+    innovations_statement_id: Number(statementId),
+    idempotency_key: `innovations-statement:${statementId}`,
+    status: skipped ? "skipped" : "pending",
+    skip_reason: options.suppress ? "suppressed_backfill" : isVoid ? "void_statement" : null,
+    upload_status: skipped ? "skipped" : "pending",
+    email_status: skipped ? "suppressed" : "not_sent",
+    completed_at: skipped ? new Date().toISOString() : null,
+  }, { onConflict: "innovations_statement_id", ignoreDuplicates: true });
+}
+
 async function upsertBalanceRow(
   supabase: ReturnType<typeof createClient>,
   row: Record<string, unknown>,
@@ -459,6 +550,7 @@ async function enqueueStatementReadyEmail(
     const template = TEMPLATES["statement-ready"];
     if (!template) return;
 
+    const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient);
     const templateData = {
       customerName: (customer as any)?.name || "there",
       accountNumber: (customer as any)?.account_number || statementRow.account_number || "",
@@ -467,6 +559,7 @@ async function enqueueStatementReadyEmail(
       closingBalance: Number(statementRow.closing_balance ?? 0),
       dueDate: statementRow.due_date,
       siteUrl: Deno.env.get("APP_BASE_URL") ?? "https://classicvisions.net",
+      unsubscribeUrl: `https://classicvisions.net/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
     };
 
     const html = await renderAsync(React.createElement(template.component, templateData));
@@ -494,6 +587,7 @@ async function enqueueStatementReadyEmail(
         purpose: "transactional",
         label: "statement-ready",
         idempotency_key: messageId,
+        unsubscribe_token: unsubscribeToken,
         queued_at: new Date().toISOString(),
       },
     });
@@ -598,6 +692,7 @@ Deno.serve(async (req: Request) => {
         .from("rx_order_submissions")
         .select("id,quote_id,payload,mode,attempts")
         .eq("status", "approved")
+        .eq("dispatch_provider", "innovations")
         .order("approved_at", { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -607,10 +702,10 @@ Deno.serve(async (req: Request) => {
         .update({ status: "claimed", claimed_at: new Date().toISOString() })
         .eq("id", (pending as any).id)
         .eq("status", "approved")
-        .select("id,quote_id,payload,mode,attempts")
+        .select("id,quote_id,payload,mode,attempts,gatekeeper_order_id")
         .maybeSingle();
       if (claimErr || !claimed) return json({ submission: null }); // lost the race
-      return json({ submission: claimed });
+      return json({ submission: withCanonicalOrder("rx", claimed as any) });
     }
     if (req.method === "POST" && id === "complete") {
       const body = (await req.json().catch(() => null)) as any;
@@ -638,6 +733,67 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true });
     }
     return json({ error: "Unsupported _rx_submissions operation." }, 404);
+  }
+
+  // ── Stock order outbox: same claim/complete pattern as _rx_submissions,
+  // separate table (stock_order_submissions), separate status vocabulary
+  // (staged/approved/claimed/released/failed/cancelled — "released" instead
+  // of "submitted" since there's no InnovaAPI call for stock orders, only
+  // the file-drop). See docs/innova-stockhashref-format.md (optilens-local)
+  // and the 20260811000000 migration (cvweb-deploy) for the rest of this
+  // pipeline. ──
+  if (entity === "_stock_submissions") {
+    if (!scopes.includes("customers:write")) {
+      return json({ error: "Missing required scope: customers:write" }, 403);
+    }
+    if (req.method === "GET" && id === "next") {
+      // dispatch_provider matters as much here as it does on the Rx outbox:
+      // without it this worker would claim stock orders staff routed to
+      // Gatekeeper and drop them into Innova's Incoming share as well,
+      // duplicating every Gatekeeper-bound order at the lab.
+      const { data: pending } = await supabase
+        .from("stock_order_submissions")
+        .select("id,account_id,payload,attempts")
+        .eq("status", "approved")
+        .eq("dispatch_provider", "innovations")
+        .order("approved_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!pending) return json({ submission: null });
+      const { data: claimed, error: claimErr } = await supabase
+        .from("stock_order_submissions")
+        .update({ status: "claimed", claimed_at: new Date().toISOString() })
+        .eq("id", (pending as any).id)
+        .eq("status", "approved")
+        .select("id,account_id,payload,attempts,gatekeeper_order_id")
+        .maybeSingle();
+      if (claimErr || !claimed) return json({ submission: null }); // lost the race
+      return json({ submission: withCanonicalOrder("stock", claimed as any) });
+    }
+    if (req.method === "POST" && id === "complete") {
+      const body = (await req.json().catch(() => null)) as any;
+      if (!body || !body.id) {
+        return json({ error: "Body must be { id, ok, transport?, filename?, error? }." }, 400);
+      }
+      const { data: updated, error: updErr } = await supabase
+        .from("stock_order_submissions")
+        .update({
+          status: body.ok ? "released" : "failed",
+          transport: body.transport ?? null,
+          filename: body.filename ?? null,
+          last_error: body.ok ? null : (body.error ?? "Unknown error"),
+          released_at: body.ok ? new Date().toISOString() : null,
+          attempts: (Number(body.attempts) || 0) + 1,
+        })
+        .eq("id", body.id)
+        .eq("status", "claimed")
+        .select("id")
+        .maybeSingle();
+      if (updErr) return json({ error: "Update failed", detail: updErr.message }, 500);
+      if (!updated) return json({ error: "Submission not found or not in claimed state." }, 409);
+      return json({ ok: true });
+    }
+    return json({ error: "Unsupported _stock_submissions operation." }, 404);
   }
 
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
@@ -739,7 +895,7 @@ Deno.serve(async (req: Request) => {
         });
       } else {
         upserted++;
-        if (isNew && !suppressEmail) await enqueueStatementReadyEmail(supabase, row);
+        if (isNew) await enqueueStatementDocumentJob(supabase, row, { suppress: suppressEmail });
       }
     }
   } else if (!dryRun && mapped.length && entity === "balances") {

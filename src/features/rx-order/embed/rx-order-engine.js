@@ -108,19 +108,26 @@ const CUR={
   BBD:{sym:'BBD $',rate:1,     n:'Barbados dollar'},
   USD:{sym:'USD $',rate:.5,    n:'US dollar'},
   EUR:{sym:'EUR €',rate:.46,   n:'Euro'},
+  CAD:{sym:'CAD $',rate:.68,   n:'Canadian dollar'},
   TTD:{sym:'TTD $',rate:3.40,  n:'Trinidad & Tobago dollar'},
   JMD:{sym:'JMD $',rate:78.50, n:'Jamaican dollar'},
-  XCD:{sym:'XCD $',rate:1.35,  n:'East Caribbean dollar'}
+  XCD:{sym:'XCD $',rate:1.35,  n:'East Caribbean dollar'},
+  GYD:{sym:'GYD $',rate:104.5, n:'Guyanese dollar'}
 };
 
 /* ---------- state ---------- */
 const S={branch:null,scope:'uncut',vision:'sv',purpose:'dist',eyes:'pair',
-  m:'',d:'',c:'', treat:new Set(), cur:'BBD', pricesOn:true, assists:new Set(), file:null, shapeOk:false,
+  m:'',d:'',c:'', treat:new Set(), cur:'USD', pricesOn:true, assists:new Set(), file:null, shapeOk:false, notesConfirmed:false,
   shape:null, shapeSrc:'', stdShape:'', shapeExpanded:false, frameExpanded:false, orderNo:'',
   tintCfg:{colour:'Grey',density:75,gradTop:80,gradBottom:10,finish:'Standard',match:false},
   chemClips:[],
   dismissed:new Set(), warnOff:new Set(), suggOff:false, ownerReview:false,
-  revealAll:false, prefilled:false, fromDraft:false, edTouched:false, diamTouched:false};
+  revealAll:false, prefilled:false, fromDraft:false, edTouched:false, diamTouched:false,
+  collapsedSections:new Set(), editingSections:new Set()};
+
+/* Assist tag raised automatically when the chosen lens has no price on the
+   account's matrix. Constant so it can be added and removed idempotently. */
+const UNPRICED_ASSIST='Lens not priced on this account — quote requested';
 
 const money=n=>n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const q4=n=>Math.round(n*4)/4;
@@ -204,6 +211,14 @@ const COMBO_DEFS={
   d:{inputId:'design', listId:'designList', all:DESIGNS, poolKey:'designs'},
   c:{inputId:'colour', listId:'colourList', all:COLOURS, poolKey:'cols'}
 };
+/* Each list keeps a direct element reference (and its original parent, to
+   restore into) captured once here — once opened it moves to document.body
+   (see openCombo), so it can no longer be found via $()/$$(), which only
+   search inside rootEl. */
+Object.values(COMBO_DEFS).forEach(def=>{
+  def.listEl=$('#'+def.listId);
+  def.listHome=def.listEl.parentElement;
+});
 let comboActive={m:-1,d:-1,c:-1};
 function comboFilteredItems(k,o){
   const def=COMBO_DEFS[k], input=$('#'+def.inputId);
@@ -212,13 +227,13 @@ function comboFilteredItems(k,o){
   return q?items.filter(x=>x.n.toLowerCase().includes(q)):items;
 }
 function renderComboList(k,o){
-  const def=COMBO_DEFS[k], list=$('#'+def.listId);
+  const def=COMBO_DEFS[k], list=def.listEl;
   const items=comboFilteredItems(k,o);
   if(comboActive[k]>=items.length) comboActive[k]=items.length-1;
   list.innerHTML=items.length
     ? items.map((x,i)=>`<div class="cbopt ${S[k]===x.id?'sel':''} ${i===comboActive[k]?'act':''}" data-cid="${x.id}">${x.n}</div>`).join('')
     : `<div class="cbnone">No matches</div>`;
-  $$('#'+def.listId+' .cbopt').forEach(el=>el.addEventListener('mousedown',e=>{
+  Array.from(list.querySelectorAll('.cbopt')).forEach(el=>el.addEventListener('mousedown',e=>{
     e.preventDefault(); pickCombo(k,el.dataset.cid);
   }));
 }
@@ -232,10 +247,45 @@ function pickCombo(k,id){
   fillLensSelects(); render();
   closeCombo(k);
 }
-function closeCombo(k){ const l=$('#'+COMBO_DEFS[k].listId); if(l) l.classList.remove('on'); }
+function closeCombo(k){
+  const def=COMBO_DEFS[k], list=def.listEl;
+  if(!list) return;
+  list.classList.remove('on');
+  /* undo the portal move from openCombo so it's back inside rootEl (and gets
+     torn down normally) whenever it isn't actively showing. */
+  if(list.parentElement&&list.parentElement!==def.listHome) def.listHome.appendChild(list);
+}
+function closeAllCombos(){ Object.keys(COMBO_DEFS).forEach(closeCombo); }
+/* Every rule in this file — including position:fixed on .cblist itself — is
+   scoped as ".cv-rx-embed .cblist{...}" (by design: keeps the ported
+   prototype's styles from leaking into the host page). Portaling straight to
+   document.body escapes that selector's ancestry too, so the dropdown loses
+   ALL of its CSS the moment it moves — position reverts to the div default
+   (static), landing it in normal document flow instead of floating anywhere
+   near the field. A standalone ".cv-rx-embed" wrapper appended to body (not
+   nested in the form itself) keeps every rule matching AND, being a fresh
+   direct child of body, is never inside admin's own layout containers either
+   — one of which turns out to establish its own containing block for fixed
+   descendants (a transform, filter or CSS containment somewhere up that
+   tree), which is what made the dropdown land nowhere near the field and
+   still get clipped by that container's own overflow. */
+function comboPortalRoot(){
+  let p=document.getElementById('cvRxComboPortal');
+  if(!p){ p=document.createElement('div'); p.id='cvRxComboPortal'; p.className='cv-rx-embed'; document.body.appendChild(p); }
+  return p;
+}
+function positionComboList(k){
+  const def=COMBO_DEFS[k], wrap=$('#'+def.inputId).closest('.combo'), list=def.listEl;
+  if(!wrap||!list) return;
+  const r=wrap.getBoundingClientRect();
+  list.style.left=r.left+'px'; list.style.top=(r.bottom+4)+'px'; list.style.width=r.width+'px';
+}
 function openCombo(k){
   Object.keys(COMBO_DEFS).forEach(x=>{ if(x!==k) closeCombo(x); });
-  $('#'+COMBO_DEFS[k].listId).classList.add('on');
+  const def=COMBO_DEFS[k], list=def.listEl, portal=comboPortalRoot();
+  if(list.parentElement!==portal) portal.appendChild(list);
+  positionComboList(k);
+  list.classList.add('on');
   renderComboList(k,options());
 }
 function fillLensSelects(){
@@ -244,7 +294,7 @@ function fillLensSelects(){
   Object.entries(COMBO_DEFS).forEach(([k,def])=>{
     const input=$('#'+def.inputId), item=def.all.find(x=>x.id===S[k]);
     if(document.activeElement!==input) input.value=item?item.n:'';
-    if($('#'+def.listId).classList.contains('on')) renderComboList(k,o);
+    if(def.listEl.classList.contains('on')) renderComboList(k,o);
   });
   $('#comboCount').textContent=o.pool.length+' valid combinations';
   const nm=(S.m&&S.d&&S.c)?`${material().n} · ${design().n} · ${colour().n}`:null;
@@ -361,6 +411,40 @@ function normalise(inp){
     } else inp.value=(Math.round(v*2)/2).toFixed(1);
   }
   else if(f==='ht'){ inp.value=(Math.round(Math.abs(v)*2)/2).toFixed(1); }
+  render();
+}
+
+/* ---------- plus-cylinder entry ----------
+   Some prescribers write in plus-cyl form. The main table above always works
+   in minus-cyl (Innovations/production need it that way); this is a small,
+   separate "as prescribed" capture that transposes into the main table
+   instead of changing how the main table itself behaves. Transposition:
+   sph' = sph + cyl, cyl' = -cyl, axis' = axis ± 90 (normalised to 1-180). */
+function normalisePlus(inp){
+  if(!inp.dataset||!inp.dataset.pf) return;
+  const f=inp.dataset.pf;
+  if(inp.value.trim()===''){ syncPlusCylToMain(); return; }
+  let v=parseNum(inp.value,f!=='axis');
+  if(v===null){ inp.value=''; syncPlusCylToMain(); return; }
+  if(f==='sph'){ inp.value=sgn(q4(Math.max(-25,Math.min(18,v)))); }
+  else if(f==='cyl'){ inp.value=sgn(Math.abs(q4(v))); }
+  else if(f==='axis'){ let a=Math.round(v); a=((a%180)+180)%180; if(a===0)a=180; inp.value=String(a); }
+  syncPlusCylToMain();
+}
+function syncPlusCylToMain(){
+  if(!$('#plusCylOn').checked) return;
+  ['od','os'].forEach(e=>{
+    const sphP=parseNum($('#pc-'+e+'-sph').value,true);
+    const cylP=parseNum($('#pc-'+e+'-cyl').value,true);
+    const axisP=parseNum($('#pc-'+e+'-axis').value,false);
+    if(sphP===null||cylP===null||axisP===null) return;
+    const sphM=q4(sphP+cylP), cylM=-Math.abs(q4(cylP));
+    let axisM=Math.round(axisP)+90; axisM=((axisM%180)+180)%180; if(axisM===0) axisM=180;
+    const sphEl=cell(e,'sph'), cylEl=cell(e,'cyl'), axisEl=cell(e,'axis');
+    if(sphEl) sphEl.value=sgn(sphM);
+    if(cylEl) cylEl.value=sgn(cylM);
+    if(axisEl) axisEl.value=String(axisM);
+  });
   render();
 }
 
@@ -627,9 +711,15 @@ function renderSuggestions(){
 /* ---------- pricing ---------- */
 function price(){
   const lines=[];
-  if(!(S.m&&S.d&&S.c)) return {lines,sub:0,ready:false};
+  if(!(S.m&&S.d&&S.c)) return {lines,sub:0,ready:false,unpriced:false};
   const d=design(), m=material(), c=colour();
-  lines.push({n:d.n,i:`${m.n} · ${c.n}`,v:(ADAPTER.lensPrice?ADAPTER.lensPrice(S.m,S.d,S.c):null)??(d.base+m.up)}); /* the lens itself — not removable from the quote */
+  /* An adapter that answers null means the combination has no price on this
+     account's matrix — "not offered". That is NOT the same as costing zero, and
+     collapsing the two would let a $0.00 order through. Without an adapter at
+     all (the standalone prototype) the synthetic base+upcharge still applies. */
+  const quoted=ADAPTER.lensPrice?ADAPTER.lensPrice(S.m,S.d,S.c):undefined;
+  const unpriced=!!ADAPTER.lensPrice&&quoted==null;
+  lines.push({n:d.n,i:`${m.n} · ${c.n}`,v:unpriced?0:(quoted??(d.base+m.up)),unpriced}); /* the lens itself — not removable from the quote */
   /* colour upcharge is a flat add-on regardless of material/design, so it already
      equals the delta vs Clear (which is always up:0 and simply shows no line) —
      the label now says so explicitly, per feedback asking "how much extra is it". */
@@ -656,7 +746,7 @@ function price(){
   let sub=lines.reduce((a,l)=>a+l.v,0);
   if(S.eyes!=='pair'){ sub*=.55; lines.forEach(l=>l.v*=.55); }
   if($('#service').value==='pri'){ const f=sub*.15; lines.push({n:'Priority service',i:'3 working days',v:f}); sub+=f; }
-  return {lines,sub,ready:true};
+  return {lines,sub,ready:true,unpriced};
 }
 
 /* ---------- section validity ---------- */
@@ -664,7 +754,7 @@ function secValid(){
   const eyes=activeEyes(), rows=eyes.map(e=>({e,r:readRow(e)}));
   const num=id=>parseNum($('#'+id).value);
   const patient=!!$('#pfirst').value.trim()&&!!$('#plast').value.trim();
-  const frame=!!$('#fname').value.trim()&&num('fa')!==null&&num('fb')!==null&&num('fed')!==null&&num('fdbl')!==null
+  const frame=!!$('#fname').value.trim()&&!!$('#mount').value&&num('fa')!==null&&num('fb')!==null&&num('fed')!==null&&num('fdbl')!==null
     &&limitErrors().length===0
     &&(!S.shape||S.shapeOk)
     &&(S.scope!=='remote'||!!S.file);
@@ -677,6 +767,86 @@ function secValid(){
     &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35))
     &&errors().length===0;
   return {'sec-patient':patient,'sec-frame':frame,'sec-lens':lens,'sec-rx':rxOk,'sec-treat':true,'sec-notes':true};
+}
+const SECTION_IDS=['sec-patient','sec-frame','sec-lens','sec-rx','sec-treat','sec-notes'];
+const selectLabel=id=>{
+  const el=$('#'+id);
+  return el?.selectedOptions?.[0]?.textContent?.trim()||el?.value||'';
+};
+function sectionHasCapturedData(id){
+  if(id==='sec-patient'||id==='sec-frame'||id==='sec-lens'||id==='sec-rx') return true;
+  if(id==='sec-treat') return S.treat.size>0||S.chemClips.length>0;
+  return !!$('#notes').value.trim()||$('#service').value!=='std'||$('#delivery').selectedIndex!==0||S.notesConfirmed;
+}
+/* sec-rx and sec-treat need real line breaks (values crammed onto one line
+   were unreadable) — those two return HTML and are rendered via innerHTML;
+   everything else stays plain text since patient/frame names are free-typed. */
+function sectionSummary(id){
+  if(id==='sec-patient'){
+    const ref=$('#ref').value.trim();
+    return [$('#pfirst').value.trim()+' '+$('#plast').value.trim(),ref&&'Ref '+ref].filter(Boolean).join(' · ');
+  }
+  if(id==='sec-frame') return [$('#fname').value.trim(),`${$('#fa').value} × ${$('#fb').value} mm`, `DBL ${$('#fdbl').value} mm`,S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
+  if(id==='sec-lens') return [material()?.n,design()?.n,colour()?.n].filter(Boolean).join(' · ');
+  if(id==='sec-rx') return activeEyes().map(e=>{
+    const r=readRow(e), parts=[r.sph!==null?'Sph '+sgn(r.sph):'',r.cyl?'Cyl '+sgn(r.cyl):'',r.axis!==null?'Axis '+r.axis:'',r.pd!==null?'PD '+r.pd:''].filter(Boolean);
+    return `<b>${e.toUpperCase()}</b> ${parts.join(' · ')}`;
+  }).join('<br>');
+  if(id==='sec-treat'){
+    const items=Array.from(S.treat).map(tid=>{
+      const t=TREAT.find(x=>x.id===tid); if(!t) return '';
+      const detail=/^tn-/.test(tid)
+        ? S.tintCfg.colour+(/grad/.test(tid)?` · ${S.tintCfg.gradTop}→${S.tintCfg.gradBottom}%`:` · ${S.tintCfg.density}%`)
+        : t.d;
+      return `<b>${t.n}</b> — ${detail}`;
+    }).filter(Boolean);
+    if(S.chemClips.length) items.push(`<b>Chemistrie</b> — ${S.chemClips.length} clip${S.chemClips.length>1?'s':''}`);
+    return items.join('<br>');
+  }
+  return [selectLabel('service'),selectLabel('delivery'),$('#notes').value.trim()&&'Lab notes added'].filter(Boolean).join(' · ');
+}
+const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-rx','sec-treat']);
+function syncSectionCollapse(V){
+  const justCollapsed=[];
+  SECTION_IDS.forEach(id=>{
+    const section=$('#'+id); if(!section) return;
+    const complete=!!V[id]&&sectionHasCapturedData(id);
+    const wasCollapsed=S.collapsedSections.has(id);
+    if(!complete){ S.collapsedSections.delete(id); S.editingSections.delete(id); }
+    else if(!S.editingSections.has(id)&&!section.contains(document.activeElement)) S.collapsedSections.add(id);
+    const collapsed=S.collapsedSections.has(id);
+    if(collapsed&&!wasCollapsed) justCollapsed.push(section);
+    section.classList.toggle('section-collapsed',collapsed);
+    const summary=section.querySelector('.section-summary');
+    const multiline=MULTILINE_SUMMARY_SECTIONS.has(id);
+    if(summary){
+      summary.classList.toggle('multiline',multiline);
+      const text=collapsed?sectionSummary(id):'';
+      if(multiline) summary.innerHTML=text; else summary.textContent=text;
+    }
+  });
+  /* A section finishing and folding shut (see the animated .card-b/.section-summary
+     rules in rx-order.css) removes a chunk of page height from under the user
+     without moving the scroll position to compensate — the page silently
+     jumps and their place is lost. Bring the collapsed section itself back to
+     a stable spot once the animation has had a moment to run. Only for a
+     single section completing in the ordinary course of filling the form —
+     a prefill/draft-restore can collapse several sections in the same pass,
+     and repeatedly yanking the scroll position around for that would be
+     worse, not better. */
+  if(justCollapsed.length===1){
+    const section=justCollapsed[0];
+    setTimeout(()=>{ section.scrollIntoView({behavior:'smooth',block:'start'}); },260);
+  }
+}
+function openSection(id){
+  const section=$('#'+id); if(!section) return;
+  S.collapsedSections.delete(id); S.editingSections.add(id); render();
+  section.scrollIntoView?.({behavior:'smooth',block:'start'});
+  setTimeout(()=>{
+    const field=section.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled])');
+    if(field) field.focus();
+  },0);
 }
 function errors(){
   const out=[];
@@ -714,7 +884,10 @@ let lastTotal=null;
 function render(){
   /* conditional fields */
   $$('.c-add').forEach(el=>el.classList.toggle('hide',!needsAdd()));
-  $$('.c-ht').forEach(el=>el.classList.toggle('hide',!needsHt()));
+  /* height is retained (not hidden) for single vision too — it just means
+     something different per lens type, so the header relabels instead. */
+  $$('.c-ht').forEach(el=>el.classList.remove('hide'));
+  $('#htLabel').textContent=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
   $$('.c-npd').forEach(el=>el.classList.toggle('hide',!needsNearPD()));
   $('#corridorField').classList.toggle('hide',!isProg());
   $('#purposeBlock').classList.toggle('hide',S.vision!=='sv');
@@ -742,28 +915,38 @@ function render(){
   } else if(lb) lb.remove();
 
   /* quote */
-  const c=CUR[S.cur], {lines,sub,ready}=price(), conv=n=>n*c.rate, total=conv(sub);
+  const c=CUR[S.cur], {lines,sub,ready,unpriced}=price(), conv=n=>n*c.rate, total=conv(sub);
   const show=S.pricesOn;
   $('#qLines').innerHTML=!ready
     ? '<div class="qempty">No lens chosen yet — the quote fills in as you select.</div>'
-    : lines.map(l=>`<div class="qline ${show?'':'masked'}"><span class="qn"><b>${l.n}</b><i>${l.i}</i></span><span class="qv">${show?money(conv(l.v)):'••••'}</span>${l.rm?`<button type="button" class="qline-rm" data-rmtype="${l.rm.type}" data-rmid="${l.rm.id}" title="Remove from order">✕</button>`:''}</div>`).join('');
-  $('#qSubtotal').textContent=show?c.sym+' '+money(conv(sub)):'——';
-  $('#qTotal').textContent=show?c.sym+' '+money(total):'——';
+    : lines.map(l=>`<div class="qline ${show?'':'masked'}"><span class="qn"><span class="qn-name"><b>${l.n}</b>${l.rm?`<button type="button" class="qline-rm" data-rmtype="${l.rm.type}" data-rmid="${l.rm.id}" title="Remove from order">✕</button>`:''}</span><i>${l.i}</i></span><span class="qv">${l.unpriced?'on request':(show?money(conv(l.v)):'••••')}</span></div>`).join('');
+  /* A total of 0.00 beside an "on request" line reads as free. Say what it is. */
+  const onRequest=show&&unpriced;
+  $('#qSubtotal').textContent=onRequest?'on request':(show?c.sym+' '+money(conv(sub)):'——');
+  /* Only BBD and USD are transactional; anything else is a courtesy conversion
+     and must say so, or a customer will treat it as the price they will pay. */
+  const indicative=!!c.indicative;
+  /* an indicative display currency isn't what actually bills — show the real
+     USD amount alongside it so it matches what checkout will charge. */
+  const usdNote=indicative&&CUR.USD?` (USD ${money(sub*CUR.USD.rate)})`:'';
+  $('#qTotal').textContent=onRequest?'on request':(show?c.sym+' '+money(total)+usdNote:'——');
   $('#qCur').textContent=show?c.sym:''; $('#curChip').textContent=c.sym;
   $('#qLabel').textContent=show?'Live quote · '+S.cur:'Order summary';
   $('#mCur').textContent=show?'order total':'Pricing not shown on this account';
   $('#qSub').textContent=!show?'confirmed with you before production'
     :(!ready?'choose a lens to start pricing'
-      :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))+' · updates as you type');
-  const amt=$('#qAmt'); amt.textContent=show?money(total):'——';
-  $('#mAmt').textContent=show?c.sym+' '+money(total):'——';
+      :unpriced?'this lens is not on your pricelist — save as a draft and we will quote it'
+      :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))
+        +(indicative?` · ${S.cur} shown for guidance, billed in USD`:' · updates as you type'));
+  const amt=$('#qAmt'); amt.textContent=onRequest?'on request':(show?money(total):'——');
+  $('#mAmt').textContent=onRequest?'on request':(show?c.sym+' '+money(total):'——');
   if(show&&lastTotal!==null&&Math.abs(total-lastTotal)>.001){amt.classList.remove('pulse');void amt.offsetWidth;amt.classList.add('pulse');}
   lastTotal=total;
   let np=$('#noPricingNote');
   if(!show){
     if(!np){ np=document.createElement('div'); np.id='noPricingNote'; np.className='nopricing';
       $('#qLines').parentElement.insertBefore(np,$('#qLines')); }
-    np.innerHTML='<b>Pricing isn\'t enabled on this account.</b><br>You can complete and submit this order as normal — we confirm the price with you before production, and it appears on your invoice.';
+    np.innerHTML='<b>Your order details are ready to review.</b><br>You can complete and submit this order as normal. We will confirm the final order details before production.';
   } else if(np) np.remove();
 
   renderSuggestions(); renderChips();
@@ -791,7 +974,7 @@ function render(){
   $$('#rxPrompts [data-pax]').forEach(b=>b.addEventListener('click',()=>{cell(b.dataset.pax,'axis').value='';render();}));
 
   /* progressive disclosure */
-  const V=secValid(), ids=['sec-patient','sec-frame','sec-lens','sec-rx','sec-treat','sec-notes'];
+  const V=secValid(), ids=SECTION_IDS;
   let gate=true, firstLocked=null;
   ids.forEach(id=>{
     const el=$('#'+id), show=S.revealAll||gate;
@@ -808,6 +991,8 @@ function render(){
     cue.innerHTML=`<span class="lk">🔒</span><span>Finish <b>${$('#'+firstLocked+' h2').textContent}</b> and <b>${names[firstLocked]}</b> opens next.</span>`;
   } else cue.classList.add('hide');
 
+  syncSectionCollapse(V);
+
   /* checklist */
   const checks=[
     {t:'Patient name',ok:V['sec-patient'],go:'#sec-patient'},
@@ -819,9 +1004,19 @@ function render(){
   $$('#vList li').forEach(li=>li.addEventListener('click',()=>{const t=rootEl.querySelector(li.dataset.go); if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});}));
   $('#vBar').style.width=Math.round(checks.filter(k=>k.ok).length/checks.length*100)+'%';
   const valid=checks.every(k=>k.ok);
-  ['#submitBtn','#submitBtn2'].forEach(s=>$(s).disabled=!valid);
+  /* An unpriced combination cannot go to the cart — there is no price to charge,
+     so the only route is a draft we quote back. Flagged for assistance so it
+     reaches the same follow-up queue as any other help request. The mutation
+     sits above the assist-list render below, so it lands in this same pass. */
+  const {unpriced:noPrice}=price();
+  if(noPrice) S.assists.add(UNPRICED_ASSIST); else S.assists.delete(UNPRICED_ASSIST);
+  ['#submitBtn','#submitBtn2'].forEach(s=>{
+    const b=$(s);
+    b.disabled=!valid||noPrice;
+    b.title=noPrice?'This lens is not priced on your account — save it as a draft and we will quote it.':'';
+  });
 
-  markNeeded();
+  markNeeded(V);
   buildSteps(V);
   $('#assistList').classList.toggle('on',S.assists.size>0);
   $('#assistTags').innerHTML=Array.from(S.assists).map(a=>`<span class="atag">⚑ ${a}<button data-rm="${a}">✕</button></span>`).join('');
@@ -832,8 +1027,16 @@ function render(){
   }));
 }
 /* ---------- skipped-mandatory beacon ----------
-   Only active when the form arrived prefilled or restored from a draft, i.e. every
-   section is open at once and the user can jump around and miss something. */
+   Prefilled/restored forms open every section at once (S.revealAll), so the
+   user can jump around and miss something — that always qualifies. In the
+   normal step-by-step flow a section only becomes reachable once everything
+   before it validates, so arriving at a fresh section empty is expected, not
+   "overlooked" — no beacon for that. But a user can jump BACK (the pencil
+   "Edit" icon) to an earlier, already-completed section and blank something
+   out while later sections still hold their data; that's the real "other
+   areas are filled and this one got skipped" case, so a field also qualifies
+   whenever some section after its own is currently valid or holds data —
+   proof the user got past this point before. */
 function requiredFields(){
   const out=[];
   const add=(el,why)=>{ if(el) out.push({el,why}); };
@@ -852,12 +1055,23 @@ function requiredFields(){
   });
   return out;
 }
-function markNeeded(){
+function markNeeded(V){
   $$('.needed').forEach(el=>el.classList.remove('needed'));
   let cue=$('#needCue');
-  if(!S.revealAll){ if(cue) cue.remove(); return; }
-  const missing=requiredFields().filter(f=>!f.el.disabled&&f.el.value.trim()===''
-    &&f.el.closest('section')&&!f.el.closest('section').classList.contains('hide'));
+  const missing=requiredFields().filter(f=>{
+    if(f.el.disabled||f.el.value.trim()!=='') return false;
+    const sec=f.el.closest('section');
+    if(!sec||sec.classList.contains('hide')) return false;
+    if(S.revealAll) return true;
+    const idx=SECTION_IDS.indexOf(sec.id);
+    /* sectionHasCapturedData() is only a meaningful signal on its own for
+       sec-treat/sec-notes — they're always "valid" (optional) whether or not
+       they hold anything. For the other sections validity IS the data check;
+       using sectionHasCapturedData for those too would read true unconditionally
+       and false-positive on a still-blank form. */
+    const hasProgress=id=>(id==='sec-treat'||id==='sec-notes')?sectionHasCapturedData(id):!!V[id];
+    return idx>=0&&SECTION_IDS.slice(idx+1).some(hasProgress);
+  });
   missing.forEach(f=>{
     const host=f.el.closest('td')||f.el.closest('.field');
     if(host) host.classList.add('needed');
@@ -878,14 +1092,33 @@ function markNeeded(){
 
 function buildSteps(V){
   const secs=$$('.card[data-step]');
-  $('#steps').innerHTML=secs.map((s,i)=>{
+  const stepButtons=secs.map((s,i)=>{
     const locked=s.classList.contains('hide');
     return `<button class="step ${V[s.id]?'done':''} ${locked?'locked':''}" data-go="#${s.id}"><span class="n">${V[s.id]?'✓':(locked?'🔒':i+1)}</span>${s.dataset.step}</button>`;
   }).join('');
+  const currencyOptions=Object.entries(CUR).map(([code,c])=>`<option value="${code}" ${S.cur===code?'selected':''}>${c.sym}${c.indicative?' · indicative':''}</option>`).join('');
+  /* Coach/settings live on the pagehead (top of page) only — the sticky rail
+     carries just order identity + actions, not a second copy of every icon. */
+  $('#steps').innerHTML=`<div class="step-list">${stepButtons}</div><div class="step-actions" aria-label="Order actions">
+    <span class="ordno"><span>Order</span> ${S.orderNo||'—'}</span>
+    <button class="btn btn-ghost btn-sm" data-step-action="save-draft">Save draft</button>
+    <button class="chip btnchip" data-step-action="branch-picker"><span class="dot"></span>Ordering for <b>${S.branch?S.branch.name.replace('Bridgetown Optical — ',''):'—'}</b> <span style="opacity:.5">▾</span></button>
+    <select class="step-currency" data-step-currency aria-label="Display currency">${currencyOptions}</select>
+  </div>`;
   $$('.step').forEach(b=>b.addEventListener('click',()=>{
     const t=rootEl.querySelector(b.dataset.go);
-    if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});
+    if(t&&!t.classList.contains('hide')) openSection(t.id);
   }));
+  $$('#steps [data-step-action]').forEach(b=>b.addEventListener('click',()=>{
+    const action=b.dataset.stepAction;
+    if(action==='save-draft') $('#saveDraft').click();
+    if(action==='branch-picker') $('#branchChip').click();
+  }));
+  const currency=$('#steps [data-step-currency]');
+  if(currency) currency.addEventListener('change',e=>{
+    $('#curSim').value=e.target.value;
+    $('#curSim').dispatchEvent(new Event('change',{bubbles:true}));
+  });
 }
 
 /* ---------- segmented ---------- */
@@ -947,15 +1180,33 @@ Object.entries(COMBO_DEFS).forEach(([k,def])=>{
       input.value=item?item.n:'';
     },120);
   });
+  /* always opens, never toggles closed — a second click landing on the
+     button while it's already open used to close-then-reopen in the same
+     gesture (the input's own focus/click handlers fire too), which read as
+     the dropdown flickering. Calling openCombo directly (rather than relying
+     on input.focus() to fire a 'focus' event) also covers the case where the
+     input already has focus from before — focus() is then a no-op that
+     fires nothing, which left the button doing nothing at all. */
   input.closest('.combo').querySelector('.cbtog').addEventListener('click',e=>{
     e.preventDefault();
-    if($('#'+def.listId).classList.contains('on')) closeCombo(k);
-    else { input.focus(); openCombo(k); }
+    input.focus();
+    openCombo(k);
   });
 });
 docListen('click',e=>{
-  if(!e.target.closest('.combo')) Object.keys(COMBO_DEFS).forEach(closeCombo);
+  /* the open list itself is portaled onto document.body while open (see
+     openCombo), so it's no longer a descendant of .combo — check for it
+     separately or a click inside it (e.g. on "No matches", not an option)
+     would look like an outside click and close it out from under the user. */
+  if(e.target.closest('.combo')||e.target.closest('.cblist')) return;
+  closeAllCombos();
 });
+/* fixed-position .cblist no longer scrolls with its input, so close rather
+   than leave it floating over the wrong spot — but not for scrolling the
+   list's OWN results (a capture-phase window listener sees that scroll too),
+   or the list would slam shut the moment you tried to scroll through it. */
+winListen('scroll',e=>{ if(e.target&&e.target.closest&&e.target.closest('.cblist')) return; closeAllCombos(); },true);
+winListen('resize',closeAllCombos);
 
 /* ---------- Rx tools ---------- */
 $('#copyOD').addEventListener('click',()=>{
@@ -963,7 +1214,8 @@ $('#copyOD').addEventListener('click',()=>{
   a.forEach((s,i)=>{ b[i].value=s.value; });
   render(); toast('Copied OD values to OS');
 });
-$('#clearRx').addEventListener('click',()=>{ $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value=''); S.dismissed.clear(); S.warnOff.clear(); render(); });
+$('#clearRx').addEventListener('click',()=>{ $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value=''); S.dismissed.clear(); S.warnOff.clear();
+  $('#plusCylOn').checked=false; $('#plusCylBlock').classList.add('hide'); render(); });
 
 /* ---------- select-all on first focus ---------- */
 let armed=null;
@@ -981,12 +1233,20 @@ docListen('keydown',e=>{
   if(!t.matches('input,select')||t.closest('#annoUI')||t.closest('.sdraw')) return;
   e.preventDefault();
   if(t.dataset.f) normalise(t);
+  if(t.dataset.pf) normalisePlus(t);
   const list=focusables(), n=list[list.indexOf(t)+1];
   if(n){ n.focus(); if(n.select) try{n.select();}catch(err){} }
 });
-docListen('blur',e=>{ if(e.target.dataset&&e.target.dataset.f) normalise(e.target); },true);
+docListen('blur',e=>{
+  if(e.target.dataset&&e.target.dataset.f) normalise(e.target);
+  if(e.target.dataset&&e.target.dataset.pf) normalisePlus(e.target);
+},true);
 $('#fed').addEventListener('input',()=>{ S.edTouched=$('#fed').value.trim()!==''; });
 $('#diam').addEventListener('change',()=>{ S.diamTouched=true; render(); });
+$('#plusCylOn').addEventListener('change',e=>{
+  $('#plusCylBlock').classList.toggle('hide',!e.target.checked);
+  if(e.target.checked) syncPlusCylToMain(); else render();
+});
 
 /* ---------- treatments drawer ---------- */
 $('#openTreat').addEventListener('click',()=>{ buildTreatList(); $('#treatDrawer').classList.add('on'); });
@@ -1014,7 +1274,7 @@ const COACH={
     <p>Cylinder always resolves to minus, whether you type <code>1-</code>, <code>-1</code> or <code>1.00</code>. Axis over 180 wraps to its polar opposite. A binocular PD splits across both eyes.</p>
     <p>Opposing signs between eyes raise a dismissible warning. An axis with no cylinder asks whether the cylinder is missing.</p>`},
   treat:{h:'Coatings & treatments',b:`<p>Six popular choices cover most jobs; <b>Browse all treatments</b> opens the full catalogue.</p>
-    <p>Prices don't clutter the options — they appear in the live quote as you select, so the running total is the single source of truth.</p>
+    <p>${S.pricesOn?'Prices appear in the order summary as you select, so the running total stays in one place.':'Your selections appear in the order summary as you build the job.'}</p>
     <p>Specialty work is suggested automatically when your powers call for it, and carries an owner review. Dismiss the whole suggestion block with the ✕ if you don't want it.</p>`},
   delivery:{h:'Delivery & notes',b:`<p>Priority adds 15% and pulls the job to three working days.</p>
     <p>Notes reach the surfacing bench directly.</p>`}
@@ -1056,23 +1316,39 @@ const SECFIELDS={
 function clearSection(k){
   (SECFIELDS[k]||[]).forEach(id=>{const el=$('#'+id); if(el) el.value='';});
   if(k==='frame'){ S.file=null; S.shapeOk=false; S.edTouched=false; S.shape=null; S.stdShape=''; S.shapeSrc='';
-    $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#fileInput').value=''; $('#drop').classList.remove('hide'); buildShapePick(); }
+    $('#mount').value=''; $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#fileInput').value=''; $('#drop').classList.remove('hide'); buildShapePick(); }
   if(k==='lens'){ S.m=S.d=S.c=''; S.diamTouched=false; fillLensSelects(); }
-  if(k==='rx'){ $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value=''); S.warnOff.clear(); }
+  if(k==='rx'){ $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value=''); S.warnOff.clear();
+    $('#plusCylOn').checked=false; $('#plusCylBlock').classList.add('hide'); }
   if(k==='treat'){ S.treat.clear(); S.dismissed.clear(); S.suggOff=false; buildPopular(); buildTreatList(); }
+  if(k==='notes'){ S.notesConfirmed=false; $('#notesConfirmed').checked=false; }
   render(); toast('Cleared '+k+' section');
 }
 $$('.clear-sec').forEach(b=>b.addEventListener('click',()=>clearSection(b.dataset.sec)));
+$$('[data-edit-section]').forEach(b=>b.addEventListener('click',()=>openSection(b.dataset.editSection)));
+docListen('focusout',e=>{
+  const section=e.target.closest?.('.card[data-step]');
+  if(!section) return;
+  setTimeout(()=>{
+    if(!section.contains(document.activeElement)){
+      S.editingSections.delete(section.id);
+      render();
+    }
+  },0);
+});
 function clearAll(){
   Object.keys(SECFIELDS).forEach(k=>{(SECFIELDS[k]||[]).forEach(id=>{const el=$('#'+id); if(el) el.value='';});});
   $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value='');
   S.m=S.d=S.c=''; S.treat.clear(); S.assists.clear(); S.dismissed.clear(); S.warnOff.clear();
   S.file=null; S.shapeOk=false; S.suggOff=false; S.edTouched=false; S.diamTouched=false;
   S.shape=null; S.stdShape=''; S.shapeSrc=''; S.shapeExpanded=false; S.frameExpanded=false;
-  S.stdShapesOpen=false; S.rebuiltFrom=null; S.chemClips=[];
+  S.stdShapesOpen=false; S.rebuiltFrom=null; S.chemClips=[]; S.notesConfirmed=false;
+  $('#mount').value=''; $('#notesConfirmed').checked=false;
+  $('#plusCylOn').checked=false; $('#plusCylBlock').classList.add('hide');
   if(typeof buildShapePick==='function') buildShapePick();
   if(typeof newOrderNo==='function') newOrderNo();
   S.revealAll=false; S.prefilled=false; S.fromDraft=false;
+  S.collapsedSections.clear(); S.editingSections.clear();
   $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#drop').classList.remove('hide'); $('#prefillChip').classList.add('hide');
   $('#draftBanner').classList.add('hide');
   $$('.field.assist').forEach(f=>f.classList.remove('assist'));
@@ -2298,10 +2574,10 @@ function buildShapePick(){
     <div class="sp ${S.stdShape===s.id?'sel':''} " data-sid="${s.id}" tabindex="0" title="${s.file}">
       ${shapeThumb(s.id)}
       <div class="spn">${s.n}</div>
-      <div class="spf">${SHAPELIB[s.id] ? s.file : 'not loaded'}</div>
+      <div class="spf">${SHAPELIB[s.id] ? '' : 'not loaded'}</div>
     </div>`).join('')
     + (S.stdShape ? `<div class="sp" data-sid="" tabindex="0" style="display:grid;place-items:center">
-        <div style="font-size:19px;opacity:.4">✕</div><div class="spn">Clear</div><div class="spf">no shape</div></div>` : '');
+        <div style="font-size:19px;opacity:.4">✕</div><div class="spn">Clear</div></div>` : '');
   $$('#shapePick .sp').forEach(el => {
     el.addEventListener('click', () => pickStdShape(el.dataset.sid));
     el.addEventListener('keydown', e => { if(e.key===' '||e.key==='Enter'){ e.preventDefault(); el.click(); } });
@@ -2314,7 +2590,12 @@ function buildShapePick(){
   if (sb) sb.addEventListener('click', () => $('#libInput').click());
 }
 function pickStdShape(id){
-  if (!id) { S.stdShape=''; S.shape=null; buildShapePick(); render(); toast('Shape cleared'); return; }
+  if (!id) {
+    S.stdShape=''; S.shape=null; buildShapePick(); render(); toast('Shape cleared');
+    /* standard shape cleared — the trace dropzone is relevant again on remote edge */
+    $('#traceBlock').classList.toggle('hide', S.scope!=='remote');
+    return;
+  }
   if (!SHAPELIB[id]) { toast('That shape isn\'t loaded yet — use Load shape library'); return; }
   if (S.file && !confirm('Replace the uploaded trace with the standard shape?')) return;
   S.stdShape = id; S.shape = SHAPELIB[id]; S.shapeSrc = 'standard';
@@ -2322,6 +2603,9 @@ function pickStdShape(id){
   /* DBL is a real frame measurement — don't auto-fill it from a generic standard
      shape, wait for the optician to type/measure it. */
   buildShapePick(); render();
+  /* a standard shape now stands in for the trace — collapse the upload
+     dropzone so it doesn't look like a trace is still expected too. */
+  $('#traceBlock').classList.add('hide');
   toast(meta.n + ' selected — resize it by typing A and B');
 }
 
@@ -2390,15 +2674,15 @@ function updatePreview(){
         <div class="pv-stat"><div class="k">DBL gap</div><div class="v">${g.dbl.toFixed(2)} mm</div></div>
         <div class="pv-stat"><div class="k">Circumference</div><div class="v">${m.circ.toFixed(1)} mm</div></div>
       </div>
-      <label class="confirmrow"><input type="checkbox" id="shapeConfirm" ${S.shapeOk?'checked':''}>
-        <span>This is the correct shape for the frame in hand</span></label>
+      <button type="button" class="confirmrow" id="shapeConfirm" aria-pressed="${S.shapeOk?'true':'false'}">
+        <span class="cri">✓</span><span>This is the correct shape for the frame in hand</span></button>
       <div class="pv-note">Right lens shown left, as you face the patient. ED is measured from the boxing centre of the
         outline at the current A and B, so it is the field's source of truth and can't be typed over.
-        Tick the box to collapse this panel.</div>
+        Confirm it to collapse this panel.</div>
     </div>`;
   const cb = $('#shapeConfirm');
-  if (cb) cb.addEventListener('change', e => {
-    S.shapeOk = e.target.checked;
+  if (cb) cb.addEventListener('click', () => {
+    S.shapeOk = !S.shapeOk;
     S.shapeExpanded = false;          /* verifying collapses it to the mini strip */
     render();
   });
@@ -2717,7 +3001,7 @@ function renderBranches(){
     if(changing&&!confirm('Move this order to '+b.name+'?\n\nPricing, currency and delivery may differ.')) return;
     S.branch=b; if(ADAPTER.onBranchChange) ADAPTER.onBranchChange(b.id); $('#branchName').textContent=b.name.replace('Bridgetown Optical — ','');
     /* currency and price visibility follow the account */
-    S.cur=b.cur||'BBD'; S.pricesOn=b.prices!==false;
+    S.cur=b.cur||'USD'; S.pricesOn=b.prices!==false;
     $('#curSim').value=S.cur; $('#pricesOn').checked=S.pricesOn;
     $('#branchScrim').classList.remove('on');
     if(changing) toast('Order now placed against '+b.name+(S.pricesOn?'':' — pricing not enabled on that account'));
@@ -2802,7 +3086,7 @@ function fillDemo(quiet){
   S.vision='mf'; $$('#visionSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vision==='mf'));
   applyLens('1.60','pg-enh','clear');
   $('#pfirst').value='Marcus'; $('#plast').value='Grant'; $('#ref').value='JOB-2291';
-  $('#fname').value='Ray-Ban RB5154'; $('#fa').value='52'; $('#fb').value='38'; $('#fdbl').value='18'; $('#ftemple').value='140';
+  $('#fname').value='Ray-Ban RB5154'; $('#mount').value='full'; $('#fa').value='52'; $('#fb').value='38'; $('#fdbl').value='18'; $('#ftemple').value='140';
   S.edTouched=false;
   const v={od:{sph:'-325',cyl:'1-',axis:'175',add:'2',prism:'',base:'',pd:'64',npd:'',ht:'22'},
            os:{sph:'-275',cyl:'-075',axis:'185',add:'2',prism:'',base:'',pd:'',npd:'',ht:'22'}};
@@ -2816,9 +3100,13 @@ $('#btnDemo').addEventListener('click',()=>fillDemo(false));
 
 /* ---------- draft / print / submit ---------- */
 ['#saveDraft','#saveDraft2','#saveDraft3'].forEach(s=>$(s).addEventListener('click',()=>{
-  const n=S.assists.size, p=stashOrder('draft'); if(ADAPTER.onDraftSaved) ADAPTER.onDraftSaved(p);
-  toast('Draft saved ('+payloadSize(p)+' bundle'+(p.shape?', shape included':'')+')'
-    +(n?` · ${n} flagged for assistance`:'')+' · resumable from history');
+  const n=S.assists.size, p=stashOrder('draft');
+  Promise.resolve(ADAPTER.onDraftSaved?.(p)).then(()=>{
+    toast('Draft saved ('+payloadSize(p)+' bundle'+(p.shape?', shape included':'')+')'
+      +(n?` · ${n} flagged for assistance`:'')+' · resumable from Saved Drafts');
+  }).catch(error=>{
+    toast('Draft could not be saved to your account'+(error?.message?`: ${error.message}`:''));
+  });
 }));
 
 $('#printBtn').addEventListener('click',()=>{
@@ -2826,13 +3114,19 @@ $('#printBtn').addEventListener('click',()=>{
   const rows=activeEyes().map(e=>({e,r:readRow(e)}));
   const tr=Array.from(S.treat).map(id=>(TREAT.find(x=>x.id===id)||{}).n).filter(Boolean);
   const f=v=>(v===null||v===undefined||v==='')?'—':v;
+  const htLbl=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
   const rx=rows.map(({e,r})=>`<tr><th>${e.toUpperCase()}</th>
     <td>${r.sph!==null?sgn(r.sph):'—'}</td><td>${r.cyl!==null?sgn(r.cyl):'—'}</td><td>${f(r.axis)}</td>
     ${needsAdd()?`<td>${r.add!==null?sgn(r.add):'—'}</td>`:''}
-    <td>${r.prism?r.prism.toFixed(2):'—'}</td><td>${f(r.base)}</td>
     <td>${r.pd!==null?r.pd.toFixed(1):'—'}</td>
     ${needsNearPD()?`<td>${r.npd!==null?r.npd.toFixed(1):'—'}</td>`:''}
-    ${needsHt()?`<td>${r.ht!==null?r.ht.toFixed(1):'—'}</td>`:''}</tr>`).join('');
+    <td>${r.ht!==null?r.ht.toFixed(1):'—'}</td>
+    <td>${r.prism?r.prism.toFixed(2):'—'}</td><td>${f(r.base)}</td></tr>`).join('');
+  const plusCylOn=$('#plusCylOn').checked;
+  const pcRows=plusCylOn?activeEyes().map(e=>{
+    const sph=$('#pc-'+e+'-sph').value||'—', cyl=$('#pc-'+e+'-cyl').value||'—', axis=$('#pc-'+e+'-axis').value||'—';
+    return `<tr><th>${e.toUpperCase()}</th><td>${sph}</td><td>${cyl}</td><td>${axis}</td></tr>`;
+  }).join(''):'';
   const lensNm=(S.m&&S.d&&S.c)?`${material().n} · ${design().n} · ${colour().n}`:'—';
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rx Order — ${$('#pfirst').value} ${$('#plast').value}</title>
   <style>body{font:13px/1.55 ui-sans-serif,system-ui,Segoe UI,Arial;color:#0B1E35;margin:34px;max-width:760px}
@@ -2852,7 +3146,9 @@ $('#printBtn').addEventListener('click',()=>{
   <div class="biz"><b>${S.branch?S.branch.name:'—'}</b>${S.branch?S.branch.info:''}<br>Classic Visions Rx Laboratory</div></div>
   <h2>Patient</h2><div class="kv"><span>Name</span><div>${$('#pfirst').value} ${$('#plast').value}</div>
   <span>Eyes supplied</span><div>${S.eyes==='pair'?'Pair (OD + OS)':S.eyes==='od'?'Right lens only':'Left lens only'}</div></div>
-  <h2>Prescription</h2><table><thead><tr><th></th><th>Sphere</th><th>Cyl</th><th>Axis</th>${needsAdd()?'<th>Add</th>':''}<th>Prism</th><th>Base</th><th>Dist PD</th>${needsNearPD()?'<th>Near PD</th>':''}${needsHt()?'<th>Fit ht</th>':''}</tr></thead><tbody>${rx}</tbody></table>
+  <h2>Prescription</h2><table><thead><tr><th></th><th>Sphere</th><th>Cyl</th><th>Axis</th>${needsAdd()?'<th>Add</th>':''}<th>Dist PD</th>${needsNearPD()?'<th>Near PD</th>':''}<th>${htLbl}</th><th>Prism</th><th>Base</th></tr></thead><tbody>${rx}</tbody></table>
+  ${pcRows?`<div style="margin-top:8px;font-size:11px;color:#557">As prescribed — plus cylinder form; converted to minus cylinder above for production.</div>
+  <table style="margin-top:4px"><thead><tr><th></th><th>Sphere</th><th>Cyl</th><th>Axis</th></tr></thead><tbody>${pcRows}</tbody></table>`:''}
   ${(function(){
     const sh=activeShape(); if(!sh) return '';
     const g=shapeGeometry(sh); if(!g) return '';
@@ -2906,7 +3202,7 @@ async function submit(){
     <div class="r" style="border-top:1px solid var(--border-soft);margin-top:6px;padding-top:8px"><span>${S.pricesOn?'Locked price':'Price'}</span><b>${S.pricesOn?c.sym+' '+money(sub*c.rate):'Confirmed with you before production'}</b></div>`;
   $('#scrim .mhead p').textContent=S.pricesOn
     ? 'Price is now locked at this quote and will be honoured through checkout.'
-    : 'Your order is in the cart. Pricing isn\'t enabled on this account, so we confirm the price with you before production.';
+    : 'Your order is in the cart. We will confirm the final order details before production.';
   submitInFlight=true;
   try{
     const __p=stashOrder('submitted');
@@ -2921,7 +3217,14 @@ $('#submitBtn').addEventListener('click',()=>{void submit();});
 $('#submitBtn2').addEventListener('click',()=>{void submit();});
 $$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
   const n=b.dataset.next; $('#scrim').classList.remove('on');
-  if(n==='another') setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
+  if(n==='another'){
+    // A blank in-place reset (clearAll) keeps this quote's id, and the cart's
+    // synthetic product id is a hash of that id — so a second submit under
+    // the same quote collides with the first job's cart row and fails to
+    // add. onAnother (when wired) starts a genuinely new quote instead.
+    if(ADAPTER.onAnother) ADAPTER.onAnother();
+    else setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
+  }
   else if(n==='duplicate') toast('Prototype: cart now holds 2 copies of this Rx — edit either with the pencil');
   else if(n==='checkout'){ if(ADAPTER.onCheckout) ADAPTER.onCheckout(); else toast('Checkout wiring not enabled on this surface'); }
   else { if(ADAPTER.onStore) ADAPTER.onStore(); else toast('Store return not enabled on this surface'); }
@@ -2946,6 +3249,18 @@ docListen('change',e=>{
   render();
 });
 
+$('#notesConfirmed').addEventListener('change',e=>{
+  S.notesConfirmed=e.target.checked; render();
+});
+/* patient and frame names print on lab tickets — the lab standardises on caps. */
+['pfirst','plast','fname'].forEach(id=>{
+  const el=$('#'+id);
+  el.addEventListener('input',()=>{
+    const pos=el.selectionStart;
+    el.value=el.value.toUpperCase();
+    el.setSelectionRange(pos,pos);
+  });
+});
 $('#chemOn').addEventListener('change',e=>{
   if(e.target.checked){ if(!S.chemClips.length) S.chemClips=[newChemClip()]; }
   else { S.chemClips=[]; }
@@ -2973,6 +3288,220 @@ docListen('click',e=>{
   if(!e.target.closest('.gearwrap')) $('#gearMenu').classList.remove('on');
 });
 $('#gearMenu').addEventListener('click',e=>{ if(e.target.closest('.linkbtn')) $('#gearMenu').classList.remove('on'); });
+
+/* ---------- annotate mode (reviewer feedback capture) ----------
+   Prototype-only tool: click any element on the form to leave a timestamped
+   note (priority: must change / prefer / idea), then export everything as
+   rx-order-form-FEEDBACK.md. Notes persist to localStorage so the list and
+   export survive a reload, but the on-screen pins need a live DOM reference,
+   so pins only render for notes captured in the current page session. */
+const ANNO_KEY='cv-rx-anno-notes';
+function loadAnnoNotes(){ try{ return JSON.parse(localStorage.getItem(ANNO_KEY)||'[]'); }catch(e){ return []; } }
+function saveAnnoNotes(){ try{ localStorage.setItem(ANNO_KEY, JSON.stringify(annoNotes.map(({el,...rest})=>rest))); }catch(e){} }
+let annoOn=false, annoNotes=loadAnnoNotes(), annoEditId=null, annoPendingEl=null, annoPinsRaf=null;
+
+function escAnno(s){ return String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
+function priLabel(p){ return p==='must'?'Must change':p==='idea'?'Idea':"I'd prefer"; }
+function annoLabel(el){
+  if(!el) return 'General note';
+  const aria=el.getAttribute&&el.getAttribute('aria-label');
+  if(aria&&aria.trim()) return aria.trim();
+  if(el.id){ const lab=$$('label').find(l=>l.htmlFor===el.id); if(lab&&lab.textContent.trim()) return lab.textContent.trim(); }
+  const fieldLab=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+  if(fieldLab&&fieldLab.textContent.trim()) return fieldLab.textContent.trim().replace(/\s+/g,' ');
+  const hint=el.getAttribute&&(el.getAttribute('placeholder')||el.getAttribute('title'));
+  if(hint&&hint.trim()) return hint.trim();
+  const txt=(el.textContent||'').trim().replace(/\s+/g,' ');
+  if(txt) return txt.length<=70?txt:txt.slice(0,67)+'…';
+  if(el.id) return '#'+el.id;
+  const cls=(typeof el.className==='string'?el.className:'').trim().split(/\s+/).filter(Boolean).slice(0,2).join('.');
+  return el.tagName.toLowerCase()+(cls?'.'+cls:'');
+}
+function annoSelector(el){
+  if(!el) return '';
+  const parts=[]; let n=el, depth=0;
+  while(n&&n!==rootEl&&n.nodeType===1&&depth<6){
+    let seg=n.tagName.toLowerCase();
+    if(n.id){ parts.unshift(seg+'#'+n.id); break; }
+    const cls=(typeof n.className==='string'?n.className:'').trim().split(/\s+/).filter(Boolean).slice(0,2);
+    if(cls.length) seg+='.'+cls.join('.');
+    parts.unshift(seg); n=n.parentElement; depth++;
+  }
+  return parts.join(' > ');
+}
+function updateAnnoCounts(){
+  const n=annoNotes.length;
+  $('#annoCount').textContent=n?'('+n+')':'';
+  $('#abCount').textContent=String(n);
+  $('#drCount').textContent=n===1?'1 note':n+' notes';
+}
+function hideAnnoHi(){ $('#annoHi').style.display='none'; }
+function showAnnoHi(el){
+  const hi=$('#annoHi'), r=el.getBoundingClientRect();
+  hi.style.display='block'; hi.style.left=r.left+'px'; hi.style.top=r.top+'px';
+  hi.style.width=r.width+'px'; hi.style.height=r.height+'px';
+}
+function positionAnnoPopup(el){
+  const pop=$('#annoPop'), vw=window.innerWidth, vh=window.innerHeight, w=330, pad=12;
+  let top,left;
+  if(el&&el.getBoundingClientRect){ const r=el.getBoundingClientRect(); top=r.bottom+10; left=r.left; }
+  else { top=vh/2-140; left=vw/2-165; }
+  left=Math.max(pad,Math.min(left,vw-w-pad));
+  top=Math.max(pad,Math.min(top,vh-340));
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+}
+function openAnnoPopup(el,existingNote){
+  annoEditId=existingNote?existingNote.id:null;
+  annoPendingEl=existingNote?null:el;
+  $('#apEl').textContent=existingNote?existingNote.label:annoLabel(el);
+  $('#apText').value=existingNote?existingNote.text:'';
+  const pri=existingNote?existingNote.priority:'prefer';
+  $$('#apPri button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.p===pri)));
+  $('#apDel').style.display=existingNote?'':'none';
+  positionAnnoPopup((existingNote&&existingNote.el)||el);
+  hideAnnoHi();
+  $('#annoPop').classList.add('on');
+  setTimeout(()=>{ const t=$('#apText'); t.focus(); t.select(); },10);
+}
+function closeAnnoPop(){ $('#annoPop').classList.remove('on'); annoEditId=null; annoPendingEl=null; }
+function renderPins(){
+  const layer=$('#annoLayer'); layer.innerHTML='';
+  let i=0;
+  annoNotes.forEach(n=>{
+    if(!n.el||!n.el.isConnected) return;
+    i++;
+    const r=n.el.getBoundingClientRect();
+    const pin=document.createElement('button');
+    pin.type='button';
+    pin.className='pin'+(n.priority==='must'?' p-must':n.priority==='idea'?' p-idea':'');
+    pin.style.left=(r.left+r.width/2-11)+'px';
+    pin.style.top=(r.top-11)+'px';
+    pin.textContent=String(i);
+    pin.title=n.label;
+    pin.addEventListener('click',e=>{ e.stopPropagation(); openAnnoPopup(pin,n); });
+    layer.appendChild(pin);
+  });
+}
+function scheduleRenderPins(){
+  if(!annoOn||annoPinsRaf) return;
+  annoPinsRaf=requestAnimationFrame(()=>{ annoPinsRaf=null; renderPins(); });
+}
+function renderAnnoDrawerList(){
+  const body=$('#drBody');
+  if(!annoNotes.length){
+    body.innerHTML='<p class="dr-empty">No notes yet. Turn on Annotate mode from the gear menu, then click anything on the form you\'d like changed.</p>';
+    return;
+  }
+  body.innerHTML=annoNotes.map((n,i)=>`<div class="note${n.priority==='must'?' must':n.priority==='idea'?' idea':''}" data-id="${n.id}">
+      <div class="nh"><span class="nn">${i+1}</span><span class="nl">${escAnno(n.label)}</span><span class="np">${priLabel(n.priority)}</span></div>
+      <div class="nt">${escAnno(n.text)}</div>
+    </div>`).join('');
+}
+function buildAnnoMarkdown(){
+  const ord={must:0,prefer:1,idea:2};
+  const sorted=[...annoNotes].sort((a,b)=>(ord[a.priority]??1)-(ord[b.priority]??1));
+  const lines=['# Rx order form — reviewer feedback','',`Captured ${new Date().toLocaleString()} · ${annoNotes.length} note${annoNotes.length===1?'':'s'}`,''];
+  sorted.forEach((n,i)=>{
+    lines.push(`## ${i+1}. ${priLabel(n.priority)} — ${n.label}`);
+    if(n.selector) lines.push(`*Element:* \`${n.selector}\``);
+    lines.push('',n.text,'');
+  });
+  return lines.join('\n');
+}
+function setAnnoMode(on){
+  annoOn=!!on;
+  rootEl.classList.toggle('anno-on',annoOn);
+  $('#annoBar').classList.toggle('on',annoOn);
+  $('#gearMenu').classList.remove('on');
+  if(annoOn){ renderPins(); toast('Annotate mode on — click anything you\'d like changed'); }
+  else { hideAnnoHi(); closeAnnoPop(); }
+}
+$('#annoToggle').addEventListener('click',()=>setAnnoMode(!annoOn));
+$('#abExit').addEventListener('click',()=>setAnnoMode(false));
+$('#abGeneral').addEventListener('click',()=>openAnnoPopup(null,null));
+$('#abList').addEventListener('click',()=>{ renderAnnoDrawerList(); $('#annoDrawer').classList.add('on'); });
+$('#drClose').addEventListener('click',()=>$('#annoDrawer').classList.remove('on'));
+$('#drBody').addEventListener('click',e=>{
+  const card=e.target.closest('.note'); if(!card) return;
+  const n=annoNotes.find(x=>x.id===card.dataset.id); if(!n) return;
+  $('#annoDrawer').classList.remove('on');
+  openAnnoPopup(n.el||null,n);
+});
+$('#drCopy').addEventListener('click',async()=>{
+  if(!annoNotes.length){ toast('No notes to copy yet'); return; }
+  try{ await navigator.clipboard.writeText(buildAnnoMarkdown()); toast('Feedback copied as markdown'); }
+  catch(e){ toast('Copy blocked by the browser'); }
+});
+$('#drDownload').addEventListener('click',()=>{
+  if(!annoNotes.length){ toast('No notes to download yet'); return; }
+  const blob=new Blob([buildAnnoMarkdown()],{type:'text/markdown'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='rx-order-form-FEEDBACK.md';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('Downloaded rx-order-form-FEEDBACK.md');
+});
+$('#drClear').addEventListener('click',()=>{
+  if(!annoNotes.length) return;
+  if(!confirm('Clear all annotate notes? This can\'t be undone.')) return;
+  annoNotes.length=0; saveAnnoNotes(); updateAnnoCounts(); renderPins(); renderAnnoDrawerList();
+  toast('Notes cleared');
+});
+$('#apPri').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-p]'); if(!b) return;
+  $$('#apPri button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+});
+$('#apCancel').addEventListener('click',closeAnnoPop);
+$('#apSave').addEventListener('click',()=>{
+  const text=$('#apText').value.trim();
+  if(!text){ toast('Add a note before saving'); return; }
+  const priBtn=$$('#apPri button').find(b=>b.getAttribute('aria-pressed')==='true');
+  const priority=priBtn?priBtn.dataset.p:'prefer';
+  if(annoEditId){
+    const n=annoNotes.find(x=>x.id===annoEditId);
+    if(n){ n.text=text; n.priority=priority; n.updatedAt=new Date().toISOString(); }
+  } else {
+    annoNotes.push({
+      id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+      label:annoLabel(annoPendingEl), selector:annoSelector(annoPendingEl),
+      text, priority, at:new Date().toISOString(), el:annoPendingEl||null
+    });
+  }
+  saveAnnoNotes(); updateAnnoCounts(); closeAnnoPop();
+  if(annoOn) renderPins();
+  toast('Note saved');
+});
+$('#apDel').addEventListener('click',()=>{
+  if(!annoEditId) return;
+  if(!confirm('Delete this note?')) return;
+  const idx=annoNotes.findIndex(x=>x.id===annoEditId);
+  if(idx>-1) annoNotes.splice(idx,1);
+  saveAnnoNotes(); updateAnnoCounts(); closeAnnoPop();
+  if(annoOn) renderPins();
+  renderAnnoDrawerList();
+  toast('Note deleted');
+});
+rootEl.addEventListener('mousemove',e=>{
+  if(!annoOn) return;
+  if(e.target.closest('#annoUI')||e.target.closest('.gearwrap')){ hideAnnoHi(); return; }
+  showAnnoHi(e.target);
+});
+rootEl.addEventListener('mouseleave',()=>{ if(annoOn) hideAnnoHi(); });
+rootEl.addEventListener('click',e=>{
+  if(!annoOn) return;
+  if(e.target.closest('#annoUI')||e.target.closest('.gearwrap')) return;
+  e.preventDefault(); e.stopPropagation();
+  openAnnoPopup(e.target,null);
+},true);
+docListen('keydown',e=>{
+  if(e.key!=='Escape') return;
+  if($('#annoPop').classList.contains('on')){ closeAnnoPop(); return; }
+  if($('#annoDrawer').classList.contains('on')){ $('#annoDrawer').classList.remove('on'); return; }
+  if(annoOn) setAnnoMode(false);
+});
+winListen('scroll',scheduleRenderPins,true);
+winListen('resize',scheduleRenderPins);
+updateAnnoCounts();
 
 /* ---------- standard shapes on remote edge ---------- */
 $('#openStdShapes').addEventListener('click',()=>{
@@ -3034,6 +3563,16 @@ function applyAdapterData(){
   else Object.entries(MATRIX).forEach(([m,v])=>v.d.forEach(d=>v.c.forEach(c=>COMBOS.push({m,d,c}))));
   if(D.currencies&&Object.keys(D.currencies).length){
     Object.keys(CUR).forEach(k=>delete CUR[k]); Object.assign(CUR,D.currencies);
+    /* The gear's currency list is static markup and offers codes the live table
+       may not have (CAD, GYD). Selecting one of those reads .rate off undefined
+       and takes the quote down, so rebuild the options from the table itself. */
+    const sim=$('#curSim');
+    if(sim){
+      sim.innerHTML=Object.entries(CUR)
+        .map(([code,c])=>`<option value="${code}">${c.sym}${c.indicative?' · indicative':''}</option>`).join('');
+      if(!CUR[S.cur]) S.cur=Object.keys(CUR)[0];
+      sim.value=S.cur;
+    }
   }
 }
 
@@ -3072,6 +3611,11 @@ return {
   destroy(){
     __docL.forEach(([t,f,o])=>document.removeEventListener(t,f,o));
     __winL.forEach(([t,f,o])=>window.removeEventListener(t,f,o));
+    /* the combo portal root (see comboPortalRoot) lives outside rootEl, so
+       hostRef.current.innerHTML="" won't reach it — drop it explicitly, list
+       and all, or it (and whichever list was open) leaks as an orphaned node. */
+    const comboPortal=document.getElementById('cvRxComboPortal');
+    if(comboPortal) comboPortal.remove();
   },
   refreshData(){ applyAdapterData(); repair(); fillLensSelects(); buildPopular(); buildTreatList(); renderBranches(); render(); },
   getPayload: buildPayload,

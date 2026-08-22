@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLenses, Lens, LensFormData } from "@/hooks/useLenses";
 import { useAddons, Addon, AddonFormData } from "@/hooks/useAddons";
@@ -13,7 +13,7 @@ import { useLensPreferences } from "@/hooks/useLensPreferences";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FilterX, Download, Settings, Database, Upload, Package as PackageIcon, Maximize2, Minimize2 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ReleaseWhatChangedLink from "@/components/admin/ReleaseWhatChangedLink";
 import {
@@ -58,8 +58,22 @@ const ProductCatalogPage = () => {
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const deepLinkType = searchParams.get("type");
+  const deepLinkId = searchParams.get("id");
   const [fullscreen, setFullscreen] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+
+  // Tunnel entry point: /admin/pricing/catalog?type=lens&id=... lands on the
+  // right tab and opens that row's editor once its data has loaded.
+  const appliedDeepLinkRef = useRef(false);
+  useEffect(() => {
+    if (appliedDeepLinkRef.current || !deepLinkType) return;
+    appliedDeepLinkRef.current = true;
+    const tab = deepLinkType === "lens" ? "lenses" : deepLinkType === "supply" ? "supplies" : deepLinkType === "addon" ? "addons" : null;
+    if (tab) store.setActiveTab(tab as Tab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkType]);
 
   const [lensFormOpen, setLensFormOpen] = useState(false);
   const [addonFormOpen, setAddonFormOpen] = useState(false);
@@ -208,13 +222,13 @@ const ProductCatalogPage = () => {
       {/* Tab content */}
       <div className="flex-1 min-h-0 flex flex-col">
         {activeTab === "lenses" && (
-          <LensesTab search={search} filterVersion={filterVersion} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} store={store} preferences={preferences} />
+          <LensesTab search={search} filterVersion={filterVersion} formOpen={lensFormOpen} setFormOpen={setLensFormOpen} store={store} preferences={preferences} highlightId={deepLinkType === "lens" ? deepLinkId : null} />
         )}
         {activeTab === "addons" && (
-          <AddonsTab search={search} filterVersion={filterVersion} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} store={store} />
+          <AddonsTab search={search} filterVersion={filterVersion} formOpen={addonFormOpen} setFormOpen={setAddonFormOpen} store={store} highlightId={deepLinkType === "addon" ? deepLinkId : null} />
         )}
         {activeTab === "supplies" && (
-          <SuppliesTab search={search} filterVersion={filterVersion} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} store={store} />
+          <SuppliesTab search={search} filterVersion={filterVersion} formOpen={supplyFormOpen} setFormOpen={setSupplyFormOpen} store={store} highlightId={deepLinkType === "supply" ? deepLinkId : null} />
         )}
       </div>
     </div>
@@ -255,9 +269,9 @@ const ProductCatalogPage = () => {
 
 // ── Tab wrappers ───────────────────────────────────────────────────────────────
 
-const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store, preferences }: {
+const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store, preferences, highlightId }: {
   search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void;
-  store: CatalogFilterStore; preferences: Record<string, "liked" | "disliked">;
+  store: CatalogFilterStore; preferences: Record<string, "liked" | "disliked">; highlightId?: string | null;
 }) => {
   const { data: lenses, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useLenses();
   const { canEdit, isAdmin } = useAdminRole();
@@ -265,6 +279,15 @@ const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store, prefer
   const { logChange } = useAuditLog();
   const [editLens, setEditLens] = useState<Lens | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Lens | null>(null);
+
+  const appliedHighlightRef = useRef(false);
+  useEffect(() => {
+    if (appliedHighlightRef.current || !highlightId || !lenses) return;
+    const match = lenses.find((l) => l.id === highlightId);
+    if (!match) return;
+    appliedHighlightRef.current = true;
+    setEditLens(match);
+  }, [highlightId, lenses]);
 
   const handleCreate = (form: LensFormData, reason?: string) => {
     createMutation.mutate(form, {
@@ -360,8 +383,8 @@ const LensesTab = ({ search, filterVersion, formOpen, setFormOpen, store, prefer
   );
 };
 
-const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {
-  search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void; store: CatalogFilterStore;
+const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store, highlightId }: {
+  search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void; store: CatalogFilterStore; highlightId?: string | null;
 }) => {
   const { data: addons, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useAddons();
   const { data: pricingSheets } = usePricingSheets();
@@ -370,6 +393,15 @@ const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {
   const { logChange } = useAuditLog();
   const [editAddon, setEditAddon] = useState<Addon | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Addon | null>(null);
+
+  const appliedHighlightRef = useRef(false);
+  useEffect(() => {
+    if (appliedHighlightRef.current || !highlightId || !addons) return;
+    const match = addons.find((a) => a.id === highlightId);
+    if (!match) return;
+    appliedHighlightRef.current = true;
+    setEditAddon(match);
+  }, [highlightId, addons]);
 
   const editAddonId = editAddon?.id ?? null;
   const { data: addonSheets, saveMutation: sheetSaveMutation } = useAddonPricingSheets(editAddonId);
@@ -460,8 +492,8 @@ const AddonsTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {
   );
 };
 
-const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {
-  search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void; store: CatalogFilterStore;
+const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen, store, highlightId }: {
+  search: string; filterVersion: number; formOpen: boolean; setFormOpen: (v: boolean) => void; store: CatalogFilterStore; highlightId?: string | null;
 }) => {
   const { data: supplies, isLoading, createMutation, updateMutation, toggleActiveMutation, deleteMutation, duplicateMutation } = useSupplies();
   const { canEdit, isAdmin } = useAdminRole();
@@ -469,6 +501,15 @@ const SuppliesTab = ({ search, filterVersion, formOpen, setFormOpen, store }: {
   const { logChange } = useAuditLog();
   const [editSupply, setEditSupply] = useState<Supply | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Supply | null>(null);
+
+  const appliedHighlightRef = useRef(false);
+  useEffect(() => {
+    if (appliedHighlightRef.current || !highlightId || !supplies) return;
+    const match = supplies.find((s) => s.id === highlightId);
+    if (!match) return;
+    appliedHighlightRef.current = true;
+    setEditSupply(match);
+  }, [highlightId, supplies]);
 
   const filtered = (supplies ?? []).filter((s) => {
     if (!search) return true;

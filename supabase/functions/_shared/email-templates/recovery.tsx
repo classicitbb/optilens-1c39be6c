@@ -15,7 +15,10 @@ export const RecoveryEmail = ({ siteName, confirmationUrl }: RecoveryEmailProps)
     title="Reset your password"
   >
     <Text style={text}>
-      <strong>We received a request to reset your password for {siteName}. Click the button below to choose a new password.</strong>
+      <strong>We received a request to reset your password for {siteName}.</strong>
+    </Text>
+    <Text style={text}>
+      Select the button below. It will take you to the secure Classic Visions page where you can choose a new password.
     </Text>
     <Button style={button} href={confirmationUrl}>Reset Password</Button>
     <Text style={footer}>

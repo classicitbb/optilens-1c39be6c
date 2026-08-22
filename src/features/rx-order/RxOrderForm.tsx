@@ -84,7 +84,9 @@ export const RxOrderForm = ({ quoteId, surface, account, actions }: RxOrderFormP
   const { user } = useAuth();
   const { data: quote, refetch: refetchQuote } = useQuoteRecord(quoteId);
   const { updateMutation } = useQuotes();
-  const { data: lines = [], addLineMutation, updateLineMutation, deleteLineMutation } = useQuoteLines(quoteId);
+  const { data: lines = [], addLineMutation, updateLineMutation, deleteLineMutation } = useQuoteLines(quoteId, {
+    customerSafe: surface !== "admin",
+  });
   const { data: frame, upsertMutation: upsertFrame } = useQuoteFrameDetails(quoteId);
   const { data: customerAccounts = [] } = useCustomerAccounts();
   const { data: clashRules = [] } = useClashRules();
@@ -202,6 +204,7 @@ export const RxOrderForm = ({ quoteId, surface, account, actions }: RxOrderFormP
       name: `Rx Order ${quote?.quote_number ?? ""} — ${quote?.customer_name ?? ""}`.trim(),
       price: Math.round(subtotal * 100) / 100,
       productType: "lens",
+      priceUnit: "job",
       variantMetadata: { rx_quote_id: quoteId, kind: "rx_order" },
       quantity: 1,
     });

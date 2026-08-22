@@ -26,7 +26,7 @@ const RxDraftSection = () => {
       </CardContent></Card>
       <div className="grid gap-4 md:grid-cols-3">{recommendations.map((option) => <Card key={option.productId}><CardHeader><Badge className="w-fit capitalize">{option.tier}</Badge><CardTitle className="text-lg">{option.productName}</CardTitle></CardHeader><CardContent className="text-sm"><p>{option.material || "Material to confirm"}</p><p className="mt-2 font-semibold">{option.priceBbd != null ? `BBD $${Number(option.priceBbd).toFixed(2)}` : "Price not assigned"}</p></CardContent></Card>)}</div>
       <AlertDraftNotice />
-      <Button asChild size="lg"><Link to={`/rx-order?draft=${draft.id}`}>Open beside LabLink <ExternalLink className="ml-2 h-4 w-4" /></Link></Button>
+      <Button asChild size="lg"><Link to={`/profile/rx-order?draft=${draft.id}`}>Open Rx order form <ExternalLink className="ml-2 h-4 w-4" /></Link></Button>
     </div>
   );
 };

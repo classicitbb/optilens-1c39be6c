@@ -28,8 +28,10 @@ const NotificationBell = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleClick = async (id: string, href?: string) => {
-    await markRead(id);
+  const handleClick = (id: string, href?: string) => {
+    // Opening the relevant work must not depend on the receipt write completing.
+    // A slow or failed receipt request previously left the user in the popover.
+    void markRead(id);
     if (href) {
       navigate(href);
       setOpen(false);
@@ -97,7 +99,7 @@ const NotificationBell = () => {
 
                   <button
               className="min-w-0 flex-1 text-left"
-              onClick={() => void handleClick(n.id, n.href)}>
+              onClick={() => handleClick(n.id, n.href)}>
                     <p className={`text-xs font-medium truncate ${severityColor[n.severity] ?? ""}`}>{n.title}</p>
                     <p className="text-[11px] line-clamp-2 text-[hsl(var(--admin-muted-fg))]">{n.message}</p>
                     <p className="mt-0.5 text-[10px] text-[hsl(var(--admin-muted-fg))]">

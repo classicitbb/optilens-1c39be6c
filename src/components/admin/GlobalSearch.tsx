@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { fieldsMatch } from "@/lib/wildcardMatch";
-import { Search, BookOpen, ArrowRight, PlusCircle, Ticket } from "lucide-react";
+import { Search, BookOpen, ArrowRight, PlusCircle, Ticket, User, Activity, LayoutDashboard } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
@@ -11,6 +11,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
 import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS, NEW_RX_ORDER_SEARCH_KEYWORDS } from "./globalSearchActions";
+import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
+import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
+import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 
 interface SearchResult {
   id: string;
@@ -22,6 +25,11 @@ interface SearchResult {
   keywords?: string[];
 }
 
+const humanizeRouteId = (id: string) => id
+  .replace(/^admin\./, "")
+  .replace(/[._-]+/g, " ")
+  .replace(/\b\w/g, (character) => character.toUpperCase());
+
 const GlobalSearch = () => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -31,16 +39,13 @@ const GlobalSearch = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { canView, canEditFeature, hasAppAccess } = useRolePermissions();
+  const recentPaths = useRecentModules();
 
   const moduleResults = useMemo<SearchResult[]>(() => {
     return Object.values(ADMIN_APPS)
       .flatMap((app) =>
         app.sidebarItems.map((item) => {
           const feature = PATH_FEATURE_MAP[item.route];
-          // Keep search visibility aligned with the app launcher. The path map
-          // provides granular role checks where available, while app access is
-          // the fallback for modules whose permission is app-scoped or whose
-          // route is protected by the admin shell itself.
           if ((!feature || !canView(feature)) && !hasAppAccess(app.featurePrefix)) return null;
           return {
             id: `module-${item.route}`,
@@ -54,6 +59,68 @@ const GlobalSearch = () => {
       )
       .filter((item): item is SearchResult => !!item);
   }, [canView, hasAppAccess]);
+
+  // Keep search coverage tied to the canonical route registry. Sidebar entries
+  // remain the preferred presentation, while this fallback makes a newly
+  // registered concrete admin route discoverable even before a sidebar item is
+  // added. Parameterized routes are intentionally omitted because they cannot
+  // be opened without an identifier.
+  const registeredRouteResults = useMemo<SearchResult[]>(() => {
+    const results = APP_ROUTE_REGISTRY
+      .filter((route) => route.domain === "admin-console" && route.status === "active")
+      .filter((route) => !route.path.includes(":"))
+      .map((route) => {
+        const navigation = ACTIVE_NAVIGATION_REGISTRY.find((item) => item.routeId === route.id);
+        const app = Object.values(ADMIN_APPS).find((candidate) =>
+          candidate.sidebarItems.some((item) => item.route === route.path) || route.path.startsWith(`${candidate.baseRoute}/`),
+        );
+        const sidebarItem = app?.sidebarItems.find((item) => item.route === route.path);
+        const feature = PATH_FEATURE_MAP[route.path];
+
+        if (feature && !canView(feature) && !app?.featurePrefix) return null;
+        if (app && !hasAppAccess(app.featurePrefix)) return null;
+
+        return {
+          id: `route-${route.id}`,
+          label: navigation?.label ?? sidebarItem?.label ?? humanizeRouteId(route.id),
+          sublabel: app?.title ?? "Admin route",
+          path: route.path,
+          icon: sidebarItem?.icon ?? app?.icon ?? LayoutDashboard,
+          group: "Routes",
+          keywords: [route.id, route.path],
+        } satisfies SearchResult;
+      })
+      .filter((item): item is NonNullable<typeof item> => !!item);
+
+    const existingPaths = new Set(moduleResults.map((result) => result.path));
+    return results.filter((result) => !existingPaths.has(result.path));
+  }, [canView, hasAppAccess, moduleResults]);
+
+  const recentModuleResults = useMemo<SearchResult[]>(() => {
+    if (query.trim()) return [];
+    
+    return recentPaths.map(path => {
+      let foundApp, foundItem;
+      for (const app of Object.values(ADMIN_APPS)) {
+        const item = app.sidebarItems.find(i => i.route === path);
+        if (item) {
+          foundApp = app;
+          foundItem = item;
+          break;
+        }
+      }
+      if (!foundItem) return null;
+      
+      return {
+        id: `recent-${foundItem.route}`,
+        label: foundItem.label,
+        sublabel: foundApp?.title,
+        path: foundItem.route,
+        icon: foundItem.icon,
+        group: "Recent Modules",
+      } as SearchResult;
+    }).filter(Boolean) as SearchResult[];
+  }, [recentPaths, query]);
 
   const actionResults = useMemo<SearchResult[]>(() => {
     const results: SearchResult[] = [];
@@ -86,6 +153,65 @@ const GlobalSearch = () => {
     });
     return results;
   }, [canEditFeature, hasAppAccess]);
+
+  const { data: dbSearchResults = [] } = useQuery({
+    queryKey: ["global_search_db", query],
+    queryFn: async () => {
+      if (!query.trim() || query.length < 2) return [];
+      const q = `%${query}%`;
+      const results: SearchResult[] = [];
+
+      if (hasAppAccess("crm")) {
+        const { data: contacts } = await (supabase.from("contacts") as any)
+          .select("id, first_name, last_name, email, company_name")
+          .or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company_name.ilike.${q}`)
+          .limit(5);
+        if (contacts) {
+          results.push(...contacts.map((c: any) => ({
+            id: `contact-${c.id}`,
+            label: [c.first_name, c.last_name].filter(Boolean).join(" ") || c.company_name || "Unknown Contact",
+            sublabel: c.email || "Contact / Lead",
+            path: `/admin/contacts/${c.id}`,
+            icon: User,
+            group: "Contacts & Leads",
+          })));
+        }
+
+        const { data: activities } = await (supabase.from("activities") as any)
+          .select("id, title, activity_type")
+          .ilike("title", q)
+          .limit(5);
+        if (activities) {
+          results.push(...activities.map((a: any) => ({
+            id: `activity-${a.id}`,
+            label: a.title || "Untitled Activity",
+            sublabel: a.activity_type || "Activity",
+            path: `/admin/crm/activities?id=${a.id}`,
+            icon: Activity,
+            group: "Activities",
+          })));
+        }
+      }
+
+      const { data: profiles } = await (supabase.from("profiles") as any)
+        .select("id, full_name, display_name")
+        .or(`full_name.ilike.${q},display_name.ilike.${q}`)
+        .limit(5);
+      if (profiles) {
+        results.push(...profiles.map((p: any) => ({
+          id: `profile-${p.id}`,
+          label: p.full_name || p.display_name || "Unknown User",
+          sublabel: "Web Portal User",
+          path: `/admin/settings/users?id=${p.id}`,
+          icon: User,
+          group: "Web Portal",
+        })));
+      }
+
+      return results;
+    },
+    enabled: query.trim().length >= 2,
+  });
 
   const { data: wikiResults = [] } = useQuery({
     queryKey: ["global_search_wiki_articles"],
@@ -136,15 +262,15 @@ const GlobalSearch = () => {
   });
 
   const allResults = useMemo(
-    () => [...moduleResults, ...actionResults, ...wikiResults],
-    [actionResults, moduleResults, wikiResults],
+    () => [...moduleResults, ...registeredRouteResults, ...actionResults, ...wikiResults, ...dbSearchResults],
+    [actionResults, dbSearchResults, moduleResults, registeredRouteResults, wikiResults],
   );
 
   const results = useMemo(() => {
-    if (!query.trim()) return [];
+    if (!query.trim()) return recentModuleResults;
     const q = query.toLowerCase();
     return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? [])));
-  }, [allResults, query]);
+  }, [allResults, query, recentModuleResults]);
 
   // Group results
   const grouped = useMemo(() => {
@@ -228,7 +354,7 @@ const GlobalSearch = () => {
     selectResult(result);
   };
 
-  const showDropdown = open && query.trim().length > 0;
+  const showDropdown = open && (query.trim().length > 0 || results.length > 0);
 
   return (
     <div className="relative flex-1 max-w-xl">

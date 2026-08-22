@@ -165,11 +165,16 @@ export const useOrders = (targetUserId?: string) => {
         payments: payments || [],
       });
 
-      supabase.functions.invoke("order-confirmation", {
-        body: { orderId },
-      }).catch((emailError) => {
-        safeWarn("Failed to queue order confirmation email:", emailError);
-      });
+      // Scotia orders are pending until the signed gateway callback settles
+      // them. Their fulfillment notification is queued by that callback, not
+      // when this provisional order is created.
+      if (checkout.checkoutMethod !== "scotia_ecom") {
+        supabase.functions.invoke("order-confirmation", {
+          body: { orderId },
+        }).catch((emailError) => {
+          safeWarn("Failed to queue order confirmation email:", emailError);
+        });
+      }
 
       setOrders((prev) => [newOrder, ...prev]);
       return newOrder;

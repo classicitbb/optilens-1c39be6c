@@ -218,7 +218,7 @@ serve(async (req) => {
   const body: any = method === "POST" || method === "PUT" ? await req.json().catch(() => ({})) : {};
 
   try {
-    // ---- reference data used by the pricelist/statement tabs ----
+    // ---- reference data used by the statement/ship-label/billing customer pickers ----
     if (route[0] === "pl" && route[1] === "customers") {
       // The Studio's statement/customer controls must only show customers with
       // an Innovations account number. A CRM-only customer can have the same
@@ -240,8 +240,6 @@ serve(async (req) => {
         innovationsCustomerId: c.innovations_customer_id,
       })));
     }
-    if (route[0] === "pricelists") return json([]);
-
     if (route[0] === "email" && route[1] === "defaults" && method === "GET") {
       const smtpConfig = getSmtpConfig();
       const { data: profile } = await supabase
@@ -397,7 +395,7 @@ serve(async (req) => {
         .select("message_id,template_name,recipient_email,status,error_message,created_at")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(200);
       if (logError) throw logError;
 
       const { data: state } = await supabase
@@ -468,7 +466,9 @@ serve(async (req) => {
         latestAttempt: latest,
         counts24h,
         rateLimitedUntil,
-        recent: list.slice(0, 15),
+        // Scoped to a scrollable admin panel, not a paginated log — 200 rows
+        // comfortably covers at least a day's worth of normal send volume.
+        recent: list.slice(0, 200),
       });
     }
 

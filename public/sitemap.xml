@@ -40,12 +40,12 @@
 
   <!-- Legal -->
   <url>
-    <loc>https://www.classicvisions.net/legal/privacy-policy</loc>
+    <loc>https://www.classicvisions.net/privacy-policy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/legal/terms</loc>
+    <loc>https://www.classicvisions.net/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>

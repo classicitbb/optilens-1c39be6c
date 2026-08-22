@@ -72,7 +72,8 @@ const getPasswordRedirectTo = (req: Request) => {
 };
 
 async function linkCustomerPortalAccount(
-  adminClient: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
   userId: string,
   customerId: number | undefined,
   displayName?: string,
@@ -87,7 +88,15 @@ async function linkCustomerPortalAccount(
   if (customerError) throw customerError;
   if (!customer) throw new Error("The selected ERP customer no longer exists.");
 
-  let resolvedContactId = customer.contact_id ?? null;
+  const { data: currentProfile, error: currentProfileError } = await (adminClient.from("profiles") as any)
+    .select("crm_customer_id,crm_contact_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (currentProfileError) throw currentProfileError;
+  const isFirstAccount = !currentProfile?.crm_customer_id;
+  const isPrimaryAccount = isFirstAccount || currentProfile.crm_customer_id === customer.id;
+
+  let resolvedContactId = currentProfile?.crm_contact_id ?? customer.contact_id ?? null;
   if (contactId) {
     const { data: contact, error: contactError } = await (adminClient.from("contacts") as any)
       .select("id,parent_id,is_company,linked_customer_id,innovations_parent_customer_id")
@@ -107,7 +116,7 @@ async function linkCustomerPortalAccount(
       if (!belongsDirectly) {
         throw new Error("The selected company contact is not linked to this ERP customer.");
       }
-    } else {
+    } else if (isPrimaryAccount) {
       contactUpdates.linked_customer_id = customer.id;
       if (customer.innovations_customer_id) {
         contactUpdates.innovations_parent_customer_id = customer.innovations_customer_id;
@@ -134,6 +143,9 @@ async function linkCustomerPortalAccount(
 
     resolvedContactId = contact.id;
   }
+  if (!resolvedContactId) {
+    throw new Error("A person contact is required before portal account access can be granted.");
+  }
 
   const { data: existingRole, error: roleLookupError } = await (adminClient.from("user_roles") as any)
     .select("id")
@@ -147,15 +159,41 @@ async function linkCustomerPortalAccount(
   const { error: roleError } = await roleWrite;
   if (roleError) throw roleError;
 
-  const profilePayload: Record<string, unknown> = {
-    user_id: userId,
-    crm_customer_id: customer.id,
-    crm_contact_id: resolvedContactId,
-  };
+  const profilePayload: Record<string, unknown> = { user_id: userId };
+  // profiles.crm_customer_id remains a compatibility/default pointer during
+  // the additive rollout. Adding a second account must never overwrite it.
+  if (isPrimaryAccount) {
+    profilePayload.crm_customer_id = customer.id;
+    profilePayload.crm_contact_id = resolvedContactId;
+  }
   if (displayName?.trim()) profilePayload.full_name = displayName.trim();
   const { error: profileError } = await (adminClient.from("profiles") as any)
     .upsert(profilePayload, { onConflict: "user_id" });
   if (profileError) throw profileError;
+
+  const { data: membership, error: membershipError } = await (adminClient.from("portal_account_memberships") as any)
+    .upsert({
+      user_id: userId,
+      contact_id: resolvedContactId,
+      customer_id: customer.id,
+      status: "active",
+      access_role: "member",
+      is_default: isPrimaryAccount,
+      source: "admin",
+      approved_at: new Date().toISOString(),
+    }, { onConflict: "user_id,customer_id" })
+    .select("id")
+    .single();
+  if (membershipError) throw membershipError;
+
+  await (adminClient.from("portal_account_audit_events") as any).insert({
+    membership_id: membership.id,
+    actor_user_id: null,
+    subject_user_id: userId,
+    customer_id: customer.id,
+    event_type: isFirstAccount ? "membership_created_default" : "membership_granted",
+    metadata: { source: "admin-user-management" },
+  });
 }
 
 const allowedActions = new Set([
@@ -173,7 +211,8 @@ const allowedActions = new Set([
 
 /** True if the login holds any staff role (admin/operator/viewer). */
 async function loginHasStaffRole(
-  adminClient: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
   userId: string,
 ): Promise<boolean> {
   const { data, error } = await (adminClient.from("user_roles") as any)
@@ -337,7 +376,18 @@ Deno.serve(async (req) => {
               return jsonResponse(req, 409, { error: "A user with this email already exists." });
             }
             await linkCustomerPortalAccount(adminClient, existing.id, customerId, displayName, contactId);
-            return jsonResponse(req, 200, { success: true, alreadyExisted: true, userId: existing.id });
+            const { data: recoveryLink, error: recoveryError } = await adminClient.auth.admin.generateLink({
+              type: "recovery",
+              email,
+              options: { redirectTo: getPasswordRedirectTo(req) },
+            });
+            if (recoveryError) throw recoveryError;
+            return jsonResponse(req, 200, {
+              success: true,
+              alreadyExisted: true,
+              userId: existing.id,
+              actionLink: recoveryLink?.properties?.action_link,
+            });
           }
           throw error;
         }
@@ -533,7 +583,7 @@ Deno.serve(async (req) => {
       const roles = (targetRoles ?? [])
         .map((entry: { role?: string | null }) => entry.role)
         .filter((role: unknown): role is string => typeof role === "string");
-      if (roles.some((role) => role === "admin" || role === "operator" || role === "viewer")) {
+      if (roles.some((role: string) => role === "admin" || role === "operator" || role === "viewer")) {
         return jsonResponse(req, 403, { error: "Privileged staff accounts cannot be emulated from Website Portals." });
       }
 

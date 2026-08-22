@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import {
@@ -17,6 +17,7 @@ import {
   QrCode,
   ShieldCheck,
   Sparkles,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,15 +43,16 @@ const date = (value: string | null | undefined) => value ? new Date(value).toLoc
 
 const Profile = () => {
   const { user } = useAuth();
-  const { identity, isLoading: identityLoading, canAccessFeature, emulation } = usePortalIdentity();
+  const { identity, isLoading: identityLoading, canAccessFeature, emulation, effectiveUserId } = usePortalIdentity();
   const { openAssistant } = useCompanionAssistant();
   const { role, isAdmin } = useUserRole();
   const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
   const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
+  const activeCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : null;
   const commandCenterQuery = useQuery({
-    queryKey: ["customer-command-center", user?.id],
+    queryKey: ["customer-command-center", user?.id, activeCustomerId],
     enabled: Boolean(user),
-    queryFn: fetchCustomerCommandCenter,
+    queryFn: () => fetchCustomerCommandCenter(activeCustomerId),
   });
   const data = commandCenterQuery.data;
   const canViewStatements = canAccessFeature("statements");
@@ -59,7 +61,7 @@ const Profile = () => {
   const canUseLensAssistant = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
     && canAccessFeature("lens-assistant");
   // Under admin emulation the gateway must fetch the emulated customer's data, not the admin's.
-  const websiteCustomerId = emulation && typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
+  const websiteCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null, ordersUseBillToAccount: identity?.ordersUseBillToAccount ?? false };
   const liveOrdersQuery = useQuery({
     queryKey: ["live-innovations-customer-orders", identity?.crmCustomerId],
@@ -75,8 +77,27 @@ const Profile = () => {
   // Website checkout orders plus active lab work — the full account, not just this site's cart.
   const totalActiveOrders = activeOrders.length + (liveOrdersQuery.data?.orders.length ?? 0);
   const currentBalance = Number(data?.balance?.current_balance ?? data?.latestStatement?.closing_balance ?? 0);
-  const displayName = data?.profile?.customerName || data?.profile?.organizationName || user?.email?.split("@")[0] || "Customer";
+  const displayName = identity?.customerName || data?.profile?.customerName || data?.profile?.organizationName || user?.email?.split("@")[0] || "Customer";
   const accessStatus = identity?.portalAccessStatus ?? data?.profile?.accessStatus ?? "pending_profile";
+  const approvedAccessNoticeStorageKey = `cv.portal.approved-access-notice.dismissed:${effectiveUserId ?? user?.id ?? "anonymous"}`;
+  const [isApprovedAccessNoticeDismissed, setIsApprovedAccessNoticeDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setIsApprovedAccessNoticeDismissed(window.localStorage.getItem(approvedAccessNoticeStorageKey) === "true");
+    } catch {
+      setIsApprovedAccessNoticeDismissed(false);
+    }
+  }, [approvedAccessNoticeStorageKey]);
+
+  const dismissApprovedAccessNotice = () => {
+    try {
+      window.localStorage.setItem(approvedAccessNoticeStorageKey, "true");
+    } catch {
+      // The notice should still disappear if storage is unavailable.
+    }
+    setIsApprovedAccessNoticeDismissed(true);
+  };
   const needsAttention = [
     accessStatus !== "approved_customer" ? "Complete account setup or wait for customer approval." : null,
     totalActiveOrders ? `${totalActiveOrders} order${totalActiveOrders === 1 ? "" : "s"} still in progress.` : null,
@@ -102,7 +123,7 @@ const Profile = () => {
       <section className="overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b1e35,#125a69)] p-6 text-white shadow-medium sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Your website orders, Rx drafts, pricing, statements and support are brought together here.</p></div>
-          <div className="flex flex-wrap gap-2">{canUseLensAssistant ? <Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/rx-order"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button> : null}{isStaffRole(role) ? <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/networking-card"><QrCode className="mr-2 h-4 w-4" />Share my card</Link></Button> : null}<Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/helpdesk"><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Link></Button></div>
+          <div className="flex flex-wrap gap-2">{canUseLensAssistant ? <Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/profile/rx-order"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button> : null}{isStaffRole(role) ? <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/networking-card"><QrCode className="mr-2 h-4 w-4" />Share my card</Link></Button> : null}<Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/helpdesk"><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Link></Button></div>
         </div>
       </section>
 
@@ -115,9 +136,9 @@ const Profile = () => {
 
       {accessStatus !== "approved_customer" ? (
         <Card className="border-amber-300 bg-amber-50/60"><CardHeader className="sm:flex-row sm:items-center sm:justify-between"><div><CardTitle className="text-lg">Complete your customer access</CardTitle><CardDescription>{identity?.portalAccessNote || data?.profile?.accessNote || "Finish your profile to continue the approval process."}</CardDescription></div><Button asChild variant="outline"><Link to="/profile/account">Open account setup</Link></Button></CardHeader></Card>
-      ) : (
-        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 text-emerald-700" /><div><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>Customer-only pricing, statements, quotes and support workflows are available.</CardDescription></div></CardHeader></Card>
-      )}
+      ) : !isApprovedAccessNoticeDismissed ? (
+        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div className="min-w-0 flex-1"><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>Customer-only pricing, statements, quotes and support workflows are available.</CardDescription></div><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Dismiss approved customer access message permanently" title="Dismiss permanently" onClick={dismissApprovedAccessNotice}><X className="h-4 w-4" /></Button></CardHeader></Card>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <Card><CardHeader className="flex-row items-center justify-between"><div><CardTitle>Orders in progress</CardTitle><CardDescription>Website checkout orders. Lab job status is tracked on the orders page.</CardDescription></div><Button asChild variant="ghost" size="sm"><Link to="/profile/orders">All orders<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></CardHeader><CardContent className="space-y-3">

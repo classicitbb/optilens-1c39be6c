@@ -28,4 +28,19 @@ describe("admin Rx order route accessibility", () => {
     expect(source).toContain('path="website/quotations/rx/:id"');
     expect(source).toContain('path="website/rx-submissions"');
   });
+
+  it("exposes Activities and the Rx order form as direct header launcher shortcuts", () => {
+    const navigation = fs.readFileSync(path.resolve(process.cwd(), "src/config/navigationRegistry.ts"), "utf8");
+    const launcher = fs.readFileSync(path.resolve(process.cwd(), "src/components/admin/AppLauncher.tsx"), "utf8");
+
+    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({
+      id: "admin.crm.activities",
+      path: "/admin/crm/activities",
+      authMode: "admin",
+    }));
+    expect(navigation).toContain('shortcutKey: "activities"');
+    expect(navigation).toContain('shortcutKey: "rx-order"');
+    expect(launcher).toContain('defaultRoute: "/admin/crm/activities"');
+    expect(launcher).toContain('defaultRoute: "/admin/website/quotations/new-rx"');
+  });
 });

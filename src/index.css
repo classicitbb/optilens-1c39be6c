@@ -28,6 +28,13 @@
     --secondary: 188 71% 36%;
     --secondary-foreground: 0 0% 100%;
 
+    /* Meridian Precision — the deep ocean navy *field*.
+       Unlike --primary (which inverts to teal in dark mode for controls),
+       this stays navy in both themes so large anchoring surfaces such as the
+       hero and closing bands keep their weight. */
+    --surface-deep: 213 66% 13%;
+    --surface-deep-foreground: 43 25% 94%;
+
     --muted: 43 15% 90%;
     --muted-foreground: 213 30% 45%;
 
@@ -97,6 +104,10 @@
 
     --secondary: 188 60% 40%;
     --secondary-foreground: 213 66% 8%;
+
+    /* Deep navy field stays navy on the dark canvas, one step darker than --card. */
+    --surface-deep: 213 70% 7%;
+    --surface-deep-foreground: 43 25% 92%;
 
     --muted: 213 45% 16%;
     --muted-foreground: 213 20% 65%;
@@ -171,6 +182,79 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+  }
+
+  /* Sitewide unified interactive scrollbars:
+     - Minimal & slender (4px visible thumb) when resting / no mouse near
+     - Completely transparent scrollbar track background (no background on sliding area)
+     - Ultra-subtle, nearly transparent glass thumb (15% opacity) that smoothly grows on hover
+  */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--foreground) / 0.15) transparent !important;
+  }
+
+  *:hover {
+    scrollbar-color: hsl(var(--foreground) / 0.4) transparent !important;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-track-piece,
+  ::-webkit-scrollbar-corner {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--foreground) / 0.15);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    backdrop-filter: blur(8px);
+    transition: background-color 0.2s ease, border-width 0.2s ease;
+  }
+
+  *:hover::-webkit-scrollbar-thumb,
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--foreground) / 0.4);
+    border: 0px solid transparent;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--accent));
+    border: 0px solid transparent;
+  }
+
+  .dark * {
+    scrollbar-color: hsl(var(--foreground) / 0.18) transparent !important;
+  }
+
+  .dark *:hover {
+    scrollbar-color: hsl(var(--foreground) / 0.45) transparent !important;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--foreground) / 0.18);
+  }
+
+  .dark *:hover::-webkit-scrollbar-thumb,
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--foreground) / 0.45);
+    border: 0px solid transparent;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--accent));
+    border: 0px solid transparent;
   }
 
   /* Skip-to-content link (screen-reader first, visible on focus) */
@@ -487,26 +571,35 @@
 .admin-tool,
 .admin-tool * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--admin-scrollbar-thumb)) hsl(var(--admin-scrollbar-track));
+  scrollbar-color: hsl(var(--admin-scrollbar-thumb)) transparent;
 }
 
 .admin-tool ::-webkit-scrollbar {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 8px;
+  height: 8px;
+  background: transparent !important;
 }
 
-.admin-tool ::-webkit-scrollbar-track {
-  background: hsl(var(--admin-scrollbar-track));
+.admin-tool ::-webkit-scrollbar-track,
+.admin-tool ::-webkit-scrollbar-track-piece,
+.admin-tool ::-webkit-scrollbar-corner {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .admin-tool ::-webkit-scrollbar-thumb {
   background-color: hsl(var(--admin-scrollbar-thumb));
-  border: 2px solid hsl(var(--admin-scrollbar-track));
+  background-clip: padding-box;
+  border: 2px solid transparent;
   border-radius: 9999px;
+  transition: background-color 0.2s ease, border-width 0.2s ease;
 }
 
 .admin-tool ::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--admin-scrollbar-thumb-hover));
+  border: 0px solid transparent;
 }
 
 /* Print/PDF preview areas must have no rounded corners */
@@ -777,3 +870,187 @@
   --input: 220 15% 20%;
   --ring: 200 55% 55%;
 }
+
+/* ─── Voice Assistant Animations ──────────────────────────────────────────────
+   Meridian Precision design language: teal signal rings for precision state,
+   gold accents for structural affordances, disciplined motion.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Concentric teal pulse rings for active listening */
+@keyframes voice-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes voice-pulse-delay {
+  0%, 25% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  25.1% {
+    opacity: 0.4;
+  }
+  75% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Waveform bar bounce for TTS playback */
+@keyframes voice-wave-bar {
+  0%, 100% {
+    height: 4px;
+  }
+  50% {
+    height: 16px;
+  }
+}
+
+/* Gentle mic glow while listening */
+@keyframes voice-mic-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 hsl(188 71% 36% / 0),
+      0 0 8px hsl(188 71% 36% / 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px hsl(188 71% 36% / 0.12),
+      0 0 20px hsl(188 71% 36% / 0.25);
+  }
+}
+
+/* Live transcript text fade-in */
+@keyframes voice-transcript-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.voice-listening-indicator {
+  position: relative;
+}
+
+.voice-listening-indicator::before,
+.voice-listening-indicator::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid hsl(188 71% 36% / 0.5);
+  pointer-events: none;
+}
+
+.voice-listening-indicator::before {
+  animation: voice-pulse 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.voice-listening-indicator::after {
+  animation: voice-pulse-delay 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.voice-mic-active {
+  animation: voice-mic-glow 1.8s ease-in-out infinite;
+}
+
+/* TTS waveform bar container */
+.voice-wave-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+}
+
+.voice-wave-bars > span {
+  display: block;
+  width: 3px;
+  border-radius: 1.5px;
+  background: hsl(188 71% 36%);
+  animation: voice-wave-bar 0.8s ease-in-out infinite;
+}
+
+.voice-wave-bars > span:nth-child(1) { animation-delay: 0s; }
+.voice-wave-bars > span:nth-child(2) { animation-delay: 0.1s; }
+.voice-wave-bars > span:nth-child(3) { animation-delay: 0.2s; }
+.voice-wave-bars > span:nth-child(4) { animation-delay: 0.3s; }
+.voice-wave-bars > span:nth-child(5) { animation-delay: 0.15s; }
+
+.voice-transcript-live {
+  animation: voice-transcript-fade 0.3s ease-out;
+}
+
+/* Dark mode adjustments for voice indicators */
+.dark .voice-listening-indicator::before,
+.dark .voice-listening-indicator::after {
+  border-color: hsl(188 71% 46% / 0.5);
+}
+
+.dark .voice-wave-bars > span {
+  background: hsl(188 71% 46%);
+}
+
+/* Companion Assistant slender translucent scrollbar with hover expansion */
+.assistant-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--foreground) / 0.15) transparent;
+}
+
+.assistant-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.assistant-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.assistant-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--foreground) / 0.15);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+  transition: background-color 0.2s ease, border-width 0.2s ease;
+}
+
+*:hover > .assistant-scrollbar::-webkit-scrollbar-thumb,
+.assistant-scrollbar:hover::-webkit-scrollbar-thumb,
+.assistant-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground) / 0.4);
+  border: 0px solid transparent;
+}
+
+.dark .assistant-scrollbar {
+  scrollbar-color: hsl(var(--foreground) / 0.18) transparent;
+}
+
+.dark .assistant-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--foreground) / 0.18);
+}
+
+.dark *:hover > .assistant-scrollbar::-webkit-scrollbar-thumb,
+.dark .assistant-scrollbar:hover::-webkit-scrollbar-thumb,
+.dark .assistant-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground) / 0.45);
+  border: 0px solid transparent;
+}
+

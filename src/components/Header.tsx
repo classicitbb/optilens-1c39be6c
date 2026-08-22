@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { LogOut, User, Package, Shield, ChevronDown, Menu, Phone, Sun, Moon, Monitor, Search, Sparkles, Settings, Palette, ShoppingCart } from "lucide-react";
+import { LogOut, User, Package, Shield, ChevronDown, Menu, Sun, Moon, Monitor, Sparkles, Settings, Palette, ShoppingCart, Eye, UsersRound, Info, MessageCircle } from "lucide-react";
 import cleanLogoSmooth from "@/assets/clean_logo_smooth.svg";
 import { Link, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import { useStoreProducts } from "@/hooks/useStoreProducts";
 import { createAuthHref } from "@/lib/authFlow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import HomeVersionSwitch from "@/components/home-prototypes/HomeVersionSwitch";
 
 type MegaMenuLink = {
   label: string;
@@ -125,7 +127,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     links: [
     { label: "Apply for a Trade Account", description: "Lead form", to: "/professionals/trade-account" },
     { label: "Optician Website Design", description: "Preview and quote a retail website build", to: "/optical-retail-websites" },
-    { label: "Online Ordering Portal", description: "Login to LabLink", to: "/rx-order" },
+    { label: "Rx Order Form", description: "Create an Rx order in My Account", to: "/profile/rx-order" },
     { label: "Order Tracking", description: "Track shipments and job status", to: "/profile/orders" },
     { label: "Price List Request", description: "Form", to: "/professionals/price-list-request" },
     { label: "Rx Lab Services", description: "Custom surfacing, edging, tinting, and specialty coatings", to: "/rx-lab-services" }]
@@ -192,9 +194,9 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
   {
     title: "About Us",
     links: [
-    { label: "Our Story", description: "Learn how our company started", to: "/#about" },
-    { label: "What Drives Us", description: "Our mission and values", to: "/#about" },
-    { label: "Our Vision", description: "Where we are heading", to: "/#about" },
+    { label: "Our Story", description: "Learn how our company started", to: "/about-us#our-story" },
+    { label: "What Drives Us", description: "Our mission and values", to: "/about-us#our-story" },
+    { label: "Our Vision", description: "Where we are heading", to: "/about-us#why-choose" },
     { label: "News & Articles", description: "Latest updates and insights", to: "/blog" }]
 
   },
@@ -249,7 +251,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "tracing-cutting-guide": "Tracing & Cutting Guide",
   "lab-process-overview": "Lab Process Overview",
   "lens-ordering-tips": "Lens Ordering Tips",
-  "rx-order": "Online Ordering Portal",
+  "rx-order": "Rx Order Form",
   "rx-job-status": "Order Tracking"
 };
 
@@ -368,7 +370,7 @@ const MegaMenu = ({ item, preserveLabLinkSession }: {item: PrimaryMenuItem; pres
 
       {open &&
       createPortal(
-        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border/50 bg-background/80 p-4 shadow-lg backdrop-blur-md">
+        <div ref={panelRef} className="fixed left-1/2 top-16 z-50 mt-3 w-[64rem] max-w-[95vw] -translate-x-1/2 rounded-xl border border-border bg-background/80 p-4 shadow-lg backdrop-blur-md">
           {/* Arrow pointing up at the trigger button */}
           <div
           style={{ left: arrowLeft }}
@@ -465,8 +467,36 @@ const getAccountInitials = (name: string, email: string) => {
     .join("") || "AC";
 };
 
+const MobileNavigation = ({
+  items,
+  labLinkNavigationProps,
+}: {
+  items: PrimaryMenuItem[];
+  labLinkNavigationProps: Record<string, unknown>;
+}) => {
+  const variant = "A";
+  const navigationIcons = { Lenses: Eye, Coatings: Sparkles, Professionals: UsersRound, Patients: User, About: Info } as const;
+
+  return <>
+    {variant === "A" && <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3">
+        <Link to="/store" {...labLinkNavigationProps} className="rounded-xl border border-primary/45 bg-primary px-4 py-4 text-sm font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"><ShoppingCart className="mb-2 h-4 w-4" aria-hidden="true" />Browse catalog <span className="mt-1 block text-xs font-normal opacity-85">Lenses & supplies</span></Link>
+        <Link to="/profile/orders" {...labLinkNavigationProps} className="rounded-xl border border-border/60 bg-background/80 px-4 py-4 text-sm font-semibold text-foreground shadow-lg backdrop-blur-md transition-colors hover:bg-muted"><Package className="mb-2 h-4 w-4 text-primary" aria-hidden="true" />My orders <span className="mt-1 block text-xs font-normal text-muted-foreground">Track an order</span></Link>
+      </div>
+      <Accordion type="single" collapsible className="space-y-2">
+        {items.map((item) => { const Icon = navigationIcons[item.label as keyof typeof navigationIcons] ?? Info; return <AccordionItem key={item.label} value={item.label} className="rounded-xl border border-border/60 bg-background/65 px-3 shadow-sm backdrop-blur-md transition-colors data-[state=open]:border-primary/40 data-[state=open]:bg-primary/5">
+          <AccordionTrigger className="py-3.5 text-base font-semibold text-foreground hover:no-underline"><span className="flex items-center gap-2.5"><Icon className="h-4 w-4 text-primary" aria-hidden="true" />{item.label}</span></AccordionTrigger>
+          <AccordionContent className="space-y-5 pb-3 pt-0">{item.sections.map((section) => <section key={section.title} className="border-t border-border/50 pt-4 first:border-t-0 first:pt-0"><p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</p><div className="grid gap-2">{section.links.map((link) => <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className="group flex min-h-16 items-center justify-between rounded-lg border border-border/50 bg-background/70 px-3 py-2.5 text-left shadow-sm backdrop-blur-md transition-colors hover:border-primary/40 hover:bg-muted"><span><span className="block text-sm font-semibold text-foreground">{link.label}</span><span className="mt-0.5 block text-xs leading-4 text-muted-foreground">{link.description}</span></span><span className="ml-3 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-primary/25 bg-primary/5 text-sm text-primary transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span></Link>)}</div></section>)}</AccordionContent>
+        </AccordionItem>})}
+      </Accordion>
+    </div>}
+
+  </>;
+};
+
 const Header = () => {
   const location = useLocation();
+  const { openAssistant } = useCompanionAssistant();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
@@ -510,7 +540,7 @@ const Header = () => {
         : item
     );
   }, [hasLinkedErpAccount]);
-  const preserveLabLinkSession = location.pathname === "/rx-order" || location.pathname === "/rx-job-status";
+  const preserveLabLinkSession = location.pathname === "/rx-job-status";
   const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
   const handleSignOut = async () => {
@@ -546,11 +576,11 @@ const Header = () => {
       <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md" role="banner">
       <a href="#main-content" className="skip-to-content">Skip to content</a>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-8">
-        <Link to="/" {...labLinkNavigationProps} className="flex shrink-0 items-center gap-1.5 sm:gap-2" aria-label="Classic Visions home">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center sm:h-10 sm:w-10">
+        <Link to="/" {...labLinkNavigationProps} className="flex shrink-0 items-center gap-2" aria-label="Classic Visions home">
+          <div className="flex h-10 w-10 items-center justify-center">
               <img src={cleanLogoSmooth} alt="Classic Visions" className="h-8 w-8" />
             </div>
-          <span className="whitespace-nowrap text-lg font-bold text-foreground sm:text-xl">Classic Visions</span>
+          <span className="hidden whitespace-nowrap text-lg font-bold text-foreground min-[380px]:inline sm:text-xl">Classic Visions</span>
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main navigation">
@@ -562,86 +592,37 @@ const Header = () => {
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="px-2 lg:hidden" aria-label="Open mobile navigation menu">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">
+                <Menu className="h-5 w-5" aria-hidden="true" />
+                <span className="sr-only">Open mobile navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="!w-screen !max-w-none border-0 bg-background/80 backdrop-blur-md sm:!max-w-none">
+            <SheetContent side="left" className="!w-screen !max-w-none overflow-y-auto overscroll-contain border-r border-border/50 bg-background/80 pb-8 shadow-lg backdrop-blur-md sm:!max-w-none">
               <SheetTitle className="mb-6 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center">
                   <img src={cleanLogoSmooth} alt="Classic Visions" className="h-6 w-6" />
                 </div>
                 <span className="text-lg font-bold text-foreground">Classic Visions</span>
               </SheetTitle>
-              <nav>
-                <Accordion type="multiple" className="space-y-3">
-                  {visibleMenu.map((item) =>
-                    <AccordionItem key={item.label} value={item.label} className="rounded-lg border border-border/60 px-3">
-                      <AccordionTrigger className="py-3 text-sm font-semibold text-foreground hover:no-underline">
-                        {item.label}
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-3 pb-2">
-                          {item.sections.map((section) =>
-                          <div key={`${item.label}-${section.title}`}>
-                              <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{section.title}</p>
-                              <div className="space-y-1">
-                                {section.links.map((link) =>
-                              link.href ?
-                              <a
-                                key={link.label}
-                                href={link.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                                
-                                      {link.label} {link.externalLabel ? `(${link.externalLabel})` : ""}
-                                    </a> :
-
-                              <Link key={link.label} to={link.to || "/"} {...labLinkNavigationProps} className={`block rounded-md px-2 py-1.5 text-sm ${link.isCta ? "border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-                                      {link.label}
-                                    </Link>
-
-                              )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                    )}
-                </Accordion>
-              </nav>
+              <MobileNavigation items={visibleMenu} labLinkNavigationProps={labLinkNavigationProps} />
             </SheetContent>
           </Sheet>
 
-              <Button
-              variant="ghost"
-              size="sm"
-              className="hidden sm:inline-flex"
-              onClick={() => {
-                if (location.pathname !== "/") {
-                  window.location.href = "/#site-search";
-                  return;
-                }
-                const el = document.getElementById("site-search");
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "center" });
-                  const input = el.querySelector("input");
-                  if (input) setTimeout(() => input.focus(), 600);
-                }
-              }}>
-              
-                <Search className="h-4 w-4" />
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <Button variant="ghost" size="sm" className="hidden md:inline-flex" onClick={() => openAssistant()} aria-label="Open assistant" title="Open assistant">
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Open assistant</span>
               </Button>
 
-              <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
-                <a href="tel:+12464334928">
-                  <Phone className="mr-2 h-4 w-4" />
-                  Call Us
-                </a>
-              </Button>
+              {!user ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:inline-flex"
+                  onClick={() => openAssistant({ formKind: "trade_signup" })}
+                >
+                  Create a trade account
+                </Button>
+              ) : null}
 
               {user ?
             <DropdownMenu>
@@ -649,9 +630,9 @@ const Header = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-11 rounded-full border border-border/60 bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
+                      className="h-11 rounded-full border border-border bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
                     >
-                      <Avatar className="h-8 w-8 border border-border/60">
+                      <Avatar className="h-8 w-8">
                         <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
                         <AvatarFallback className="bg-primary/15 text-xs font-semibold text-foreground">
                           {activeUserInitials}
@@ -668,11 +649,11 @@ const Header = () => {
                   <DropdownMenuContent
                     align="end"
                     sideOffset={10}
-                    className="w-[min(88vw,18rem)] rounded-2xl border-border/50 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
+                    className="w-[min(88vw,18rem)] rounded-2xl border border-border/90 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
                   >
                     <div className="space-y-1 p-2.5 sm:p-3">
                       <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
-                        <Avatar className="h-10 w-10 border border-primary/15 shadow-sm">
+                        <Avatar className="h-10 w-10 shadow-sm">
                           <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
                           <AvatarFallback className="bg-primary/25 text-sm font-semibold text-foreground">
                             {activeUserInitials}
@@ -766,6 +747,8 @@ const Header = () => {
                         </div>
                       </div>
 
+                      {hasAccess ? <HomeVersionSwitch /> : null}
+
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                         <LogOut className="h-4.5 w-4.5 text-foreground/80" />
                         <span className="text-sm font-medium">Sign out</span>
@@ -774,21 +757,28 @@ const Header = () => {
                   </DropdownMenuContent>
                 </DropdownMenu> :
 
-            <Button variant="ghost" size="sm" className="px-2 sm:px-3" asChild>
-                  <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })} {...labLinkNavigationProps}>
-                    <User className="h-4 w-4 sm:mr-2" />
-                    <span className="sr-only sm:not-sr-only">Sign in</span>
+            <Button variant="ghost" size="sm" asChild>
+                  <Link to={createAuthHref({ mode: "signin", redirect: `${location.pathname}${location.search}${location.hash}` || "/" })} {...labLinkNavigationProps} aria-label="Sign in">
+                    <User className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+                    <span className="hidden sm:inline">Sign in</span>
+                    <span className="sr-only sm:hidden">Sign in</span>
                   </Link>
                 </Button>
             }
 
               {user ? (
-                <CartSheet triggerVariant="hero" triggerSize="sm" showLabel className="min-w-[7.5rem] justify-center" />
+                <CartSheet
+                  triggerVariant="hero"
+                  triggerSize="sm"
+                  showLabel
+                  className="h-10 w-10 min-w-10 justify-center px-0 sm:h-9 sm:w-auto sm:min-w-[7.5rem] sm:px-4"
+                />
               ) : (
-                <Button variant="hero" size="sm" className="min-w-0 justify-center px-3 sm:min-w-[7.5rem]" asChild>
-                  <Link to="/store" {...labLinkNavigationProps}>
-                    <ShoppingCart className="h-5 w-5" />
-                    <span className="sr-only sm:not-sr-only">Shop</span>
+                <Button variant="hero" size="sm" className="justify-center px-3 sm:min-w-[7.5rem] sm:px-4" asChild>
+                  <Link to="/store" {...labLinkNavigationProps} aria-label="Shop the catalog">
+                    <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+                    <span className="hidden sm:inline">Shop</span>
+                    <span className="sr-only sm:hidden">Shop</span>
                   </Link>
                 </Button>
               )}

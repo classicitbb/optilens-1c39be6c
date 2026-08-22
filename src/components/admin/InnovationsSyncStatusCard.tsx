@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,22 +28,32 @@ type AccountNumberDuplicate = {
   duplicate_count: number;
   customer_ids: number[];
   customer_names: string[];
+  customer_contact_ids: (string | null)[];
+  customer_is_erp: boolean[];
+};
+
+type DuplicateResolutionResult = {
+  ok: boolean;
+  message: string;
 };
 
 const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString() : "—");
 const RECENT_MS = 24 * 60 * 60 * 1000;
-const SYNC_REQUEST_ENTITIES = ["customers", "contacts", "balances", "statements", "statement_lines"];
+const SYNC_REQUEST_ENTITIES = ["customers", "contacts", "balances", "statements", "statement_lines", "store_lenses", "store_lens_power_rows"];
 const ENTITY_LABELS: Record<string, string> = {
   customers: "Customers",
   contacts: "Contacts",
   balances: "Balances",
   statements: "Statements",
   statement_lines: "Statement lines",
+  store_lenses: "Store lens catalog",
+  store_lens_power_rows: "Store lens power rows",
 };
 
 export default function InnovationsSyncStatusCard() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data, isLoading, isRefetching, error, refetch } = useQuery({
     queryKey: ["innovations-sync-status"],
@@ -64,7 +75,7 @@ export default function InnovationsSyncStatusCard() {
         (supabase as any).from("customers").select("id", { count: "exact", head: true }).not("innovations_customer_id", "is", null),
         (supabase as any).from("contacts").select("id", { count: "exact", head: true }).not("innovations_contact_id", "is", null),
         (supabase as any).from("innovations_sync_requests").select("id,status,requested_at,finished_at").order("requested_at", { ascending: false }).limit(1).maybeSingle(),
-        (supabase as any).from("customer_account_number_duplicates").select("account_number,duplicate_count,customer_ids,customer_names").limit(10),
+        (supabase as any).from("customer_account_number_duplicates").select("account_number,duplicate_count,customer_ids,customer_names,customer_contact_ids,customer_is_erp").limit(10),
       ]);
 
       return {
@@ -92,6 +103,23 @@ export default function InnovationsSyncStatusCard() {
       toast({ title: "Sync requested", description: "OptiLens Local will run it on its next check." });
     },
     onError: (e: any) => toast({ title: "Could not request sync", description: e.message, variant: "destructive" }),
+  });
+
+  const resolveDuplicate = useMutation({
+    mutationFn: async (accountNumber: string) => {
+      const { data, error } = await (supabase.rpc as any)("resolve_non_erp_duplicate_account_link", {
+        p_account_number: accountNumber,
+      });
+      if (error) throw error;
+      const result = (Array.isArray(data) ? data[0] : data) as DuplicateResolutionResult | null;
+      if (!result?.ok) throw new Error(result?.message ?? "This duplicate needs manual review.");
+      return result;
+    },
+    onSuccess: async (result) => {
+      await qc.invalidateQueries({ queryKey: ["innovations-sync-status"] });
+      toast({ title: "Duplicate link resolved", description: result.message });
+    },
+    onError: (e: Error) => toast({ title: "Could not resolve duplicate link", description: e.message, variant: "destructive" }),
   });
 
   const latestWrite = data?.runs.find((r) => !r.dry_run && (r.status === "success" || r.status === "partial"));
@@ -223,10 +251,42 @@ export default function InnovationsSyncStatusCard() {
             {!!data?.accountNumberDuplicates.length && (
               <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">
                 <p className="font-medium">Duplicate account-number links need review</p>
-                <p className="mt-1 text-xs">
-                  {data.accountNumberDuplicates.map((row) =>
-                    `${row.account_number}: ${row.customer_ids.map((id, index) => `#${id} ${row.customer_names[index] ?? "Unnamed"}`).join(", ")}`,
-                  ).join(" · ")}
+                <div className="mt-2 space-y-2 text-xs">
+                  {data.accountNumberDuplicates.map((row) => (
+                    <div key={row.account_number} className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                      <span className="font-medium">{row.account_number}:</span>
+                      {row.customer_ids.map((id, index) => {
+                        const contactId = row.customer_contact_ids?.[index];
+                        const isErp = row.customer_is_erp?.[index];
+                        return (
+                          <Button
+                            key={id}
+                            type="button"
+                            variant="link"
+                            className="h-auto p-0 text-xs text-amber-900 underline"
+                            onClick={() => navigate(contactId
+                              ? `/admin/erp/contacts?contact=${encodeURIComponent(contactId)}&tab=account-settings`
+                              : `/admin/erp/contacts?erpCustomer=${id}`)}
+                          >
+                            #{id} {row.customer_names[index] ?? "Unnamed"}{isErp ? " (ERP)" : " (non-ERP)"}
+                          </Button>
+                        );
+                      })}
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="ml-2 h-6 px-2 text-[11px]"
+                        onClick={() => resolveDuplicate.mutate(row.account_number)}
+                        disabled={resolveDuplicate.isPending}
+                      >
+                        {resolveDuplicate.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                        Fix automatically
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-amber-800">
+                  Each record opens directly in Account settings. Automatic repair keeps the single Innovations-owned record and clears only the duplicate ERP link from non-ERP records; no CRM or portal record is deleted.
                 </p>
               </div>
             )}

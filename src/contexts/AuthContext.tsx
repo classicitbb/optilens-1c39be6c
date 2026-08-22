@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: subscription } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => subscription.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -101,21 +101,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         typeof user.user_metadata?.onboardingCompletedAt === "string" ? user.user_metadata.onboardingCompletedAt.trim() :
         "";
 
+      // Auth metadata seeds a profile, but blank/stale metadata must never
+      // erase fields the customer has since edited in the profile table.
       const payload: Record<string, unknown> = {
         user_id: user.id,
-        display_name: fullName || null,
-        full_name: fullName || null,
-        avatar_url: avatarUrl || null,
         email: user.email || null,
-        organization_name: organizationName || null,
-        audience: audience || null,
-        interest_intent: interestIntent || null,
-        onboarding_completed_at: onboardingCompletedAt || null,
       };
-
-      if (phone) {
-        payload.phone = phone;
-      }
+      if (fullName) Object.assign(payload, { display_name: fullName, full_name: fullName });
+      if (avatarUrl) payload.avatar_url = avatarUrl;
+      if (phone) payload.phone = phone;
+      if (organizationName) payload.organization_name = organizationName;
+      if (audience) payload.audience = audience;
+      if (interestIntent) payload.interest_intent = interestIntent;
+      if (onboardingCompletedAt) payload.onboarding_completed_at = onboardingCompletedAt;
 
       await (supabase.from("profiles") as any).upsert(payload as never, { onConflict: "user_id" });
       await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: user.id });

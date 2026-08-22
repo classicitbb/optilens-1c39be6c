@@ -6,6 +6,7 @@ const PORT = Number(process.env.SMOKE_PORT ?? 4173);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const ROUTES = [
   "/admin",
+  "/admin/copilot",
   "/admin/pricing",
   "/admin/pricing/catalog",
   "/admin/pricing/rx-lenses",
@@ -306,7 +307,16 @@ async function checkRoleScopedRouteAccessWiring() {
 }
 
 async function main() {
-  const devServer = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", String(PORT)], {
+  // npm exposes its CLI entrypoint to lifecycle scripts. Spawning it through
+  // the current Node binary avoids Windows' inability to execute npm.cmd with
+  // shell:false while preserving the same behavior on macOS/Linux.
+  const npmExecPath = process.env.npm_execpath;
+  const devServer = npmExecPath
+    ? spawn(process.execPath, [npmExecPath, "run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT)], {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, CI: "1" },
+    })
+    : spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT)], {
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CI: "1" },
   });

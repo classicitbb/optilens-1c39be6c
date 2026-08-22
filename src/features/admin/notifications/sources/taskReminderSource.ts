@@ -19,6 +19,8 @@ type ActivityReminderRow = {
 
 export async function getTaskReminderNotifications(): Promise<AdminNotificationEvent[]> {
   const reminders: AdminNotificationEvent[] = [];
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id;
 
   const { data: draftQuotes } = await (supabase.from("quotes") as any)
     .select("id,updated_at")
@@ -67,9 +69,17 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
   const startOfTomorrow = new Date(startOfToday);
   startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
 
+  const { data: participantRows } = userId ? await (supabase.from("activity_participants") as any)
+    .select("activity_id").eq("user_id", userId) : { data: [] };
+  const participantIds = (participantRows ?? []).map((row: { activity_id: string }) => row.activity_id);
+  const ownershipFilter = userId
+    ? `owner_id.eq.${userId},created_by.eq.${userId}${participantIds.length ? `,id.in.(${participantIds.join(",")})` : ""}`
+    : "id.is.null";
+
   const { data: activityRows } = await (supabase.from("activities") as any)
     .select("id,activity_type,due_at")
-    .neq("status", "completed")
+    .not("status", "in", "(completed,cancelled)")
+    .or(ownershipFilter)
     .gte("due_at", startOfToday.toISOString())
     .lt("due_at", startOfTomorrow.toISOString())
     .order("due_at", { ascending: true })
@@ -84,13 +94,14 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: dueToday.slice(0, 3).map((activity) => activity.activity_type).join(", "),
       createdAt: dueToday[0].due_at,
       severity: "info",
-      href: "/admin/crm/activities?urgency=today",
+      href: `/admin/crm/activities?urgency=today&task=${dueToday[0].id}`,
     });
   }
 
   const { data: overdueRows } = await (supabase.from("activities") as any)
     .select("id,activity_type,due_at")
-    .neq("status", "completed")
+    .not("status", "in", "(completed,cancelled)")
+    .or(ownershipFilter)
     .lt("due_at", startOfToday.toISOString())
     .order("due_at", { ascending: true })
     .limit(100);
@@ -104,7 +115,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: overdue.slice(0, 3).map((activity) => activity.activity_type).join(", "),
       createdAt: overdue[0].due_at,
       severity: "warning",
-      href: "/admin/crm/activities?urgency=overdue",
+      href: `/admin/crm/activities?urgency=overdue&task=${overdue[0].id}`,
     });
   }
 

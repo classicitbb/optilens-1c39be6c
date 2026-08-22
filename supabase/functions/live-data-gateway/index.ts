@@ -528,7 +528,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
     return json(req, { error: error instanceof Error ? error.message : "Invalid arguments." }, 400);
   }
 
-  const requestedCustomerId = isStaff ? integer(body.website_customer_id) : null;
+  const requestedCustomerId = integer(body.website_customer_id);
   const websiteCustomerId = requestedCustomerId ?? integer(profile?.crm_customer_id);
   if (!websiteCustomerId) {
     const offline = offlineLiveDataResponse(operation, { id: 0, account_number: null, innovations_customer_id: null, portal_orders_use_bill_to_account: false } as CustomerMapping);
@@ -536,20 +536,55 @@ async function handleClientRequest(req: Request, body: JsonObject) {
     return json(req, { error: "No approved customer account is linked to this user." }, 403);
   }
 
+  let membershipId: string | null = null;
   if (!isStaff) {
-    const { data: override } = await auth.supabaseAdminClient
-      .from("customer_portal_feature_overrides")
-      .select("enabled")
+    const { data: membership, error: membershipError } = await auth.supabaseAdminClient
+      .from("portal_account_memberships")
+      .select("id")
       .eq("user_id", auth.user.id)
-      .eq("feature_key", config.feature)
+      .eq("customer_id", websiteCustomerId)
+      .eq("status", "active")
       .maybeSingle();
+    if (membershipError) {
+      // Safe compatibility during the additive rollout: only the profile's
+      // existing account may pass before the membership migration is live.
+      if (websiteCustomerId !== integer(profile?.crm_customer_id)) {
+        return json(req, { error: "This login is not authorized for the requested customer account." }, 403);
+      }
+    } else if (!membership) {
+      return json(req, { error: "This login is not authorized for the requested customer account." }, 403);
+    } else {
+      membershipId = String(membership.id);
+    }
+
+    const membershipOverride = membershipId
+      ? await auth.supabaseAdminClient
+          .from("portal_membership_feature_overrides")
+          .select("enabled")
+          .eq("membership_id", membershipId)
+          .eq("feature_key", config.feature)
+          .maybeSingle()
+      : { data: null, error: null };
+    const legacyOverride = !membershipOverride.data
+      ? await auth.supabaseAdminClient
+          .from("customer_portal_feature_overrides")
+          .select("enabled")
+          .eq("user_id", auth.user.id)
+          .eq("feature_key", config.feature)
+          .maybeSingle()
+      : { data: null, error: null };
+    const override = membershipOverride.data ?? legacyOverride.data;
     if (override?.enabled === false || (override?.enabled !== true && profile?.portal_access_status !== "approved_customer")) {
       return json(req, { error: "This live-data feature is not enabled for the customer account." }, 403);
     }
 
     if (config.feature === "statements") {
       const { data: canAccessStatement, error: statementAccessError } = await auth.supabaseAdminClient
-        .rpc("can_access_customer_statement", { p_user_id: auth.user.id });
+        .rpc("can_access_portal_account_feature", {
+          p_customer_id: websiteCustomerId,
+          p_feature_key: "statements",
+          p_user_id: auth.user.id,
+        });
       if (statementAccessError) {
         return json(req, { error: "Could not verify statement access.", detail: statementAccessError.message }, 500);
       }
@@ -568,7 +603,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
 
   let resolvedCustomer = customer as CustomerMapping;
   let resolvedWebsiteCustomerId = websiteCustomerId;
-  if (!isStaff) {
+  if (!isStaff && !membershipId && requestedCustomerId == null) {
     const mappedCustomer = await mappedCustomerFromPortalContact(auth.supabaseAdminClient, profile?.crm_contact_id ?? null);
     if (hasLiveCustomerLink(mappedCustomer) && mappedCustomer.id !== resolvedCustomer.id) {
       resolvedCustomer = mappedCustomer;

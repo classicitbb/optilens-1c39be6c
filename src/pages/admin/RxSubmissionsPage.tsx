@@ -1,13 +1,14 @@
 import { useRxSubmissions } from "@/features/rx-order/hooks/useRxSubmissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, Ban, RotateCcw } from "lucide-react";
+import { Send, Ban, RotateCcw, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
-// Innovations submission outbox (manual-release gate). Paid/confirmed Rx
-// orders land here as pending_review; approving releases them to the office
-// worker (optilens-local), which submits via InnovaAPI /process_rxi or the
-// file-drop and reports the lab's result back onto the row.
+// Rx submission outbox (manual-release gate). Paid/confirmed orders are sent
+// only by the transport selected by staff: existing Innovations delivery, or
+// outbound-only Gatekeeper delivery with its receipt recorded on this row.
 
 const STATUS_STYLES: Record<string, string> = {
   pending_review: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300",
@@ -19,17 +20,27 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const RxSubmissionsPage = () => {
-  const { data: rows = [], isLoading, approveMutation, cancelMutation } = useRxSubmissions();
+  const { data: rows = [], isLoading, approveMutation, resendMutation, pullStatusesMutation, cancelMutation } = useRxSubmissions();
+  const [dispatchChoices, setDispatchChoices] = useState<Record<string, "innovations" | "gatekeeper">>({});
 
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center gap-3">
         <h1 className="text-base font-semibold text-foreground flex items-center gap-2">
-          <Send className="h-4 w-4" /> Innovations Submissions
+          <Send className="h-4 w-4" /> Rx Submissions
         </h1>
         <Badge variant="outline" className="text-[10px]">
           {rows.filter((r) => r.status === "pending_review").length} awaiting release
         </Badge>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 text-[10px] px-2 gap-1 ml-auto"
+          disabled={pullStatusesMutation.isPending}
+          onClick={() => pullStatusesMutation.mutate()}
+        >
+          <RefreshCw className={cn("h-3 w-3", pullStatusesMutation.isPending && "animate-spin")} /> Refresh lab statuses
+        </Button>
       </div>
 
       <div className="border border-border rounded overflow-hidden">
@@ -41,7 +52,7 @@ const RxSubmissionsPage = () => {
               <th className="text-center px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Status</th>
               <th className="text-left px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Lab result</th>
               <th className="text-right px-2 py-1.5 text-[10px] font-semibold text-muted-foreground">Created</th>
-              <th className="w-[170px]" />
+              <th className="w-[260px]" />
             </tr>
           </thead>
           <tbody>
@@ -54,6 +65,7 @@ const RxSubmissionsPage = () => {
             {rows.map((r) => {
               const q: any = (r.payload as any)?.quote ?? {};
               const acct: any = (r.payload as any)?.account ?? {};
+              const provider = dispatchChoices[r.id] ?? r.dispatch_provider ?? "innovations";
               return (
                 <tr key={r.id} className="border-t border-border hover:bg-muted/30 align-top">
                   <td className="px-2 py-1.5 font-mono">{q.quote_number ?? r.quote_id.slice(0, 8)}</td>
@@ -63,20 +75,50 @@ const RxSubmissionsPage = () => {
                   </td>
                   <td className="px-2 py-1.5 text-center">
                     <Badge variant="outline" className={cn("text-[9px]", STATUS_STYLES[r.status] ?? "")}>{r.status.replace("_", " ")}</Badge>
-                    {r.transport && <div className="text-[9px] text-muted-foreground mt-0.5">{r.transport === "api" ? "InnovaAPI" : "file drop"}</div>}
+                    <div className="text-[9px] text-muted-foreground mt-0.5">{r.dispatch_provider === "gatekeeper" ? "Gatekeeper" : "OptiLens / Innovations"}</div>
+                    {r.transport && <div className="text-[9px] text-muted-foreground">{r.transport === "api" ? "InnovaAPI" : r.transport === "gatekeeper" ? "Gatekeeper receipt" : "file drop"}</div>}
                   </td>
                   <td className="px-2 py-1.5 max-w-[260px]">
                     {r.result_message && <div className="truncate" title={r.result_message}>[{r.result_code}] {r.result_message}</div>}
                     {r.last_error && <div className="text-red-600 dark:text-red-400 truncate" title={r.last_error}>{r.last_error}</div>}
-                    {!r.result_message && !r.last_error && <span className="text-muted-foreground">—</span>}
+                    {r.lab_status && (
+                      <div className="text-[10px]">
+                        <span className="font-medium">{r.lab_status}</span>
+                        {r.lab_status_detail ? ` · ${r.lab_status_detail}` : ""}
+                        {r.lab_status_at && (
+                          <span className="text-muted-foreground"> · {new Date(r.lab_status_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                        )}
+                      </div>
+                    )}
+                    {!r.result_message && !r.last_error && !r.lab_status && <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-2 py-1.5 text-right text-muted-foreground whitespace-nowrap">
                     {new Date(r.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </td>
                   <td className="px-2 py-1.5 text-right">
                     {(r.status === "pending_review" || r.status === "failed") && (
-                      <Button size="sm" className="h-6 text-[10px] px-2 gap-1" disabled={approveMutation.isPending} onClick={() => approveMutation.mutate(r.id)}>
+                      <div className="inline-flex items-center gap-1">
+                      <Select value={provider} onValueChange={(value: "innovations" | "gatekeeper") => setDispatchChoices((choices) => ({ ...choices, [r.id]: value }))}>
+                        <SelectTrigger className="h-6 w-[110px] text-[10px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="innovations">OptiLens</SelectItem>
+                          <SelectItem value="gatekeeper">Gatekeeper</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" className="h-6 text-[10px] px-2 gap-1" disabled={approveMutation.isPending} onClick={() => approveMutation.mutate({ id: r.id, provider })}>
                         {r.status === "failed" ? <><RotateCcw className="h-3 w-3" /> Retry</> : <><Send className="h-3 w-3" /> Release</>}
+                      </Button>
+                      </div>
+                    )}
+                    {["approved", "claimed"].includes(r.status) && r.dispatch_provider === "gatekeeper" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-[10px] px-2 gap-1"
+                        disabled={resendMutation.isPending}
+                        onClick={() => resendMutation.mutate(r.id)}
+                      >
+                        <RotateCcw className="h-3 w-3" /> {r.transport ? "Resend" : "Send now"}
                       </Button>
                     )}
                     {["pending_review", "approved", "failed"].includes(r.status) && (
@@ -92,9 +134,10 @@ const RxSubmissionsPage = () => {
         </table>
       </div>
       <p className="text-[10px] text-muted-foreground max-w-3xl">
-        "Release" refreshes the payload snapshot and hands the order to the office service; the office polls every few
-        minutes, generates the RXI, and submits over the API (file-drop as fallback). Results and the returned RXT are
-        recorded here for audit.
+        Select OptiLens to use the existing office sender, or Gatekeeper to send immediately through the enabled Gatekeeper
+        contract. Gatekeeper records only its receipt. A row left in “approved” or “claimed” with no receipt never reached
+        Gatekeeper — use Send now to dispatch it again. Lab statuses refresh automatically and can be pulled manually at most
+        once every 5 minutes.
       </p>
     </div>
   );

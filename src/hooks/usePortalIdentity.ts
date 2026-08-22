@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -28,6 +28,51 @@ export interface PortalIdentity {
   canAccessStatements: boolean;
   featureOverrides: Partial<Record<PortalFeature, boolean>>;
 }
+
+export interface PortalAccountMembership {
+  membershipId: string;
+  customerId: number;
+  contactId: string;
+  customerName: string;
+  accountNumber: string | null;
+  accessRole: "owner" | "manager" | "ordering" | "finance" | "member" | "viewer";
+  status: "active" | "suspended";
+  isDefault: boolean;
+  assignedPricelistId: number | null;
+  paymentTerms: PaymentTerms;
+  ordersUseBillToAccount: boolean;
+  canAccessPricing: boolean;
+  canAccessStatements: boolean;
+  featureOverrides: Partial<Record<PortalFeature, boolean>>;
+}
+
+const selectedAccountStorageKey = (userId: string) => `cv.portal.activeCustomer.${userId}`;
+const portalAccountSelectionEvent = "cv:portal-account-selection";
+
+const readSelectedCustomerId = (userId: string | null) => {
+  if (!userId || typeof window === "undefined") return null;
+  const value = Number(window.localStorage.getItem(selectedAccountStorageKey(userId)));
+  return Number.isInteger(value) && value > 0 ? value : null;
+};
+
+const normalizeMembership = (row: Record<string, unknown>): PortalAccountMembership => ({
+  membershipId: String(row.membership_id ?? ""),
+  customerId: Number(row.customer_id),
+  contactId: String(row.contact_id ?? ""),
+  customerName: typeof row.customer_name === "string" ? row.customer_name : "Customer account",
+  accountNumber: typeof row.account_number === "string" && row.account_number.trim() ? row.account_number.trim() : null,
+  accessRole: (row.access_role ?? "member") as PortalAccountMembership["accessRole"],
+  status: (row.membership_status ?? "suspended") as PortalAccountMembership["status"],
+  isDefault: row.is_default === true,
+  assignedPricelistId: typeof row.assigned_pricelist_id === "number" ? row.assigned_pricelist_id : null,
+  paymentTerms: (row.payment_terms === "credit_approved" ? "credit" : row.payment_terms === "cash_only" ? "cash" : "standard") as PaymentTerms,
+  ordersUseBillToAccount: row.portal_orders_use_bill_to_account === true,
+  canAccessPricing: row.can_access_pricing === true,
+  canAccessStatements: row.can_access_statements === true,
+  featureOverrides: row.feature_overrides && typeof row.feature_overrides === "object"
+    ? row.feature_overrides as Partial<Record<PortalFeature, boolean>>
+    : {},
+});
 
 const featureTitles: Record<PortalFeature, string> = {
   quotes: "Quotes",
@@ -209,12 +254,25 @@ const fetchEmulatedIdentity = async (targetUserId: string): Promise<PortalIdenti
 export const usePortalIdentity = () => {
   const { user } = useAuth();
   const { canEdit: isStaff } = useUserRole();
+  const queryClient = useQueryClient();
 
   const [emulation, setEmulation] = useState(() => getPortalEmulation());
   useEffect(() => onPortalEmulationChange(() => setEmulation(getPortalEmulation())), []);
   const signedInAsEmulation =
     emulation?.mode === "signed-in-as" && user?.id === emulation.userId ? emulation : null;
   const activeEmulation = isStaff && emulation && emulation.mode !== "signed-in-as" ? emulation : null;
+  const effectiveUserId = activeEmulation?.userId ?? user?.id ?? null;
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(() => readSelectedCustomerId(effectiveUserId));
+
+  useEffect(() => {
+    setSelectedCustomerId(readSelectedCustomerId(effectiveUserId));
+  }, [effectiveUserId]);
+
+  useEffect(() => {
+    const refreshSelection = () => setSelectedCustomerId(readSelectedCustomerId(effectiveUserId));
+    window.addEventListener(portalAccountSelectionEvent, refreshSelection);
+    return () => window.removeEventListener(portalAccountSelectionEvent, refreshSelection);
+  }, [effectiveUserId]);
 
   const query = useQuery({
     queryKey: ["portal-identity", user?.id, activeEmulation?.userId ?? "self"],
@@ -255,9 +313,77 @@ export const usePortalIdentity = () => {
     },
   });
 
+  const membershipsQuery = useQuery({
+    queryKey: ["portal-account-memberships", effectiveUserId],
+    enabled: !!effectiveUserId && !!query.data,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_portal_account_memberships", {
+        p_user_id: effectiveUserId,
+      });
+      if (error) {
+        // Additive rollout compatibility: a frontend preview may briefly run
+        // before the migration reaches the linked Supabase project.
+        if (/get_portal_account_memberships|schema cache|Could not find the function/i.test(error.message ?? "")) return [];
+        throw error;
+      }
+      return ((data ?? []) as Record<string, unknown>[]).map(normalizeMembership);
+    },
+  });
+
+  const memberships = membershipsQuery.data ?? [];
+  const activeMembership = useMemo(() => {
+    const active = memberships.filter((membership) => membership.status === "active");
+    return active.find((membership) => membership.customerId === selectedCustomerId)
+      ?? active.find((membership) => membership.isDefault)
+      ?? active.find((membership) => membership.customerId === query.data?.crmCustomerId)
+      ?? active[0]
+      ?? null;
+  }, [memberships, query.data?.crmCustomerId, selectedCustomerId]);
+
+  useEffect(() => {
+    if (!effectiveUserId || !activeMembership || selectedCustomerId === activeMembership.customerId) return;
+    setSelectedCustomerId(activeMembership.customerId);
+    window.localStorage.setItem(selectedAccountStorageKey(effectiveUserId), String(activeMembership.customerId));
+  }, [activeMembership, effectiveUserId, selectedCustomerId]);
+
+  const identity = useMemo<PortalIdentity | null>(() => {
+    if (!query.data || !activeMembership) return query.data ?? null;
+    return {
+      ...query.data,
+      crmContactId: activeMembership.contactId,
+      crmCustomerId: activeMembership.customerId,
+      accountNumber: activeMembership.accountNumber,
+      customerName: activeMembership.customerName,
+      assignedPricelistId: activeMembership.assignedPricelistId,
+      paymentTerms: activeMembership.paymentTerms,
+      ordersUseBillToAccount: activeMembership.ordersUseBillToAccount,
+      canAccessPricing: activeMembership.canAccessPricing,
+      canAccessStatements: activeMembership.canAccessStatements,
+      featureOverrides: activeMembership.featureOverrides,
+    };
+  }, [activeMembership, query.data]);
+
+  const selectAccount = useCallback(async (customerId: number) => {
+    if (!effectiveUserId || !memberships.some((membership) => membership.customerId === customerId && membership.status === "active")) {
+      throw new Error("That customer account is not available to this login.");
+    }
+    setSelectedCustomerId(customerId);
+    window.localStorage.setItem(selectedAccountStorageKey(effectiveUserId), String(customerId));
+    window.dispatchEvent(new Event(portalAccountSelectionEvent));
+    await Promise.all([
+      queryClient.cancelQueries({ queryKey: ["live-innovations-customer-orders"] }),
+      queryClient.cancelQueries({ queryKey: ["live-optilens-deliveries"] }),
+      queryClient.cancelQueries({ queryKey: ["live-innovations-customer-account"] }),
+    ]);
+  }, [effectiveUserId, memberships, queryClient]);
+
   return {
     ...query,
-    identity: query.data ?? null,
+    identity,
+    memberships,
+    activeMembership,
+    selectAccount,
+    isLoading: query.isLoading || membershipsQuery.isLoading,
     isStaff,
     emulation: activeEmulation,
     portalSessionEmulation: signedInAsEmulation,
@@ -266,8 +392,8 @@ export const usePortalIdentity = () => {
      * account's during admin emulation, otherwise the signed-in user's.
      * RLS admin-read policies enforce who may actually see foreign rows.
      */
-    effectiveUserId: activeEmulation?.userId ?? user?.id ?? null,
+    effectiveUserId,
     canAccessFeature: (feature: PortalFeature) =>
-      isStaff || canAccessPortalFeature(query.data ?? null, feature),
+      isStaff || canAccessPortalFeature(identity, feature),
   };
 };

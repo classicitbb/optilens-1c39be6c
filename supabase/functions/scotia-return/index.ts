@@ -23,20 +23,51 @@
 
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/config.ts";
+import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
 
 const CHECKOUT_RETURN_PATH = "/order-complete";
 const STATEMENT_RETURN_PATH = "/profile/statements";
 const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
-function redirect(path: string, params: Record<string, string>): Response {
-  const url = new URL(path, siteOrigin());
+// The buyer may have started checkout on the apex site, the admin host, or a
+// Lovable preview/published host. Fiserv POSTs back to the exact
+// responseSuccessURL we signed, so the browser's origin is carried through as
+// an `origin` query param on THIS request's URL. Honour it only when it is on
+// the allowlist, otherwise fall back to the configured site origin.
+const ALLOWED_RETURN_HOSTS = [
+  "classicvisions.net",
+  "www.classicvisions.net",
+  "admin.classicvisions.net",
+];
+const ALLOWED_RETURN_HOST_SUFFIXES = [".lovable.app", ".lovableproject.com"];
+
+function resolveOrigin(req: Request): string {
+  const requested = new URL(req.url).searchParams.get("origin");
+  if (requested) {
+    try {
+      const url = new URL(requested);
+      const host = url.hostname.toLowerCase();
+      const allowed = url.protocol === "https:"
+        && (ALLOWED_RETURN_HOSTS.includes(host)
+          || ALLOWED_RETURN_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix)));
+      if (allowed) return url.origin;
+      console.warn("scotia-return: ignoring non-allowlisted return origin", { requested });
+    } catch {
+      console.warn("scotia-return: ignoring malformed return origin", { requested });
+    }
+  }
+  return siteOrigin();
+}
+
+function redirect(req: Request, path: string, params: Record<string, string>): Response {
+  const url = new URL(path, resolveOrigin(req));
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   return new Response(null, { status: 302, headers: { Location: url.toString() } });
 }
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
-    return redirect(CHECKOUT_RETURN_PATH, { scotia: "error" });
+    return redirect(req, CHECKOUT_RETURN_PATH, { scotia: "error" });
   }
 
   let response: Record<string, string> = {};
@@ -47,7 +78,7 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     console.error("scotia-return: failed to parse gateway POST body", err);
-    return redirect(CHECKOUT_RETURN_PATH, { scotia: "error" });
+    return redirect(req, CHECKOUT_RETURN_PATH, { scotia: "error" });
   }
 
   const oid = (response.oid ?? "").trim();
@@ -56,17 +87,17 @@ Deno.serve(async (req) => {
 
   if (!oid) {
     console.error("scotia-return: gateway response missing oid", response);
-    return redirect(returnPath, { scotia: "error" });
+    return redirect(req, returnPath, { scotia: "error" });
   }
 
   try {
     const cfg = await getScotiaConfig();
     if (!cfg.sharedSecret) {
       console.error("scotia-return: Scotia gateway not configured (missing SharedSecret)");
-      return redirect(returnPath, { scotia: "error" });
+      return redirect(req, returnPath, { scotia: "error" });
     }
 
-    const result = await classifyScotiaResponse(response, cfg.sharedSecret);
+    const result = await classifyScotiaResponse(response, cfg.sharedSecret, cfg.storeId);
 
     if (!result.hashValid) {
       // debugHash is safe to log: HMAC digests, not the shared secret, and
@@ -80,7 +111,7 @@ Deno.serve(async (req) => {
         Object.entries(response).map(([k, v]) => [k, REDACT_KEYS.has(k.toLowerCase()) ? "[redacted]" : v]),
       );
       console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash, rawFields });
-      return redirect(returnPath, { scotia: "error" });
+      return redirect(req, returnPath, { scotia: "error" });
     }
 
     const gatewayPayload = {
@@ -111,9 +142,12 @@ Deno.serve(async (req) => {
       });
       if (error) {
         console.error("scotia-return: settle_statement_payment failed", { paymentId, error });
-        return redirect(returnPath, { scotia: "error" });
+        return redirect(req, returnPath, { scotia: "error" });
       }
-      return redirect(returnPath, { scotia: outcome });
+      return redirect(req, returnPath, {
+        scotia: outcome,
+        ...(result.chargetotal ? { amt: String(result.chargetotal) } : {}),
+      });
     }
 
     // Checkout order flow — settle_scotia_payment's ownership check trusts
@@ -127,7 +161,7 @@ Deno.serve(async (req) => {
 
     if (orderError || !order?.user_id) {
       console.error("scotia-return: order not found for oid", { oid, orderError });
-      return redirect(returnPath, { scotia: "error" });
+      return redirect(req, returnPath, { scotia: "error" });
     }
 
     const orderReturnPath = ORDER_COMPLETE_PATH(oid);
@@ -139,12 +173,16 @@ Deno.serve(async (req) => {
     });
     if (settleError) {
       console.error("scotia-return: settle_scotia_payment failed", { oid, settleError });
-      return redirect(orderReturnPath, { scotia: "error" });
+      return redirect(req, orderReturnPath, { scotia: "error" });
     }
 
-    return redirect(orderReturnPath, { scotia: outcome });
+    if (result.approved) {
+      await queuePaidOrderFulfillmentEmail(supabaseAdmin as never, oid);
+    }
+
+    return redirect(req, orderReturnPath, { scotia: outcome });
   } catch (err) {
     console.error("scotia-return: unexpected error", err);
-    return redirect(returnPath, { scotia: "error" });
+    return redirect(req, returnPath, { scotia: "error" });
   }
 });

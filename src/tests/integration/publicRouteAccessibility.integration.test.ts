@@ -16,12 +16,9 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
-  it("registers the LabLink embed routes in the public route registry", () => {
+  it("registers the Rx order form as a protected portal route", () => {
     expect(
-      APP_ROUTE_REGISTRY.find((route) => route.id === "public.rx-order" && route.path === "/rx-order" && route.status === "active"),
-    ).toBeTruthy();
-    expect(
-      APP_ROUTE_REGISTRY.find((route) => route.id === "public.rx-job-status" && route.path === "/rx-job-status" && route.status === "active"),
+      APP_ROUTE_REGISTRY.find((route) => route.id === "customer.rx-order" && route.path === "/profile/rx-order" && route.status === "active"),
     ).toBeTruthy();
   });
 
@@ -29,6 +26,32 @@ describe("public route accessibility", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.assistant.window" && route.path === "/assistant/window" && route.status === "active"),
     ).toBeTruthy();
+  });
+
+  it("registers and declares the canonical privacy policy and terms routes", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.privacy-policy" && route.path === "/privacy-policy" && route.status === "active"),
+    ).toBeTruthy();
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.terms" && route.path === "/terms" && route.status === "active"),
+    ).toBeTruthy();
+
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+    expect(source).toContain('<Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />');
+    expect(source).toContain('<Route path="terms" element={<LegalPage slug="terms" />} />');
+    expect(source).toContain('<Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />');
+    expect(source).toContain('<Route path="legal/terms" element={<Navigate to="/terms" replace />} />');
+  });
+
+  it("registers and declares the canonical About Us page", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.about-us" && route.path === "/about-us" && route.status === "active"),
+    ).toBeTruthy();
+
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+    expect(source).toContain('<Route path="about-us" element={<AboutUsPage />} />');
   });
 
   it("registers /knowledge/:articleSlug in the public route registry", () => {
@@ -94,14 +117,13 @@ describe("public route accessibility", () => {
     expect(source).toContain('<Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />');
   });
 
-  it("declares runtime routes for the LabLink embed pages", () => {
+  it("does not declare a public Rx order page", () => {
     const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
-    expect(source).toContain('path="rx-order"');
-    expect(source).toContain('path="rx-job-status"');
-    expect(source).toContain('title="Online Ordering Portal"');
-    expect(source).toContain('title="Order Tracking"');
+    expect(source).not.toContain('path="rx-order"');
+    expect(source).not.toContain('path="rx-order/lablink"');
+    expect(APP_ROUTE_REGISTRY.some((route) => route.path === "/rx-order")).toBe(false);
   });
 
   it("declares a runtime route for /assistant/window", () => {

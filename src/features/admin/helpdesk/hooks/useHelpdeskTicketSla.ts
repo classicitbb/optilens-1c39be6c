@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export interface TicketSlaStatus {
   id: string;
-  policy_id: string;
+  sla_policy_id: string;
   deadline_at: string;
   reached_at: string | null;
   status: "in_progress" | "reached" | "failed";
@@ -23,7 +23,7 @@ export const useHelpdeskTicketSlaStatuses = (ticketId: string | undefined) =>
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_ticket_sla_status")
-        .select("id,policy_id,deadline_at,reached_at,status,policy:helpdesk_sla_policies(id,name,target_hours)")
+        .select("id,sla_policy_id,deadline_at,reached_at,status,policy:helpdesk_sla_policies!helpdesk_ticket_sla_status_sla_policy_id_fkey(id,name,target_hours)")
         .eq("ticket_id", ticketId)
         .order("deadline_at", { ascending: true });
       if (error) throw error;
@@ -71,8 +71,8 @@ export const useAssignHelpdeskSlaPolicy = () => {
       const { error } = await (supabase as any)
         .from("helpdesk_ticket_sla_status")
         .upsert(
-          { ticket_id: ticketId, policy_id: policyId, deadline_at: deadlineAt, reached_at: null, status: "in_progress" },
-          { onConflict: "ticket_id,policy_id" }
+          { ticket_id: ticketId, sla_policy_id: policyId, deadline_at: deadlineAt, reached_at: null, status: "in_progress" },
+          { onConflict: "ticket_id,sla_policy_id" }
         );
       if (error) throw error;
     },

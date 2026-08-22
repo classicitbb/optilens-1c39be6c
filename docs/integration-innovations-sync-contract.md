@@ -50,6 +50,7 @@ duplicate. Each lands in a dedicated `innovations_<id>` column with a UNIQUE ind
 | Invoices   | `dbo.FinExportedInvoices` (headers only)     | `InvoiceID`    | `invoices` (new)       |
 | Statements | `dbo.FinARStatements` + `dbo.FinARPeriods`   | `StatementID`  | `statements` (new)     |
 | Statement lines | `dbo.FinARStatementItems` → `FinARStatements` | `StatementItemID` | `statement_lines` (new) |
+| Lens aliases | Zen `LensAlias` via `data/rx/catalog.generated.json` | `alias` (13-digit) | `innovations_lens_aliases` |
 
 > Source column names for Invoices/Statements/Balances are confirmed against the
 > live DB during the first office-side dry-run; the SQL is isolated in
@@ -116,6 +117,72 @@ capitalization or whitespace. The office sync cannot write `portal_url` or
 `patient`, `payment_method`, `reference`, and `amount`. The source query joins
 the parent statement and filters `HideFromStatement = 0` and `Void = 0` before
 the data is sent.
+
+### Lens aliases → `public.innovations_lens_aliases`
+The lens catalogue mirror the Rx order form resolves an orderable alias from.
+Unlike every other entity here the key is not an integer id but the immutable
+13-digit `alias`, which encodes `material_code` + `style_code` + `color_code`.
+
+| CV column                                  | Source                                    |
+| ------------------------------------------ | ----------------------------------------- |
+| `alias`                                     | `LensAlias` alias (unique, 13-digit)      |
+| `material_code`, `material_description`     | material axis                             |
+| `style_code`, `style_description`           | lens design axis                          |
+| `color_code`, `color_description`           | colour / coating axis ("Lens Option" in the Innovations UI) |
+| `mf_type`, `category`                       | Single Vision / Bifocal / Trifocal / Progressive |
+| `pricing_key`                               | `"Material | MFType | Style"` as computed by `rx-catalog-sync` |
+| `suppliers`                                 | supplying labs                            |
+| `is_active`                                 | whether the parent lens is active in Innovations |
+| `synced_at`                                 | push timestamp                            |
+
+**Only aliases whose parent lens is active in Innovations should be pushed as
+`is_active: true`.**
+
+**Deactivation must be explicit.** This feed is upsert-only — the receiver never
+deletes — so an alias that simply stops being included in the payload stays in
+the mirror forever, and the website keeps offering it as an orderable colour.
+When a lens is deactivated upstream, the push must continue to send its aliases
+with `is_active: false`. Omitting them is not a deactivation.
+
+Consumers filter on `is_active`: the mapping screen
+(`/admin/pricing/alias-mapping`) hides inactive aliases and flags any confirmed
+mapping that points at one, and `useLensColours` drops them from the colour
+choices offered on the Rx order form.
+
+`pricing_key` is the join key between this mirror and our own catalogue — our
+lenses compose the identical string from material · mftype · lenstype — so
+changes to how it is computed on the office side will silently unmap lenses.
+Treat it as part of this contract.
+
+Note that `pricing_key` carries **CV-side** labels while `material_description`
+and `style_description` carry the **Innovations-side** ones. The same lens is
+`Poly` / `1.67 High Index` in `pricing_key` and `Poly 1.59` / `1.67 Index` in
+`material_description`. Join on `pricing_key`; the description fields are for
+display.
+
+#### Known export gaps (2026-08-03)
+
+The mirror is narrower than the Innovations lens database, which leaves 329 of
+our 1,011 active lenses unmappable. These are export gaps, not naming problems —
+no client-side rule can close them.
+
+| Missing from the feed | Present in Innovations as | Our lenses affected |
+| --------------------- | ------------------------- | ------------------- |
+| `1.60 Index` material | Lens Database → Resin → `1.60 Index` | 51 |
+| `Endless` style | under the Single Vision MF type, labelled `Endless` | 102 (our `Endless SV`) |
+| `Endless Off` styles | `Endless Off - 1.3m / 2m / 4m / 6m` | 48 (our `Endless Office`) |
+| `Endless Plus` style | categorised as a **progressive** | 73 (our `Endless Plus - Antifatigue`) |
+
+Also absent from the feed but present in the Resin tree: `1.546`, `1.56`,
+`1.565`, `1.581 Index`, `1.595 Index`.
+
+Two consequences for the export:
+1. `Endless Off` is a **style header** on our side covering four working
+   distances on theirs — the same one-to-many shape the colour axis already has.
+   Expect one CV lens to span several `style_code`s.
+2. Our `Endless SV` and `Endless Plus - Antifatigue` rows carry both
+   `Single Vision` and `Progressive` MF types, so the MF-type axis needs
+   reconciling alongside the style names once the aliases arrive.
 
 ## 4. Receive endpoint
 

@@ -6,6 +6,7 @@ const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
 
 const AdminHomeRedirect = lazy(() => import("@/components/admin/AdminHomeRedirect"));
 const AdminDashboardHomePage = lazy(() => import("@/pages/admin/AdminDashboardHomePage"));
+const PortalCopilotPage = lazy(() => import("@/pages/admin/PortalCopilotPage"));
 const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
 const ProductCatalogPage = lazy(() => import("@/pages/admin/ProductCatalogPage"));
@@ -25,6 +26,7 @@ const ShipmentDetailPage = lazy(() => import("@/pages/admin/costings/ShipmentDet
 const CostingsReportsPage = lazy(() => import("@/pages/admin/costings/CostingsReportsPage"));
 const QuotationsListPage = lazy(() => import("@/pages/admin/QuotationsListPage"));
 const RxOrderFormPage = lazy(() => import("@/pages/admin/RxOrderFormPage"));
+const StockOrderBuilderPage = lazy(() => import("@/pages/admin/StockOrderBuilderPage"));
 const RxSubmissionsPage = lazy(() => import("@/pages/admin/RxSubmissionsPage"));
 const AliasMappingPage = lazy(() => import("@/pages/admin/AliasMappingPage"));
 const QuoteEditorPage = lazy(() => import("@/pages/admin/QuoteEditorPage"));
@@ -32,7 +34,6 @@ const QuotePrintPreviewPage = lazy(() => import("@/pages/admin/QuotePrintPreview
 const CatalogPublisherPage = lazy(() => import("@/pages/admin/CatalogPublisherPage"));
 const CatalogPublisherV2Page = lazy(() => import("@/pages/admin/CatalogPublisherV2Page"));
 const CatalogEditorPage = lazy(() => import("@/pages/admin/CatalogEditorPage"));
-const CanvasEditorPage = lazy(() => import("@/pages/admin/CanvasEditorPage"));
 const ContactsPage = lazy(() => import("@/pages/admin/erp/ContactsPage"));
 const ContactTagsConfigPage = lazy(() => import("@/pages/admin/erp/ContactTagsConfigPage"));
 const IndustriesConfigPage = lazy(() => import("@/pages/admin/erp/IndustriesConfigPage"));
@@ -59,12 +60,14 @@ const HelpdeskConfigPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskCon
 const HelpdeskOverviewPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"));
 const HelpdeskTicketDetailPage = lazy(() => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"));
 const WebsitePortalsPage = lazy(() => import("@/pages/admin/WebsitePortalsPage"));
+const NpsDashboardPage = lazy(() => import("@/pages/admin/NpsDashboardPage"));
 const DocStudioPage = lazy(() => import("@/pages/admin/website/DocStudioPage"));
 const FeatureBoardPage = lazy(() => import("@/pages/admin/website/FeatureBoardPage"));
 const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
 const WebsiteStoreVariantManagerPage = lazy(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"));
 const LensAssistantRulesPage = lazy(() => import("@/pages/admin/LensAssistantRulesPage"));
 const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
+const ProductHubPage = lazy(() => import("@/pages/admin/ProductHubPage"));
 const AssistantQualityPage = lazy(() => import("@/pages/admin/assistant/AssistantQualityPage"));
 
 const AdminRoutes = () => (
@@ -72,6 +75,7 @@ const AdminRoutes = () => (
     <Route element={<AdminLayout />}>
       <Route index element={<AdminHomeRedirect />} />
       <Route path="dashboard" element={<AdminDashboardHomePage />} />
+      <Route path="copilot" element={<AdminOnlyRoute><PortalCopilotPage /></AdminOnlyRoute>} />
       <Route path="pricing" element={<Navigate to="pricing/catalog" replace />} />
       <Route path="pricing/catalog" element={<ProductCatalogPage />} />
       <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
@@ -81,7 +85,6 @@ const AdminRoutes = () => (
       <Route path="pricing/classification" element={<LensClassificationPage />} />
       <Route path="pricing/publisher" element={<AdminOnlyRoute><CatalogPublisherPage /></AdminOnlyRoute>} />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
-      <Route path="pricing/publisher/:id/canvas" element={<CanvasEditorPage />} />
       <Route path="pricing/costings" element={<ImportCostingsPage />} />
       <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
       <Route path="pricing/costings/:id" element={<ShipmentDetailPage />} />
@@ -120,9 +123,11 @@ const AdminRoutes = () => (
       <Route path="website/content" element={<ContentManagerPage />} />
       <Route path="website/microsites" element={<Navigate to="/admin/website/content" replace />} />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
+      <Route path="website/nps" element={<NpsDashboardPage />} />
       <Route path="website/documents" element={<Navigate to="/admin/docs/studio" replace />} />
       <Route path="website/features" element={<FeatureBoardPage />} />
       <Route path="website/quotations" element={<QuotationsListPage />} />
+      <Route path="website/stock-orders" element={<StockOrderBuilderPage />} />
       <Route path="website/quotations/new-rx" element={<RxOrderFormPage />} />
       <Route path="website/quotations/rx/:id" element={<RxOrderFormPage />} />
       <Route path="website/quotations/:id" element={<QuoteEditorPage />} />
@@ -134,6 +139,7 @@ const AdminRoutes = () => (
       <Route path="website/store" element={<WebsiteStorePage />} />
       <Route path="website/store/lens-assistant" element={<LensAssistantRulesPage />} />
       <Route path="website/store/variants/:productType/:productId" element={<WebsiteStoreVariantManagerPage />} />
+      <Route path="products/:productType/:productId" element={<ProductHubPage />} />
 
       <Route path="knowledge" element={<Navigate to="/admin/knowledge/wiki" replace />} />
       <Route path="knowledge/wiki" element={<AdminWikiPage />} />

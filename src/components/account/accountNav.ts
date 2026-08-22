@@ -1,29 +1,25 @@
 import {
   BadgeDollarSign,
-  BookUser,
   DollarSign,
   FileSignature,
   FileText,
   LifeBuoy,
   Package,
   User,
-  WalletCards,
   Glasses,
-  MessageSquare,
+  BookOpen,
 } from "lucide-react";
 import type { SidebarNavItem } from "@/components/shared/SidebarNavList";
 
 export const ACCOUNT_NAV_ITEMS: SidebarNavItem[] = [
-  { label: "My Account", to: "/profile", icon: User },
+  { label: "My Account", to: "/profile", icon: User, exact: true },
   { label: "My Profile", to: "/profile/account", icon: User },
   { label: "My Orders", to: "/profile/orders", icon: Package },
   { label: "Saved Drafts", to: "/profile/drafts", icon: FileText },
-  { label: "Lens Assistant", to: "/profile/lens-assistant?audience=professional", icon: Glasses },
-  { label: "Address Book", to: "/profile/address-book", icon: BookUser },
-  { label: "Payment Methods", to: "/profile/payment-methods", icon: WalletCards },
+  { label: "Rx Order Form", to: "/profile/rx-order", icon: Glasses },
   { label: "Quote Requests", to: "/profile/quotes", icon: FileSignature },
   { label: "Helpdesk Tickets", to: "/profile/helpdesk", icon: LifeBuoy },
-  { label: "Saved Assistant Chats", to: "/profile/assistant-chats", icon: MessageSquare },
   { label: "Assigned Pricelist", to: "/profile/pricelists", icon: BadgeDollarSign },
   { label: "Statements", to: "/profile/statements", icon: DollarSign },
+  { label: "Dispenser Handbook", to: "/profile/handbook", icon: BookOpen },
 ];

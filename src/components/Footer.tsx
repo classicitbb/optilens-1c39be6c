@@ -14,7 +14,7 @@ const footerColumns = [
   {
     title: "Company",
     links: [
-      { label: "About", to: "/#about" },
+      { label: "About", to: "/about-us" },
       { label: "Professionals", to: "/professionals" },
       { label: "Patients", to: "/patients" },
       { label: "Find a Retailer", to: "/find-a-retailer" },
@@ -25,7 +25,7 @@ const footerColumns = [
     links: [
       { label: "Contact", to: "/#contact" },
       { label: "My Order Status", to: "/profile/orders" },
-      { label: "Rx Order Form", to: "/rx-order" },
+      { label: "Rx Order Form", to: "/profile/rx-order" },
       { label: "Lenses and Supplies", to: "/store" },
     ],
   },
@@ -84,8 +84,8 @@ const FooterColumnLink = ({ link, preserveLabLinkSession }: { link: FooterLink; 
 const Footer = () => {
   const { data: copyrightArticle } = useLegalPage("copyright");
   const location = useLocation();
-  const copyrightText = copyrightArticle?.content || COMPANY_CONTACT.copyright;
-  const preserveLabLinkSession = location.pathname === "/rx-order" || location.pathname === "/rx-job-status";
+  const copyrightText = copyrightArticle?.content || "© 2026 Classic Visions. All rights reserved.";
+  const preserveLabLinkSession = location.pathname === "/rx-job-status";
   const labLinkNavigationProps = getLabLinkNavigationProps(preserveLabLinkSession);
 
   return (
@@ -148,6 +148,9 @@ const Footer = () => {
           <p>{copyrightText}</p>
           <p className="mt-2 sm:mt-0">Powered by Classic Visions Digital</p>
         </div>
+        <p className="mt-3 text-center text-xs text-primary-foreground/50 sm:text-left">
+          Prices on this site are shown in US Dollars (USD). Account statements and Barbados invoicing are in Barbados Dollars (BBD).
+        </p>
       </div>
     </footer>);
 

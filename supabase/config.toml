@@ -9,9 +9,16 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   [functions.companion-assistant]
     verify_jwt = false
+  [functions.portal-copilot]
+    verify_jwt = false
+  [functions.voice-transcribe]
+    verify_jwt = false
+
   [functions.lens-assistant]
     verify_jwt = true
   [functions.crm-draft-outreach]
+    verify_jwt = true
+  [functions.crm-activity-automation]
     verify_jwt = true
   [functions.order-confirmation]
     verify_jwt = true
@@ -21,8 +28,8 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = true
   [functions.preview-transactional-email]
     verify_jwt = true
-  [functions.handle-email-unsubscribe]
-    verify_jwt = false
+[functions.handle-email-unsubscribe]
+verify_jwt = false
   [functions.handle-email-suppression]
     verify_jwt = false
   [functions.helpdesk-inbound-email]
@@ -39,10 +46,18 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = true
   [functions.api-v1]
     verify_jwt = false
-  # Innovations -> CV outbound sync receiver. Auth is x-api-key in code
-  # (verify_api_key + per-resource write scope), so the platform JWT gate is off.
-  [functions.innovations-sync]
-    verify_jwt = false
+[functions.innovations-sync]
+verify_jwt = false
+# Innovations -> CV outbound sync receiver. Auth is x-api-key in code
+# (verify_api_key + per-resource write scope), so the platform JWT gate is off.
+# MUST stay false: the office optilens-local caller sends no Authorization header.
+[functions.statement-document-worker]
+verify_jwt = false
+# Internal worker authentication is performed with STATEMENT_DOCUMENT_WORKER_SECRET.
+[functions.statement-document]
+verify_jwt = false
+# Customer session authorization is performed inside the function so the portal
+# can call it with its Supabase bearer token.
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
   # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).
@@ -76,3 +91,13 @@ project_id = "dzsalnvmlvjoatryhqfz"
   # operations remain server-side so Basic Auth can never reach the browser.
   [functions.dhl-express]
     verify_jwt = true
+  # Gatekeeper connects and sends explicitly released Rx orders. It does its
+  # own admin-role check and keeps the one-time PIN/JWT/bearer token server-side.
+  [functions.gatekeeper-orders]
+    verify_jwt = true
+
+  # Scheduled agent-surface health probe (MCP, Portal Copilot, helpdesk SLA
+  # schema). Runs from pg_cron with the service role; it also validates its
+  # own caller-independent probes, so no user JWT is required.
+  [functions.platform-health-check]
+    verify_jwt = false

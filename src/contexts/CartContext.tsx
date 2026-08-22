@@ -1,10 +1,11 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useCart, CartItem } from "@/hooks/useCart";
+import type { CartPriceUnit } from "@/lib/cartUnits";
 
 interface CartContextType {
   items: CartItem[];
   loading: boolean;
-  addToCart: (product: { id: number; name: string; price: number; productType: "lens" | "supply" | "addon"; quantity?: number; variantId?: string; variantLabel?: string; variantSku?: string; variantOpcCode?: string; variantMetadata?: Record<string, unknown> }) => Promise<void>;
+  addToCart: (product: { id: number; name: string; price: number; productType: "lens" | "supply" | "addon"; quantity?: number; variantId?: string; variantLabel?: string; variantSku?: string; variantOpcCode?: string; variantMetadata?: Record<string, unknown>; priceUnit?: CartPriceUnit }) => Promise<boolean>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;

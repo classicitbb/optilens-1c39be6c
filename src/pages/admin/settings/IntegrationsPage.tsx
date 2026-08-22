@@ -8,9 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Loader2, Lock, PlugZap, ShieldCheck } from "lucide-react";
+import { Bot, CheckCircle2, Loader2, Lock, Plus, PlugZap, ShieldCheck } from "lucide-react";
 import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusCard";
+import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrationTab";
+import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
+import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderCard";
+import { QboIntegrationCard } from "@/components/admin/QboIntegrationCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scotia eCom+ (Fiserv IPG Connect) hosted-payment credential store.
@@ -43,6 +49,16 @@ interface DhlExpressSettings {
   last_error: string | null;
   updated_at: string;
 }
+
+const QUICK_PICK_PROVIDERS = [
+  { slug: "anthropic", label: "Anthropic" },
+  { slug: "openai", label: "OpenAI" },
+  { slug: "grok", label: "Grok (xAI)" },
+  { slug: "copilot", label: "Copilot" },
+];
+
+const normalizeProviderSlug = (value: string) =>
+  value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 const statusMeta: Record<GatewayStatus, { label: string; className: string }> = {
   connected: { label: "Connected", className: "bg-emerald-500/10 text-emerald-700 border-emerald-300" },
@@ -84,6 +100,19 @@ export default function IntegrationsPage() {
     enabled: isAdmin,
   });
 
+  const { data: aiAgentRows, isLoading: aiAgentLoading } = useQuery({
+    queryKey: ["ai-agent-settings"],
+    queryFn: async () => {
+      const { data, error } = await ((supabase as any).from("ai_agent_settings") as any)
+        .select("provider,model,enabled,has_secret,status,last_tested_at,last_error,updated_at")
+        .eq("tenant_key", "default")
+        .order("provider");
+      if (error) throw error;
+      return (data ?? []) as AiAgentSettingsRow[];
+    },
+    enabled: isAdmin,
+  });
+
   const [form, setForm] = useState({
     store_id: "",
     environment: "test" as "test" | "production",
@@ -92,6 +121,7 @@ export default function IntegrationsPage() {
     enabled: false,
   });
   const [sharedSecret, setSharedSecret] = useState("");
+  const [testPayment, setTestPayment] = useState<PreparePaymentInput | null>(null);
   const [dhlForm, setDhlForm] = useState<Partial<{
     account_number: string;
     environment: "test" | "production";
@@ -99,13 +129,15 @@ export default function IntegrationsPage() {
   }>>({});
   const [dhlUsername, setDhlUsername] = useState("");
   const [dhlPassword, setDhlPassword] = useState("");
+  const [draftProviders, setDraftProviders] = useState<string[]>([]);
+  const [newProviderInput, setNewProviderInput] = useState("");
 
   useEffect(() => {
     if (!data) return;
     setForm({
       store_id: data.store_id ?? "",
       environment: data.environment,
-      currency: data.currency,
+      currency: "840",
       timezone: data.timezone,
       enabled: data.enabled,
     });
@@ -122,7 +154,7 @@ export default function IntegrationsPage() {
       const { error } = await supabase.rpc("upsert_payment_gateway_settings" as never, {
         p_store_id: form.store_id,
         p_environment: form.environment,
-        p_currency: form.currency,
+        p_currency: "840",
         p_timezone: form.timezone,
         p_enabled: form.enabled,
         p_shared_secret: sharedSecret || null,
@@ -155,7 +187,6 @@ export default function IntegrationsPage() {
             chargetotal: 1,
             responseSuccessURL: `${window.location.origin}/checkout`,
             responseFailURL: `${window.location.origin}/checkout`,
-            hostURI: `${window.location.origin}/checkout`,
           },
         });
         if (error) throw new Error(error.message);
@@ -178,7 +209,13 @@ export default function IntegrationsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
       qc.invalidateQueries({ queryKey: ["payment-gateway-status"] });
-      toast({ title: "Configuration valid", description: "Credentials resolved and the request hash computed successfully." });
+      setTestPayment({
+        testMode: true,
+        chargetotal: 1,
+        responseSuccessURL: `${window.location.origin}/checkout`,
+        responseFailURL: `${window.location.origin}/checkout`,
+      });
+      toast({ title: "Configuration valid", description: "The secure hosted-payment window is ready for an iframe test." });
     },
     onError: (error: any) => {
       qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
@@ -226,9 +263,18 @@ export default function IntegrationsPage() {
   });
 
   const currentStatus = useMemo<GatewayStatus>(() => data?.status ?? "not_configured", [data]);
+  const existingProviders = useMemo(() => (aiAgentRows ?? []).map((row) => row.provider), [aiAgentRows]);
+  const draftOnlyProviders = draftProviders.filter((slug) => !existingProviders.includes(slug));
+
+  const addProvider = (rawSlug: string) => {
+    const slug = normalizeProviderSlug(rawSlug);
+    if (!slug || existingProviders.includes(slug) || draftProviders.includes(slug)) return;
+    setDraftProviders((prev) => [...prev, slug]);
+    setNewProviderInput("");
+  };
   const requiresSecret = !data?.has_secret;
 
-  if (roleLoading || isLoading || dhlLoading) {
+  if (roleLoading || isLoading || dhlLoading || aiAgentLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -261,7 +307,15 @@ export default function IntegrationsPage() {
         </Badge>
       </div>
 
+      <Tabs defaultValue="services" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="services">Service integrations</TabsTrigger>
+          <TabsTrigger value="gatekeeper">Gatekeeper</TabsTrigger>
+          <TabsTrigger value="ai-agents">AI Agents</TabsTrigger>
+        </TabsList>
+        <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
+      <QboIntegrationCard />
 
       <Card>
         <CardHeader>
@@ -295,10 +349,11 @@ export default function IntegrationsPage() {
           <div className="space-y-1.5">
             <Label>Currency (ISO numeric)</Label>
             <Input
-              value={form.currency}
-              onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))}
-              placeholder="840 (USD) · 484 (MXN)"
+              value="840"
+              readOnly
+              aria-describedby="scotia-currency-note"
             />
+            <p id="scotia-currency-note" className="text-xs text-muted-foreground">USD is fixed by the hosted-payment integration.</p>
           </div>
           <div className="space-y-1.5">
             <Label>Timezone</Label>
@@ -454,6 +509,97 @@ export default function IntegrationsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={testPayment !== null} onOpenChange={(open) => !open && setTestPayment(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Scotia secure payment-window test</DialogTitle>
+            <DialogDescription>
+              This uses the configured test gateway. Scotia's hosted page cannot be embedded
+              (it sends frame-ancestors 'self'), so the test opens it as a full-page redirect.
+            </DialogDescription>
+          </DialogHeader>
+          {testPayment && (
+            <Button
+              type="button"
+              onClick={async () => {
+                try {
+                  const prepared = await prepareScotiaPayment(testPayment);
+                  redirectToScotiaPayment(prepared);
+                } catch (error) {
+                  toast({
+                    title: "Payment-window test failed",
+                    description: error instanceof Error ? error.message : String(error),
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              Open Scotia test payment page
+            </Button>
+          )}
+        </DialogContent>
+      </Dialog>
+        </TabsContent>
+        <TabsContent value="gatekeeper" className="mt-0">
+          <GatekeeperIntegrationTab />
+        </TabsContent>
+        <TabsContent value="ai-agents" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bot className="h-4 w-4" /> AI provider keys
+              </CardTitle>
+              <CardDescription>
+                API keys for AI providers, stored encrypted server-side and never returned to the browser.
+                Only the Anthropic key is actually used today — by Portal Copilot, for chat, workflow routing
+                and lookups (it falls back to the ANTHROPIC_API_KEY function secret if this isn't set). Other
+                providers are stored for whenever something is built to use them.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {QUICK_PICK_PROVIDERS.filter((p) => !existingProviders.includes(p.slug) && !draftProviders.includes(p.slug)).map((p) => (
+                  <Button key={p.slug} variant="outline" size="sm" onClick={() => addProvider(p.slug)}>
+                    <Plus className="mr-2 h-4 w-4" /> {p.label}
+                  </Button>
+                ))}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newProviderInput}
+                    onChange={(e) => setNewProviderInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") addProvider(newProviderInput); }}
+                    placeholder="Other provider name"
+                    className="h-9 w-48"
+                  />
+                  <Button variant="outline" size="sm" onClick={() => addProvider(newProviderInput)} disabled={!newProviderInput.trim()}>
+                    <Plus className="mr-2 h-4 w-4" /> Add
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {(aiAgentRows ?? []).map((row) => (
+            <AiAgentProviderCard
+              key={row.provider}
+              provider={row.provider}
+              row={row}
+              canTest={row.provider === "anthropic"}
+              onRemoveDraft={() => {}}
+            />
+          ))}
+          {draftOnlyProviders.map((slug) => (
+            <AiAgentProviderCard
+              key={slug}
+              provider={slug}
+              row={null}
+              canTest={slug === "anthropic"}
+              onRemoveDraft={() => setDraftProviders((prev) => prev.filter((p) => p !== slug))}
+            />
+          ))}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

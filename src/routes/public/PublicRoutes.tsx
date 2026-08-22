@@ -2,7 +2,6 @@ import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 
 import {
-  LABLINK_PORTAL_URL,
   LABLINK_TRACKING_URL,
 } from "@/config/externalLinks";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +10,7 @@ import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const Index = lazy(() => import("@/pages/Index"));
+const AboutUsPage = lazy(() => import("@/pages/AboutUsPage"));
 const VizionizeCleanerPage = lazy(() => import("@/pages/VizionizeCleanerPage"));
 const BlogHubPage = lazy(() => import("@/pages/BlogHubPage"));
 const BlogPostPage = lazy(() => import("@/pages/BlogPostPage"));
@@ -19,7 +19,6 @@ const OpticalRetailWebsitesPage = lazy(() => import("@/pages/OpticalRetailWebsit
 const RxLabServicesPage = lazy(() => import("@/pages/RxLabServicesPage"));
 const LensAssistantPage = lazy(() => import("@/pages/LensAssistantPage"));
 const LabLinkEmbedPage = lazy(() => import("@/pages/LabLinkEmbedPage"));
-const RxOrderPage = lazy(() => import("@/pages/RxOrderPage"));
 const Knowledge = lazy(() => import("@/pages/Knowledge"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazy(() => import("@/pages/LensDesignGuidePage"));
@@ -97,18 +96,12 @@ const LensAssistantRouteGate = () => {
   return enabled ? <LensAssistantPage /> : <Navigate to={user ? "/profile" : "/"} replace />;
 };
 
-// Gates the new in-house Rx order form on its Feature Board flag — toggling
-// it off must actually block the route (not just hide the nav link), so
-// direct/bookmarked URLs fall back to the LabLink portal that's always live.
-const RxOrderRouteGate = () => {
-  const { enabled, isLoading } = useWebsiteFeature("rx_order_form", true);
-  if (isLoading) return null;
-  return enabled ? <RxOrderPage /> : <Navigate to="/rx-order/lablink" replace />;
-};
+import RepoHealthPage from "@/pages/RepoHealth";
 
 const PublicRoutes = () => (
   <Routes>
     <Route index element={<Index />} />
+    <Route path="about-us" element={<AboutUsPage />} />
     <Route path="contact" element={<ContactHashRedirect />} />
     <Route path="blog" element={<BlogHubPage />} />
     <Route path="blog/:slug" element={<BlogPostPage />} />
@@ -117,30 +110,6 @@ const PublicRoutes = () => (
     <Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
     <Route path="lens-assistant" element={<LensAssistantRouteGate />} />
-    {/* The in-house Rx order form (ported prototype) replaces the LabLink
-        iframe here — profile's "Start an Rx order" lands on this. The old
-        LabLink portal stays reachable at /rx-order/lablink as a fallback. */}
-    <Route
-      path="rx-order"
-      element={
-        <ProtectedRoute>
-          <RxOrderRouteGate />
-        </ProtectedRoute>
-      }
-    />
-    <Route
-      path="rx-order/lablink"
-      element={
-        <ProtectedRoute>
-          <LabLinkEmbedPage
-            title="Online Ordering Portal"
-            iframeTitle="Classic Visions Online Ordering Portal"
-            src={LABLINK_PORTAL_URL}
-            canonicalPath="/rx-order/lablink"
-          />
-        </ProtectedRoute>
-      }
-    />
     <Route
       path="rx-job-status"
       element={
@@ -154,6 +123,10 @@ const PublicRoutes = () => (
     />
     <Route path="knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+    <Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />
+    <Route path="terms" element={<LegalPage slug="terms" />} />
+    <Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />
+    <Route path="legal/terms" element={<Navigate to="/terms" replace />} />
     <Route path="legal/:slug" element={<LegalPage />} />
 
     <Route path="lenses/lens-types" element={<LensDesignGuidePage />} />
@@ -215,6 +188,7 @@ const PublicRoutes = () => (
 
     <Route path="vizionize-cleaner" element={<VizionizeCleanerPage />} />
 
+    <Route path="repo-health" element={<RepoHealthPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

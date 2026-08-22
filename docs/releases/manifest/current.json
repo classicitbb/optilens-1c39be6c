@@ -1,18 +1,19 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-07-30T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-22T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "New customer and operator replies appear in the open Helpdesk conversation without manually refreshing the page.",
-    "When a customer asks the assistant for a person, confirms the handoff, and a ticket is created, the assistant opens that exact ticket for a continuous conversation.",
-    "A failed reply now shows one clear error message rather than an additional browser error alert.",
-    "Customer messages appear on the sender's right and support responses on the left. New customer conversations receive an immediate acknowledgement; after hours it includes the urgent support number."
+    "Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.",
+    "Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.",
+    "My Profile now contains checkout-saved payment methods for editing or removal; customers no longer see a separate card-creation page or internal CRM linkage badges.",
+    "My Profile now also contains saved addresses, and Enter applies an active inline contact-detail edit.",
+    "Portal Copilot voice input now uses a predictable Record → Stop → Transcribe flow, and its Helpdesk ticket tool supplies the required ticket number and numeric priority automatically."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Live Helpdesk Conversations."
+      "notes": "Updated as part of Customer portal experience pass."
     }
   ],
   "migrationNotes": [

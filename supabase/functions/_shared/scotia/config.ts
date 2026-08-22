@@ -39,7 +39,10 @@ export async function getScotiaConfig(): Promise<ScotiaConfig> {
     sharedSecret: Deno.env.get("SCOTIA_SHARED_SECRET") ?? "",
     env: (Deno.env.get("SCOTIA_ENV") ?? "test") as ScotiaEnv,
     timezone: Deno.env.get("SCOTIA_TIMEZONE") ?? "America/Barbados",
-    currency: Deno.env.get("SCOTIA_CURRENCY") ?? "840", // 840 = USD
+    // Scotia Connect is contracted to USD for this integration. Never allow a
+    // stale admin setting or function secret to sign a form in another
+    // currency: the order total and gateway settlement are both USD.
+    currency: "840",
   };
 
   try {
@@ -51,7 +54,7 @@ export async function getScotiaConfig(): Promise<ScotiaConfig> {
         sharedSecret: row.shared_secret,
         env: (row.environment ?? envCfg.env) as ScotiaEnv,
         timezone: row.timezone ?? envCfg.timezone,
-        currency: row.currency ?? envCfg.currency,
+        currency: "840",
       };
     }
   } catch (_err) {
