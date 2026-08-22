@@ -11,7 +11,7 @@ export default defineTool({
   inputSchema: {
     resource: z.string().min(1).describe("Resource key from admin_list_resources."),
     query: z.string().min(1).optional().describe("Free-text search across the resource's searchable columns."),
-    filters: z.record(z.any()).optional().describe('Exact-match column filters, e.g. {"status":"open"}.'),
+    filters: z.record(z.string(), z.any()).optional().describe('Exact-match column filters, e.g. {"status":"open"}.'),
     limit: z.number().int().min(1).max(50).optional().describe("Max rows (default 20)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

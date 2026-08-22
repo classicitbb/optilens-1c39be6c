@@ -12,7 +12,7 @@ export default defineTool({
     resource: z.string().min(1).describe("Resource key from admin_list_resources."),
     operation: z.enum(["create", "update", "delete"]).describe("What to do."),
     id: z.union([z.string().min(1), z.number()]).optional().describe("Record id (required for update and delete)."),
-    values: z.record(z.any()).optional().describe("Column/value pairs for create and update. Only writable columns are accepted."),
+    values: z.record(z.string(), z.any()).optional().describe("Column/value pairs for create and update. Only writable columns are accepted."),
   },
   annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   handler: async ({ resource, operation, id, values }, ctx) => {
