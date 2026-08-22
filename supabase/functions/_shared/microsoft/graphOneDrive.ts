@@ -45,7 +45,7 @@ export async function uploadOneDrivePdf(folder: { driveId: string; itemId: strin
   const user = Deno.env.get("MS_ONEDRIVE_USER")!;
   const encodedUser = encodeURIComponent(user);
   const target = `/users/${encodedUser}/drive/items/${encodeURIComponent(folder.itemId)}:/${encodeURIComponent(filename)}:/content`;
-  const response = await graphRequest(target, { method: "PUT", headers: { "content-type": "application/pdf" }, body: new Blob([bytes], { type: "application/pdf" }) });
+  const response = await graphRequest(target, { method: "PUT", headers: { "content-type": "application/pdf" }, body: new Blob([bytes as unknown as BlobPart], { type: "application/pdf" }) });
   if (!response.ok) throw new Error(`Microsoft PDF upload failed (${response.status}): ${(await response.text()).slice(0, 700)}`);
   return await response.json() as GraphItem;
 }
