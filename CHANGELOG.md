@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-22 — Customer portal experience pass
+
+### Release Notes
+- Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.
+- Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.
+
+### Technical Changelog
+- Fixed profile metadata synchronization, bundled the PDF renderer statically with retries, enabled same-origin microphone permission, and added permission-aware Rx account configuration.
+- Added assistant drag, recurring snoozable nudges, a six-line composer, full-height request forms, and inline saved-conversation loading.
+
 ## 2026-08-18 — Statement document automation
 
 ### Release Notes

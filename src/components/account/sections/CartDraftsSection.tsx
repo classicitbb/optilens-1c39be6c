@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { Eye, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,7 @@ const CartDraftsSection = () => {
   const { addToCart } = useCartContext();
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CartDraftRow | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const restore = async (draft: CartDraftRow) => {
     setRestoringId(draft.id);
@@ -89,21 +90,21 @@ const CartDraftsSection = () => {
               <>
                 {drafts.map((draft) => {
                   const expired = (Date.now() - new Date(draft.updated_at).getTime()) / 86_400_000 > 30;
-                  return <tr key={draft.id}>
-                    <td className="max-w-sm px-4 py-3"><p className="truncate font-medium">{draft.name}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{draft.total_items} item{draft.total_items === 1 ? "" : "s"} · {formatMoney(draft.total_amount)}{draft.note ? ` · ${draft.note}` : ""}</p></td>
+                  return <Fragment key={draft.id}><tr>
+                    <td className="max-w-sm px-4 py-3"><p className="truncate font-medium">{draft.name}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{draft.total_items} item{draft.total_items === 1 ? "" : "s"} · {formatMoney(draft.total_amount)} USD{draft.note ? ` · ${draft.note}` : ""}</p></td>
                     <td className="px-4 py-3 text-muted-foreground">Cart</td>
                     <td className="px-4 py-3"><Badge variant={expired ? "outline" : "secondary"} className="text-[10px]">{expired ? "Expired" : "Draft"}</Badge></td>
                     <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{formatDate(draft.updated_at)}</td>
-                    <td className="px-4 py-3"><div className="flex justify-end gap-2"><Button variant="outline" size="sm" onClick={() => restore(draft)} disabled={restoringId === draft.id}>{restoringId === draft.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}<span className="ml-1.5">Restore</span></Button><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setConfirmDelete(draft)} aria-label={`Delete ${draft.name}`}><Trash2 className="h-3.5 w-3.5" /></Button></div></td>
-                  </tr>;
+                    <td className="px-4 py-3"><div className="flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={() => setPreviewId((id) => id === draft.id ? null : draft.id)} aria-expanded={previewId === draft.id}><Eye className="mr-1.5 h-3.5 w-3.5" />Preview</Button><Button variant="outline" size="sm" onClick={() => restore(draft)} disabled={restoringId === draft.id}>{restoringId === draft.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}<span className="ml-1.5">Restore</span></Button><Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setConfirmDelete(draft)} aria-label={`Delete ${draft.name}`}><Trash2 className="h-3.5 w-3.5" /></Button></div></td>
+                  </tr>{previewId === draft.id ? <tr className="bg-muted/20"><td colSpan={5} className="px-6 py-4"><div className="space-y-2"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Draft contents · USD</p>{draft.items.map((item) => <div key={`${item.product_id}-${item.variant_id ?? "base"}`} className="flex items-start justify-between gap-4 text-sm"><div><p className="font-medium">{item.product_name}</p><p className="text-xs text-muted-foreground">{item.variant_label || item.product_type} · Qty {item.quantity}</p></div><p className="font-medium">{formatMoney(item.product_price * item.quantity)} USD</p></div>)}<div className="flex justify-between border-t pt-2 font-semibold"><span>Total</span><span>{formatMoney(draft.total_amount)} USD</span></div></div></td></tr> : null}</Fragment>;
                 })}
-                {rxDrafts.map((draft) => <tr key={draft.id}>
+                {rxDrafts.map((draft) => { const payload = (draft.input_payload ?? {}) as any; const patient = [payload.patient?.first, payload.patient?.last].filter(Boolean).join(" "); return <Fragment key={draft.id}><tr>
                   <td className="max-w-sm px-4 py-3"><p className="truncate font-medium">{draft.name}</p><p className="mt-0.5 text-xs text-muted-foreground">Not submitted to the lab</p></td>
                   <td className="px-4 py-3 text-muted-foreground">Rx order</td>
                   <td className="px-4 py-3"><Badge variant="secondary" className="capitalize text-[10px]">{draft.status.replace(/_/g, " ")}</Badge></td>
                   <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{formatDate(draft.updated_at)}</td>
-                  <td className="px-4 py-3 text-right"><Button asChild variant="outline" size="sm"><Link to={`/profile/rx-order?draft=${draft.id}`}>Continue</Link></Button></td>
-                </tr>)}
+                  <td className="px-4 py-3"><div className="flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={() => setPreviewId((id) => id === draft.id ? null : draft.id)} aria-expanded={previewId === draft.id}><Eye className="mr-1.5 h-3.5 w-3.5" />Preview</Button><Button asChild variant="outline" size="sm"><Link to={`/profile/rx-order?draft=${draft.id}`}>Continue</Link></Button></div></td>
+                </tr>{previewId === draft.id ? <tr className="bg-muted/20"><td colSpan={5} className="px-6 py-4"><dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4"><div><dt className="text-xs text-muted-foreground">Patient</dt><dd className="font-medium">{patient || draft.name}</dd></div><div><dt className="text-xs text-muted-foreground">Lens</dt><dd className="font-medium">{[payload.lens?.material, payload.lens?.design, payload.lens?.colour].filter(Boolean).join(" · ") || "Not selected"}</dd></div><div><dt className="text-xs text-muted-foreground">Treatments</dt><dd className="font-medium">{Array.isArray(payload.treatments) ? `${payload.treatments.length} selected` : "None selected"}</dd></div><div><dt className="text-xs text-muted-foreground">Order</dt><dd className="font-medium">{payload.job?.scope || "Rx draft"}</dd></div></dl></td></tr> : null}</Fragment>; })}
               </>
             )}
           </tbody>

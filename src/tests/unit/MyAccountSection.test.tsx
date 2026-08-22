@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   accountNumber: "RETAIL" as string | null,
   signOut: vi.fn(),
   toast: vi.fn(),
+  updateUser: vi.fn(),
+  upsert: vi.fn(),
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -51,9 +53,10 @@ vi.mock("@/integrations/supabase/client", () => ({
           }),
         }),
       }),
+      upsert: mocks.upsert,
     }),
     rpc: vi.fn(),
-    auth: { resetPasswordForEmail: vi.fn() },
+    auth: { resetPasswordForEmail: vi.fn(), updateUser: mocks.updateUser },
   },
 }));
 
@@ -70,6 +73,10 @@ describe("MyAccountSection", () => {
     mocks.accountNumber = "RETAIL";
     mocks.signOut.mockReset();
     mocks.toast.mockReset();
+    mocks.updateUser.mockReset();
+    mocks.updateUser.mockResolvedValue({ error: null });
+    mocks.upsert.mockReset();
+    mocks.upsert.mockResolvedValue({ error: null });
   });
 
   it("shows the source-managed ERP account number and signs out from account actions", async () => {
@@ -92,5 +99,33 @@ describe("MyAccountSection", () => {
     // speeds up admin approval but never grants access on its own.
     expect(await screen.findByPlaceholderText("Account # from your invoice (optional)")).toBeInTheDocument();
     expect(screen.getByText(/speed up approval/i)).toBeInTheDocument();
+  });
+
+  it("persists an organization to both the profile row and auth metadata", async () => {
+    renderSection();
+    fireEvent.click(await screen.findByRole("button", { name: "Edit organization" }));
+    const input = screen.getByRole("textbox", { name: "" });
+    fireEvent.change(input, { target: { value: "Bridgetown Eyecare" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save organization" }));
+
+    await vi.waitFor(() => expect(mocks.upsert).toHaveBeenCalled());
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organization_name: "Bridgetown Eyecare" }),
+    });
+  });
+
+  it("allows an optional organization to be cleared", async () => {
+    renderSection();
+    fireEvent.click(await screen.findByRole("button", { name: "Edit organization" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "" }), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save organization" }));
+
+    await vi.waitFor(() => expect(mocks.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ organization_name: null }),
+      { onConflict: "user_id" },
+    ));
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      data: expect.objectContaining({ organization_name: "" }),
+    });
   });
 });

@@ -1,19 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-18T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-22T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Administrators can open **Portal Copilot**, type a rollout request or confirm a voice transcript, and prepare portal access for every ERP-linked customer from live portal data.",
-    "Invitations always wait for explicit approval. Ambiguous or incomplete contacts become editable follow-up tasks, while every decision and execution result remains in the audit history.",
-    "A portal account that succeeds before its email fails is preserved and shown as a partial failure that can be retried safely.",
-    "Push-to-talk now starts speech recognition during the original press, preventing Edge from showing a false permission-denied message after microphone access is approved."
-    "New Innovations statements can be rendered as Letter PDFs, stored in the governed OneDrive folder hierarchy, and downloaded through the authenticated portal."
+    "Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.",
+    "Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Statement document automation."
+      "notes": "Updated as part of Customer portal experience pass."
     }
   ],
   "migrationNotes": [

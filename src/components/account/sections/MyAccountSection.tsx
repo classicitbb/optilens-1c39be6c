@@ -140,6 +140,19 @@ const MyAccountSection = () => {
       return false;
     }
 
+    // Keep editable profile metadata aligned with the durable profile row so
+    // a later auth refresh cannot restore stale signup values.
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: {
+        full_name: fullName,
+        phone: values.phone.trim(),
+        organization_name: values.organization_name?.trim() || "",
+      },
+    });
+    if (metadataError) {
+      toast({ title: "Profile saved", description: "Your profile was saved, but sign-in metadata will refresh next time.", variant: "default" });
+    }
+
     await (supabase.rpc as any)("sync_customer_portal_identity", { p_user_id: user.id });
     await queryClient.invalidateQueries({ queryKey: ["portal-identity", user.id] });
     toast({ title: "Success", description: successDescription });
@@ -183,7 +196,7 @@ const MyAccountSection = () => {
   const handleSaveProfileField = async (field: InlineProfileField) => {
     const trimmed = profileDraft.trim();
     const label = inlineProfileLabels[field];
-    if (!trimmed) {
+    if (!trimmed && field !== "organization_name") {
       toast({ title: `${label} is required`, description: `Enter a ${label.toLowerCase()} before saving.`, variant: "destructive" });
       return;
     }
@@ -194,7 +207,10 @@ const MyAccountSection = () => {
 
     const values = { ...form.getValues(), [field]: trimmed };
     setSavingProfileField(field);
-    const saved = await saveProfileValues(values, `${label} updated.`);
+    const saved = await saveProfileValues(
+      values,
+      field === "organization_name" && !trimmed ? "Organization cleared." : `${label} updated.`,
+    );
     setSavingProfileField(null);
     if (!saved) return;
     form.setValue(field, trimmed, { shouldDirty: false, shouldTouch: false });

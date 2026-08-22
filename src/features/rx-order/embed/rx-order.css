@@ -115,3 +115,18 @@
 /* quote line — remove (x) sits with the name so the price column stays aligned */
 .cv-rx-embed .qline{align-items:flex-start}
 .cv-rx-embed .qline .qn-name{display:flex;align-items:center;gap:6px}
+/* Treatment browser refinement: roomier rows, sticky search and an anchored action. */
+.cv-rx-embed #treatDrawer{width:480px;max-width:96vw}
+.cv-rx-embed #treatDrawer .sd-h{padding:18px 20px;background:var(--card)}
+.cv-rx-embed #treatDrawer .sd-b{padding:0 20px 20px}
+.cv-rx-embed #treatDrawer .searchbox{position:sticky;top:0;z-index:2;margin:0 -2px 14px;padding:14px 2px 8px;background:var(--card)}
+.cv-rx-embed #treatDrawer .searchbox input{height:42px;border-radius:11px;padding-left:36px}
+.cv-rx-embed #treatDrawer .searchbox .si{left:14px;top:27px}
+.cv-rx-embed #treatDrawer .tcat{margin:22px 0 9px;font-weight:750}
+.cv-rx-embed #treatDrawer .trow{gap:12px;margin-bottom:9px;border-radius:13px;padding:12px 13px}
+.cv-rx-embed #treatDrawer .trow:hover{box-shadow:0 4px 16px hsl(213 20% 20% / .06)}
+.cv-rx-embed #treatDrawer .trow.sel{box-shadow:inset 3px 0 0 var(--primary)}
+.cv-rx-embed #treatDrawer .trow input{width:18px;height:18px;margin-top:1px}
+.cv-rx-embed #treatDrawer .trow .tn{font-size:13.5px;line-height:1.35}
+.cv-rx-embed #treatDrawer .sd-f{padding:14px 20px}
+.cv-rx-embed #treatDrawer .sd-f .btn{height:44px}

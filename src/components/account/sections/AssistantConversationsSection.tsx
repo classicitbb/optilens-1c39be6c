@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { AssistantMessage } from "@/features/assistant/CompanionAssistantContext";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 
 type ConversationRow = { id: string; title: string; audience: string; created_at: string; updated_at: string };
 
 const AssistantConversationsSection = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { loadConversation } = useCompanionAssistant();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const { data: conversations = [], isLoading } = useQuery({
@@ -29,23 +30,7 @@ const AssistantConversationsSection = () => {
   });
 
   const openConversation = async (conversation: ConversationRow) => {
-    const { data: rows, error } = await (supabase as any)
-      .from("assistant_messages")
-      .select("id,role,content,metadata,created_at")
-      .eq("conversation_id", conversation.id)
-      .order("created_at", { ascending: true });
-    if (error) return;
-
-    const messages: AssistantMessage[] = (rows ?? []).map((row: any) => row.role === "user"
-      ? { id: row.id, role: "user", kind: "user", text: row.content }
-      : { id: row.id, role: "assistant", kind: "text", text: row.content });
-
-    try {
-      window.sessionStorage.setItem("companion-assistant-popout", JSON.stringify({ messages, currentQuery: "", formState: null }));
-    } catch {
-      // The assistant can still be opened without restoring the transcript.
-    }
-    window.location.assign("/assistant/window");
+    await loadConversation(conversation.id);
   };
 
   const deleteConversation = async (id: string) => {

@@ -12,9 +12,10 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface AccountSidebarProps {
   pathname: string;
+  collapsed?: boolean;
 }
 
-const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
+const AccountSidebar = ({ pathname, collapsed = false }: AccountSidebarProps) => {
   const { canAccessFeature, identity, emulation, effectiveUserId } = usePortalIdentity();
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
@@ -158,6 +159,7 @@ const AccountSidebar = ({ pathname }: AccountSidebarProps) => {
     <SidebarNavList
       items={items}
       pathname={pathname}
+      collapsed={collapsed}
       className="space-y-1"
       activeItemClassName="bg-primary/10 font-medium text-primary"
       inactiveItemClassName="text-muted-foreground hover:bg-muted hover:text-foreground"

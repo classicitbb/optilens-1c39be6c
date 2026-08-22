@@ -56,6 +56,8 @@ export function buildEngineData(opts: {
   clashRules: { addon_id_a: string; addon_id_b: string; reason: string }[];
   accounts: CustomerAccountOption[];
   addonPriceFor: (id: string, fallback: number) => number;
+  currency?: string;
+  pricesVisible?: boolean;
 }): { data: EngineData; lensIndex: Map<string, LensRef> } {
   const materials = new Map<string, EngineItem>();
   const designs = new Map<string, EngineItem>();
@@ -119,8 +121,8 @@ export function buildEngineData(opts: {
       code: initials(a.name),
       name: a.name,
       info: a.account_number ? `Account #${a.account_number}` : "ERP account",
-      cur: "USD",
-      prices: true,
+      cur: opts.currency ?? "BBD",
+      prices: opts.pricesVisible ?? true,
     })),
     materials: [...materials.values()].sort((a, b) => a.n.localeCompare(b.n)),
     designs: [...designs.values()].sort((a, b) => a.n.localeCompare(b.n)),

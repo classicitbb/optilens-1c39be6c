@@ -48,7 +48,7 @@ export const CartSheet = ({
     <Button
       variant={triggerVariant}
       size={triggerSize}
-      className={cn("relative", showLabel && "gap-2 px-4", className)}
+      className={cn("gap-1.5", showLabel && "px-4", className)}
       aria-label="Go to shop"
       asChild
     >
@@ -69,13 +69,13 @@ export const CartSheet = ({
         <Button
           variant={triggerVariant}
           size={triggerSize}
-          className={cn("relative", showLabel && "gap-2 px-4", className)}
+          className={cn("gap-1.5 px-2", showLabel && "px-4", className)}
           aria-label={`Open cart with ${totalItems} item${totalItems === 1 ? "" : "s"}`}
         >
           <ShoppingCart className="h-5 w-5" aria-hidden="true" />
           {showLabel ? <span className="hidden sm:inline">Cart</span> : <span className="sr-only">Open cart</span>}
           {totalItems > 0 && (
-            <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-medium text-accent-foreground">
+            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-xs font-semibold leading-none text-accent-foreground">
               {totalItems}
             </span>
           )}

@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { LifeBuoy, Plus, ChevronRight, Phone, Loader2 } from "lucide-react";
+import { LifeBuoy, MessageCircle, ChevronRight, Phone } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { COMPANY_CONTACT } from "@/config/companyContact";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 
 // Other pages (e.g. a failed checkout payment) can deep-link here with
 // router state to prefill a new ticket — see CheckoutPage.tsx's "Contact us"
@@ -26,21 +23,16 @@ const HelpdeskTicketsSection = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { openAssistant } = useCompanionAssistant();
   const prefill = (location.state as HelpdeskPrefillState | null) ?? null;
-  const [title, setTitle] = useState(prefill?.prefillTitle ?? "");
-  const [description, setDescription] = useState(prefill?.prefillDescription ?? "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const canSubmit = title.trim().length > 0 && description.trim().length > 0;
 
   // Apply a fresh prefill if the user navigates here again with new state
   // (e.g. a second failed payment) without a full page reload.
   useEffect(() => {
-    if (prefill?.prefillTitle) setTitle(prefill.prefillTitle);
-    if (prefill?.prefillDescription) setDescription(prefill.prefillDescription);
+    if (!prefill?.prefillTitle && !prefill?.prefillDescription) return;
+    openAssistant({ profile: "portal_support", formKind: "portal_support", formValues: { issueType: prefill.prefillTitle ?? "", summary: prefill.prefillDescription ?? "" } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state]);
+  }, [location.state, openAssistant, prefill?.prefillDescription, prefill?.prefillTitle]);
   const { data: tickets = [] } = useQuery({
     queryKey: ["customer-helpdesk", effectiveUserId, identity?.crmContactId],
     enabled: !!user,
@@ -63,33 +55,6 @@ const HelpdeskTicketsSection = () => {
     },
   });
 
-  const createTicket = async () => {
-    if (!user || !canSubmit || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      const { error } = await (supabase as any).from("helpdesk_tickets").insert({
-        ticket_number: `PTL-${Date.now().toString().slice(-8)}`,
-        title: title.trim(),
-        description: description.trim(),
-        source_channel: "portal",
-        owner_user_id: user.id,
-        partner_contact_id: identity?.crmContactId ?? null,
-        priority: 1,
-        opened_at: new Date().toISOString(),
-      });
-      if (error) {
-        toast({ title: "Error", description: error.message || "Failed to create helpdesk ticket.", variant: "destructive" });
-        return;
-      }
-      setTitle("");
-      setDescription("");
-      await queryClient.invalidateQueries({ queryKey: ["customer-helpdesk", effectiveUserId, identity?.crmContactId] });
-      toast({ title: "Ticket created", description: "Your support ticket has been submitted." });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -110,55 +75,10 @@ const HelpdeskTicketsSection = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form
-          className="space-y-4 rounded-xl border border-border/70 bg-muted/20 p-4 sm:p-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void createTicket();
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary">
-              <Plus className="h-4 w-4" aria-hidden="true" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">Start a support request</h3>
-              <p className="text-sm text-muted-foreground">Tell us what happened and our team will follow up.</p>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-            <div className="space-y-1.5">
-              <Label htmlFor="helpdesk-ticket-title">Subject</Label>
-              <Input
-                id="helpdesk-ticket-title"
-                name="ticket-title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="Briefly summarize the issue…"
-                autoComplete="off"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="helpdesk-ticket-description">Details</Label>
-              <Textarea
-                id="helpdesk-ticket-description"
-                name="ticket-description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="What do you need help with? Include any useful order or product details…"
-                className="min-h-24 resize-y"
-                required
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <Button type="submit" disabled={!canSubmit || !!emulation || isSubmitting} title={emulation ? "Ticket creation is disabled while emulating a customer" : undefined}>
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
-              {isSubmitting ? "Creating…" : "Create ticket"}
-            </Button>
-          </div>
-        </form>
+        <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div><h3 className="font-semibold">Start a support request</h3><p className="mt-1 text-sm text-muted-foreground">The assistant opens a spacious, editable form with your signed-in account context.</p></div>
+          <Button type="button" className="shrink-0 gap-2" disabled={!!emulation} onClick={() => openAssistant({ profile: "portal_support", formKind: "portal_support" })}><MessageCircle className="h-4 w-4" />Request support</Button>
+        </div>
         <div className="space-y-2">
           {!tickets.length ? <p className="text-sm text-muted-foreground">No tickets yet.</p> : null}
           {tickets.map((ticket) => (

@@ -1,5 +1,13 @@
 # Frontend Help Docs
 
+## 2026-08-22 — Using the updated customer portal
+
+- Select **Preview** on Saved Drafts for a quick read-only view; choose **Continue** or **Restore** only when you want to edit or return items to the cart.
+- Select a lab-order row to review its received date, promise date, status and available invoice total. Prices shown there are Barbados dollars (BBD); web-store/cart prices are US dollars (USD).
+- Use the divider control to collapse account navigation to icons; hover or focus an icon to see its destination.
+- Select **Help** again to close the assistant. The history icon opens saved chats in the same panel; drag the desktop panel header to move it.
+- Microphone dictation fills the composer for review and editing. Enter sends; Shift+Enter adds a line, and the composer scrolls after six lines.
+
 ## 2026-08-18 — Downloading a statement PDF
 
 - Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose OneDrive credentials.

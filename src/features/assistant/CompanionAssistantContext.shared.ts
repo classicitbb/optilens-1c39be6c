@@ -106,9 +106,11 @@ export interface CompanionAssistantContextValue {
   markFeedback: (messageId: string, feedback: "helpful" | "not_helpful") => void;
   startNewConversation: () => void;
   saveConversation: () => Promise<void>;
+  loadConversation: (conversationId: string) => Promise<void>;
   isSavingConversation: boolean;
   nudge: { message: string; query?: string; formKind?: AssistantFormKind } | null;
   dismissNudge: () => void;
+  snoozeNudge: () => void;
   isSubmitting: boolean;
   openDetachedWindow: () => void;
   formState: AssistantFormState | null;

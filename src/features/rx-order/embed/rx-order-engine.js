@@ -946,7 +946,7 @@ function render(){
   if(!show){
     if(!np){ np=document.createElement('div'); np.id='noPricingNote'; np.className='nopricing';
       $('#qLines').parentElement.insertBefore(np,$('#qLines')); }
-    np.innerHTML='<b>Pricing isn\'t enabled on this account.</b><br>You can complete and submit this order as normal — we confirm the price with you before production, and it appears on your invoice.';
+    np.innerHTML='<b>Your order details are ready to review.</b><br>You can complete and submit this order as normal. We will confirm the final order details before production.';
   } else if(np) np.remove();
 
   renderSuggestions(); renderChips();
@@ -1274,7 +1274,7 @@ const COACH={
     <p>Cylinder always resolves to minus, whether you type <code>1-</code>, <code>-1</code> or <code>1.00</code>. Axis over 180 wraps to its polar opposite. A binocular PD splits across both eyes.</p>
     <p>Opposing signs between eyes raise a dismissible warning. An axis with no cylinder asks whether the cylinder is missing.</p>`},
   treat:{h:'Coatings & treatments',b:`<p>Six popular choices cover most jobs; <b>Browse all treatments</b> opens the full catalogue.</p>
-    <p>Prices don't clutter the options — they appear in the live quote as you select, so the running total is the single source of truth.</p>
+    <p>${S.pricesOn?'Prices appear in the order summary as you select, so the running total stays in one place.':'Your selections appear in the order summary as you build the job.'}</p>
     <p>Specialty work is suggested automatically when your powers call for it, and carries an owner review. Dismiss the whole suggestion block with the ✕ if you don't want it.</p>`},
   delivery:{h:'Delivery & notes',b:`<p>Priority adds 15% and pulls the job to three working days.</p>
     <p>Notes reach the surfacing bench directly.</p>`}
@@ -3202,7 +3202,7 @@ async function submit(){
     <div class="r" style="border-top:1px solid var(--border-soft);margin-top:6px;padding-top:8px"><span>${S.pricesOn?'Locked price':'Price'}</span><b>${S.pricesOn?c.sym+' '+money(sub*c.rate):'Confirmed with you before production'}</b></div>`;
   $('#scrim .mhead p').textContent=S.pricesOn
     ? 'Price is now locked at this quote and will be honoured through checkout.'
-    : 'Your order is in the cart. Pricing isn\'t enabled on this account, so we confirm the price with you before production.';
+    : 'Your order is in the cart. We will confirm the final order details before production.';
   submitInFlight=true;
   try{
     const __p=stashOrder('submitted');

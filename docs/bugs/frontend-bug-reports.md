@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-22 — Portal persistence, previews, and assistant usability
+- Area: customer portal profile, handbook, orders, drafts, Rx ordering, navigation and support assistant.
+- Impact: organization edits could be overwritten, handbook PDF imports failed after bundling, draft/order contents were hard to inspect, price currency/authorization copy was ambiguous, and support entry was cramped and fragmented.
+- Root cause: auth metadata was treated as profile authority, PDF.js was nested behind unresolved dynamic imports, several persisted records exposed only summary rows, and assistant forms/history shared message-list presentation instead of dedicated modes.
+- Resolution: made profile-table edits durable, statically bundled/retried PDF.js, added draft/order detail interactions and explicit currency labels, passed server-derived price authorization into Rx rendering, and consolidated support/history into a movable full-height assistant.
+- Regression prevention: retain focused profile/Rx tests, production bundle inspection, header checks, authenticated portal browser checks, and an external Chrome/Edge microphone-permission test.
+
 ## 2026-08-13 — Edge reported denied speech permission after microphone approval
 - Area: Admin Portal Copilot push-to-talk
 - Impact: approving microphone access could still immediately show **Microphone or speech permission was denied** and produce no transcript.
