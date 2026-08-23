@@ -1,9 +1,11 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router";
+import { useEffect } from "react";
+import { Link, useLocation, useSearchParams } from "react-router";
 import Seo from "@/components/seo/Seo";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 
 const tradeBenefits = [
   {
@@ -34,7 +36,7 @@ const sections = [
       { label: "Optician Website Design", to: "/optical-retail-websites" },
       { label: "Rx Order Form", to: "/profile/rx-order" },
       { label: "Order Tracking", to: "/profile/orders" },
-      { label: "Price List Request", to: "/professionals/price-list-request" },
+      { label: "Price List Request", action: "pricelist" as const },
       { label: "Rx Lab Services", to: "/rx-lab-services" },
     ],
   },
@@ -62,11 +64,30 @@ const sections = [
 
 const ProfessionalsPage = () => {
   const { identity } = usePortalIdentity();
+  const { openAssistant } = useCompanionAssistant();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const selectedLens = searchParams.get("selectedLens");
+
+  const openPricelistAssistant = (lens?: string | null) =>
+    openAssistant({
+      formKind: "pricelist_request",
+      audience: "dispenser",
+      ...(lens ? { formValues: { summary: `Pricing request for ${lens}` } } : {}),
+    });
+
+  useEffect(() => {
+    if (location.pathname === "/professionals/price-list-request") {
+      openPricelistAssistant(selectedLens);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, selectedLens]);
+
   const hasLinkedErpAccount = !!identity?.crmCustomerId;
   const visibleSections = hasLinkedErpAccount
     ? sections.map((section) => ({
         ...section,
-        links: section.links.filter((link) => link.to !== "/professionals/trade-account"),
+        links: section.links.filter((link) => !("to" in link) || link.to !== "/professionals/trade-account"),
       }))
     : sections;
 
@@ -133,8 +154,8 @@ const ProfessionalsPage = () => {
                   <Link to="/professionals/trade-account">Apply for a Trade Account</Link>
                 </Button>
               )}
-              <Button variant="outline" asChild>
-                <Link to="/professionals/price-list-request">Request a Price List</Link>
+              <Button variant="outline" type="button" onClick={() => openPricelistAssistant()}>
+                Request a Price List
               </Button>
             </div>
           </section>
@@ -144,15 +165,26 @@ const ProfessionalsPage = () => {
               <div key={section.title} className="rounded-xl border border-border bg-card p-5 flex flex-col">
                 <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
                 <div className="mt-4 space-y-2 flex-1">
-                  {section.links.map((link) => (
-                    <Link
-                      key={link.label}
-                      to={link.to}
-                      className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
+                  {section.links.map((link) =>
+                    "action" in link ? (
+                      <button
+                        key={link.label}
+                        type="button"
+                        onClick={() => openPricelistAssistant()}
+                        className="block w-full rounded-md px-2 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        {link.label}
+                      </button>
+                    ) : (
+                      <Link
+                        key={link.label}
+                        to={link.to}
+                        className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    ),
+                  )}
                 </div>
               </div>
             ))}
