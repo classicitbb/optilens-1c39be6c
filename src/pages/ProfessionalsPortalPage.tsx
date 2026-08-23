@@ -48,14 +48,6 @@ const portalPages: Record<string, PortalPage> = {
     ],
     isForm: true,
   },
-  "price-list-request": {
-    title: "Price List Request",
-    description: "A guided request for eligible optical professionals.",
-    body: [
-      "The assistant will confirm your optical-business details and market before sending a request for current wholesale pricing or a product matrix.",
-      "Nothing is sent until you review and confirm the request.",
-    ],
-  },
   "lab-process-overview": {
     title: "Lab Process Overview",
     description: "How orders move from Rx submission to delivery.",
@@ -228,16 +220,6 @@ const CustomerServiceTicketForm = () => {
   );
 };
 
-const PriceListAssistantLaunch = () => {
-  const { openAssistant } = useCompanionAssistant();
-
-  return (
-    <Button className="mt-8" onClick={() => openAssistant({ formKind: "pricelist_request", audience: "dispenser" })}>
-      Start price-list request
-    </Button>
-  );
-};
-
 const ProfessionalsPortalPage = () => {
   const { slug } = useParams();
   const { user } = useAuth();
@@ -378,8 +360,6 @@ const ProfessionalsPortalPage = () => {
           )}
 
           {page.isCustomerService && <CustomerServiceTicketForm />}
-
-          {slug === "price-list-request" && <PriceListAssistantLaunch />}
 
           {page.isForm && (
             <form
