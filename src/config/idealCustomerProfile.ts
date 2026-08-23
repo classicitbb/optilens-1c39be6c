@@ -38,23 +38,32 @@ export interface IdealCustomerProfile {
 }
 
 export const IDEAL_CUSTOMER_PROFILE: IdealCustomerProfile = {
-  name: "Independent Optical Retailer / Eye Clinic",
+  name: "Independent Optical Retailer / Eye Clinic / Regional Chain",
   description:
-    "Independently owned optical retailers, eye clinics, and pharmacies purchasing wholesale lenses and coatings on a recurring basis.",
+    "Optical retailers, eye clinics, and regional optical chains across the wider Caribbean and diaspora markets, purchasing wholesale lenses and coatings on a recurring basis.",
   segments: ["decision_makers", "operators", "procurement_influencers"],
   firmographics: {
-    industries: ["independent optical retailers", "eye clinics", "pharmacies"],
-    roles: ["clinic owner", "purchasing manager", "store manager"],
+    industries: ["independent optical retailers", "eye clinics", "large retail chains"],
+    roles: ["clinic owner", "purchasing manager", "optician/lab technician"],
     minLocations: 1,
-    maxLocations: 10,
+    maxLocations: 25,
   },
   geography: {
-    primaryCountries: ["Barbados", "Trinidad and Tobago", "Jamaica"],
-    fulfillmentGeography: "Caribbean",
+    primaryCountries: [
+      "Barbados",
+      "Trinidad and Tobago",
+      "Jamaica",
+      "Eastern Caribbean (St. Lucia, Grenada, St. Vincent, Antigua)",
+      "Caribbean diaspora communities (UK, US, Canada)",
+    ],
+    fulfillmentGeography: "Caribbean and diaspora",
   },
   buyingSignals: {
     digitalMaturitySignals: ["active website", "active Instagram/Facebook page", "online booking"],
-    procurementReadinessSignals: ["recurring order history", "existing supplier relationship gap"],
+    procurementReadinessSignals: [
+      "recurring/repeat order history",
+      "gap or dissatisfaction with existing supplier",
+    ],
     engagementRecencyDays: 90,
   },
   productCategories: ["stock lenses", "coatings", "optical supplies"],
