@@ -11240,63 +11240,45 @@ export type Database = {
       }
       store_product_variants_public: {
         Row: {
-          allow_backorder: boolean | null
           attributes: Json | null
-          created_at: string | null
           id: string | null
-          is_active: boolean | null
           low_stock_threshold: number | null
           metadata: Json | null
           opc_code: string | null
           price: number | null
           product_id: string | null
           product_type: string | null
-          reserved_qty: number | null
           sku: string | null
-          sort_order: number | null
           stock_qty: number | null
           title: string | null
-          updated_at: string | null
           variant_key: string | null
         }
         Insert: {
-          allow_backorder?: boolean | null
           attributes?: Json | null
-          created_at?: string | null
           id?: string | null
-          is_active?: boolean | null
           low_stock_threshold?: number | null
           metadata?: Json | null
           opc_code?: string | null
           price?: number | null
           product_id?: string | null
           product_type?: string | null
-          reserved_qty?: number | null
           sku?: string | null
-          sort_order?: number | null
           stock_qty?: number | null
           title?: string | null
-          updated_at?: string | null
           variant_key?: string | null
         }
         Update: {
-          allow_backorder?: boolean | null
           attributes?: Json | null
-          created_at?: string | null
           id?: string | null
-          is_active?: boolean | null
           low_stock_threshold?: number | null
           metadata?: Json | null
           opc_code?: string | null
           price?: number | null
           product_id?: string | null
           product_type?: string | null
-          reserved_qty?: number | null
           sku?: string | null
-          sort_order?: number | null
           stock_qty?: number | null
           title?: string | null
-          updated_at?: string | null
           variant_key?: string | null
         }
         Relationships: []
