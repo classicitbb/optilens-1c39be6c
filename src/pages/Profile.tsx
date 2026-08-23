@@ -165,7 +165,7 @@ const Profile = () => {
 
       {recentOrders.length ? <Card><CardHeader><CardTitle>Recently completed</CardTitle><CardDescription>Recent website orders available for reference.</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{recentOrders.map((order) => <div key={order.id} className="rounded-lg border p-4"><div className="flex items-center justify-between"><strong>#{order.id.slice(0, 8).toUpperCase()}</strong><Badge variant="secondary" className="capitalize">{order.status}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{date(order.updatedAt || order.createdAt)}</p></div>)}</CardContent></Card> : null}
 
-      <p className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Website data refreshed {date(data?.sources.websiteAsOf)}. Innovations account data {data?.sources.innovationsAsOf ? `last synchronized ${date(data.sources.innovationsAsOf)}` : "does not currently include live Rx job status"}.</p>
+      <p className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Website data refreshed {date(data?.sources.websiteAsOf)}. Account data {data?.sources.innovationsAsOf ? `last synchronized ${date(data.sources.innovationsAsOf)}` : "does not currently include live Rx job status"}.</p>
       {commandCenterQuery.isError ? <p className="text-sm text-destructive">Some command-centre information could not be loaded. The detailed account sections remain available.</p> : null}
     </div>
   );
