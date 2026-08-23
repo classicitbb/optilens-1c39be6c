@@ -1,11 +1,11 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router";
 import { LABLINK_PORTAL_URL } from "@/config/externalLinks";
 import {
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
   Monitor,
   Shield,
   Eye,

@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router";
 import Seo from "@/components/seo/Seo";
 import {
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
   Eye,
   Layers,
   Sparkles,

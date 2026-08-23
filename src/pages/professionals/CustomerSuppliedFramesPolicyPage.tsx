@@ -1,11 +1,11 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Glasses, ShieldAlert } from "lucide-react";
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const acceptancePoints = [
   "Customer-supplied frames are accepted only after a suitability check for lens type, frame condition, drill or groove integrity, and mounting risk.",

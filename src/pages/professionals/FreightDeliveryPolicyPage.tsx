@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle, Clock3, ExternalLink, PackageSearch, ShieldAlert, Truck } from "lucide-react";
 import { Link } from "react-router";
 import { LABLINK_TRACKING_URL } from "@/config/externalLinks";
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 type FreightLane = {
   region: string;

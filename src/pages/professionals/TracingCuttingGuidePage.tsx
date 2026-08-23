@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,6 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const SECTIONS = [
   { id: "the-problem", label: "The Shipping Problem", icon: <Truck className="h-4 w-4" /> },

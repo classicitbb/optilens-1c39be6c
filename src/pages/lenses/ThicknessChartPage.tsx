@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import OptiEdgeThicknessWidget from "@/components/lenses/OptiEdgeThicknessWidget";
 import {
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
   ArrowRight,
   CheckCircle2,
   Ruler,

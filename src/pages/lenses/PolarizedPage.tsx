@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import polarizedNonpolarisedContrast from "@/assets/polarized-nonpolarised-contrast.png";
 import howPolarisedLensesWork from "@/assets/how-polarised-lenses-work.png";
@@ -22,7 +23,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const SECTIONS = [
   { id: "what-they-are", label: "What They Are", icon: <Sun className="h-4 w-4" /> },

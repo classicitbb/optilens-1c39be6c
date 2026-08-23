@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,6 @@ import {
   Move,
 } from "lucide-react";
 import {
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
   calculateOfficeLensValues,
   formatMeters,
   formatSignedDiopters,

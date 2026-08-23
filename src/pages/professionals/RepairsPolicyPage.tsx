@@ -1,11 +1,11 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldAlert, Wrench } from "lucide-react";
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const repairSteps = [
   "Repair work is accepted only after inspection and confirmation that the item is suitable for an attempted repair.",

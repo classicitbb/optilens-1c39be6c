@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router";
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const WHAT_IS_MYOPIA_CONTROL = [
   "Myopia control means slowing prescription progression and eye elongation in children and teens.",

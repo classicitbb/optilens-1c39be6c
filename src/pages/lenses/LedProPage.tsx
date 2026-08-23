@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
@@ -16,7 +17,6 @@ import {
   Waves,
 } from "lucide-react";
 import { Link } from "react-router";
-import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const scenarioHighlights = [
   {
