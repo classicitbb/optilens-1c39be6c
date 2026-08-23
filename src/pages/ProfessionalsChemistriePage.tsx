@@ -613,10 +613,10 @@ export default function ProfessionalsChemistriePage() {
               )}
               <Button
                 size="lg"
+                type="button"
                 className="border-2 border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-                asChild>
-                
-                <Link to="/professionals/customer-service">Contact Us</Link>
+                onClick={handleInquire}>
+                Contact Us
               </Button>
             </div>
 

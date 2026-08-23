@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const SECTIONS = [
   { id: "the-problem", label: "The Shipping Problem", icon: <Truck className="h-4 w-4" /> },
@@ -363,12 +364,14 @@ const TracingCuttingGuidePage = () => {
                   Contact our team for personalised tracer recommendations and to set up remote trace ordering on your account.
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
-                  <Link
-                    to="/#contact"
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  <ContactAssistantButton
+                    topic="Tracing & Cutting Setup"
+                    sourceRoute="/professionals/tracing-cutting-guide"
+                    audience="dispenser"
+                    summary="I would like advice on tracer setup and remote trace ordering for my account."
                   >
                     Contact Us
-                  </Link>
+                  </ContactAssistantButton>
                   <a
                     href="tel:+12464334928"
                     className="inline-flex items-center gap-2 rounded-lg border border-border px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
