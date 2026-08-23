@@ -11997,6 +11997,17 @@ export type Database = {
           is_default: boolean
         }[]
       }
+      profile_privileged_fields_match: {
+        Args: {
+          _crm_contact_id: string
+          _crm_customer_id: number
+          _id: string
+          _portal_access_approved_override: boolean
+          _portal_access_status: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       publish_lens_recommendation_rule_set: {
         Args: { p_rule_set_id: string }
         Returns: undefined
