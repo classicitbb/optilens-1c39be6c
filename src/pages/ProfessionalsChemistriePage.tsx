@@ -315,9 +315,10 @@ export default function ProfessionalsChemistriePage() {
                     Explore the Technology <ExternalLink className="ml-1 h-4 w-4" />
                   </a>
                 </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/professionals/customer-service">Contact Our Team</Link>
+                <Button variant="outline" type="button" onClick={handleInquire}>
+                  Contact Our Team
                 </Button>
+
               </div>
             </div>
 
