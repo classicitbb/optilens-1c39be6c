@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldAlert, Wrench } from "lucide-react";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const repairSteps = [
   "Repair work is accepted only after inspection and confirmation that the item is suitable for an attempted repair.",
@@ -91,9 +92,9 @@ const RepairsPolicyPage = () => {
               <p>If the condition of the item makes repair unsuitable, we may decline the work and return it without further processing.</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="outline" asChild>
-                <a href="/#contact">Contact Us</a>
-              </Button>
+              <ContactAssistantButton variant="outline" topic="Repairs Policy" sourceRoute="/professionals/repairs-policy">
+                  Contact Us
+                </ContactAssistantButton>
               <Button variant="outline" asChild>
                 <a href="mailto:support@classicvisions.net">Email Support</a>
               </Button>

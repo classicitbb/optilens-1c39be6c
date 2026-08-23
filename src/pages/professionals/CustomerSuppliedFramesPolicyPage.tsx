@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Glasses, ShieldAlert } from "lucide-react";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const acceptancePoints = [
   "Customer-supplied frames are accepted only after a suitability check for lens type, frame condition, drill or groove integrity, and mounting risk.",
@@ -91,9 +92,9 @@ const CustomerSuppliedFramesPolicyPage = () => {
               <p>If the work cannot be completed safely, we may stop processing and return the frame without finishing the job.</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="outline" asChild>
-                <a href="/#contact">Contact Us</a>
-              </Button>
+              <ContactAssistantButton variant="outline" topic="Customer Supplied Frames Policy" sourceRoute="/professionals/customer-supplied-frames-policy">
+                  Contact Us
+                </ContactAssistantButton>
               <Button variant="outline" asChild>
                 <a href="mailto:support@classicvisions.net">Email Support</a>
               </Button>

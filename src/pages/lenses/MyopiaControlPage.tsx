@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const WHAT_IS_MYOPIA_CONTROL = [
   "Myopia control means slowing prescription progression and eye elongation in children and teens.",
@@ -150,11 +151,9 @@ const MyopiaControlPage = () => {
                   clinical workflow.
                 </p>
               </div>
-              <Button variant="secondary" asChild>
-                <Link to="/#contact">
+              <ContactAssistantButton variant="secondary" topic="Myopia Control Lenses" sourceRoute="/lenses/myopia-control">
                   Contact Us <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+                </ContactAssistantButton>
             </CardContent>
           </Card>
         </section>

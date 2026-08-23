@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import OptiEdgeThicknessWidget from "@/components/lenses/OptiEdgeThicknessWidget";
 import {
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
   ArrowRight,
   CheckCircle2,
   Ruler,
@@ -494,9 +495,9 @@ const ThicknessChartPage = () => {
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/contact">Contact Us</Link>
-            </Button>
+            <ContactAssistantButton variant="outline" size="lg" topic="Lens Thickness Guidance" sourceRoute="/lenses/thickness-chart">
+                  Contact Us
+                </ContactAssistantButton>
           </div>
         </section>
 

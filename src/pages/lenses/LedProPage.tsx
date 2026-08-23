@@ -16,6 +16,7 @@ import {
   Waves,
 } from "lucide-react";
 import { Link } from "react-router";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const scenarioHighlights = [
   {
@@ -120,11 +121,9 @@ export default function LedProPage() {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Button size="lg" asChild>
-                  <Link to="/#contact">
-                    Ask About LED PRO <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                <ContactAssistantButton size="lg" topic="LED PRO Lenses" sourceRoute="/lenses/led-pro">
+                  Ask About LED PRO <ArrowRight className="ml-2 h-4 w-4" />
+                </ContactAssistantButton>
               </div>
 
               <div className="mt-10 flex flex-wrap gap-6 text-sm text-white/74">
@@ -346,9 +345,9 @@ export default function LedProPage() {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Button size="lg" variant="secondary" asChild>
-                  <Link to="/#contact">Talk to Our Team</Link>
-                </Button>
+                <ContactAssistantButton size="lg" variant="secondary" topic="LED PRO Lenses" sourceRoute="/lenses/led-pro">
+                  Talk to Our Team
+                </ContactAssistantButton>
                 <Button
                   size="lg"
                   variant="outline"

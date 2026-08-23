@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router";
 import {
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
   Eye,
   Focus,
   Monitor,
@@ -254,9 +255,9 @@ const AntiFatiguePage = () => {
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button variant="secondary" asChild>
-                  <Link to="/#contact">Contact Us</Link>
-                </Button>
+                <ContactAssistantButton variant="secondary" topic="Anti-Fatigue Lenses" sourceRoute="/lenses/anti-fatigue">
+                  Contact Us
+                </ContactAssistantButton>
                 <Button
                   variant="outline"
                   className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 
 const SECTIONS = [
   { id: "what-they-are", label: "What They Are", icon: <Sun className="h-4 w-4" /> },
@@ -148,9 +149,9 @@ const PolarizedPage = () => {
                 Polarized lenses are built for bright, reflective conditions. They do more than darken sunlight — they cut the harsh reflected glare that bounces off roads, water, windshields, and sand so outdoor vision feels calmer, sharper, and less fatiguing.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button asChild>
-                  <Link to="/#contact">Ask About Polarized Options</Link>
-                </Button>
+                <ContactAssistantButton topic="Polarized Lenses" sourceRoute="/lenses/polarized">
+                  Ask About Polarized Options
+                </ContactAssistantButton>
                 <Button variant="outline" asChild>
                   <Link to="/photochromic">
                     Compare With Photochromic <ArrowRight className="ml-2 h-4 w-4" />
@@ -357,9 +358,9 @@ const PolarizedPage = () => {
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button variant="secondary" asChild>
-                    <Link to="/#contact">Talk to our team</Link>
-                  </Button>
+                  <ContactAssistantButton variant="secondary" topic="Polarized Lenses" sourceRoute="/lenses/polarized">
+                  Talk to our team
+                </ContactAssistantButton>
                   <Button
                     variant="outline"
                     className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
