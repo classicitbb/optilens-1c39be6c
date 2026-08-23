@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import Header from "@/components/Header";
@@ -183,7 +183,6 @@ const CHEMISTRIE_CONTACT_PRELOAD_MSG =
 export default function ProfessionalsChemistriePage() {
   const [tab, setTab] = useState("sun-colors");
   const [heroBgVideoError, setHeroBgVideoError] = useState(false);
-  const navigate = useNavigate();
   const { identity } = usePortalIdentity();
   const hasLinkedErpAccount = !!identity?.crmCustomerId;
 

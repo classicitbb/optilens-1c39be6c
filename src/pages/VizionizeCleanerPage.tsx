@@ -116,6 +116,7 @@ const VizionizeCleanerPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { openAssistant } = useCompanionAssistant();
 
   /** If not signed in, send the user to sign-up and return here after. */
   const handleAddToCart = async () => {
