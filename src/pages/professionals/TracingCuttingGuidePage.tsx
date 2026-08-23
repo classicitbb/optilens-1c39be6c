@@ -19,7 +19,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link } from "react-router";
 
 const SECTIONS = [
   { id: "the-problem", label: "The Shipping Problem", icon: <Truck className="h-4 w-4" /> },

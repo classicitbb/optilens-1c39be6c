@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle, Clock3, ExternalLink, PackageSearch, ShieldAlert, Truck } from "lucide-react";
-import { Link } from "react-router";
 import { LABLINK_TRACKING_URL } from "@/config/externalLinks";
 
 type FreightLane = {

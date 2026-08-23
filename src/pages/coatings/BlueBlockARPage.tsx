@@ -3,7 +3,6 @@ import ContactAssistantButton from "@/components/assistant/ContactAssistantButto
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "react-router";
 import { LABLINK_PORTAL_URL } from "@/config/externalLinks";
 import {
   Monitor,
