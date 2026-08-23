@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -405,12 +406,10 @@ const MaterialsPage = () => {
             Our team can recommend the ideal material based on the patient's prescription, lifestyle, and frame choice.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-4">
-            <Button variant="hero" size="lg" asChild>
-              <Link to="/contact" className="group">
-                Contact Us
+            <ContactAssistantButton variant="hero" size="lg" topic="Lens Materials" sourceRoute="/lenses/materials">
+                  Contact Us
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
+                </ContactAssistantButton>
             <Button variant="outline" size="lg" asChild>
               <Link to="/store">Browse Catalog</Link>
             </Button>

@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -174,7 +175,9 @@ const ScratchResistantPage = () => {
                 <p className="mt-1 text-sm text-primary-foreground/80">The essential first layer for long-lasting lens performance.</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="secondary" asChild><Link to="/#contact">Contact Us</Link></Button>
+                <ContactAssistantButton variant="secondary" topic="Scratch Resistant Coating" sourceRoute="/coatings/scratch-resistant">
+                  Contact Us
+                </ContactAssistantButton>
                 <Button variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10" asChild>
                   <Link to="/store">Shop Coatings <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>

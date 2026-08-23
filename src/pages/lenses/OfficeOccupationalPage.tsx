@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -387,9 +388,9 @@ const OfficeOccupationalPage = () => {
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button variant="secondary" asChild>
-                  <Link to="/#contact">Contact Us</Link>
-                </Button>
+                <ContactAssistantButton variant="secondary" topic="Office & Occupational Lenses" sourceRoute="/lenses/office-occupational">
+                  Contact Us
+                </ContactAssistantButton>
                 <Button
                   variant="outline"
                   className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"

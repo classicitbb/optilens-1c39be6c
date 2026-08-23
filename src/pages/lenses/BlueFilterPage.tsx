@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -467,9 +468,9 @@ const BlueFilterPage = () => {
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button variant="secondary" asChild>
-                    <Link to="/#contact">Contact Us</Link>
-                  </Button>
+                  <ContactAssistantButton variant="secondary" topic="Blue Filter Lenses" sourceRoute="/lenses/blue-filter">
+                  Contact Us
+                </ContactAssistantButton>
                   <Button
                     variant="outline"
                     className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"

@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
@@ -91,9 +92,9 @@ const CustomerSuppliedFramesPolicyPage = () => {
               <p>If the work cannot be completed safely, we may stop processing and return the frame without finishing the job.</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="outline" asChild>
-                <a href="/#contact">Contact Us</a>
-              </Button>
+              <ContactAssistantButton variant="outline" topic="Customer Supplied Frames Policy" sourceRoute="/professionals/customer-supplied-frames-policy">
+                  Contact Us
+                </ContactAssistantButton>
               <Button variant="outline" asChild>
                 <a href="mailto:support@classicvisions.net">Email Support</a>
               </Button>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import ContactAssistantLink from "@/components/assistant/ContactAssistantLink";
 import {
   Dialog,
   DialogContent,
@@ -958,9 +959,15 @@ export const CheckoutDialog = ({
 
                         <p className="text-xs text-muted-foreground">
                           Want to order on account?{" "}
-                          <a href="/contact" className="text-primary underline underline-offset-2">
+                          <ContactAssistantLink
+                            topic="Verified account application"
+                            sourceRoute="/checkout"
+                            formKind="trade_signup"
+                            summary="I would like to apply for a verified account so I can order on account."
+                            className="text-primary underline underline-offset-2"
+                          >
                             Contact us to apply for a verified account.
-                          </a>
+                          </ContactAssistantLink>
                         </p>
                       </div>
                     )}
