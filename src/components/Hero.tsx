@@ -68,7 +68,7 @@ const Hero = () => {
               Clear vision starts with the <span className="text-[#efbd4f]">right next step.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-              Whether you order lenses for a practice or need help choosing where to go, we’ll guide you from here—simply and personally.
+              Whether you order lenses for your practice or need help choosing where to go, we’ll guide you from here—simply and personally.
             </p>
 
             <div className="mt-8 max-w-2xl rounded-[28px] border border-white/15 bg-white/[0.08] p-2 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-3">
@@ -155,9 +155,9 @@ const Hero = () => {
 
           <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-3">
             {[
-              { number: "01", title: "Tell us why you’re here", text: "Choose professional or visitor. The page immediately adapts to the task that matters to you.", icon: CircleUserRound },
+              { number: "01", title: "Tell us why you’re here", text: "Choose the professional or visitor option. The page immediately adapts to the task that matters to you.", icon: CircleUserRound },
               { number: "02", title: "Get the right next step", text: "Order, track, find a retailer, compare lenses, or ask for help—without hunting through menus.", icon: Sparkles },
-              { number: "03", title: "Stay confidently informed", text: "Clear status, practical explanations, and real support turn an optical task into an easy experience.", icon: CheckCircle2 },
+              { number: "03", title: "Stay confidently informed", text: "Clear status, practical explanations, and real support turn your optical routine into an easy experience.", icon: CheckCircle2 },
             ].map(({ number, title, text, icon: Icon }) => (
               <article key={number} className="group rounded-[24px] border border-[#0b2745]/10 bg-white p-6 shadow-[0_18px_50px_rgba(11,39,69,.07)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(11,39,69,.12)] sm:p-7">
                 <div className="flex items-center justify-between">
