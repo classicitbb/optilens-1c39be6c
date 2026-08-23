@@ -184,7 +184,7 @@ const Hero = () => {
           </div>
 
           <div className="mx-auto mt-8 flex max-w-4xl flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-semibold text-[#0b2745]">
-            <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#1a8a9c]" /> Barbados-based lab</span>
+            <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#1a8a9c]" /> Barbados-based</span>
             <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#1a8a9c]" /> Trusted across the Caribbean</span>
             <span className="flex items-center gap-2"><Headphones className="h-4 w-4 text-[#1a8a9c]" /> Real human support</span>
           </div>
