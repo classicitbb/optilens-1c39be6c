@@ -277,7 +277,7 @@ const SECTIONS: Section[] = [
       {
         heading: "Prevention Strategies",
         body: [
-          "Use LabLink's built-in validation — it catches 80 % of these errors before submission.",
+          "Use our Rx order form's built-in validation — it catches most of these errors before submission.",
           "Create an internal checklist (laminated card at the PD ruler station) for the dispensing team.",
           "Review every order once more before pressing 'Submit' — a 30-second review saves 2 days of hold time.",
         ],
@@ -285,7 +285,7 @@ const SECTIONS: Section[] = [
       {
         heading: "What Happens When an Order is Held",
         body: [
-          "The lab sends a hold notification via LabLink, email, or phone call specifying the issue.",
+          "The lab sends a hold notification via the order portal, email, or phone call specifying the issue.",
           "The order does not enter production until the issue is resolved — the clock stops.",
           "Respond to holds as quickly as possible — most labs process the resolution within hours of receiving your reply.",
           "Repeated holds on the same issue type may trigger a courtesy training call from the lab rep.",
@@ -297,16 +297,16 @@ const SECTIONS: Section[] = [
     id: "digital-ordering",
     icon: <Monitor className="h-5 w-5" />,
     label: "Digital Ordering",
-    title: "Digital Ordering via LabLink",
+    title: "Digital Ordering via Our Rx Order Form",
     intro:
-      "LabLink is our recommended digital ordering platform. It validates data in real-time, attaches trace files, and provides end-to-end order tracking.",
+      "Our native Rx order form is our recommended digital ordering platform. It validates data as you enter it, attaches trace files, and provides order tracking with faster, more reliable updates than our legacy LabLink integration, which it is replacing.",
     cards: [
       {
         heading: "Getting Started",
         body: [
-          "Request LabLink access from your lab account manager — setup takes less than 24 hours.",
-          "Install the desktop app or use the browser version; both connect to the same account and order history.",
-          "Link your frame tracer to LabLink for automatic trace file attachment on every order.",
+          "Sign in to your account and open the Rx order form — no separate app or account request required.",
+          "Use the browser version; it connects to the same account and order history as the rest of your portal.",
+          "Attach your frame trace file directly on the order form for automatic sizing.",
         ],
       },
       {
@@ -316,7 +316,7 @@ const SECTIONS: Section[] = [
           "2. Choose lens design and material → System checks blank availability.",
           "3. Add coatings and add-ons → System flags incompatible combinations.",
           "4. Attach trace file or select frame from library → System calculates minimum blank size.",
-          "5. Review summary → Submit → Receive confirmation number instantly.",
+          "5. Review summary → Submit → Receive your confirmation number right away.",
         ],
       },
       {
@@ -330,8 +330,8 @@ const SECTIONS: Section[] = [
       {
         heading: "Tracking & Notifications",
         body: [
-          "Real-time status updates: received → verified → surfacing → coating → edging → QC → shipped → delivered.",
-          "Push notifications or email alerts for status changes — configure per user in LabLink settings.",
+          "Status updates as your order moves through production: received → verified → surfacing → coating → edging → QC → shipped → delivered.",
+          "Email alerts for status changes — configure per user in your account settings.",
           "Download invoices and delivery notes directly from the order detail screen.",
         ],
       },
@@ -350,7 +350,7 @@ const SECTIONS: Section[] = [
         body: [
           "Uncut stock SV: same day or next business day — the lens is pulled from inventory and shipped.",
           "Edged stock SV (trace attached): 1 business day — edge and ship.",
-          "Stock availability depends on the Rx range and material — check LabLink's live stock indicator before ordering.",
+          "Stock availability depends on the Rx range and material — check the live stock indicator on the Rx order form before ordering.",
         ],
       },
       {
