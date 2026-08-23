@@ -163,13 +163,13 @@ const GlobalSearch = () => {
 
       if (hasAppAccess("crm")) {
         const { data: contacts } = await (supabase.from("contacts") as any)
-          .select("id, first_name, last_name, email, company_name")
-          .or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company_name.ilike.${q}`)
+          .select("id, name, business_name, email")
+          .or(`name.ilike.${q},business_name.ilike.${q},email.ilike.${q}`)
           .limit(5);
         if (contacts) {
           results.push(...contacts.map((c: any) => ({
             id: `contact-${c.id}`,
-            label: [c.first_name, c.last_name].filter(Boolean).join(" ") || c.company_name || "Unknown Contact",
+            label: [c.name, c.business_name].filter(Boolean).join(" ") || "Unknown Contact",
             sublabel: c.email || "Contact / Lead",
             path: `/admin/contacts/${c.id}`,
             icon: User,
@@ -178,13 +178,13 @@ const GlobalSearch = () => {
         }
 
         const { data: activities } = await (supabase.from("activities") as any)
-          .select("id, title, activity_type")
-          .ilike("title", q)
+          .select("id, content, activity_type")
+          .ilike("content", q)
           .limit(5);
         if (activities) {
           results.push(...activities.map((a: any) => ({
             id: `activity-${a.id}`,
-            label: a.title || "Untitled Activity",
+            label: a.content || "Untitled Activity",
             sublabel: a.activity_type || "Activity",
             path: `/admin/crm/activities?id=${a.id}`,
             icon: Activity,
