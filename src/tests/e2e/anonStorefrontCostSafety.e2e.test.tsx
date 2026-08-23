@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import Store from "@/pages/Store";
 
@@ -41,10 +42,16 @@ vi.mock("@/hooks/useStoreProducts", async () => {
 
 describe("anonymous storefront cost safety (e2e)", () => {
   it("gates the sell price behind authentication and never renders cost fields", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
     render(
-      <MemoryRouter initialEntries={["/store"]}>
-        <Store />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/store"]}>
+          <Store />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 
     expect(screen.getByRole("heading", { name: "Safe Storefront Lens" })).toBeInTheDocument();

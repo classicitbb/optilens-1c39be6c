@@ -7,6 +7,7 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 ## 2026-08-22 — Customer portal experience pass
 
 ### Release Notes
+- Sitewide release validation is restored across the storefront, Portal Copilot, Rx ordering, and the public store-variant security boundary.
 - Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.
 - Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.
 - Saved payment methods now live inside My Profile as checkout-created records that customers can edit or remove; internal CRM approval markers are no longer exposed.
@@ -14,6 +15,7 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 - Portal Copilot can create Helpdesk tickets through its shared admin tool and records voice until the user explicitly stops it for punctuated transcription.
 
 ### Technical Changelog
+- Restored the sitewide CI gate by aligning refactored Portal Copilot and Rx-order contracts with their tests, providing the storefront test with its required query runtime, and correcting the public store-variant view to execute with caller permissions in both fresh and already-migrated databases.
 - Fixed profile metadata synchronization, bundled the PDF renderer statically with retries, enabled same-origin microphone permission, and added permission-aware Rx account configuration.
 - Added assistant drag, recurring snoozable nudges, a six-line composer, full-height request forms, and inline saved-conversation loading.
 - Refined the assistant request form to give its details field all remaining panel height, and retained the former payment-method URL as a redirect to My Profile.

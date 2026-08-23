@@ -2,6 +2,8 @@
 
 ## 2026-08-22 — Using the updated customer portal
 
+- In the Rx form, patient names are normalized to uppercase in the completed-section summary. Staff-only settings stay in the page header; the sticky order toolbar contains order actions only.
+- Portal Copilot CRM evidence and inference remain visible inside each action card. Select **Approve** to create the reviewed follow-up task; preparing the suggestion alone creates no CRM work.
 - Select **Preview** on Saved Drafts for a quick read-only view; choose **Continue** or **Restore** only when you want to edit or return items to the cart.
 - Select a lab-order row to review its received date, promise date, status and available invoice total. Prices shown there are Barbados dollars (BBD); web-store/cart prices are US dollars (USD).
 - Use the divider control to collapse account navigation to icons; hover or focus an icon to see its destination.
@@ -24,7 +26,7 @@
 
 - In **Admin → Portal Copilot**, enter **Scan CRM for lapsed buyers and qualified follow-up opportunities**.
 - Review the source evidence separately from Copilot's inference, plus the priority, due date and recommended next action. Edit the internal task if needed.
-- Select **Approve task** only when it should become live CRM work. Rejecting leaves the CRM unchanged; the scan never creates an opportunity automatically.
+- Select **Approve** only when it should become live CRM work. Rejecting leaves the CRM unchanged; the scan never creates an opportunity automatically.
 
 ## 2026-08-14 — Using multiple Portal Copilot chats
 

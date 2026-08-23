@@ -2,6 +2,12 @@
 
 Operational notes for code in `security/**`.
 
+## 2026-08-22 — Public view caller permissions
+
+- Public Data API views must use `security_invoker=true` so underlying table RLS evaluates as the querying role.
+- `store_product_variants_public` also retains `security_barrier=true`; the forward migration repairs databases that applied the earlier owner-permission definition.
+- The migration audit scans every migration after the customer-data hardening guard and rejects newly created public views that omit caller permissions.
+
 ## 2026-08-22 — Portal microphone scope
 
 - `Permissions-Policy` allows microphone capture only for the same origin (`microphone=(self)`). Camera, geolocation, payment and other unused capabilities remain disabled.

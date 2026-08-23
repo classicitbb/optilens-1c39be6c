@@ -156,7 +156,7 @@ describe("lens assistant → rx order handoff", () => {
 
     const section = host.querySelector<HTMLElement>("#sec-patient");
     expect(section?.classList.contains("section-collapsed")).toBe(true);
-    expect(section?.querySelector(".section-summary")?.textContent).toBe("Marcus Grant");
+    expect(section?.querySelector(".section-summary")?.textContent).toBe("MARCUS GRANT");
     expect(section?.querySelector<HTMLButtonElement>("[data-edit-section='sec-patient']")).toBeTruthy();
 
     section?.querySelector<HTMLButtonElement>("[data-edit-section='sec-patient']")?.click();
@@ -173,10 +173,11 @@ describe("lens assistant → rx order handoff", () => {
     engine.destroy();
   });
 
-  it("keeps the admin toolbar settings menu open after clicking its proxy gear", () => {
+  it("keeps admin settings in the page header instead of duplicating them in the sticky toolbar", () => {
     const { host, engine } = mount();
 
-    host.querySelector<HTMLButtonElement>('[data-step-action="settings"]')?.click();
+    expect(host.querySelector('[data-step-action="settings"]')).toBeNull();
+    host.querySelector<HTMLButtonElement>("#gearBtn")?.click();
 
     expect(host.querySelector("#gearMenu")?.classList.contains("on")).toBe(true);
     expect(host.querySelector("#gearBtn")?.getAttribute("aria-expanded")).toBe("true");

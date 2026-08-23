@@ -2,6 +2,13 @@
 
 Track security defects, mitigations, and verification status.
 
+## 2026-08-22 — Public store-variant view bypassed caller RLS
+
+- Impact: `store_product_variants_public` executed with its owner permissions, so access depended on the view owner instead of the querying `anon` or `authenticated` role.
+- Root cause: a post-hardening migration explicitly recreated the public view with `security_invoker=false`.
+- Resolution: fresh migration history now creates the view with `security_invoker=true`, and a forward migration corrects databases where the unsafe definition already ran.
+- Verification: `node scripts/audit_customer_data_access.mjs` and the customer-internal-data integration test must pass; apply the forward migration before claiming the live database is corrected.
+
 ## 2026-08-22 — Portal dictation blocked by Permissions-Policy
 
 - Impact: the assistant microphone control could not access speech input even when the UI and browser supported recognition.
