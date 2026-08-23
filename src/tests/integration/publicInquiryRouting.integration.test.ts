@@ -28,7 +28,7 @@ describe("public inquiry routing", () => {
   });
 
   it("does not bypass resend-backed routing with direct public inquiry inserts on website forms", () => {
-    const professionalsPortal = read("src/pages/ProfessionalsPortalPage.tsx");
+    const professionalsPortal = read("src/pages/ProfessionalsPage.tsx");
     const zenvueWholesale = read("src/pages/zenvue/ZenvueWholesale.tsx");
 
     expect(professionalsPortal).not.toContain('.from("public_inquiries").insert');
@@ -64,7 +64,7 @@ describe("public inquiry routing", () => {
   });
 
   it("moves price-list qualification into the assistant and captures approved requests as CRM leads", () => {
-    const priceListPage = read("src/pages/ProfessionalsPortalPage.tsx");
+    const priceListPage = read("src/pages/ProfessionalsPage.tsx");
     const assistant = read("src/features/assistant/CompanionAssistantContext.tsx");
     const edgeFunction = read("supabase/functions/contact-inquiry/index.ts");
 

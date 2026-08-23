@@ -174,6 +174,7 @@ const PublicRoutes = () => (
     <Route path="professionals/tracing-cutting-guide" element={<ProtectedRoute><TracingCuttingGuidePage /></ProtectedRoute>} />
     <Route path="professionals/lab-process-overview" element={<ProtectedRoute><LabProcessOverviewPage /></ProtectedRoute>} />
     <Route path="professionals/lens-ordering-tips" element={<ProtectedRoute><LensOrderingTipsPage /></ProtectedRoute>} />
+    <Route path="professionals/price-list-request" element={<ProfessionalsPage />} />
     <Route path="professionals/:slug" element={<ProfessionalsPortalPage />} />
     <Route path="return-policy" element={<LegalPage />} />
 
