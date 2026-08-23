@@ -13,7 +13,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { createStructuredHelpdeskTicket } from "@/features/admin/helpdesk/utils/structuredTicketing";
 import { submitPublicInquiry } from "@/lib/publicInquiry";
-import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { LifeBuoy, LogIn } from "lucide-react";
 import { createAuthHref } from "@/lib/authFlow";
 
