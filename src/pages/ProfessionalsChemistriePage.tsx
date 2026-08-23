@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -186,12 +187,20 @@ export default function ProfessionalsChemistriePage() {
   const { identity } = usePortalIdentity();
   const hasLinkedErpAccount = !!identity?.crmCustomerId;
 
+  const { openAssistant } = useCompanionAssistant();
+
   const handleInquire = () => {
-    const params = new URLSearchParams({ msg: CHEMISTRIE_CONTACT_PRELOAD_MSG });
-    navigate(`/?${params.toString()}#contact`);
-    setTimeout(() => {
-      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-    }, 150);
+    openAssistant({
+      formKind: "customer_support",
+      audience: "dispenser",
+      formValues: {
+        issueType: "Chemistrie Lens System enquiry",
+        productTopic: "Chemistrie Lens System",
+        requestTitle: "Chemistrie Lens System enquiry",
+        summary: CHEMISTRIE_CONTACT_PRELOAD_MSG,
+      },
+      taskContext: { kind: "contact", label: "Chemistrie Lens System", sourceRoute: "/professionals/chemistrie-lens-system" },
+    });
   };
 
   return (

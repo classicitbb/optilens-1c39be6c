@@ -8,6 +8,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { Link, useNavigate } from "react-router";
 import Seo from "@/components/seo/Seo";
 import { useCartContext } from "@/contexts/CartContext";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { createAuthHref } from "@/lib/authFlow";
@@ -137,11 +138,16 @@ const VizionizeCleanerPage = () => {
   };
 
   const handleContactUs = () => {
-    const params = new URLSearchParams({ msg: CONTACT_PRELOAD_MSG });
-    navigate(`/?${params.toString()}#contact`);
-    setTimeout(() => {
-      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-    }, 150);
+    openAssistant({
+      formKind: "customer_support",
+      formValues: {
+        issueType: "VIZIONIZE AI Lens Cleaner enquiry",
+        productTopic: "VIZIONIZE AI Lens Cleaner",
+        requestTitle: "VIZIONIZE AI Lens Cleaner enquiry",
+        summary: CONTACT_PRELOAD_MSG,
+      },
+      taskContext: { kind: "contact", label: "VIZIONIZE AI Lens Cleaner", sourceRoute: "/vizionize-lens-cleaner" },
+    });
   };
 
   return (
