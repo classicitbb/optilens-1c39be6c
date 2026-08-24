@@ -203,5 +203,8 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       return res.redirect(303, `${env("QBO_ADMIN_SUCCESS_URL")}?qbo=connection-pending`);
     }
     return json(res, 404, { error: "Not found." });
-  } catch (error) { return json(res, 503, { error: "QuickBooks connection is temporarily unavailable." }); }
+  } catch (error) {
+    console.error("QBO gateway request failed", error instanceof Error ? error.message : "unknown error");
+    return json(res, 503, { error: "QuickBooks connection is temporarily unavailable." });
+  }
 }
