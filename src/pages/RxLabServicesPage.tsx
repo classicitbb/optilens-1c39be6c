@@ -86,7 +86,7 @@ const benefits = [
   "Broad Rx range including high-minus and high-plus",
   "Caribbean-specialist logistics and delivery",
   "Dedicated account support",
-  "LabLink order portal for 24/7 job submission",
+  "Online Rx order form for anytime job submission",
 ];
 
 const signupHref = createAuthHref({
