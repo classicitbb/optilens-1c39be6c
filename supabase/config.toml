@@ -106,8 +106,3 @@ verify_jwt = false
   [functions.platform-health-check]
     verify_jwt = false
 
-  # QBO OAuth gateway / OptiLens Local data bridge. MUST stay verify_jwt=false:
-  # those callers send only x-api-key (scope gateway:agent), verified in code.
-  [functions.qbo-gateway]
-    verify_jwt = false
-
