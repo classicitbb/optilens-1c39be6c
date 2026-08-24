@@ -7976,6 +7976,7 @@ export type Database = {
           claimed_at: string | null
           command: string
           completed_at: string | null
+          environment: string
           error_message_sanitized: string | null
           id: string
           requested_at: string
@@ -7987,6 +7988,7 @@ export type Database = {
           claimed_at?: string | null
           command: string
           completed_at?: string | null
+          environment?: string
           error_message_sanitized?: string | null
           id?: string
           requested_at?: string
@@ -7998,6 +8000,7 @@ export type Database = {
           claimed_at?: string | null
           command?: string
           completed_at?: string | null
+          environment?: string
           error_message_sanitized?: string | null
           id?: string
           requested_at?: string
