@@ -1,6 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
-const REDIRECT_URI = "https://qbo.classicvisions.net/qbo/oauth/callback";
 const INTUIT_AUTHORIZE = "https://appcenter.intuit.com/connect/oauth2";
 type GatewayRequest = { method?: string; query: Record<string, string | string[] | undefined>; headers: Record<string, string | string[] | undefined>; body?: Record<string, unknown> };
 type GatewayResponse = { status: (status: number) => GatewayResponse; json: (body: unknown) => void; redirect: (status: number, url: string) => void; setHeader: (name: string, value: string) => void };
@@ -12,6 +11,19 @@ function env(name: string) {
   const value = process.env[name];
   if (!value) throw new Error(`Missing ${name}`);
   return value;
+}
+
+function gatewayEnvironment() {
+  const value = String(process.env.QBO_GATEWAY_ENVIRONMENT || "sandbox").trim().toLowerCase();
+  if (value !== "sandbox" && value !== "production") throw new Error("Invalid QBO_GATEWAY_ENVIRONMENT.");
+  return value;
+}
+
+function redirectUri() {
+  const value = env("QBO_REDIRECT_URI");
+  const parsed = new URL(value);
+  if (parsed.protocol !== "https:" || parsed.pathname !== "/qbo/oauth/callback" || parsed.search || parsed.hash) throw new Error("Invalid QBO_REDIRECT_URI.");
+  return parsed.toString();
 }
 
 function serviceHeaders() {
@@ -72,6 +84,8 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   try {
+    const environment = gatewayEnvironment();
+    const redirect = redirectUri();
     if (action === "transaction") {
       if (!cors(req, res)) return json(res, 403, { error: "Origin not allowed." });
       if (req.method === "OPTIONS") return res.status(204).json({});
@@ -80,9 +94,9 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       if (req.method !== "POST") return json(res, 405, { error: "Method not allowed." });
       const state = randomBytes(32).toString("base64url");
       const id = randomUUID();
-      await supabase("/rest/v1/qbo_oauth_transactions", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ id, state_hash: sha256(state), redirect_uri: REDIRECT_URI, environment: "production", created_by: user.id, expires_at: new Date(Date.now() + 10 * 60_000).toISOString() }) });
-      await supabase("/rest/v1/qbo_integration_state?on_conflict=provider", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ provider: "quickbooks_online", status: "connection_pending", created_by: user.id }) });
-      return json(res, 201, { transaction_id: id, connect_url: `https://qbo.classicvisions.net/qbo/connect?transaction=${encodeURIComponent(id)}` });
+      await supabase("/rest/v1/qbo_oauth_transactions", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ id, state_hash: sha256(state), redirect_uri: redirect, environment, created_by: user.id, expires_at: new Date(Date.now() + 10 * 60_000).toISOString() }) });
+      await supabase("/rest/v1/qbo_integration_state?on_conflict=provider,environment", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ provider: "quickbooks_online", environment, status: "connection_pending", created_by: user.id }) });
+      return json(res, 201, { transaction_id: id, connect_url: `${new URL(redirect).origin}/qbo/connect?transaction=${encodeURIComponent(id)}` });
     }
     if (action === "command") {
       if (!cors(req, res)) return json(res, 403, { error: "Origin not allowed." });
@@ -90,7 +104,7 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       const user = await requireAdmin(req); if (!user) return json(res, 401, { error: "Authentication required." });
       const command = String(req.body?.command || "");
       if (req.method !== "POST" || !["disconnect", "reconcile"].includes(command)) return json(res, 400, { error: "Invalid command." });
-      const response = await supabase("/rest/v1/qbo_integration_commands", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ command, requested_by: user.id }) });
+      const response = await supabase("/rest/v1/qbo_integration_commands", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ command, environment, requested_by: user.id }) });
       return json(res, 202, { id: (await response.json())[0].id, status: "queued" });
     }
     if (action === "connect") {
@@ -105,7 +119,7 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       await supabase(`/rest/v1/qbo_oauth_transactions?id=eq.${transaction}`, { method: "PATCH", body: JSON.stringify({ state_hash: sha256(state) }) });
       res.setHeader("Set-Cookie", `qbo_tx=${transaction}; Path=/qbo/oauth/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=600`);
       const url = new URL(INTUIT_AUTHORIZE);
-      url.searchParams.set("client_id", env("QBO_CLIENT_ID")); url.searchParams.set("response_type", "code"); url.searchParams.set("scope", "com.intuit.quickbooks.accounting"); url.searchParams.set("redirect_uri", REDIRECT_URI); url.searchParams.set("state", state);
+      url.searchParams.set("client_id", env("QBO_CLIENT_ID")); url.searchParams.set("response_type", "code"); url.searchParams.set("scope", "com.intuit.quickbooks.accounting"); url.searchParams.set("redirect_uri", redirect); url.searchParams.set("state", state);
       return res.redirect(302, url.toString());
     }
     // Intuit requires a public disconnect URL. Actual disconnection is always
@@ -126,7 +140,7 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       if (!(await claimed.json()).length) return json(res, 409, { error: "Authorization handoff is unavailable." });
       const handoff = JSON.parse(decryptCode(row.authorization_code_ciphertext)) as { code: string; realm_id: string };
       if (!handoff.code || !handoff.realm_id) return json(res, 409, { error: "Authorization handoff is unavailable." });
-      return json(res, 200, { transaction_id: id, code: handoff.code, realm_id: handoff.realm_id, redirect_uri: REDIRECT_URI, environment: row.environment });
+      return json(res, 200, { transaction_id: id, code: handoff.code, realm_id: handoff.realm_id, redirect_uri: redirect, environment: row.environment });
     }
     if (action === "handoff/result") {
       if (req.method !== "POST") return json(res, 405, { error: "Method not allowed." });
@@ -134,14 +148,14 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return json(res, 401, { error: "Unauthorized." });
       const body = req.body || {}; if (!body.transaction_id || !["connected", "error", "disconnected", "token_refresh_required"].includes(body.status)) return json(res, 400, { error: "Invalid status." });
       await supabase(`/rest/v1/qbo_oauth_transactions?id=eq.${encodeURIComponent(String(body.transaction_id))}&claimed_at=not.is.null&completed_at=is.null`, { method: "PATCH", body: JSON.stringify({ completed_at: new Date().toISOString(), authorization_code_ciphertext: null, failure_code: body.status === "error" ? "exchange_failed" : null, failure_message_sanitized: body.status === "error" ? "QuickBooks authorization could not be completed." : null }) });
-      await supabase("/rest/v1/qbo_integration_state?on_conflict=provider", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ provider: "quickbooks_online", environment: "production", status: body.status, company_name: body.company_name || null, realm_id_masked: body.realm_id_masked || null, connected_at: body.status === "connected" ? (body.connected_at || new Date().toISOString()) : null, updated_at: new Date().toISOString(), last_error_message_sanitized: body.status === "error" ? "QuickBooks authorization could not be completed." : null }) });
+      await supabase("/rest/v1/qbo_integration_state?on_conflict=provider,environment", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ provider: "quickbooks_online", environment, status: body.status, company_name: body.company_name || null, realm_id_masked: body.realm_id_masked || null, connected_at: body.status === "connected" ? (body.connected_at || new Date().toISOString()) : null, updated_at: new Date().toISOString(), last_error_message_sanitized: body.status === "error" ? "QuickBooks authorization could not be completed." : null }) });
       return json(res, 200, { ok: true });
     }
     if (action === "commands/claim") {
       if (req.method !== "POST") return json(res, 405, { error: "Method not allowed." });
       const supplied = Buffer.from(String(req.headers["x-qbo-handoff-token"] || "")); const expected = Buffer.from(env("QBO_LOCAL_HANDOFF_TOKEN"));
       if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return json(res, 401, { error: "Unauthorized." });
-      const pending = await supabase("/rest/v1/qbo_integration_commands?status=eq.queued&order=requested_at.asc&limit=1&select=id,command"); const command = (await pending.json())[0];
+      const pending = await supabase(`/rest/v1/qbo_integration_commands?status=eq.queued&environment=eq.${environment}&order=requested_at.asc&limit=1&select=id,command`); const command = (await pending.json())[0];
       if (!command) return json(res, 200, { command: null });
       const claimed = await supabase(`/rest/v1/qbo_integration_commands?id=eq.${command.id}&status=eq.queued`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ status: "claimed", claimed_at: new Date().toISOString() }) });
       return json(res, 200, { command: (await claimed.json())[0] || null });
@@ -152,8 +166,8 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return json(res, 401, { error: "Unauthorized." });
       const body = req.body || {}; if (!body.id || !["completed", "error"].includes(body.status)) return json(res, 400, { error: "Invalid result." });
       await supabase(`/rest/v1/qbo_integration_commands?id=eq.${encodeURIComponent(String(body.id))}&status=eq.claimed`, { method: "PATCH", body: JSON.stringify({ status: body.status, completed_at: new Date().toISOString(), result_sanitized: body.result_sanitized || null, error_message_sanitized: body.status === "error" ? "The Local QBO command could not be completed." : null }) });
-      if (body.command === "reconcile") await supabase(`/rest/v1/qbo_integration_state?provider=eq.quickbooks_online`, { method: "PATCH", body: JSON.stringify({ last_reconciliation_status: body.status === "completed" ? "completed" : "error", last_reconciliation_at: new Date().toISOString(), updated_at: new Date().toISOString() }) });
-      if (body.command === "disconnect" && body.status === "completed") await supabase(`/rest/v1/qbo_integration_state?provider=eq.quickbooks_online`, { method: "PATCH", body: JSON.stringify({ status: "disconnected", company_name: null, realm_id_masked: null, connected_at: null, updated_at: new Date().toISOString() }) });
+      if (body.command === "reconcile") await supabase(`/rest/v1/qbo_integration_state?provider=eq.quickbooks_online&environment=eq.${environment}`, { method: "PATCH", body: JSON.stringify({ last_reconciliation_status: body.status === "completed" ? "completed" : "error", last_reconciliation_at: new Date().toISOString(), updated_at: new Date().toISOString() }) });
+      if (body.command === "disconnect" && body.status === "completed") await supabase(`/rest/v1/qbo_integration_state?provider=eq.quickbooks_online&environment=eq.${environment}`, { method: "PATCH", body: JSON.stringify({ status: "disconnected", company_name: null, realm_id_masked: null, connected_at: null, updated_at: new Date().toISOString() }) });
       return json(res, 200, { ok: true });
     }
     if (action === "oauth/callback") {

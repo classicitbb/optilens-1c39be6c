@@ -57,7 +57,7 @@ REVOKE INSERT, UPDATE, DELETE ON public.qbo_integration_state FROM anon, authent
 GRANT SELECT ON public.qbo_integration_state TO authenticated;
 
 -- Durable, server-only commands for the outbound OptiLens Local worker.
-CREATE TABLE public.qbo_integration_commands (
+CREATE TABLE IF NOT EXISTS public.qbo_integration_commands (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   command text NOT NULL CHECK (command IN ('disconnect', 'reconcile')),
   requested_by uuid NOT NULL REFERENCES auth.users(id),
@@ -68,7 +68,7 @@ CREATE TABLE public.qbo_integration_commands (
   result_sanitized jsonb NULL,
   error_message_sanitized text NULL
 );
-CREATE INDEX qbo_integration_commands_pending_idx ON public.qbo_integration_commands (requested_at) WHERE status = 'queued';
+CREATE INDEX IF NOT EXISTS qbo_integration_commands_pending_idx ON public.qbo_integration_commands (requested_at) WHERE status = 'queued';
 ALTER TABLE public.qbo_integration_commands ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.qbo_integration_commands FROM anon, authenticated;
 
