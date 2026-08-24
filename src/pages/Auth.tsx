@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
-import { startPortalEmulation } from "@/lib/portalEmulation";
+import { startPortalEmulation, stopPortalEmulation } from "@/lib/portalEmulation";
 import {
   type AuthAudience,
   type AuthIntent,
@@ -121,6 +121,11 @@ const Auth = () => {
       })
       .catch((error: unknown) => {
         emulationHandled.current = false;
+        // A failed redemption must not leave the "signed-in-as" marker behind:
+        // stale state here would otherwise get misread as active emulation
+        // (or silently withhold the emulated user's full account access)
+        // once the admin lands on a real session in this tab.
+        stopPortalEmulation();
         toast({ title: "Could not sign in as customer", description: error instanceof Error ? error.message : "The preview session could not be started.", variant: "destructive" });
       });
   }, [location.search, toast]);
