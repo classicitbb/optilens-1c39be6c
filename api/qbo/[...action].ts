@@ -92,7 +92,8 @@ function decryptCode(value: string) {
 }
 
 export default async function handler(req: GatewayRequest, res: GatewayResponse) {
-  const action = Array.isArray(req.query.action) ? req.query.action.join("/") : String(req.query.action || "");
+  const rawAction = req.query.action ?? req.query["...action"];
+  const action = Array.isArray(rawAction) ? rawAction.join("/") : String(rawAction || "");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   try {
@@ -201,8 +202,6 @@ export default async function handler(req: GatewayRequest, res: GatewayResponse)
       res.setHeader("Set-Cookie", "qbo_tx=; Path=/qbo/oauth/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
       return res.redirect(303, `${env("QBO_ADMIN_SUCCESS_URL")}?qbo=connection-pending`);
     }
-    res.setHeader("X-Debug-QBO-Action", JSON.stringify(req.query.action ?? null));
-    res.setHeader("X-Debug-QBO-Query-Keys", Object.keys(req.query).join(","));
     return json(res, 404, { error: "Not found." });
   } catch (error) { return json(res, 503, { error: "QuickBooks connection is temporarily unavailable." }); }
 }
