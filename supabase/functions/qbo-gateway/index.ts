@@ -1,11 +1,23 @@
-// Narrow server-side broker for the Vercel QBO gateway.
+// qbo-gateway — narrow, allowlisted PostgREST proxy for the QBO OAuth gateway
+// (Vercel) and OptiLens Local. Those callers have no Supabase session and must
+// never hold the service role key; they authenticate with a scoped x-api-key
+// (scope `gateway:agent`) and this function performs the privileged call with
+// the platform-managed service role, which is never returned to the caller.
 //
-// The Vercel project must not receive the Lovable/Supabase service-role key.
-// Instead, it presents a per-integration x-api-key. This function validates
-// that scoped key, then uses Lovable Cloud's managed service role internally
-// for the small QBO data surface below.
-
+//   POST /functions/v1/qbo-gateway
+//   body: { "path": "/rest/v1/qbo_integration_state?select=*", "method": "GET",
+//           "headers": { "Prefer": "return=representation" }, "body": {...} }
+//
+// Only the tables/RPC in ALLOWED_RESOURCES are reachable. Everything else 403s.
 import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "content-type, x-api-key",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const REQUIRED_SCOPE = "gateway:agent";
 
 const ALLOWED_TABLES = new Set([
   "user_roles",
@@ -13,74 +25,124 @@ const ALLOWED_TABLES = new Set([
   "qbo_integration_state",
   "qbo_integration_commands",
 ]);
+
 const ALLOWED_RPCS = new Set(["qbo_consume_rate_limit"]);
-const ALLOWED_METHODS = new Set(["GET", "POST", "PATCH"]);
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
+const ALLOWED_METHODS = new Set(["GET", "POST", "PATCH", "DELETE"]);
+
+// Headers a caller may pass through to PostgREST. Auth headers are never
+// forwarded: this function supplies them from the managed service role.
+const FORWARDABLE_HEADERS = new Set(["prefer", "range", "range-unit", "content-type", "accept"]);
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
 
-function serviceHeaders() {
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!key) throw new Error("Missing managed Supabase service key.");
-  return { apikey: key, Authorization: `Bearer ${key}` };
-}
-
-function allowedPath(path: string) {
-  const parsed = new URL(path, "https://qbo-gateway.invalid");
-  if (parsed.searchParams.has("select") && parsed.searchParams.get("select")?.includes(";")) {
-    return false;
+function resolveTarget(rawPath: unknown): { path: string } | { error: string } {
+  if (typeof rawPath !== "string" || rawPath.trim() === "") {
+    return { error: "`path` is required." };
   }
-  const parts = parsed.pathname.split("/").filter(Boolean);
-  if (parts[0] !== "rest" || parts[1] !== "v1") return false;
-  if (parts[2] === "rpc") return parts.length === 3 + 1 && ALLOWED_RPCS.has(parts[3]);
-  return parts.length >= 3 && parts.length <= 4 && ALLOWED_TABLES.has(parts[2]);
+  const path = rawPath.trim();
+  if (!path.startsWith("/rest/v1/")) return { error: "Path is not allowed." };
+  if (path.includes("..")) return { error: "Path is not allowed." };
+
+  const afterPrefix = path.slice("/rest/v1/".length);
+  const [resourcePart] = afterPrefix.split("?");
+  const segments = resourcePart.split("/").filter(Boolean);
+
+  if (segments[0] === "rpc") {
+    if (segments.length !== 2 || !ALLOWED_RPCS.has(segments[1])) {
+      return { error: "Path is not allowed." };
+    }
+    return { path };
+  }
+
+  if (segments.length !== 1 || !ALLOWED_TABLES.has(segments[0])) {
+    return { error: "Path is not allowed." };
+  }
+  return { path };
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) return json({ error: "Gateway is not configured." }, 500);
+
   const token = req.headers.get("x-api-key")?.trim() ?? "";
   if (!token) return json({ error: "Missing x-api-key header." }, 401);
-  const { data: keyRows, error: keyError } = await supabase.rpc("verify_api_key", { p_token: token });
-  if (keyError) return json({ error: "API key verification failed." }, 500);
-  const key = Array.isArray(keyRows) ? keyRows[0] : keyRows;
-  if (!key || !Array.isArray(key.scopes) || !key.scopes.includes("gateway:agent")) {
-    return json({ error: "Invalid or insufficient API key." }, 403);
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data, error } = await admin.rpc("verify_api_key", { p_token: token });
+  if (error) return json({ error: "Authentication failed." }, 500);
+  const key = Array.isArray(data) ? data[0] : data;
+  if (!key) return json({ error: "Invalid or revoked API key." }, 401);
+  const scopes: string[] = Array.isArray(key.scopes) ? key.scopes : [];
+  if (!scopes.includes(REQUIRED_SCOPE)) {
+    return json({ error: `Missing required scope: ${REQUIRED_SCOPE}` }, 403);
   }
 
-  const input = await req.json().catch(() => null) as {
-    path?: unknown;
-    method?: unknown;
-    headers?: unknown;
-    body?: unknown;
-  } | null;
-  const path = typeof input?.path === "string" ? input.path : "";
-  const method = typeof input?.method === "string" ? input.method.toUpperCase() : "GET";
-  if (!path || !allowedPath(path) || !ALLOWED_METHODS.has(method)) {
-    return json({ error: "QBO gateway path is not allowed." }, 403);
+  let payload: Record<string, unknown>;
+  try {
+    payload = await req.json();
+  } catch {
+    return json({ error: "Request body must be JSON." }, 400);
   }
 
-  const forwarded = input?.headers && typeof input.headers === "object" ? input.headers as Record<string, unknown> : {};
-  const headers: Record<string, string> = {
-    ...serviceHeaders(),
+  const target = resolveTarget(payload.path);
+  if ("error" in target) return json({ error: target.error }, 403);
+
+  const method = String(payload.method ?? "GET").toUpperCase();
+  if (!ALLOWED_METHODS.has(method)) return json({ error: "Method is not allowed." }, 405);
+
+  const headers = new Headers({
+    apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
     "Content-Type": "application/json",
-  };
-  if (typeof forwarded.Prefer === "string") headers.Prefer = forwarded.Prefer;
+  });
+  const requestedHeaders = payload.headers;
+  if (requestedHeaders && typeof requestedHeaders === "object" && !Array.isArray(requestedHeaders)) {
+    for (const [name, value] of Object.entries(requestedHeaders as Record<string, unknown>)) {
+      if (FORWARDABLE_HEADERS.has(name.toLowerCase()) && typeof value === "string") {
+        headers.set(name, value);
+      }
+    }
+  }
 
-  const body = method === "GET" ? undefined : JSON.stringify(input?.body ?? null);
-  const response = await fetch(`${Deno.env.get("SUPABASE_URL")}${path}`, { method, headers, body });
-  const text = await response.text();
+  const hasBody = method !== "GET" && payload.body !== undefined && payload.body !== null;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${supabaseUrl}${target.path}`, {
+      method,
+      headers,
+      body: hasBody
+        ? typeof payload.body === "string"
+          ? payload.body
+          : JSON.stringify(payload.body)
+        : undefined,
+    });
+  } catch (fetchError) {
+    console.error("qbo-gateway upstream request failed", fetchError);
+    return json({ error: "Upstream request failed." }, 502);
+  }
+
+  const text = await upstream.text();
   return new Response(text, {
-    status: response.status,
-    headers: { "Content-Type": response.headers.get("content-type") ?? "application/json", "Cache-Control": "no-store" },
+    status: upstream.status,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": upstream.headers.get("content-type") ?? "application/json",
+      ...(upstream.headers.get("content-range")
+        ? { "Content-Range": upstream.headers.get("content-range")! }
+        : {}),
+    },
   });
 });
