@@ -1,32 +1,33 @@
--- Keep sandbox OAuth state and commands separate from production. This migration
--- stores only sanitized state; QBO secrets and unmasked realm IDs remain on the
--- OptiLens Local Windows host.
+-- Make QBO sandbox and production explicit, independently addressable environments.
+-- Existing production rows remain production rows; sandbox starts with no connected state.
+-- Secrets and unmasked realm IDs remain on the OptiLens Local Windows host.
 
+ALTER TABLE public.qbo_integration_state
+  ADD COLUMN IF NOT EXISTS environment text NOT NULL DEFAULT 'production';
 ALTER TABLE public.qbo_integration_state
   DROP CONSTRAINT IF EXISTS qbo_integration_state_environment_check;
 ALTER TABLE public.qbo_integration_state
   ADD CONSTRAINT qbo_integration_state_environment_check
   CHECK (environment IN ('sandbox', 'production'));
-
 ALTER TABLE public.qbo_integration_state
   DROP CONSTRAINT IF EXISTS qbo_integration_state_pkey;
 ALTER TABLE public.qbo_integration_state
-  ADD PRIMARY KEY (provider, environment);
+  ADD CONSTRAINT qbo_integration_state_pkey PRIMARY KEY (provider, environment);
 
 ALTER TABLE public.qbo_oauth_transactions
+  ADD COLUMN IF NOT EXISTS environment text NOT NULL DEFAULT 'production';
+ALTER TABLE public.qbo_oauth_transactions
+  DROP CONSTRAINT IF EXISTS qbo_oauth_transactions_redirect_uri_check,
   DROP CONSTRAINT IF EXISTS qbo_oauth_transactions_environment_check;
 ALTER TABLE public.qbo_oauth_transactions
   ADD CONSTRAINT qbo_oauth_transactions_environment_check
-  CHECK (environment IN ('sandbox', 'production'));
-
-ALTER TABLE public.qbo_oauth_transactions
-  DROP CONSTRAINT IF EXISTS qbo_oauth_transactions_redirect_uri_check;
-ALTER TABLE public.qbo_oauth_transactions
+  CHECK (environment IN ('sandbox', 'production')),
   ADD CONSTRAINT qbo_oauth_transactions_redirect_uri_check
-  CHECK (redirect_uri IN (
-    'https://qbo.classicvisions.net/qbo/oauth/callback',
-    'https://qbo-sandbox.classicvisions.net/qbo/oauth/callback'
-  ));
+  CHECK (
+    (environment = 'production' AND redirect_uri = 'https://qbo.classicvisions.net/qbo/oauth/callback')
+    OR
+    (environment = 'sandbox' AND redirect_uri = 'https://qbo-sandbox.classicvisions.net/qbo/oauth/callback')
+  );
 
 ALTER TABLE public.qbo_integration_commands
   ADD COLUMN IF NOT EXISTS environment text NOT NULL DEFAULT 'production';
@@ -37,9 +38,10 @@ ALTER TABLE public.qbo_integration_commands
   CHECK (environment IN ('sandbox', 'production'));
 
 DROP INDEX IF EXISTS public.qbo_integration_commands_pending_idx;
-CREATE INDEX qbo_integration_commands_pending_by_environment_idx
-  ON public.qbo_integration_commands (environment, requested_at)
-  WHERE status = 'queued';
+CREATE INDEX IF NOT EXISTS qbo_integration_commands_environment_idx
+  ON public.qbo_integration_commands (environment, status, requested_at)
+  WHERE status IN ('queued', 'claimed');
 
--- The existing state policy remains appropriate: authenticated administrators
--- can read sanitized rows only. No browser role receives write access.
+COMMENT ON COLUMN public.qbo_integration_state.environment IS 'QuickBooks environment; sandbox and production state are separate.';
+COMMENT ON COLUMN public.qbo_oauth_transactions.environment IS 'QuickBooks environment bound to the redirect URI and Local credential store.';
+COMMENT ON COLUMN public.qbo_integration_commands.environment IS 'QuickBooks environment whose private Local worker must execute the command.';

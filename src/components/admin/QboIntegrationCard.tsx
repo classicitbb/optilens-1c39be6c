@@ -11,7 +11,7 @@ const environment = (import.meta.env.VITE_QBO_ENVIRONMENT || "sandbox") as "sand
 
 export function QboIntegrationCard() {
   const { toast } = useToast(); const queryClient = useQueryClient();
-  const state = useQuery({ queryKey: ["qbo-integration-state"], refetchInterval: 10_000, queryFn: async () => {
+  const state = useQuery({ queryKey: ["qbo-integration-state", environment], refetchInterval: 10_000, queryFn: async () => {
     const { data, error } = await (supabase as any).from("qbo_integration_state").select("environment,status,company_name,realm_id_masked,connected_at,last_refresh_at,last_reconciliation_status,last_reconciliation_at,last_error_message_sanitized").eq("provider", "quickbooks_online").eq("environment", environment).maybeSingle();
     if (error) throw error; return data as QboState | null;
   }});
@@ -26,7 +26,7 @@ export function QboIntegrationCard() {
     const { data: sessionData } = await supabase.auth.getSession(); const token = sessionData.session?.access_token;
     const response = await fetch(`${import.meta.env.VITE_QBO_GATEWAY_URL}/qbo/command`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
     const result = await response.json(); if (!response.ok) throw new Error(result.error || "Unable to queue command."); return command;
-  }, onSuccess: (command) => { void queryClient.invalidateQueries({ queryKey: ["qbo-integration-state"] }); toast({ title: command === "reconcile" ? "Reconciliation queued" : "Disconnect queued", description: "OptiLens Local will process this request securely." }); }, onError: (error: Error) => toast({ title: "QuickBooks command unavailable", description: error.message, variant: "destructive" }) });
+  }, onSuccess: (command) => { void queryClient.invalidateQueries({ queryKey: ["qbo-integration-state", environment] }); toast({ title: command === "reconcile" ? "Reconciliation queued" : "Disconnect queued", description: "OptiLens Local will process this request securely." }); }, onError: (error: Error) => toast({ title: "QuickBooks command unavailable", description: error.message, variant: "destructive" }) });
   const status = state.data?.status ?? "not_connected";
   return <Card>
     <CardHeader><CardTitle className="flex items-center justify-between text-base"><span>QuickBooks Online · {environment}</span><Badge variant="outline">{status.replaceAll("_", " ")}</Badge></CardTitle><CardDescription>{environment === "sandbox" ? "Sandbox testing · Accounting" : "Production · Accounting"}. Credentials and tokens are managed server-side only.</CardDescription></CardHeader>
