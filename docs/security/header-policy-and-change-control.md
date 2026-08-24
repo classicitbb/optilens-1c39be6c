@@ -23,9 +23,9 @@ Canonical policy source lives in `security/http-header-policy.json` and should b
 Strict CSP directives include:
 
 - `script-src 'self'`
-- `connect-src 'self' https://*.supabase.co https://api.openai.com`
-- `img-src 'self' data: blob: https://*.supabase.co`
-- `frame-ancestors 'none'`
+- `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com`
+- `img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com`
+- `frame-ancestors 'self'` (same-origin framing only — required by the Doc Studio iframe at `/admin/docs/studio`; cross-origin framing stays blocked, with `X-Frame-Options: SAMEORIGIN` as the legacy equivalent)
 - `object-src 'none'`
 - `base-uri 'self'`
 
