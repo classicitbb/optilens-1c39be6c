@@ -286,8 +286,8 @@ const CartDraftsSection = () => {
                   await deleteRxDraft.mutateAsync(confirmDelete.id);
                 }
                 toast({ title: "Draft deleted" });
-                setConfirmDelete(null);
                 setPreviewId((id) => id === confirmDelete.id ? null : id);
+                setConfirmDelete(null);
               }}
             >
               Delete

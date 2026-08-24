@@ -1,10 +1,11 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Eye, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { ChevronLeft, Eye, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import AccountSidebar from "@/components/account/AccountSidebar";
 import AccountTopBar from "@/components/account/AccountTopBar";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { clearStoredPortalAdminSession, restorePortalAdminSession, stopPortalEmulation } from "@/lib/portalEmulation";
@@ -84,20 +85,25 @@ const AccountLayout = () => {
       <div className="flex w-full gap-6 px-4 py-6 sm:px-6 xl:px-8 2xl:px-10">
         <aside className={`sticky top-16 hidden shrink-0 self-start border-r pr-4 transition-[width] lg:block ${sidebarCollapsed ? "w-14" : "w-64 xl:w-72 xl:pr-6"}`}>
           <AccountSidebar pathname={location.pathname} collapsed={sidebarCollapsed} />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border-border/70 bg-background p-0 shadow-xs"
-            aria-label={sidebarCollapsed ? "Expand account navigation" : "Collapse account navigation"}
-            onClick={() => setSidebarCollapsed((current) => {
-              const next = !current;
-              try { localStorage.setItem("cv.portal.sidebar-collapsed", String(next)); } catch { /* optional */ }
-              return next;
-            })}
-          >
-            {sidebarCollapsed ? <PanelLeftOpen className="h-3 w-3" /> : <PanelLeftClose className="h-3 w-3" />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="absolute -right-3.5 top-1/2 h-7 w-7 -translate-y-1/2 rounded-full border-border/70 bg-background p-0 shadow-xs hover:scale-105 hover:shadow-sm"
+                aria-label={sidebarCollapsed ? "Expand account navigation" : "Collapse account navigation"}
+                onClick={() => setSidebarCollapsed((current) => {
+                  const next = !current;
+                  try { localStorage.setItem("cv.portal.sidebar-collapsed", String(next)); } catch { /* optional */ }
+                  return next;
+                })}
+              >
+                <ChevronLeft className={`h-3.5 w-3.5 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}</TooltipContent>
+          </Tooltip>
         </aside>
 
         <main className="mx-auto min-w-0 w-full max-w-[1280px] flex-1">

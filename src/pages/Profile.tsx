@@ -28,6 +28,7 @@ import { fetchCustomerCommandCenter } from "@/features/portal/customerCommandCen
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { requestLiveData } from "@/lib/liveDataGateway";
+import { resolveUserFullName } from "@/lib/profileData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { isStaffRole } from "@/features/staff-cards/staffPublicCards";
 
@@ -77,7 +78,8 @@ const Profile = () => {
   // Website checkout orders plus active lab work — the full account, not just this site's cart.
   const totalActiveOrders = activeOrders.length + (liveOrdersQuery.data?.orders.length ?? 0);
   const currentBalance = Number(data?.balance?.current_balance ?? data?.latestStatement?.closing_balance ?? 0);
-  const displayName = identity?.customerName || data?.profile?.customerName || data?.profile?.organizationName || user?.email?.split("@")[0] || "Customer";
+  const accountName = identity?.customerName || data?.profile?.customerName || data?.profile?.organizationName || null;
+  const displayName = resolveUserFullName(user) || accountName || user?.email?.split("@")[0] || "Customer";
   const accessStatus = identity?.portalAccessStatus ?? data?.profile?.accessStatus ?? "pending_profile";
   const approvedAccessNoticeStorageKey = `cv.portal.approved-access-notice.dismissed:${effectiveUserId ?? user?.id ?? "anonymous"}`;
   const [isApprovedAccessNoticeDismissed, setIsApprovedAccessNoticeDismissed] = useState(false);
@@ -122,7 +124,7 @@ const Profile = () => {
     <div className="space-y-7">
       <section className="overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b1e35,#125a69)] p-6 text-white shadow-medium sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Your website orders, Rx drafts, pricing, statements and support&nbsp;</p></div>
+          <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Website orders, Rx drafts, pricing, statements and support for {accountName || "your account"}.</p></div>
           <div className="flex flex-wrap gap-2">{canUseLensAssistant ? <Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/profile/rx-order"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button> : null}{isStaffRole(role) ? <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/networking-card"><QrCode className="mr-2 h-4 w-4" />Share my card</Link></Button> : null}<Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/helpdesk"><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Link></Button></div>
         </div>
       </section>
@@ -130,7 +132,7 @@ const Profile = () => {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
         <SummaryCard icon={AlertCircle} label="Needs attention" value={String(needsAttention.length)} detail={needsAttention[0] || "Nothing urgent"} tone="amber" to={needsAttentionRoute} />
         <SummaryCard icon={PackageCheck} label="Active orders" value={String(totalActiveOrders)} tone="teal" to="/profile/orders" />
-        <SummaryCard icon={FileText} label="Saved drafts" value={String(data?.drafts.length ?? 0)} detail="Cart and controlled Rx drafts" to="/profile/drafts" />
+        {data?.drafts.length ? <SummaryCard icon={FileText} label="Saved drafts" value={String(data.drafts.length)} detail="Cart and controlled Rx drafts" to="/profile/drafts" /> : null}
         {canViewStatements ? <SummaryCard icon={CircleDollarSign} label="Current balance" value={`$${money(currentBalance)}`} detail="BBD · from the latest available account data" to="/profile/statements" /> : null}
       </section>
 
