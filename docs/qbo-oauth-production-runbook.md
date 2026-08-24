@@ -1,4 +1,34 @@
+<<<<<<< Updated upstream
 # QBO OAuth gateway
+=======
+# QBO OAuth gateway environments
+
+Sandbox and production are separate environments. The sandbox gateway is
+`https://qbo-sandbox.classicvisions.net` and the production gateway is
+`https://qbo.classicvisions.net`. Never point a sandbox Local process at the
+production gateway or reuse its protected store.
+
+## Sandbox first-run
+
+Use the sandbox deployment with these values:
+
+- `QBO_GATEWAY_ENVIRONMENT=sandbox`
+- `QBO_REDIRECT_URI=https://qbo-sandbox.classicvisions.net/qbo/oauth/callback`
+- `VITE_QBO_ENVIRONMENT=sandbox`
+- `VITE_QBO_GATEWAY_URL=https://qbo-sandbox.classicvisions.net`
+
+On the Local Windows host set `OPTILENS_QBO_ENVIRONMENT=sandbox` and
+`OPTILENS_QBO_GATEWAY_URL=https://qbo-sandbox.classicvisions.net`, then run
+`npm run qbo:auth:migrate-vault` only if the legacy sandbox `.env` and
+`tokens.json` exist. The command now writes the DPAPI-protected sandbox store;
+it does not modify the browser Credentials Vault.
+
+The sandbox path is reconciliation/testing only. Production approval/apply
+controls remain unavailable unless the Local process is explicitly configured
+for production and the existing production approval gate is enabled.
+
+## Production gateway
+>>>>>>> Stashed changes
 
 This feature is deliberately split between the public CV Web gateway and
 OptiLens Local. CV Web owns only OAuth transaction state and sanitized status.
