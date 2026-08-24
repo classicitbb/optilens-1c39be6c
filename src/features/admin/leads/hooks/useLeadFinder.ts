@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { IDEAL_CUSTOMER_PROFILE } from "@/config/idealCustomerProfile";
 import type { LeadRecord } from "../types";
 
 interface FinderConstraints {
@@ -88,11 +89,20 @@ export interface LeadFinderResult {
   warning?: string | null;
 }
 
+const ICP_DEFAULT_CONSTRAINTS: FinderConstraints = {
+  productCategories: IDEAL_CUSTOMER_PROFILE.productCategories,
+  marginTiers: IDEAL_CUSTOMER_PROFILE.marginTiers,
+  fulfillmentGeography: IDEAL_CUSTOMER_PROFILE.geography.fulfillmentGeography,
+  existingCustomerProfile: IDEAL_CUSTOMER_PROFILE.description,
+  exclusions: IDEAL_CUSTOMER_PROFILE.exclusions,
+};
+
 export const useLeadFinder = () => {
   return useMutation({
     mutationFn: async ({ query, country, cities, globalSearch, mode, constraints }: FinderInput): Promise<LeadFinderResult> => {
+      const resolvedConstraints: FinderConstraints = { ...ICP_DEFAULT_CONSTRAINTS, ...constraints };
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
-        body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true, mode, constraints },
+        body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true, mode, constraints: resolvedConstraints },
       });
 
       if (error) {
