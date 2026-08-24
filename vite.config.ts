@@ -18,8 +18,12 @@ export default defineConfig(() => ({
   },
   build: {
     rollupOptions: {
-      external: [/^pdfjs-dist/],
+      // pdfjs-dist must be bundled. Marking it external left bare specifiers
+      // ("pdfjs-dist/legacy/build/pdf.mjs") in the production chunk, which the
+      // browser cannot resolve — the handbook route crashed to the error
+      // boundary ("Something went wrong").
       output: {
+
         manualChunks(id) {
           if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react/jsx-runtime')) return 'vendor-react';
           if (id.includes('node_modules/react-router')) return 'vendor-router';
