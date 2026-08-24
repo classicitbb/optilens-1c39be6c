@@ -88,6 +88,7 @@ const PortalRxOrderForm = () => {
       onStartAnother={() => { setQuoteId(null); creatingRef.current = false; }}
       prefill={prefill}
       prefillBanner={prefillBanner}
+      resumedDraftId={isEmbeddedDraft ? draftId : undefined}
       pricesVisible={isStaff || canAccessFeature("order-prices")}
       currency="BBD"
     />

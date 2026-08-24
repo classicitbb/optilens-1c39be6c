@@ -37,13 +37,22 @@ const EmulationBanner = () => {
         onClick={async () => {
           setIsRestoring(true);
           try {
-            if (portalSessionEmulation) {
-              await restorePortalAdminSession(supabase);
-            }
+            const restoredAdmin = portalSessionEmulation ? await restorePortalAdminSession(supabase) : false;
             stopPortalEmulation();
             clearStoredPortalAdminSession();
             queryClient.clear();
-            navigate("/admin/website/portals", { replace: true });
+            if (restoredAdmin) {
+              navigate("/admin/website/portals", { replace: true });
+            } else {
+              // The "signed in as" flow opens a separate-origin preview tab that
+              // never held an admin session to restore, so navigating to an
+              // admin route here would leave this tab stuck signed in as the
+              // customer. Sign out of the emulated session and close the tab
+              // instead — the admin's original tab is untouched.
+              await supabase.auth.signOut({ scope: "local" });
+              window.close();
+              navigate("/", { replace: true });
+            }
           } finally {
             setIsRestoring(false);
           }
