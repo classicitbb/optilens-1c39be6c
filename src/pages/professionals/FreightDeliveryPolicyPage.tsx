@@ -1,11 +1,11 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertTriangle, Clock3, ExternalLink, PackageSearch, ShieldAlert, Truck } from "lucide-react";
-import { Link } from "react-router";
 import { LABLINK_TRACKING_URL } from "@/config/externalLinks";
 
 type FreightLane = {
@@ -113,9 +113,15 @@ const FreightDeliveryPolicyPage = () => {
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
-              <Button variant="outline" asChild>
-                <Link to="/professionals/customer-service">Contact Customer Service</Link>
-              </Button>
+              <ContactAssistantButton
+                variant="outline"
+                topic="Freight & Delivery Policy"
+                sourceRoute="/professionals/freight-delivery-policy"
+                audience="dispenser"
+                summary="I have a question about freight, delivery or shipment tracking."
+              >
+                Contact Customer Service
+              </ContactAssistantButton>
             </div>
           </section>
 

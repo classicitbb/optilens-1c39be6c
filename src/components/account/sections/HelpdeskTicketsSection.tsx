@@ -19,7 +19,11 @@ interface HelpdeskPrefillState {
 }
 
 const HelpdeskTicketsSection = () => {
-  const { identity, emulation, effectiveUserId } = usePortalIdentity();
+  const { identity, emulation, portalSessionEmulation, effectiveUserId } = usePortalIdentity();
+  // Read-only identity preview only: a real "signed in as" emulation session
+  // (portalSessionEmulation) is a genuine customer auth session and gets full
+  // write access, same as the customer signing in themselves.
+  const submissionDisabled = !!emulation && !portalSessionEmulation;
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -77,7 +81,7 @@ const HelpdeskTicketsSection = () => {
       <CardContent className="space-y-6">
         <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div><h3 className="font-semibold">Start a support request</h3><p className="mt-1 text-sm text-muted-foreground">The assistant opens a spacious, editable form with your signed-in account context.</p></div>
-          <Button type="button" className="shrink-0 gap-2" disabled={!!emulation} onClick={() => openAssistant({ profile: "portal_support", formKind: "portal_support" })}><MessageCircle className="h-4 w-4" />Request support</Button>
+          <Button type="button" className="shrink-0 gap-2" disabled={submissionDisabled} title={submissionDisabled ? "Submitting is disabled while previewing a customer read-only" : undefined} onClick={() => openAssistant({ profile: "portal_support", formKind: "portal_support" })}><MessageCircle className="h-4 w-4" />Request support</Button>
         </div>
         <div className="space-y-2">
           {!tickets.length ? <p className="text-sm text-muted-foreground">No tickets yet.</p> : null}

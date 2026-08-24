@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-22 — Sitewide validation drift after portal refactors
+- Area: anonymous storefront, Portal Copilot, and embedded Rx order verification.
+- Impact: both Node validation jobs failed even though lint, typecheck, and production build succeeded, preventing sitewide releases.
+- Root cause: one storefront test omitted the Query provider now required by `useUserRole`, while Copilot and Rx assertions still targeted pre-refactor component ownership, button copy, patient-name casing, and a removed duplicate settings control.
+- Resolution: mount the real query runtime in the storefront test and update the Copilot/Rx contracts to verify the current accessible UI and component boundaries.
+- Regression prevention: retain the focused five-file validation loop and the full `npm run test` gate on both supported Node versions.
+
 ## 2026-08-22 — Portal Copilot ticket creation and recording lifecycle
 - Area: admin Portal Copilot, shared admin-resource tools, and voice transcription.
 - Impact: Copilot could not create a Helpdesk ticket because `ticket_number` was absent and a named priority was sent to an integer column; browser speech recognition could also end immediately and hide the Stop action while the recorder remained open, and silent audio could echo the domain vocabulary hint into the composer.

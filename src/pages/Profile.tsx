@@ -28,6 +28,7 @@ import { fetchCustomerCommandCenter } from "@/features/portal/customerCommandCen
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { requestLiveData } from "@/lib/liveDataGateway";
+import { resolveUserFullName } from "@/lib/profileData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { isStaffRole } from "@/features/staff-cards/staffPublicCards";
 
@@ -77,7 +78,8 @@ const Profile = () => {
   // Website checkout orders plus active lab work — the full account, not just this site's cart.
   const totalActiveOrders = activeOrders.length + (liveOrdersQuery.data?.orders.length ?? 0);
   const currentBalance = Number(data?.balance?.current_balance ?? data?.latestStatement?.closing_balance ?? 0);
-  const displayName = identity?.customerName || data?.profile?.customerName || data?.profile?.organizationName || user?.email?.split("@")[0] || "Customer";
+  const accountName = identity?.customerName || data?.profile?.customerName || data?.profile?.organizationName || null;
+  const displayName = resolveUserFullName(user) || accountName || user?.email?.split("@")[0] || "Customer";
   const accessStatus = identity?.portalAccessStatus ?? data?.profile?.accessStatus ?? "pending_profile";
   const approvedAccessNoticeStorageKey = `cv.portal.approved-access-notice.dismissed:${effectiveUserId ?? user?.id ?? "anonymous"}`;
   const [isApprovedAccessNoticeDismissed, setIsApprovedAccessNoticeDismissed] = useState(false);
@@ -122,7 +124,7 @@ const Profile = () => {
     <div className="space-y-7">
       <section className="overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b1e35,#125a69)] p-6 text-white shadow-medium sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Your website orders, Rx drafts, pricing, statements and support are brought together here.</p></div>
+          <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Website orders, Rx drafts, pricing, statements and support for {accountName || "your account"}.</p></div>
           <div className="flex flex-wrap gap-2">{canUseLensAssistant ? <Button asChild className="bg-[#efb53a] text-[#0b1e35] hover:bg-[#f5c55b]"><Link to="/profile/rx-order"><ClipboardCheck className="mr-2 h-4 w-4" />Start an Rx order</Link></Button> : null}{isStaffRole(role) ? <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/networking-card"><QrCode className="mr-2 h-4 w-4" />Share my card</Link></Button> : null}<Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/15 hover:text-white"><Link to="/profile/helpdesk"><Sparkles className="mr-2 h-4 w-4" />Ask Classic</Link></Button></div>
         </div>
       </section>
@@ -130,14 +132,14 @@ const Profile = () => {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
         <SummaryCard icon={AlertCircle} label="Needs attention" value={String(needsAttention.length)} detail={needsAttention[0] || "Nothing urgent"} tone="amber" to={needsAttentionRoute} />
         <SummaryCard icon={PackageCheck} label="Active orders" value={String(totalActiveOrders)} tone="teal" to="/profile/orders" />
-        <SummaryCard icon={FileText} label="Saved drafts" value={String(data?.drafts.length ?? 0)} detail="Cart and controlled Rx drafts" to="/profile/drafts" />
+        {data?.drafts.length ? <SummaryCard icon={FileText} label="Saved drafts" value={String(data.drafts.length)} detail="Cart and controlled Rx drafts" to="/profile/drafts" /> : null}
         {canViewStatements ? <SummaryCard icon={CircleDollarSign} label="Current balance" value={`$${money(currentBalance)}`} detail="BBD · from the latest available account data" to="/profile/statements" /> : null}
       </section>
 
       {accessStatus !== "approved_customer" ? (
         <Card className="border-amber-300 bg-amber-50/60"><CardHeader className="sm:flex-row sm:items-center sm:justify-between"><div><CardTitle className="text-lg">Complete your customer access</CardTitle><CardDescription>{identity?.portalAccessNote || data?.profile?.accessNote || "Finish your profile to continue the approval process."}</CardDescription></div><Button asChild variant="outline"><Link to="/profile/account">Open account setup</Link></Button></CardHeader></Card>
       ) : !isApprovedAccessNoticeDismissed ? (
-        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div className="min-w-0 flex-1"><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>Customer-only pricing, statements, quotes and support workflows are available.</CardDescription></div><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Dismiss approved customer access message permanently" title="Dismiss permanently" onClick={dismissApprovedAccessNotice}><X className="h-4 w-4" /></Button></CardHeader></Card>
+        <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div className="min-w-0 flex-1"><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>{"\n"}</CardDescription></div><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Dismiss approved customer access message permanently" title="Dismiss permanently" onClick={dismissApprovedAccessNotice}><X className="h-4 w-4" /></Button></CardHeader></Card>
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
@@ -165,7 +167,7 @@ const Profile = () => {
 
       {recentOrders.length ? <Card><CardHeader><CardTitle>Recently completed</CardTitle><CardDescription>Recent website orders available for reference.</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{recentOrders.map((order) => <div key={order.id} className="rounded-lg border p-4"><div className="flex items-center justify-between"><strong>#{order.id.slice(0, 8).toUpperCase()}</strong><Badge variant="secondary" className="capitalize">{order.status}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{date(order.updatedAt || order.createdAt)}</p></div>)}</CardContent></Card> : null}
 
-      <p className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Website data refreshed {date(data?.sources.websiteAsOf)}. Innovations account data {data?.sources.innovationsAsOf ? `last synchronized ${date(data.sources.innovationsAsOf)}` : "does not currently include live Rx job status"}.</p>
+      <p className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Website data refreshed {date(data?.sources.websiteAsOf)}. Account data {data?.sources.innovationsAsOf ? `last synchronized ${date(data.sources.innovationsAsOf)}` : "does not currently include live Rx job status"}.</p>
       {commandCenterQuery.isError ? <p className="text-sm text-destructive">Some command-centre information could not be loaded. The detailed account sections remain available.</p> : null}
     </div>
   );

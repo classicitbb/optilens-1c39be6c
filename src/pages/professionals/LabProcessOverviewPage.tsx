@@ -42,7 +42,7 @@ const SECTIONS: Section[] = [
       {
         heading: "Submission Channels",
         body: [
-          "LabLink (recommended): digital entry with real-time validation, trace file attachment, and instant order confirmation.",
+          "Our Rx order form (recommended): digital entry with built-in validation, trace file attachment, and prompt order confirmation. This is replacing our legacy LabLink integration with faster, more reliable updates.",
           "Phone orders: accepted for rush or exception cases — the CSR will read back the Rx for verbal confirmation.",
           "Email/fax: attach a legible Rx image or scan; include patient name, frame brand/model, and PDs.",
         ],
@@ -58,7 +58,7 @@ const SECTIONS: Section[] = [
       {
         heading: "Digital vs. Paper Orders",
         body: [
-          "Digital orders via LabLink reduce data-entry errors by 85 % compared to handwritten Rx forms.",
+          "Digital orders via our Rx order form significantly reduce data-entry errors compared to handwritten Rx forms.",
           "Built-in validation flags impossible combinations (e.g., cylinder without axis) before the order reaches the lab.",
           "Paper orders are manually keyed — allow an additional 2–4 hours in the workflow for transcription and QC review.",
         ],
@@ -310,11 +310,11 @@ const SECTIONS: Section[] = [
         ],
       },
       {
-        heading: "LabLink Tracking Events",
+        heading: "Order Tracking Events",
         body: [
           "Order received → Rx verified → In surfacing → In coating → In edging → QC passed → Dispatched → Delivered.",
-          "Each status change triggers a LabLink notification so you can give patients accurate ETAs.",
-          "Holds or issues are flagged immediately with the reason and required action — respond via LabLink to minimise delay.",
+          "Each status change triggers a notification so you can give patients accurate ETAs.",
+          "Holds or issues are flagged with the reason and required action — respond via the order portal to minimise delay.",
         ],
       },
       {
@@ -357,7 +357,7 @@ const SECTIONS: Section[] = [
       {
         heading: "How to Expedite",
         body: [
-          "Submit complete, validated digital orders via LabLink — eliminates the #1 delay (holds).",
+          "Submit complete, validated digital orders via our Rx order form — eliminates the #1 delay (holds).",
           "Request rush processing at order entry — the lab prioritises the job through each station.",
           "Attach a trace file with every edged order — avoids waiting for frame arrival or manual tracing.",
           "Keep common Rx ranges in stock (SV 1.50, 1.60) for same-day dispense on walk-in patients.",

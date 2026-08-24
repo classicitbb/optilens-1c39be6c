@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
@@ -91,9 +92,9 @@ const RepairsPolicyPage = () => {
               <p>If the condition of the item makes repair unsuitable, we may decline the work and return it without further processing.</p>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button variant="outline" asChild>
-                <a href="/#contact">Contact Us</a>
-              </Button>
+              <ContactAssistantButton variant="outline" topic="Repairs Policy" sourceRoute="/professionals/repairs-policy">
+                  Contact Us
+                </ContactAssistantButton>
               <Button variant="outline" asChild>
                 <a href="mailto:support@classicvisions.net">Email Support</a>
               </Button>

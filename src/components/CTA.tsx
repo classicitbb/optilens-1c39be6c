@@ -16,7 +16,9 @@ const CTA = () => {
           Your clearest next step is right here.
         </h2>
         <p className="mx-auto mb-8 max-w-2xl text-base text-primary-foreground/80 sm:text-lg">
-          Order for your practice, find a trusted optical retailer, or talk with our Barbados team. We’ll help you move forward with confidence.
+          Order for your practice, find a trusted optical retailer, or talk with our team.&nbsp;
+          <br />
+          We’ll help you move forward with confidence.
         </p>
 
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">

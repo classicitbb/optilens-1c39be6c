@@ -137,7 +137,7 @@ describe("Portal Copilot multi-chat workspace", () => {
     expect(await screen.findByText("Re-engage lapsed buyer: I Care Express")).toBeInTheDocument();
     expect(screen.getByText("Last order was 74 days ago.")).toBeInTheDocument();
     expect(screen.getByText(/Inference:/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Approve task" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
     expect(screen.getByText(/No CRM task or opportunity has been created yet/)).toBeInTheDocument();
   });
 });

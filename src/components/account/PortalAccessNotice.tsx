@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import { BadgeCheck, Building2, FileCheck2, LockKeyhole, MailCheck, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,9 +73,17 @@ const PortalAccessNotice = ({ feature }: PortalAccessNoticeProps) => {
           <Button asChild>
             <Link to="/profile/account">Complete account setup</Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link to="/contact">Contact support</Link>
-          </Button>
+          <ContactAssistantButton
+            variant="outline"
+            topic="Portal access"
+            sourceRoute="/profile"
+            formKind="portal_support"
+            taskKind="support"
+            audience="customer"
+            summary="I need help with my portal access."
+          >
+            Contact support
+          </ContactAssistantButton>
         </div>
 
         {isLoading ? <p className="text-xs text-muted-foreground">Refreshing customer access…</p> : null}

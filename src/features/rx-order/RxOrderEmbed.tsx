@@ -8,7 +8,8 @@ import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
+import { useSaveEmbeddedRxOrderDraft, useRxDrafts } from "@/features/lens-assistant/api";
+import { useCartDrafts } from "@/hooks/useCartDrafts";
 import { isRxOrderableAddon, isRxOrderableLens, usePricelistScope } from "./hooks/useOrderableCatalog";
 import { useInnovationsCatalogAliases, useRxCurrencies, useRxMatrixPrices } from "./hooks/useInnovationsCatalog";
 import { buildInnovationsCatalog, comboKey, type CatalogAlias } from "./embed/innovations-catalog";
@@ -45,6 +46,9 @@ export interface RxOrderEmbedProps {
   prefill?: unknown;
   /** HTML for the banner shown above a prefilled form. */
   prefillBanner?: string;
+  /** id of the rx_order_drafts row `prefill` was loaded from, if any — later
+   *  saves (manual or auto) update this row instead of creating a new one. */
+  resumedDraftId?: string;
   pricesVisible?: boolean;
   currency?: string;
 }
@@ -57,12 +61,17 @@ export const RxOrderEmbed = ({
   quoteId, quoteNumber, surface, lockedAccountId = null,
   checkoutPath = "/checkout", storePath = "/store",
   onStartAnother,
-  prefill, prefillBanner, pricesVisible = true, currency = "BBD",
+  prefill, prefillBanner, resumedDraftId, pricesVisible = true, currency = "BBD",
 }: RxOrderEmbedProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const hostRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<any>(null);
+  const adapterOptionsRef = useRef<any>(null);
+  // Which rx_order_drafts row saves land in. Seeded from a resumed draft;
+  // otherwise the first save (autosave or manual) creates the row and fills
+  // this in, so every save after that in the same session updates it in place.
+  const draftIdRef = useRef<string | undefined>(resumedDraftId);
   const engineDataRef = useRef<any>(null);
   const lensIndexRef = useRef<Map<string, LensRef>>(new Map());
   const aliasIndexRef = useRef<Map<string, CatalogAlias>>(new Map());
@@ -73,6 +82,11 @@ export const RxOrderEmbed = ({
   const { addToCart } = useCart();
   const saveEmbeddedRxDraft = useSaveEmbeddedRxOrderDraft();
   const { isAdmin } = useUserRole();
+  // Only the customer portal has a "Saved Drafts" page to send an empty,
+  // never-touched order to instead of saving it as a useless blank draft.
+  const { drafts: cartDrafts } = useCartDrafts();
+  const { data: rxDrafts = [] } = useRxDrafts();
+  const hasSavedDrafts = surface === "portal" && cartDrafts.length + rxDrafts.length > 0;
 
   const { data: clashRules = [] } = useQuery<ClashRule[]>({
     queryKey: ["addon-clash-rules"],
@@ -212,7 +226,7 @@ export const RxOrderEmbed = ({
 
     hostRef.current.innerHTML = markup;
     const host = hostRef.current;
-    const engine = createRxOrderEngine(host, {
+    const adapterOptions = {
       data: engineDataRef.current,
       lockedBranchId: lockedAccountId != null ? String(lockedAccountId) : undefined,
       defaultBranchId: defaultAccountId != null ? String(defaultAccountId) : undefined,
@@ -224,8 +238,13 @@ export const RxOrderEmbed = ({
       onBranchChange: (branchId: string) => { setSelectedAccountId(Number(branchId) || null); },
       onDraftSaved: async (payload: any) => {
         await persist(payload);
-        await saveEmbeddedRxDraft.mutateAsync(payload);
+        const saved = await saveEmbeddedRxDraft.mutateAsync({ payload, id: draftIdRef.current });
+        draftIdRef.current = saved.id;
       },
+      // A cleared form (save-and-start-new, "clear all", "discard draft")
+      // isn't the draft it used to be — the next save should create its own
+      // row rather than overwrite the one this form no longer represents.
+      onFormCleared: () => { draftIdRef.current = undefined; },
       onSubmitted: async (payload: any) => {
         const { totalBBD } = await persist(payload);
         const added = await addToCart({
@@ -242,7 +261,13 @@ export const RxOrderEmbed = ({
       onCheckout: () => navigate(checkoutPath),
       onStore: () => navigate(storePath),
       onAnother: onStartAnother,
-    });
+      // Kept live by the effect below — clicking "save draft" on a form
+      // nobody touched sends the customer to their existing drafts instead.
+      hasSavedDrafts,
+      onGoToDrafts: () => navigate("/profile/drafts"),
+    };
+    adapterOptionsRef.current = adapterOptions;
+    const engine = createRxOrderEngine(host, adapterOptions);
     engineRef.current = engine;
     setHasMountedEngine(true);
     return () => {
@@ -263,6 +288,13 @@ export const RxOrderEmbed = ({
     Object.assign(engineDataRef.current, engineInput.data);
     engineRef.current.refreshData();
   }, [engineInput, effectiveAccountId, scopeIsCurrent, scopeLoading]);
+
+  useEffect(() => {
+    if (!engineRef.current || !adapterOptionsRef.current) return;
+    if (adapterOptionsRef.current.hasSavedDrafts === hasSavedDrafts) return;
+    adapterOptionsRef.current.hasSavedDrafts = hasSavedDrafts;
+    engineRef.current.refreshData();
+  }, [hasSavedDrafts]);
 
   return (
     <div className={`cv-rx-embed${surface === "admin" ? " admin-rx-order" : ""}`} ref={hostRef}>

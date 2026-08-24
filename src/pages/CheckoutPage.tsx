@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import ContactAssistantLink from "@/components/assistant/ContactAssistantLink";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import {
   AlertCircle,
@@ -1318,16 +1319,28 @@ const CheckoutPage = () => {
                   ) : !canPayOnAccount && isVerifiedB2B ? (
                     <p className="mt-4 text-xs text-muted-foreground">
                       Want to pay on account?{" "}
-                      <a href="/contact" className="text-secondary underline underline-offset-2 hover:text-secondary/80">
+                      <ContactAssistantLink
+                        topic="Credit account application"
+                        sourceRoute="/checkout"
+                        formKind="trade_signup"
+                        summary="I would like to apply for a credit account."
+                        className="text-secondary underline underline-offset-2 hover:text-secondary/80"
+                      >
                         Apply for a credit account.
-                      </a>
+                      </ContactAssistantLink>
                     </p>
                   ) : !isVerifiedB2B ? (
                     <p className="mt-4 text-xs text-muted-foreground">
                       Want to pay on account?{" "}
-                      <a href="/contact" className="text-secondary underline underline-offset-2 hover:text-secondary/80">
+                      <ContactAssistantLink
+                        topic="Verified B2B account application"
+                        sourceRoute="/checkout"
+                        formKind="trade_signup"
+                        summary="I would like to apply for a verified B2B account."
+                        className="text-secondary underline underline-offset-2 hover:text-secondary/80"
+                      >
                         Apply for a verified B2B account.
-                      </a>
+                      </ContactAssistantLink>
                     </p>
                   ) : null}
                 </div>

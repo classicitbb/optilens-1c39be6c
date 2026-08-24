@@ -276,7 +276,7 @@ serve(async (req) => {
     // back to at most the single strongest match rather than offering unrelated links.
     const availableLinks = groundedPayload.topLinks ?? [];
     const citedIndices = rawAnswer
-      ? Array.from(new Set(Array.from(rawAnswer.matchAll(/\[(\d+)\]/g), (match) => Number(match[1]))))
+      ? Array.from(new Set(Array.from(rawAnswer.matchAll(/\[(\d+)\]/g), (match: RegExpMatchArray) => Number(match[1]))))
           .filter((index) => index >= 1 && index <= availableLinks.length)
           .sort((a, b) => a - b)
       : [];

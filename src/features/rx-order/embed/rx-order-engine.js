@@ -169,6 +169,14 @@ const isProg=()=>!!(design()&&design().prog);
 const needsAdd=()=>S.vision==='mf'||!!(design()&&design().needsAdd);
 const needsHt=()=>S.vision==='mf';
 const needsNearPD=()=>S.vision==='sv'&&(S.purpose==='read'||S.purpose==='inter');
+/* "some Rx data exists" — deliberately looser than secValid()'s rxOk, which
+   requires every producible field to be filled. Used only to let the section
+   collapse into its at-a-glance summary while still in progress; the summary
+   itself (sectionSummary('sec-rx')) flags whatever's still missing. */
+const rxStarted=()=>activeEyes().some(e=>{
+  const r=readRow(e);
+  return r.sph!==null||r.cyl!==null||r.axis!==null||r.add!==null||r.pd!==null||r.npd!==null||r.ht!==null||!!r.prism;
+});
 
 /* ---------- catalogue constraint ---------- */
 function valid(cmb){
@@ -778,6 +786,22 @@ function sectionHasCapturedData(id){
   if(id==='sec-treat') return S.treat.size>0||S.chemClips.length>0;
   return !!$('#notes').value.trim()||$('#service').value!=='std'||$('#delivery').selectedIndex!==0||S.notesConfirmed;
 }
+/* A pristine, never-touched form. Saving that as a draft just clutters
+   Saved Drafts with an empty entry — if the account already has drafts,
+   the save-draft buttons redirect there instead (see shouldOfferGoToDrafts). */
+function orderIsEmpty(){
+  const patientBlank=!$('#pfirst').value.trim()&&!$('#plast').value.trim()&&!$('#ref').value.trim();
+  const frameBlank=!$('#fname').value.trim()&&parseNum($('#fa').value)===null&&parseNum($('#fb').value)===null&&parseNum($('#fdbl').value)===null&&!S.shape;
+  const lensBlank=!(S.m||S.d||S.c);
+  const rxBlank=activeEyes().every(e=>{
+    const r=readRow(e);
+    return r.sph===null&&r.cyl===null&&r.axis===null&&r.add===null&&r.pd===null&&r.npd===null&&r.ht===null&&!r.prism;
+  });
+  const treatBlank=S.treat.size===0&&S.chemClips.length===0;
+  const notesBlank=!$('#notes').value.trim();
+  return patientBlank&&frameBlank&&lensBlank&&rxBlank&&treatBlank&&notesBlank;
+}
+function shouldOfferGoToDrafts(){ return !!ADAPTER.hasSavedDrafts&&orderIsEmpty(); }
 /* sec-rx and sec-treat need real line breaks (values crammed onto one line
    were unreadable) — those two return HTML and are rendered via innerHTML;
    everything else stays plain text since patient/frame names are free-typed. */
@@ -788,10 +812,27 @@ function sectionSummary(id){
   }
   if(id==='sec-frame') return [$('#fname').value.trim(),`${$('#fa').value} × ${$('#fb').value} mm`, `DBL ${$('#fdbl').value} mm`,S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
   if(id==='sec-lens') return [material()?.n,design()?.n,colour()?.n].filter(Boolean).join(' · ');
-  if(id==='sec-rx') return activeEyes().map(e=>{
-    const r=readRow(e), parts=[r.sph!==null?'Sph '+sgn(r.sph):'',r.cyl?'Cyl '+sgn(r.cyl):'',r.axis!==null?'Axis '+r.axis:'',r.pd!==null?'PD '+r.pd:''].filter(Boolean);
-    return `<b>${e.toUpperCase()}</b> ${parts.join(' · ')}`;
-  }).join('<br>');
+  if(id==='sec-rx'){
+    /* Always list every field this vision type actually needs — including
+       blanks — instead of hiding what's missing. A progressive with no Add
+       or fitting height yet should say so here, not just disappear. */
+    const gap=t=>`<span class="rx-missing">${t} missing</span>`;
+    const htLbl=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
+    return activeEyes().map(e=>{
+      const r=readRow(e);
+      const parts=[
+        r.sph!==null?'Sph '+sgn(r.sph):gap('Sph'),
+        r.cyl?'Cyl '+sgn(r.cyl):'Cyl —',
+        r.cyl?(r.axis!==null?'Axis '+r.axis:gap('Axis')):'Axis —',
+      ];
+      if(needsAdd()) parts.push(r.add!==null?'Add '+sgn(r.add):gap('Add'));
+      parts.push(r.pd!==null?'PD '+r.pd:gap('PD'));
+      if(needsNearPD()) parts.push(r.npd!==null?'Near PD '+r.npd:gap('Near PD'));
+      if(needsHt()) parts.push(r.ht!==null?htLbl+' '+r.ht:gap(htLbl));
+      if(r.prism) parts.push('Prism '+r.prism.toFixed(2)+(r.base?' '+r.base:''));
+      return `<b>${e.toUpperCase()}</b> ${parts.join(' · ')}`;
+    }).join('<br>');
+  }
   if(id==='sec-treat'){
     const items=Array.from(S.treat).map(tid=>{
       const t=TREAT.find(x=>x.id===tid); if(!t) return '';
@@ -810,7 +851,12 @@ function syncSectionCollapse(V){
   const justCollapsed=[];
   SECTION_IDS.forEach(id=>{
     const section=$('#'+id); if(!section) return;
-    const complete=!!V[id]&&sectionHasCapturedData(id);
+    /* Every other section only collapses once fully valid. The Rx section
+       collapses as soon as it has any data at all, because it's the one
+       place a wearer benefits from an at-a-glance "here's what's filled in
+       and here's what's still missing" view instead of staying wide open
+       until every last field (Add, fitting height...) is complete. */
+    const complete=(id==='sec-rx'?rxStarted():!!V[id])&&sectionHasCapturedData(id);
     const wasCollapsed=S.collapsedSections.has(id);
     if(!complete){ S.collapsedSections.delete(id); S.editingSections.delete(id); }
     else if(!S.editingSections.has(id)&&!section.contains(document.activeElement)) S.collapsedSections.add(id);
@@ -821,6 +867,7 @@ function syncSectionCollapse(V){
     const multiline=MULTILINE_SUMMARY_SECTIONS.has(id);
     if(summary){
       summary.classList.toggle('multiline',multiline);
+      summary.classList.toggle('has-gaps',collapsed&&id==='sec-rx'&&!V[id]);
       const text=collapsed?sectionSummary(id):'';
       if(multiline) summary.innerHTML=text; else summary.textContent=text;
     }
@@ -1016,6 +1063,11 @@ function render(){
     b.title=noPrice?'This lens is not priced on your account — save it as a draft and we will quote it.':'';
   });
 
+  const goToDrafts=shouldOfferGoToDrafts();
+  $('#saveDraft').textContent=goToDrafts?'Go to saved drafts':'Save draft';
+  $('#saveDraft2').textContent=goToDrafts?'Go to saved drafts':'Save as draft';
+  $('#saveDraft3').textContent=goToDrafts?'Go to saved drafts':'Draft';
+
   markNeeded(V);
   buildSteps(V);
   $('#assistList').classList.toggle('on',S.assists.size>0);
@@ -1025,6 +1077,7 @@ function render(){
     $$('.field.assist').forEach(f=>{if(f.querySelector('[data-assist="'+b.dataset.rm+'"]')) f.classList.remove('assist');});
     render();
   }));
+  scheduleAutosave();
 }
 /* ---------- skipped-mandatory beacon ----------
    Prefilled/restored forms open every section at once (S.revealAll), so the
@@ -1101,7 +1154,7 @@ function buildSteps(V){
      carries just order identity + actions, not a second copy of every icon. */
   $('#steps').innerHTML=`<div class="step-list">${stepButtons}</div><div class="step-actions" aria-label="Order actions">
     <span class="ordno"><span>Order</span> ${S.orderNo||'—'}</span>
-    <button class="btn btn-ghost btn-sm" data-step-action="save-draft">Save draft</button>
+    <button class="btn btn-ghost btn-sm" data-step-action="save-draft">${shouldOfferGoToDrafts()?'Go to saved drafts':'Save draft'}</button>
     <button class="chip btnchip" data-step-action="branch-picker"><span class="dot"></span>Ordering for <b>${S.branch?S.branch.name.replace('Bridgetown Optical — ',''):'—'}</b> <span style="opacity:.5">▾</span></button>
     <select class="step-currency" data-step-currency aria-label="Display currency">${currencyOptions}</select>
   </div>`;
@@ -1354,6 +1407,10 @@ function clearAll(){
   $$('.field.assist').forEach(f=>f.classList.remove('assist'));
   fillLensSelects(); buildPopular(); buildTreatList(); render();
   window.scrollTo({top:0,behavior:'smooth'});
+  /* Whatever draft this form was tracking, a blank form isn't it anymore —
+     the next save (auto or manual) should create a new draft, not overwrite
+     the one this form no longer represents. */
+  ADAPTER.onFormCleared?.();
 }
 /* ---------- OMA TRACE DEMO SAMPLE ---------- */
 const SAMPLE_OMA_1471 = `REQ=FIL
@@ -3019,7 +3076,24 @@ $('#reopenBranch').addEventListener('click',openBranchPicker);
 $('#branchSearch').addEventListener('input',e=>{ branchQuery=e.target.value; renderBranches(); });
 
 /* ---------- toast ---------- */
-function toast(m){const t=$('#toast');$('#toastMsg').textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2800);}
+function toast(m,opts){
+  opts=opts||{};
+  const t=$('#toast'), actions=$('#toastActions');
+  $('#toastMsg').textContent=m;
+  if(actions){
+    actions.innerHTML='';
+    actions.style.display=opts.action?'inline-flex':'none';
+    if(opts.action){
+      const b=document.createElement('button');
+      b.type='button'; b.className='toast-action'; b.textContent=opts.action.label;
+      b.addEventListener('click',()=>{ clearTimeout(toast._t); t.classList.remove('on'); opts.action.onClick(); });
+      actions.appendChild(b);
+    }
+  }
+  t.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>t.classList.remove('on'),opts.duration||2800);
+}
 window.__toast=toast;
 
 /* ---------- prefill / draft / demo ---------- */
@@ -3099,11 +3173,34 @@ function fillDemo(quiet){
 $('#btnDemo').addEventListener('click',()=>fillDemo(false));
 
 /* ---------- draft / print / submit ---------- */
+/* Autosave: any settled change (1.5s of no further edits) quietly persists a
+   draft, so a person who never touches the Save Draft button still doesn't
+   lose work. Silent — no toast, no clearing the form — that's only for the
+   explicit button below. Re-checks orderIsEmpty() at fire time (not schedule
+   time) so a save queued right before a clear doesn't resurrect it. Builds
+   the payload directly rather than via stashOrder() — that also pushes into
+   the local "reorder from history" list, and an entry per idle pause would
+   drown out the handful of saves that list is actually for. */
+let autosaveTimer=null, autosaveBusy=false;
+function scheduleAutosave(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer=setTimeout(()=>{
+    if(autosaveBusy||orderIsEmpty()) return;
+    autosaveBusy=true;
+    Promise.resolve(ADAPTER.onDraftSaved?.(buildPayload())).catch(()=>{}).finally(()=>{autosaveBusy=false;});
+  },1500);
+}
 ['#saveDraft','#saveDraft2','#saveDraft3'].forEach(s=>$(s).addEventListener('click',()=>{
+  if(shouldOfferGoToDrafts()){ ADAPTER.onGoToDrafts?.(); return; }
   const n=S.assists.size, p=stashOrder('draft');
   Promise.resolve(ADAPTER.onDraftSaved?.(p)).then(()=>{
-    toast('Draft saved ('+payloadSize(p)+' bundle'+(p.shape?', shape included':'')+')'
-      +(n?` · ${n} flagged for assistance`:'')+' · resumable from Saved Drafts');
+    /* The form is about to be cleared for a new order — give the person a
+       beat (and a one-click way back) in case that wasn't what they wanted. */
+    toast('Draft saved'+(n?` · ${n} flagged for assistance`:''),{
+      duration:4800,
+      action:{label:'Resume draft',onClick:()=>{ restorePayload(p); toast('Draft resumed'); }}
+    });
+    clearAll();
   }).catch(error=>{
     toast('Draft could not be saved to your account'+(error?.message?`: ${error.message}`:''));
   });

@@ -2,6 +2,8 @@
 
 ## 2026-08-22 — Portal records, assistant, and PDF runtime
 
+- Cross-surface regression tests follow the current component boundaries: Portal Copilot evidence lives in `ActionCard`, Rx patient summaries use the engine's normalized uppercase display, and admin Rx settings remain in the page header rather than the sticky order toolbar.
+- Storefront safety tests mount the same TanStack Query provider required by `useUserRole`, so they still exercise anonymous price/cost suppression without failing before the product card renders.
 - `CartDraftsSection` keeps unfinished cart/Rx work separate and renders disclosure-only snapshots from the persisted draft payloads.
 - `MyOrdersSection` owns submitted website, lab and delivery history. Lab detail and delivery price surfaces are permission-gated and labelled BBD; website cart/order money is labelled USD.
 - `CompanionAssistantContext` owns open/close, five-minute nudge recurrence, session dismissal and saved-conversation restoration. `CompanionAssistant` renders history and request forms as full panel modes rather than message bubbles.

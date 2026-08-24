@@ -7950,6 +7950,66 @@ export type Database = {
         }
         Relationships: []
       }
+      qbo_gateway_rate_limits: {
+        Row: {
+          bucket_key: string
+          request_count: number
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          bucket_key: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          bucket_key?: string
+          request_count?: number
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      qbo_integration_commands: {
+        Row: {
+          claimed_at: string | null
+          command: string
+          completed_at: string | null
+          environment: string
+          error_message_sanitized: string | null
+          id: string
+          requested_at: string
+          requested_by: string
+          result_sanitized: Json | null
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          command: string
+          completed_at?: string | null
+          environment?: string
+          error_message_sanitized?: string | null
+          id?: string
+          requested_at?: string
+          requested_by: string
+          result_sanitized?: Json | null
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          command?: string
+          completed_at?: string | null
+          environment?: string
+          error_message_sanitized?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string
+          result_sanitized?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       qbo_integration_state: {
         Row: {
           company_name: string | null
@@ -11189,63 +11249,45 @@ export type Database = {
       }
       store_product_variants_public: {
         Row: {
-          allow_backorder: boolean | null
           attributes: Json | null
-          created_at: string | null
           id: string | null
-          is_active: boolean | null
           low_stock_threshold: number | null
           metadata: Json | null
           opc_code: string | null
           price: number | null
           product_id: string | null
           product_type: string | null
-          reserved_qty: number | null
           sku: string | null
-          sort_order: number | null
           stock_qty: number | null
           title: string | null
-          updated_at: string | null
           variant_key: string | null
         }
         Insert: {
-          allow_backorder?: boolean | null
           attributes?: Json | null
-          created_at?: string | null
           id?: string | null
-          is_active?: boolean | null
           low_stock_threshold?: number | null
           metadata?: Json | null
           opc_code?: string | null
           price?: number | null
           product_id?: string | null
           product_type?: string | null
-          reserved_qty?: number | null
           sku?: string | null
-          sort_order?: number | null
           stock_qty?: number | null
           title?: string | null
-          updated_at?: string | null
           variant_key?: string | null
         }
         Update: {
-          allow_backorder?: boolean | null
           attributes?: Json | null
-          created_at?: string | null
           id?: string | null
-          is_active?: boolean | null
           low_stock_threshold?: number | null
           metadata?: Json | null
           opc_code?: string | null
           price?: number | null
           product_id?: string | null
           product_type?: string | null
-          reserved_qty?: number | null
           sku?: string | null
-          sort_order?: number | null
           stock_qty?: number | null
           title?: string | null
-          updated_at?: string | null
           variant_key?: string | null
         }
         Relationships: []
@@ -11964,9 +12006,28 @@ export type Database = {
           is_default: boolean
         }[]
       }
+      profile_privileged_fields_match: {
+        Args: {
+          _crm_contact_id: string
+          _crm_customer_id: number
+          _id: string
+          _portal_access_approved_override: boolean
+          _portal_access_status: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       publish_lens_recommendation_rule_set: {
         Args: { p_rule_set_id: string }
         Returns: undefined
+      }
+      qbo_consume_rate_limit: {
+        Args: {
+          p_bucket_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: boolean
       }
       queue_abandoned_cart_alerts: {
         Args: { p_cutoff_hours?: number }

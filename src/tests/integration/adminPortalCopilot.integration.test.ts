@@ -88,6 +88,7 @@ describe("admin-only CV Portal Copilot", () => {
     const edge = read("supabase/functions/portal-copilot/index.ts");
     const planner = read("supabase/functions/_shared/copilot/crmOpportunityScan.ts");
     const page = read("src/pages/admin/PortalCopilotPage.tsx");
+    const actionCard = read("src/features/admin/copilot/ActionCard.tsx");
 
     expect(migration).toContain("crm_opportunity_scan");
     expect(edge).toContain("buildQualifiedCrmPlan");
@@ -98,7 +99,8 @@ describe("admin-only CV Portal Copilot", () => {
     expect(edge).toContain('"crm_opportunity_suggestion"');
     expect(planner).toContain("Evidence:");
     expect(planner).toContain("Inference:");
-    expect(page).toContain("Evidence used");
+    expect(page).toContain('from "@/features/admin/copilot/ActionCard"');
+    expect(actionCard).toContain("Evidence used");
     expect(page).toContain("No CRM task or opportunity has been created yet.");
   });
 
@@ -171,7 +173,8 @@ describe("admin-only CV Portal Copilot", () => {
     expect(edge).toContain('from "../_shared/copilot/aiAgentCredentials.ts"');
     expect(edge).toContain("resolveClaudeCredentials(db");
     expect(edge).toContain('operation === "test-ai-agent"');
-    expect(edge).toContain('db.rpc("record_ai_agent_test", { p_provider: "anthropic"');
+    expect(edge).toContain('db.rpc("record_ai_agent_test"');
+    expect(edge).toContain('p_provider: "anthropic"');
 
     // The settings page renders one card per provider row plus an
     // open-ended add-provider flow; each card owns its own save/test/remove.

@@ -3,9 +3,9 @@ export const COMPANY_CONTACT = {
   phoneDisplay: "+1 246 433-4928",
   phoneHref: "tel:+12464334928",
   email: "accounts@classicvisions.net",
-  addressLine: "Uplands Factory, Four Roads, Saint George BB20031, Barbados",
-  streetAddress: "Uplands Factory, Four Roads",
-  locality: "Saint George",
+  addressLine: "Uplands Factory, Saint John, Barbados, BB20031",
+  streetAddress: "Uplands Factory",
+  locality: "Saint John",
   postalCode: "BB20031",
   countryCode: "BB",
   mapUrl:

@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { useParams } from "react-router";
 import { useLegalPage } from "@/hooks/useContentArticles";
 import { Skeleton } from "@/components/ui/skeleton";
-import ReactMarkdown from "react-markdown";
+import RichTextOrMarkdown from "@/components/content/RichTextOrMarkdown";
 
 const LEGAL_FALLBACKS: Record<string, { title: string; content: string }> = {
   "privacy-policy": {
@@ -452,7 +452,7 @@ const LegalPage = ({ slug: fixedSlug }: LegalPageProps) => {
                 ) : null}
               </div>
               <article className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-headings:font-semibold prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3 prose-p:text-muted-foreground prose-p:leading-relaxed prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary">
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <RichTextOrMarkdown content={content} />
               </article>
             </>
           ) : (

@@ -81,17 +81,21 @@ export const buildEmbeddedRxOrderDraftFields = (payload: EmbeddedRxOrderPayload)
   };
 };
 
+// Autosave (see RxOrderEmbed) calls this on every settled change, so a plain
+// insert would spawn a fresh row each time. Once a draft has an id — either
+// because the form resumed one, or because a prior save in this session
+// already created one — every later save updates that same row instead.
 export const useSaveEmbeddedRxOrderDraft = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: EmbeddedRxOrderPayload) => {
+    mutationFn: async ({ payload, id }: { payload: EmbeddedRxOrderPayload; id?: string }) => {
       if (!user) throw new Error("Sign in to save an Rx order draft.");
-      const { data, error } = await (supabase as any)
-        .from("rx_order_drafts")
-        .insert({ user_id: user.id, ...buildEmbeddedRxOrderDraftFields(payload) })
-        .select("*")
-        .single();
+      const fields = buildEmbeddedRxOrderDraftFields(payload);
+      const query = id
+        ? (supabase as any).from("rx_order_drafts").update(fields).eq("id", id).eq("user_id", user.id)
+        : (supabase as any).from("rx_order_drafts").insert({ user_id: user.id, ...fields });
+      const { data, error } = await query.select("*").single();
       if (error) throw error;
       return data as RxOrderDraft;
     },
@@ -118,6 +122,20 @@ export const useRxDraft = (draftId: string | undefined) => {
       }
       return data as RxOrderDraft | null;
     },
+  });
+};
+
+export const useDeleteRxDraft = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("rx_order_drafts")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: RX_DRAFTS_QUERY_KEY }),
   });
 };
 

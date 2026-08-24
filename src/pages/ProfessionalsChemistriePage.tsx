@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -182,16 +183,23 @@ const CHEMISTRIE_CONTACT_PRELOAD_MSG =
 export default function ProfessionalsChemistriePage() {
   const [tab, setTab] = useState("sun-colors");
   const [heroBgVideoError, setHeroBgVideoError] = useState(false);
-  const navigate = useNavigate();
   const { identity } = usePortalIdentity();
   const hasLinkedErpAccount = !!identity?.crmCustomerId;
 
+  const { openAssistant } = useCompanionAssistant();
+
   const handleInquire = () => {
-    const params = new URLSearchParams({ msg: CHEMISTRIE_CONTACT_PRELOAD_MSG });
-    navigate(`/?${params.toString()}#contact`);
-    setTimeout(() => {
-      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-    }, 150);
+    openAssistant({
+      formKind: "customer_support",
+      audience: "dispenser",
+      formValues: {
+        issueType: "Chemistrie Lens System enquiry",
+        productTopic: "Chemistrie Lens System",
+        requestTitle: "Chemistrie Lens System enquiry",
+        summary: CHEMISTRIE_CONTACT_PRELOAD_MSG,
+      },
+      taskContext: { kind: "contact", label: "Chemistrie Lens System", sourceRoute: "/professionals/chemistrie-lens-system" },
+    });
   };
 
   return (
@@ -307,9 +315,10 @@ export default function ProfessionalsChemistriePage() {
                     Explore the Technology <ExternalLink className="ml-1 h-4 w-4" />
                   </a>
                 </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/professionals/customer-service">Contact Our Team</Link>
+                <Button variant="outline" type="button" onClick={handleInquire}>
+                  Contact Our Team
                 </Button>
+
               </div>
             </div>
 
@@ -604,10 +613,10 @@ export default function ProfessionalsChemistriePage() {
               )}
               <Button
                 size="lg"
+                type="button"
                 className="border-2 border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-                asChild>
-                
-                <Link to="/professionals/customer-service">Contact Us</Link>
+                onClick={handleInquire}>
+                Contact Us
               </Button>
             </div>
 

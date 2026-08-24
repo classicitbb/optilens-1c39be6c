@@ -1,8 +1,8 @@
 import Header from "@/components/Header";
+import ContactAssistantButton from "@/components/assistant/ContactAssistantButton";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "react-router";
 import { LABLINK_PORTAL_URL } from "@/config/externalLinks";
 import {
   Monitor,
@@ -162,7 +162,9 @@ const BlueBlockARPage = () => {
                 <p className="mt-1 text-sm text-primary-foreground/80">Blue management helps comfort and glare — pair with progressive or single vision for best results.</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="secondary" asChild><Link to="/#contact">Contact Us</Link></Button>
+                <ContactAssistantButton variant="secondary" topic="BlueBlock AR (Blue Defense AR+)" sourceRoute="/coatings/blueblock-ar">
+                  Contact Us
+                </ContactAssistantButton>
                 <Button variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10" asChild>
                   <a href={LABLINK_PORTAL_URL} target="_blank" rel="noopener noreferrer">Shop Coatings <ArrowRight className="ml-2 h-4 w-4" /></a>
                 </Button>
