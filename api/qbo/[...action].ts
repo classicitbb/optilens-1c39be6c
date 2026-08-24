@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
 const INTUIT_AUTHORIZE = "https://appcenter.intuit.com/connect/oauth2";
