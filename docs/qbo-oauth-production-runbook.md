@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-# QBO OAuth gateway
-=======
 # QBO OAuth gateway environments
 
 Sandbox and production are separate environments. The sandbox gateway is
@@ -28,7 +25,6 @@ controls remain unavailable unless the Local process is explicitly configured
 for production and the existing production approval gate is enabled.
 
 ## Production gateway
->>>>>>> Stashed changes
 
 This feature is deliberately split between the public CV Web gateway and
 OptiLens Local. CV Web owns only OAuth transaction state and sanitized status.
@@ -68,7 +64,7 @@ Configure these in Vercel production only; do not prefix any with `VITE_`.
 - `QBO_CODE_HANDOFF_ENCRYPTION_KEY` (32-byte base64url key)
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `QBO_LOVABLE_API_KEY` (a dedicated Lovable integration key with only the `gateway:agent` scope; keep the managed service-role key inside the Lovable Edge Function)
 - `QBO_GATEWAY_RATE_LIMIT_SECRET`
 - `QBO_LOCAL_HANDOFF_TOKEN`
 - `QBO_ADMIN_ORIGIN` (the exact HTTPS origin hosting CV Web admin)

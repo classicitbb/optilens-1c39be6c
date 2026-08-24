@@ -63,6 +63,10 @@ verify_jwt = false
   # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).
   [functions.live-data-gateway]
     verify_jwt = false
+  # Vercel QBO gateway broker. Auth is performed in code with the scoped
+  # Lovable API key; the managed service-role key never leaves this function.
+  [functions.qbo-gateway]
+    verify_jwt = false
   # Admin-only redeploy trigger. Does its own admin check in code
   # (requirePrivilegedAccess); platform-level verify_jwt stays on too since
   # there's no special caller like the on-prem agent to accommodate.
