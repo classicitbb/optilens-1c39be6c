@@ -5,7 +5,7 @@
       "destination": "/api/qbo/:action*"
     },
     {
-      "source": "/((?!.*\\.).*)",
+      "source": "/((?!api/|.*\\.).*)",
       "destination": "/index.html"
     }
   ],
