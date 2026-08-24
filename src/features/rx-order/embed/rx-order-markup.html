@@ -1,0 +1,538 @@
+<div class="wrap">
+
+  <div class="pagehead">
+    <div class="spacer"></div>
+    <span class="prefill hide" id="prefillChip"></span>
+    <span class="ordno" id="ordNo"><span>Order</span> —</span>
+    <button class="btn btn-ghost btn-sm" id="saveDraft">Save draft</button>
+    <button class="chip btnchip" id="branchChip"><span class="dot"></span>Ordering for <b id="branchName">—</b> <span style="opacity:.5">▾</span></button>
+    <span class="chip" title="Display currency"><span class="lockicon">🔒</span> <b id="curChip">USD $</b></span>
+    <div class="headtools">
+      <button class="iconbtn" id="coachBtn" title="Order coach">?</button>
+      <div class="gearwrap">
+        <button class="iconbtn" id="gearBtn" title="Prototype settings" aria-expanded="false">⚙</button>
+        <div class="gearmenu" id="gearMenu">
+          <h4>Account simulation</h4>
+          <div class="gearrow">
+            <span style="flex:none">Currency</span>
+            <select id="curSim">
+              <option value="USD">USD $</option><option value="EUR">EUR €</option><option value="CAD">CAD $</option>
+              <option value="XCD">XCD $</option><option value="TTD">TTD $</option><option value="JMD">JMD $</option>
+              <option value="BBD">BBD $</option><option value="GYD">GYD $</option>
+            </select>
+          </div>
+          <label class="sw"><input type="checkbox" id="pricesOn" checked> Prices visible on account</label>
+          <button class="linkbtn" id="reopenBranch">↻ Store picker</button>
+
+          <h4>Fill &amp; reset</h4>
+          <button class="linkbtn" id="btnPrefill">↩ Simulate prefill from pricelist</button>
+          <button class="linkbtn" id="btnDraft">📂 Restore saved draft</button>
+          <button class="linkbtn" id="btnTraceDemo">⚡ Load 1471.oma trace</button>
+          <button class="linkbtn" id="btnDemo">⚡ Fill demo order</button>
+          <button class="linkbtn" id="btnReorder">⟲ Reorder from history</button>
+          <button class="linkbtn" id="btnClearAll">✕ Clear whole form</button>
+
+          <h4>Review</h4>
+          <button class="linkbtn" id="annoToggle">✎ Annotate mode <span id="annoCount"></span></button>
+          <button class="linkbtn" id="btnPayload">{ } View order payload</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="banner hide" id="draftBanner">
+    <span class="bi">📂</span>
+    <span><b>Restored from draft</b> — saved 2 days ago by you. Everything below is editable; the quote recalculates from current prices.</span>
+    <button class="btn btn-ghost" id="discardDraft">Discard draft</button>
+  </div>
+
+  <nav class="steps" id="steps"></nav>
+
+  <div class="col">
+
+    <!-- 1 · Patient -->
+    <section class="card" id="sec-patient" data-step="Patient">
+      <div class="card-h">
+        <div class="idx">1</div>
+        <div><h2>Patient &amp; order</h2><div class="sub">Who the job is for.</div></div>
+        <div class="hx">
+          <button class="iconbtn sm clear-sec" data-sec="patient" title="Clear this section">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="patient" title="Help">?</button>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-patient" title="Edit patient and order" aria-label="Edit patient and order">✎</button>
+        </div>
+      </div>
+      <div class="section-summary" aria-live="polite"></div>
+      <div class="card-b">
+        <div class="grid g3">
+          <div class="field" data-key="pfirst">
+            <label>Patient first name <span class="req">*</span></label>
+            <input type="text" id="pfirst" placeholder="Marcus">
+          </div>
+          <div class="field" data-key="plast">
+            <label>Patient last name <span class="req">*</span></label>
+            <input type="text" id="plast" placeholder="Grant">
+          </div>
+          <div class="field">
+            <label>Your order reference <span class="opt-tag">optional</span></label>
+            <input type="text" id="ref" placeholder="e.g. JOB-2291">
+            <div class="hint">Appears on your invoice if supplied.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Frame -->
+    <section class="card" id="sec-frame" data-step="Frame">
+      <div class="card-h">
+        <div class="idx">2</div>
+        <div><h2>Frame &amp; measurements</h2><div class="sub">Job type and the frame the lenses have to fit.</div></div>
+        <div class="hx">
+          <button class="iconbtn sm clear-sec" data-sec="frame" title="Clear this section">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="frame" title="Help">?</button>
+          <a class="iconbtn sm" href="https://classicvisions.net/rx-lab-services" target="_blank" rel="noopener" title="Rx lab services">↗</a>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-frame" title="Edit frame and measurements" aria-label="Edit frame and measurements">✎</button>
+        </div>
+      </div>
+      <div class="section-summary" aria-live="polite"></div>
+      <div class="card-b">
+        <div class="blk">How should we supply this job? <span class="req">*</span></div>
+        <div class="seg" id="scopeSeg" role="group">
+          <button type="button" data-scope="uncut" aria-pressed="true">Uncut Rx lenses</button>
+          <button type="button" data-scope="remote" aria-pressed="false">Remote edge</button>
+          <button type="button" data-scope="glaze" aria-pressed="false">Full glaze</button>
+        </div>
+        <p class="segnote" id="scopeNote"></p>
+      </div>
+
+      <div class="card-b hide" id="shapeBlock">
+        <div class="blk" id="shapeBlkLabel">Standard shape <span class="opt-tag">gives a live preview and a true ED</span></div>
+        <div class="shapepick" id="shapePick"></div>
+        <input type="file" id="libInput" accept=".oma,.tr,.vca" multiple class="hide">
+        <p class="hint" id="shapeHint" style="margin-top:10px"></p>
+      </div>
+
+      <div class="card-b hide" id="stdShapeCta">
+        <button class="btn btn-ghost btn-sm" id="openStdShapes">⬡ Use a standard shape instead</button>
+        <p class="hint" style="margin-top:7px">Remote edge normally cuts to your uploaded trace. Only reach for a standard shape if you have no trace file.</p>
+      </div>
+
+      <div class="card-b hide" id="frameSummary"></div>
+
+      <div class="card-b" id="frameDetail">
+        <div class="grid g3">
+          <div class="field" data-key="fname">
+            <label>Frame name / model <span class="req">*</span></label>
+            <input type="text" id="fname" placeholder="e.g. Ray-Ban RB5154">
+          </div>
+          <div class="field">
+            <label>Mount type <span class="req">*</span></label>
+            <select id="mount">
+              <option value="" disabled selected>Choose…</option>
+              <option value="full">Full rim</option>
+              <option value="supra">Supra / nylon</option>
+              <option value="rimless">Rimless — drill mount</option>
+            </select>
+          </div>
+          <div class="field" id="fsourceField">
+            <label>Frame supplied by</label>
+            <select id="fsource">
+              <option>Customer — shipping to lab</option>
+              <option>Classic Visions stock frame</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid g5" style="margin-top:13px">
+          <div class="field" data-key="fa"><label>A <span class="req">*</span></label><input type="text" inputmode="decimal" id="fa" placeholder="52.0"></div>
+          <div class="field" data-key="fb"><label>B <span class="req">*</span></label><input type="text" inputmode="decimal" id="fb" placeholder="38.0"></div>
+          <div class="field auto" data-key="fed">
+            <label>ED <span class="req">*</span><span class="opt-tag">calculated</span></label>
+            <input type="text" inputmode="decimal" id="fed" placeholder="—">
+            <div class="hint calc" id="edHint">Auto from A and B — editable</div>
+          </div>
+          <div class="field" data-key="fdbl"><label>DBL <span class="req">*</span></label><input type="text" inputmode="decimal" id="fdbl" placeholder="18.0"></div>
+          <div class="field" data-key="ftemple"><label>Temple <span class="opt-tag">optional</span></label><input type="text" inputmode="decimal" id="ftemple" placeholder="140"></div>
+        </div>
+      </div>
+
+      <div class="card-b hide" id="traceBlock">
+        <div class="blk">Frame trace file <span class="req">*</span></div>
+        <div class="drop" id="drop">
+          <div class="di">⬆</div>
+          <div class="dt">Drop your trace file here, or click to browse</div>
+          <div class="ds">.oma · .tr · .vca — exported from your tracer</div>
+        </div>
+        <input type="file" id="fileInput" accept=".oma,.tr,.vca" class="hide">
+        <div id="fileList"></div>
+      </div>
+
+      <div class="card-b hide" id="previewBlock">
+        <div id="shapePreview"></div>
+      </div>
+    </section>
+
+    <!-- 3 · Lens -->
+    <section class="card" id="sec-lens" data-step="Lens">
+      <div class="card-h">
+        <div class="idx">3</div>
+        <div><h2>Lens selection</h2><div class="sub">Only combinations that exist on your pricelist are offered.</div></div>
+        <div class="hx">
+          <button class="iconbtn sm clear-sec" data-sec="lens" title="Clear this section">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="lens" title="Help">?</button>
+          <a class="iconbtn sm" href="https://classicvisions.net/lens-design-guide" target="_blank" rel="noopener" title="Lens design guide">↗</a>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-lens" title="Edit lens selection" aria-label="Edit lens selection">✎</button>
+        </div>
+      </div>
+      <div class="section-summary" aria-live="polite"></div>
+
+      <div class="card-b">
+        <div class="grid g2">
+          <div>
+            <div class="blk">Vision type <span class="req">*</span></div>
+            <div class="seg sm" id="visionSeg" role="group">
+              <button type="button" data-vision="sv" aria-pressed="true">Single vision</button>
+              <button type="button" data-vision="mf" aria-pressed="false">Multifocal / Progressive</button>
+            </div>
+          </div>
+          <div>
+            <div class="blk">Eyes to supply <span class="req">*</span></div>
+            <div class="seg sm" id="eyeSeg" role="group">
+              <button type="button" data-eyes="pair" aria-pressed="true">Pair</button>
+              <button type="button" data-eyes="od" aria-pressed="false">Right only</button>
+              <button type="button" data-eyes="os" aria-pressed="false">Left only</button>
+            </div>
+          </div>
+        </div>
+        <div id="purposeBlock" style="margin-top:15px">
+          <div class="blk">Rx purpose <span class="req">*</span><span class="tag">drives PD fields</span></div>
+          <div class="seg sm" id="purposeSeg" role="group">
+            <button type="button" data-purpose="dist" aria-pressed="true">Distance</button>
+            <button type="button" data-purpose="read" aria-pressed="false">Reading</button>
+            <button type="button" data-purpose="inter" aria-pressed="false">Intermediate</button>
+          </div>
+          <p class="segnote" id="purposeNote"></p>
+        </div>
+      </div>
+
+      <div class="card-b">
+        <div class="blk">Choose in any order — each list narrows the others · type to search <span class="tag" id="comboCount"></span></div>
+        <div class="grid g3">
+          <div class="field combo"><label>1 · Material / index <span class="req">*</span></label>
+            <input type="text" class="cbx" id="material" placeholder="Type or choose…" autocomplete="off">
+            <button type="button" class="cbtog" tabindex="-1">▾</button>
+            <div class="cblist" id="materialList"></div></div>
+          <div class="field combo"><label>2 · Lens design / type <span class="req">*</span></label>
+            <input type="text" class="cbx" id="design" placeholder="Type or choose…" autocomplete="off">
+            <button type="button" class="cbtog" tabindex="-1">▾</button>
+            <div class="cblist" id="designList"></div></div>
+          <div class="field combo"><label>3 · Lens colour option <span class="req">*</span></label>
+            <input type="text" class="cbx" id="colour" placeholder="Type or choose…" autocomplete="off">
+            <button type="button" class="cbtog" tabindex="-1">▾</button>
+            <div class="cblist" id="colourList"></div></div>
+        </div>
+        <div class="callout" style="margin-top:13px"><span class="ci">◎</span><span id="lensName">Pick a material, design and colour to name the lens.</span></div>
+      </div>
+
+      <div class="card-b">
+        <details class="adv" id="advLens">
+          <summary>Advanced — blank diameter, corridor and base curve <span id="advSummary" style="margin-left:auto;font-weight:500;opacity:.75"></span></summary>
+          <div class="advbody">
+            <div class="grid g3">
+              <div class="field auto">
+                <label>Blank diameter <span class="opt-tag">suggested</span></label>
+                <select id="diam"></select>
+                <div class="hint calc" id="diamHint">Enter frame measures and PD for a suggestion.</div>
+              </div>
+              <div class="field" id="corridorField">
+                <label>Corridor length</label>
+                <select id="corridor"><option value="11">11 mm — short</option><option value="13" selected>13 mm — standard</option><option value="15">15 mm — long</option></select>
+              </div>
+              <div class="field">
+                <label>Base curve</label>
+                <select id="basecurve"><option value="auto" selected>Lab's choice (recommended)</option><option>2.00</option><option>4.00</option><option>6.00</option><option>8.00</option></select>
+              </div>
+            </div>
+            <p class="hint" style="margin-top:10px">Leave these alone unless you have a reason — the lab picks sensibly from the Rx and the frame.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- 4 · Rx -->
+    <section class="card" id="sec-rx" data-step="Rx">
+      <div class="card-h">
+        <div class="idx">4</div>
+        <div><h2>Prescription</h2><div class="sub">Type it any way — we normalise to minus cyl, 0.25 steps, signed.</div></div>
+        <div class="hx">
+          <button class="iconbtn sm clear-sec" data-sec="rx" title="Clear this section">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="rx" title="Help">?</button>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-rx" title="Edit prescription" aria-label="Edit prescription">✎</button>
+        </div>
+      </div>
+      <div class="section-summary" aria-live="polite"></div>
+      <div class="card-b">
+        <div class="rxwrap">
+          <table class="rxtable">
+            <thead><tr>
+              <th></th><th>Sphere</th><th>Cylinder</th><th>Axis</th>
+              <th class="c-add">Add</th>
+              <th class="c-pd">Dist PD</th><th class="c-npd">Near PD</th><th class="c-ht" id="htLabel">Fitting ht</th>
+              <th>Prism</th><th>Base</th>
+            </tr></thead>
+            <tbody>
+              <tr data-eye="od">
+                <td><span class="eye"><b>OD</b><span>RIGHT</span></span></td>
+                <td><input type="text" inputmode="decimal" data-f="sph" placeholder="+0.00"></td>
+                <td><input type="text" inputmode="decimal" data-f="cyl" placeholder="-0.00"></td>
+                <td><input type="text" inputmode="numeric" data-f="axis" placeholder="—"></td>
+                <td class="c-add"><input type="text" inputmode="decimal" data-f="add" placeholder="+0.00"></td>
+                <td class="c-pd"><input type="text" inputmode="decimal" data-f="pd" placeholder="32.0"></td>
+                <td class="c-npd"><input type="text" inputmode="decimal" data-f="npd" placeholder="30.0"></td>
+                <td class="c-ht"><input type="text" inputmode="decimal" data-f="ht" placeholder="22.0"></td>
+                <td><input type="text" inputmode="decimal" data-f="prism" placeholder="0.00"></td>
+                <td><select data-f="base"><option value="">—</option><option>IN</option><option>OUT</option><option>UP</option><option>DOWN</option></select></td>
+              </tr>
+              <tr data-eye="os">
+                <td><span class="eye"><b>OS</b><span>LEFT</span></span></td>
+                <td><input type="text" inputmode="decimal" data-f="sph" placeholder="+0.00"></td>
+                <td><input type="text" inputmode="decimal" data-f="cyl" placeholder="-0.00"></td>
+                <td><input type="text" inputmode="numeric" data-f="axis" placeholder="—"></td>
+                <td class="c-add"><input type="text" inputmode="decimal" data-f="add" placeholder="+0.00"></td>
+                <td class="c-pd"><input type="text" inputmode="decimal" data-f="pd" placeholder="31.5"></td>
+                <td class="c-npd"><input type="text" inputmode="decimal" data-f="npd" placeholder="29.5"></td>
+                <td class="c-ht"><input type="text" inputmode="decimal" data-f="ht" placeholder="22.0"></td>
+                <td><input type="text" inputmode="decimal" data-f="prism" placeholder="0.00"></td>
+                <td><select data-f="base"><option value="">—</option><option>IN</option><option>OUT</option><option>UP</option><option>DOWN</option></select></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="rxtools">
+          <button class="linkbtn" id="copyOD">⇊ Copy OD to OS</button>
+          <button class="linkbtn" id="clearRx">✕ Clear Rx</button>
+        </div>
+        <div id="rxPrompts"></div>
+        <div id="rxErrors" style="margin-top:11px"></div>
+        <label class="confirmrow" style="margin-top:13px"><input type="checkbox" id="plusCylOn">
+          <span>Prescription written in plus cylinder — enter it as prescribed, we'll convert to minus cyl above</span></label>
+        <div class="card-b hide" id="plusCylBlock" style="padding:13px 0 0">
+          <div class="blk">As prescribed <span class="opt-tag">plus cylinder — converts to the minus-cyl table above; both print</span></div>
+          <div class="rxwrap">
+            <table class="rxtable">
+              <thead><tr><th></th><th>Sphere</th><th>Cylinder</th><th>Axis</th></tr></thead>
+              <tbody>
+                <tr data-eye="od">
+                  <td><span class="eye"><b>OD</b><span>RIGHT</span></span></td>
+                  <td><input type="text" inputmode="decimal" id="pc-od-sph" data-pf="sph" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="decimal" id="pc-od-cyl" data-pf="cyl" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="numeric" id="pc-od-axis" data-pf="axis" placeholder="—"></td>
+                </tr>
+                <tr data-eye="os">
+                  <td><span class="eye"><b>OS</b><span>LEFT</span></span></td>
+                  <td><input type="text" inputmode="decimal" id="pc-os-sph" data-pf="sph" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="decimal" id="pc-os-cyl" data-pf="cyl" placeholder="+0.00"></td>
+                  <td><input type="text" inputmode="numeric" id="pc-os-axis" data-pf="axis" placeholder="—"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · Treatments -->
+    <section class="card" id="sec-treat" data-step="Treatments">
+      <div class="card-h">
+        <div class="idx">5</div>
+        <div><h2>Coatings &amp; treatments</h2><div class="sub">Combine freely — incompatible pairs grey out with the reason.</div></div>
+        <div class="hx">
+          <button class="iconbtn sm clear-sec" data-sec="treat" title="Clear this section">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="treat" title="Help">?</button>
+          <a class="iconbtn sm" href="https://classicvisions.net/coatings" target="_blank" rel="noopener" title="Coatings">↗</a>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-treat" title="Edit coatings and treatments" aria-label="Edit coatings and treatments">✎</button>
+        </div>
+      </div>
+      <div class="section-summary" aria-live="polite"></div>
+      <div class="card-b">
+        <div class="blk">Popular choices</div>
+        <div class="opts" id="popOpts"></div>
+        <div style="margin-top:12px;display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-ghost btn-sm" id="openTreat">⊞ Browse all treatments</button>
+          <span class="hint" style="margin:0">Prices appear in the live quote as you select.</span>
+        </div>
+        <div class="chipset" id="treatChips"></div>
+        <div id="tintCfg"></div>
+      </div>
+
+      <div class="card-b">
+        <div class="blk">Chemistrie magnetic layer <span class="opt-tag">clip-on second lens, held magnetically · up to 3 clips per order</span></div>
+        <label class="chk" id="chemToggle" style="max-width:340px">
+          <input type="checkbox" id="chemOn">
+          <span><span class="cn">Add a Chemistrie layer</span>
+          <span class="cd">Custom-cut magnetic overlay made to this same frame shape</span></span>
+        </label>
+        <div id="chemCfg"></div>
+      </div>
+
+      <div class="card-b" id="suggBlock"></div>
+    </section>
+
+    <!-- 6 · Delivery -->
+    <section class="card" id="sec-notes" data-step="Delivery">
+      <div class="card-h">
+        <div class="idx">6</div>
+        <div><h2>Delivery &amp; notes</h2><div class="sub">Anything the lab should know before it starts.</div></div>
+        <div class="hx">
+          <button class="iconbtn sm clear-sec" data-sec="notes" title="Clear this section">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="delivery" title="Help">?</button>
+          <button class="iconbtn sm section-edit" data-edit-section="sec-notes" title="Edit delivery and notes" aria-label="Edit delivery and notes">✎</button>
+        </div>
+      </div>
+      <div class="section-summary" aria-live="polite"></div>
+      <div class="card-b">
+        <div class="grid g2">
+          <div class="field"><label>Service level</label>
+            <select id="service"><option value="std">Standard — 5–7 working days</option><option value="pri">Priority — 3 working days (+15%)</option></select></div>
+          <div class="field"><label>Delivery</label>
+            <select id="delivery"><option>Weekly courier run</option><option>Collect from lab</option><option>Ship — overnight</option></select></div>
+        </div>
+        <div class="field" style="margin-top:13px"><label>Notes to the lab</label>
+          <textarea id="notes" placeholder="e.g. Patient is a previous progressive wearer — match old fitting height."></textarea></div>
+        <label class="confirmrow" style="margin-top:13px"><input type="checkbox" id="notesConfirmed">
+          <span>Nothing else to add — mark this section done</span></label>
+      </div>
+    </section>
+
+    <div class="nextcue hide" id="nextCue"></div>
+  </div>
+
+  <aside class="quote">
+    <div class="qcard">
+      <div class="qhead">
+        <div class="ql" id="qLabel">Live quote</div>
+        <div class="qtotal"><span class="cur" id="qCur">BBD $</span><span class="amt" id="qAmt">0.00</span></div>
+        <div class="qsub" id="qSub">choose a lens to start pricing</div>
+      </div>
+      <div class="qlines" id="qLines"></div>
+      <div class="qfoot">
+        <div class="row"><span>Subtotal</span><span id="qSubtotal">0.00</span></div>
+        <div class="row big"><span>Order total</span><span id="qTotal">0.00</span></div>
+      </div>
+      <div class="qflag hide" id="qFlag"><span>⚑</span><span id="qFlagTxt"></span></div>
+    </div>
+
+    <div class="vcard">
+      <h3>Before you can submit</h3>
+      <ul class="vlist" id="vList"></ul>
+      <div class="vbar"><i id="vBar"></i></div>
+      <div class="assistlist" id="assistList"><h4>⚑ Flagged for assistance</h4><div id="assistTags"></div></div>
+    </div>
+
+    <div class="qactions">
+      <button class="btn btn-primary" id="submitBtn" disabled>Submit to cart</button>
+      <button class="btn btn-ghost" id="saveDraft2">Save as draft</button>
+      <button class="btn btn-ghost" id="printBtn">🖨 Print order sheet</button>
+      <p class="gatenote">Incomplete orders can only be saved as drafts. Drafts are printable and resumable.</p>
+    </div>
+  </aside>
+</div>
+
+<div class="mobar">
+  <div class="mtot"><span id="mCur">BBD $ · order total</span><b id="mAmt">0.00</b></div>
+  <button class="btn btn-ghost btn-sm" id="saveDraft3">Draft</button>
+  <button class="btn btn-primary" id="submitBtn2" disabled>Submit to cart</button>
+</div>
+
+<div class="scrim" id="branchScrim">
+  <div class="modal branch-modal" style="width:min(500px,100%)">
+    <div class="mhead"><h2>Which store is this order for?</h2>
+      <p>Your login covers more than one location. Pricing, delivery and invoicing follow the store you pick.</p></div>
+    <div class="mbody">
+      <div class="searchbox"><span class="si">⌕</span><input type="text" id="branchSearch" placeholder="Search by name or ERP account…" autocomplete="off"></div>
+      <div class="choices" id="branchList"></div>
+      <p class="gatenote" style="margin-top:13px">You can change it later from the header, but you'll be asked to confirm.</p>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="mhead">
+      <div class="tick">✓</div>
+      <h2>Added to your cart</h2>
+      <p>Price is now locked at this quote and will be honoured through checkout.</p>
+      <div class="msum" id="mSum"></div>
+    </div>
+    <div class="mbody">
+      <div class="lbl">What next?</div>
+      <div class="choices">
+        <button class="choice pri" data-next="checkout"><span class="ci">→</span>
+          <span><span class="cn">Checkout now</span><span class="cd">Pay or place on account with everything in your cart</span></span><span class="arr">›</span></button>
+        <button class="choice" data-next="duplicate"><span class="ci">⧉</span>
+          <span><span class="cn">Duplicate this order</span><span class="cd">Same Rx and lens again — adjust the copy in the cart</span></span><span class="arr">›</span></button>
+        <button class="choice" data-next="another"><span class="ci">＋</span>
+          <span><span class="cn">Start another Rx order</span><span class="cd">Fresh form — this job stays in the cart</span></span><span class="arr">›</span></button>
+        <button class="choice" data-next="shop"><span class="ci">⌕</span>
+          <span><span class="cn">Continue shopping</span><span class="cd">Back to the store for stock lenses and supplies</span></span><span class="arr">›</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<aside class="sdraw" id="treatDrawer">
+  <div class="sd-h"><div><h3>All treatments</h3><div class="cnt" id="treatCount">0 selected</div></div><button class="sd-x" id="treatClose">✕</button></div>
+  <div class="sd-b">
+    <div class="searchbox"><span class="si">⌕</span><input type="text" id="treatSearch" placeholder="Search treatments…"></div>
+    <div id="treatList"></div>
+  </div>
+  <div class="sd-f"><button class="btn btn-primary" id="treatDone">Done</button></div>
+</aside>
+
+<aside class="sdraw" id="payloadDrawer" style="width:560px">
+  <div class="sd-h"><div><h3>Order payload</h3><div class="cnt">What travels to draft, cart and reorder</div></div>
+    <button class="sd-x" id="payloadClose">✕</button></div>
+  <div class="sd-b" id="payloadBody"></div>
+  <div class="sd-f"><button class="btn btn-ghost" id="payloadCopy">Copy JSON</button></div>
+</aside>
+
+<aside class="sdraw" id="coachDrawer">
+  <div class="sd-h"><div><h3>Order coach</h3><div class="cnt">Plain-English help for this form</div></div><button class="sd-x" id="coachClose">✕</button></div>
+  <div class="sd-b" id="coachBody"></div>
+  <div class="sd-f"><button class="btn btn-ghost" id="coachFlag">⚑ Still stuck — flag this order for assistance</button></div>
+</aside>
+
+<div class="toast" id="toast"><span id="toastMsg"></span><span id="toastActions"></span></div>
+
+<div id="annoUI">
+  <div id="annoHi"></div>
+  <div id="annoLayer"></div>
+  <div class="annobar" id="annoBar">
+    <span class="ab-t">Annotate mode — click any element · <b id="abCount">0</b> notes</span>
+    <button class="btn btn-ghost btn-sm" id="abGeneral">＋ General note</button>
+    <button class="btn btn-teal btn-sm" id="abList">Review &amp; export</button>
+    <button class="btn btn-ghost btn-sm" id="abExit">Done</button>
+  </div>
+  <div class="annopop" id="annoPop">
+    <div class="ap-l">Note on</div>
+    <div class="ap-el" id="apEl">—</div>
+    <textarea id="apText" placeholder="What would you change here, and why?"></textarea>
+    <div class="pri" id="apPri">
+      <button type="button" data-p="must" aria-pressed="false">Must change</button>
+      <button type="button" data-p="prefer" aria-pressed="true">I'd prefer</button>
+      <button type="button" data-p="idea" aria-pressed="false">Idea</button>
+    </div>
+    <div class="ap-actions">
+      <button class="btn btn-primary" id="apSave">Save note</button>
+      <button class="btn btn-ghost" id="apCancel">Cancel</button>
+      <button class="ap-del" id="apDel" style="display:none">Delete</button>
+    </div>
+  </div>
+  <aside class="sdraw" id="annoDrawer">
+    <div class="sd-h"><div><h3>Your notes</h3><div class="cnt" id="drCount">0 notes</div></div><button class="sd-x" id="drClose">✕</button></div>
+    <div class="sd-b" id="drBody"></div>
+    <div class="sd-f dr-f">
+      <div class="row"><button class="btn btn-primary" id="drCopy">Copy markdown</button><button class="btn btn-ghost" id="drDownload">Download .md</button></div>
+      <div class="row"><button class="btn btn-ghost btn-sm" id="drClear" style="flex:1;height:32px">Clear all notes</button></div>
+      <p class="tiny">Saves as <b>rx-order-form-FEEDBACK.md</b> — drop it in the project folder or paste it into chat.</p>
+    </div>
+  </aside>
+</div>

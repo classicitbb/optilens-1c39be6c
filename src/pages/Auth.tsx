@@ -13,6 +13,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
+<<<<<<< Updated upstream
+=======
+import { startPortalEmulation, stopPortalEmulation } from "@/lib/portalEmulation";
+>>>>>>> Stashed changes
 import {
   type AuthAudience,
   type AuthIntent,
@@ -97,6 +101,34 @@ const Auth = () => {
     navigate(redirect, { replace: true });
   }, [user, mode, currentStep, navigate, redirect]);
 
+<<<<<<< Updated upstream
+=======
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tokenHash = params.get("emulate_token_hash");
+    const type = params.get("emulate_type");
+    const userId = params.get("emulate_user_id");
+    const label = params.get("emulate_label");
+    if (!tokenHash || !type || !userId || !label || emulationHandled.current) return;
+
+    emulationHandled.current = true;
+    startPortalEmulation({ userId, label, mode: "signed-in-as" });
+    void supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "magiclink" | "email" })
+      .then(({ error }) => {
+        if (error) throw error;
+      })
+      .catch((error: unknown) => {
+        emulationHandled.current = false;
+        // A failed redemption must not leave the "signed-in-as" marker behind:
+        // stale state here would otherwise get misread as active emulation
+        // (or silently withhold the emulated user's full account access)
+        // once the admin lands on a real session in this tab.
+        stopPortalEmulation();
+        toast({ title: "Could not sign in as customer", description: error instanceof Error ? error.message : "The preview session could not be started.", variant: "destructive" });
+      });
+  }, [location.search, toast]);
+
+>>>>>>> Stashed changes
   const syncFlow = (next: {
     mode?: AuthMode;
     audience?: AuthAudience | null;

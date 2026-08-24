@@ -12,7 +12,11 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 const HelpdeskTicketsSection = () => {
-  const { identity, emulation, effectiveUserId } = usePortalIdentity();
+  const { identity, emulation, portalSessionEmulation, effectiveUserId } = usePortalIdentity();
+  // Read-only identity preview only: a real "signed in as" emulation session
+  // (portalSessionEmulation) is a genuine customer auth session and gets full
+  // write access, same as the customer signing in themselves.
+  const submissionDisabled = !!emulation && !portalSessionEmulation;
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -73,6 +77,7 @@ const HelpdeskTicketsSection = () => {
         <CardDescription>Create tickets and follow updates from support.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+<<<<<<< Updated upstream
         <div className="space-y-3 rounded-lg border p-4">
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ticket title" />
           <Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe your issue." />
@@ -80,6 +85,11 @@ const HelpdeskTicketsSection = () => {
             <Plus className="mr-2 h-4 w-4" />
             Create ticket
           </Button>
+=======
+        <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div><h3 className="font-semibold">Start a support request</h3><p className="mt-1 text-sm text-muted-foreground">The assistant opens a spacious, editable form with your signed-in account context.</p></div>
+          <Button type="button" className="shrink-0 gap-2" disabled={submissionDisabled} title={submissionDisabled ? "Submitting is disabled while previewing a customer read-only" : undefined} onClick={() => openAssistant({ profile: "portal_support", formKind: "portal_support" })}><MessageCircle className="h-4 w-4" />Request support</Button>
+>>>>>>> Stashed changes
         </div>
         <div className="space-y-2">
           {!tickets.length ? <p className="text-sm text-muted-foreground">No tickets yet.</p> : null}
