@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * DocStudioEmbed — mounts the Doc Studio dc-runtime natively in the admin page
@@ -28,11 +30,7 @@ const SCRIPT_SOURCES = [
   `${DS_BASE}/studio-logic.js`,
 ];
 
-const STYLESHEET_HREFS = [
-  "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap",
-  "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200",
-  DESIGN_SYSTEM_CSS,
-];
+const STYLESHEET_HREFS = [DESIGN_SYSTEM_CSS];
 
 /**
  * Scoped replacement for studio.html's <style> block. The original targets
@@ -78,22 +76,32 @@ function loadScript(src: string): Promise<void> {
 }
 
 function loadStylesheet(href: string) {
-  if (document.querySelector(`link[data-ds-native="${href}"]`)) return;
-  const l = document.createElement("link");
-  l.rel = "stylesheet";
-  l.href = href;
-  l.dataset.dsNative = href;
-  document.head.appendChild(l);
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLLinkElement>(`link[data-ds-native="${href}"]`);
+    if (existing?.sheet) {
+      resolve();
+      return;
+    }
+    const link = existing ?? document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.dsNative = href;
+    link.onload = () => resolve();
+    link.onerror = () => reject(new Error(`Failed to load ${href}`));
+    if (!existing) document.head.appendChild(link);
+  });
 }
 
 function loadAssets(): Promise<void> {
   if (!assetsPromise) {
     assetsPromise = (async () => {
-      STYLESHEET_HREFS.forEach(loadStylesheet);
-      const style = document.createElement("style");
-      style.dataset.dsNative = "native-css";
-      style.textContent = NATIVE_CSS;
-      document.head.appendChild(style);
+      await Promise.all(STYLESHEET_HREFS.map(loadStylesheet));
+      if (!document.querySelector('style[data-ds-native="native-css"]')) {
+        const style = document.createElement("style");
+        style.dataset.dsNative = "native-css";
+        style.textContent = NATIVE_CSS;
+        document.head.appendChild(style);
+      }
       // Sequential: each script depends on the previous ones being executed.
       for (const src of SCRIPT_SOURCES) {
         await loadScript(src);
@@ -154,14 +162,30 @@ const DocStudioEmbed = () => {
   const hostRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  const retry = useCallback(() => {
+    assetsPromise = null;
+    templatePromise = null;
+    setError(null);
+    setReady(false);
+    setAttempt((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const [markup] = await Promise.all([fetchTemplateMarkup(), loadAssets()]);
       if (cancelled || !hostRef.current) return;
+      hostRef.current.replaceChildren();
       hostRef.current.innerHTML = markup;
-      window.__dcBoot?.();
+      if (typeof window.__dcBoot !== "function") {
+        throw new Error("The document editor did not start correctly.");
+      }
+      window.__dcBoot();
+      if (!hostRef.current.querySelector("#dc-root")) {
+        throw new Error("The document editor did not finish mounting.");
+      }
       if (!cancelled) setReady(true);
     })().catch((err) => {
       if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -169,7 +193,7 @@ const DocStudioEmbed = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -179,8 +203,19 @@ const DocStudioEmbed = () => {
         </div>
       )}
       {error && (
-        <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-destructive">
-          Doc Studio failed to load: {error}
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div role="alert" className="w-full max-w-lg border border-destructive/40 bg-background p-6 text-center shadow-sm">
+            <AlertTriangle className="mx-auto h-7 w-7 text-destructive" aria-hidden="true" />
+            <h2 className="mt-3 text-base font-semibold text-foreground">Doc Studio could not load</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your saved documents are safe. Check your connection, then try loading the editor again.
+            </p>
+            <p className="mt-3 break-words font-mono text-xs text-destructive">{error}</p>
+            <Button type="button" className="mt-5 rounded-none" onClick={retry}>
+              <RefreshCw aria-hidden="true" />
+              Retry Doc Studio
+            </Button>
+          </div>
         </div>
       )}
       <div
