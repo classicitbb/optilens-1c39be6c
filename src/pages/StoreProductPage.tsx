@@ -9,6 +9,7 @@ import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { getStableStoreProductCartId, useStoreProducts } from "@/hooks/useStoreProducts";
+import { useTradePricing } from "@/hooks/useTradePricing";
 import { useBulkAddVariantsToCart, useProductVariantSettings, useProductVariants } from "@/hooks/useProductVariants";
 import LensVariantGrid from "@/components/lenses/LensVariantGrid";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +27,8 @@ const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
 
 const StoreProductPage = () => {
   const { productId, productType } = useParams<{ productId: string; productType: "lens" | "supply" | "addon" }>();
-  const { data: products, isLoading } = useStoreProducts();
+  const { tradePricing, customerId: tradeCustomerId, isTradeCustomer } = useTradePricing();
+  const { data: products, isLoading } = useStoreProducts(tradePricing, tradeCustomerId);
   const { addToCart, refetch } = useCartContext();
   const { toast } = useToast();
   const addVariantsMutation = useBulkAddVariantsToCart();
@@ -167,6 +169,9 @@ const StoreProductPage = () => {
                           </span>
                         </div>
                         <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</div>
+                        {isTradeCustomer && (
+                          <div className="text-[10px] font-semibold uppercase tracking-wide text-accent">Trade price</div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">

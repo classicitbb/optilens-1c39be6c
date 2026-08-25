@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { TradePriceMap } from "@/hooks/useTradePricing";
 
 export interface StoreProduct {
   id: string;
@@ -88,7 +89,7 @@ const fetchAllSafeRows = async (fnName: "get_lenses_safe" | "get_supplies_safe" 
   return { data: rows, error: null };
 };
 
-export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
+export const fetchStoreProducts = async (tradePricing?: TradePriceMap | null): Promise<StoreProduct[]> => {
   const [lensRes, supplyRes, addonRes, mediaRes, overrideRes, variantSummaryRes] = await Promise.all([
     fetchAllSafeRows("get_lenses_safe"),
     fetchAllSafeRows("get_supplies_safe"),
@@ -128,6 +129,18 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     return usdFxRate > 0 ? numericPrice / usdFxRate : numericPrice;
   };
 
+  // Trade price, when the signed-in customer's assigned pricelist has a row
+  // for this item, replaces the flat catalog price — same BBD figure their
+  // account pricelist page and Rx order form show, converted through the
+  // same FX rate as everything else on this page.
+  const tradePriceBbd = (productType: "lens" | "supply" | "addon", id: string, fallbackBbd: number) => {
+    if (!tradePricing) return fallbackBbd;
+    const override = productType === "lens"
+      ? tradePricing.lensPriceByLensId.get(id)
+      : tradePricing.itemPriceByItemId.get(id);
+    return override ?? fallbackBbd;
+  };
+
   const mediaMap = new Map<string, string[]>();
   for (const row of mediaRows) {
     const key = `${row.product_type}:${row.product_id}`;
@@ -151,15 +164,17 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
   const supplyRows = readRows<any>(supplyRes, { optional: true }).map((row: any) => ({ ...row, __product_type: "supply" })).filter(published);
   const addonRows = readRows<any>(addonRes, { optional: true }).map((row: any) => ({ ...row, __product_type: "addon" })).filter(published);
 
-  const lenses: StoreProduct[] = lensRows.map((l: any) => ({
+  const lenses: StoreProduct[] = lensRows.map((l: any) => {
+    const price = tradePriceBbd("lens", l.id, Number(l.sell_price ?? 0));
+    return {
     ...(overrideMap.get(`lens:${l.id}`) ?? {}),
     id: l.id,
     name: l.name,
     sku: null,
     description: l.notes || "Premium prescription lens",
     quantity_label: overrideMap.get(`lens:${l.id}`)?.quantity_label || "pair",
-    sell_price: Number(l.sell_price ?? 0),
-    sell_price_usd: normalizeUsdPrice(l.sell_price),
+    sell_price: price,
+    sell_price_usd: normalizeUsdPrice(price),
     is_vat_taxable: Boolean(overrideMap.get(`lens:${l.id}`)?.is_vat_taxable),
     product_type: "lens" as const,
     category: "Lens",
@@ -168,17 +183,19 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     image_url: (mediaMap.get(`lens:${l.id}`) ?? [])[0] || null,
     image_urls: mediaMap.get(`lens:${l.id}`) ?? [],
     has_variants: (variantSummaryMap.get(`lens:${l.id}`) ?? 0) > 0,
-  }));
+  };});
 
-  const supplies: StoreProduct[] = supplyRows.map((s: any) => ({
+  const supplies: StoreProduct[] = supplyRows.map((s: any) => {
+    const price = tradePriceBbd("supply", s.id, Number(s.sell_price ?? 0));
+    return {
     ...(overrideMap.get(`supply:${s.id}`) ?? {}),
     id: s.id,
     name: s.name,
     sku: s.sku ?? null,
     description: s.description || "",
     quantity_label: overrideMap.get(`supply:${s.id}`)?.quantity_label || `${s.quantity_per_unit} ${s.unit}`.trim(),
-    sell_price: Number(s.sell_price ?? 0),
-    sell_price_usd: normalizeUsdPrice(s.sell_price),
+    sell_price: price,
+    sell_price_usd: normalizeUsdPrice(price),
     is_vat_taxable: Boolean(overrideMap.get(`supply:${s.id}`)?.is_vat_taxable),
     product_type: "supply" as const,
     category: s.category,
@@ -187,17 +204,19 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     image_url: (mediaMap.get(`supply:${s.id}`) ?? [])[0] || s.image_url || null,
     image_urls: (mediaMap.get(`supply:${s.id}`) ?? []).length > 0 ? (mediaMap.get(`supply:${s.id}`) ?? []) : (s.image_url ? [s.image_url] : []),
     has_variants: (variantSummaryMap.get(`supply:${s.id}`) ?? 0) > 0,
-  }));
+  };});
 
-  const addons: StoreProduct[] = addonRows.map((a: any) => ({
+  const addons: StoreProduct[] = addonRows.map((a: any) => {
+    const price = tradePriceBbd("addon", a.id, Number(a.price ?? 0));
+    return {
     ...(overrideMap.get(`addon:${a.id}`) ?? {}),
     id: a.id,
     name: a.name,
     sku: a.sku ?? null,
     description: a.description || "",
     quantity_label: overrideMap.get(`addon:${a.id}`)?.quantity_label || "service",
-    sell_price: Number(a.price ?? 0),
-    sell_price_usd: normalizeUsdPrice(a.price),
+    sell_price: price,
+    sell_price_usd: normalizeUsdPrice(price),
     is_vat_taxable: Boolean(overrideMap.get(`addon:${a.id}`)?.is_vat_taxable),
     product_type: "addon" as const,
     category: a.category || "Service",
@@ -206,14 +225,14 @@ export const fetchStoreProducts = async (): Promise<StoreProduct[]> => {
     image_url: (mediaMap.get(`addon:${a.id}`) ?? [])[0] || null,
     image_urls: mediaMap.get(`addon:${a.id}`) ?? [],
     has_variants: (variantSummaryMap.get(`addon:${a.id}`) ?? 0) > 0,
-  }));
+  };});
 
   return [...lenses, ...supplies, ...addons];
 };
 
-export const useStoreProducts = () => {
+export const useStoreProducts = (tradePricing?: TradePriceMap | null, tradeCustomerId?: number | null) => {
   return useQuery<StoreProduct[]>({
-    queryKey: ["store-products"],
-    queryFn: fetchStoreProducts,
+    queryKey: ["store-products", tradePricing ? tradeCustomerId ?? "trade" : "standard"],
+    queryFn: () => fetchStoreProducts(tradePricing),
   });
 };
