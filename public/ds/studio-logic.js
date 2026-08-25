@@ -154,7 +154,8 @@
       if (!handoff) return;
       const key = 'cv_doc_studio_staff_invite:' + handoff;
       const raw = sessionStorage.getItem(key);
-      sessionStorage.removeItem(key);
+      // Keep the handoff for this browser tab so a refresh reconstructs the
+      // same draft. sessionStorage is cleared when the tab closes.
       if (!raw) return;
       const invite = JSON.parse(raw);
       const name = String(invite.name || '').trim();
@@ -2320,6 +2321,11 @@
     const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ key: k, label: l, onClick: () => this.switchTab(k), style: this.tabStyle(tab === k) }));
     // Render real React buttons. Inline onclick attributes are blocked by the
     // production CSP and previously left every native-mounted tab except Email inert.
+    const _styleObject = (css) => Object.fromEntries(css.split(';').filter(Boolean).map(rule => {
+      const split = rule.indexOf(':');
+      const property = rule.slice(0, split).trim().replace(/-([a-z])/g, (_match, char) => char.toUpperCase());
+      return [property, rule.slice(split + 1).trim()];
+    }));
     const _mkTabBar = () => React.createElement(
       React.Fragment,
       null,
@@ -2327,7 +2333,7 @@
         key: item.key,
         type: 'button',
         onClick: item.onClick,
-        style: this.styleStringToObject(item.style)
+        style: _styleObject(item.style)
       }, item.label))
     );
     // Saved email templates are durable Doc Studio files. Rendering from the
