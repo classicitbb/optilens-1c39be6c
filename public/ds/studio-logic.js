@@ -130,7 +130,7 @@
     const billingDocumentId = new URLSearchParams(location.search).get('billingDocument');
     if (billingDocumentId) {
       this.switchTab('billing');
-      setTimeout(() => this.openBillingFile(billingDocumentId), 0);
+      this.openBillingFile(billingDocumentId);
     }
     this.loadFileShareUsers();
     this.loadBillShareUsers();
@@ -1031,7 +1031,7 @@
     postHtml = postHtml.replace(/src="assets\//g, `src="${base}assets/`);
     const w = window.open('','_blank','width=1200,height=900');
     if (!w) { this.toast('Allow pop-ups to open full size'); return; }
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(f.label)} — Classic Visions</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;padding:24px;background:#111;display:flex;flex-direction:column;align-items:center;min-height:100vh;box-sizing:border-box;gap:14px}.note{font:400 12px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#666;text-align:center}@media print{body{background:none;padding:0}.note{display:none}@page{size:${f.w}px ${f.h}px;margin:0}}</style></head><body><p class="note">${this.esc(f.label)} · ${f.sz} px — Screenshot or Cmd+P / Ctrl+P to export</p>${postHtml}</body></html>`);
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(f.label)} — Classic Visions</title><link rel="stylesheet" href="/ds/_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css"><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;padding:24px;background:#111;display:flex;flex-direction:column;align-items:center;min-height:100vh;box-sizing:border-box;gap:14px}.note{font:400 12px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#666;text-align:center}@media print{body{background:none;padding:0}.note{display:none}@page{size:${f.w}px ${f.h}px;margin:0}}</style></head><body><p class="note">${this.esc(f.label)} · ${f.sz} px — Screenshot or Cmd+P / Ctrl+P to export</p>${postHtml}</body></html>`);
     w.document.close();
   };
   savePost = () => {
@@ -1185,7 +1185,7 @@
     const w = window.open('', '_blank', 'width=860,height=1100');
     if (!w) { this.toast('Allow pop-ups to print'); return; }
     const paper = String(pageSize || 'letter').toLowerCase() === 'a4' ? 'A4' : 'letter';
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(title)} — Classic Visions</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif}@page{size:${paper};margin:6mm}@media print{body{background:#fff}.ds-bill-page{box-shadow:none!important}}</style></head><body>${html}</body></html>`);
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(title)} — Classic Visions</title><link rel="stylesheet" href="/ds/_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css"><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif}@page{size:${paper};margin:6mm}@media print{body{background:#fff}.ds-bill-page{box-shadow:none!important}}</style></head><body>${html}</body></html>`);
     w.document.close();
     setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 500);
   };
@@ -2317,12 +2317,19 @@
       const html = tab === 'email' ? this.buildEmail() : tab === 'letter' ? this.buildLetter() : tab === 'shiplabel' ? this.buildShippingLabel() : tab === 'statement' ? (d.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement()) : tab === 'billing' ? this.buildBilling() : this.buildSignatureBoard();
       previewNode = React.createElement('div', { style: { width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }, dangerouslySetInnerHTML: { __html: html } });
     }
-    const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ label: l, onClick: () => this.switchTab(k), style: this.tabStyle(tab === k) }));
-    // Both tab bars render from one freshly-computed HTML node per render (not sc-for),
-    // so the active-tab highlight always tracks state. Two identical, independent nodes
-    // avoid the runtime reconciling one shared list across two mount points.
-    const _tabBarHtml = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => `<button onclick="window._dsApp.switchTab('${k}')" style="${this.tabStyle(tab === k)}">${l}</button>`).join('');
-    const _mkTabBar = () => React.createElement('div', { style: { display: 'contents' }, dangerouslySetInnerHTML: { __html: _tabBarHtml } });
+    const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ key: k, label: l, onClick: () => this.switchTab(k), style: this.tabStyle(tab === k) }));
+    // Render real React buttons. Inline onclick attributes are blocked by the
+    // production CSP and previously left every native-mounted tab except Email inert.
+    const _mkTabBar = () => React.createElement(
+      React.Fragment,
+      null,
+      ...tabs.map(item => React.createElement('button', {
+        key: item.key,
+        type: 'button',
+        onClick: item.onClick,
+        style: this.styleStringToObject(item.style)
+      }, item.label))
+    );
     // Saved email templates are durable Doc Studio files. Rendering from the
     // same collection as My Files keeps the quick-reuse panel in sync after a
     // save, refresh, or a later sign-in instead of relying on local storage.

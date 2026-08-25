@@ -24,6 +24,7 @@
     "qa:edge-smoke": "node scripts/edge_functions_smoke.mjs",
     "qa:email-pipeline-smoke": "node scripts/email_pipeline_smoke.mjs",
     "qa:email-previews": "node scripts/check_email_preview_health.mjs",
+    "qa:doc-studio-smoke": "python3 scripts/doc_studio_native_smoke.py",
     "security:audit": "node scripts/audit-policy.mjs",
     "release-ledger:sync": "node scripts/sync_release_ledger.mjs",
     "supabase:types:generate": "npx supabase gen types typescript --local > src/integrations/supabase/types.ts",
