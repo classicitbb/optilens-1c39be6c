@@ -1,3 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="cloud-bridge.js"></script>
+  <title>Doc Studio — Classic Visions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <link rel="stylesheet" href="_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css">
+  <script src="react.production.min.js"></script>
+  <script src="react-dom.production.min.js"></script>
+  <script src="vendor/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
+  <script src="support.js"></script>
+  <script src="studio-logic.js"></script>
+  <link rel="stylesheet" href="_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css">
+  <style>
+    html,body{margin:0;height:100%;background:#e9e5da;font-family:'Plus Jakarta Sans',sans-serif}
+    [contenteditable]:empty:before{content:attr(data-ph);color:#a7aeb6}
+    [contenteditable]:focus{border-color:#1A8A9C !important}
+    .cv-in:focus{border-color:#1A8A9C !important;box-shadow:0 0 0 3px rgba(26,138,156,.12)}
+    .cv-scroll::-webkit-scrollbar{width:10px;height:10px}
+    .cv-scroll::-webkit-scrollbar-thumb{background:#cdc8ba;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+    /* Embedded mode: fill the iframe, no outer shell */
+    body.embedded { margin:0; height:100vh; overflow:hidden; background:#e9e5da; }
+    body.embedded #dc-root, body.embedded #dc-root>.sc-host { height:100% !important; }
+    /* Tab bar for the 7-tab layout */
+    .ds-topbar { display:none }
+    body:not(.embedded) .ds-topbar { display:flex }
+    /* In embedded mode the runtime re-renders the compact tab bar with an inline
+       display:none, so force it visible here (overrides inline style). */
+    body.embedded #embedded-tabbar { display:flex !important; }
+  </style>
+</head>
+<body>
+<x-dc>
+<div style="display:flex;flex-direction:column;height:100vh;background:#e9e5da">
+
+  <!-- TOP BAR (hidden when embedded) -->
+  <div class="ds-topbar" style="height:58px;flex:none;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 2px 14px rgba(11,30,53,.3);position:relative;z-index:6;background-color:#173d6bcf">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="assets/logo_linen.svg" alt="Classic Visions" style="width:34px;height:34px">
+      <div>
+        <div style="font:800 14px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.05em;color:#F4F2ED">CLASSIC VISIONS</div>
+        <div style="font:700 8.5px/1.4 'Plus Jakarta Sans',sans-serif;letter-spacing:.28em;color:#C89130;margin-top:3px">DOCUMENT STUDIO</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;background:rgba(255,255,255,.07);padding:5px;border-radius:11px">
+      {{ tabBarNodeA }}
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;justify-content:flex-end">
+      <button onClick="{{ toggleBrand }}" title="Brand details" style="{{ gearStyle }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cdd8e4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </div>
+
+    <sc-if value="{{ brandOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ toggleBrand }}" style="position:fixed;inset:0;z-index:30"></div>
+      <div style="position:absolute;top:52px;right:14px;width:300px;z-index:40;background:linear-gradient(155deg,#fdfcf9 0%,#f1ebdd 100%);border:1px solid #e2dccc;border-radius:16px;box-shadow:0 24px 60px -16px rgba(11,30,53,.45);overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px">
+          <span style="font:800 15px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Brand details</span>
+          <button onClick="{{ toggleBrand }}" style="background:none;border:0;color:#8a93a0;cursor:pointer;font-size:20px;line-height:1;padding:2px 6px">×</button>
+        </div>
+        <div class="cv-scroll" style="padding:0 18px 18px;display:flex;flex-direction:column;gap:13px;max-height:calc(100vh - 120px);overflow:auto">
+          <sc-for list="{{ brandFields }}" as="bf" hint-placeholder-count="8">
+            <div>
+              <div style="font:600 12px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:6px">{{ bf.label }}</div>
+              <input class="cv-in" value="{{ bf.v }}" onChange="{{ bf.on }}" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d9d7cf;border-radius:9px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- EMBEDDED TAB BAR (only when iframe, shown via JS) -->
+  <div id="embedded-tabbar" style="display:none;height:48px;flex:none;align-items:center;background:#0B1E35;padding:0 16px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+    {{ tabBarNodeB }}
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <button onClick="{{ toggleBrand }}" title="Brand details" style="{{ gearStyle }}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cdd8e4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </div>
+
+    <sc-if value="{{ brandOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ toggleBrand }}" style="position:fixed;inset:0;z-index:30"></div>
+      <div style="position:absolute;top:52px;right:14px;width:300px;z-index:40;background:linear-gradient(155deg,#fdfcf9 0%,#f1ebdd 100%);border:1px solid #e2dccc;border-radius:16px;box-shadow:0 24px 60px -16px rgba(11,30,53,.45);overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px">
+          <span style="font:800 15px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Brand details</span>
+          <button onClick="{{ toggleBrand }}" style="background:none;border:0;color:#8a93a0;cursor:pointer;font-size:20px;line-height:1;padding:2px 6px">×</button>
+        </div>
+        <div class="cv-scroll" style="padding:0 18px 18px;display:flex;flex-direction:column;gap:13px;max-height:calc(100vh - 120px);overflow:auto">
+          <sc-for list="{{ brandFields }}" as="bf" hint-placeholder-count="8">
+            <div>
+              <div style="font:600 12px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:6px">{{ bf.label }}</div>
+              <input class="cv-in" value="{{ bf.v }}" onChange="{{ bf.on }}" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d9d7cf;border-radius:9px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- ===== WORKSPACE ===== -->
+  <div style="flex:1;min-height:0;display:flex">
+
+    <!-- ====== LEFT: CONTROLS ====== -->
+    <div class="cv-scroll" style="{{ sidebarStyle }}">
+
+      <!-- ---------- MY FILES ---------- -->
+      <sc-if value="{{ isFiles }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 0 0">
+        <div style="padding:0 14px 10px;display:flex;align-items:center;justify-content:space-between">
+          <div style="font:700 13px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">My files</div>
+          <button onClick="{{ refreshMyFiles }}" title="Refresh" style="width:26px;height:26px;border:1px solid #d9d7cf;border-radius:7px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5b6b7c;font-size:15px;line-height:1">&#8635;</button>
+        </div>
+        <sc-for list="{{ myFileTypeTree }}" as="node" hint-placeholder-count="9">
+          <button onClick="{{ node.onClick }}" style="{{ node.rowStyle }}">
+            <span class="material-symbols-outlined" style="{{ node.iconStyle }}">{{ node.icon }}</span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ node.label }}</span>
+            <span style="{{ node.countStyle }}">{{ node.count }}</span>
+          </button>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- ---------- EMAIL ---------- -->
+      <sc-if value="{{ isEmail }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Header style</div>
+          <div style="display:flex;gap:7px">
+            <sc-for list="{{ emHeaderOpts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:13px">
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Eyebrow</div>
+            <input class="cv-in" value="{{ f.emEyebrow.v }}" onChange="{{ f.emEyebrow.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+          </div>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Headline</div>
+            <input class="cv-in" value="{{ f.emHeading.v }}" onChange="{{ f.emHeading.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 14px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Body content</span>
+            <button onClick="{{ saveSnippet }}" style="background:none;border:0;font:600 10.5px/1 'Plus Jakarta Sans',sans-serif;color:#1A8A9C;cursor:pointer;text-transform:uppercase;letter-spacing:.08em">+ Save selection</button>
+          </div>
+          <div ref="{{ setEmailHost }}" class="tmce-host" style="border:1px solid #d9d7cf;border-radius:10px;overflow:hidden;background:#fff;min-height:240px"></div>
+        </div>
+
+        <sc-if value="{{ hasSnippets }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Saved snippets</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ snippetItems }}" as="s" hint-placeholder-count="0">
+              <span style="display:inline-flex;align-items:center;background:#f3f1ea;border:1px solid #e3e0d6;border-radius:999px;padding:3px 5px 3px 11px">
+                <button onClick="{{ s.insert }}" style="background:none;border:0;font:600 11.5px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer">{{ s.label }}</button>
+                <button onClick="{{ s.del }}" style="background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:13px;padding:2px 5px;line-height:1">×</button>
+              </span>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <div style="display:flex;gap:11px">
+          <div style="flex:1.4">
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Button label</div>
+            <input class="cv-in" value="{{ f.emCta.v }}" onChange="{{ f.emCta.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+          </div>
+          <div style="flex:1">
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Link</div>
+            <input class="cv-in" value="{{ f.emCtaUrl.v }}" onChange="{{ f.emCtaUrl.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+          </div>
+        </div>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Hero image URL — optional</div>
+          <input class="cv-in" value="{{ f.emHeroUrl.v }}" onChange="{{ f.emHeroUrl.on }}" placeholder="https://…" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+        </div>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px;display:flex;flex-direction:column;gap:13px">
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Footer style</div>
+            <div style="display:flex;gap:7px">
+              <sc-for list="{{ emFooterOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Preview text (inbox preheader)</div>
+            <input class="cv-in" value="{{ f.emPreheader.v }}" onChange="{{ f.emPreheader.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+          </div>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Footer tagline</div>
+            <input class="cv-in" value="{{ f.emTagline.v }}" onChange="{{ f.emTagline.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;transition:.15s">
+          </div>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Disclaimer / privacy notice</div>
+            <textarea class="cv-in" value="{{ f.emDisclaimer.v }}" onChange="{{ f.emDisclaimer.on }}" rows="2" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 12.5px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical;transition:.15s"></textarea>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Saved templates</span>
+            <button onClick="{{ saveEmail }}" style="height:28px;padding:0 12px;border:1.5px solid #0B1E35;border-radius:7px;background:#fff;color:#0B1E35;font:700 11px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Save current</button>
+          </div>
+          <sc-if value="{{ hasEmailLib }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ emailLib }}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:8px;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:4px 4px 4px 12px">
+                  <button onClick="{{ it.load }}" style="flex:1;text-align:left;background:none;border:0;font:600 12.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer">{{ it.name }}</button>
+                  <button onClick="{{ it.del }}" style="background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:14px;padding:4px 7px;line-height:1">×</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noEmailLib }}" hint-placeholder-val="{{ false }}"><div style="font:400 12px/1.5 'Plus Jakarta Sans',sans-serif;color:#a7a596;font-style:italic">No saved templates yet.</div></sc-if>
+        </div>
+
+      </div>
+      </sc-if>
+
+      <!-- ---------- LETTERHEAD ---------- -->
+      <sc-if value="{{ isLetter }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:20px">
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Document type</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ docTypeOpts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ isMemo }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:13px">
+          <div style="display:flex;gap:11px">
+            <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">To</div><input class="cv-in" value="{{ f.ltTo.v }}" onChange="{{ f.ltTo.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">From</div><input class="cv-in" value="{{ f.ltFrom.v }}" onChange="{{ f.ltFrom.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          </div>
+          <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Re</div><input class="cv-in" value="{{ f.ltRe.v }}" onChange="{{ f.ltRe.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isAnnounce }}" hint-placeholder-val="{{ false }}">
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Eyebrow</div><input class="cv-in" value="{{ f.ltEyebrow.v }}" onChange="{{ f.ltEyebrow.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </sc-if>
+
+        <sc-if value="{{ isBizColl }}" hint-placeholder-val="{{ false }}">
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Recipient</div><textarea class="cv-in" value="{{ f.ltRecipient.v }}" onChange="{{ f.ltRecipient.on }}" rows="3" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
+        </sc-if>
+
+        <sc-if value="{{ showSubject }}" hint-placeholder-val="{{ false }}">
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">{{ subjectLabel }}</div><input class="cv-in" value="{{ f.ltSubject.v }}" onChange="{{ f.ltSubject.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </sc-if>
+
+        <sc-if value="{{ isCollection }}" hint-placeholder-val="{{ false }}">
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Amount due</div><input class="cv-in" value="{{ f.ltAmount.v }}" onChange="{{ f.ltAmount.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </sc-if>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Body</span>
+            <button onClick="{{ saveSnippet }}" style="background:none;border:0;font:600 10.5px/1 'Plus Jakarta Sans',sans-serif;color:#1A8A9C;cursor:pointer;text-transform:uppercase;letter-spacing:.08em">+ Save selection</button>
+          </div>
+          <div ref="{{ setLetterHost }}" class="tmce-host" style="border:1px solid #d9d7cf;border-radius:10px;overflow:hidden;background:#fff;min-height:240px"></div>
+        </div>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Custom blocks — click to insert</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ letterheadBlocks }}" as="bk" hint-placeholder-count="6">
+              <button onClick="{{ bk.insert }}" style="background:#fff;border:1px solid #d9d7cf;border-radius:999px;padding:6px 13px;font:600 11.5px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer">+ {{ bk.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasSnippets }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Saved snippets</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ snippetItems }}" as="s" hint-placeholder-count="0">
+              <span style="display:inline-flex;align-items:center;background:#f3f1ea;border:1px solid #e3e0d6;border-radius:999px;padding:3px 5px 3px 11px">
+                <button onClick="{{ s.insert }}" style="background:none;border:0;font:600 11.5px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer">{{ s.label }}</button>
+                <button onClick="{{ s.del }}" style="background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:13px;padding:2px 5px;line-height:1">×</button>
+              </span>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ notMemo }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Sign-off name</div><input class="cv-in" value="{{ f.ltSignName.v }}" onChange="{{ f.ltSignName.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Title</div><input class="cv-in" value="{{ f.ltSignTitle.v }}" onChange="{{ f.ltSignTitle.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+        </sc-if>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Date</div>
+          <input class="cv-in" value="{{ f.ltDate.v }}" onChange="{{ f.ltDate.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+        </div>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Saved letterheads</span>
+            <button onClick="{{ saveLetter }}" style="height:28px;padding:0 12px;border:1.5px solid #0B1E35;border-radius:7px;background:#fff;color:#0B1E35;font:700 11px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Save current</button>
+          </div>
+          <sc-if value="{{ hasLetterLib }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ letterLib }}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:8px;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:4px 4px 4px 12px">
+                  <button onClick="{{ it.load }}" style="flex:1;text-align:left;background:none;border:0;font:600 12.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer">{{ it.name }}</button>
+                  <button onClick="{{ it.del }}" style="background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:14px;padding:4px 7px;line-height:1">×</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noLetterLib }}" hint-placeholder-val="{{ false }}"><div style="font:400 12px/1.5 'Plus Jakarta Sans',sans-serif;color:#a7a596;font-style:italic">No saved letterheads yet.</div></sc-if>
+        </div>
+
+      </div>
+      </sc-if>
+
+      <!-- ---------- SIGNATURE ---------- -->
+      <sc-if value="{{ isSig }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Full name</div><input class="cv-in" value="{{ f.sgName.v }}" onChange="{{ f.sgName.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 14px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Position / title</div><input class="cv-in" value="{{ f.sgTitle.v }}" onChange="{{ f.sgTitle.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Phone / mobile</div><input class="cv-in" value="{{ f.sgPhone.v }}" onChange="{{ f.sgPhone.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Email</div><input class="cv-in" value="{{ f.sgEmail.v }}" onChange="{{ f.sgEmail.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Website</div><input class="cv-in" value="{{ f.sgWeb.v }}" onChange="{{ f.sgWeb.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Tagline / hours line — optional</div><input class="cv-in" value="{{ f.sgTagline.v }}" onChange="{{ f.sgTagline.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;margin-top:2px">
+          <input type="checkbox" checked="{{ sgLogo }}" onChange="{{ toggleLogo }}" style="width:16px;height:16px;accent-color:#1A8A9C">
+          <span style="font:600 13px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Show logo</span>
+        </label>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px;margin-top:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Saved signatures</span>
+            <button onClick="{{ saveSig }}" style="height:28px;padding:0 12px;border:1.5px solid #0B1E35;border-radius:7px;background:#fff;color:#0B1E35;font:700 11px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Save person</button>
+          </div>
+          <sc-if value="{{ hasSigLib }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ sigLib }}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:8px;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:4px 4px 4px 12px">
+                  <button onClick="{{ it.load }}" style="flex:1;text-align:left;background:none;border:0;font:600 12.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer">{{ it.name }}</button>
+                  <button onClick="{{ it.del }}" style="background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:14px;padding:4px 7px;line-height:1">×</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noSigLib }}" hint-placeholder-val="{{ false }}"><div style="font:400 12px/1.5 'Plus Jakarta Sans',sans-serif;color:#a7a596;font-style:italic">No saved signatures yet.</div></sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ---------- SOCIAL ---------- -->
+      <sc-if value="{{ isSocial }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:20px">
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Format</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <sc-for list="{{ smFormatOpts }}" as="o" hint-placeholder-count="5">
+              <button onClick="{{ o.onClick }}" style="{{ o.style }}">
+                <span style="font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;flex:1;text-align:left">{{ o.label }}</span>
+                <span style="font:400 11px/1 'Plus Jakarta Sans',sans-serif;opacity:.5">{{ o.sz }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Colour scheme</div>
+          <div style="display:flex;gap:7px">
+            <sc-for list="{{ smStyleOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Headline</div>
+          <textarea class="cv-in" value="{{ smHeadlineV }}" onChange="{{ smHeadlineOn }}" rows="3" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:700 14px/1.45 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea>
+          <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+            <button onClick="{{ smHeadlineItalicToggle }}" style="{{ toolBtn }};font-style:italic">I</button>
+            <button onClick="{{ smHeadlineLeft }}" style="{{ toolBtn }};width:auto;padding:0 9px">Left</button>
+            <button onClick="{{ smHeadlineCenter }}" style="{{ toolBtn }};width:auto;padding:0 9px">Center</button>
+            <button onClick="{{ smHeadlineRight }}" style="{{ toolBtn }};width:auto;padding:0 9px">Right</button>
+          </div>
+          <div style="margin-top:5px;font:400 11px/1.4 'Plus Jakarta Sans',sans-serif;color:#a7a596">Keep it short — 3 to 7 words works best.</div>
+        </div>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Body content</span>
+            <button onClick="{{ saveSnippet }}" style="background:none;border:0;font:600 10.5px/1 'Plus Jakarta Sans',sans-serif;color:#1A8A9C;cursor:pointer;text-transform:uppercase;letter-spacing:.08em">+ Save selection</button>
+          </div>
+          <div ref="{{ setSocialHost }}" class="tmce-host" style="border:1px solid #d9d7cf;border-radius:10px;overflow:hidden;background:#fff;min-height:200px"></div>
+        </div>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Sub-copy — optional</div>
+          <input class="cv-in" value="{{ smSubV }}" onChange="{{ smSubOn }}" placeholder="A short supporting line…" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+        </div>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Handle / hashtag — optional</div>
+          <input class="cv-in" value="{{ smHandleV }}" onChange="{{ smHandleOn }}" placeholder="@classicvisions" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+        </div>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Saved posts</span>
+            <button onClick="{{ savePost }}" style="height:28px;padding:0 12px;border:1.5px solid #0B1E35;border-radius:7px;background:#fff;color:#0B1E35;font:700 11px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Save current</button>
+          </div>
+          <sc-if value="{{ hasSmPostLib }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ smPostLib }}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:8px;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:4px 4px 4px 12px">
+                  <button onClick="{{ it.load }}" style="flex:1;text-align:left;background:none;border:0;font:600 12.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer">{{ it.name }}</button>
+                  <button onClick="{{ it.del }}" style="background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:14px;padding:4px 7px;line-height:1">×</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noSmPostLib }}" hint-placeholder-val="{{ false }}">
+            <div style="font:400 12px/1.5 'Plus Jakarta Sans',sans-serif;color:#a7a596;font-style:italic">No saved posts yet.</div>
+          </sc-if>
+        </div>
+
+      </div>
+      </sc-if>
+
+      <!-- ---------- SHIPPING LABEL ---------- -->
+      <sc-if value="{{ isShiplabel }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
+        <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">From</div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Name</div><input class="cv-in" value="{{ f.slFromName.v }}" onChange="{{ f.slFromName.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Address</div><textarea class="cv-in" value="{{ f.slFromAddr.v }}" onChange="{{ f.slFromAddr.on }}" rows="2" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Phone</div><input class="cv-in" value="{{ f.slFromPhone.v }}" onChange="{{ f.slFromPhone.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Ship to</div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Fill from company</div><select class="cv-in" value="{{ selectedShipCustomer }}" onChange="{{ applyCustomerToShipLabel }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"><option value="">Select customer</option><sc-for list="{{ customerOptions }}" as="c" hint-placeholder-count="0"><option value="{{ c.account }}">{{ c.label }}</option></sc-for></select></div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Recipient name</div><input class="cv-in" value="{{ f.slToName.v }}" onChange="{{ f.slToName.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Company</div><input class="cv-in" value="{{ f.slToCompany.v }}" onChange="{{ f.slToCompany.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Address</div><textarea class="cv-in" value="{{ f.slToAddr.v }}" onChange="{{ f.slToAddr.on }}" rows="2" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Phone</div><input class="cv-in" value="{{ f.slToPhone.v }}" onChange="{{ f.slToPhone.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Courier</div>
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Carrier</div><input class="cv-in" value="{{ f.slCarrier.v }}" onChange="{{ f.slCarrier.on }}" placeholder="e.g. FedEx" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Service</div><input class="cv-in" value="{{ f.slService.v }}" onChange="{{ f.slService.on }}" placeholder="e.g. Express" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Tracking number</div><input class="cv-in" value="{{ f.slTracking.v }}" onChange="{{ f.slTracking.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Weight</div><input class="cv-in" value="{{ f.slWeight.v }}" onChange="{{ f.slWeight.on }}" placeholder="e.g. 2.3 kg" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Dims (L×W×H)</div><input class="cv-in" value="{{ f.slDims.v }}" onChange="{{ f.slDims.on }}" placeholder="e.g. 30×20×10 cm" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Special instructions</div><input class="cv-in" value="{{ f.slNote.v }}" onChange="{{ f.slNote.on }}" placeholder="e.g. Fragile — handle with care" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+      </div>
+      </sc-if>
+
+      <!-- ---------- CUSTOMER STATEMENT ---------- -->
+      <sc-if value="{{ isStatement }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
+
+        <!-- Statement type -->
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Statement type</div>
+          <div style="display:flex;gap:7px"><sc-for list="{{ stTypeOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div>
+        </div>
+
+        <!-- DB Populate — always first, above all fields -->
+        <div style="display:flex;gap:8px;align-items:center;padding:10px 14px;background:#f7f5ef;border-radius:9px;border:1.5px dashed #c8c4bb">
+          <div style="flex:1;min-width:0">
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#1A8A9C;margin-bottom:4px">Populate from database</div>
+            <div style="font:400 11px/1.5 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">{{ stDbStatusLabel }}</div>
+          </div>
+          <button onClick="{{ promptStatementDb }}" style="flex:none;padding:8px 14px;border:1px solid #0B1E35;border-radius:8px;background:#0B1E35;color:#F4F2ED;font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">{{ stDbBtnLabel }}</button>
+          <sc-if value="{{ stHasDbData }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearStatementDb }}" title="Clear database data" style="flex:none;padding:8px 11px;border:1px solid #e7e4db;border-radius:8px;background:#fff;color:#b3aa9a;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">✕</button>
+          </sc-if>
+        </div>
+
+        <!-- DB + manual rows warning -->
+        <sc-if value="{{ stDbDataAndRows }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:10px 14px;background:#fff8ec;border-left:3px solid #C89130;border-radius:0 8px 8px 0">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#8a6500;margin-bottom:4px">⚠ Manual transactions added to DB statement</div>
+          <div style="font:400 11px/1.5 'Plus Jakarta Sans',sans-serif;color:#7a5c00">Adding manual transactions to a database-populated statement changes the running balance. Verify amounts carefully before printing.</div>
+        </div>
+        </sc-if>
+
+        <!-- All editable fields — locked (pointer-events:none) when DB data is loaded -->
+        <div style="{{ stDbLockStyle }}">
+
+        <!-- Locked indicator shown when DB data loaded -->
+        <sc-if value="{{ stHasDbData }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:7px 12px;background:#eef6f8;border:1px solid #b0d8e0;border-radius:8px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px">🔒</span>
+          <div style="font:600 11px/1.4 'Plus Jakarta Sans',sans-serif;color:#1A8A9C">Fields loaded from database — clear database data above to edit manually.</div>
+        </div>
+        </sc-if>
+
+        <!-- Customer -->
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Customer</div>
+          <select class="cv-in" value="{{ selectedStatementCustomer }}" onChange="{{ applyCustomerToStatement }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"><option value="">Select customer</option><sc-for list="{{ customerOptions }}" as="c" hint-placeholder-count="0"><option value="{{ c.account }}">{{ c.label }}</option></sc-for></select>
+          <input class="cv-in" value="{{ f.stCustomer.v }}" onChange="{{ f.stCustomer.on }}" placeholder="Customer name" style="width:100%;margin-top:7px;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+        </div>
+
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Account #</div><input class="cv-in" value="{{ f.stAccount.v }}" onChange="{{ f.stAccount.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Currency</div><div style="display:flex;gap:7px"><sc-for list="{{ stCurrencyOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div></div>
+        </div>
+
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Customer address</div><textarea class="cv-in" value="{{ f.stAddr.v }}" onChange="{{ f.stAddr.on }}" rows="2" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
+
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Period from</div><input class="cv-in" value="{{ f.stFrom.v }}" onChange="{{ f.stFrom.on }}" placeholder="1 June 2025" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Period to</div><input class="cv-in" value="{{ f.stTo.v }}" onChange="{{ f.stTo.on }}" placeholder="30 June 2025" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Opening balance</div><input class="cv-in" value="{{ f.stOpenBal.v }}" onChange="{{ f.stOpenBal.on }}" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Statement date</div><input class="cv-in" value="{{ f.stStatementDate.v }}" onChange="{{ f.stStatementDate.on }}" placeholder="e.g. 30 June 2025" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+
+        <!-- Advanced-only: Ageing -->
+        <sc-if value="{{ isAdvancedStatement }}" hint-placeholder-val="{{ false }}">
+        <div style="border-top:1px solid #efece3;padding-top:14px">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Account Summary — Ageing</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="flex:1;min-width:74px"><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Current</div><input class="cv-in" value="{{ f.stCurrentDue.v }}" onChange="{{ f.stCurrentDue.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1;min-width:74px"><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#c0392b;margin-bottom:5px">{{ stAgingDesc1 }}</div><input class="cv-in" value="{{ f.stAging1.v }}" onChange="{{ f.stAging1.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1;min-width:74px"><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#c0392b;margin-bottom:5px">{{ stAgingDesc2 }}</div><input class="cv-in" value="{{ f.stAging2.v }}" onChange="{{ f.stAging2.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1;min-width:74px"><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#c0392b;margin-bottom:5px">{{ stAgingDesc3 }}</div><input class="cv-in" value="{{ f.stAging3.v }}" onChange="{{ f.stAging3.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1;min-width:74px"><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#c0392b;margin-bottom:5px">{{ stAgingDesc4 }}</div><input class="cv-in" value="{{ f.stAging4.v }}" onChange="{{ f.stAging4.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:9px;align-items:center">
+            <div style="font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#0B1E35">New Balance</div>
+            <input class="cv-in" value="{{ f.stNewBalance.v }}" onChange="{{ f.stNewBalance.on }}" placeholder="0.00" style="width:110px;padding:7px 9px;border:1px solid #0B1E35;border-radius:7px;font:700 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+          </div>
+        </div>
+
+        <!-- Advanced-only: Summary totals -->
+        <div style="border-top:1px solid #efece3;padding-top:14px">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Summary totals</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Invoices</div><input class="cv-in" value="{{ f.stInvTotal.v }}" onChange="{{ f.stInvTotal.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Credits</div><input class="cv-in" value="{{ f.stCreditTotal.v }}" onChange="{{ f.stCreditTotal.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Debits</div><input class="cv-in" value="{{ f.stDebitTotal.v }}" onChange="{{ f.stDebitTotal.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Regular Bal</div><input class="cv-in" value="{{ f.stRegularBal.v }}" onChange="{{ f.stRegularBal.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Net Balance</div><input class="cv-in" value="{{ f.stNetAmount.v }}" onChange="{{ f.stNetAmount.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Super Net</div><input class="cv-in" value="{{ f.stSuperNetAmount.v }}" onChange="{{ f.stSuperNetAmount.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Rx Amount</div><input class="cv-in" value="{{ f.stRxAmount.v }}" onChange="{{ f.stRxAmount.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Stock Amount</div><input class="cv-in" value="{{ f.stStockAmount.v }}" onChange="{{ f.stStockAmount.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div><div style="font:600 10px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Tax Amount</div><input class="cv-in" value="{{ f.stTaxAmount.v }}" onChange="{{ f.stTaxAmount.on }}" placeholder="0.00" style="width:100%;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- Transactions — Simple -->
+        <sc-if value="{{ isSimpleStatement }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Transactions</div>
+          <sc-for list="{{ stRowViews }}" as="r" hint-placeholder-count="1">
+            <div style="display:grid;grid-template-columns:1fr 2fr 1fr 1fr auto;gap:5px;margin-bottom:7px;align-items:center">
+              <input class="cv-in" value="{{ r.date }}" onChange="{{ r.onDate }}" placeholder="Date" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <input class="cv-in" value="{{ r.desc }}" onChange="{{ r.onDesc }}" placeholder="Description" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <input class="cv-in" value="{{ r.debit }}" onChange="{{ r.onDebit }}" placeholder="Debit" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <input class="cv-in" value="{{ r.credit }}" onChange="{{ r.onCredit }}" placeholder="Credit" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <button onClick="{{ r.del }}" style="background:none;border:1px solid #e0ddd6;border-radius:6px;color:#b3aa9a;cursor:pointer;padding:5px 8px;font-size:13px;line-height:1">×</button>
+            </div>
+          </sc-for>
+          <button onClick="{{ addStRow }}" style="width:100%;padding:8px;border:1.5px dashed #c8c4bb;border-radius:8px;background:none;color:#5b6b7c;font:600 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Add transaction</button>
+        </div>
+        </sc-if>
+
+        <!-- Transactions — Advanced (with Patient column) -->
+        <sc-if value="{{ isAdvancedStatement }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Transactions</div>
+          <sc-for list="{{ stRowViews }}" as="r" hint-placeholder-count="1">
+            <div style="display:grid;grid-template-columns:90px 1fr 2fr 80px 80px auto;gap:5px;margin-bottom:7px;align-items:center">
+              <input class="cv-in" value="{{ r.date }}" onChange="{{ r.onDate }}" placeholder="Date" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <input class="cv-in" value="{{ r.patient }}" onChange="{{ r.onPatient }}" placeholder="Patient" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <input class="cv-in" value="{{ r.desc }}" onChange="{{ r.onDesc }}" placeholder="Description" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <input class="cv-in" value="{{ r.debit }}" onChange="{{ r.onDebit }}" placeholder="Debit" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <input class="cv-in" value="{{ r.credit }}" onChange="{{ r.onCredit }}" placeholder="Credit" style="padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 11px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;width:100%">
+              <button onClick="{{ r.del }}" style="background:none;border:1px solid #e0ddd6;border-radius:6px;color:#b3aa9a;cursor:pointer;padding:5px 8px;font-size:13px;line-height:1">×</button>
+            </div>
+          </sc-for>
+          <button onClick="{{ addStRow }}" style="width:100%;padding:8px;border:1.5px dashed #c8c4bb;border-radius:8px;background:none;color:#5b6b7c;font:600 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Add transaction</button>
+        </div>
+        </sc-if>
+
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Footer note / terms — optional</div><input class="cv-in" value="{{ f.stNote.v }}" onChange="{{ f.stNote.on }}" placeholder="Payment due within 30 days…" style="width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+
+        </div><!-- end lock wrapper -->
+      </div>
+      </sc-if>
+
+      <!-- ---------- BILLING (Invoice / Quotation / Pro Forma / Receipt) ---------- -->
+      <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Document type</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px"><sc-for list="{{ billTypeOpts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div>
+        </div>
+
+        <div style="display:flex;gap:11px;align-items:flex-end">
+          <div style="flex:1">
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Paper size</div>
+            <div style="display:flex;gap:7px"><sc-for list="{{ billPaperOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div>
+          </div>
+          <div style="flex:1;text-align:right;font:600 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">{{ billSaveState }}</div>
+        </div>
+
+        <div style="display:flex;gap:11px">
+          <div style="flex:1">
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Number</div>
+            <div style="display:flex;gap:6px">
+              <input class="cv-in" value="{{ f.blNumber.v }}" onChange="{{ f.blNumber.on }}" style="flex:1;min-width:0;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+              <button onClick="{{ nextBillNumber }}" title="Assign next number" style="flex:none;padding:0 11px;border:1px solid #0B1E35;border-radius:8px;background:#fff;color:#0B1E35;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Next #</button>
+            </div>
+          </div>
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Date</div><input class="cv-in" value="{{ f.blDate.v }}" onChange="{{ f.blDate.on }}" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+
+        <div style="display:flex;gap:11px">
+          <sc-if value="{{ hasDue }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">{{ billDueLabel }}</div><input class="cv-in" value="{{ f.blDue.v }}" onChange="{{ f.blDue.on }}" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          </sc-if>
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Your ref / PO</div><input class="cv-in" value="{{ f.blPO.v }}" onChange="{{ f.blPO.on }}" placeholder="Optional" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+
+        <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Customer</div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Fill from customer</div><select class="cv-in" value="{{ selectedBillingCustomer }}" onChange="{{ applyCustomerToBilling }}" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"><option value="">Select customer</option><sc-for list="{{ customerOptions }}" as="c" hint-placeholder-count="0"><option value="{{ c.account }}">{{ c.label }}</option></sc-for></select></div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Company</div><input class="cv-in" value="{{ f.blToCompany.v }}" onChange="{{ f.blToCompany.on }}" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Contact name</div><input class="cv-in" value="{{ f.blToName.v }}" onChange="{{ f.blToName.on }}" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Attention</div><input class="cv-in" value="{{ f.blToAttn.v }}" onChange="{{ f.blToAttn.on }}" placeholder="Optional" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+        <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Address</div><textarea class="cv-in" value="{{ f.blToAddr.v }}" onChange="{{ f.blToAddr.on }}" rows="2" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
+
+        <div style="border-top:1px solid #efece3;padding-top:14px;display:flex;gap:11px;align-items:flex-end">
+          <div style="flex:none">
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Currency</div>
+            <div style="display:flex;gap:7px"><sc-for list="{{ billCurrencyOpts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding-bottom:9px;margin-left:auto">
+            <input type="checkbox" checked="{{ blVatEnabled }}" onChange="{{ toggleBlVat }}" style="width:16px;height:16px;accent-color:#1A8A9C">
+            <span style="font:600 12.5px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Charge VAT</span>
+          </label>
+          <sc-if value="{{ blVatEnabled }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:none;width:78px"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Rate %</div><input class="cv-in" value="{{ f.blVatRate.v }}" onChange="{{ f.blVatRate.on }}" style="width:100%;box-sizing:border-box;padding:9px 9px;border:1px solid #d9d7cf;border-radius:8px;font:600 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;text-align:center"></div>
+          </sc-if>
+        </div>
+
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Line items</div>
+          <sc-for list="{{ blRowViews }}" as="r" hint-placeholder-count="1">
+            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0ede6">
+              <div style="display:flex;gap:7px">
+                <input class="cv-in" value="{{ r.desc }}" onChange="{{ r.onDesc }}" placeholder="Description" style="flex:1;min-width:0;padding:7px 9px;border:1px solid #d9d7cf;border-radius:7px;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+                <input class="cv-in" value="{{ r.code }}" onChange="{{ r.onCode }}" placeholder="Code" style="width:78px;flex:none;padding:7px 9px;border:1px solid #d9d7cf;border-radius:7px;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <input class="cv-in" value="{{ r.qty }}" onChange="{{ r.onQty }}" placeholder="Qty" style="width:50px;flex:none;padding:7px 8px;border:1px solid #d9d7cf;border-radius:7px;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;text-align:center">
+                <input class="cv-in" value="{{ r.unit }}" onChange="{{ r.onUnit }}" placeholder="Unit price" style="width:88px;flex:none;padding:7px 9px;border:1px solid #d9d7cf;border-radius:7px;font:600 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+                <span style="flex:1;min-width:0;text-align:right;font:600 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.amount }}</span>
+                <button onClick="{{ r.toggleTax }}" title="Toggle VAT / zero-rated" style="{{ r.taxBtnStyle }}">{{ r.taxLabel }}</button>
+                <button onClick="{{ r.save }}" title="Save line item for later" style="flex:none;background:none;border:1px solid #e0ddd6;border-radius:6px;color:#C89130;cursor:pointer;padding:5px 8px;font-size:13px;line-height:1">★</button>
+                <button onClick="{{ r.del }}" title="Remove" style="flex:none;background:none;border:1px solid #e0ddd6;border-radius:6px;color:#b3aa9a;cursor:pointer;padding:5px 8px;font-size:13px;line-height:1">×</button>
+              </div>
+            </div>
+          </sc-for>
+          <button onClick="{{ addBlRow }}" style="width:100%;padding:8px;border:1.5px dashed #c8c4bb;border-radius:8px;background:none;color:#5b6b7c;font:600 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Add item</button>
+        </div>
+
+        <sc-if value="{{ hasLineItemLib }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Saved line items</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ lineItemLibViews }}" as="it" hint-placeholder-count="0">
+              <span style="display:inline-flex;align-items:center;background:#f3f1ea;border:1px solid #e3e0d6;border-radius:999px;padding:3px 5px 3px 11px;max-width:100%">
+                <button onClick="{{ it.insert }}" style="background:none;border:0;font:600 11.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.label }}</button>
+                <button onClick="{{ it.del }}" style="background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:13px;padding:2px 5px;line-height:1">×</button>
+              </span>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <div style="display:flex;gap:11px">
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Discount</div><input class="cv-in" value="{{ f.blDiscount.v }}" onChange="{{ f.blDiscount.on }}" placeholder="0.00" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div style="flex:1"><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Shipping</div><input class="cv-in" value="{{ f.blShipping.v }}" onChange="{{ f.blShipping.on }}" placeholder="0.00" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+
+        <div style="background:#f7f5ef;border:1px solid #e7e4db;border-radius:10px;padding:13px 16px;display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;justify-content:space-between;font:500 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#5b6b7c"><span>Subtotal</span><span>{{ blSubtotalStr }}</span></div>
+          <sc-if value="{{ blVatEnabled }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;justify-content:space-between;font:500 12.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#5b6b7c"><span>{{ blVatRowLabel }}</span><span>{{ blVatStr }}</span></div>
+          </sc-if>
+          <div style="display:flex;justify-content:space-between;font:800 14px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;border-top:1px solid #e2ddd0;padding-top:6px;margin-top:2px"><span>Total</span><span>{{ blTotalStr }}</span></div>
+          <sc-if value="{{ isReceipt }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;justify-content:space-between;font:600 12px/1.4 'Plus Jakarta Sans',sans-serif;color:#1c7a52"><span>Paid</span><span>{{ blPaidStr }}</span></div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ isReceipt }}" hint-placeholder-val="{{ false }}">
+        <div style="border-top:1px solid #efece3;padding-top:14px;display:flex;flex-direction:column;gap:13px">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Payment received</div>
+          <div style="display:flex;gap:11px">
+            <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Method</div><input class="cv-in" value="{{ f.blPaidMethod.v }}" onChange="{{ f.blPaidMethod.on }}" placeholder="Cash / Cheque / Card / Transfer" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Reference</div><input class="cv-in" value="{{ f.blPaidRef.v }}" onChange="{{ f.blPaidRef.on }}" placeholder="Optional" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          </div>
+          <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Amount paid — leave blank for full amount</div><input class="cv-in" value="{{ f.blAmountPaid.v }}" onChange="{{ f.blAmountPaid.on }}" placeholder="Full total" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:600 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ showBank }}" hint-placeholder-val="{{ true }}">
+        <div style="border-top:1px solid #efece3;padding-top:14px;display:flex;flex-direction:column;gap:11px">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Bank / payment details</div>
+          <div style="display:flex;gap:11px">
+            <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Bank</div><input class="cv-in" value="{{ f.bkBankName.v }}" onChange="{{ f.bkBankName.on }}" placeholder="e.g. Republic Bank" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Account name</div><input class="cv-in" value="{{ f.bkAccName.v }}" onChange="{{ f.bkAccName.on }}" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          </div>
+          <div style="display:flex;gap:11px">
+            <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Account no.</div><input class="cv-in" value="{{ f.bkAccNo.v }}" onChange="{{ f.bkAccNo.on }}" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+            <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Branch / Transit</div><input class="cv-in" value="{{ f.bkBranch.v }}" onChange="{{ f.bkBranch.on }}" placeholder="Optional" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          </div>
+          <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">SWIFT / BIC</div><input class="cv-in" value="{{ f.bkSwift.v }}" onChange="{{ f.bkSwift.on }}" placeholder="Optional" style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+          <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Payment instructions — optional</div><textarea class="cv-in" value="{{ f.bkNote.v }}" onChange="{{ f.bkNote.on }}" rows="2" placeholder="e.g. Reference the invoice number on your transfer." style="width:100%;box-sizing:border-box;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
+        </div>
+        </sc-if>
+
+        <div><div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Notes &amp; terms — optional</div><textarea class="cv-in" value="{{ f.blNotes.v }}" onChange="{{ f.blNotes.on }}" rows="3" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">My billing files</span>
+            <button onClick="{{ saveBillingFileAs }}" style="height:28px;padding:0 12px;border:1.5px solid #0B1E35;border-radius:7px;background:#fff;color:#0B1E35;font:700 11px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ New file</button>
+          </div>
+          <sc-if value="{{ hasBillingFiles }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ billFileViews }}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:8px;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:5px 4px 5px 12px">
+                  <button onClick="{{ it.load }}" style="flex:1;min-width:0;text-align:left;background:none;border:0;cursor:pointer">
+                    <div style="font:600 12.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</div>
+                    <div style="font:400 10.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:2px">{{ it.meta }}</div>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noBillingFiles }}" hint-placeholder-val="{{ true }}"><div style="font:400 12px/1.5 'Plus Jakarta Sans',sans-serif;color:#a7a596;font-style:italic">No DB billing files yet.</div></sc-if>
+        </div>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Shared with me</div>
+          <sc-if value="{{ hasSharedBillingFiles }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ sharedBillFileViews }}" as="it" hint-placeholder-count="0">
+                <button onClick="{{ it.load }}" style="text-align:left;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:8px 12px;cursor:pointer">
+                  <div style="font:600 12.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</div>
+                  <div style="font:400 10.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:2px">{{ it.meta }}</div>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noSharedBillingFiles }}" hint-placeholder-val="{{ true }}"><div style="font:400 12px/1.5 'Plus Jakarta Sans',sans-serif;color:#a7a596;font-style:italic">No shared billing files.</div></sc-if>
+        </div>
+
+        <div style="border-top:1px solid #efece3;padding-top:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+            <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Local recovery</span>
+            <button onClick="{{ saveBillDraft }}" style="height:28px;padding:0 12px;border:1.5px solid #d9d7cf;border-radius:7px;background:#fff;color:#5b6b7c;font:700 11px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">+ Save local</button>
+          </div>
+          <sc-if value="{{ hasBillDrafts }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ billDraftViews }}" as="it" hint-placeholder-count="0">
+                <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #eee9de;border-radius:8px;padding:5px 4px 5px 12px">
+                  <button onClick="{{ it.load }}" style="flex:1;min-width:0;text-align:left;background:none;border:0;cursor:pointer">
+                    <div style="font:600 12px/1.3 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</div>
+                    <div style="font:400 10.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#a7a596;margin-top:2px">{{ it.meta }}</div>
+                  </button>
+                  <button onClick="{{ it.del }}" style="flex:none;background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:14px;padding:4px 7px;line-height:1">×</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noBillDrafts }}" hint-placeholder-val="{{ true }}"><div style="font:400 12px/1.5 'Plus Jakarta Sans',sans-serif;color:#a7a596;font-style:italic">Browser-only fallback. DB files above are the permanent save.</div></sc-if>
+        </div>
+
+      </div>
+      </sc-if>
+
+    </div>
+
+    <div
+      onMouseDown="{{ startSidebarDrag }}"
+      onTouchStart="{{ startSidebarDrag }}"
+      title="Resize editor controls"
+      tabindex="0"
+      style="{{ sidebarResizerStyle }}"
+    ></div>
+
+        <!-- ====== RIGHT: PREVIEW ====== -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
+      <div style="height:58px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#f4f2ed;border-bottom:1px solid #ded9cd">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;white-space:nowrap">{{ previewTitle }}</span>
+          <sc-if value="{{ showEmailFileIdentity }}" hint-placeholder-val="{{ false }}">
+            <span style="color:#b3aa9a;font-size:13px;line-height:1">•</span>
+            <span style="font:700 12px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ activeEmailFileName }}">{{ activeEmailFileName }}</span>
+            <span style="{{ activeEmailFileBadgeStyle }}">{{ activeEmailFileStatus }}</span>
+          </sc-if>
+        </div>
+        <div style="display:flex;gap:9px">
+          <sc-if value="{{ isLetter }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ printLetter }}" style="height:38px;padding:0 16px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Print / PDF</button>
+            <div style="position:relative">
+              <button onClick="{{ toggleDocx }}" style="height:38px;padding:0 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Open in Word / Google Docs <span style="font-size:8px;opacity:.55;transform:translateY(1px)">▼</span></button>
+              <sc-if value="{{ docxOpen }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ toggleDocx }}" style="position:fixed;inset:0;z-index:45"></div>
+                <div style="position:absolute;top:46px;right:0;z-index:46;width:268px;background:#fff;border:1px solid #e7e4db;border-radius:13px;box-shadow:0 20px 48px -12px rgba(11,30,53,.42);overflow:hidden">
+                  <button onClick="{{ exportLetterWord }}" style-hover="background:#f7f5ef" style="display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid #f1eee6;padding:13px 16px;cursor:pointer;transition:.12s">
+                    <div style="font:700 13px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Microsoft Word &nbsp;<span style="color:#1A8A9C">.doc</span></div>
+                    <div style="font:400 11.5px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">Downloads a Word document formatted like the preview. Opens and edits in Word.</div>
+                  </button>
+                  <button onClick="{{ openLetterGoogleDocs }}" style-hover="background:#f7f5ef" style="display:block;width:100%;text-align:left;background:none;border:0;padding:13px 16px;cursor:pointer;transition:.12s">
+                    <div style="font:700 13px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Google Docs</div>
+                    <div style="font:400 11.5px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">Copies the letter and opens a new Google Doc — press Ctrl/Cmd+V to paste.</div>
+                  </button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isEmail }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ openEmailSend }}" style="height:38px;padding:0 18px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Send Email</button>
+            <div style="position:relative">
+              <button onClick="{{ toggleDl }}" style="height:38px;padding:0 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Download <span style="font-size:8px;opacity:.55;transform:translateY(1px)">▼</span></button>
+              <sc-if value="{{ dlOpen }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ toggleDl }}" style="position:fixed;inset:0;z-index:45"></div>
+                <div style="position:absolute;top:46px;right:0;z-index:46;width:252px;background:#fff;border:1px solid #e7e4db;border-radius:13px;box-shadow:0 20px 48px -12px rgba(11,30,53,.42);overflow:hidden">
+                  <button onClick="{{ dlHtml }}" style-hover="background:#f7f5ef" style="display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid #f1eee6;padding:13px 16px;cursor:pointer;transition:.12s">
+                    <div style="font:700 13px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">HTML file &nbsp;<span style="color:#1A8A9C">.html</span></div>
+                    <div style="font:400 11.5px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">Pixel-perfect. Open in a browser or upload to Mailchimp, etc.</div>
+                  </button>
+                  <button onClick="{{ dlEml }}" style-hover="background:#f7f5ef" style="display:block;width:100%;text-align:left;background:none;border:0;padding:13px 16px;cursor:pointer;transition:.12s">
+                    <div style="font:700 13px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Email message &nbsp;<span style="color:#1A8A9C">.eml</span></div>
+                    <div style="font:400 11.5px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">Opens in Outlook / Apple Mail as a ready-to-send draft.</div>
+                  </button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ false }}">
+            <span style="align-self:center;font:600 11.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ billSaveState }}</span>
+            <button onClick="{{ saveBillingFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save</span></button>
+            <button onClick="{{ saveBillingFileAs }}" title="Save As" aria-label="Save As" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save_as</span></button>
+            <button onClick="{{ renameBillingFile }}" title="Rename" aria-label="Rename" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">drive_file_rename_outline</span></button>
+            <button onClick="{{ toggleBillShare }}" title="Share" aria-label="Share" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">share</span></button>
+            <button onClick="{{ deleteBillingFile }}" title="Delete" aria-label="Delete" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #e4c8c8;border-radius:9px;background:#fff;color:#a23b3b;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">delete</span></button>
+          </sc-if>
+          <sc-if value="{{ showFileActions }}" hint-placeholder-val="{{ false }}">
+            <span style="align-self:center;font:600 11.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fileSaveState }}</span>
+            <button onClick="{{ saveActiveFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save</span></button>
+            <button onClick="{{ saveAsActiveFile }}" title="Save as" aria-label="Save as" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save_as</span></button>
+            <button onClick="{{ shareActiveFile }}" title="Share" aria-label="Share" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">share</span></button>
+            <button onClick="{{ deleteActiveFile }}" title="Delete" aria-label="Delete" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #e4c8c8;border-radius:9px;background:#fff;color:#a23b3b;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">delete</span></button>
+          </sc-if>
+          <sc-if value="{{ showCopyNow }}" hint-placeholder-val="{{ true }}"><button onClick="{{ copyNow }}" style="height:38px;padding:0 20px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">{{ copyLabel }}</button></sc-if>
+        </div>
+      </div>
+      <div class="cv-scroll" style="{{ previewAreaStyle }}">
+        {{ previewNode }}
+      </div>
+    </div>
+
+  </div>
+
+  <sc-if value="{{ billShareOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleBillShare }}" style="position:fixed;inset:0;background:rgba(11,30,53,.32);z-index:70"></div>
+    <div style="position:fixed;top:74px;right:28px;width:360px;max-width:calc(100vw - 40px);z-index:71;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 24px 64px -16px rgba(11,30,53,.45);overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #f0ede6">
+        <div>
+          <div style="font:800 15px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Share billing file</div>
+          <div style="font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">Only selected users can open this file.</div>
+        </div>
+        <button onClick="{{ toggleBillShare }}" style="background:none;border:0;color:#8a93a0;cursor:pointer;font-size:20px;line-height:1;padding:2px 6px">×</button>
+      </div>
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:8px">
+          <select class="cv-in" value="{{ billShareUserId }}" onChange="{{ setBillShareUser }}" style="flex:1;min-width:0;padding:9px 10px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif">
+            <option value="">Select user</option>
+            <sc-for list="{{ billShareUserOptions }}" as="u" hint-placeholder-count="0"><option value="{{ u.userId }}">{{ u.label }}</option></sc-for>
+          </select>
+          <select class="cv-in" value="{{ billShareAccess }}" onChange="{{ setBillShareAccess }}" style="width:86px;flex:none;padding:9px 8px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif">
+            <option value="view">View</option>
+            <option value="edit">Edit</option>
+          </select>
+          <button onClick="{{ addBillCollaborator }}" style="flex:none;padding:0 12px;border:1.5px solid #0B1E35;border-radius:8px;background:#fff;color:#0B1E35;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Add</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;max-height:260px;overflow:auto">
+          <sc-for list="{{ billCollaboratorViews }}" as="c" hint-placeholder-count="0">
+            <div style="display:flex;align-items:center;gap:8px;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:8px 9px">
+              <div style="flex:1;min-width:0">
+                <div style="font:700 12px/1.25 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</div>
+                <div style="font:500 10.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:2px">{{ c.access }}</div>
+              </div>
+              <button onClick="{{ c.remove }}" style="flex:none;background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:14px;padding:4px 7px;line-height:1">×</button>
+            </div>
+          </sc-for>
+        </div>
+        <button onClick="{{ saveBillShares }}" style="height:38px;border:0;border-radius:9px;background:#0B1E35;color:#F4F2ED;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Save sharing</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ fileSaveDialogOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeFileSaveDialog }}" style="position:fixed;inset:0;background:rgba(11,30,53,.38);z-index:74"></div>
+    <div id="ds-file-save-dialog" role="dialog" aria-modal="true" aria-labelledby="ds-file-save-title" style="position:fixed;top:50%;left:50%;width:min(440px,calc(100vw - 40px));transform:translate(-50%,-50%);z-index:75;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 24px 64px -16px rgba(11,30,53,.45);overflow:hidden">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid #f0ede6">
+        <div>
+          <div id="ds-file-save-title" style="font:800 17px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">{{ fileSaveDialogTitle }}</div>
+          <div style="font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-top:5px">{{ fileSaveDialogDescription }}</div>
+        </div>
+        <button onClick="{{ closeFileSaveDialog }}" aria-label="Close" style="flex:none;background:none;border:0;color:#8a93a0;cursor:pointer;font-size:21px;line-height:1;padding:2px 5px">×</button>
+      </div>
+      <div style="padding:18px 20px 20px">
+        <label for="ds-file-save-name" style="display:block;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Name</label>
+        <input id="ds-file-save-name" class="cv-in" type="text" value="{{ fileSaveDialogName }}" onChange="{{ setFileSaveDialogName }}" style="width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+        <sc-if value="{{ fileSaveDialogError }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font:600 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#a23b3b;margin-top:8px">{{ fileSaveDialogError }}</div></sc-if>
+        <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:18px">
+          <button onClick="{{ closeFileSaveDialog }}" style="height:36px;padding:0 14px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Cancel</button>
+          <button onClick="{{ submitFileSaveDialog }}" style="height:36px;padding:0 15px;border:0;border-radius:8px;background:#0B1E35;color:#F4F2ED;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">{{ fileSaveDialogSubmitLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ fileShareOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleFileShare }}" style="position:fixed;inset:0;background:rgba(11,30,53,.32);z-index:70"></div>
+    <div style="position:fixed;top:74px;right:28px;width:360px;max-width:calc(100vw - 40px);z-index:71;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 24px 64px -16px rgba(11,30,53,.45);overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #f0ede6">
+        <div>
+          <div style="font:800 15px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Share file</div>
+          <div style="font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">{{ fileShareName }}</div>
+        </div>
+        <button onClick="{{ toggleFileShare }}" style="background:none;border:0;color:#8a93a0;cursor:pointer;font-size:20px;line-height:1;padding:2px 6px">×</button>
+      </div>
+      <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:8px">
+          <select class="cv-in" value="{{ fileShareUserId }}" onChange="{{ setFileShareUser }}" style="flex:1;min-width:0;padding:9px 10px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif">
+            <option value="">Select user</option>
+            <sc-for list="{{ fileShareUserOptions }}" as="u" hint-placeholder-count="0"><option value="{{ u.userId }}">{{ u.label }}</option></sc-for>
+          </select>
+          <select class="cv-in" value="{{ fileShareAccess }}" onChange="{{ setFileShareAccess }}" style="width:86px;flex:none;padding:9px 8px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:400 12.5px/1.4 'Plus Jakarta Sans',sans-serif">
+            <option value="view">View</option>
+            <option value="edit">Edit</option>
+          </select>
+          <button onClick="{{ addFileCollaborator }}" style="flex:none;padding:0 12px;border:1.5px solid #0B1E35;border-radius:8px;background:#fff;color:#0B1E35;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Add</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;max-height:260px;overflow:auto">
+          <sc-for list="{{ fileCollaboratorViews }}" as="c" hint-placeholder-count="0">
+            <div style="display:flex;align-items:center;gap:8px;background:#f7f5ef;border:1px solid #eae6db;border-radius:8px;padding:8px 9px">
+              <div style="flex:1;min-width:0">
+                <div style="font:700 12px/1.25 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</div>
+                <div style="font:500 10.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:2px">{{ c.access }}</div>
+              </div>
+              <button onClick="{{ c.remove }}" style="flex:none;background:none;border:0;color:#b3aa9a;cursor:pointer;font-size:14px;padding:4px 7px;line-height:1">×</button>
+            </div>
+          </sc-for>
+        </div>
+        <button onClick="{{ saveFileShares }}" style="height:38px;border:0;border-radius:9px;background:#0B1E35;color:#F4F2ED;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Save sharing</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ emailSendOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeEmailSend }}" style="position:fixed;inset:0;background:rgba(11,30,53,.38);z-index:72"></div>
+    <div role="dialog" aria-modal="true" aria-labelledby="ds-email-send-title" style="position:fixed;top:42px;left:50%;width:min(980px,calc(100vw - 42px));max-height:calc(100vh - 84px);transform:translateX(-50%);z-index:73;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 28px 72px -18px rgba(11,30,53,.5);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #f0ede6;gap:16px">
+        <div style="min-width:0">
+          <div id="ds-email-send-title" style="font:800 17px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Send email</div>
+          <div style="font:400 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin-top:3px">Sent from {{ emailFromLabel }}. Replies go to the editable reply-to address.</div>
+        </div>
+        <button onClick="{{ closeEmailSend }}" style="flex:none;background:none;border:0;color:#8a93a0;cursor:pointer;font-size:20px;line-height:1;padding:2px 6px">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);min-height:0;overflow:hidden">
+        <div style="padding:16px 18px;border-right:1px solid #f0ede6;display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto">
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">From</div>
+            <div style="padding:9px 11px;border:1px solid #e7e4db;border-radius:8px;background:#f7f5ef;font:600 12.5px/1.35 'Plus Jakarta Sans',sans-serif;color:#0B1E35;word-break:break-word">{{ emailFromLabel }}</div>
+          </div>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Reply-to</div>
+            <input class="cv-in" type="email" value="{{ emailReplyTo }}" onChange="{{ setEmailReplyTo }}" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C">To</div>
+              <button onClick="{{ toggleEmailContacts }}" style="background:none;border:0;color:#0B1E35;font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Contacts</button>
+            </div>
+            <textarea class="cv-in" value="{{ emailTo }}" onChange="{{ setEmailTo }}" placeholder="name@example.com, second@example.com" rows="3" style="width:100%;box-sizing:border-box;resize:vertical;min-height:74px;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.45 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></textarea>
+            <sc-if value="{{ emailContactsOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:8px;border:1px solid #e7e4db;border-radius:10px;background:#fff;box-shadow:0 14px 36px -18px rgba(11,30,53,.35);max-height:190px;overflow:auto">
+                <sc-for list="{{ emailContactOptions }}" as="c" hint-placeholder-count="0">
+                  <label style="display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-bottom:1px solid #f4f1ea;cursor:pointer">
+                    <input type="checkbox" checked="{{ c.checked }}" onChange="{{ c.toggle }}" style="width:15px;height:15px;margin-top:1px;accent-color:#1A8A9C;flex:none">
+                    <span style="min-width:0">
+                      <span style="display:block;font:700 12px/1.25 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+                      <span style="display:block;font:400 11px/1.35 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.email }}</span>
+                    </span>
+                  </label>
+                </sc-for>
+                <sc-if value="{{ noEmailContacts }}" hint-placeholder-val="{{ false }}"><div style="padding:12px;font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0">No contacts with email addresses loaded.</div></sc-if>
+              </div>
+            </sc-if>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onClick="{{ showEmailCc }}" style="{{ emailCcBtnStyle }}">Cc</button>
+            <button onClick="{{ showEmailBcc }}" style="{{ emailBccBtnStyle }}">Bcc</button>
+          </div>
+          <sc-if value="{{ emailCcOpen }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Cc</div>
+              <input class="cv-in" value="{{ emailCc }}" onChange="{{ setEmailCc }}" placeholder="cc@example.com" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+            </div>
+          </sc-if>
+          <sc-if value="{{ emailBccOpen }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Bcc</div>
+              <input class="cv-in" value="{{ emailBcc }}" onChange="{{ setEmailBcc }}" placeholder="bcc@example.com" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+            </div>
+          </sc-if>
+          <div>
+            <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Subject</div>
+            <input class="cv-in" value="{{ emailSubject }}" onChange="{{ setEmailSubject }}" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
+          </div>
+          <button onClick="{{ sendEmailNow }}" style="height:40px;border:0;border-radius:9px;background:#0B1E35;color:#F4F2ED;font:800 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;opacity:{{ emailSendButtonOpacity }}">{{ emailSendButtonLabel }}</button>
+          <sc-if value="{{ emailSendError }}" hint-placeholder-val="">
+            <div role="alert" style="font:600 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#a23b3b">{{ emailSendError }}</div>
+          </sc-if>
+        </div>
+        <div style="min-width:0;min-height:0;background:#e9e5da;overflow:auto;padding:22px">
+          <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;margin-bottom:12px">Email body preview</div>
+          {{ emailSendPreviewNode }}
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasLibraryDeleteConfirm }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(11,30,53,.32);z-index:80"></div>
+    <div id="ds-library-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="ds-library-delete-title" tabindex="-1" onKeyDown="{{ handleLibraryDeleteKeydown }}" style="position:fixed;top:50%;left:50%;width:360px;max-width:calc(100vw - 40px);transform:translate(-50%,-50%);z-index:81;background:#fff;border:1px solid #e7e4db;border-radius:14px;box-shadow:0 24px 64px -16px rgba(11,30,53,.45);padding:20px">
+      <h2 id="ds-library-delete-title" style="margin:0;font:800 17px/1.2 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Delete {{ libraryDeleteLabel }}?</h2>
+      <p style="margin:9px 0 0;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">This removes the saved item from this browser. This action cannot be undone.</p>
+      <div style="display:flex;justify-content:flex-end;gap:9px;margin-top:20px">
+        <button onClick="{{ cancelLibraryDelete }}" style="height:36px;padding:0 14px;border:1px solid #d9d7cf;border-radius:8px;background:#fff;color:#0B1E35;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Cancel</button>
+        <button onClick="{{ confirmLibraryDelete }}" style="height:36px;padding:0 14px;border:0;border-radius:8px;background:#a23b3b;color:#fff;font:700 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Delete</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ copied }}" hint-placeholder-val="">
+    <div role="status" aria-live="polite" aria-atomic="true" style="position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#0B1E35;color:#F4F2ED;padding:12px 22px;border-radius:11px;font:600 13px/1 'Plus Jakarta Sans',sans-serif;box-shadow:0 12px 34px rgba(11,30,53,.35);z-index:60">{{ copied }}</div>
+  </sc-if>
+
+</div>
+</x-dc>
 <script type="text/x-dc" data-dc-script data-props="{\"$preview\":{\"width\":\"100%\",\"height\":\"100%\"}}">
 // Logic is precompiled in studio-logic.js for strict CSP compatibility.
 </script>
