@@ -10,7 +10,7 @@
   KEY = 'cv_doc_studio_v1';
 
   logos = null;
-  logoSrc = (key) => (this.logos && this.logos[key]) ? this.logos[key] : `assets/logo_${key}.svg`;
+  logoSrc = (key) => (this.logos && this.logos[key]) ? this.logos[key] : `/ds/assets/logo_${key}.svg`;
   // PNG raster of the logo — SVG isn't reliably rendered in email clients or pasted content, so outputs use this.
   logoPng = (key) => (this.logosPng && this.logosPng[key]) ? this.logosPng[key] : this.logoSrc(key);
   rasterize = (svgDataUri, w, h) => new Promise((resolve, reject) => {
@@ -998,7 +998,7 @@
     const headlineExtra = `text-align:${hAlign};font-style:${d.smHeadlineItalic ? 'italic' : 'normal'}`;
     const sub = esc(d.smSub||''), handle = esc(d.smHandle||'');
     const web = esc(this.brand().web);
-    const logo = (this.logos&&this.logos[s.logo]) ? this.logos[s.logo] : `assets/logo_${s.logo}.svg`;
+    const logo = (this.logos&&this.logos[s.logo]) ? this.logos[s.logo] : `/ds/assets/logo_${s.logo}.svg`;
     const FF = "'Plus Jakarta Sans',Arial,sans-serif";
     const root = `width:${w}px;height:${h}px;position:relative;overflow:hidden;background:${s.bg};font-family:${FF};box-sizing:border-box`;
     const fit = this.socialFit(fk, d.smHeadline || '', d.smBody || '', d.smSub || '');
