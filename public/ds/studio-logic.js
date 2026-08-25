@@ -10,7 +10,7 @@
   KEY = 'cv_doc_studio_v1';
 
   logos = null;
-  logoSrc = (key) => (this.logos && this.logos[key]) ? this.logos[key] : `assets/logo_${key}.svg`;
+  logoSrc = (key) => (this.logos && this.logos[key]) ? this.logos[key] : `/ds/assets/logo_${key}.svg`;
   // PNG raster of the logo — SVG isn't reliably rendered in email clients or pasted content, so outputs use this.
   logoPng = (key) => (this.logosPng && this.logosPng[key]) ? this.logosPng[key] : this.logoSrc(key);
   rasterize = (svgDataUri, w, h) => new Promise((resolve, reject) => {
