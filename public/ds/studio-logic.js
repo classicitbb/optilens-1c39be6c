@@ -998,7 +998,7 @@
     const headlineExtra = `text-align:${hAlign};font-style:${d.smHeadlineItalic ? 'italic' : 'normal'}`;
     const sub = esc(d.smSub||''), handle = esc(d.smHandle||'');
     const web = esc(this.brand().web);
-    const logo = (this.logos&&this.logos[s.logo]) ? this.logos[s.logo] : `assets/logo_${s.logo}.svg`;
+    const logo = (this.logos&&this.logos[s.logo]) ? this.logos[s.logo] : `/ds/assets/logo_${s.logo}.svg`;
     const FF = "'Plus Jakarta Sans',Arial,sans-serif";
     const root = `width:${w}px;height:${h}px;position:relative;overflow:hidden;background:${s.bg};font-family:${FF};box-sizing:border-box`;
     const fit = this.socialFit(fk, d.smHeadline || '', d.smBody || '', d.smSub || '');
