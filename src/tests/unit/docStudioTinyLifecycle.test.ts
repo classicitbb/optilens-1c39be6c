@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const studioSource = readFileSync(
-  resolve(process.cwd(), "public/ds/studio.html"),
+  resolve(process.cwd(), "public/ds/studio-logic.js"),
   "utf8",
 );
 
