@@ -40,7 +40,13 @@ async def main():
         context = await browser.new_context(viewport={"width": 1280, "height": 1800})
         page = await context.new_page()
         console_errors = []
-        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+        def capture_console(message):
+            if message.type != "error":
+                return
+            location = message.location.get("url", "") if message.location else ""
+            console_errors.append(f"{message.text} | {location}")
+
+        page.on("console", capture_console)
         page.on("pageerror", lambda error: console_errors.append(str(error)))
 
         await restore_session(context, page)
@@ -48,8 +54,17 @@ async def main():
         await page.locator(".ds-native-host #dc-root").wait_for(state="visible", timeout=30_000)
 
         for tab in TABS:
-            await page.locator("#embedded-tabbar").get_by_role("button", name=tab, exact=True).click()
+            button = page.locator("#embedded-tabbar").get_by_role("button", name=tab, exact=True)
+            await button.evaluate("element => element.click()")
             await page.wait_for_timeout(150)
+            expected_state = {
+                "My Files": "files", "Email": "email", "Letterhead": "letter",
+                "Signature": "signature", "Social": "social", "Billing": "billing",
+                "Ship Label": "shiplabel", "Statement": "statement",
+            }[tab]
+            active_state = await page.evaluate("window._dsApp && window._dsApp.state.tab")
+            if active_state != expected_state:
+                raise AssertionError(f"{tab} did not become active (state={active_state})")
             title = await page.locator(".ds-native-host").get_by_text("preview", exact=False).count()
             if tab != "My Files" and title == 0:
                 raise AssertionError(f"{tab} did not render a live preview")
