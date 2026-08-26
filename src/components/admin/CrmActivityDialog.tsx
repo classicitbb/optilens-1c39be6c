@@ -49,11 +49,11 @@ const CrmActivityDialog = () => {
   const [form, setForm] = useState<ActivityForm>(EMPTY_FORM);
   const [mention, setMention] = useState("");
 
-  const appendTitleDictation = useCallback((transcript: string) => {
-    setForm((current) => ({ ...current, activityType: `${current.activityType.trimEnd()}${current.activityType.trimEnd() ? " " : ""}${transcript}` }));
+  const applyTitleDictation = useCallback((nextValue: string) => {
+    setForm((current) => ({ ...current, activityType: nextValue }));
   }, []);
-  const appendNotesDictation = useCallback((transcript: string) => {
-    setForm((current) => ({ ...current, content: `${current.content.trimEnd()}${current.content.trimEnd() ? " " : ""}${transcript}` }));
+  const applyNotesDictation = useCallback((nextValue: string) => {
+    setForm((current) => ({ ...current, content: nextValue }));
   }, []);
 
   useEffect(() => {
@@ -110,7 +110,7 @@ const CrmActivityDialog = () => {
           <DialogDescription>Capture the next action, who owns it, and who can help.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
-          <div className="grid gap-2"><Label htmlFor="crm-activity-title">Task title</Label><div className="relative"><Input id="crm-activity-title" value={form.activityType} onChange={(event) => setForm({ ...form, activityType: event.target.value })} placeholder="e.g., Follow up on trial lenses" className="pr-11" autoFocus /><InlineDictationButton ariaLabel="Dictate task title" onTranscript={appendTitleDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
+          <div className="grid gap-2"><Label htmlFor="crm-activity-title">Task title</Label><div className="relative"><Input id="crm-activity-title" value={form.activityType} onChange={(event) => setForm({ ...form, activityType: event.target.value })} placeholder="e.g., Follow up on trial lenses" className="pr-11" autoFocus /><InlineDictationButton ariaLabel="Dictate task title" onValueChange={applyTitleDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2"><Label>Owner</Label><Select value={form.ownerId} onValueChange={(ownerId) => setForm({ ...form, ownerId })}><SelectTrigger><SelectValue placeholder="Choose owner" /></SelectTrigger><SelectContent>{staff.map((person) => <SelectItem key={person.user_id} value={person.user_id}>{person.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="grid gap-2"><Label>Customer or contact</Label><Select value={form.contactId || "none"} onValueChange={(contactId) => setForm({ ...form, contactId: contactId === "none" ? "" : contactId })}><SelectTrigger><SelectValue placeholder="General task" /></SelectTrigger><SelectContent><SelectItem value="none">General task</SelectItem>{contacts.map((contact) => <SelectItem key={contact.id} value={contact.id}>{contact.business_name || contact.name || "Unnamed contact"}</SelectItem>)}</SelectContent></Select></div>
@@ -129,7 +129,7 @@ const CrmActivityDialog = () => {
             <div className="grid gap-2"><Label>Activity type</Label><Select value={form.type} onValueChange={(type) => setForm({ ...form, type: type as ActivityChannelType })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ACTIVITY_TYPES.map((type) => <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>)}</SelectContent></Select></div>
             <div className="grid gap-2"><Label>Task channel</Label><Select value={form.taskChannel} onValueChange={(taskChannel) => setForm({ ...form, taskChannel: taskChannel as ActivityTaskChannel })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TASK_CHANNELS.map((channel) => <SelectItem key={channel} value={channel}>{TASK_CHANNEL_LABELS[channel]}</SelectItem>)}</SelectContent></Select></div>
           </div>
-          <div className="grid gap-2"><Label htmlFor="crm-activity-notes">Notes</Label><div className="relative"><Textarea id="crm-activity-notes" value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="Context, ideas, or the desired outcome" className="pr-11" rows={4} /><InlineDictationButton ariaLabel="Dictate task notes" onTranscript={appendNotesDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
+          <div className="grid gap-2"><Label htmlFor="crm-activity-notes">Notes</Label><div className="relative"><Textarea id="crm-activity-notes" value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="Context, ideas, or the desired outcome" className="pr-11" rows={4} /><InlineDictationButton ariaLabel="Dictate task notes" onValueChange={applyNotesDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
         </div>
         <DialogFooter><Button variant="outline" onClick={close}>Cancel</Button><Button onClick={() => void submit()} disabled={isPending}>{isPending ? "Saving…" : editing ? "Save changes" : "Create task"}</Button></DialogFooter>
       </DialogContent>
