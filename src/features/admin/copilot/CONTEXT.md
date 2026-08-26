@@ -11,7 +11,7 @@ parallel systems.
 
 - `/admin/copilot` is additionally wrapped in `AdminOnlyRoute`; customers,
   prospects, operators and viewers cannot use it.
-- Voice transcripts must be visible and explicitly confirmed before a run.
+- Voice transcripts return directly to the composer when transcription succeeds; sending the command remains an explicit user action.
 - Customer-facing and financial effects are always Level 4 and require an
   explicit action approval.
 - CRM scans may prepare Level 2 task proposals, but may not create live tasks or

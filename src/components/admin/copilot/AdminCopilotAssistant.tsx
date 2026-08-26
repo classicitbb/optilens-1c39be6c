@@ -3,7 +3,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
 import {
   AlertCircle,
-  Check,
   CheckCircle2,
   ExternalLink,
   FileText,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   analyzeCopilotAttachments,
@@ -37,7 +35,6 @@ import { ActionCard } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment } from "@/features/admin/copilot/attachments";
 import { getContextLabel, pathnameToContextSlug } from "@/lib/adminContexts";
-import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = [
   "Explain what I'm looking at on this screen",
@@ -72,7 +69,6 @@ const AdminCopilotAssistant = () => {
   const [command, setCommand] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
-  const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
   const [state, setState] = useState<CopilotState | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
@@ -84,11 +80,10 @@ const AdminCopilotAssistant = () => {
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const commandInputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const onTranscript = useCallback((transcript: string, confidence: number) => {
+  const onTranscript = useCallback((transcript: string) => {
     setCommand(transcript);
     setInputMode("voice");
-    setTranscriptConfirmed(false);
-    setSpeechConfidence(confidence);
+    setTranscriptConfirmed(true);
   }, []);
   const speech = usePushToTalk(onTranscript);
 
@@ -117,7 +112,6 @@ const AdminCopilotAssistant = () => {
       setCommand("");
       setInputMode("text");
       setTranscriptConfirmed(false);
-      setSpeechConfidence(null);
     },
     onError: (error: Error) => toast({ title: "Copilot could not respond", description: error.message, variant: "destructive" }),
   });
@@ -129,7 +123,6 @@ const AdminCopilotAssistant = () => {
       setCommand("");
       setInputMode("text");
       setTranscriptConfirmed(false);
-      setSpeechConfidence(null);
       setAttachments([]);
       setLocalMessages([]);
     },
@@ -173,10 +166,8 @@ const AdminCopilotAssistant = () => {
   );
 
   const hasAttachments = attachments.length > 0;
-  const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
   const canSend = !prepareMutation.isPending && !isAnalyzing
-    && (hasAttachments || command.trim().length > 0)
-    && (inputMode === "text" || transcriptConfirmed);
+    && (hasAttachments || command.trim().length > 0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -440,16 +431,6 @@ const AdminCopilotAssistant = () => {
             </div>
 
             <div className="border-t border-border/50 bg-muted/30 px-3 py-2">
-              {inputMode === "voice" && command.trim() ? (
-                <div className={cn("mb-2 flex items-start gap-1.5 rounded-xl border px-2.5 py-2 text-[11px]", lowConfidence ? "border-amber-300 bg-amber-50 text-amber-900" : "border-sky-200 bg-sky-50 text-sky-900")}>
-                  {lowConfidence ? <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> : <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
-                  <label className="flex cursor-pointer items-start gap-1.5">
-                    <Checkbox checked={transcriptConfirmed} onCheckedChange={(checked) => setTranscriptConfirmed(checked === true)} className="mt-0.5 h-3.5 w-3.5" />
-                    <span>{lowConfidence ? "Low-confidence transcript — review the text, then confirm." : "Review the transcript, then confirm before sending."}</span>
-                  </label>
-                </div>
-              ) : null}
-
               {attachments.length ? (
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {attachments.map((file) => (
@@ -530,7 +511,7 @@ const AdminCopilotAssistant = () => {
                     value={command}
                     onChange={(event) => {
                       setCommand(event.target.value);
-                      if (inputMode === "voice") setTranscriptConfirmed(false);
+                      if (inputMode === "voice") setTranscriptConfirmed(true);
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {

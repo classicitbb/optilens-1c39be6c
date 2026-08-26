@@ -1113,7 +1113,7 @@ function sectionSummary(id){
     S.chemClips.forEach((clip,index)=>items.push(`<b>Chemistrie clip ${index+1}</b> — ${chemClipParts(clip).join(' · ')}`));
     return items.join('<br>');
   }
-  return [selectLabel('service'),selectLabel('delivery'),$('#notes').value.trim()&&'Lab notes added'].filter(Boolean).join(' · ');
+  return [selectLabel('service'),selectLabel('delivery'),($('#notes').value.trim()||chemLabNotes())&&'Lab notes added'].filter(Boolean).join(' · ');
 }
 const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-rx','sec-treat']);
 function syncSectionCollapse(V){

@@ -569,6 +569,7 @@ const ContactsPage = ({
     language: dictationLanguage,
     vocabulary: "Classic Visions, Innovations, ERP, portal access, account number, pricelist, lens",
   });
+  const stopDictation = dictation.stop;
   useEffect(() => {
     dictation.setSettings((current) => ({ ...current, language: dictationLanguage }));
   }, [dictation.setSettings, dictationLanguage]);

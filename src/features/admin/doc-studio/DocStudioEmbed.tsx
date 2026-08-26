@@ -20,6 +20,13 @@ import { Button } from "@/components/ui/button";
 
 const DS_BASE = "/ds";
 const DESIGN_SYSTEM_CSS = `${DS_BASE}/_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css`;
+const DOC_STUDIO_SUPABASE_REF = (() => {
+  try {
+    return new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0] ?? "";
+  } catch {
+    return "";
+  }
+})();
 
 const SCRIPT_SOURCES = [
   `${DS_BASE}/cloud-bridge.js`,
@@ -53,6 +60,7 @@ const NATIVE_CSS = `
 declare global {
   interface Window {
     __dcBoot?: () => unknown;
+    __docStudioSupabaseRef?: string;
   }
 }
 
@@ -95,6 +103,10 @@ function loadStylesheet(href: string) {
 function loadAssets(): Promise<void> {
   if (!assetsPromise) {
     assetsPromise = (async () => {
+      // The browser can hold sessions for multiple Supabase projects. Give the
+      // static cloud bridge this app's public project reference so it never
+      // routes saved-file calls through a stale project's Edge Function.
+      if (DOC_STUDIO_SUPABASE_REF) window.__docStudioSupabaseRef = DOC_STUDIO_SUPABASE_REF;
       await Promise.all(STYLESHEET_HREFS.map(loadStylesheet));
       if (!document.querySelector('style[data-ds-native="native-css"]')) {
         const style = document.createElement("style");
