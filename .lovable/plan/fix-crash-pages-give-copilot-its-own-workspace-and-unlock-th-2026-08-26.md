@@ -12,7 +12,7 @@ What I confirmed:
 Plan:
 
 1. **Capture first.** Add a server-side error log so every crash records route, message, component stack, user id, release version, and browser. Feed the existing admin Runtime Errors screen from that table instead of localStorage only.
-2. **Contain the blast radius.** Add a route-level boundary inside each shell (public, portal, admin, ops) so a crash on one page no longer blanks the whole app. Admins and operators see a detailed panel: what failed, the error message, the route, a Retry, and a "Back to dashboard" link. Regular users never see technical detail — they get a brief "we hit a problem, reloading…" message and the page hard-reloads automatically (once, so it can't loop).
+2. **Contain the blast radius.** Add a route-level boundary inside each shell (public, portal, admin, ops) so a crash on one page no longer blanks the whole app, and show a useful panel: what failed, the route, a Retry, and a "Back to dashboard/home" link.
 3. **Handle stale-deploy chunk errors.** Failed lazy `import()` after a new release is a common cause of app-wide blank/crash states. Detect that specific failure and do a one-time hard reload instead of showing an error.
 4. **Fix what the capture shows.** Once real crashes are recorded, fix the top offenders. This step is deliberately open — the list comes from data, not guesses.
 
