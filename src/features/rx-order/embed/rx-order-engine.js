@@ -864,6 +864,40 @@ function renderChemCfg(){
     toast('Clip '+S.chemClips.length+' added — configure it below');
   });
 }
+const CHEM_NOTES_START='[Chemistrie specifications]';
+const CHEM_NOTES_END='[/Chemistrie specifications]';
+function chemChoiceName(items,id,fallback){
+  return items.find(x=>x.id===id)?.n || fallback;
+}
+function chemClipParts(c){
+  const type=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
+  const parts=[type.n];
+  if(type.id==='readers'){
+    const nearAdd=parseNum(c.add,true);
+    parts.push('Near add: '+(nearAdd===null?'—':sgn(nearAdd)));
+  } else {
+    if(c.colour) parts.push('Solid polarised: '+chemChoiceName(CHEM_COLOURS,c.colour,c.colour));
+    if(c.mirror) parts.push('Mirror polarised: '+chemChoiceName(CHEM_MIRRORS,c.mirror,c.mirror));
+  }
+  if(type.id==='sun'||type.id==='drive') parts.push('Polarised: '+(c.polarised?'Yes':'No'));
+  parts.push('Magnet: '+chemChoiceName(CHEM_MAGNETS,c.magnet,'Black'));
+  parts.push('Bridge: '+chemChoiceName(CHEM_BRIDGES,c.bridge,'Black'));
+  parts.push('Crystal: '+chemChoiceName(CHEM_CRYSTALS,c.crystal,'None'));
+  return parts;
+}
+function chemClipSummary(c,index){
+  return 'Chemistrie clip '+(index+1)+' — '+chemClipParts(c).join(' · ');
+}
+function chemLabNotes(){
+  if(!S.chemClips.length) return '';
+  return CHEM_NOTES_START+'\n'+S.chemClips.map((c,index)=>chemClipSummary(c,index)).join('\n')+'\n'+CHEM_NOTES_END;
+}
+function stripChemNotes(value){
+  return String(value||'').replace(new RegExp('\\s*'+CHEM_NOTES_START.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[\\s\\S]*?'+CHEM_NOTES_END.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*','g'),'\n').trim();
+}
+function notesWithChemistrie(manualNotes){
+  return [stripChemNotes(manualNotes),chemLabNotes()].filter(Boolean).join('\n\n');
+}
 function chemPriceLines(){
   return S.chemClips.map((c,i)=>{
     const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
@@ -1076,7 +1110,7 @@ function sectionSummary(id){
         : t.d;
       return `<b>${t.n}</b> — ${detail}`;
     }).filter(Boolean);
-    if(S.chemClips.length) items.push(`<b>Chemistrie</b> — ${S.chemClips.length} clip${S.chemClips.length>1?'s':''}`);
+    S.chemClips.forEach((clip,index)=>items.push(`<b>Chemistrie clip ${index+1}</b> — ${chemClipParts(clip).join(' · ')}`));
     return items.join('<br>');
   }
   return [selectLabel('service'),selectLabel('delivery'),$('#notes').value.trim()&&'Lab notes added'].filter(Boolean).join(' · ');
@@ -3091,7 +3125,7 @@ function buildPayload(){
     chemistrie: S.chemClips.length ? S.chemClips.map(c=>({ ...c })) : null,
     ownerReview: S.ownerReview,
     assistance: Array.from(S.assists),
-    delivery: { service:$('#service').value, method:$('#delivery').value, notes:$('#notes').value },
+    delivery: { service:$('#service').value, method:$('#delivery').value, notes:notesWithChemistrie($('#notes').value) },
     quote: S.pricesOn ? { currency:S.cur, symbol:c.sym, rate:c.rate,
       lines:p.lines.map(l=>({ label:l.n, detail:l.i, amount:+(l.v*c.rate).toFixed(2), ...(l.eye?{eye:l.eye}:{}), ...(l.lens?{lens:true}:{}) })),
       total:+(p.sub*c.rate).toFixed(2), lockedAt:new Date().toISOString() }
@@ -3152,7 +3186,7 @@ function restorePayload(p){
   Object.entries(p.rx||{}).forEach(([e,r])=>{
     rowEls(e).forEach(i=>{ const v=r[i.dataset.f]; i.value=(v===null||v===undefined)?'':v; });
   });
-  $('#service').value=p.delivery.service||'std'; $('#notes').value=p.delivery.notes||'';
+  $('#service').value=p.delivery.service||'std'; $('#notes').value=stripChemNotes(p.delivery.notes||'');
   /* A saved delivery method is an explicit choice, so it must survive the
      account's export default rather than be overwritten on restore. */
   if(p.delivery.method){
@@ -3583,7 +3617,7 @@ $('#printBtn').addEventListener('click',()=>{
   <span>Treatments</span><div>${tr.length?tr.join(', '):'None'}</div>
   <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} Temple ${$('#ftemple').value||'—'} · ${$('#mount').options[$('#mount').selectedIndex].text}</div>
   <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${$('#delivery').value}</div>
-  ${$('#notes').value?`<span>Notes</span><div>${$('#notes').value.replace(/</g,'&lt;')}</div>`:''}</div>
+  ${(function(){ const notes=notesWithChemistrie($('#notes').value); return notes?`<span>Notes</span><div>${notes.replace(/</g,'&lt;')}</div>`:''; })()}</div>
   ${S.pricesOn?`<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub*c.rate)}</span></div>`
     :`<div class="tot" style="font-size:12.5px;font-weight:500;color:#557"><span>Pricing not enabled on this account</span><span>Confirmed before production</span></div>`}
   ${S.ownerReview?'<p style="font-size:11.5px;color:#8a6a20;margin-top:10px">⚑ Contains specialty work pending owner review.</p>':''}

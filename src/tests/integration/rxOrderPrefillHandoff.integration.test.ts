@@ -338,6 +338,31 @@ describe("lens assistant → rx order handoff", () => {
     engine.destroy();
   });
 
+  it("summarizes every Chemistrie clip part and adds it to the lab notes once", () => {
+    const { host, engine } = mount();
+    host.querySelector<HTMLInputElement>("#chemOn")?.click();
+    host.querySelector<HTMLButtonElement>('[data-swatch-field="colour"][data-swatch-value="Grey"]')?.click();
+    host.querySelector<HTMLButtonElement>("#treatConfirm")?.click();
+
+    const summary = host.querySelector("#sec-treat .section-summary")?.textContent || "";
+    expect(summary).toContain("Chemistrie clip 1");
+    expect(summary).toContain("Chemistrie Sun");
+    expect(summary).toContain("Solid polarised: Grey");
+    expect(summary).toContain("Polarised: Yes");
+    expect(summary).toContain("Magnet: Black");
+    expect(summary).toContain("Bridge: Black");
+    expect(summary).toContain("Crystal: None");
+
+    const payload = engine.getPayload();
+    expect(payload.delivery.notes).toContain("[Chemistrie specifications]");
+    expect(payload.delivery.notes).toContain("Solid polarised: Grey");
+
+    engine.restorePayload(payload);
+    expect((engine.getPayload().delivery.notes.match(/\[Chemistrie specifications\]/g) || [])).toHaveLength(1);
+
+    engine.destroy();
+  });
+
   it("does not crash when a high-power Rx suggests treatments absent from the live catalogue", () => {
     const prefill = buildRxPrefillPayload(draft({
       right: { sphere: -8, cylinder: -4, axis: 90, add: 1.5, prism: null, prismBase: "" },
