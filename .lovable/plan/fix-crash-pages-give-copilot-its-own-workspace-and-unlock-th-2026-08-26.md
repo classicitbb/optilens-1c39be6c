@@ -20,7 +20,7 @@ Plan:
 
 What I confirmed: `/copilot` is not a route at all (it renders the 404 page). The Copilot lives at `/admin/copilot`, inside the admin shell, behind an admin-only guard, so operators are bounced to the pricing publisher.  
   
-Do not alter the copilot widget, popup or existing ui. 
+Strictly preserve the existing Copilot widget, popup, launcher, and all current UI surfaces untouched — this work only adds a new standalone workspace page at `/copilot`; do not modify any existing Copilot component, trigger, or styling. 
 
 Plan:
 
