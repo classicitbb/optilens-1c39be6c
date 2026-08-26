@@ -342,6 +342,11 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-2 border-b px-4 py-2">
+          {standalone ? (
+            <Button size="icon" variant="ghost" aria-label="Back to admin" className="h-7 w-7" asChild>
+              <a href="/admin/dashboard"><ArrowLeft className="h-3.5 w-3.5" /></a>
+            </Button>
+          ) : null}
           {!showSidebar ? (
             <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden h-7 w-7 lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-3.5 w-3.5" /></Button>
           ) : null}
