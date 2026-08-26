@@ -6282,6 +6282,24 @@ export type Database = {
         }
         Relationships: []
       }
+      operator_attention_snoozes: {
+        Row: {
+          snoozed_until: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          snoozed_until: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          snoozed_until?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       opportunities: {
         Row: {
           audit_pdf_url: string | null
@@ -11829,6 +11847,10 @@ export type Database = {
         Returns: undefined
       }
       integration_secret_encryption_key: { Args: never; Returns: string }
+      is_credit_approved_portal_user: {
+        Args: { p_user_id?: string }
+        Returns: boolean
+      }
       list_lead_provider_credentials_status: {
         Args: { p_tenant_key?: string }
         Returns: {
@@ -11936,6 +11958,10 @@ export type Database = {
           p_shipping_amount?: number
           p_target_user_id: string
         }
+        Returns: string
+      }
+      place_rx_order_direct: {
+        Args: { p_checkout?: Json; p_items: Json }
         Returns: string
       }
       portal_assigned_pricelist_addons: {
