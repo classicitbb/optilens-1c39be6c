@@ -103,6 +103,8 @@ const App = () => (
               <CookieConsentBanner />
             </Suspense>
             <RuntimeAnalytics />
+            {/* Last-resort boundary: any error not caught by a route-level
+                boundary falls back to a hard reload for all users. */}
             <ErrorBoundary>
               <Suspense fallback={<RouteLoadingFallback />}>
                 <Routes>
@@ -112,23 +114,24 @@ const App = () => (
                   {import.meta.env.DEV && (
                     <Route path="/dev/rx-order" element={<RxOrderPreview />} />
                   )}
-                  <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
-                  <Route path="/admin/*" element={<AdminProtectedRoute><AdminRoutes /></AdminProtectedRoute>} />
+                  <Route path="/ops/*" element={<AdminProtectedRoute><ErrorBoundary routeLabel="/ops" homeHref="/admin/dashboard" isStaff><OpsRoutes /></ErrorBoundary></AdminProtectedRoute>} />
+                  <Route path="/admin/*" element={<AdminProtectedRoute><ErrorBoundary routeLabel="/admin" homeHref="/admin/dashboard" isStaff><AdminRoutes /></ErrorBoundary></AdminProtectedRoute>} />
+                  <Route path="/copilot" element={<AdminProtectedRoute><ErrorBoundary routeLabel="/copilot" homeHref="/admin/dashboard" isStaff><CopilotWorkspacePage /></ErrorBoundary></AdminProtectedRoute>} />
 
                   <Route element={<CustomerShell />}>
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                     <Route path="/unsubscribe" element={<Unsubscribe />} />
-                    <Route path="/store" element={<Store />} />
-                    <Route path="/store/product/:productType/:productId" element={<StoreProductPage />} />
-                    <Route path="/cart" element={<CartPage />} />
-                    <Route path="/checkout" element={<CheckoutPage />} />
-                    <Route path="/order-complete" element={<OrderCompletePage />} />
-                    <Route path="/order/:orderId" element={<OrderCompletePage />} />
-                    <Route path="/profile/*" element={<PortalRoutes />} />
+                    <Route path="/store" element={<ErrorBoundary routeLabel="/store"><Store /></ErrorBoundary>} />
+                    <Route path="/store/product/:productType/:productId" element={<ErrorBoundary routeLabel="/store/product"><StoreProductPage /></ErrorBoundary>} />
+                    <Route path="/cart" element={<ErrorBoundary routeLabel="/cart"><CartPage /></ErrorBoundary>} />
+                    <Route path="/checkout" element={<ErrorBoundary routeLabel="/checkout"><CheckoutPage /></ErrorBoundary>} />
+                    <Route path="/order-complete" element={<ErrorBoundary routeLabel="/order-complete"><OrderCompletePage /></ErrorBoundary>} />
+                    <Route path="/order/:orderId" element={<ErrorBoundary routeLabel="/order"><OrderCompletePage /></ErrorBoundary>} />
+                    <Route path="/profile/*" element={<PortalRouteErrorBoundary routeLabel="/profile"><PortalRoutes /></PortalRouteErrorBoundary>} />
                     <Route path="/portal" element={<Navigate to="/profile" replace />} />
-                    <Route path="/*" element={<PublicRoutes />} />
+                    <Route path="/*" element={<ErrorBoundary routeLabel="public"><PublicRoutes /></ErrorBoundary>} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />
