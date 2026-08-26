@@ -21,6 +21,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import { CompanionAssistantProvider } from "@/features/assistant/CompanionAssistantContext";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PortalRouteErrorBoundary } from "@/components/PortalRouteErrorBoundary";
 
 const PublicRoutes = lazy(() => import("@/routes/public/PublicRoutes"));
 const PortalRoutes = lazy(() => import("@/routes/portal/PortalRoutes"));
