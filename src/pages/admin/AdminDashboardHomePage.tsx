@@ -175,7 +175,12 @@ const AdminDashboardHomePage = () => {
 
   useEffect(() => () => cancelPendingOpen(), []);
 
-  const greeting = useMemo(getGreeting, []);
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  }, []);
   const firstName = capitalizeDisplayName(resolveUserFullName(user).split(" ")[0]) || "there";
 
   const quickActions = useMemo(
