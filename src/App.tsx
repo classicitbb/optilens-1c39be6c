@@ -44,6 +44,7 @@ const GlobalErrorLogger = lazy(() => import("@/components/GlobalErrorLogger"));
 // visit — no idle-callback delay — ensuring consent is collected before any
 // analytics or tracking code is initialized.
 const CookieConsentBanner = lazy(() => import("@/components/CookieConsentBanner"));
+const CopilotWorkspacePage = lazy(() => import("@/pages/CopilotWorkspacePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
