@@ -1,22 +1,21 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { callAdminUserManagement } from "@/features/admin/api/adminUserManagement";
 import { useAdminUsers, type AdminUser } from "@/hooks/useAdminUsers";
 import type { AppRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye, Copy, IdCard, QrCode } from "lucide-react";
+import { UserPlus, Trash2, Shield, Edit2, KeyRound, Search, Check, X, Lock, Mail, Eye, Copy, IdCard, QrCode, ContactRound } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { format } from "date-fns";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import CustomerPricingPanel from "@/components/admin/CustomerPricingPanel";
 import { StaffPublicCardEditorDialog } from "@/features/staff-cards/components/StaffPublicCardEditorDialog";
 import { StaffPublicCardPreviewDialog } from "@/features/staff-cards/components/StaffPublicCardPreviewDialog";
 import { isStaffRole } from "@/features/staff-cards/staffPublicCards";
@@ -31,14 +30,13 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 };
 
 const UsersPage = () => {
-  const { users, isLoading, assignRole, removeRole, resetPassword, inviteUser, createUser } = useAdminUsers();
-  const { realRole, startImpersonation } = useAdminRole();
+  const { users, isLoading, assignRole, removeRole, resetPassword, inviteUser, createUser, deleteRevokedUser } = useAdminUsers();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>("viewer");
   const [search, setSearch] = useState("");
   
-  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [networkingEditorUser, setNetworkingEditorUser] = useState<AdminUser | null>(null);
   const [networkingPreviewUser, setNetworkingPreviewUser] = useState<AdminUser | null>(null);
 
@@ -71,6 +69,7 @@ const UsersPage = () => {
     return users.filter(
       (u) =>
         (u.display_name ?? "").toLowerCase().includes(q) ||
+        (u.contact_name ?? "").toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         (u.role ?? "").toLowerCase().includes(q)
     );
@@ -106,6 +105,21 @@ const UsersPage = () => {
       toast({ title: "Password reset sent", description: `Recovery email sent to ${user.email}.` });
     } catch {
       toast({ title: "Error", description: "Failed to send password reset.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteRevokedUser = async (user: AdminUser) => {
+    const userLabel = user.contact_name || user.display_name || user.full_name || user.email || "this login";
+    if (!window.confirm(`Delete ${userLabel}? This permanently removes the revoked login.`)) return;
+    try {
+      await deleteRevokedUser.mutateAsync(user.user_id);
+      toast({ title: "Revoked login deleted", description: `${userLabel} was removed.` });
+    } catch (error) {
+      toast({
+        title: "Unable to delete login",
+        description: error instanceof Error ? error.message : "The login could not be deleted.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -164,7 +178,11 @@ const UsersPage = () => {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <AdminPageHeader icon={Shield} title="User Management" />
+        <AdminPageHeader icon={Shield} title="User Management">
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Open Contacts" onClick={() => navigate("/admin/erp/contacts")}>
+            <ContactRound className="h-3.5 w-3.5" />
+          </Button>
+        </AdminPageHeader>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setInviteEmail(""); setInviteSendEmail(false); setInviteLink(null); setInviteOpen(true); }}>
             <Mail className="h-3.5 w-3.5" />
@@ -202,8 +220,10 @@ const UsersPage = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((user, idx) => (
-              <Fragment key={user.user_id}>
+            {filtered.map((user, idx) => {
+              const userName = user.contact_name || user.display_name || user.full_name || "Unnamed user";
+              const canDeleteRevokedLogin = !user.role_id && !user.role && !!user.banned_until && new Date(user.banned_until).getTime() > Date.now();
+              return (
                 <tr className={`border-b last:border-b-0 border-[hsl(var(--admin-table-border))] ${idx % 2 === 0 ? "bg-[hsl(var(--admin-table-row-even))]" : "bg-[hsl(var(--admin-table-row-odd))]"}`}>
                   <td className="px-3 py-2">
                     {editingName === user.user_id ? (
@@ -222,13 +242,21 @@ const UsersPage = () => {
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
+                    ) : user.contact_id ? (
+                      <button
+                        className="text-[13px] font-medium hover:underline cursor-pointer text-left text-[hsl(var(--admin-table-fg))]"
+                        onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}
+                        title="Open linked contact"
+                      >
+                        {userName}
+                      </button>
                     ) : (
                       <button
                         className="text-[13px] font-medium hover:underline cursor-pointer text-left text-[hsl(var(--admin-table-fg))]"
                         onClick={() => startEditName(user)}
                         title="Click to edit name"
                       >
-                        {user.display_name || "Unnamed user"}
+                        {userName}
                       </button>
                     )}
                   </td>
@@ -276,12 +304,13 @@ const UsersPage = () => {
                   <td className="px-3 py-2 text-right">
                     {editingUser !== user.user_id && (
                       <div className="flex items-center justify-end gap-1">
-                        {realRole === "admin" && user.role && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title={`Preview as ${user.display_name || user.email}`}
-                            onClick={() => {
-                              startImpersonation(user.role!, user.display_name || user.email || user.role!);
-                              toast({ title: "Impersonating", description: `Now viewing as ${user.role} role.` });
-                            }}
+                        {user.role === "customer" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Open Website Portals and emulate this customer"
+                            onClick={() => navigate(`/admin/website/portals?status=all&search=${encodeURIComponent(user.email || userName)}&emulate=${encodeURIComponent(user.user_id)}`)}
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
@@ -305,9 +334,9 @@ const UsersPage = () => {
                             </Button>
                           </>
                         )}
-                        {user.role === "customer" && (
-                          <Button variant="ghost" size="icon" title="Manage pricelists" onClick={() => setSelectedCustomer(selectedCustomer === user.user_id ? null : user.user_id)} className={`h-7 w-7 ${selectedCustomer === user.user_id ? "text-[hsl(var(--admin-accent))]" : ""}`}>
-                            <Shield className="h-3.5 w-3.5" />
+                        {user.contact_id && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Open linked contact" onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}>
+                            <ContactRound className="h-3.5 w-3.5" />
                           </Button>
                         )}
                         {user.role_id && (
@@ -315,19 +344,17 @@ const UsersPage = () => {
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
+                        {canDeleteRevokedLogin && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Delete revoked login with no roles" onClick={() => void handleDeleteRevokedUser(user)} disabled={deleteRevokedUser.isPending}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </td>
                 </tr>
-                {selectedCustomer === user.user_id && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-3 bg-[hsl(var(--admin-table-header-bg))]">
-                      <CustomerPricingPanel userId={selectedCustomer} />
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            ))}
+              );
+            })}
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-8 text-center text-xs text-[hsl(var(--admin-muted-fg))]">

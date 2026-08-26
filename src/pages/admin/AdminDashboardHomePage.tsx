@@ -29,6 +29,7 @@ import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
+import CreateHelpdeskTicketDialog from "@/features/admin/helpdesk/components/CreateHelpdeskTicketDialog";
 import { capitalizeDisplayName, resolveUserFullName } from "@/lib/profileData";
 import { cn } from "@/lib/utils";
 
@@ -145,6 +146,7 @@ const AdminDashboardHomePage = () => {
   const hoverTimeoutRef = useRef<number | null>(null);
   const [expandedTile, setExpandedTile] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [createTicketOpen, setCreateTicketOpen] = useState(false);
 
   const openTile = (title: string) => {
     setExpandedTile(title);
@@ -163,7 +165,7 @@ const AdminDashboardHomePage = () => {
   const scheduleOpenOnHover = (title: string) => {
     if (isMobile) return;
     cancelPendingOpen();
-    hoverTimeoutRef.current = window.setTimeout(() => openTile(title), 200);
+    hoverTimeoutRef.current = window.setTimeout(() => openTile(title), 700);
   };
 
   useEffect(() => () => cancelPendingOpen(), []);
@@ -244,12 +246,9 @@ const AdminDashboardHomePage = () => {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {quickActions.map((action) => {
               const Icon = action.icon;
-              return (
-                <Link
-                  key={action.key}
-                  to={action.href}
-                  className="group flex flex-col justify-between rounded-xl border border-border/70 bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-                >
+              const cardClassName = "group flex flex-col justify-between rounded-xl border border-border/70 bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md";
+              const cardContent = (
+                <>
                   <div className="flex items-center justify-between">
                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
                       <Icon className="h-[18px] w-[18px] text-primary" />
@@ -260,12 +259,28 @@ const AdminDashboardHomePage = () => {
                     <p className="text-sm font-semibold">{action.title}</p>
                     <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{action.description}</p>
                   </div>
+                </>
+              );
+
+              return action.key === "create-ticket" ? (
+                <button key={action.key} type="button" onClick={() => setCreateTicketOpen(true)} className={cardClassName}>
+                  {cardContent}
+                </button>
+              ) : (
+                <Link
+                  key={action.key}
+                  to={action.href}
+                  className={cardClassName}
+                >
+                  {cardContent}
                 </Link>
               );
             })}
           </div>
         </section>
       )}
+
+      <CreateHelpdeskTicketDialog open={createTicketOpen} onOpenChange={setCreateTicketOpen} />
 
       {recentItems.length > 0 && (
         <section className="space-y-2.5">

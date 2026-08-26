@@ -92,7 +92,7 @@
     currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true,
     billSaveState: 'Local recovery only', billShareOpen: false, billShareUsers: [], billCollaborators: [], billShareUserId: '', billShareAccess: 'view',
     sidebarWidth: 396,
-    myFiles: [], myFilesLoaded: false, fileTypeFilter: '', fileAccessFilter: '', myFilesViewMode: 'grid', myFilesSortCol: 'date', myFilesSortDir: -1,
+    myFiles: [], myFilesLoaded: false, fileTypeFilter: '', fileAccessFilter: '', fileSearch: '', myFilesViewMode: 'grid', myFilesSortCol: 'date', myFilesSortDir: -1,
     currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true,
     fileSaveState: 'DB save ready', fileSaveDialogOpen: false, fileSaveDialogKind: '', fileSaveDialogMode: 'save', fileSaveDialogType: '', fileSaveDialogName: '', fileSaveDialogError: '', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
     emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
@@ -222,7 +222,7 @@
   // ---------- persistence ----------
   persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
-  set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); }); };
+  set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); if (this.isCurrentFileField(k)) this.scheduleFileAutosave(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
 
   toggleBrand = () => this.setState(s => ({ brandOpen: !s.brandOpen }));
@@ -461,7 +461,7 @@
             return;
           }
           ed.setContent(self.state[key] || '');
-          const sync = () => { self.setState({ [key]: ed.getContent() }); self.persistSoon(); };
+          const sync = () => { self.setState({ [key]: ed.getContent() }, () => { self.persistSoon(); self.scheduleFileAutosave(); }); };
           ed.on('input change undo redo ExecCommand', sync);
         });
       }
@@ -603,6 +603,15 @@
     this.destroyTiny(cur);
     const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
     this.setState({ tab: k, ...reset }, this.persistSoon);
+  };
+
+  composeNewEmail = () => {
+    this.syncTiny('email');
+    this.destroyTiny('email');
+    this.setState({
+      tab: 'email', emHeader: 'navy', emFooter: 'navy', emEyebrow: '', emPreheader: '', emHeading: '', emBody: '', emCta: '', emCtaUrl: '', emHeroUrl: '', emTagline: '', emDisclaimer: '',
+      currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready'
+    }, () => { const host = this.TINY_HOSTS.email; if (host) this.mountTiny('email', host); this.persist(); });
   };
 
   // ---------- sanitize / theme ----------
@@ -1672,6 +1681,7 @@
     shiplabel: ['slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
     statement: ['stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stCurrency', 'stOpenBal', 'stRows', 'stNote', 'selectedStatementCustomer']
   };
+  isCurrentFileField = (key) => this.state.currentFileKind === 'file' && this.state.currentFileId && this.FILE_KEYS[this.state.currentFileType]?.includes(key);
 
   loadMyFiles = async () => {
     try {
@@ -1694,14 +1704,13 @@
   };
 
   fileSnapshot = (type) => {
-    if (type === 'email') this.syncTiny('email');
-    if (type === 'letter') this.syncTiny('letter');
-    if (type === 'social') this.syncTiny('social');
     const content = {};
     (this.FILE_KEYS[type] || []).forEach(k => {
       const val = this.state[k];
       content[k] = Array.isArray(val) ? val.map(x => ({ ...x })) : val;
     });
+    const editorKey = this.TINY_KEYS[type], editor = this.TINY[type];
+    if (editor && editorKey) { try { content[editorKey] = editor.getContent(); } catch (e) {} }
     return content;
   };
 
@@ -1899,6 +1908,28 @@
 
   saveActiveFile = () => this.saveCurrentFile(this.state.tab);
   saveAsActiveFile = () => this.openFileSaveDialog('file', 'save-as', this.state.tab);
+  scheduleFileAutosave = () => {
+    const id = this.state.currentFileId, type = this.state.currentFileType;
+    if (!id || !type || !this.canEditCurrentFile()) return;
+    clearTimeout(this._fileAutosaveTimer);
+    this.setState({ fileSaveState: 'Unsaved' });
+    this._fileAutosaveTimer = setTimeout(this.autosaveCurrentFile, 1200);
+  };
+  autosaveCurrentFile = async () => {
+    const id = this.state.currentFileId, type = this.state.currentFileType;
+    if (!id || !type || !this.canEditCurrentFile()) return;
+    try {
+      this.setState({ fileSaveState: 'Saving...' });
+      await this.docApi('/api/docstudio/files/' + encodeURIComponent(id) + '/autosave', {
+        method: 'POST',
+        body: this.filePayload(type, this.state.currentFileName)
+      });
+      if (this.state.currentFileId === id) this.setState({ fileSaveState: 'Saved' });
+      this.loadMyFiles();
+    } catch (e) {
+      if (this.state.currentFileId === id) this.setState({ fileSaveState: e.status === 409 ? 'Conflict - reload needed' : 'Autosave failed' });
+    }
+  };
   renameActiveFile = async () => {
     if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { return this.saveActiveFile(); }
     if (!this.state.currentFileIsOwner) { this.toast('Only the owner can rename this file'); return; }
@@ -2300,6 +2331,8 @@
       if (d.fileAccessFilter === 'shared' && item.isOwner) return false;
       if (d.fileAccessFilter === 'edit' && item.accessLevel !== 'edit') return false;
       if (d.fileAccessFilter === 'view' && item.accessLevel !== 'view') return false;
+      const query = (d.fileSearch || '').trim().toLowerCase();
+      if (query && ![item.fileName, item.documentName, item.customerName, item.customerCompany, item.customerAccount, item.searchText].filter(Boolean).join(' ').toLowerCase().includes(query)) return false;
       return true;
     });
     let previewNode;
@@ -2444,6 +2477,7 @@
       tab,
       isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
       f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
+      showPreviewHeader: tab !== 'files',
       previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
       showEmailFileIdentity: tab === 'email',
       activeEmailFileName: d.currentFileKind === 'file' && d.currentFileType === 'email' ? (d.currentFileName || 'Untitled email') : 'Unsaved email',
@@ -2451,7 +2485,7 @@
       activeEmailFileBadgeStyle: `padding:4px 7px;border-radius:999px;background:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#f1ede5' : d.currentFileIsTemplate ? '#dceef0' : '#e7edf5'};color:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#7a715f' : d.currentFileIsTemplate ? '#176d7a' : '#415b7a'};font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap`,
       copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
       copyNow: this.copyNow, printLetter: this.printLetter,
-      openEmailSend: this.openEmailSend,
+      composeNewEmail: this.composeNewEmail, openEmailSend: this.openEmailSend,
       emailSendOpen: d.emailSendOpen, closeEmailSend: this.closeEmailSend,
       emailFromLabel: d.emailFromLabel || 'Classic Visions <support@classicvisions.net>',
       emailReplyTo: d.emailReplyTo || '', emailTo: d.emailTo || '', emailCc: d.emailCc || '', emailBcc: d.emailBcc || '', emailSubject: d.emailSubject || this.emailSubjectLine(),
@@ -2495,7 +2529,7 @@
           };
         });
       })(),
-      refreshMyFiles: this.refreshMyFiles,
+      refreshMyFiles: this.refreshMyFiles, fileSearch: d.fileSearch || '', setFileSearch: (e) => this.set('fileSearch', e.target.value),
       fileShareOpen: d.fileShareOpen, fileShareName: d.fileShareName || '', toggleFileShare: this.toggleFileShare,
       fileShareUserId: d.fileShareUserId || '', fileShareAccess: d.fileShareAccess || 'view', fileShareUserOptions, fileCollaboratorViews,
       setFileShareUser: (e) => this.setState({ fileShareUserId: e.target.value }),

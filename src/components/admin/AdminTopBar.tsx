@@ -179,7 +179,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   return (
     <>
       <header
-        className="admin-surface flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full z-30 border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))]">
+        className="admin-surface relative z-30 flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))] focus-within:z-[10000]">
 
         {/* ── LEFT GROUP ── */}
         <div className="flex items-center gap-2 shrink-0">

@@ -207,6 +207,7 @@ const allowedActions = new Set([
   "confirm-portal-staff",
   "archive-portal-profile",
   "set-login-disabled",
+  "delete-revoked-user",
 ]);
 
 /** True if the login holds any staff role (admin/operator/viewer). */
@@ -270,6 +271,7 @@ Deno.serve(async (req) => {
         created_at: u.created_at,
         email_confirmed_at: u.email_confirmed_at,
         invited_at: (u as { invited_at?: string | null }).invited_at ?? null,
+        banned_until: (u as { banned_until?: string | null }).banned_until ?? null,
       }));
       return jsonResponse(req, 200, result);
     }
@@ -557,6 +559,37 @@ Deno.serve(async (req) => {
         ban_duration: disabled ? "876000h" : "none",
       });
       if (error) throw error;
+      return jsonResponse(req, 200, { success: true });
+    }
+
+    if (action === "delete-revoked-user") {
+      const { userId } = body;
+      if (!userId) {
+        return jsonResponse(req, 400, { error: "userId is required" });
+      }
+      if (userId === authContext.user.id) {
+        return jsonResponse(req, 400, { error: "You cannot delete your own login." });
+      }
+
+      const { data: target, error: targetError } = await adminClient.auth.admin.getUserById(userId);
+      if (targetError) throw targetError;
+      if (!target?.user) return jsonResponse(req, 404, { error: "The selected login no longer exists." });
+
+      const bannedUntil = (target.user as { banned_until?: string | null }).banned_until;
+      if (!bannedUntil || new Date(bannedUntil).getTime() <= Date.now()) {
+        return jsonResponse(req, 400, { error: "Only a revoked login can be deleted." });
+      }
+
+      const { data: roles, error: rolesError } = await (adminClient.from("user_roles") as any)
+        .select("id")
+        .eq("user_id", userId);
+      if (rolesError) throw rolesError;
+      if ((roles ?? []).length > 0) {
+        return jsonResponse(req, 400, { error: "Remove all roles before deleting this login." });
+      }
+
+      const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
+      if (deleteError) throw deleteError;
       return jsonResponse(req, 200, { success: true });
     }
 

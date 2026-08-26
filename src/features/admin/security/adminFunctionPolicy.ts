@@ -10,6 +10,7 @@ export const ADMIN_FUNCTION_ACTIONS = [
   "confirm-portal-staff",
   "archive-portal-profile",
   "set-login-disabled",
+  "delete-revoked-user",
 ] as const;
 
 export type AdminFunctionAction = (typeof ADMIN_FUNCTION_ACTIONS)[number];
@@ -197,6 +198,11 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
         action: "set-login-disabled" as const,
         userId: assertUserId(payload.userId),
         disabled: assertBoolean(payload.disabled, "disabled"),
+      };
+    case "delete-revoked-user":
+      return {
+        action: "delete-revoked-user" as const,
+        userId: assertUserId(payload.userId),
       };
   }
 };

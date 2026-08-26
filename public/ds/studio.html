@@ -107,7 +107,7 @@
   <div style="flex:1;min-height:0;display:flex">
 
     <!-- ====== LEFT: CONTROLS ====== -->
-    <div class="cv-scroll" style="{{ sidebarStyle }}">
+    <div class="cv-scroll ds-sidebar" style="{{ sidebarStyle }}">
 
       <!-- ---------- MY FILES ---------- -->
       <sc-if value="{{ isFiles }}" hint-placeholder-val="{{ false }}">
@@ -115,6 +115,9 @@
         <div style="padding:0 14px 10px;display:flex;align-items:center;justify-content:space-between">
           <div style="font:700 13px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">My files</div>
           <button onClick="{{ refreshMyFiles }}" title="Refresh" style="width:26px;height:26px;border:1px solid #d9d7cf;border-radius:7px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#5b6b7c;font-size:15px;line-height:1">&#8635;</button>
+        </div>
+        <div style="padding:0 14px 12px">
+          <input class="cv-in" value="{{ fileSearch }}" onChange="{{ setFileSearch }}" placeholder="Search saved files and content" aria-label="Search saved files and content" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #d9d7cf;border-radius:9px;font:400 12px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none">
         </div>
         <sc-for list="{{ myFileTypeTree }}" as="node" hint-placeholder-count="9">
           <button onClick="{{ node.onClick }}" style="{{ node.rowStyle }}">
@@ -817,7 +820,7 @@
 
         <!-- ====== RIGHT: PREVIEW ====== -->
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
-      <div style="height:58px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#f4f2ed;border-bottom:1px solid #ded9cd">
+      <sc-if value="{{ showPreviewHeader }}" hint-placeholder-val="{{ true }}"><div style="height:58px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#f4f2ed;border-bottom:1px solid #ded9cd">
         <div style="display:flex;align-items:center;gap:8px;min-width:0">
           <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;white-space:nowrap">{{ previewTitle }}</span>
           <sc-if value="{{ showEmailFileIdentity }}" hint-placeholder-val="{{ false }}">
@@ -847,6 +850,7 @@
             </div>
           </sc-if>
           <sc-if value="{{ isEmail }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ composeNewEmail }}" title="Start a blank email" style="height:38px;padding:0 15px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Compose</button>
             <button onClick="{{ openEmailSend }}" style="height:38px;padding:0 18px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Send Email</button>
             <div style="position:relative">
               <button onClick="{{ toggleDl }}" style="height:38px;padding:0 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Download <span style="font-size:8px;opacity:.55;transform:translateY(1px)">▼</span></button>
@@ -882,7 +886,7 @@
           </sc-if>
           <sc-if value="{{ showCopyNow }}" hint-placeholder-val="{{ true }}"><button onClick="{{ copyNow }}" style="height:38px;padding:0 20px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">{{ copyLabel }}</button></sc-if>
         </div>
-      </div>
+      </div></sc-if>
       <div class="cv-scroll" style="{{ previewAreaStyle }}">
         {{ previewNode }}
       </div>

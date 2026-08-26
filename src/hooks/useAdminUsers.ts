@@ -12,11 +12,14 @@ export interface AdminUser {
   phone: string | null;
   organization_name: string | null;
   avatar_url: string | null;
+  contact_id: string | null;
+  contact_name: string | null;
   role: AppRole | null;
   role_id: string | null;
   created_at: string | null;
   email_confirmed_at: string | null;
   invited_at: string | null;
+  banned_until: string | null;
 }
 
 export const useAdminUsers = () => {
@@ -28,16 +31,16 @@ export const useAdminUsers = () => {
     queryFn: async () => {
       const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
         (supabase.from("profiles") as any)
-          .select("user_id, display_name, full_name, email, phone, organization_name, avatar_url"),
+          .select("user_id, display_name, full_name, email, phone, organization_name, avatar_url, crm_contact_id"),
         (supabase.from("user_roles") as any)
           .select("id, user_id, role"),
       ]);
       if (pErr) throw pErr;
       if (rErr) throw rErr;
 
-      let authUsers: { id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null }[] = [];
+      let authUsers: { id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null; banned_until: string | null }[] = [];
       try {
-        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null }[]>(
+        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null; banned_until: string | null }[]>(
           validateAdminFunctionRequest({ actorRole: role, action: "list-users" })
         );
         if (Array.isArray(data)) authUsers = data;
@@ -45,7 +48,16 @@ export const useAdminUsers = () => {
         // Edge function may not be deployed yet; continue without emails
       }
 
+      const contactIds = [...new Set((profiles ?? [])
+        .map((profile: any) => profile.crm_contact_id)
+        .filter((contactId: unknown): contactId is string => typeof contactId === "string" && contactId.length > 0))];
+      const { data: contacts, error: contactError } = contactIds.length
+        ? await (supabase.from("contacts") as any).select("id,name").in("id", contactIds)
+        : { data: [], error: null };
+      if (contactError) throw contactError;
+
       const profileMap = new Map((profiles ?? []).map((profile: any) => [profile.user_id, profile]));
+      const contactMap = new Map((contacts ?? []).map((contact: any) => [contact.id, contact]));
       const roleMap = new Map((roles ?? []).map((r: any) => [r.user_id, r]) ?? []);
       const authMap = new Map(authUsers.map((user) => [user.id, user]));
       const userIds = new Set<string>([
@@ -58,6 +70,7 @@ export const useAdminUsers = () => {
         const profile = profileMap.get(userId) as any;
         const role = roleMap.get(userId) as any;
         const auth = authMap.get(userId);
+        const contact = profile?.crm_contact_id ? contactMap.get(profile.crm_contact_id) as any : null;
         return {
           user_id: userId,
           email: auth?.email ?? profile?.email ?? "",
@@ -66,11 +79,14 @@ export const useAdminUsers = () => {
           phone: profile?.phone ?? null,
           organization_name: profile?.organization_name ?? null,
           avatar_url: profile?.avatar_url ?? null,
+          contact_id: profile?.crm_contact_id ?? null,
+          contact_name: contact?.name ?? null,
           role: (role?.role as AppRole) ?? null,
           role_id: role?.id ?? null,
           created_at: auth?.created_at ?? null,
           email_confirmed_at: auth?.email_confirmed_at ?? null,
           invited_at: auth?.invited_at ?? null,
+          banned_until: auth?.banned_until ?? null,
         } satisfies AdminUser;
       }).sort((left, right) => {
         const leftLabel = (left.display_name || left.email || left.user_id).toLowerCase();
@@ -169,6 +185,15 @@ export const useAdminUsers = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
+  const deleteRevokedUser = useMutation({
+    mutationFn: async (userId: string) => {
+      await callAdminUserManagement(
+        validateAdminFunctionRequest({ actorRole: role, action: "delete-revoked-user", payload: { userId } })
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-users"] }),
+  });
+
   const emulatePortalUser = useMutation({
     mutationFn: async (userId: string) => {
       return callAdminUserManagement<{
@@ -183,5 +208,5 @@ export const useAdminUsers = () => {
     },
   });
 
-  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser, linkCustomerPortalAccount, confirmPortalStaff, archivePortalProfile, setLoginDisabled, emulatePortalUser };
+  return { users, isLoading, error, assignRole, removeRole, resetPassword, inviteUser, createUser, linkCustomerPortalAccount, confirmPortalStaff, archivePortalProfile, setLoginDisabled, deleteRevokedUser, emulatePortalUser };
 };

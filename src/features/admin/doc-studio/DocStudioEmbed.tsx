@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 
 const DS_BASE = "/ds";
 const DESIGN_SYSTEM_CSS = `${DS_BASE}/_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css`;
+const MATERIAL_SYMBOLS_CSS = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200";
 const DOC_STUDIO_SUPABASE_REF = (() => {
   try {
     return new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0] ?? "";
@@ -37,7 +38,7 @@ const SCRIPT_SOURCES = [
   `${DS_BASE}/studio-logic.js`,
 ];
 
-const STYLESHEET_HREFS = [DESIGN_SYSTEM_CSS];
+const STYLESHEET_HREFS = [DESIGN_SYSTEM_CSS, MATERIAL_SYMBOLS_CSS];
 
 /**
  * Scoped replacement for studio.html's <style> block. The original targets
@@ -45,11 +46,16 @@ const STYLESHEET_HREFS = [DESIGN_SYSTEM_CSS];
  * shell is untouched.
  */
 const NATIVE_CSS = `
-.ds-native-host{display:flex;flex-direction:column;min-height:0;flex:1;background:#e9e5da;font-family:'Plus Jakarta Sans',sans-serif}
+.ds-native-host{display:flex;flex-direction:column;min-height:0;flex:1;background:#e9e5da;color-scheme:light;font-family:'Plus Jakarta Sans',sans-serif}
 .ds-native-host #dc-root,.ds-native-host #dc-root>.sc-host{height:100%!important}
 .ds-native-host #dc-root>.sc-host>div{height:100%!important}
 .ds-native-host .ds-topbar{display:none!important}
 .ds-native-host #embedded-tabbar{display:flex!important}
+.ds-native-host .ds-sidebar{background:#0B1E35!important;border-color:#243951!important;color:#F4F2ED}
+.ds-native-host .ds-sidebar [style*="background:#fff"],.ds-native-host .ds-sidebar [style*="background:#f4f2ed"],.ds-native-host .ds-sidebar [style*="background:#f7f5ef"]{background:#162a42!important}
+.ds-native-host .ds-sidebar [style*="color:#0B1E35"]{color:#F4F2ED!important}
+.ds-native-host .ds-sidebar [style*="color:#5b6b7c"],.ds-native-host .ds-sidebar [style*="color:#8a93a0"],.ds-native-host .ds-sidebar [style*="color:#a7a596"]{color:#cdd8e4!important}
+.ds-native-host .ds-sidebar [style*="border:1px solid #d9d7cf"],.ds-native-host .ds-sidebar [style*="border-top:1px solid #efece3"],.ds-native-host .ds-sidebar [style*="border-color:#e7e4db"]{border-color:#31455e!important}
 .ds-native-host [contenteditable]:empty:before{content:attr(data-ph);color:#a7aeb6}
 .ds-native-host [contenteditable]:focus{border-color:#1A8A9C !important}
 .ds-native-host .cv-in:focus{border-color:#1A8A9C !important;box-shadow:0 0 0 3px rgba(26,138,156,.12)}

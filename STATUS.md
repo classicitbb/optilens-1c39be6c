@@ -10,7 +10,9 @@ Last updated: 2026-08-26
 
 ## Active work
 
-- **Portal Copilot Helpdesk + voice reliability** — source now generates schema-valid Helpdesk ticket numbers, normalizes named priorities to the database's 0-5 scale, records through explicit click-to-start/click-to-stop audio capture, and returns a formatted transcript directly to the active composer; sending remains explicit. The `portal-copilot` and `voice-transcribe` functions still require deployment before live shared-environment verification.
+- **Portal Copilot Helpdesk + voice reliability** — source now generates schema-valid Helpdesk ticket numbers, normalizes named priorities to the database's 0-5 scale, records through explicit click-to-start/click-to-stop audio capture, and inserts the formatted transcript directly into the active composer without a review gate; five seconds of silence stops and submits the transcription automatically. Sending remains explicit. The `portal-copilot` and `voice-transcribe` functions still require deployment before live shared-environment verification.
+
+- **Doc Studio annotation completion** — My Files now loads through the cloud bridge, searches saved-file content and metadata, filters by type, avoids the duplicate file-manager heading, keeps its dark styling limited to the sidebar, loads Material icons, exposes a blank-email Compose action, and autosaves edits to an open saved file. Local browser verification and focused tests passed; edge-function deployment is still required before shared-environment release.
 
 - **CV Portal Copilot connected capabilities** — source implementation now includes
   a deterministic qualified-CRM scan using contacts, order-health, opportunity

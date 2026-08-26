@@ -272,7 +272,7 @@ const HelpdeskTicketsPage = () => {
                 <Plus className="h-3.5 w-3.5" />
                 New Ticket
               </Button>
-              <DialogContent className="admin-tool admin-overlay-surface sm:max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogContent className="admin-tool admin-overlay-surface sm:max-w-xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-sm font-medium text-center">Create Ticket</DialogTitle>
                 </DialogHeader>
