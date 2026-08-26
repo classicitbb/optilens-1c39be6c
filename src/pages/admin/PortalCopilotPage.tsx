@@ -744,7 +744,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {speech.isTranscribing ? <span>Transcribing…</span> : null}
                   <span className="hidden truncate sm:inline">{speech.activeDeviceLabel}</span>
-                  <span className="hidden lg:inline">Enter to send · Shift+Enter for a new line</span>
+                  <span className="hidden lg:inline">{"\n"}</span>
                 </div>
               </div>
             </div>
