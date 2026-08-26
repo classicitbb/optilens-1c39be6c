@@ -6,7 +6,7 @@ const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
 
 const AdminHomeRedirect = lazy(() => import("@/components/admin/AdminHomeRedirect"));
 const AdminDashboardHomePage = lazy(() => import("@/pages/admin/AdminDashboardHomePage"));
-const PortalCopilotPage = lazy(() => import("@/pages/admin/PortalCopilotPage"));
+
 const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
 const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
 const ProductCatalogPage = lazy(() => import("@/pages/admin/ProductCatalogPage"));
