@@ -693,8 +693,10 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button type="button" size="icon" variant="ghost" className="h-8 w-6 rounded-full text-muted-foreground hover:text-foreground" aria-label="Microphone settings">
-                          <ChevronDown className="h-3.5 w-3.5" />
+                        <Button type="button" variant="ghost" className="h-8 gap-1 rounded-full px-2 text-xs font-medium text-foreground hover:text-foreground" aria-label="Voice and microphone settings">
+                          Copilot
+                          <span className="text-muted-foreground">High</span>
+                          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-72">
