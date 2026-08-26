@@ -652,45 +652,6 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
 
                 <div className="flex items-center gap-1">
                   <div className="flex items-center overflow-hidden rounded-full border border-transparent hover:border-input">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant={speech.isListening ? "destructive" : "ghost"}
-                      className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground data-[state=listening]:text-foreground"
-                      aria-label={speech.isStarting ? "Starting microphone" : speech.isTranscribing ? "Transcribing recording" : holdToRecord ? "Hold to talk, then release to review the transcript" : "Click to start or stop recording"}
-                      disabled={speech.isStarting || speech.isTranscribing}
-                      onPointerDown={(event) => {
-                        if (!holdToRecord) return;
-                        event.preventDefault();
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                        void speech.start();
-                      }}
-                      onPointerUp={() => holdToRecord && speech.stop()}
-                      onPointerCancel={() => holdToRecord && speech.stop()}
-                      onKeyDown={(event) => {
-                        if (!holdToRecord) return;
-                        if ((event.key === " " || event.key === "Enter") && !event.repeat) {
-                          event.preventDefault();
-                          void speech.start();
-                        }
-                      }}
-                      onKeyUp={(event) => {
-                        if (!holdToRecord) return;
-                        if (event.key === " " || event.key === "Enter") {
-                          event.preventDefault();
-                          speech.stop();
-                        }
-                      }}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (holdToRecord) return;
-                        if (speech.isListening) speech.stop();
-                        else void speech.start();
-                      }}
-                    >
-                      {speech.isStarting || speech.isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                    </Button>
-
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button type="button" variant="ghost" className="h-8 gap-1 rounded-full px-2 text-xs font-medium text-foreground hover:text-foreground" aria-label="Voice and microphone settings">
