@@ -74,7 +74,7 @@ const AdminRoutes = () => (
     <Route element={<AdminLayout />}>
       <Route index element={<AdminHomeRedirect />} />
       <Route path="dashboard" element={<AdminDashboardHomePage />} />
-      <Route path="copilot" element={<AdminOnlyRoute><PortalCopilotPage /></AdminOnlyRoute>} />
+      <Route path="copilot" element={<Navigate to="/copilot" replace />} />
       <Route path="pricing" element={<Navigate to="pricing/catalog" replace />} />
       <Route path="pricing/catalog" element={<ProductCatalogPage />} />
       <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
