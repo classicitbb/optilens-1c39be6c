@@ -603,8 +603,8 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
               }}
             />
 
-            <div className="rounded-2xl border border-input bg-muted/30 shadow-sm transition-colors focus-within:border-foreground/30 focus-within:bg-background focus-within:shadow-md">
-              <div className="flex items-end gap-2 px-4 pt-3.5">
+            <div className="rounded-[1.75rem] border border-input bg-background shadow-sm transition-colors focus-within:border-foreground/30 focus-within:shadow-md">
+              <div className="px-4 pt-3.5">
                 <Textarea
                   aria-label="Message the Copilot"
                   value={command}
@@ -625,24 +625,14 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                       submit();
                     }
                   }}
-                  rows={1}
-                  className="max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent p-0 text-base leading-6 shadow-none focus-visible:ring-0"
-                  placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : `Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
+                  rows={2}
+                  className="max-h-40 min-h-[2.75rem] w-full flex-1 resize-none border-0 bg-transparent p-0 text-base leading-6 shadow-none focus-visible:ring-0"
+                  placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : "Do anything"}
                 />
-                <Button
-                  type="button"
-                  size="icon"
-                  className="mb-0.5 h-8 w-8 shrink-0 rounded-lg"
-                  aria-label={attachments.length ? "Analyse attachment" : "Send message"}
-                  disabled={!canPrepare}
-                  onClick={submit}
-                >
-                  {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-                </Button>
               </div>
 
               <div className="flex items-center justify-between gap-1.5 px-2.5 pb-2.5 pt-1.5">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Button
                     type="button"
                     size="icon"
@@ -651,9 +641,16 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                     aria-label="Attach a prescription or order file"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
                   </Button>
 
+                  <span className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-500">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Full access
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
                   <div className="flex items-center overflow-hidden rounded-full border border-transparent hover:border-input">
                     <Button
                       type="button"
