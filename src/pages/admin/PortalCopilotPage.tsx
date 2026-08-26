@@ -74,7 +74,7 @@ const SUGGESTIONS = [
   "Show me which ERP customers still need a portal contact",
 ];
 
-const PortalCopilotPage = () => {
+const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const { toast } = useToast();
   const [command, setCommand] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
