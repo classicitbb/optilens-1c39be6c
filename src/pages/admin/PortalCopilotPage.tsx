@@ -21,6 +21,7 @@ import {
   Plus,
   Settings2,
   ShieldCheck,
+  Square,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
