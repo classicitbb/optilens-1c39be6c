@@ -125,6 +125,20 @@ describe("lens assistant → rx order handoff", () => {
     engine.destroy();
   });
 
+  it("keeps an incomplete restored prescription open for continued entry", () => {
+    const { host, rxCell, engine } = mount({ prefill: buildRxPrefillPayload(draft()) });
+
+    // The saved Rx is deliberately incomplete because the assistant does not
+    // collect dispensing PDs or fitting heights. Restoring it must leave the
+    // editable table open; collapsing partial Rx data strands the customer on
+    // the prescription step and makes the draft appear not to have loaded.
+    expect(rxCell("od", "sph")?.value).toBe("-2");
+    expect(rxCell("od", "pd")?.value).toBe("");
+    expect(host.querySelector("#sec-rx")?.classList.contains("section-collapsed")).toBe(false);
+
+    engine.destroy();
+  });
+
   it("keeps the quote's own order number instead of stamping a rebuild", () => {
     const { engine } = mount({ prefill: buildRxPrefillPayload(draft()) });
 
@@ -183,5 +197,157 @@ describe("lens assistant → rx order handoff", () => {
     expect(host.querySelector("#gearBtn")?.getAttribute("aria-expanded")).toBe("true");
 
     engine.destroy();
+  });
+
+  it("renders a completed prescription summary as the same labelled value grid used for entry", () => {
+    const prefill = buildRxPrefillPayload(draft({
+      right: { sphere: 6, cylinder: -3.75, axis: 120, add: 2, prism: 0, prismBase: "" },
+      left: { sphere: 7, cylinder: -4.5, axis: 50, add: 2, prism: 0, prismBase: "" },
+    }));
+    prefill.rx.od.pd = 32;
+    prefill.rx.os.pd = 32;
+    prefill.rx.od.ht = 22;
+    prefill.rx.os.ht = 22;
+    prefill.lens.design = "pg-std";
+
+    const { host, engine } = mount({ prefill });
+    const summary = host.querySelector("#sec-rx .section-summary");
+
+    expect(host.querySelector("#sec-rx")?.classList.contains("section-collapsed")).toBe(true);
+    expect(summary?.querySelector(".rx-summary-grid")).toBeTruthy();
+    expect(summary?.querySelectorAll(".rx-summary-head")).toHaveLength(9);
+    expect(summary?.textContent?.toUpperCase()).toContain("SPHERE");
+    expect(summary?.textContent).toContain("+6.00");
+    expect(summary?.textContent).toContain("-3.75");
+    expect(summary?.textContent?.toUpperCase()).toContain("FITTING HT");
+
+    engine.destroy();
+  });
+
+  it("keeps coatings exclusive and lets the full list take the selection back off", () => {
+    const treatments = [
+      { id: "back", c: "Anti-reflective", n: "BACK AR (For Polarised)", d: "1 Year Warranty", p: 10, grp: "ar", pop: false },
+      { id: "blue", c: "Anti-reflective", n: "BLUE DEFENSE AR+", d: "2 Year Warranty", p: 20, grp: "ar", pop: true },
+      { id: "super", c: "Anti-reflective", n: "SUPER AR", d: "Premium coating", p: 30, grp: "ar", pop: true },
+    ];
+    const { host, engine } = mount({ data: { treatments } });
+
+    host.querySelector<HTMLElement>('#popOpts [data-tid="blue"]')?.click();
+    host.querySelector<HTMLElement>('#popOpts [data-tid="super"]')?.click();
+
+    expect(engine.state.treat.has("blue")).toBe(false);
+    expect(engine.state.treat.has("super")).toBe(true);
+    host.querySelector<HTMLButtonElement>("#openTreat")?.click();
+    const selected = host.querySelector<HTMLInputElement>('#treatList [data-tid="super"] input');
+    expect(selected?.checked).toBe(true);
+    // This assertion used to read `disabled: true`. That fell out of routing
+    // "Already selected" through the clash branch, which is what disabled the
+    // row — and it made the drawer a dead end: BACK AR here is pop:false, so
+    // the drawer is the ONLY place it appears, and a selected treatment could
+    // never be taken back off from there. Group exclusivity (blue replaced by
+    // super, asserted above) is unaffected and is what this test is really for.
+    expect(selected?.disabled).toBe(false);
+
+    host.querySelector<HTMLElement>('#treatList [data-tid="super"]')?.click();
+    expect(engine.state.treat.has("super")).toBe(false);
+
+    engine.destroy();
+  });
+
+  it("only promotes Back AR after more than five submitted uses", () => {
+    localStorage.setItem("cv-rx-history", JSON.stringify(Array.from({ length: 6 }, () => ({
+      kind: "submitted", payload: { treatments: ["back"] },
+    }))));
+    const { host, engine } = mount({ data: { treatments: [
+      { id: "back", c: "Anti-reflective", n: "BACK AR (For Polarised)", d: "1 Year Warranty", p: 10, grp: "ar", pop: false },
+      { id: "blue", c: "Anti-reflective", n: "BLUE DEFENSE AR+", d: "2 Year Warranty", p: 20, grp: "ar", pop: true },
+      { id: "super", c: "Anti-reflective", n: "SUPER AR", d: "Premium coating", p: 30, grp: "ar", pop: true },
+    ] } });
+
+    expect(Array.from(host.querySelectorAll("#popOpts .on")).map((node) => node.textContent)).toEqual([
+      "BACK AR (For Polarised)", "BLUE DEFENSE AR+", "SUPER AR",
+    ]);
+
+    engine.destroy();
+  });
+
+  it("uses an accessible search icon in the treatments drawer", () => {
+    const { host, engine } = mount();
+
+    expect(host.querySelector("#treatDrawer .searchbox svg")).toBeTruthy();
+    expect(host.querySelector("#treatSearch")?.getAttribute("aria-label")).toBe("Search treatments");
+
+    engine.destroy();
+  });
+
+  it("keeps Chemistrie open until every clip has one complete solid or mirror choice", () => {
+    const { host, engine } = mount();
+    const chemOn = host.querySelector<HTMLInputElement>("#chemOn")!;
+    chemOn.click();
+
+    const polarised = host.querySelector<HTMLSelectElement>('[data-field="polarised"]');
+    const solidOptions = host.querySelectorAll<HTMLButtonElement>('[data-swatch-field="colour"]');
+    expect(host.querySelector("#sec-treat")?.classList.contains("section-collapsed")).toBe(false);
+    expect(host.querySelector("#chemBlock")?.classList.contains("chem-incomplete")).toBe(true);
+    expect(polarised?.value).toBe("yes");
+    expect(polarised?.disabled).toBe(true);
+    expect(Array.from(solidOptions).map((option) => option.textContent)).toEqual([
+      "Select a colour", "Grey", "Brown", "G-15", "Blue", "Copper", "Amber", "Pink", "Purple",
+    ]);
+    expect(host.querySelectorAll('[data-swatch-field="colour"] .chem-swatch-dot')).toHaveLength(8);
+
+    host.querySelector<HTMLButtonElement>('[data-swatch-field="colour"][data-swatch-value="Grey"]')?.click();
+    expect(engine.state.chemClips[0].colour).toBe("Grey");
+    expect(engine.state.chemClips[0].mirror).toBe("");
+
+    host.querySelector<HTMLButtonElement>("#chemAddClip")?.click();
+    expect(engine.state.chemClips).toHaveLength(2);
+    expect(host.querySelector("#sec-treat")?.classList.contains("section-collapsed")).toBe(false);
+
+    engine.destroy();
+  });
+
+  it("offers the supplied mirror-polarised colours and excludes a simultaneous solid choice", () => {
+    const { host, engine } = mount();
+    host.querySelector<HTMLInputElement>("#chemOn")?.click();
+    const mirrorOptions = host.querySelectorAll<HTMLButtonElement>('[data-swatch-field="mirror"]');
+
+    expect(Array.from(mirrorOptions).map((option) => option.textContent)).toEqual([
+      "Select a mirror finish", "Silver Mirror", "Gold Mirror", "Blue Mirror", "Green Mirror",
+      "Rose Gold Mirror", "Red Mirror", "Orange Mirror", "Purple Mirror",
+    ]);
+    expect(host.querySelectorAll('[data-swatch-field="mirror"] .chem-swatch-dot')).toHaveLength(8);
+    host.querySelector<HTMLButtonElement>('[data-swatch-field="mirror"][data-swatch-value="gold"]')?.click();
+
+    expect(engine.state.chemClips[0].mirror).toBe("gold");
+    expect(engine.state.chemClips[0].colour).toBe("");
+    expect(host.querySelector('[data-chem-field="colour"]')?.classList.contains("disabled")).toBe(true);
+
+    expect(host.querySelectorAll('[data-swatch-field="magnet"] .chem-swatch-dot')).toHaveLength(4);
+    expect(Array.from(host.querySelectorAll('[data-swatch-field="bridge"]')).map((node) => node.textContent)).toEqual([
+      "Select a bridge colour", "Bronze", "Gunmetal", "Gold", "Silver", "Black",
+    ]);
+    expect(host.querySelectorAll('[data-swatch-field="bridge"] .chem-swatch-dot')).toHaveLength(5);
+    expect(Array.from(host.querySelectorAll('[data-swatch-field="crystal"]')).map((node) => node.textContent)).toEqual([
+      "None", "Hematite Crystals", "Hyacinth Crystals", "Crystal Gold Crystals", "Cobalt Crystals",
+      "Aquamarine Crystals", "Emerald Crystals", "Olivine Crystals", "Amethyst Crystals", "Fireopal Crystals",
+      "Rose Crystals", "Topaz Crystals", "Diamond Crystals",
+    ]);
+    expect(host.querySelectorAll('[data-swatch-field="crystal"] .chem-swatch-dot')).toHaveLength(12);
+
+    engine.destroy();
+  });
+
+  it("does not crash when a high-power Rx suggests treatments absent from the live catalogue", () => {
+    const prefill = buildRxPrefillPayload(draft({
+      right: { sphere: -8, cylinder: -4, axis: 90, add: 1.5, prism: null, prismBase: "" },
+    }));
+
+    expect(() => mount({
+      data: {
+        treatments: [{ id: "ar-std", c: "Anti-reflective", n: "Standard AR", d: "AR coating", p: 19 }],
+      },
+      prefill,
+    })).not.toThrow();
   });
 });

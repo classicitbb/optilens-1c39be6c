@@ -184,25 +184,28 @@
       </div>
       <div class="section-summary" aria-live="polite"></div>
 
-      <div class="card-b">
-        <div class="grid g2">
-          <div>
-            <div class="blk">Vision type <span class="req">*</span></div>
-            <div class="seg sm" id="visionSeg" role="group">
-              <button type="button" data-vision="sv" aria-pressed="true">Single vision</button>
-              <button type="button" data-vision="mf" aria-pressed="false">Multifocal / Progressive</button>
-            </div>
-          </div>
-          <div>
-            <div class="blk">Eyes to supply <span class="req">*</span></div>
-            <div class="seg sm" id="eyeSeg" role="group">
-              <button type="button" data-eyes="pair" aria-pressed="true">Pair</button>
-              <button type="button" data-eyes="od" aria-pressed="false">Right only</button>
-              <button type="button" data-eyes="os" aria-pressed="false">Left only</button>
-            </div>
+      <div class="card-b lensmeta">
+        <div class="lensmeta-col">
+          <div class="blk">Vision type <span class="req">*</span></div>
+          <div class="seg sm" id="visionSeg" role="group">
+            <button type="button" data-vision="sv" aria-pressed="true">Single vision</button>
+            <button type="button" data-vision="mf" aria-pressed="false">Multifocal / Progressive</button>
           </div>
         </div>
-        <div id="purposeBlock" style="margin-top:15px">
+        <div class="lensmeta-col">
+          <div class="blk">Eyes to supply <span class="req">*</span></div>
+          <div class="seg sm" id="eyeSeg" role="group">
+            <button type="button" data-eyes="pair" aria-pressed="true">Pair</button>
+            <button type="button" data-eyes="od" aria-pressed="false">Right only</button>
+            <button type="button" data-eyes="os" aria-pressed="false">Left only</button>
+          </div>
+          <label class="splitrow" id="splitRow">
+            <input type="checkbox" id="splitOn">
+            <span><span class="cn">Different lens for each eye</span>
+            <span class="cd">Each side quoted separately</span></span>
+          </label>
+        </div>
+        <div class="lensmeta-col" id="purposeBlock">
           <div class="blk">Rx purpose <span class="req">*</span><span class="tag">drives PD fields</span></div>
           <div class="seg sm" id="purposeSeg" role="group">
             <button type="button" data-purpose="dist" aria-pressed="true">Distance</button>
@@ -215,20 +218,45 @@
 
       <div class="card-b">
         <div class="blk">Choose in any order — each list narrows the others · type to search <span class="tag" id="comboCount"></span></div>
-        <div class="grid g3">
-          <div class="field combo"><label>1 · Material / index <span class="req">*</span></label>
-            <input type="text" class="cbx" id="material" placeholder="Type or choose…" autocomplete="off">
-            <button type="button" class="cbtog" tabindex="-1">▾</button>
-            <div class="cblist" id="materialList"></div></div>
-          <div class="field combo"><label>2 · Lens design / type <span class="req">*</span></label>
-            <input type="text" class="cbx" id="design" placeholder="Type or choose…" autocomplete="off">
-            <button type="button" class="cbtog" tabindex="-1">▾</button>
-            <div class="cblist" id="designList"></div></div>
-          <div class="field combo"><label>3 · Lens colour option <span class="req">*</span></label>
-            <input type="text" class="cbx" id="colour" placeholder="Type or choose…" autocomplete="off">
-            <button type="button" class="cbtog" tabindex="-1">▾</button>
-            <div class="cblist" id="colourList"></div></div>
+
+
+        <div class="lensside" id="lensSplitA">
+          <div class="sidehead hide" id="lensSideAHead"><span class="eyetag od">OD</span> Right eye</div>
+          <div class="grid g3">
+            <div class="field combo"><label>1 · Material / index <span class="req">*</span></label>
+              <input type="text" class="cbx" id="material" placeholder="Type or choose…" autocomplete="off">
+              <button type="button" class="cbtog" tabindex="-1">▾</button>
+              <div class="cblist" id="materialList"></div></div>
+            <div class="field combo"><label>2 · Lens design / type <span class="req">*</span></label>
+              <input type="text" class="cbx" id="design" placeholder="Type or choose…" autocomplete="off">
+              <button type="button" class="cbtog" tabindex="-1">▾</button>
+              <div class="cblist" id="designList"></div></div>
+            <div class="field combo"><label>3 · Lens colour option <span class="req">*</span></label>
+              <input type="text" class="cbx" id="colour" placeholder="Type or choose…" autocomplete="off">
+              <button type="button" class="cbtog" tabindex="-1">▾</button>
+              <div class="cblist" id="colourList"></div></div>
+          </div>
         </div>
+
+        <div class="lensside hide" id="lensSplitB">
+          <div class="sidehead"><span class="eyetag os">OS</span> Left eye
+            <button type="button" class="linkbtn" id="copyLensToOs">⧉ Same as right</button></div>
+          <div class="grid g3">
+            <div class="field combo"><label>1 · Material / index <span class="req">*</span></label>
+              <input type="text" class="cbx" id="material2" placeholder="Type or choose…" autocomplete="off">
+              <button type="button" class="cbtog" tabindex="-1">▾</button>
+              <div class="cblist" id="materialList2"></div></div>
+            <div class="field combo"><label>2 · Lens design / type <span class="req">*</span></label>
+              <input type="text" class="cbx" id="design2" placeholder="Type or choose…" autocomplete="off">
+              <button type="button" class="cbtog" tabindex="-1">▾</button>
+              <div class="cblist" id="designList2"></div></div>
+            <div class="field combo"><label>3 · Lens colour option <span class="req">*</span></label>
+              <input type="text" class="cbx" id="colour2" placeholder="Type or choose…" autocomplete="off">
+              <button type="button" class="cbtog" tabindex="-1">▾</button>
+              <div class="cblist" id="colourList2"></div></div>
+          </div>
+        </div>
+
         <div class="callout" style="margin-top:13px"><span class="ci">◎</span><span id="lensName">Pick a material, design and colour to name the lens.</span></div>
       </div>
 
@@ -360,10 +388,11 @@
           <span class="hint" style="margin:0">Prices appear in the live quote as you select.</span>
         </div>
         <div class="chipset" id="treatChips"></div>
+        <div class="hide" id="treatIssues"></div>
         <div id="tintCfg"></div>
       </div>
 
-      <div class="card-b">
+      <div class="card-b" id="chemBlock">
         <div class="blk">Chemistrie magnetic layer <span class="opt-tag">clip-on second lens, held magnetically · up to 3 clips per order</span></div>
         <label class="chk" id="chemToggle" style="max-width:340px">
           <input type="checkbox" id="chemOn">
@@ -374,6 +403,11 @@
       </div>
 
       <div class="card-b" id="suggBlock"></div>
+
+      <div class="card-b">
+        <button type="button" class="confirmrow" id="treatConfirm" aria-pressed="false">
+          <span class="cri">✓</span><span id="treatConfirmLabel">Done — these are all the coatings for this job</span></button>
+      </div>
     </section>
 
     <!-- 6 · Delivery -->
@@ -393,12 +427,13 @@
           <div class="field"><label>Service level</label>
             <select id="service"><option value="std">Standard — 5–7 working days</option><option value="pri">Priority — 3 working days (+15%)</option></select></div>
           <div class="field"><label>Delivery</label>
-            <select id="delivery"><option>Weekly courier run</option><option>Collect from lab</option><option>Ship — overnight</option></select></div>
+            <select id="delivery"><option>Weekly courier run</option><option>Collect from lab</option><option>Ship — overnight</option><option>Export — freight forwarder</option></select>
+            <div class="hint hide" id="deliveryHint"></div></div>
         </div>
         <div class="field" style="margin-top:13px"><label>Notes to the lab</label>
           <textarea id="notes" placeholder="e.g. Patient is a previous progressive wearer — match old fitting height."></textarea></div>
         <label class="confirmrow" style="margin-top:13px"><input type="checkbox" id="notesConfirmed">
-          <span>Nothing else to add — mark this section done</span></label>
+          <span>Form complete, review before sending</span></label>
       </div>
     </section>
 
@@ -431,6 +466,7 @@
       <button class="btn btn-primary" id="submitBtn" disabled>Submit to cart</button>
       <button class="btn btn-ghost" id="saveDraft2">Save as draft</button>
       <button class="btn btn-ghost" id="printBtn">🖨 Print order sheet</button>
+      <p class="gatenote directnote hide" id="directNote"></p>
       <p class="gatenote">Incomplete orders can only be saved as drafts. Drafts are printable and resumable.</p>
     </div>
   </aside>
@@ -481,7 +517,7 @@
 <aside class="sdraw" id="treatDrawer">
   <div class="sd-h"><div><h3>All treatments</h3><div class="cnt" id="treatCount">0 selected</div></div><button class="sd-x" id="treatClose">✕</button></div>
   <div class="sd-b">
-    <div class="searchbox"><span class="si">⌕</span><input type="text" id="treatSearch" placeholder="Search treatments…"></div>
+    <div class="searchbox"><span class="si" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg></span><input type="text" id="treatSearch" aria-label="Search treatments" placeholder="Search treatments…"></div>
     <div id="treatList"></div>
   </div>
   <div class="sd-f"><button class="btn btn-primary" id="treatDone">Done</button></div>

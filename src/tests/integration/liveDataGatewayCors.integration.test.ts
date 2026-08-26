@@ -12,4 +12,8 @@ describe("live-data gateway CORS policy", () => {
     expect(corsSource).toContain('"http://localhost:8081"');
     expect(corsSource).toContain('"http://127.0.0.1:8081"');
   });
+
+  it("allows the LAN preview origin used for authenticated browser QA", () => {
+    expect(corsSource).toContain('"http://172.18.240.1:4173"');
+  });
 });

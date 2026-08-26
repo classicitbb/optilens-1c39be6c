@@ -49,6 +49,9 @@ function getDefaultOriginsForEnv(environment: string): string[] {
     // authenticated, real-browser verification against cloud functions.
     "http://localhost:8081",
     "http://127.0.0.1:8081",
+    // Exact WSL/host bridge origin used by the local production-preview server.
+    // Keep this exact rather than permitting arbitrary private-network origins.
+    "http://172.18.240.1:4173",
     // The payment callback returns to this origin in the active test setup.
     // Keeping it configurable avoids a future origin change requiring a code
     // release, while still using an exact-origin allow list.
