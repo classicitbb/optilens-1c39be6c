@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PricelistVersion } from "./usePricelistVersions";
 
 export interface ChildSectionData {
+  id: number;
   section_type: string;
   child_markup_percent: number;
   child_discount_percent: number;
@@ -32,7 +33,7 @@ export const usePriceHierarchy = (versionId: number | null) => {
     enabled: !!versionId,
     queryFn: async () => {
       const { data, error } = await (supabase.from("pricelist_child_sections") as any)
-        .select("section_type, child_markup_percent, child_discount_percent")
+        .select("id, section_type, child_markup_percent, child_discount_percent")
         .eq("pricelist_version_id", versionId!);
       if (error) throw error;
       return (data ?? []) as ChildSectionData[];
@@ -62,6 +63,16 @@ export const usePriceHierarchy = (versionId: number | null) => {
   const childSections = childSectionsQuery.data ?? [];
   const lineOverrides = lineOverridesQuery.data ?? [];
 
+  const getLineOverride = (referenceId: string, referenceType: string, catalogType: string): LineOverride | undefined => {
+    const sectionType = CATALOG_TO_SECTION[catalogType] ?? catalogType;
+    const childSection = childSections.find((section) => section.section_type === sectionType);
+    return lineOverrides.find(
+      (override) => override.reference_id === referenceId
+        && override.reference_type === referenceType
+        && override.child_section_id === childSection?.id,
+    );
+  };
+
   /**
    * Apply hierarchy calculation:
    *   base_price * (1 + master_markup/100) * (1 - master_discount/100)
@@ -77,11 +88,9 @@ export const usePriceHierarchy = (versionId: number | null) => {
   ): number | null => {
     if (basePrice == null) return null;
 
-    // Check for line-level override first
+    // Check for a line-level override in the matching catalog section first.
     if (referenceId && referenceType) {
-      const override = lineOverrides.find(
-        (o) => o.reference_id === referenceId && o.reference_type === referenceType
-      );
+      const override = getLineOverride(referenceId, referenceType, catalogType);
       if (override?.overridden_price_bbd != null) {
         return override.overridden_price_bbd;
       }
@@ -125,6 +134,7 @@ export const usePriceHierarchy = (versionId: number | null) => {
     childSections,
     lineOverrides,
     calcFinalPrice,
+    getLineOverride,
     getOverrideReason,
     hasOverride,
     isLoading: childSectionsQuery.isLoading || lineOverridesQuery.isLoading,

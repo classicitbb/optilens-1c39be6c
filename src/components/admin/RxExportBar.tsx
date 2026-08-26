@@ -91,7 +91,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
     if (!row.bbd_price || !row.item_id) return "";
     const lens = allLenses.find((l) => l.id === row.item_id);
     if (!lens || !lens.base_price) return "";
-    const finalSell = calcFinalPrice(row.bbd_price, version, catalogType, row.row_key ?? "", row.row_type ?? "lens");
+    const finalSell = calcFinalPrice(row.bbd_price, version, catalogType, row.item_id ?? undefined, row.row_type ?? "lens");
     if (!finalSell || finalSell <= 0) return "";
     const cost = lens.base_price * (showUSD ? fxRate : 2);
     const margin = ((finalSell - cost) / finalSell) * 100;
@@ -210,7 +210,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
         aoa.push([sec]);
         aoa.push([sec, `${currency} Price`]);
         rows.forEach((row) => {
-          aoa.push([row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)]);
+          aoa.push([row.display_description, hpNum(row.bbd_price, row.item_id ?? undefined, row.row_type)]);
         });
         aoa.push([]);
       }
@@ -252,7 +252,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
         lines.push(`"${sec}"`);
         lines.push(`"${sec}",${currency} Price`);
         rows.forEach((row) => {
-          lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)].join(","));
+          lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.item_id ?? undefined, row.row_type)].join(","));
         });
         lines.push("");
       }
@@ -297,7 +297,7 @@ const RxExportBar = ({ version, showUSD, fxRate, catalogType = "rx" }: Props) =>
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
         const rowsH = rows
-          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
+          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.item_id ?? undefined, row.row_type)}</td></tr>`)
           .join("");
         addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
         <table><thead><tr><th>${sec}</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
@@ -431,7 +431,7 @@ ${lensName}` : price;
           startY: y,
           margin: { left: margin, right: margin },
           head: [[sec, `Price (${currency})`]],
-          body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)]),
+          body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.item_id ?? undefined, r.row_type)]),
           styles: { fontSize: 5.5, cellPadding: 1.2 },
           headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold", fontSize: 6 },
           alternateRowStyles: { fillColor: [245, 247, 251] },
@@ -464,7 +464,7 @@ ${lensName}` : price;
         .filter((r) => r.section === sec)
         .sort((a, b) => a.sort_order - b.sort_order)
         .forEach((row) => {
-          const line: any[] = [row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)];
+          const line: any[] = [row.display_description, hpNum(row.bbd_price, row.item_id ?? undefined, row.row_type)];
           if (showMargins && !isCustomerExport) line.push(calcMargin(row));
           aoa.push(line);
         });
@@ -477,7 +477,7 @@ ${lensName}` : price;
         aoa.push([sec]);
         aoa.push([sec, `${currency} Price`]);
         rows.forEach((row) => {
-          aoa.push([row.display_description, hpNum(row.bbd_price, row.row_key, row.row_type)]);
+          aoa.push([row.display_description, hpNum(row.bbd_price, row.item_id ?? undefined, row.row_type)]);
         });
         aoa.push([]);
       }
@@ -507,7 +507,7 @@ ${lensName}` : price;
         .filter((r) => r.section === sec)
         .sort((a, b) => a.sort_order - b.sort_order)
         .forEach((row) => {
-          const vals: any[] = [`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)];
+          const vals: any[] = [`"${row.display_description}"`, hpNum(row.bbd_price, row.item_id ?? undefined, row.row_type)];
           if (showMargins && !isCustomerExport) vals.push(calcMargin(row));
           lines.push(vals.join(","));
         });
@@ -520,7 +520,7 @@ ${lensName}` : price;
         lines.push(`"${sec}"`);
         lines.push([`"${sec}"`, `${currency} Price`].join(","));
         rows.forEach((row) => {
-          lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.row_key, row.row_type)].join(","));
+          lines.push([`"${row.display_description}"`, hpNum(row.bbd_price, row.item_id ?? undefined, row.row_type)].join(","));
         });
       }
     }
@@ -546,7 +546,7 @@ ${lensName}` : price;
         const rowsHtml = lensRows
           .filter((r) => r.section === sec)
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
+          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.item_id ?? undefined, row.row_type)}</td></tr>`)
           .join("");
         return `<h3 style="color:#1e4db7;margin:20px 0 8px">${sec}</h3>
       <table><thead><tr><th>${sec}</th><th>Price (${currency})</th></tr></thead><tbody>${rowsHtml}</tbody></table>`;
@@ -558,7 +558,7 @@ ${lensName}` : price;
     if (addonsBySection.size > 0) {
       for (const [sec, rows] of addonsBySection.entries()) {
         const rowsH = rows
-          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.row_key, row.row_type)}</td></tr>`)
+          .map((row) => `<tr><td>${row.display_description}</td><td style="text-align:right">${hpStr(row.bbd_price, row.item_id ?? undefined, row.row_type)}</td></tr>`)
           .join("");
         addonsHtml += `<h3 style="color:#1e4db7;margin:16px 0 6px">${sec}</h3>
         <table><thead><tr><th>${sec}</th><th>Price (${currency})</th></tr></thead><tbody>${rowsH}</tbody></table>`;
@@ -632,7 +632,7 @@ ${addonsHtml}
 
       const head = [includeMargin ? [sec, `${currency} Price`, "Margin %"] : [sec, `${currency} Price`]];
       const body = rows.map((r) => {
-        const line = [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)];
+        const line = [r.display_description, hpStr(r.bbd_price, r.item_id ?? undefined, r.row_type)];
         if (includeMargin) line.push(calcMargin(r));
         return line;
       });
@@ -662,7 +662,7 @@ ${addonsHtml}
           startY: y,
           margin: { left: margin, right: margin },
           head: [[sec, `Price (${currency})`]],
-          body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.row_key, r.row_type)]),
+          body: rows.map((r) => [r.display_description, hpStr(r.bbd_price, r.item_id ?? undefined, r.row_type)]),
           styles: { fontSize: 7, cellPadding: 1.5 },
           headStyles: { fillColor: [30, 77, 183], textColor: 255, fontStyle: "bold" },
           alternateRowStyles: { fillColor: [245, 247, 251] },

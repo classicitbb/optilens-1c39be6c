@@ -25,6 +25,7 @@ import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { paginate } from "@/lib/pagination";
+import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -89,21 +90,6 @@ type CustomerAccountRecord = {
   contact_id: string | null;
   portal_orders_use_bill_to_account: boolean;
 };
-
-type SpeechRecognitionErrorCode = "aborted" | "audio-capture" | "bad-grammar" | "language-not-supported" | "network" | "no-speech" | "not-allowed" | "phrases-not-supported" | "service-not-allowed";
-
-type BrowserSpeechRecognition = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null;
-  onerror: ((event: { error: SpeechRecognitionErrorCode }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-type BrowserSpeechRecognitionCtor = new () => BrowserSpeechRecognition;
 
 const DICTATION_LANGUAGE_OPTIONS = [
   { value: "en-US", label: "English (US)" },
@@ -571,14 +557,21 @@ const ContactsPage = ({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [collapsedCountryGroups, setCollapsedCountryGroups] = useState<Record<string, boolean>>({});
-  const [isDictating, setIsDictating] = useState(false);
-  const [dictationSupported, setDictationSupported] = useState(false);
   const [dictationLanguage, setDictationLanguage] = useState<string>(typeof navigator !== "undefined" ? navigator.language : "en-US");
-
-  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
-  const transcriptSnapshotRef = useRef("");
-  const interimTimerRef = useRef<number | null>(null);
-  const pendingTranscriptRef = useRef("");
+  const appendDictationTranscript = useCallback((transcript: string) => {
+    setEditContact((previous) => {
+      if (!previous) return previous;
+      const notes = previous.notes?.trimEnd() ?? "";
+      return { ...previous, notes: `${notes}${notes ? " " : ""}${transcript}` };
+    });
+  }, []);
+  const dictation = usePushToTalk(appendDictationTranscript, {
+    language: dictationLanguage,
+    vocabulary: "Classic Visions, Innovations, ERP, portal access, account number, pricelist, lens",
+  });
+  useEffect(() => {
+    dictation.setSettings((current) => ({ ...current, language: dictationLanguage }));
+  }, [dictation.setSettings, dictationLanguage]);
   const businessCardInputRef = useRef<HTMLInputElement>(null);
   const [businessCardFile, setBusinessCardFile] = useState<File | null>(null);
   const [isUploadingBusinessCard, setIsUploadingBusinessCard] = useState(false);
@@ -944,176 +937,12 @@ const ContactsPage = ({
   }, [contacts]);
 
 
-  const clearInterimTimer = useCallback(() => {
-    if (interimTimerRef.current !== null) {
-      window.clearTimeout(interimTimerRef.current);
-      interimTimerRef.current = null;
-    }
-  }, []);
-
-  const mergeTranscriptIntoNotes = useCallback((nextTranscript: string) => {
-    const trimmed = nextTranscript.trim();
-    if (!trimmed) return;
-
-    const previous = transcriptSnapshotRef.current;
-    let commonPrefixLength = 0;
-    const maxPrefix = Math.min(previous.length, trimmed.length);
-    while (commonPrefixLength < maxPrefix && previous[commonPrefixLength] === trimmed[commonPrefixLength]) {
-      commonPrefixLength += 1;
-    }
-
-    const delta = trimmed.slice(commonPrefixLength).trim();
-    transcriptSnapshotRef.current = trimmed;
-    if (!delta) return;
-
-    setEditContact((prev) => {
-      if (!prev) return prev;
-      const notes = prev.notes ?? "";
-      const normalizedNotes = notes.trim().replace(/\s+/g, " ").toLowerCase();
-      const normalizedDelta = delta.replace(/\s+/g, " ").toLowerCase();
-      if (normalizedDelta && normalizedNotes.endsWith(normalizedDelta)) {
-        return prev;
-      }
-      const needsSpacer = notes.length > 0 && !/\s$/.test(notes);
-      return { ...prev, notes: `${notes}${needsSpacer ? " " : ""}${delta}` };
-    });
-  }, []);
-
-  const flushPendingTranscript = useCallback(() => {
-    if (!pendingTranscriptRef.current) return;
-    mergeTranscriptIntoNotes(pendingTranscriptRef.current);
-    pendingTranscriptRef.current = "";
-  }, [mergeTranscriptIntoNotes]);
-
-  const queueTranscriptMerge = useCallback((transcript: string, immediate = false) => {
-    if (!transcript.trim()) return;
-    pendingTranscriptRef.current = transcript;
-    clearInterimTimer();
-
-    if (immediate) {
-      flushPendingTranscript();
-      return;
-    }
-
-    interimTimerRef.current = window.setTimeout(() => {
-      flushPendingTranscript();
-      interimTimerRef.current = null;
-    }, 250);
-  }, [clearInterimTimer, flushPendingTranscript]);
-
-  const stopDictation = useCallback((showToast = false) => {
-    clearInterimTimer();
-    flushPendingTranscript();
-    const recognition = recognitionRef.current;
-    if (recognition) {
-      recognition.onresult = null;
-      recognition.onerror = null;
-      recognition.onend = null;
-      recognition.stop();
-      recognitionRef.current = null;
-    }
-    transcriptSnapshotRef.current = "";
-    setIsDictating(false);
-
-    if (showToast) {
-      toast({ title: "Dictation stopped" });
-    }
-  }, [clearInterimTimer, flushPendingTranscript, toast]);
-
-  useEffect(() => {
-    const speechWindow = window as unknown as { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor };
-    const speechApi = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
-    setDictationSupported(!!speechApi);
-    if (typeof navigator !== "undefined" && navigator.language) {
-      setDictationLanguage(navigator.language);
-    }
-  }, []);
-
-  useEffect(() => () => stopDictation(), [stopDictation]);
-
-  useEffect(() => {
-    if (!editContact) {
-      stopDictation();
-    }
-  }, [editContact, stopDictation]);
-
-  const startDictation = useCallback(() => {
-    const speechWindow = window as unknown as { SpeechRecognition?: BrowserSpeechRecognitionCtor; webkitSpeechRecognition?: BrowserSpeechRecognitionCtor };
-    const speechApi = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
-
-    if (!speechApi) {
-      toast({
-        title: "Dictation unavailable",
-        description: "Your browser does not support speech-to-text dictation.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      transcriptSnapshotRef.current = "";
-      const recognition = new speechApi();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = dictationLanguage || (typeof navigator !== "undefined" ? navigator.language : "en-US");
-
-      recognition.onresult = (event) => {
-        let fullFinal = "";
-        let interim = "";
-
-        for (let i = 0; i < event.results.length; i += 1) {
-          const result = event.results[i];
-          const transcriptPart = result[0]?.transcript ?? "";
-          if (result.isFinal) fullFinal += transcriptPart;
-          else interim += transcriptPart;
-        }
-
-        const combined = `${fullFinal} ${interim}`.trim();
-        queueTranscriptMerge(combined, !interim);
-      };
-
-      recognition.onerror = (event) => {
-        const errorMessages: Partial<Record<SpeechRecognitionErrorCode, string>> = {
-          "not-allowed": "Microphone permission was denied. Please allow microphone access to use dictation.",
-          "service-not-allowed": "Microphone access is blocked for this browser profile.",
-          "audio-capture": "No microphone was detected. Please connect a microphone and try again.",
-          network: "A network error interrupted dictation.",
-          "language-not-supported": "The selected language is not supported for dictation in this browser.",
-        };
-
-        toast({
-          title: "Dictation error",
-          description: errorMessages[event.error] ?? "Dictation stopped due to an unexpected speech recognition error.",
-          variant: "destructive",
-        });
-        stopDictation();
-      };
-
-      recognition.onend = () => {
-        flushPendingTranscript();
-        setIsDictating(false);
-        recognitionRef.current = null;
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsDictating(true);
-    } catch (error: any) {
-      toast({
-        title: "Unable to start dictation",
-        description: error?.message ?? "Speech recognition could not be started in this browser.",
-        variant: "destructive",
-      });
-      stopDictation();
-    }
-  }, [dictationLanguage, flushPendingTranscript, queueTranscriptMerge, stopDictation, toast]);
-
   const closeEditDialog = useCallback(() => {
-    stopDictation();
+    dictation.stop();
     setEditContact(null);
     setEditTab("details");
     onEmbeddedClose?.();
-  }, [onEmbeddedClose, stopDictation]);
+  }, [dictation.stop, onEmbeddedClose]);
 
   const companies = contacts.filter((c) => c.is_company);
   const linkedCompany = useMemo(
@@ -2853,15 +2682,16 @@ const ContactsPage = ({
                       <Button
                         type="button"
                         size="sm"
-                        variant={isDictating ? "destructive" : "outline"}
+                        variant={dictation.isListening ? "destructive" : "outline"}
                         className="h-7 text-xs"
-                        onClick={() => (isDictating ? stopDictation(true) : startDictation())}
+                        onClick={() => (dictation.isListening ? dictation.stop() : void dictation.start())}
+                        disabled={dictation.isStarting || dictation.isTranscribing}
                       >
-                        {isDictating ? <MicOff className="h-3.5 w-3.5 mr-1" /> : <Mic className="h-3.5 w-3.5 mr-1" />}
-                        {isDictating ? "Stop dictation" : "Start dictation"}
+                        {dictation.isListening ? <MicOff className="h-3.5 w-3.5 mr-1" /> : <Mic className="h-3.5 w-3.5 mr-1" />}
+                        {dictation.isTranscribing ? "Transcribing…" : dictation.isStarting ? "Starting…" : dictation.isListening ? "Stop dictation" : "Start dictation"}
                       </Button>
                       <Select value={dictationLanguage} onValueChange={setDictationLanguage}>
-                        <SelectTrigger className="h-7 text-xs w-[180px]" disabled={!dictationSupported || isDictating}>
+                        <SelectTrigger className="h-7 text-xs w-[180px]" disabled={dictation.isListening || dictation.isStarting || dictation.isTranscribing}>
                           <SelectValue placeholder="Language" />
                         </SelectTrigger>
                         <SelectContent>
@@ -2870,17 +2700,13 @@ const ContactsPage = ({
                           ))}
                         </SelectContent>
                       </Select>
-                      {isDictating && (
+                      {dictation.isListening && (
                         <span className="text-[11px] font-medium flex items-center gap-1" style={{ color: "hsl(0 72% 45%)" }}>
                           <span className="inline-block h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                           Recording…
                         </span>
                       )}
-                      {!dictationSupported && (
-                        <span className="text-[11px]" style={{ color: "hsl(215 15% 55%)" }}>
-                          Speech dictation isn’t supported in this browser.
-                        </span>
-                      )}
+                      {dictation.error && <span className="text-[11px] text-destructive">{dictation.error}</span>}
                     </div>
                     <Textarea
                       className="text-xs min-h-[120px] resize-none"

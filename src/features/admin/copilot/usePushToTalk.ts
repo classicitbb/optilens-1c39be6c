@@ -7,10 +7,12 @@ import {
 
 export type SpeechSettings = {
   deviceId: string;
-  language: "en-BB" | "en-US" | "en-GB";
+  language: string;
   confidenceThreshold: number;
   vocabulary: string;
 };
+
+type PushToTalkOptions = Partial<Pick<SpeechSettings, "language" | "vocabulary">>;
 
 const DEFAULT_SETTINGS: SpeechSettings = {
   deviceId: "default",
@@ -19,8 +21,11 @@ const DEFAULT_SETTINGS: SpeechSettings = {
   vocabulary: "Innovations, ERP, Classic Visions, portal access, pricelist, lens",
 };
 
-export const usePushToTalk = (onTranscript: (transcript: string, confidence: number) => void) => {
-  const [settings, setSettings] = useState<SpeechSettings>(DEFAULT_SETTINGS);
+export const usePushToTalk = (
+  onTranscript: (transcript: string, confidence: number) => void,
+  options: PushToTalkOptions = {},
+) => {
+  const [settings, setSettings] = useState<SpeechSettings>(() => ({ ...DEFAULT_SETTINGS, ...options }));
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [isStarting, setIsStarting] = useState(false);

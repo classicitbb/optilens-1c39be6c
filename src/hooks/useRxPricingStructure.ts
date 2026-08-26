@@ -11,6 +11,7 @@ import {
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 
 const STRUCTURE_QUERY_KEY = ["rx-pricing-structure"];
+const EMPTY_STRUCTURE: ReturnType<typeof buildRxPricingStructure> = [];
 
 const ensureUniqueKey = async (table: string, baseKey: string, extraFilter?: { column: string; value: number }) => {
   let attempt = 0;
@@ -408,7 +409,10 @@ export const useRxPricingStructure = (versionId: number | null) => {
 
   return {
     ...query,
-    structure: query.data?.structure ?? [],
+    // Keep the loading fallback referentially stable. Consumers derive maps from
+    // this value in effects, so a new empty array on every render can cause an
+    // avoidable update loop while the structure query is still loading.
+    structure: query.data?.structure ?? EMPTY_STRUCTURE,
     createGrouping,
     createCategory,
     renameGrouping,

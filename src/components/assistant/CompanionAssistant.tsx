@@ -16,6 +16,7 @@ import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useVoiceEngine } from "@/hooks/useVoiceEngine";
+import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { supabase } from "@/integrations/supabase/client";
 
 const MessageQuickActions = ({
@@ -565,7 +566,11 @@ const CompanionAssistant = () => {
   );
 
   const voiceEngine = useVoiceEngine({
-    onFinalTranscript: handleFinalTranscript,
+    // The assistant keeps this hook for text-to-speech. Recording uses the
+    // Portal Copilot's server transcription path below.
+  });
+  const voiceInput = usePushToTalk(handleFinalTranscript, {
+    vocabulary: "Classic Visions, lens, coatings, optical professional, retailer, portal, prescription",
   });
 
   // Automatically read aloud new assistant messages when autoSpeak is enabled
@@ -814,13 +819,15 @@ const CompanionAssistant = () => {
 
       {!formState && !historyOpen ? <div className="space-y-3 border-t border-border/50 bg-muted/30 px-4 py-4">
         {/* Live speech transcription feedback banner */}
-        {voiceEngine.isListening ? (
+        {voiceInput.isListening || voiceInput.isStarting || voiceInput.isTranscribing ? (
           <div className="flex items-center gap-2 rounded-xl border border-secondary/40 bg-secondary/10 px-3 py-2 text-xs text-foreground shadow-soft voice-transcript-live">
             <div className="voice-listening-indicator h-3 w-3 shrink-0 rounded-full bg-secondary" />
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-secondary">Listening...</p>
+              <p className="font-semibold text-secondary">
+                {voiceInput.isTranscribing ? "Transcribing..." : voiceInput.isStarting ? "Starting microphone..." : "Listening..."}
+              </p>
               <p className="truncate text-foreground/80">
-                {voiceEngine.interimTranscript || voiceEngine.transcript || "Speak clearly into your microphone..."}
+                {voiceInput.isTranscribing ? "Your recording will be placed in the message box automatically." : "Speak clearly, then click Done to transcribe."}
               </p>
             </div>
             <Button
@@ -828,7 +835,8 @@ const CompanionAssistant = () => {
               size="sm"
               variant="outline"
               className="h-7 rounded-full text-[11px] border-secondary/40 text-secondary hover:bg-secondary/20"
-              onClick={voiceEngine.toggleListening}
+              onClick={voiceInput.stop}
+              disabled={voiceInput.isStarting || voiceInput.isTranscribing}
             >
               Done
             </Button>
@@ -837,28 +845,23 @@ const CompanionAssistant = () => {
 
         <div className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
           <div className="flex items-end gap-2">
-            {voiceEngine.sttSupported ? (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className={cn(
-                  "ml-1 h-9 w-9 shrink-0 rounded-full transition-all",
-                  voiceEngine.isListening
-                    ? "voice-listening-indicator voice-mic-active bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    : "text-foreground/60 hover:bg-muted hover:text-foreground"
-                )}
-                onClick={voiceEngine.toggleListening}
-                title={voiceEngine.isListening ? "Stop voice input" : "Speak your question"}
-                aria-label={voiceEngine.isListening ? "Stop voice input" : "Start voice input"}
-              >
-                {voiceEngine.isListening ? (
-                  <MicOff className="h-4 w-4 animate-pulse" />
-                ) : (
-                  <Mic className="h-4 w-4 text-accent" />
-                )}
-              </Button>
-            ) : null}
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className={cn(
+                "ml-1 h-9 w-9 shrink-0 rounded-full transition-all",
+                voiceInput.isListening
+                  ? "voice-listening-indicator voice-mic-active bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : "text-foreground/60 hover:bg-muted hover:text-foreground"
+              )}
+              onClick={() => (voiceInput.isListening ? voiceInput.stop() : void voiceInput.start())}
+              title={voiceInput.isListening ? "Stop and transcribe" : "Speak your question"}
+              aria-label={voiceInput.isListening ? "Stop voice input" : "Start voice input"}
+              disabled={voiceInput.isStarting || voiceInput.isTranscribing}
+            >
+              {voiceInput.isListening ? <MicOff className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4 text-accent" />}
+            </Button>
             <Textarea
               dir="ltr"
               value={currentQuery}
@@ -880,7 +883,7 @@ const CompanionAssistant = () => {
                   addAttachmentFiles(files);
                 }
               }}
-              placeholder={voiceEngine.isListening ? "Listening..." : "Ask anything"}
+              placeholder={voiceInput.isListening ? "Listening..." : voiceInput.isTranscribing ? "Transcribing your recording..." : "Ask anything"}
               disabled={isSubmitting}
               rows={1}
               className="max-h-36 min-h-11 resize-none border-0 bg-transparent px-2 py-3 text-left text-foreground placeholder:text-foreground/40 focus-visible:ring-0 focus-visible:ring-offset-0 assistant-scrollbar"

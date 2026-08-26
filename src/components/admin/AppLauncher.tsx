@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, CalendarCheck, Glasses, HelpCircle, LayoutDashboard, Package, X } from "lucide-react";
+import { CalendarCheck, Glasses, HelpCircle, Home, LayoutDashboard, Package, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
@@ -54,6 +54,13 @@ const LAUNCHER_SHORTCUTS = {
   },
 } as const;
 
+const HOME_PAGE_SHORTCUT = {
+  key: "home-page",
+  title: "Home Page",
+  icon: Home,
+  defaultRoute: "/",
+} as const;
+
 interface AppLauncherProps {
   open: boolean;
   onClose: () => void;
@@ -82,6 +89,11 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
         .filter((app) => ("featurePrefix" in app ? hasAppAccess(app.featurePrefix) : true)),
     [hasAppAccess],
   );
+  const launchPadItems = useMemo(() => {
+    const settingsIndex = launchableApps.findIndex((app) => app.key === "settings");
+    if (settingsIndex < 0) return [...launchableApps, HOME_PAGE_SHORTCUT];
+    return [...launchableApps.slice(0, settingsIndex + 1), HOME_PAGE_SHORTCUT, ...launchableApps.slice(settingsIndex + 1)];
+  }, [launchableApps]);
 
   useEffect(() => {
     if (!open) return;
@@ -125,7 +137,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
 
         <div className="flex-1 overflow-auto p-4">
           <div className="grid grid-cols-3 gap-3">
-            {launchableApps.map((app) =>
+            {launchPadItems.map((app) =>
             <button
               key={app.key}
               onClick={() => handleSelect(app)}
@@ -139,14 +151,6 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
           </div>
         </div>
 
-        <button
-          onClick={() => {navigate("/");onClose();}}
-          className="flex items-center justify-center gap-2 py-3 transition-colors hover:bg-white/10"
-          style={{ color: "hsl(210 15% 65%)", borderTop: "1px solid hsl(215 25% 22%)" }}>
-
-          <ArrowLeft className="h-4 w-4" />
-          <span className="text-xs font-medium">Back to Site</span>
-        </button>
       </div>);
 
   }
@@ -179,7 +183,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
       </div>
 
       <div className="grid grid-cols-4 gap-3">
-        {launchableApps.map((app) =>
+        {launchPadItems.map((app) =>
         <button
           key={app.key}
           onClick={() => handleSelect(app)}
@@ -206,14 +210,6 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
         )}
       </div>
 
-      <button
-        onClick={() => {navigate("/");onClose();}}
-        className="mt-4 flex items-center justify-center gap-2 w-full py-2 rounded-md transition-colors hover:bg-white/10"
-        style={{ color: "hsl(210 15% 65%)", borderTop: "1px solid hsl(215 25% 22%)" }}>
-
-        <ArrowLeft className="h-4 w-4" />
-        <span className="text-xs font-medium">Back to Site</span>
-      </button>
     </div>);
 
 };
