@@ -503,11 +503,11 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                     {message.text ? <CopilotMarkdown content={message.text} tone="user" /> : null}
                     {message.files?.length ? (
                       <div className="flex flex-wrap gap-2">
-                        {message.files.map((file) => (
+                        {message.files.map((file, fileIndex) => (
                           file.kind === "image" && file.previewUrl ? (
-                            <img key={file.name} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover transition-transform duration-200 hover:scale-105" />
+                            <img key={`${file.name}:${fileIndex}`} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover transition-transform duration-200 hover:scale-105" />
                           ) : (
-                            <span key={file.name} className="flex items-center gap-1 border border-primary-foreground/30 px-2 py-1 text-xs">
+                            <span key={`${file.name}:${fileIndex}`} className="flex items-center gap-1 border border-primary-foreground/30 px-2 py-1 text-xs">
                               <FileText className="h-3 w-3" /> {file.name}
                             </span>
                           )

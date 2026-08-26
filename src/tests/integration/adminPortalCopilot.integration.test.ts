@@ -6,24 +6,30 @@ import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
 const read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
 
 describe("admin-only CV Portal Copilot", () => {
-  it("registers one canonical admin-only route", () => {
+  it("registers one canonical admin-only route with the legacy admin path redirecting to it", () => {
+    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({
+      id: "admin.copilot.workspace",
+      path: "/copilot",
+      authMode: "admin",
+    }));
     expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({
       id: "admin.copilot",
       path: "/admin/copilot",
-      audience: "admin",
-      authMode: "admin",
+      redirectTo: "/copilot",
     }));
 
+    const app = read("src/App.tsx");
     const routes = read("src/routes/admin/AdminRoutes.tsx");
-    expect(routes).toContain('const PortalCopilotPage = lazy(() => import("@/pages/admin/PortalCopilotPage"));');
-    expect(routes).toContain('<Route path="copilot" element={<AdminOnlyRoute><PortalCopilotPage /></AdminOnlyRoute>} />');
+    expect(app).toContain('const CopilotWorkspacePage = lazy(() => import("@/pages/CopilotWorkspacePage"));');
+    expect(app).toContain('<Route path="/copilot" element={<AdminProtectedRoute>');
+    expect(routes).toContain('<Route path="copilot" element={<Navigate to="/copilot" replace />} />');
   });
 
   it("is discoverable from the admin launcher/sidebar and mapped to a permission feature", () => {
     const apps = read("src/features/admin/core/config/apps.ts");
     const navigation = read("src/config/navigationRegistry.ts");
     const permissions = read("src/hooks/useRolePermissions.ts");
-    expect(apps).toContain("'/admin/copilot'");
+    expect(apps).toContain("'/copilot'");
     expect(navigation).toContain('routeId: "admin.copilot"');
     expect(permissions).toContain('"/admin/copilot": "copilot"');
   });

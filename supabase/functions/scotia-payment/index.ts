@@ -83,7 +83,7 @@ const prepareSchema = z.object({
 const validateSchema = z.object({
   action: z.literal("validate"),
   // The raw POST parameters received at responseSuccessURL / responseFailURL.
-  response: z.record(z.string()),
+  response: z.record(z.string(), z.string()),
 });
 
 const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema]);

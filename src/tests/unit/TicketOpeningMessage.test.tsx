@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router";
 import { TicketOpeningMessage } from "@/features/admin/helpdesk/components/TicketOpeningMessage";
 import type { HelpdeskTicketDetail } from "@/features/admin/helpdesk/hooks/useHelpdeskTicketDetail";
 
@@ -24,7 +25,7 @@ const ticket = {
 
 describe("TicketOpeningMessage", () => {
   it("shows assistant context as plain-language request details", () => {
-    const { container } = render(<TicketOpeningMessage ticket={ticket} />);
+    const { container } = render(<MemoryRouter><TicketOpeningMessage ticket={ticket} /></MemoryRouter>);
 
     expect(screen.getByText("Request details")).toBeInTheDocument();
     expect(screen.getByText("My Account › Orders")).toBeInTheDocument();
