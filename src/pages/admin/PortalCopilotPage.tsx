@@ -283,7 +283,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
     <div
       className={cn(
         "relative flex w-full overflow-hidden border-t bg-background",
-        standalone ? "h-screen" : "h-[calc(100vh-4rem)]",
+        standalone ? "h-full min-h-0" : "h-[calc(100vh-4rem)]",
       )}
       onDragOver={(event) => {
         if (!event.dataTransfer.types.includes("Files")) return;
