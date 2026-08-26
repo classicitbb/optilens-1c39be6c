@@ -936,8 +936,7 @@ const ListCatalogTab = ({
             <button
               type="button"
               className="rounded px-1 py-0.5 transition-colors hover:bg-primary/10"
-              title={row.key.startsWith("matrix::") ? "Edit price and sync to the matrix immediately" : "Edit price"}
-                      title={activeVersion && displayBbd !== row.bbd ? "Edit base price; displayed price includes pricelist adjustments" : "Edit price"}
+              title={activeVersion && displayBbd !== row.bbd ? "Edit base price; displayed price includes pricelist adjustments" : row.key.startsWith("matrix::") ? "Edit price and sync to the matrix immediately" : "Edit price"}
                       onClick={() => setEditingPrice({ key: row.key, value: row.bbd != null ? row.bbd.toFixed(2) : "" })}
             >
               {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}

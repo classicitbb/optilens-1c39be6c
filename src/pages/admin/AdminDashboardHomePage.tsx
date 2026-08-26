@@ -181,7 +181,7 @@ const AdminDashboardHomePage = () => {
   const quickActions = useMemo(
     () =>
       QUICK_ACTIONS.filter((action) =>
-        action.requiresEdit ? canEditFeature(action.featurePrefix as Feature) : hasAppAccess(action.featurePrefix),
+        "requiresEdit" in action && action.requiresEdit ? canEditFeature(action.featurePrefix as Feature) : hasAppAccess(action.featurePrefix),
       ),
     [canEditFeature, hasAppAccess],
   );
