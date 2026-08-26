@@ -8480,6 +8480,51 @@ export type Database = {
         }
         Relationships: []
       }
+      runtime_error_events: {
+        Row: {
+          browser: string | null
+          component_stack: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          release_version: string | null
+          route: string | null
+          source: string
+          title: string
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          component_stack?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          release_version?: string | null
+          route?: string | null
+          source: string
+          title: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          component_stack?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          release_version?: string | null
+          route?: string | null
+          source?: string
+          title?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       rx_details: {
         Row: {
           created_at: string

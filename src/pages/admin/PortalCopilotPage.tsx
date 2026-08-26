@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowUp,
   Bot,
   Check,
@@ -73,7 +74,7 @@ const SUGGESTIONS = [
   "Show me which ERP customers still need a portal contact",
 ];
 
-const PortalCopilotPage = () => {
+const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const { toast } = useToast();
   const [command, setCommand] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
@@ -280,7 +281,10 @@ const PortalCopilotPage = () => {
 
   return (
     <div
-      className="relative flex h-[calc(100vh-4rem)] w-full overflow-hidden border-t bg-background"
+      className={cn(
+        "relative flex w-full overflow-hidden border-t bg-background",
+        standalone ? "h-screen" : "h-[calc(100vh-4rem)]",
+      )}
       onDragOver={(event) => {
         if (!event.dataTransfer.types.includes("Files")) return;
         event.preventDefault();
@@ -338,6 +342,11 @@ const PortalCopilotPage = () => {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-2 border-b px-4 py-2">
+          {standalone ? (
+            <Button size="icon" variant="ghost" aria-label="Back to admin" className="h-7 w-7" asChild>
+              <a href="/admin/dashboard"><ArrowLeft className="h-3.5 w-3.5" /></a>
+            </Button>
+          ) : null}
           {!showSidebar ? (
             <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden h-7 w-7 lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-3.5 w-3.5" /></Button>
           ) : null}
