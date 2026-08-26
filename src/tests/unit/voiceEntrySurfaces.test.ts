@@ -14,21 +14,20 @@ describe("voice entry surfaces", () => {
     expect(assistant).toContain("disabled={!canSend}");
   });
 
-  it("adds transcripts to CRM task title and notes rather than replacing their existing text", () => {
+  it("inserts transcripts into CRM task title and notes at the caret rather than replacing their existing text", () => {
     const dialog = read("src/components/admin/CrmActivityDialog.tsx");
 
     expect(dialog).toContain('ariaLabel="Dictate task title"');
     expect(dialog).toContain('ariaLabel="Dictate task notes"');
-    expect(dialog).toContain("appendTitleDictation");
-    expect(dialog).toContain("appendNotesDictation");
-    expect(dialog).toContain("trimEnd()");
+    expect(dialog).toContain("applyTitleDictation");
+    expect(dialog).toContain("applyNotesDictation");
   });
 
   it("uses the shared transcription control in the Helpdesk create-ticket description", () => {
     const tickets = read("src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx");
 
     expect(tickets).toContain('ariaLabel="Dictate ticket description"');
-    expect(tickets).toContain("appendTicketDescriptionDictation");
+    expect(tickets).toContain("applyTicketDescriptionDictation");
     expect(tickets).toContain('from "@/components/admin/InlineDictationButton"');
   });
 });

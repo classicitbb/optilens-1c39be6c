@@ -88,8 +88,8 @@ const HelpdeskTicketsPage = () => {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "", dueDate: "" });
-  const appendTicketDescriptionDictation = useCallback((transcript: string) => {
-    setForm((current) => ({ ...current, description: `${current.description.trimEnd()}${current.description.trimEnd() ? " " : ""}${transcript}` }));
+  const applyTicketDescriptionDictation = useCallback((nextValue: string) => {
+    setForm((current) => ({ ...current, description: nextValue }));
   }, []);
 
   // Edit dialog state
@@ -337,7 +337,7 @@ const HelpdeskTicketsPage = () => {
                         className="min-h-[96px] pr-11 text-xs"
                         onKeyDown={handleFieldKeyDown(3) as any}
                       />
-                      <InlineDictationButton ariaLabel="Dictate ticket description" onTranscript={appendTicketDescriptionDictation} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+                      <InlineDictationButton ariaLabel="Dictate ticket description" onValueChange={applyTicketDescriptionDictation} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
                     </div>
                   </div>
 

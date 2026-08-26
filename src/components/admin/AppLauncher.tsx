@@ -119,7 +119,7 @@ const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
 
   if (!open) return null;
 
-  const handleSelect = (app: (typeof launchableApps)[number]) => {
+  const handleSelect = (app: { defaultRoute: string }) => {
     navigate(app.defaultRoute);
     onClose();
   };
