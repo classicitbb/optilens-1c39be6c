@@ -51,6 +51,13 @@ export interface RxOrderEmbedProps {
   resumedDraftId?: string;
   pricesVisible?: boolean;
   currency?: string;
+  /**
+   * Credit-approved accounts skip the cart: submit places the order on account
+   * and hands it straight to the lab. This only decides what the form OFFERS —
+   * place_rx_order_direct() re-checks the privilege server-side, so a stale or
+   * tampered client cannot grant itself the shortcut.
+   */
+  allowDirectSubmit?: boolean;
 }
 
 interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
@@ -62,6 +69,7 @@ export const RxOrderEmbed = ({
   checkoutPath = "/checkout", storePath = "/store",
   onStartAnother,
   prefill, prefillBanner, resumedDraftId, pricesVisible = true, currency = "BBD",
+  allowDirectSubmit = false,
 }: RxOrderEmbedProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -258,6 +266,29 @@ export const RxOrderEmbed = ({
         });
         if (!added) throw new Error("The order could not be added to the cart.");
       },
+      canSubmitDirect: allowDirectSubmit,
+      // Bypasses the cart entirely: one order_item carrying rx_quote_id, which
+      // is what the order_items enqueue trigger watches to hand the job to the
+      // lab. The customer's existing cart is left exactly as it was.
+      onSubmittedDirect: async (payload: any) => {
+        const { totalBBD } = await persist(payload);
+        const { data, error } = await (supabase.rpc as any)("place_rx_order_direct", {
+          p_items: [{
+            product_id: syntheticCartProductId(quoteId),
+            product_name: `Rx Order ${quoteNumber ?? ""} — ${[payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || ""}`.trim(),
+            product_price: totalBBD,
+            product_type: "lens",
+            quantity: 1,
+            variant_metadata: { rx_quote_id: quoteId, kind: "rx_order" },
+          }],
+          p_checkout: {
+            checkout_method: "on_account",
+            shipping_amount: 0,
+          },
+        });
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error("The order could not be placed.");
+      },
       onCheckout: () => navigate(checkoutPath),
       onStore: () => navigate(storePath),
       onAnother: onStartAnother,
@@ -295,6 +326,16 @@ export const RxOrderEmbed = ({
     adapterOptionsRef.current.hasSavedDrafts = hasSavedDrafts;
     engineRef.current.refreshData();
   }, [hasSavedDrafts]);
+
+  useEffect(() => {
+    // Identity resolves after the first mount, so the submit button has to be
+    // able to change its mind once — otherwise a credit-approved customer is
+    // shown "Submit to cart" for the whole session.
+    if (!engineRef.current || !adapterOptionsRef.current) return;
+    if (adapterOptionsRef.current.canSubmitDirect === allowDirectSubmit) return;
+    adapterOptionsRef.current.canSubmitDirect = allowDirectSubmit;
+    engineRef.current.refreshData();
+  }, [allowDirectSubmit]);
 
   return (
     <div className={`cv-rx-embed${surface === "admin" ? " admin-rx-order" : ""}`} ref={hostRef}>

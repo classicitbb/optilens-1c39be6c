@@ -3,6 +3,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from "react-router";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+// Dev-only Rx form bench. The conditional has to wrap the import() itself:
+// guarding only the <Route> still leaves a static dynamic-import in the graph,
+// and Rollup emits it as a real chunk — which shipped the bench and its test
+// fixtures to production even though nothing rendered them. import.meta.env.DEV
+// is substituted with a literal false at build time, so this whole branch (and
+// the chunk) is dropped instead.
+const RxOrderPreview = import.meta.env.DEV
+  ? lazy(() => import("@/features/rx-order/dev/RxOrderPreview"))
+  : () => null;
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import AdminProtectedRoute from "@/components/admin/AdminProtectedRoute";
@@ -95,6 +104,12 @@ const App = () => (
             <ErrorBoundary>
               <Suspense fallback={<RouteLoadingFallback />}>
                 <Routes>
+                  {/* Dev-only Rx form bench. import.meta.env.DEV is statically
+                      false in a production build, so the route and its lazy
+                      chunk are dropped entirely rather than merely hidden. */}
+                  {import.meta.env.DEV && (
+                    <Route path="/dev/rx-order" element={<RxOrderPreview />} />
+                  )}
                   <Route path="/ops/*" element={<AdminProtectedRoute><OpsRoutes /></AdminProtectedRoute>} />
                   <Route path="/admin/*" element={<AdminProtectedRoute><AdminRoutes /></AdminProtectedRoute>} />
 

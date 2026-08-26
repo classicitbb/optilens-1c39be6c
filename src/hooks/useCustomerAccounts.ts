@@ -9,6 +9,9 @@ export interface CustomerAccountOption {
   id: number;
   name: string;
   account_number: string | null;
+  /** ISO country code. Drives the Rx form's default delivery method — anything
+   *  other than Barbados ships export rather than on the weekly courier run. */
+  country_code: string | null;
 }
 
 export const useCustomerAccounts = () => {
@@ -16,7 +19,7 @@ export const useCustomerAccounts = () => {
     queryKey: ["customer-accounts"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("customers") as any)
-        .select("id, name, account_number")
+        .select("id, name, account_number, country_code")
         .order("name");
       if (error) throw error;
       return data as CustomerAccountOption[];
