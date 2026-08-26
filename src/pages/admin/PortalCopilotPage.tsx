@@ -692,19 +692,65 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={speech.isListening ? "destructive" : "ghost"}
+                      className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground data-[state=listening]:text-foreground"
+                      aria-label={speech.isStarting ? "Starting microphone" : speech.isTranscribing ? "Transcribing recording" : holdToRecord ? "Hold to talk, then release to review the transcript" : "Click to start or stop recording"}
+                      disabled={speech.isStarting || speech.isTranscribing}
+                      onPointerDown={(event) => {
+                        if (!holdToRecord) return;
+                        event.preventDefault();
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        void speech.start();
+                      }}
+                      onPointerUp={() => holdToRecord && speech.stop()}
+                      onPointerCancel={() => holdToRecord && speech.stop()}
+                      onKeyDown={(event) => {
+                        if (!holdToRecord) return;
+                        if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+                          event.preventDefault();
+                          void speech.start();
+                        }
+                      }}
+                      onKeyUp={(event) => {
+                        if (!holdToRecord) return;
+                        if (event.key === " " || event.key === "Enter") {
+                          event.preventDefault();
+                          speech.stop();
+                        }
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (holdToRecord) return;
+                        if (speech.isListening) speech.stop();
+                        else void speech.start();
+                      }}
+                    >
+                      {speech.isStarting || speech.isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
                   </div>
 
                   {speech.isListening ? (
-                    <div className="ml-1 h-1 w-12 overflow-hidden rounded-full bg-muted">
+                    <div className="h-1 w-12 overflow-hidden rounded-full bg-muted">
                       <div className="h-full bg-cyan-500 transition-[width]" style={{ width: `${speech.level}%` }} />
                     </div>
                   ) : null}
-                </div>
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {speech.isTranscribing ? <span>Transcribing…</span> : null}
-                  <span className="hidden truncate sm:inline">{speech.activeDeviceLabel}</span>
-                  <span className="hidden lg:inline">{"\n"}</span>
+                  {speech.isTranscribing ? <span className="text-xs text-muted-foreground">Transcribing…</span> : null}
+
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 rounded-full"
+                    aria-label={attachments.length ? "Analyse attachment" : "Send message"}
+                    disabled={!canPrepare}
+                    onClick={submit}
+                  >
+                    {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : canPrepare ? <ArrowUp className="h-4 w-4" /> : <Square className="h-3 w-3 fill-current" />}
+                  </Button>
                 </div>
               </div>
             </div>
