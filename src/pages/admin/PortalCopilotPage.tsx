@@ -21,6 +21,7 @@ import {
   Plus,
   Settings2,
   ShieldCheck,
+  Square,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -603,8 +604,8 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
               }}
             />
 
-            <div className="rounded-2xl border border-input bg-muted/30 shadow-sm transition-colors focus-within:border-foreground/30 focus-within:bg-background focus-within:shadow-md">
-              <div className="flex items-end gap-2 px-4 pt-3.5">
+            <div className="rounded-[1.75rem] border border-input bg-background shadow-sm transition-colors focus-within:border-foreground/30 focus-within:shadow-md">
+              <div className="px-4 pt-3.5">
                 <Textarea
                   aria-label="Message the Copilot"
                   value={command}
@@ -625,24 +626,14 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                       submit();
                     }
                   }}
-                  rows={1}
-                  className="max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent p-0 text-base leading-6 shadow-none focus-visible:ring-0"
-                  placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : `Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
+                  rows={2}
+                  className="max-h-40 min-h-[2.75rem] w-full flex-1 resize-none border-0 bg-transparent p-0 text-base leading-6 shadow-none focus-visible:ring-0"
+                  placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : "Do anything"}
                 />
-                <Button
-                  type="button"
-                  size="icon"
-                  className="mb-0.5 h-8 w-8 shrink-0 rounded-lg"
-                  aria-label={attachments.length ? "Analyse attachment" : "Send message"}
-                  disabled={!canPrepare}
-                  onClick={submit}
-                >
-                  {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-                </Button>
               </div>
 
               <div className="flex items-center justify-between gap-1.5 px-2.5 pb-2.5 pt-1.5">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Button
                     type="button"
                     size="icon"
@@ -651,10 +642,58 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                     aria-label="Attach a prescription or order file"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
                   </Button>
 
+                  <span className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-500">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Full access
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
                   <div className="flex items-center overflow-hidden rounded-full border border-transparent hover:border-input">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" className="h-8 gap-1 rounded-full px-2 text-xs font-medium text-foreground hover:text-foreground" aria-label="Voice and microphone settings">
+                          Copilot
+                          <span className="text-muted-foreground">High</span>
+                          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-72">
+                        <DropdownMenuLabel className="px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Microphone</DropdownMenuLabel>
+                        <div className="max-h-64 overflow-y-auto">
+                          <DropdownMenuItem
+                            className="flex items-center justify-between gap-2"
+                            onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: "default" }))}
+                          >
+                            <span className="truncate">System default</span>
+                            {speech.settings.deviceId === "default" ? <Check className="h-4 w-4 shrink-0" /> : null}
+                          </DropdownMenuItem>
+                          {speech.devices.filter((device) => device.deviceId && device.deviceId !== "default").map((device, index) => (
+                            <DropdownMenuItem
+                              key={device.deviceId}
+                              className="flex items-center justify-between gap-2"
+                              onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: device.deviceId }))}
+                            >
+                              <span className="truncate">{device.label || `Microphone ${index + 1}`}</span>
+                              {speech.settings.deviceId === device.deviceId ? <Check className="h-4 w-4 shrink-0" /> : null}
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <div className="flex items-center justify-between px-2 py-1 text-[11px]">
+                          <Label htmlFor="hold-to-record" className="cursor-pointer font-normal">Hold to record</Label>
+                          <Switch id="hold-to-record" checked={holdToRecord} onCheckedChange={setHoldToRecord} />
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={() => setShowAudioSettings(true)}>
+                          <Settings2 className="mr-1.5 h-3 w-3" /> More voice settings
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button
                       type="button"
                       size="icon"
@@ -693,58 +732,26 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                     >
                       {speech.isStarting || speech.isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" size="icon" variant="ghost" className="h-8 w-6 rounded-full text-muted-foreground hover:text-foreground" aria-label="Microphone settings">
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-72">
-                        <DropdownMenuLabel className="px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Microphone</DropdownMenuLabel>
-                        <div className="max-h-64 overflow-y-auto">
-                          <DropdownMenuItem
-                            className="flex items-center justify-between gap-2"
-                            onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: "default" }))}
-                          >
-                            <span className="truncate">System default</span>
-                            {speech.settings.deviceId === "default" ? <Check className="h-4 w-4 shrink-0" /> : null}
-                          </DropdownMenuItem>
-                          {speech.devices.filter((device) => device.deviceId && device.deviceId !== "default").map((device, index) => (
-                            <DropdownMenuItem
-                              key={device.deviceId}
-                              className="flex items-center justify-between gap-2"
-                              onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: device.deviceId }))}
-                            >
-                              <span className="truncate">{device.label || `Microphone ${index + 1}`}</span>
-                              {speech.settings.deviceId === device.deviceId ? <Check className="h-4 w-4 shrink-0" /> : null}
-                            </DropdownMenuItem>
-                          ))}
-                        </div>
-                        <DropdownMenuSeparator />
-                        <div className="flex items-center justify-between px-2 py-1 text-[11px]">
-                          <Label htmlFor="hold-to-record" className="cursor-pointer font-normal">Hold to record</Label>
-                          <Switch id="hold-to-record" checked={holdToRecord} onCheckedChange={setHoldToRecord} />
-                        </div>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => setShowAudioSettings(true)}>
-                          <Settings2 className="mr-1.5 h-3 w-3" /> More voice settings
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
 
                   {speech.isListening ? (
-                    <div className="ml-1 h-1 w-12 overflow-hidden rounded-full bg-muted">
+                    <div className="h-1 w-12 overflow-hidden rounded-full bg-muted">
                       <div className="h-full bg-cyan-500 transition-[width]" style={{ width: `${speech.level}%` }} />
                     </div>
                   ) : null}
-                </div>
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {speech.isTranscribing ? <span>Transcribing…</span> : null}
-                  <span className="hidden truncate sm:inline">{speech.activeDeviceLabel}</span>
-                  <span className="hidden lg:inline">{"\n"}</span>
+                  {speech.isTranscribing ? <span className="text-xs text-muted-foreground">Transcribing…</span> : null}
+
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 rounded-full"
+                    aria-label={attachments.length ? "Analyse attachment" : "Send message"}
+                    disabled={!canPrepare}
+                    onClick={submit}
+                  >
+                    {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : canPrepare ? <ArrowUp className="h-4 w-4" /> : <Square className="h-3 w-3 fill-current" />}
+                  </Button>
                 </div>
               </div>
             </div>
