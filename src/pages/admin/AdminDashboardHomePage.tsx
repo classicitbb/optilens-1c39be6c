@@ -135,13 +135,6 @@ const QUICK_ACTIONS = [
   },
 ] as const;
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-};
-
 const AdminDashboardHomePage = () => {
   const analyticsOverview = useWebsiteAnalyticsOverview();
   const { user } = useAuth();
