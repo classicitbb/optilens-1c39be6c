@@ -18,13 +18,15 @@ Plan:
 
 ## 2. Portal Copilot gets its own workspace page
 
-What I confirmed: `/copilot` is not a route at all (it renders the 404 page). The Copilot lives at `/admin/copilot`, inside the admin shell, behind an admin-only guard, so operators are bounced to the pricing publisher.
+What I confirmed: `/copilot` is not a route at all (it renders the 404 page). The Copilot lives at `/admin/copilot`, inside the admin shell, behind an admin-only guard, so operators are bounced to the pricing publisher.  
+  
+Do not alter the copilot widget, popup or existing ui. 
 
 Plan:
 
 - Create a standalone Copilot workspace at `/copilot`: full-height, no admin sidebar, no admin top bar.
 - Layout: ChatGPT/Ollama style — conversation list rail that can collapse, centered message thread, sticky composer with attachment and dictation, and a right-hand preview pane that opens when a document, file, or attachment is in play (and stays hidden when not).
-- Keep the existing Copilot logic, tools, approvals, and voice input; this is a shell/route change, not a rewrite of the assistant.
+- Keep the existing Copilot logic, tools, approvals, and voice input; this is a shell/route change, not a rewrite of the assistant. 
 - `/admin/copilot` redirects to `/copilot`; the admin App Launcher entry points at the new route.
 - Access: signed-in staff (admin and operator). Everyone else is redirected.
 
