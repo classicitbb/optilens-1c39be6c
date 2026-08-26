@@ -77,6 +77,19 @@ const contactRows = (rows: any[] | null | undefined, source: string) =>
     }))
     .filter((row) => row.email && emailRegex.test(row.email));
 
+// The file manager searches names, customer references, and saved document
+// content without having to load each file one-by-one. Keep the returned value
+// plain text so it is never rendered as HTML in the Studio client.
+function fileSearchText(...values: any[]) {
+  return values
+    .map((value) => typeof value === "string" ? value : JSON.stringify(value ?? ""))
+    .join(" ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 50000);
+}
+
 // deno-lint-ignore no-explicit-any
 function publicFile(row: any, detail = false) {
   const autosaveAt = row.latest_autosave_at ? new Date(row.latest_autosave_at).getTime() : 0;
@@ -99,6 +112,7 @@ function publicFile(row: any, detail = false) {
     createdAt: row.created_at,
     version: row.version,
     hasNewerAutosave: Boolean(useAutosave),
+    searchText: fileSearchText(row.file_name, row.customer_name, row.customer_account, row.metadata, row.content, row.rendered_html, row.autosave_content, row.autosave_rendered_html),
   };
   if (detail) {
     doc.content = useAutosave ? row.autosave_content ?? {} : row.content ?? {};
@@ -133,6 +147,7 @@ function publicDocument(row: any, detail = false) {
     createdAt: row.created_at,
     version: row.version,
     hasNewerAutosave: Boolean(useAutosave),
+    searchText: fileSearchText(row.document_name, row.document_type, row.billing_number, row.customer_name, row.customer_company, row.customer_account, row.content, row.rendered_html, row.autosave_content, row.autosave_rendered_html),
   };
   if (detail) {
     doc.content = useAutosave ? row.autosave_content ?? {} : row.content ?? {};

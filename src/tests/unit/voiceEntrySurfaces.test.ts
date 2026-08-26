@@ -30,4 +30,21 @@ describe("voice entry surfaces", () => {
     expect(tickets).toContain("applyTicketDescriptionDictation");
     expect(tickets).toContain('from "@/components/admin/InlineDictationButton"');
   });
+
+  it("automatically finishes a quiet recording after five seconds through the shared engine", () => {
+    const hook = read("src/features/admin/copilot/usePushToTalk.ts");
+
+    expect(hook).toContain("const AUTO_TRANSCRIBE_SILENCE_MS = 5_000;");
+    expect(hook).toContain("setTimeout(() => {");
+    expect(hook).toContain("AUTO_TRANSCRIBE_SILENCE_MS");
+  });
+
+  it("keeps task and ticket controls inside responsive, wider dialogs", () => {
+    const activity = read("src/components/admin/CrmActivityDialog.tsx");
+    const tickets = read("src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx");
+
+    expect(activity).toContain("sm:max-w-2xl");
+    expect(activity).toContain("sm:grid-cols-2");
+    expect(tickets).toContain("sm:max-w-xl");
+  });
 });

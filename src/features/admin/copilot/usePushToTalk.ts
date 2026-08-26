@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: SpeechSettings = {
   confidenceThreshold: 0.65,
   vocabulary: "Innovations, ERP, Classic Visions, portal access, pricelist, lens",
 };
+const AUTO_TRANSCRIBE_SILENCE_MS = 5_000;
 
 export const usePushToTalk = (
   onTranscript: (transcript: string, confidence: number) => void,
@@ -40,6 +41,7 @@ export const usePushToTalk = (
   const chunksRef = useRef<BlobPart[]>([]);
   const recorderMimeRef = useRef("audio/webm");
   const peakLevelRef = useRef(0);
+  const silenceTimerRef = useRef<number | null>(null);
   const settingsRef = useRef(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -63,6 +65,8 @@ export const usePushToTalk = (
   }, [refreshDevices]);
 
   const releaseAudio = useCallback(() => {
+    if (silenceTimerRef.current != null) window.clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = null;
     if (animationRef.current != null) window.cancelAnimationFrame(animationRef.current);
     animationRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -170,11 +174,20 @@ export const usePushToTalk = (
       analyser.fftSize = 256;
       audioContext.createMediaStreamSource(stream).connect(analyser);
       const values = new Uint8Array(analyser.frequencyBinCount);
+      const scheduleAutoTranscription = () => {
+        if (silenceTimerRef.current != null) window.clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = window.setTimeout(() => {
+          if (recorderRef.current === recorder && recorder.state !== "inactive") stop();
+        }, AUTO_TRANSCRIBE_SILENCE_MS);
+      };
       const meter = () => {
         analyser.getByteFrequencyData(values);
         const average = values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
         const next = Math.min(100, Math.round((average / 128) * 100));
         peakLevelRef.current = Math.max(peakLevelRef.current, next);
+        // The client has no live speech-to-text stream. Treat audible speech
+        // as activity, then finish and transcribe after five quiet seconds.
+        if (next >= 4) scheduleAutoTranscription();
         setLevel(next);
         animationRef.current = window.requestAnimationFrame(meter);
       };
@@ -194,6 +207,7 @@ export const usePushToTalk = (
       recorderRef.current = recorder;
       setIsStarting(false);
       setIsListening(true);
+      scheduleAutoTranscription();
     } catch (caught) {
       recorderRef.current = null;
       setIsStarting(false);
@@ -204,7 +218,7 @@ export const usePushToTalk = (
         : message);
       releaseAudio();
     }
-  }, [isListening, isStarting, isTranscribing, refreshDevices, releaseAudio, settings.deviceId, transcribeRecording]);
+  }, [isListening, isStarting, isTranscribing, refreshDevices, releaseAudio, settings.deviceId, stop, transcribeRecording]);
 
   const activeDeviceLabel = devices.find((device) => device.deviceId === settings.deviceId)?.label
     || devices.find((device) => device.deviceId === "default")?.label

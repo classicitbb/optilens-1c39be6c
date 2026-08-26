@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { Mail } from "lucide-react";
+import { useNavigate } from "react-router";
 import ReactMarkdown from "react-markdown";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
@@ -146,6 +147,7 @@ const splitAssistantContext = (description: string) => {
 
 /** The original ticket request is a conversation item, not header metadata. */
 export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
+  const navigate = useNavigate();
   const time = format(new Date(ticket.created_at), "MMM d, h:mm a");
   const senderLabel = ticket.partner_contact?.name ?? ticket.customer_email ?? "Customer";
   const { body, context, trailingDetails } = splitAssistantContext(ticket.description ?? "");
@@ -173,7 +175,16 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
       </div>
       <div className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
         <Mail size={10} />
-        <span>{senderLabel}</span>
+        {ticket.partner_contact ? (
+          <button
+            type="button"
+            className="underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(ticket.partner_contact!.id)}`)}
+            title="Open contact"
+          >
+            {senderLabel}
+          </button>
+        ) : <span>{senderLabel}</span>}
         <span>·</span>
         <span>{time}</span>
       </div>
