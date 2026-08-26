@@ -43,6 +43,6 @@ describe("CRM Focus Desk database foundation", () => {
     expect(dialog).toContain('placeholder="@mention a staff member"');
     expect(dialog).not.toMatch(/navigator\.clipboard|readOnly/);
     expect(dialog).toContain('id="crm-activity-title" value={form.activityType} onChange=');
-    expect(dialog).toContain('id="crm-helper-mention" className="pl-9" value={mention} onChange=');
+    expect(dialog).toContain('id="crm-helper-mention" className="h-8 pl-8 text-xs" value={mention} onChange=');
   });
 });

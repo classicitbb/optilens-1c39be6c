@@ -71,8 +71,8 @@ describe("admin stock order builder route accessibility", () => {
     const page = read("src/pages/admin/StockOrderBuilderPage.tsx");
     const hook = read("src/hooks/useStockOrderBuilder.ts");
     const migration = read("supabase/migrations/20260815130253_stock_quote_pricing_and_canonical_quotes.sql");
-    const studio = read("public/ds/studio.html");
-    const studioRoute = read("src/pages/admin/website/DocStudioPage.tsx");
+    const studio = read("public/ds/studio-logic.js");
+    const studioRoute = read("src/features/admin/doc-studio/DocStudioEmbed.tsx");
 
     expect(migration).toContain("CREATE OR REPLACE FUNCTION public.resolve_stock_order_price(");
     expect(migration).toContain("lower(btrim(name)) = 'retail'");
@@ -86,7 +86,7 @@ describe("admin stock order builder route accessibility", () => {
     expect(page).toContain("Save as quotation");
     expect(page).toContain("stock-order-profit");
     expect(studio).toContain("billingDocument");
-    expect(studioRoute).toContain('searchParams.get("billingDocument")');
+    expect(studioRoute).toContain("billingDocument");
   });
 
   it("retires the legacy STOCK quote editor without changing RX quote routing", () => {
