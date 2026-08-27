@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-27 — Continuous CRM contact enrichment
+
+### Release Notes
+- CRM contacts are enriched from public business listings automatically: a nightly sweep plus a 15-minute worker for newly created contacts fill in blank website, phone and address details.
+- Existing values are never overwritten silently. A listing that disagrees becomes an approval card in the Copilot with the current value, the proposed value, the source link, the retrieval date and a confidence score.
+- Enrichment can also be run on demand — from the Copilot, from **Leads → Enrich All**, or from a single contact's editor.
+
 ## 2026-08-27 — Copilot microphone choice and platform self-knowledge
 
 ### Release Notes

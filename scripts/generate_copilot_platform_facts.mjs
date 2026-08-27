@@ -77,6 +77,11 @@ const routerToolNames = readToolNames(
   "supabase/functions/portal-copilot/index.ts",
   /name:\s*"(start_[a-z0-9_]+)"/g,
 );
+// These write, so they are advertised separately from the read-only lookups.
+const enrichmentToolNames = readToolNames(
+  "supabase/functions/_shared/copilot/enrichmentTools.ts",
+  /name:\s*"([a-z0-9_]+)"/g,
+);
 
 // ------------------------------------------------------------------ routes
 // Mirrors buildContextOptions() in src/lib/adminContexts.ts, which is what the
@@ -152,6 +157,7 @@ const tier1 = [
   "",
   "Governed workflows you can start: " + routerToolNames.join(", ") + ".",
   "Read-only lookups available to you: " + lookupToolNames.join(", ") + ".",
+  "CRM enrichment: " + enrichmentToolNames.join(", ") + ". Blank contact fields are filled from public business listings automatically, with source and confidence recorded; anything contradicting a stored value needs the admin's approval and never happens silently.",
   "The data above is readable and writable through admin_list_resources, admin_search_records, admin_get_record, admin_create_record, admin_update_record and admin_delete_record. Deletes and price-bearing writes return an approval proposal rather than executing.",
   "Call get_platform_facts before promising a specific change — it returns the exact columns, searchable fields and writable fields of one data set.",
   "",

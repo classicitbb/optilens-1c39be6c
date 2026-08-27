@@ -71,6 +71,19 @@ export type CopilotActionPayload = {
   recommendedNextAction?: string;
   outreachDraft?: string;
   suggestedOwnerId?: string;
+  /** apply_contact_enrichment: public-web findings awaiting approval. */
+  contactLabel?: string;
+  source?: "google_places" | "firecrawl";
+  sourceUrl?: string;
+  retrievedAt?: string;
+  matchConfidence?: number;
+  findings?: {
+    findingId: string;
+    field: string;
+    oldValue: string | null;
+    newValue: string;
+    confidence: number;
+  }[];
 };
 
 export type CopilotAction = {
@@ -78,7 +91,7 @@ export type CopilotAction = {
   run_id: string;
   customer_id: number | null;
   contact_id: string | null;
-  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email";
+  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email" | "apply_contact_enrichment";
   risk_level: number;
   status: "pending_approval" | "executing" | "completed" | "failed" | "rejected" | "blocked";
   title: string;

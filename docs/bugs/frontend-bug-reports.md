@@ -2,6 +2,13 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-27 — Enrichment writes were silently reverted, and Enrich All did nothing
+- Area: CRM contacts, the Innovations preserve trigger, and the Leads bulk-action bar.
+- Impact: `Enrich All` had no click handler at all. Worse, any enrichment that corrected an existing value on an Innovations-linked contact would have reported success and changed nothing.
+- Root cause: `preserve_populated_crm_fields_on_innovations_sync` reverts every service-role write over a non-blank admin-entered value, and it checks only `auth.role()`, so it could not tell an approved correction from an Innovations overwrite. Separately, `get_lead_provider_credentials` is gated on `has_role(auth.uid(),'admin')` and returns `{}` under the service role, which would have made every scheduled run a silent no-op.
+- Resolution: give the trigger a transaction-local opt-in that only `apply_contact_enrichment` sets, read the provider credential table directly in both service-role callers, and wire the button.
+- Regression prevention: `crmContactEnrichment.integration.test.ts` asserts the opt-in, the unchanged Innovations protection, both service-role guards, and that neither caller uses the admin-gated RPC.
+
 ## 2026-08-27 — Floating Copilot had no microphone choice and no memory of one
 - Area: admin floating Portal Copilot composer and the shared push-to-talk hook.
 - Impact: an admin with more than one input device could not choose which microphone the floating Copilot used, and any choice made in the full console was lost on the next mount.

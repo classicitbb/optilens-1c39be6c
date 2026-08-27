@@ -18,6 +18,7 @@ import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/
 import { ADMIN_RESOURCE_TOOLS, ADMIN_RESOURCE_TOOL_NAMES, dispatchAdminResourceTool } from "../_shared/copilot/adminResources.ts";
 import { DOC_STUDIO_TOOLS, DOC_STUDIO_TOOL_NAMES, dispatchDocStudioTool } from "../_shared/copilot/docStudioTools.ts";
 import { PLATFORM_TOOLS, PLATFORM_TOOL_NAMES, dispatchPlatformTool } from "../_shared/copilot/platformTools.ts";
+import { ENRICHMENT_TOOLS, ENRICHMENT_TOOL_NAMES, dispatchEnrichmentTool } from "../_shared/copilot/enrichmentTools.ts";
 import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -117,12 +118,12 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS];
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =
   | { kind: "workflow"; workflow: "erp_portal_rollout" | "crm_opportunity_scan" }
-  | { kind: "reply"; text: string };
+  | { kind: "reply"; text: string; runId?: string | null };
 
 const runCopilotTurn = async (
   apiKey: string,
@@ -135,6 +136,8 @@ const runCopilotTurn = async (
   pageContext: string | null = null,
 ): Promise<{ ok: true; result: RouteResult } | { ok: false; status: number; message: string }> => {
   const messages: JsonRecord[] = [...history.slice(-12), { role: "user", content: command }];
+  // Set when a tool queues durable approval cards, so the reply can show them.
+  let preparedRunId: string | null = null;
   // Appended to the system prompt, never to the user message, so the stored
   // conversation keeps the admin's literal words.
   const system = pageContext ? `${COPILOT_SYSTEM_PROMPT}
@@ -166,10 +169,11 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
       LOOKUP_TOOL_NAMES.has(use.name as string)
       || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
       || DOC_STUDIO_TOOL_NAMES.has(use.name as string)
-      || PLATFORM_TOOL_NAMES.has(use.name as string));
+      || PLATFORM_TOOL_NAMES.has(use.name as string)
+      || ENRICHMENT_TOOL_NAMES.has(use.name as string));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
-      return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
+      return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?", runId: preparedRunId } };
     }
 
     const toolResults = await Promise.all(lookupUses.map(async (use) => {
@@ -177,11 +181,15 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
         const input = (use.input ?? {}) as Record<string, unknown>;
         const output = PLATFORM_TOOL_NAMES.has(use.name as string)
           ? dispatchPlatformTool(use.name as string, input)
+          : ENRICHMENT_TOOL_NAMES.has(use.name as string)
+          ? await dispatchEnrichmentTool(db, use.name as string, input, actorUserId)
           : DOC_STUDIO_TOOL_NAMES.has(use.name as string)
           ? await dispatchDocStudioTool(db, use.name as string, input, actorUserId, { sendEmail })
           : ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
           ? await dispatchAdminResourceTool(db, use.name as string, input, actorUserId)
           : await dispatchLookupTool(db, use.name as string, input);
+        const queuedRunId = (output as { runId?: unknown } | null)?.runId;
+        if (typeof queuedRunId === "string") preparedRunId = queuedRunId;
         return { type: "tool_result", tool_use_id: use.id, content: JSON.stringify(output) };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Lookup failed";
@@ -202,7 +210,7 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
   if (!finalResponse.ok) return { ok: false, status: finalResponse.status, message: await claudeErrorMessage(finalResponse) };
   const finalData = await finalResponse.json().catch(() => null) as JsonRecord | null;
   const finalText = claudeTextFromContent(finalData?.content);
-  return { ok: true, result: { kind: "reply", text: finalText || "I gathered some information but couldn't finish putting together an answer — could you narrow your question?" } };
+  return { ok: true, result: { kind: "reply", text: finalText || "I gathered some information but couldn't finish putting together an answer — could you narrow your question?", runId: preparedRunId } };
 };
 
 const createConversation = async (db: any, actorUserId: string, title = "New chat") => {
@@ -377,6 +385,23 @@ const queueInviteEmail = async (req: Request, payload: JsonRecord, actionLink: s
 
 const executeAction = async (req: Request, db: any, actorUserId: string, action: any) => {
   const payload = (action.payload ?? {}) as JsonRecord;
+  if (action.action_type === "apply_contact_enrichment") {
+    const contactId = stringValue(payload.contactId, 80);
+    const findings = Array.isArray(payload.findings) ? payload.findings as JsonRecord[] : [];
+    const findingIds = findings
+      .map((finding) => stringValue(finding.findingId, 80))
+      .filter((id) => id.length > 0);
+    if (!contactId || !findingIds.length) throw new Error("This enrichment proposal has no fields to apply");
+    // apply_contact_enrichment is the only writer allowed past the
+    // preserve-populated-fields trigger, so approved corrections actually land.
+    const { data, error } = await db.rpc("apply_contact_enrichment", {
+      p_contact_id: contactId,
+      p_finding_ids: findingIds,
+    });
+    if (error) throw new Error(error.message);
+    return { contactId, fieldsApplied: data ?? 0, fields: findings.map((finding) => stringValue(finding.field, 60)) };
+  }
+
   if (action.action_type === "create_followup_task") {
     const taskContent = stringValue(payload.taskContent, 4000);
     const contactId = stringValue(payload.contactId, 80) || null;
@@ -647,7 +672,14 @@ Deno.serve(async (req) => {
         ]);
         if (chatMessagesError) throw chatMessagesError;
         await touchConversation(db, chatConversation.id, chatConversation.title === "New chat" ? command : undefined);
-        return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, null));
+        // A tool may have queued approval cards on a run that had no
+        // conversation yet. Attach it now, or loadState cannot see it.
+        const queuedRunId = route?.kind === "reply" ? route.runId ?? null : null;
+        if (queuedRunId) {
+          await db.from("copilot_runs").update({ conversation_id: chatConversation.id }).eq("id", queuedRunId);
+          await audit(db, actorUserId, "crm_enrichment_queued", { runId: queuedRunId });
+        }
+        return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, queuedRunId));
       }
 
       // route.kind === "workflow" && route.workflow === "erp_portal_rollout"
@@ -731,6 +763,11 @@ Deno.serve(async (req) => {
         return jsonResponse(req, 409, { error: "Only pending or failed actions can be edited" });
       }
       const payload = { ...(action.payload ?? {}) } as JsonRecord;
+      if (action.action_type === "apply_contact_enrichment") {
+        // Enrichment findings are sourced evidence, not a draft. Editing them
+        // would break the link to the recorded provenance.
+        return jsonResponse(req, 400, { error: "Enrichment findings cannot be edited. Approve or reject them as found." });
+      }
       if (action.action_type === "send_portal_invite" || action.action_type === "send_docstudio_email") {
         const subject = stringValue(body.subject, 240);
         const emailBody = stringValue(body.body, 500000);
@@ -763,6 +800,16 @@ Deno.serve(async (req) => {
       if (decision === "reject") {
         const { error: rejectError } = await db.from("copilot_actions").update({ status: "rejected", approved_by: actorUserId, approved_at: new Date().toISOString() }).eq("id", actionId).eq("status", action.status);
         if (rejectError) throw rejectError;
+        if (action.action_type === "apply_contact_enrichment") {
+          // Otherwise the findings stay pending_review and the nightly sweep
+          // keeps re-proposing what an admin has already turned down.
+          const rejectedFindingIds = (Array.isArray(action.payload?.findings) ? action.payload.findings as JsonRecord[] : [])
+            .map((finding) => stringValue(finding.findingId, 80))
+            .filter((id) => id.length > 0);
+          if (rejectedFindingIds.length) {
+            await db.from("contact_enrichment_findings").update({ disposition: "rejected" }).in("id", rejectedFindingIds);
+          }
+        }
         await audit(db, actorUserId, "action_rejected", { runId: action.run_id, actionId });
         await refreshRunStatus(db, action.run_id);
         const { data: run } = await db.from("copilot_runs").select("conversation_id").eq("id", action.run_id).single();

@@ -1,5 +1,15 @@
 # Developer Workflow Help
 
+## Contact enrichment scheduling
+
+The two pg_cron jobs in `20260827140500_crm_contact_enrichment_schedule.sql` stay dormant until both vault secrets exist:
+
+```bash
+psql -c "SELECT vault.create_secret('<random-secret>', 'crm_enrich_scheduler_secret');"
+```
+
+Also create `crm_enrich_function_url` pointing at the deployed function, and set the same secret value as `CRM_ENRICH_SCHEDULER_SECRET` on `crm-enrich-contacts`. Run the first sweep with `?dryRun=1` and review `contact_enrichment_findings` before letting it write.
+
 ## Copilot platform facts
 
 `supabase/functions/_shared/copilot/platformFacts.generated.ts` is generated — never edit it by hand. After changing admin routes in `src/features/admin/core/config/apps.ts`, the resource registry in `adminResources.ts`, or the hand-maintained `platformFacts.source.ts`, regenerate it with `npm run copilot:facts` and commit the result. `npm run qa:pr-checks` fails if the committed file is stale.

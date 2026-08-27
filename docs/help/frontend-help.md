@@ -1,5 +1,12 @@
 # Frontend Help Docs
 
+## 2026-08-27 — Keeping contact details up to date
+
+- Contacts are topped up automatically overnight. Blank website, phone and address fields are filled from the business's public listing; anything already filled in is left alone.
+- When a public listing disagrees with what is stored, the Copilot raises an approval card showing the current value, the proposed value, the source link and a confidence score. Select **Apply fields** to accept it or **Reject** to dismiss it — a rejected finding is not proposed again.
+- To run it yourself: open a contact and select **Enrich from public web**, use **Leads → Bulk Actions → Enrich All**, or ask the Copilot to "enrich <business name>", "what enrichment is pending?" or "queue those for approval".
+- Country is always sent for approval rather than filled in, because every contact starts with Barbados as its stored country and that default cannot be told apart from a deliberate entry.
+
 ## 2026-08-27 — Choosing a microphone and asking the Copilot what it can do
 
 - In the floating Copilot, select the chevron beside the microphone to choose an input device. The active device is ticked, and the bar beside the microphone moves while it is picking up sound.

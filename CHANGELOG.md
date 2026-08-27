@@ -4,6 +4,19 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-27 — Continuous CRM contact enrichment
+
+### Release Notes
+- Contacts are now kept up to date from public business listings on their own. A nightly sweep and a 15-minute new-contact worker look each business up on Google Places and fill in blank website, phone, address, city, state, postal code and rating details.
+- Nothing already entered is overwritten. When a listing disagrees with a stored value it becomes an approval card in the Copilot showing the current value, the proposed value, the source link, the retrieval date and a confidence score.
+- Ask the Copilot to enrich a contact, list what is waiting for review, or queue those findings for approval. **Leads → Bulk Actions → Enrich All** runs a batch, and a contact's own editor has **Enrich from public web**.
+
+### Technical Changelog
+- New `crm-enrich-contacts` edge function with scheduler-secret or administrator auth, a 40-contact batch, a 150/day attempt cap, a 30-day per-contact floor and a `?dryRun=1` mode. Policy lives in `_shared/enrichment/contactEnrichment.ts` and is shared with the Copilot's `enrich_contact` tool.
+- `contact_enrichment_attempts` and `contact_enrichment_findings` record field-level before/after with source URL, retrieval date and confidence. `apply_contact_enrichment` is the only write path.
+- `preserve_populated_crm_fields_on_innovations_sync` gained a transaction-local opt-in so an approved correction is no longer silently reverted; the Innovations receiver's protection is unchanged.
+- `copilot_actions.action_type` widened with `apply_contact_enrichment`, reusing the existing approve/reject, audit and retry path.
+
 ## 2026-08-27 — Copilot microphone choice and platform self-knowledge
 
 ### Release Notes

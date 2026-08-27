@@ -3,15 +3,25 @@
   "releaseDateTimeUtc": "2026-08-27T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "The floating Copilot microphone button now opens a picker listing every available input device, with hold-to-record and a live level bar. The chosen microphone is remembered per browser and shared with the full Copilot console.",
-    "The Copilot can now answer questions about OpticAdmin itself — which modules and pages exist, what data it can read or change in each, where the app is hosted and which services supply its data — and offers to carry out the work it is capable of.",
-    "The Copilot knows which admin page is open and prefers that page's data when a question is ambiguous."
+    "CRM contacts are enriched from public business listings automatically: a nightly sweep plus a 15-minute worker for newly created contacts fill in blank website, phone and address details.",
+    "Existing values are never overwritten silently. A listing that disagrees becomes an approval card in the Copilot with the current value, the proposed value, the source link, the retrieval date and a confidence score.",
+    "Enrichment can also be run on demand — from the Copilot, from **Leads → Enrich All**, or from a single contact's editor."
   ],
   "moduleImpact": [
     {
-      "module": "scripts/generate_copilot_platform_facts.mjs",
+      "module": " edge function with scheduler-secret or administrator auth, a 40-contact batch, a 150/day attempt cap, a 30-day per-contact floor and a ",
       "impact": "medium",
-      "notes": "Updated as part of Copilot microphone choice and platform self-knowledge."
+      "notes": "Updated as part of Continuous CRM contact enrichment."
+    },
+    {
+      "module": "_shared/enrichment",
+      "impact": "medium",
+      "notes": "Updated as part of Continuous CRM contact enrichment."
+    },
+    {
+      "module": " record field-level before/after with source URL, retrieval date and confidence. ",
+      "impact": "medium",
+      "notes": "Updated as part of Continuous CRM contact enrichment."
     }
   ],
   "migrationNotes": [

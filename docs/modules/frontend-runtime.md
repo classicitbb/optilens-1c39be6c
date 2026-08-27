@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-27 — Contact enrichment surfaces
+
+- `useContactEnrichment` is the single client entry point for `crm-enrich-contacts`, used by both **Leads → Enrich All** (batch of 25) and a contact's **Enrich from public web** action. It reports filled fields and needs-approval findings as separate counts, because they mean different things to the user.
+- `ActionCard` renders `apply_contact_enrichment` as a read-only before/after table with the source link and confidence. `changed` is forced to `false` for that type — enrichment findings are sourced evidence, not a draft, and a card that looks unsaved would leave Approve disabled.
+- `edit-action` rejects enrichment payloads server-side for the same reason.
+
 ## 2026-08-27 — Copilot voice settings and page awareness
 
 - `VoiceSettingsMenu` owns the microphone list, hold-to-record switch and optional advanced-settings entry. Both Copilot surfaces render it around their own trigger button and keep their own `holdToRecord` state; the widget omits the advanced entry because it has no advanced panel.

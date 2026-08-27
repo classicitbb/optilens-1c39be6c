@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useLeadBusinessSuggestions } from "@/features/admin/leads/hooks/useLeadBusinessSuggestions";
+import { useContactEnrichment } from "@/features/admin/crm/hooks/useContactEnrichment";
 
 const stageBadge = (status: string) => {
   if (status === "proposal") return "bg-violet-500/10 text-violet-700 border-violet-300";
@@ -28,6 +29,7 @@ const MyLeadsPage = () => {
   const { data = [], isLoading, refetch } = useLeads();
   const createLead = useCreateLead();
   const seedLeads = useSeedSampleLeads();
+  const enrichContacts = useContactEnrichment();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
@@ -236,7 +238,18 @@ const MyLeadsPage = () => {
           <CardTitle className="text-sm">Bulk Actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2 text-xs">
-          <Button size="sm" variant="outline" className="h-8 text-xs"><DatabaseZap className="h-3 w-3 mr-1" /> Enrich All</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs"
+            disabled={enrichContacts.isPending}
+            onClick={() => enrichContacts.mutate({ limit: 25 })}
+          >
+            {enrichContacts.isPending
+              ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+              : <DatabaseZap className="h-3 w-3 mr-1" />}
+            {enrichContacts.isPending ? "Enriching…" : "Enrich All"}
+          </Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><FileText className="h-3 w-3 mr-1" /> Generate Audits</Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><Send className="h-3 w-3 mr-1" /> Send Sequence</Button>
           <Button size="sm" variant="outline" className="h-8 text-xs"><Camera className="h-3 w-3 mr-1" /> Generate IG Posts</Button>
