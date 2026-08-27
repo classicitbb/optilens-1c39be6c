@@ -18,6 +18,7 @@ import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/
 import { ADMIN_RESOURCE_TOOLS, ADMIN_RESOURCE_TOOL_NAMES, dispatchAdminResourceTool } from "../_shared/copilot/adminResources.ts";
 import { DOC_STUDIO_TOOLS, DOC_STUDIO_TOOL_NAMES, dispatchDocStudioTool } from "../_shared/copilot/docStudioTools.ts";
 import { PLATFORM_TOOLS, PLATFORM_TOOL_NAMES, dispatchPlatformTool } from "../_shared/copilot/platformTools.ts";
+import { ENRICHMENT_TOOLS, ENRICHMENT_TOOL_NAMES, dispatchEnrichmentTool } from "../_shared/copilot/enrichmentTools.ts";
 import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -117,7 +118,7 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS];
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =
@@ -164,7 +165,8 @@ const runCopilotTurn = async (
       LOOKUP_TOOL_NAMES.has(use.name as string)
       || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
       || DOC_STUDIO_TOOL_NAMES.has(use.name as string)
-      || PLATFORM_TOOL_NAMES.has(use.name as string));
+      || PLATFORM_TOOL_NAMES.has(use.name as string)
+      || ENRICHMENT_TOOL_NAMES.has(use.name as string));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
       return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
@@ -175,6 +177,8 @@ const runCopilotTurn = async (
         const input = (use.input ?? {}) as Record<string, unknown>;
         const output = PLATFORM_TOOL_NAMES.has(use.name as string)
           ? dispatchPlatformTool(use.name as string, input)
+          : ENRICHMENT_TOOL_NAMES.has(use.name as string)
+          ? await dispatchEnrichmentTool(db, use.name as string, input)
           : DOC_STUDIO_TOOL_NAMES.has(use.name as string)
           ? await dispatchDocStudioTool(db, use.name as string, input, actorUserId, { sendEmail })
           : ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
@@ -375,6 +379,23 @@ const queueInviteEmail = async (req: Request, payload: JsonRecord, actionLink: s
 
 const executeAction = async (req: Request, db: any, actorUserId: string, action: any) => {
   const payload = (action.payload ?? {}) as JsonRecord;
+  if (action.action_type === "apply_contact_enrichment") {
+    const contactId = stringValue(payload.contactId, 80);
+    const findings = Array.isArray(payload.findings) ? payload.findings as JsonRecord[] : [];
+    const findingIds = findings
+      .map((finding) => stringValue(finding.findingId, 80))
+      .filter((id) => id.length > 0);
+    if (!contactId || !findingIds.length) throw new Error("This enrichment proposal has no fields to apply");
+    // apply_contact_enrichment is the only writer allowed past the
+    // preserve-populated-fields trigger, so approved corrections actually land.
+    const { data, error } = await db.rpc("apply_contact_enrichment", {
+      p_contact_id: contactId,
+      p_finding_ids: findingIds,
+    });
+    if (error) throw new Error(error.message);
+    return { contactId, fieldsApplied: data ?? 0, fields: findings.map((finding) => stringValue(finding.field, 60)) };
+  }
+
   if (action.action_type === "create_followup_task") {
     const taskContent = stringValue(payload.taskContent, 4000);
     const contactId = stringValue(payload.contactId, 80) || null;

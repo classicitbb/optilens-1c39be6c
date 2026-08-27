@@ -106,3 +106,11 @@ verify_jwt = false
   [functions.platform-health-check]
     verify_jwt = false
 
+  # Nightly CRM contact enrichment sweep and the new-contact worker. pg_cron
+  # calls it with a shared X-Scheduler-Secret and has no Supabase session, so
+  # gateway JWT verification must stay off. Administrator-initiated runs are
+  # authenticated in-function with requirePrivilegedAccess, and a scheduled
+  # call may not name a specific contact.
+  [functions.crm-enrich-contacts]
+    verify_jwt = false
+
