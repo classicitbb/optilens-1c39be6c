@@ -45,7 +45,7 @@ describe("CRM contact enrichment", () => {
   });
 
   it("never spends a lookup on an unsafe match", () => {
-    const provider = read("supabase/functions/lead-intelligence/providers/googlePlaceDetails.ts");
+    const provider = read("supabase/functions/_shared/enrichment/googlePlaceDetails.ts");
 
     expect(provider).toContain("const MIN_SIMILARITY = 0.72;");
     expect(provider).toContain("const MIN_SEPARATION = 0.1;");

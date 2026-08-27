@@ -76,6 +76,11 @@ const NO_CORS_FUNCTIONS = new Set([
   // is no CORS contract to keep here — "booted and routing, not 5xx" is the
   // correct assertion.
   "scotia-notify",
+  // JWT-gated document endpoints: the browser never preflights a same-origin
+  // PDF fetch, and the function rejects unauthenticated OPTIONS with 401 by
+  // design. Accept any non-5xx response as evidence the function booted.
+  "statement-document",
+  "statement-document-worker",
 ]);
 
 
