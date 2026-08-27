@@ -356,7 +356,6 @@ Deno.serve(async (req) => {
             // the API accepts and forwards them.
             ...(payload.attachments ? { attachments: payload.attachments } : {}),
           } as Parameters<typeof sendLovableEmail>[0],
-          },
           // sendUrl is optional — when LOVABLE_SEND_URL is not set, the library
           // falls back to the default Lovable API endpoint (https://api.lovable.dev).
           // Set LOVABLE_SEND_URL as a Supabase secret to override (e.g. for local dev).
