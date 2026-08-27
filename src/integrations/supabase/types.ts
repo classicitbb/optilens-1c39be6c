@@ -1918,6 +1918,140 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_enrichment_attempts: {
+        Row: {
+          attempted_at: string
+          batch_id: string | null
+          contact_id: string
+          error: string | null
+          id: string
+          match_confidence: number | null
+          outcome: string
+          place_id: string | null
+          provider: string
+          trigger_source: string
+        }
+        Insert: {
+          attempted_at?: string
+          batch_id?: string | null
+          contact_id: string
+          error?: string | null
+          id?: string
+          match_confidence?: number | null
+          outcome: string
+          place_id?: string | null
+          provider?: string
+          trigger_source: string
+        }
+        Update: {
+          attempted_at?: string
+          batch_id?: string | null
+          contact_id?: string
+          error?: string | null
+          id?: string
+          match_confidence?: number | null
+          outcome?: string
+          place_id?: string | null
+          provider?: string
+          trigger_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_enrichment_attempts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_attempts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
+      contact_enrichment_findings: {
+        Row: {
+          action_id: string | null
+          applied_at: string | null
+          attempt_id: string
+          confidence: number
+          contact_id: string
+          created_at: string
+          disposition: string
+          field: string
+          id: string
+          new_value: string
+          old_value: string | null
+          retrieved_at: string
+          source: string
+          source_url: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          applied_at?: string | null
+          attempt_id: string
+          confidence: number
+          contact_id: string
+          created_at?: string
+          disposition: string
+          field: string
+          id?: string
+          new_value: string
+          old_value?: string | null
+          retrieved_at?: string
+          source: string
+          source_url?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          applied_at?: string | null
+          attempt_id?: string
+          confidence?: number
+          contact_id?: string
+          created_at?: string
+          disposition?: string
+          field?: string
+          id?: string
+          new_value?: string
+          old_value?: string | null
+          retrieved_at?: string
+          source?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_enrichment_findings_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_findings_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "contact_enrichment_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_findings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_findings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
       contact_sync_dead_letters: {
         Row: {
           attempt_count: number
@@ -11453,6 +11587,10 @@ export type Database = {
         Args: { p_api_key_id: string }
         Returns: number
       }
+      apply_contact_enrichment: {
+        Args: { p_contact_id: string; p_finding_ids: string[] }
+        Returns: number
+      }
       approve_pending_payment: {
         Args: { p_order_id: string }
         Returns: undefined
@@ -12311,6 +12449,24 @@ export type Database = {
         Returns: {
           order_total: number
           submission_id: string
+        }[]
+      }
+      select_contacts_for_enrichment: {
+        Args: { p_limit?: number; p_mode?: string }
+        Returns: {
+          business_name: string
+          city: string
+          country: string
+          country_code: string
+          google_place_id: string
+          id: string
+          innovations_contact_id: number
+          name: string
+          phone: string
+          state: string
+          street: string
+          website: string
+          zip: string
         }[]
       }
       send_helpdesk_ticket_message: {
