@@ -37,7 +37,7 @@ export const SCOTIA_RETURN_URL = (() => {
 
 /** Gateway origin used to validate inbound postMessage events (manual page 12). */
 export const SCOTIA_TEST_ORIGIN = "https://test.ipg-online.com";
-export const SCOTIA_PROD_ORIGIN = "https://www.ipg-online.com";
+export const SCOTIA_PROD_ORIGIN = "https://www2.ipg-online.com";
 
 /** Master feature flag. Off by default → non-breaking. */
 export const isScotiaEnabled = (): boolean =>
