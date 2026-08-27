@@ -489,30 +489,7 @@ export default function IntegrationsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Status</CardTitle>
-          <CardDescription>Current gateway state and last update.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-2 text-sm md:grid-cols-2">
-          <div>Store ID: <strong>{data?.store_id ?? "—"}</strong></div>
-          <div>Environment: <strong className="capitalize">{data?.environment ?? "test"}</strong></div>
-          <div>Secret stored: <strong>{data?.has_secret ? "Yes" : "No"}</strong></div>
-          <div>Live processing: <strong>{data?.enabled ? "Enabled" : "Disabled"}</strong></div>
-          <div>Last tested: <strong>{fmt(data?.last_tested_at)}</strong></div>
-          <div>Updated: <strong>{fmt(data?.updated_at)}</strong></div>
-          <div className="md:col-span-2 flex items-center gap-2 text-muted-foreground">
-            {currentStatus === "connected" ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            ) : (
-              <ShieldCheck className="h-4 w-4 text-amber-600" />
-            )}
-            {currentStatus === "connected"
-              ? "Gateway is configured."
-              : "Add a Store ID and Shared Secret to configure the gateway."}
-          </div>
-        </CardContent>
-      </Card>
+
 
       <Dialog open={testPayment !== null} onOpenChange={(open) => !open && setTestPayment(null)}>
         <DialogContent className="max-w-3xl">
