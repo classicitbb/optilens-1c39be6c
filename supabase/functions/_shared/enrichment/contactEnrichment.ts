@@ -16,7 +16,7 @@
 //   2. contacts.country is NOT NULL DEFAULT 'Barbados', so it is never blank.
 //      Blank-fill can never correct it — country always goes to approval.
 
-import { fetchPlaceDetails, findPlaceForContact, type PlaceDetails } from "../../lead-intelligence/providers/googlePlaceDetails.ts";
+import { fetchPlaceDetails, findPlaceForContact, type PlaceDetails } from "./googlePlaceDetails.ts";
 
 export type EnrichableContact = {
   id: string;
