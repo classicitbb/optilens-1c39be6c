@@ -74,7 +74,10 @@ describe("admin-only CV Portal Copilot", () => {
     const config = read("supabase/config.toml");
     expect(edge).toContain('allowedRoles: ["admin"]');
     expect(edge).toContain('inputMode === "voice" && !transcriptConfirmed');
-    expect(edge).toContain("runCopilotTurn(claudeApiKey, claudeModel, command, history, db)");
+    // The turn runs as the acting admin: Doc Studio documents carry NOT NULL
+    // ownership columns the model cannot supply, so the identity has to reach
+    // the tool dispatcher rather than being inferred from the client.
+    expect(edge).toContain("runCopilotTurn(claudeApiKey, claudeModel, command, history, db, actorUserId");
     expect(edge).toContain('operation === "decide-action"');
     expect(edge).toContain('from("copilot_audit_events")');
     expect(edge).toContain("actions,");

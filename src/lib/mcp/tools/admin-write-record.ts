@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { supabaseForUser, notAuthenticated, ok, fail } from "../supabase";
+import { supabaseForUser, currentUserId, notAuthenticated, ok, fail } from "../supabase";
 import { dispatchAdminResourceTool } from "../adminResources";
 
 export default defineTool({
@@ -20,7 +20,7 @@ export default defineTool({
     const toolName =
       operation === "create" ? "admin_create_record" : operation === "update" ? "admin_update_record" : "admin_delete_record";
     try {
-      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), toolName, { resource, id, values });
+      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), toolName, { resource, id, values }, await currentUserId(ctx));
       return ok(result, {
         status: result.status,
         resource: result.resource,
