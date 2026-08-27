@@ -20,11 +20,15 @@ call :BuildSite || goto fail
 
 echo.
 echo Starting the local preview server...
-echo The site will open at %SITE_URL% unless Vite chooses another free port.
+echo The site will open at %SITE_URL%.
+echo If that port is in use, stop the other local server or set PORT before launching.
 echo Press Ctrl+C in this window to stop it.
 echo.
 
-call %NPM_CMD% run preview -- --host 127.0.0.1 --port %SITE_PORT% --open
+REM Keep the browser address and server address identical. Without --strictPort,
+REM Vite can silently choose a different port while the launcher still reports
+REM %SITE_URL%, which makes a successful launch look broken.
+call %NPM_CMD% run preview -- --host 127.0.0.1 --port %SITE_PORT% --strictPort --open
 set "EXIT_CODE=%ERRORLEVEL%"
 goto done
 
@@ -246,26 +250,49 @@ exit /b 0
 
 :UseInstalledNode22
 set "NODE22_DIR="
-for /f "delims=" %%P in ('where node 2^>nul') do (
-  for /f "tokens=1 delims=." %%V in ('"%%~fP" -p "process.versions.node" 2^>nul') do (
-    if "%%V"=="22" set "NODE22_DIR=%%~dpP"
-  )
+
+REM EnsureNode has already accepted a current Node 20/22 process. At this
+REM point we need an explicitly versioned Node 22 installation, so do not ask
+REM cmd.exe to execute a candidate path inside a FOR expression.
+for /f "delims=" %%D in ('dir /b /ad "%APPDATA%\nvm\v22*" 2^>nul') do (
+  set "NODE22_CANDIDATE=%APPDATA%\nvm\%%D"
+  call :SelectNodeDirectory
+)
+for /f "delims=" %%D in ('dir /b /ad "%ProgramFiles%\nvm\v22*" 2^>nul') do (
+  set "NODE22_CANDIDATE=%ProgramFiles%\nvm\%%D"
+  call :SelectNodeDirectory
+)
+for /f "delims=" %%D in ('dir /b /ad "%LOCALAPPDATA%\nvm\v22*" 2^>nul') do (
+  set "NODE22_CANDIDATE=%LOCALAPPDATA%\nvm\%%D"
+  call :SelectNodeDirectory
 )
 
 if not defined NODE22_DIR (
-  for /d %%D in ("%APPDATA%\nvm\v22*" "%ProgramFiles%\nvm\v22*" "%LOCALAPPDATA%\nvm\v22*") do (
-    if exist "%%~fD\node.exe" set "NODE22_DIR=%%~fD\"
-  )
-)
-
-if not defined NODE22_DIR (
-  for /d %%D in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\OpenJS.NodeJS.22*_Microsoft.Winget.Source_*") do (
-    for /r "%%~fD" %%P in (node.exe) do (
-      if not defined NODE22_DIR set "NODE22_DIR=%%~dpP"
+  REM A WinGet Node package contains one versioned child folder. Resolve the
+  REM package directory and its Node 22 child folder by name. This avoids
+  REM cmd.exe's unreliable modifier expansion for a nested FOR /R variable.
+  for /f "delims=" %%D in ('dir /b /ad "%LOCALAPPDATA%\Microsoft\WinGet\Packages\OpenJS.NodeJS.22*_Microsoft.Winget.Source_*" 2^>nul') do (
+    for /f "delims=" %%V in ('dir /b /ad "%LOCALAPPDATA%\Microsoft\WinGet\Packages\%%D\node-v22*" 2^>nul') do (
+      set "NODE22_CANDIDATE=%LOCALAPPDATA%\Microsoft\WinGet\Packages\%%D\%%V"
+      call :SelectNodeDirectory
     )
   )
 )
 
 if not defined NODE22_DIR exit /b 1
 set "PATH=%NODE22_DIR%;%PATH%"
+
+REM npm.cmd in the selected Node folder invokes that folder's node.exe. Keeping
+REM it first on PATH also ensures Vite and every npm child process use the same
+REM supported runtime, even if a newer system-wide Node installation is present.
+set "PATHEXT=.COM;.EXE;.BAT;.CMD;%PATHEXT%"
 exit /b 0
+
+:SelectNodeDirectory
+if defined NODE22_DIR exit /b 0
+if not defined NODE22_CANDIDATE exit /b 1
+if not exist "%NODE22_CANDIDATE%\node.exe" exit /b 1
+if not exist "%NODE22_CANDIDATE%\npm.cmd" exit /b 1
+set "NODE22_DIR=%NODE22_CANDIDATE%"
+if defined NODE22_DIR exit /b 0
+exit /b 1

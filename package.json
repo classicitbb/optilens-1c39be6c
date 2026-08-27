@@ -8,6 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "mcp:generate": "node scripts/generate_mcp_function.mjs",
+  "copilot:facts": "node scripts/generate_copilot_platform_facts.mjs",
+  "qa:copilot-facts": "node scripts/generate_copilot_platform_facts.mjs --check",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",

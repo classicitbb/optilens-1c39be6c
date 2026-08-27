@@ -1,5 +1,9 @@
 # Developer Workflow Help
 
+## Copilot platform facts
+
+`supabase/functions/_shared/copilot/platformFacts.generated.ts` is generated — never edit it by hand. After changing admin routes in `src/features/admin/core/config/apps.ts`, the resource registry in `adminResources.ts`, or the hand-maintained `platformFacts.source.ts`, regenerate it with `npm run copilot:facts` and commit the result. `npm run qa:pr-checks` fails if the committed file is stale.
+
 ## Windows admin smoke check
 
 Run `npm run qa:smoke` from the supported Node/npm toolchain. The script now launches the preview through the active npm CLI on Windows and checks `/admin/copilot` with the other admin routes before running source assertions.

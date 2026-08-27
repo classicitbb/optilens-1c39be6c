@@ -39,6 +39,23 @@ describe("voice entry surfaces", () => {
     expect(hook).toContain("AUTO_TRANSCRIBE_SILENCE_MS");
   });
 
+  it("offers the same microphone picker on the floating widget and the full console, remembered per browser", () => {
+    const assistant = read("src/components/admin/copilot/AdminCopilotAssistant.tsx");
+    const console_ = read("src/pages/admin/PortalCopilotPage.tsx");
+    const menu = read("src/features/admin/copilot/VoiceSettingsMenu.tsx");
+    const preferences = read("src/features/admin/copilot/voicePreferences.ts");
+    const hook = read("src/features/admin/copilot/usePushToTalk.ts");
+
+    expect(assistant).toContain('from "@/features/admin/copilot/VoiceSettingsMenu"');
+    expect(console_).toContain('from "@/features/admin/copilot/VoiceSettingsMenu"');
+    expect(menu).toContain("speech.setSettings((current) => ({ ...current, deviceId: device.deviceId }))");
+    expect(preferences).toContain('"cv.voice.deviceId"');
+    expect(preferences).toContain('"cv.voice.holdToRecord"');
+    // The remembered device must reach the hook, or the picker is cosmetic.
+    expect(hook).toContain("readStoredDeviceId() ?? DEFAULT_SETTINGS.deviceId");
+    expect(hook).toContain("storeDeviceId(settings.deviceId);");
+  });
+
   it("keeps task and ticket controls inside responsive, wider dialogs", () => {
     const activity = read("src/components/admin/CrmActivityDialog.tsx");
     const tickets = read("src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx");

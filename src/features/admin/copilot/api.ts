@@ -77,7 +77,7 @@ export type CopilotAction = {
   run_id: string;
   customer_id: number | null;
   contact_id: string | null;
-  action_type: "send_portal_invite" | "create_followup_task";
+  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email";
   risk_level: number;
   status: "pending_approval" | "executing" | "completed" | "failed" | "rejected" | "blocked";
   title: string;
@@ -147,6 +147,8 @@ export const submitCopilotCommand = (input: {
   inputMode: "text" | "voice";
   transcriptConfirmed: boolean;
   conversationId?: string;
+  /** Admin context slug for the page in view, so the Copilot knows where the admin is. */
+  pageContext?: string;
 }) => invokePortalCopilot({ operation: "submit-command", ...input });
 
 export const prepareErpRollout = submitCopilotCommand;

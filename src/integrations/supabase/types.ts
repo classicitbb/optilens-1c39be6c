@@ -1746,6 +1746,12 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          bank_account_name: string
+          bank_account_no: string
+          bank_branch: string
+          bank_name: string
+          bank_note: string
+          bank_swift: string
           base_currency: string
           bill_city: string
           bill_country: string
@@ -1757,6 +1763,9 @@ export type Database = {
           bill_use_physical: boolean
           business_calendar: string
           company_name: string
+          company_reg_no: string
+          default_due_days: number
+          default_paper_size: string
           default_vat: number
           email: string
           fax: string
@@ -1794,6 +1803,12 @@ export type Database = {
           wholesale_stock_percentage: number
         }
         Insert: {
+          bank_account_name?: string
+          bank_account_no?: string
+          bank_branch?: string
+          bank_name?: string
+          bank_note?: string
+          bank_swift?: string
           base_currency?: string
           bill_city?: string
           bill_country?: string
@@ -1805,6 +1820,9 @@ export type Database = {
           bill_use_physical?: boolean
           business_calendar?: string
           company_name?: string
+          company_reg_no?: string
+          default_due_days?: number
+          default_paper_size?: string
           default_vat?: number
           email?: string
           fax?: string
@@ -1842,6 +1860,12 @@ export type Database = {
           wholesale_stock_percentage?: number
         }
         Update: {
+          bank_account_name?: string
+          bank_account_no?: string
+          bank_branch?: string
+          bank_name?: string
+          bank_note?: string
+          bank_swift?: string
           base_currency?: string
           bill_city?: string
           bill_country?: string
@@ -1853,6 +1877,9 @@ export type Database = {
           bill_use_physical?: boolean
           business_calendar?: string
           company_name?: string
+          company_reg_no?: string
+          default_due_days?: number
+          default_paper_size?: string
           default_vat?: number
           email?: string
           fax?: string
@@ -3084,6 +3111,7 @@ export type Database = {
           billing_number: string | null
           content: Json
           created_at: string
+          created_by_copilot: boolean
           customer_account: string | null
           customer_company: string | null
           customer_name: string | null
@@ -3095,6 +3123,8 @@ export type Database = {
           owner_user_id: string
           paper_size: string
           rendered_html: string
+          source_document_id: string | null
+          source_document_type: string | null
           status: string
           totals: Json
           updated_at: string
@@ -3107,6 +3137,7 @@ export type Database = {
           billing_number?: string | null
           content?: Json
           created_at?: string
+          created_by_copilot?: boolean
           customer_account?: string | null
           customer_company?: string | null
           customer_name?: string | null
@@ -3118,6 +3149,8 @@ export type Database = {
           owner_user_id: string
           paper_size?: string
           rendered_html?: string
+          source_document_id?: string | null
+          source_document_type?: string | null
           status?: string
           totals?: Json
           updated_at?: string
@@ -3130,6 +3163,7 @@ export type Database = {
           billing_number?: string | null
           content?: Json
           created_at?: string
+          created_by_copilot?: boolean
           customer_account?: string | null
           customer_company?: string | null
           customer_name?: string | null
@@ -3141,6 +3175,8 @@ export type Database = {
           owner_user_id?: string
           paper_size?: string
           rendered_html?: string
+          source_document_id?: string | null
+          source_document_type?: string | null
           status?: string
           totals?: Json
           updated_at?: string

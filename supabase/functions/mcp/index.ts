@@ -54,6 +54,10 @@ function supabaseForUser(ctx) {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 }
+async function currentUserId(ctx) {
+  const { data } = await supabaseForUser(ctx).auth.getUser();
+  return data?.user?.id;
+}
 var notAuthenticated = {
   content: [{ type: "text", text: "Not authenticated." }],
   isError: true
@@ -1099,11 +1103,34 @@ var ADMIN_RESOURCES = [
     key: "docstudio_billing_documents",
     table: "docstudio_billing_documents",
     module: "Doc Studio",
-    description: "Generated billing documents.",
+    description: "Doc Studio billing documents: invoices, quotes, pro formas and receipts. Prefer the docstudio_create_document tool, which resolves the customer, the issuer details and the document number and computes the totals for you. Use this resource directly only to read documents or amend one you already created. Never invent a billing_number; never hand-write the content or totals JSON.",
     select: "*",
-    searchColumns: ["title"],
-    writable: ["title", "status"],
+    searchColumns: ["document_name", "billing_number", "customer_name", "customer_company"],
+    writable: [
+      "document_name",
+      "document_type",
+      "billing_number",
+      "customer_name",
+      "customer_company",
+      "customer_account",
+      "paper_size",
+      "status",
+      "content",
+      "totals",
+      "source_document_type",
+      "source_document_id"
+    ],
     orderBy: "created_at"
+  },
+  {
+    key: "docstudio_files",
+    table: "docstudio_files",
+    module: "Doc Studio",
+    description: "Doc Studio content files. The copilot may author email and letter files; signature, social, ship-label, statement and pricelist files are edited in the studio. Content must be built with the shared content builder, not hand-written.",
+    select: "id,owner_user_id,file_type,file_name,customer_name,customer_account,metadata,version,created_at,updated_at",
+    searchColumns: ["file_name", "customer_name", "customer_account"],
+    writable: ["file_name", "file_type", "customer_name", "customer_account", "metadata", "content"],
+    orderBy: "updated_at"
   },
   {
     key: "help_articles",
@@ -1139,10 +1166,37 @@ var ADMIN_RESOURCES = [
     key: "company_settings",
     table: "company_settings",
     module: "Settings",
-    description: "Company profile and global settings.",
+    description: "Company profile and global settings. Also holds the issuer details every Doc Studio document is built from \u2014 letterhead address, registration numbers and bank details \u2014 so changing them here changes every document produced afterwards.",
     select: "*",
     searchColumns: [],
-    writable: ["company_name", "support_email", "feedback_email", "phone", "address"],
+    // support_email / phone / address were listed here but are not columns on
+    // this table; the real ones are email / tel / the split physical_* fields.
+    writable: [
+      "company_name",
+      "email",
+      "feedback_email",
+      "tel",
+      "fax",
+      "slogan",
+      "physical_line1",
+      "physical_line2",
+      "physical_city",
+      "physical_state",
+      "physical_postcode",
+      "physical_country",
+      "tax_tin",
+      "company_reg_no",
+      "base_currency",
+      "default_vat",
+      "bank_name",
+      "bank_account_name",
+      "bank_account_no",
+      "bank_branch",
+      "bank_swift",
+      "bank_note",
+      "default_paper_size",
+      "default_due_days"
+    ],
     orderBy: "id"
   },
   {
@@ -1205,6 +1259,23 @@ var normalizeHelpdeskPriority = (value) => {
   }
   return numeric;
 };
+var newDocStudioVersion = () => {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+};
+var applyDocStudioCreateDefaults = (resource, allowed, actorUserId) => {
+  if (!resource.table.startsWith("docstudio_")) return;
+  if (!actorUserId) {
+    throw new Error("Doc Studio documents need a signed-in admin to own them; no acting user was supplied.");
+  }
+  allowed.owner_user_id = actorUserId;
+  allowed.version = newDocStudioVersion();
+  if (resource.table === "docstudio_billing_documents") {
+    allowed.created_by_copilot = true;
+    allowed.status = "draft";
+  }
+};
 var normalizeAdminWriteValues = (resource, input) => {
   const values = { ...input };
   if (resource.key !== "helpdesk_tickets") return values;
@@ -1220,7 +1291,7 @@ var clampLimit = (value, fallback = 20) => {
   if (!Number.isFinite(num)) return fallback;
   return Math.min(Math.max(Math.trunc(num), 1), 50);
 };
-var dispatchAdminResourceTool = async (db, name, input) => {
+var dispatchAdminResourceTool = async (db, name, input, actorUserId) => {
   if (name === "admin_list_resources") {
     const moduleFilter = typeof input.module === "string" ? input.module.toLowerCase() : "";
     const items = ADMIN_RESOURCES.filter((resource2) => !moduleFilter || resource2.module.toLowerCase().includes(moduleFilter)).map((resource2) => ({
@@ -1272,6 +1343,11 @@ var dispatchAdminResourceTool = async (db, name, input) => {
       allowed.priority = allowed.priority ?? 1;
       allowed.source_channel = "ai_assistant";
       allowed.opened_at = (/* @__PURE__ */ new Date()).toISOString();
+    }
+    if (operation === "create") applyDocStudioCreateDefaults(resource, allowed, actorUserId);
+    if (operation === "update" && resource.table.startsWith("docstudio_")) {
+      allowed.version = newDocStudioVersion();
+      allowed.updated_at = (/* @__PURE__ */ new Date()).toISOString();
     }
     const id = input.id;
     if (operation === "update" && (id === void 0 || id === null || id === "")) {
@@ -1486,7 +1562,7 @@ var admin_write_record_default = defineTool27({
     if (!ctx.isAuthenticated()) return notAuthenticated;
     const toolName = operation === "create" ? "admin_create_record" : operation === "update" ? "admin_update_record" : "admin_delete_record";
     try {
-      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), toolName, { resource, id, values });
+      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), toolName, { resource, id, values }, await currentUserId(ctx));
       return ok(result, {
         status: result.status,
         resource: result.resource,
@@ -1502,7 +1578,7 @@ var admin_write_record_default = defineTool27({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "xstmeirxhfbiyayrrsob";
+var projectRef = "dzsalnvmlvjoatryhqfz";
 var mcp_default = defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",

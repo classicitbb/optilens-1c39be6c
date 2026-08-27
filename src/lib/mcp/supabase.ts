@@ -58,6 +58,18 @@ export function supabaseForUser(ctx: ToolContext) {
   });
 }
 
+/**
+ * The acting admin's user id. Needed for resources whose NOT NULL ownership
+ * columns are stamped server-side (Doc Studio documents), which the model has
+ * no way to supply. Unlike the Portal Copilot — which holds a service-role
+ * client and knows the actor already — the MCP path only carries the caller's
+ * token, so the identity has to be read back from it.
+ */
+export async function currentUserId(ctx: ToolContext): Promise<string | undefined> {
+  const { data } = await supabaseForUser(ctx).auth.getUser();
+  return data?.user?.id;
+}
+
 export const notAuthenticated = {
   content: [{ type: "text" as const, text: "Not authenticated." }],
   isError: true as const,

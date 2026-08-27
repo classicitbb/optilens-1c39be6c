@@ -1,5 +1,12 @@
 # Frontend Help Docs
 
+## 2026-08-27 — Choosing a microphone and asking the Copilot what it can do
+
+- In the floating Copilot, select the chevron beside the microphone to choose an input device. The active device is ticked, and the bar beside the microphone moves while it is picking up sound.
+- Turn on **Hold to record** to record only while the microphone button is held. Both the device choice and this setting are remembered on your browser and apply to the full Copilot console as well.
+- If a remembered microphone is unplugged, the Copilot switches back to the system default and tells you.
+- Ask the Copilot what it can do — for example "what can you change on this page?" or "where is this data from?". It knows the modules, pages and data sets of OpticAdmin and will offer to do the work rather than describe the manual steps.
+
 ## 2026-08-22 — Using the updated customer portal
 
 - In the Rx form, patient names are normalized to uppercase in the completed-section summary. Staff-only settings stay in the page header; the sticky order toolbar contains order actions only.

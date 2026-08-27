@@ -120,7 +120,8 @@
       const dt = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
       this.set('blDate', dt);
     }
-    if (!this.state.blNumber) this.set('blNumber', this.peekBillNumber(this.state.billType));
+    this.loadDocStudioSettings();
+    this.loadBillingSequences();
     this.loadDocStudioData();
     this.loadMyFiles();
     window._dsApp = this;
@@ -222,7 +223,7 @@
   // ---------- persistence ----------
   persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
-  set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); if (this.isCurrentFileField(k)) this.scheduleFileAutosave(); }); };
+  set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); if (this.isCurrentFileField(k)) this.scheduleFileAutosave(); if (this.isIssuerField(k)) this.saveDocStudioSettingsSoon(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
 
   toggleBrand = () => this.setState(s => ({ brandOpen: !s.brandOpen }));
@@ -1613,9 +1614,12 @@
 
   buildFileBrowserHtml = (files, viewMode, sortCol, sortDir, accessFilter) => {
     const fmtDate = (s) => { if (!s) return ''; const d = new Date(s); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
+    const draftBadge = (f) => f.status === 'draft'
+      ? `<span title="${f.createdByCopilot ? 'Drafted by the Copilot — review before sending' : 'Draft'}" style="border-radius:999px;padding:2px 6px;font:700 9.5px/1 'Plus Jakarta Sans',sans-serif;background:#fdf0d5;color:#8a5a00">${f.createdByCopilot ? 'AI draft' : 'Draft'}</span>`
+      : '';
     const pill = (label, val, active) => `<button onclick="window._dsApp.setState({fileAccessFilter:'${val}'})" style="height:22px;padding:0 9px;border:1px solid ${active ? 'transparent' : '#d9d7cf'};border-radius:999px;font:${active ? '700' : '400'} 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;background:${active ? '#1A8A9C' : '#fff'};color:${active ? '#fff' : '#5b6b7c'};white-space:nowrap">${label}</button>`;
     const vbtn = (icon, val, active) => `<button onclick="window._dsApp.setState({myFilesViewMode:'${val}'})" title="${val} view" style="width:26px;height:22px;border:1px solid ${active ? 'transparent' : '#d9d7cf'};border-radius:7px;background:${active ? '#1A8A9C' : '#fff'};color:${active ? '#fff' : '#5b6b7c'};cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${icon}</svg></button>`;
-    const toolbar = `<div style="height:34px;padding:0 12px;display:flex;align-items:center;gap:5px;border-bottom:1px solid #e7e4db;background:#f4f2ed;flex:none">${pill('All','',!accessFilter)}${pill('Mine','owner',accessFilter==='owner')}${pill('Shared','shared',accessFilter==='shared')}${pill('Can edit','edit',accessFilter==='edit')}${pill('View only','view',accessFilter==='view')}<div style="margin-left:auto;display:flex;gap:3px">${vbtn('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>','grid',viewMode==='grid')}${vbtn('<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>','list',viewMode==='list')}</div></div>`;
+    const toolbar = `<div style="height:34px;padding:0 12px;display:flex;align-items:center;gap:5px;border-bottom:1px solid #e7e4db;background:#f4f2ed;flex:none">${pill('All','',!accessFilter)}${pill('Mine','owner',accessFilter==='owner')}${pill('Shared','shared',accessFilter==='shared')}${pill('Can edit','edit',accessFilter==='edit')}${pill('View only','view',accessFilter==='view')}${pill('Drafts','draft',accessFilter==='draft')}<div style="margin-left:auto;display:flex;gap:3px">${vbtn('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>','grid',viewMode==='grid')}${vbtn('<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>','list',viewMode==='list')}</div></div>`;
     const hint = `<div style="height:24px;padding:0 12px;display:flex;align-items:center;border-bottom:1px solid #e7e4db;background:#f4f2ed;flex:none"><span style="font:400 10.5px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">Right-click a file for options &nbsp;&middot;&nbsp; Double-click to open</span></div>`;
     if (!files.length) return toolbar + hint + `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#e9e5da"><svg width="36" height="36" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2z"/></svg><span style="font:400 12.5px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">No files match this filter</span></div>`;
     const sFiles = [...files].sort((a, b) => {
@@ -1643,7 +1647,7 @@
           <div style="padding:7px 9px 8px;border-top:1px solid #e7e4db">
             <div style="font:700 11px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px">${f.fileName || 'Untitled'}</div>
             <div style="display:flex;align-items:center;gap:5px">
-              <span style="border-radius:999px;padding:2px 6px;font:700 9.5px/1 'Plus Jakarta Sans',sans-serif;background:${tc.bg};color:${tc.c}">${this.TYPE_LABELS[f.fileType] || f.fileType}</span>
+              <span style="border-radius:999px;padding:2px 6px;font:700 9.5px/1 'Plus Jakarta Sans',sans-serif;background:${tc.bg};color:${tc.c}">${this.TYPE_LABELS[f.fileType] || f.fileType}</span>${draftBadge(f)}
               <span style="font:400 10px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">${fmtDate(f.latestAutosaveAt || f.updatedAt || f.createdAt)}</span>
               ${!f.isOwner ? `<svg style="margin-left:auto" width="11" height="11" fill="none" stroke="#aaa" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>` : ''}
             </div>
@@ -1658,7 +1662,7 @@
         const tc = this.TYPE_COLORS[f.fileType] || { c: '#5b6b7c', bg: '#f1ede5', hdr: '#d9d7cf' };
         const icon = this.TYPE_ICONS_SVG[f.fileType] || '';
         return `<div ${onCtx(f)} ${onDbl(f)} style="display:grid;grid-template-columns:1fr 88px 100px 70px 18px;gap:8px;padding:8px 14px;border-bottom:1px solid #f1ede5;align-items:center;cursor:pointer;background:#fff" onmouseover="this.style.background='#f7f5ef'" onmouseout="this.style.background='#fff'">
-          <div style="display:flex;align-items:center;gap:8px;min-width:0"><svg width="14" height="14" fill="none" stroke="${tc.c}" stroke-width="1.8" viewBox="0 0 24 24" style="flex:none"><path d="${icon}"/></svg><span style="font:500 12px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.fileName || 'Untitled'}</span></div>
+          <div style="display:flex;align-items:center;gap:8px;min-width:0"><svg width="14" height="14" fill="none" stroke="${tc.c}" stroke-width="1.8" viewBox="0 0 24 24" style="flex:none"><path d="${icon}"/></svg><span style="font:500 12px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.fileName || 'Untitled'}</span>${draftBadge(f)}</div>
           <div><span style="border-radius:999px;padding:2px 6px;font:700 9.5px/1 'Plus Jakarta Sans',sans-serif;background:${tc.bg};color:${tc.c}">${this.TYPE_LABELS[f.fileType] || f.fileType}</span></div>
           <div style="font:400 11.5px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.customerName || '—'}</div>
           <div style="font:400 11.5px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">${fmtDate(f.latestAutosaveAt || f.updatedAt || f.createdAt)}</div>
@@ -1682,6 +1686,59 @@
     statement: ['stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stCurrency', 'stOpenBal', 'stRows', 'stNote', 'selectedStatementCustomer']
   };
   isCurrentFileField = (key) => this.state.currentFileKind === 'file' && this.state.currentFileId && this.FILE_KEYS[this.state.currentFileType]?.includes(key);
+
+  // Letterhead and bank details used to live in this browser's localStorage,
+  // so they differed per machine and nothing server-side could see them. They
+  // now come from company_settings, which is what lets a document created
+  // outside the Studio carry a complete letterhead.
+  loadDocStudioSettings = async () => {
+    try {
+      const data = await this.docApi('/api/docstudio/settings');
+      const settings = data.settings || {};
+      const patch = {};
+      ['bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote'].forEach(k => {
+        if (settings[k] !== undefined && settings[k] !== null) patch[k] = settings[k];
+      });
+      if (settings.blCurrency) patch.blCurrency = settings.blCurrency;
+      if (settings.blVatRate) patch.blVatRate = settings.blVatRate;
+      if (settings.billPaperSize) patch.billPaperSize = settings.billPaperSize;
+      if (Object.keys(patch).length) this.setState(patch);
+    } catch (e) { /* keep whatever is already loaded; the Studio still works offline */ }
+  };
+
+  ISSUER_FIELDS = ['bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote'];
+  isIssuerField = (key) => this.ISSUER_FIELDS.includes(key);
+
+  saveDocStudioSettingsSoon = () => {
+    clearTimeout(this._issuerSaveTimer);
+    this._issuerSaveTimer = setTimeout(async () => {
+      const payload = {};
+      this.ISSUER_FIELDS.forEach(k => { payload[k] = this.state[k] == null ? '' : this.state[k]; });
+      try { await this.docApi('/api/docstudio/settings', { method: 'PUT', body: payload }); }
+      catch (e) { /* non-fatal: the value stays on screen and in the document */ }
+    }, 1200);
+  };
+
+  // Numbering is a shared sequence now. These values are for display only —
+  // the number is actually reserved server-side when the document is saved,
+  // so two people drafting at once cannot end up with the same invoice number.
+  loadBillingSequences = async () => {
+    try {
+      const data = await this.docApi('/api/docstudio/billing-number');
+      if (data.next) {
+        this.setState({ billSeq: { ...this.state.billSeq, ...data.next } }, () => {
+          if (!this.state.blNumber) this.set('blNumber', this.peekBillNumber(this.state.billType));
+        });
+        return;
+      }
+    } catch (e) { /* fall through to the local placeholder */ }
+    if (!this.state.blNumber) this.set('blNumber', this.peekBillNumber(this.state.billType));
+  };
+
+  reserveBillingNumber = async (type) => {
+    const data = await this.docApi('/api/docstudio/billing-number', { method: 'POST', body: { documentType: type } });
+    return data.billingNumber || '';
+  };
 
   loadMyFiles = async () => {
     try {
@@ -2051,6 +2108,14 @@
     if (!id && !options.name) { this.openFileSaveDialog('billing', 'save'); return; }
     try {
       this.setState({ billSaveState: 'Saving...' });
+      // A new document takes its number from the shared sequence at save time,
+      // not from the placeholder shown while drafting.
+      if (!id) {
+        try {
+          const reserved = await this.reserveBillingNumber(this.state.billType);
+          if (reserved) await new Promise(done => this.setState({ blNumber: reserved }, done));
+        } catch (e) { /* keep the placeholder rather than blocking the save */ }
+      }
       const data = id
         ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id), { method: 'PUT', body: this.billFilePayload(options.name) })
         : await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload(options.name) });
@@ -2331,6 +2396,7 @@
       if (d.fileAccessFilter === 'shared' && item.isOwner) return false;
       if (d.fileAccessFilter === 'edit' && item.accessLevel !== 'edit') return false;
       if (d.fileAccessFilter === 'view' && item.accessLevel !== 'view') return false;
+      if (d.fileAccessFilter === 'draft' && item.status !== 'draft') return false;
       const query = (d.fileSearch || '').trim().toLowerCase();
       if (query && ![item.fileName, item.documentName, item.customerName, item.customerCompany, item.customerAccount, item.searchText].filter(Boolean).join(' ').toLowerCase().includes(query)) return false;
       return true;
