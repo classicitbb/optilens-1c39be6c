@@ -1,20 +1,17 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-22T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-27T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Sitewide release validation is restored across the storefront, Portal Copilot, Rx ordering, and the public store-variant security boundary.",
-    "Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.",
-    "Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.",
-    "My Profile now contains checkout-saved payment methods for editing or removal; customers no longer see a separate card-creation page or internal CRM linkage badges.",
-    "My Profile now also contains saved addresses, and Enter applies an active inline contact-detail edit.",
-    "Portal Copilot voice input now uses a predictable Record → Stop → Transcribe flow, and its Helpdesk ticket tool supplies the required ticket number and numeric priority automatically."
+    "The floating Copilot microphone button now opens a picker listing every available input device, with hold-to-record and a live level bar. The chosen microphone is remembered per browser and shared with the full Copilot console.",
+    "The Copilot can now answer questions about OpticAdmin itself — which modules and pages exist, what data it can read or change in each, where the app is hosted and which services supply its data — and offers to carry out the work it is capable of.",
+    "The Copilot knows which admin page is open and prefers that page's data when a question is ambiguous."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "scripts/generate_copilot_platform_facts.mjs",
       "impact": "medium",
-      "notes": "Updated as part of Customer portal experience pass."
+      "notes": "Updated as part of Copilot microphone choice and platform self-knowledge."
     }
   ],
   "migrationNotes": [
