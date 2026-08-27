@@ -318,88 +318,81 @@ export default function IntegrationsPage() {
       <QboIntegrationCard />
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Gateway configuration</CardTitle>
-          <CardDescription>
-            Issued by Scotiabank after certification. Production StoreIDs begin with “62”.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label>Store ID</Label>
-            <Input
-              value={form.store_id}
-              onChange={(e) => setForm((p) => ({ ...p, store_id: e.target.value }))}
-              placeholder="399000002"
-            />
+        <CardHeader className="space-y-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Lock className="h-4 w-4" /> Scotia eCom+ payment gateway
+              </CardTitle>
+              <CardDescription>
+                Issued by Scotiabank after certification. Production StoreIDs begin with “62”.
+                Currency is fixed to USD (840) by the hosted-payment integration.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className={statusMeta[currentStatus].className}>
+              {statusMeta[currentStatus].label}
+            </Badge>
           </div>
-          <div className="space-y-1.5">
-            <Label>Environment</Label>
-            <Select
-              value={form.environment}
-              onValueChange={(value: "test" | "production") => setForm((p) => ({ ...p, environment: value }))}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="test">Test</SelectItem>
-                <SelectItem value="production">Production</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Currency (ISO numeric)</Label>
-            <Input
-              value="840"
-              readOnly
-              aria-describedby="scotia-currency-note"
-            />
-            <p id="scotia-currency-note" className="text-xs text-muted-foreground">USD is fixed by the hosted-payment integration.</p>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Timezone</Label>
-            <Input
-              value={form.timezone}
-              onChange={(e) => setForm((p) => ({ ...p, timezone: e.target.value }))}
-              placeholder="America/Barbados"
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm md:col-span-2">
-            <input
-              type="checkbox"
-              checked={form.enabled}
-              onChange={(e) => setForm((p) => ({ ...p, enabled: e.target.checked }))}
-            />
-            Enable live processing through this gateway
-          </label>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Lock className="h-4 w-4" /> Shared Secret
-          </CardTitle>
-          <CardDescription>
-            Stored encrypted server-side and never returned to the browser. Used to sign every
-            transaction hash.
-          </CardDescription>
+          <p className="text-xs text-muted-foreground">
+            Last tested: {fmt(data?.last_tested_at)} · Updated: {fmt(data?.updated_at)}
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Shared Secret (HMAC key)</Label>
-            <Input
-              type="password"
-              value={sharedSecret}
-              onChange={(e) => setSharedSecret(e.target.value)}
-              placeholder={requiresSecret ? "Required to enable the gateway" : "Leave empty to keep the stored secret"}
-            />
-            {data?.has_secret && (
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <ShieldCheck className="h-3 w-3 text-emerald-600" /> A secret is stored. Enter a new value only to rotate it.
-              </p>
-            )}
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Store ID</Label>
+              <Input
+                value={form.store_id}
+                onChange={(e) => setForm((p) => ({ ...p, store_id: e.target.value }))}
+                placeholder="399000002"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Environment</Label>
+              <Select
+                value={form.environment}
+                onValueChange={(value: "test" | "production") => setForm((p) => ({ ...p, environment: value }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="test">Test</SelectItem>
+                  <SelectItem value="production">Production</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Timezone</Label>
+              <Input
+                value={form.timezone}
+                onChange={(e) => setForm((p) => ({ ...p, timezone: e.target.value }))}
+                placeholder="America/Barbados"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Shared Secret (HMAC key)</Label>
+              <Input
+                type="password"
+                value={sharedSecret}
+                onChange={(e) => setSharedSecret(e.target.value)}
+                placeholder={requiresSecret ? "Required to enable the gateway" : "Leave empty to keep the stored secret"}
+              />
+              {data?.has_secret && (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-3 w-3 text-emerald-600" /> A secret is stored. Enter a new value only to rotate it.
+                </p>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap items-center gap-3 border-t pt-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.enabled}
+                onChange={(e) => setForm((p) => ({ ...p, enabled: e.target.checked }))}
+              />
+              Enable live processing
+            </label>
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || (!sharedSecret && requiresSecret) || !form.store_id}
@@ -416,8 +409,19 @@ export default function IntegrationsPage() {
               {currentStatus === "error" ? "Recheck & clear error" : "Test configuration"}
             </Button>
           </div>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            {currentStatus === "connected" ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
+            )}
+            {currentStatus === "connected"
+              ? "Gateway is configured."
+              : "Add a Store ID and Shared Secret to configure the gateway."}
+          </p>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>
