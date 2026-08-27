@@ -55,6 +55,7 @@ export type CopilotActionPayload = {
   customerName?: string;
   accountNumber?: string | null;
   recipientEmail?: string;
+  recipients?: string[];
   recipientName?: string;
   subject?: string;
   body?: string;

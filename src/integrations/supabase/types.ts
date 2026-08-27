@@ -3184,6 +3184,24 @@ export type Database = {
         }
         Relationships: []
       }
+      docstudio_billing_sequences: {
+        Row: {
+          document_type: string
+          next_value: number
+          updated_at: string
+        }
+        Insert: {
+          document_type: string
+          next_value?: number
+          updated_at?: string
+        }
+        Update: {
+          document_type?: string
+          next_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       docstudio_files: {
         Row: {
           autosave_content: Json | null
@@ -12007,6 +12025,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      next_billing_number: {
+        Args: { p_document_type: string }
+        Returns: string
       }
       normalized_customer_account_number: {
         Args: { p_account_number: string }
