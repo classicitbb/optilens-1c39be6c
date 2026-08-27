@@ -1,5 +1,12 @@
 # Frontend Runtime Module Docs
 
+## 2026-08-27 — Copilot voice settings and page awareness
+
+- `VoiceSettingsMenu` owns the microphone list, hold-to-record switch and optional advanced-settings entry. Both Copilot surfaces render it around their own trigger button and keep their own `holdToRecord` state; the widget omits the advanced entry because it has no advanced panel.
+- `voicePreferences` persists `cv.voice.deviceId` and `cv.voice.holdToRecord` through guarded `localStorage` access. `usePushToTalk` seeds only `deviceId` from storage — `language` and `vocabulary` stay caller-supplied, because `InlineDictationButton`, `ContactsPage` and the public `CompanionAssistant` each pass their own.
+- A remembered microphone that is later unplugged raises `OverconstrainedError`; `usePushToTalk` resets to the system default and reports it rather than leaving recording stuck.
+- `AdminCopilotAssistant` sends the admin-context slug it already computed for the "Watching ..." label as `pageContext`, so the Copilot knows which page is open.
+
 ## 2026-08-22 — Portal records, assistant, and PDF runtime
 
 - Cross-surface regression tests follow the current component boundaries: Portal Copilot evidence lives in `ActionCard`, Rx patient summaries use the engine's normalized uppercase display, and admin Rx settings remain in the page header rather than the sticky order toolbar.

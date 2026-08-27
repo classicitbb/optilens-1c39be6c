@@ -1,5 +1,12 @@
 # Automation Bug Reports
 
+## 2026-08-27
+- Script(s): `scripts/generate_copilot_platform_facts.mjs`
+- Impact: the Copilot grounding context was maintained by hand and could drift from the app it describes; only module titles were guarded, and nothing checked routes, capabilities or page-context slugs.
+- Root cause: `systemContext.ts` was a manual mirror of `apps.ts` with no generator and no capability data.
+- Resolution: generate the context, the route table and the capability index from the code that defines them, and gate the committed artifact with `npm run qa:copilot-facts` inside `qa:pr-checks`.
+- Follow-up actions: keep the generator slug transform identical to `buildContextOptions()` in `src/lib/adminContexts.ts`; an integration test fails if they diverge.
+
 ## 2026-08-13
 - Script(s): `scripts/admin_smoke_and_error_checks.mjs`
 - Impact: the admin smoke gate could fail before starting Vite on Windows with `spawn npm ENOENT`, or with `EINVAL` when attempting to spawn `npm.cmd` directly.

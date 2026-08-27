@@ -4,6 +4,18 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-08-27 — Copilot microphone choice and platform self-knowledge
+
+### Release Notes
+- The floating Portal Copilot now has the same microphone picker as the full console, including hold-to-record and a live input-level bar, and remembers the chosen microphone across page loads and both surfaces.
+- The Copilot now knows the platform it runs in: every module and page, the data it can read and write in each, and where the app is hosted, where its data comes from and which services back it. It answers capability questions by offering to do the work rather than describing manual steps.
+- The Copilot is also told which admin page is open, so ambiguous questions resolve against what the admin is actually looking at.
+
+### Technical Changelog
+- Extracted the voice device menu into `VoiceSettingsMenu`, shared by `AdminCopilotAssistant` and `PortalCopilotPage`. `usePushToTalk` persists only `deviceId` and falls back to the system default when a remembered microphone disappears.
+- Replaced the hand-maintained `systemContext.ts` with `platformFacts.generated.ts`, produced by `scripts/generate_copilot_platform_facts.mjs` from `apps.ts`, `adminResources.ts` and a small hand-maintained facts file. Detail beyond the always-on index is served on demand by the new `get_platform_facts` tool.
+- `submit-command` accepts a `pageContext` slug and resolves it through the generated route table before adding it to the system prompt; the raw client string is never interpolated.
+
 ## 2026-08-22 — Customer portal experience pass
 
 ### Release Notes

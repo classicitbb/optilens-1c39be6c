@@ -113,13 +113,56 @@ describe("admin-only CV Portal Copilot", () => {
     expect(page).toContain("No CRM task or opportunity has been created yet.");
   });
 
+  it("tells the Copilot which page the admin is on, resolved through a server-side whitelist", async () => {
+    const edge = read("supabase/functions/portal-copilot/index.ts");
+    const api = read("src/features/admin/copilot/api.ts");
+    const widget = read("src/components/admin/copilot/AdminCopilotAssistant.tsx");
+
+    // The widget already knew the page; it now sends it.
+    expect(widget).toContain("pathnameToContextSlug(location.pathname)");
+    expect(widget).toContain("pageContext: contextSlug");
+    expect(api).toContain("pageContext?: string");
+
+    // Client-supplied text must never reach the prompt un-whitelisted.
+    expect(edge).toContain("PLATFORM_ROUTES.find((route) => route.slug === requestedPageSlug)");
+    expect(edge).not.toContain("${requestedPageSlug}");
+
+    // Every slug the widget can emit must exist in the generated route table,
+    // or the Copilot silently loses page awareness on that page.
+    const { ADMIN_CONTEXT_OPTIONS } = await import("@/lib/adminContexts");
+    const { PLATFORM_ROUTES } = await import(
+      "../../../supabase/functions/_shared/copilot/platformFacts.generated"
+    );
+    const known = new Set(PLATFORM_ROUTES.map((route: { slug: string }) => route.slug));
+    const emitted = ADMIN_CONTEXT_OPTIONS
+      .map((option) => option.value)
+      .filter((slug) => slug !== "all");
+    expect(emitted.length).toBeGreaterThan(0);
+    for (const slug of emitted) {
+      expect(known).toContain(slug);
+    }
+  });
+
+  it("can describe its own capabilities in detail without paying for it every turn", () => {
+    const edge = read("supabase/functions/portal-copilot/index.ts");
+    const tools = read("supabase/functions/_shared/copilot/platformTools.ts");
+    const generated = read("supabase/functions/_shared/copilot/platformFacts.generated.ts");
+
+    expect(edge).toContain("PLATFORM_TOOLS");
+    expect(edge).toContain("dispatchPlatformTool");
+    expect(tools).toContain("get_platform_facts");
+    // Tier 2 detail lives in the tool, not the prompt.
+    expect(generated).toContain("PLATFORM_RESOURCE_DETAIL");
+    expect(generated).toContain("AUTO-GENERATED");
+  });
+
   it("grounds the Copilot in OpticAdmin's own modules and gives it real read-only lookups", () => {
     const edge = read("supabase/functions/portal-copilot/index.ts");
-    const systemContext = read("supabase/functions/_shared/copilot/systemContext.ts");
+    const systemContext = read("supabase/functions/_shared/copilot/platformFacts.generated.ts");
     const lookupTools = read("supabase/functions/_shared/copilot/lookupTools.ts");
     const apps = read("src/features/admin/core/config/apps.ts");
 
-    expect(edge).toContain('from "../_shared/copilot/systemContext.ts"');
+    expect(edge).toContain('from "../_shared/copilot/platformFacts.generated.ts"');
     expect(edge).toContain('from "../_shared/copilot/lookupTools.ts"');
     expect(edge).toContain("COPILOT_SYSTEM_CONTEXT");
 
@@ -129,7 +172,9 @@ describe("admin-only CV Portal Copilot", () => {
 
     // Drift guard: every module title in apps.ts (the frontend source of
     // truth) must appear verbatim in the copilot's grounding context, so a
-    // renamed or newly added module doesn't silently go unmentioned.
+    // renamed or newly added module doesn't silently go unmentioned. The
+    // generated file is produced from apps.ts by npm run copilot:facts, and
+    // npm run qa:copilot-facts fails the PR if it was not regenerated.
     const titles = [...apps.matchAll(/title:\s*'([^']+)'/g)].map((match) => match[1]);
     expect(titles.length).toBeGreaterThan(0);
     for (const title of titles) {

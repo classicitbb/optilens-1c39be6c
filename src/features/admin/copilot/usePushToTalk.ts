@@ -4,6 +4,7 @@ import {
   formatVoiceTranscript,
   isLikelyTranscriptionPromptEcho,
 } from "@/features/admin/copilot/transcriptFormatting";
+import { readStoredDeviceId, storeDeviceId } from "@/features/admin/copilot/voicePreferences";
 
 export type SpeechSettings = {
   deviceId: string;
@@ -26,7 +27,13 @@ export const usePushToTalk = (
   onTranscript: (transcript: string, confidence: number) => void,
   options: PushToTalkOptions = {},
 ) => {
-  const [settings, setSettings] = useState<SpeechSettings>(() => ({ ...DEFAULT_SETTINGS, ...options }));
+  // Only deviceId is persisted — it is a per-browser hardware choice. language
+  // and vocabulary stay caller-supplied, because each surface passes its own.
+  const [settings, setSettings] = useState<SpeechSettings>(() => ({
+    ...DEFAULT_SETTINGS,
+    ...options,
+    deviceId: readStoredDeviceId() ?? DEFAULT_SETTINGS.deviceId,
+  }));
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -47,6 +54,10 @@ export const usePushToTalk = (
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    storeDeviceId(settings.deviceId);
+  }, [settings.deviceId]);
 
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -213,9 +224,17 @@ export const usePushToTalk = (
       setIsStarting(false);
       setIsListening(false);
       const message = caught instanceof Error ? caught.message : "Could not start the selected microphone.";
-      setError(message.toLowerCase().includes("permission") || message.toLowerCase().includes("denied")
-        ? "Microphone permission was denied. Allow microphone access and try again."
-        : message);
+      const lowered = message.toLowerCase();
+      if (lowered.includes("overconstrained") || lowered.includes("notfound") || lowered.includes("not found")) {
+        // A remembered microphone was unplugged. Fall back rather than leaving
+        // the user stuck on a device that can no longer be opened.
+        setSettings((current) => ({ ...current, deviceId: "default" }));
+        setError("That microphone is no longer available — switched back to the system default. Try recording again.");
+      } else if (lowered.includes("permission") || lowered.includes("denied")) {
+        setError("Microphone permission was denied. Allow microphone access and try again.");
+      } else {
+        setError(message);
+      }
       releaseAudio();
     }
   }, [isListening, isStarting, isTranscribing, refreshDevices, releaseAudio, settings.deviceId, stop, transcribeRecording]);

@@ -147,6 +147,8 @@ export const submitCopilotCommand = (input: {
   inputMode: "text" | "voice";
   transcriptConfirmed: boolean;
   conversationId?: string;
+  /** Admin context slug for the page in view, so the Copilot knows where the admin is. */
+  pageContext?: string;
 }) => invokePortalCopilot({ operation: "submit-command", ...input });
 
 export const prepareErpRollout = submitCopilotCommand;

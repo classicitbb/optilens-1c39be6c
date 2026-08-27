@@ -13,10 +13,11 @@ import {
   type CrmOrderHealth,
   type CrmScanContact,
 } from "../_shared/copilot/crmOpportunityScan.ts";
-import { COPILOT_SYSTEM_CONTEXT } from "../_shared/copilot/systemContext.ts";
+import { COPILOT_SYSTEM_CONTEXT, PLATFORM_ROUTES } from "../_shared/copilot/platformFacts.generated.ts";
 import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/copilot/lookupTools.ts";
 import { ADMIN_RESOURCE_TOOLS, ADMIN_RESOURCE_TOOL_NAMES, dispatchAdminResourceTool } from "../_shared/copilot/adminResources.ts";
 import { DOC_STUDIO_TOOLS, DOC_STUDIO_TOOL_NAMES, dispatchDocStudioTool } from "../_shared/copilot/docStudioTools.ts";
+import { PLATFORM_TOOLS, PLATFORM_TOOL_NAMES, dispatchPlatformTool } from "../_shared/copilot/platformTools.ts";
 import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -116,7 +117,7 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS];
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =
@@ -131,13 +132,17 @@ const runCopilotTurn = async (
   db: any,
   actorUserId: string,
   sendEmail: (payload: { to: string[]; subject: string; html: string }) => Promise<{ messageIds?: string[] }>,
+  pageContext: string | null = null,
 ): Promise<{ ok: true; result: RouteResult } | { ok: false; status: number; message: string }> => {
   const messages: JsonRecord[] = [...history.slice(-12), { role: "user", content: command }];
+  // Appended to the system prompt, never to the user message, so the stored
+  // conversation keeps the admin's literal words.
+  const system = pageContext ? `${COPILOT_SYSTEM_PROMPT}\n\n${pageContext}` : COPILOT_SYSTEM_PROMPT;
 
   for (let iteration = 0; iteration < MAX_LOOKUP_ITERATIONS; iteration += 1) {
     const response = await callClaude(apiKey, model, {
       max_tokens: 1024,
-      system: COPILOT_SYSTEM_PROMPT,
+      system,
       tools: COPILOT_TOOLS,
       tool_choice: { type: "auto" },
       messages,
@@ -158,7 +163,8 @@ const runCopilotTurn = async (
     const lookupUses = toolUses.filter((use) =>
       LOOKUP_TOOL_NAMES.has(use.name as string)
       || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
-      || DOC_STUDIO_TOOL_NAMES.has(use.name as string));
+      || DOC_STUDIO_TOOL_NAMES.has(use.name as string)
+      || PLATFORM_TOOL_NAMES.has(use.name as string));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
       return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
@@ -167,7 +173,9 @@ const runCopilotTurn = async (
     const toolResults = await Promise.all(lookupUses.map(async (use) => {
       try {
         const input = (use.input ?? {}) as Record<string, unknown>;
-        const output = DOC_STUDIO_TOOL_NAMES.has(use.name as string)
+        const output = PLATFORM_TOOL_NAMES.has(use.name as string)
+          ? dispatchPlatformTool(use.name as string, input)
+          : DOC_STUDIO_TOOL_NAMES.has(use.name as string)
           ? await dispatchDocStudioTool(db, use.name as string, input, actorUserId, { sendEmail })
           : ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
           ? await dispatchAdminResourceTool(db, use.name as string, input, actorUserId)
@@ -186,7 +194,7 @@ const runCopilotTurn = async (
   // was gathered rather than looping forever or erroring.
   const finalResponse = await callClaude(apiKey, model, {
     max_tokens: 1024,
-    system: COPILOT_SYSTEM_PROMPT,
+    system,
     messages,
   });
   if (!finalResponse.ok) return { ok: false, status: finalResponse.status, message: await claudeErrorMessage(finalResponse) };
@@ -367,23 +375,6 @@ const queueInviteEmail = async (req: Request, payload: JsonRecord, actionLink: s
 
 const executeAction = async (req: Request, db: any, actorUserId: string, action: any) => {
   const payload = (action.payload ?? {}) as JsonRecord;
-  if (action.action_type === "apply_contact_enrichment") {
-    const contactId = stringValue(payload.contactId, 80);
-    const findings = Array.isArray(payload.findings) ? payload.findings as JsonRecord[] : [];
-    const findingIds = findings
-      .map((finding) => stringValue(finding.findingId, 80))
-      .filter((id) => id.length > 0);
-    if (!contactId || !findingIds.length) throw new Error("This enrichment proposal has no fields to apply");
-    // apply_contact_enrichment is the only writer allowed past the
-    // preserve-populated-fields trigger, so approved corrections actually land.
-    const { data, error } = await db.rpc("apply_contact_enrichment", {
-      p_contact_id: contactId,
-      p_finding_ids: findingIds,
-    });
-    if (error) throw new Error(error.message);
-    return { contactId, fieldsApplied: data ?? 0, fields: findings.map((finding) => stringValue(finding.field, 60)) };
-  }
-
   if (action.action_type === "create_followup_task") {
     const taskContent = stringValue(payload.taskContent, 4000);
     const contactId = stringValue(payload.contactId, 80) || null;
@@ -593,6 +584,15 @@ Deno.serve(async (req) => {
       const command = stringValue(body.command, 2000);
       const inputMode = body.inputMode === "voice" ? "voice" : "text";
       const transcriptConfirmed = body.transcriptConfirmed === true;
+      // The page the admin is looking at. Client-supplied, so it is resolved
+      // through the generated route table and never interpolated raw.
+      const requestedPageSlug = stringValue(body.pageContext, 120);
+      const currentRoute = requestedPageSlug
+        ? PLATFORM_ROUTES.find((route) => route.slug === requestedPageSlug)
+        : undefined;
+      const pageContext = currentRoute
+        ? `The admin is currently viewing "${currentRoute.label}" (${currentRoute.path}) in the ${currentRoute.module} module. When their question is ambiguous, prefer this page's data and terminology, and say so if you answer about something else.`
+        : null;
       if (!command) return jsonResponse(req, 400, { error: "Enter or speak a command first" });
       if (inputMode === "voice" && !transcriptConfirmed) {
         return jsonResponse(req, 400, { error: "Review and confirm the transcript before preparing actions" });
@@ -615,7 +615,7 @@ Deno.serve(async (req) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data?.ok) throw new Error(stringValue(data?.error) || `Email send failed (${response.status})`);
         return { messageIds: data.messageIds ?? [] };
-      }) : null;
+      }, pageContext) : null;
       if (routed && !routed.ok) {
         const status = routed.status === 429 || routed.status === 529 ? routed.status : 502;
         return jsonResponse(req, status, { error: routed.message });

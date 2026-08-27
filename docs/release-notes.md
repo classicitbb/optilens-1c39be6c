@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-08-27 — Copilot microphone choice and platform self-knowledge
+
+### Release Notes
+- The floating Copilot microphone button now opens a picker listing every available input device, with hold-to-record and a live level bar. The chosen microphone is remembered per browser and shared with the full Copilot console.
+- The Copilot can now answer questions about OpticAdmin itself — which modules and pages exist, what data it can read or change in each, where the app is hosted and which services supply its data — and offers to carry out the work it is capable of.
+- The Copilot knows which admin page is open and prefers that page's data when a question is ambiguous.
+
 ## 2026-08-22 — Customer portal experience pass
 
 ### Release Notes
