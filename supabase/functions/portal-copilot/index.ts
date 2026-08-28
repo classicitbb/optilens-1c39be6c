@@ -166,11 +166,11 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
     }
 
     const lookupUses = toolUses.filter((use) =>
-      LOOKUP_TOOL_NAMES.has(use.name as string)
-      || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
-      || DOC_STUDIO_TOOL_NAMES.has(use.name as string)
-      || PLATFORM_TOOL_NAMES.has(use.name as string)
-      || ENRICHMENT_TOOL_NAMES.has(use.name as string));
+      LOOKUP_TOOL_NAMES.has(use.name as any)
+      || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as any)
+      || DOC_STUDIO_TOOL_NAMES.has(use.name as any)
+      || PLATFORM_TOOL_NAMES.has(use.name as any)
+      || ENRICHMENT_TOOL_NAMES.has(use.name as any));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
       return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?", runId: preparedRunId } };
