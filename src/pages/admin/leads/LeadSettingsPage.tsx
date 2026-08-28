@@ -74,7 +74,7 @@ const LeadSettingsPage = () => {
               <Badge variant="default">Always Active</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Powered by Lovable AI Gateway. Generates lead results using AI when no other providers return data. No API key required.
+              Powered by Lovable AI Gateway. Interprets your search brief and qualifies what the providers below return. It never invents businesses. No API key required.
             </p>
           </div>
 
