@@ -179,13 +179,13 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
     const toolResults = await Promise.all(lookupUses.map(async (use) => {
       try {
         const input = (use.input ?? {}) as Record<string, unknown>;
-        const output = PLATFORM_TOOL_NAMES.has(use.name as string)
+        const output = PLATFORM_TOOL_NAMES.has(use.name as any)
           ? dispatchPlatformTool(use.name as string, input)
-          : ENRICHMENT_TOOL_NAMES.has(use.name as string)
+          : ENRICHMENT_TOOL_NAMES.has(use.name as any)
           ? await dispatchEnrichmentTool(db, use.name as string, input, actorUserId)
-          : DOC_STUDIO_TOOL_NAMES.has(use.name as string)
+          : DOC_STUDIO_TOOL_NAMES.has(use.name as any)
           ? await dispatchDocStudioTool(db, use.name as string, input, actorUserId, { sendEmail })
-          : ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
+          : ADMIN_RESOURCE_TOOL_NAMES.has(use.name as any)
           ? await dispatchAdminResourceTool(db, use.name as string, input, actorUserId)
           : await dispatchLookupTool(db, use.name as string, input);
         const queuedRunId = (output as { runId?: unknown } | null)?.runId;
