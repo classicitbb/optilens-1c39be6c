@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Thin wrapper over the Lovable AI gateway for forced-tool-call requests.
 //
 // Every AI step in lead-intelligence wants the same thing: a structured object
