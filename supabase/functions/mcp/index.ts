@@ -1578,7 +1578,7 @@ var admin_write_record_default = defineTool27({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "dzsalnvmlvjoatryhqfz";
+var projectRef = "xstmeirxhfbiyayrrsob";
 var mcp_default = defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",
