@@ -14,9 +14,11 @@ const formatTimestamp = (value: string) => {
 
 type ServerRuntimeError = {
   id: string;
-  route_label: string | null;
-  error_message: string | null;
-  error_stack: string | null;
+  route: string | null;
+  source: string | null;
+  title: string | null;
+  detail: string | null;
+  component_stack: string | null;
   user_agent: string | null;
   url: string | null;
   created_at: string;
@@ -25,7 +27,7 @@ type ServerRuntimeError = {
 async function loadServerErrors(): Promise<ServerRuntimeError[]> {
   const { data, error } = await (supabase as any)
     .from("runtime_error_events")
-    .select("id, route_label, error_message, error_stack, user_agent, url, created_at")
+    .select("id, route, source, title, detail, component_stack, user_agent, url, created_at")
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw error;
