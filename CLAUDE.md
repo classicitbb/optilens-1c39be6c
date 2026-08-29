@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+See [AGENTS.md](AGENTS.md) for project-specific conventions and setup. This file covers general behavioral guidelines only.
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
