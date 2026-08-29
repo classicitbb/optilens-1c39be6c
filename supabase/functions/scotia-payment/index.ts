@@ -65,6 +65,10 @@ const prepareSchema = z.object({
   // check because no real order exists; requires the caller to have the
   // 'admin' role. The signed form is discarded by the caller — never posted.
   testMode: z.boolean().optional(),
+  // Admin-only diagnostic: post the signed probe with a different ISO 4217
+  // numeric currency to isolate "store not enabled for this currency" from
+  // hash/credential failures. Ignored outside testMode.
+  currencyOverride: z.string().regex(/^\d{3}$/).optional(),
   // ── Tokenization (manual pages 22–23) ──
   assignToken: z.boolean().optional(),          // save a new card → returns hosteddataid
   hosteddataid: z.string().min(1).optional(),   // reuse a saved token (CVV-only flow)
