@@ -107,7 +107,7 @@ function RouteErrorFallback({
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-4 text-center">
       <p className="text-sm text-muted-foreground">
-        Something went wrong. Reloading the page…
+        Something went wrong loading this page.
       </p>
       <Button
         type="button"

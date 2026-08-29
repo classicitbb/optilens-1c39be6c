@@ -14,9 +14,11 @@ const formatTimestamp = (value: string) => {
 
 type ServerRuntimeError = {
   id: string;
-  route_label: string | null;
-  error_message: string | null;
-  error_stack: string | null;
+  route: string | null;
+  source: string | null;
+  title: string | null;
+  detail: string | null;
+  component_stack: string | null;
   user_agent: string | null;
   url: string | null;
   created_at: string;
@@ -25,7 +27,7 @@ type ServerRuntimeError = {
 async function loadServerErrors(): Promise<ServerRuntimeError[]> {
   const { data, error } = await (supabase as any)
     .from("runtime_error_events")
-    .select("id, route_label, error_message, error_stack, user_agent, url, created_at")
+    .select("id, route, source, title, detail, component_stack, user_agent, url, created_at")
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw error;
@@ -77,20 +79,25 @@ export default function RuntimeErrorsPage() {
         <CardContent className="space-y-2">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading server events…</p>
+          ) : serverQuery.isError ? (
+            <p className="text-sm text-destructive">
+              Could not load server events: {(serverQuery.error as Error)?.message ?? "Unknown error"}
+            </p>
           ) : serverEntries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No server events yet.</p>
           ) : (
             serverEntries.map((entry) => (
               <div key={entry.id} className="rounded-md border p-3 text-sm space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">server</Badge>
-                  <span className="font-medium">{entry.error_message ?? "Unhandled error"}</span>
+                  <Badge variant="outline">{entry.source ?? "server"}</Badge>
+                  <span className="font-medium">{entry.title ?? "Unhandled error"}</span>
                 </div>
                 <p className="text-muted-foreground">
-                  {formatTimestamp(entry.created_at)} {entry.route_label ? `• ${entry.route_label}` : ""}
+                  {formatTimestamp(entry.created_at)} {entry.route ? `• ${entry.route}` : ""}
                 </p>
+                {entry.detail ? <p className="break-all">{entry.detail}</p> : null}
                 {entry.url ? <p className="break-all text-xs text-muted-foreground">{entry.url}</p> : null}
-                {entry.error_stack ? <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded bg-muted p-2 text-xs">{entry.error_stack}</pre> : null}
+                {entry.component_stack ? <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded bg-muted p-2 text-xs">{entry.component_stack}</pre> : null}
               </div>
             ))
           )}

@@ -341,7 +341,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     table: "profiles",
     module: "Settings / Users",
     description: "User profiles including portal access status.",
-    select: "id,email,full_name,portal_access_status,portal_access_note,linked_customer_id,created_at,updated_at",
+    select: "id,email,full_name,portal_access_status,portal_access_note,crm_customer_id,created_at,updated_at",
     searchColumns: ["email", "full_name"],
     writable: ["full_name", "portal_access_status", "portal_access_note"],
     orderBy: "updated_at",

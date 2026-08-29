@@ -33,11 +33,14 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
   const data = await response.json();
   const results = Array.isArray(data?.data) ? data.data : [];
 
-  // Page titles are passed through as-is. Splitting on " - " to guess a business
-  // name mangles real names and cannot tell a business from a listicle anyway;
-  // the AI qualifier does that job with the snippet and URL in hand.
+  // Page titles often carry a site suffix ("Acme Optical | Yelp"). The lookup
+  // pipeline skips the AI qualifier, so strip the suffix here to keep suggested
+  // business names clean.
   return results.slice(0, 20).map((item: any) => ({
-    name: String(item.title ?? item.url ?? "Unknown Business").trim(),
+    name: String(item.title ?? item.url ?? "Unknown Business")
+      .split(" | ")[0]
+      .split(" - ")[0]
+      .trim() || String(item.url ?? "Unknown Business"),
     city: city ?? null,
     country: country ?? null,
     website: item.url || null,

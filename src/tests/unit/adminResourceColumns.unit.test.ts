@@ -67,7 +67,6 @@ const KNOWN_BROKEN: Record<string, string[]> = {
   price_catalog: ["price"],
   price_matrix: ["price"],
   pricelist_versions: ["notes", "status"],
-  profiles: ["linked_customer_id"],
   quote_lines: ["description", "quantity"],
   quotes: ["notes"],
   rx_order_submissions: ["notes"],
