@@ -64,7 +64,7 @@ export const useLeads = () => {
     queryKey: ["leads-v1"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("contacts") as any)
-        .select("id,name,country,city,website,instagram_handle,facebook_page,google_rating,google_reviews_count,ai_intent_score,status,notes,lead_source,lead_segment")
+        .select("id,name,country,city,website,instagram_handle,facebook_page:facebook_page_id,google_rating,google_reviews_count,ai_intent_score,status,notes,lead_source,lead_segment")
         .in("status", ["lead", "contacted", "meeting", "proposal"])
         .order("updated_at", { ascending: false })
         .limit(500);
