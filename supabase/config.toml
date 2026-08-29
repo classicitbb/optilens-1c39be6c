@@ -114,3 +114,8 @@ verify_jwt = false
   [functions.crm-enrich-contacts]
     verify_jwt = false
 
+
+  # Staging mirror of the app MCP server. The managed "mcp" function only
+  # deploys on publish, so this copy makes the OAuth metadata observable now.
+  [functions.mcp-staging]
+    verify_jwt = false
