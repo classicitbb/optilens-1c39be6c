@@ -190,6 +190,123 @@ function json(body: unknown, status: number, req: Request): Response {
   });
 }
 
+/** The always-present sale fields, shared by checkout prepares and the probe. */
+function baseSaleParams(cfg: ScotiaConfig, opts: {
+  chargetotal: string;
+  responseSuccessURL: string;
+  responseFailURL: string;
+}): Record<string, string> {
+  return {
+    chargetotal: opts.chargetotal,
+    checkoutoption: DEFAULT_CHECKOUT_OPTION,
+    // Required by the Scotia hosted-page contract for this site. Keep this
+    // fixed even if an old credential-store row still has another value.
+    currency: "840",
+    language: "en_GB",
+    hash_algorithm: ALWAYS_HASH_ALGORITHM,
+    responseFailURL: opts.responseFailURL,
+    responseSuccessURL: opts.responseSuccessURL,
+    storename: cfg.storeId,
+    timezone: cfg.timezone,
+    txndatetime: txnDateTime(cfg.timezone),
+    txntype: "sale",
+  };
+}
+
+/**
+ * Admin IPG health check. Signs a real minimum-amount sale form and POSTs it
+ * to the gateway server-side. A healthy store answers with the hosted payment
+ * page; a store that Fiserv has not enabled for Connect answers with the
+ * generic error page instead. Nothing is charged either way.
+ */
+async function runProbe(cfg: ScotiaConfig, req: Request): Promise<Response> {
+  const origin = req.headers.get("origin") ?? "https://classicvisions.net";
+  const returnUrl = `${origin.replace(/\/$/, "")}/checkout`;
+  const formParams = baseSaleParams(cfg, {
+    chargetotal: "1.00",
+    responseSuccessURL: returnUrl,
+    responseFailURL: returnUrl,
+  });
+  formParams.oid = `PROBE-${Date.now()}`;
+  const hashExtended = await computeExtendedHash(formParams, cfg.sharedSecret);
+  const endpointUrl = GATEWAY_URLS[cfg.env];
+
+  const body = new URLSearchParams({ ...formParams, hashExtended });
+  let status = 0;
+  let html = "";
+  try {
+    const gatewayResponse = await fetch(endpointUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+    status = gatewayResponse.status;
+    html = await gatewayResponse.text();
+  } catch (err) {
+    await logScotiaEvent(supabaseAdmin, {
+      kind: "probe",
+      outcome: "error",
+      oid: formParams.oid,
+      storeId: cfg.storeId,
+      env: cfg.env,
+      endpointUrl,
+      requestParams: formParams,
+      notes: `Gateway unreachable: ${String(err)}`,
+    });
+    return json({
+      accepted: false,
+      classification: "http_error",
+      httpStatus: null,
+      detail: `Could not reach the gateway: ${String(err)}`,
+      snippet: "",
+      storeId: cfg.storeId,
+      environment: cfg.env,
+      currency: cfg.currency,
+      checkedAt: new Date().toISOString(),
+    }, 200, req);
+  }
+
+  const verdict = classifyProbeHtml(status, html);
+  const snippet = probeSnippet(html);
+
+  await logScotiaEvent(supabaseAdmin, {
+    kind: "probe",
+    outcome: verdict.accepted ? "ok" : verdict.classification === "http_error" ? "error" : "declined",
+    oid: formParams.oid,
+    storeId: cfg.storeId,
+    env: cfg.env,
+    endpointUrl,
+    httpStatus: status,
+    failRc: verdict.failRc,
+    failReason: verdict.detail,
+    requestParams: formParams,
+    responseParams: { classification: verdict.classification, snippet },
+    notes: "Admin IPG health check",
+  });
+
+  return json({
+    accepted: verdict.accepted,
+    classification: verdict.classification,
+    httpStatus: status,
+    detail: verdict.detail,
+    failRc: verdict.failRc,
+    snippet,
+    storeId: cfg.storeId,
+    environment: cfg.env,
+    currency: cfg.currency,
+    checkedAt: new Date().toISOString(),
+  }, 200, req);
+}
+
+async function requireAdmin(authContext: AuthContext): Promise<boolean> {
+  const { data: isAdmin, error } = await authContext.supabaseAdminClient.rpc(
+    "has_role",
+    { _user_id: authContext.user.id, _role: "admin" },
+  );
+  return !error && !!isAdmin;
+}
+
+
 // ── Handler ────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
