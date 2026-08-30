@@ -52,8 +52,6 @@ export interface PreparePaymentInput {
   chargetotal: number;
   responseSuccessURL: string;
   responseFailURL: string;
-  /** Page URL hosting the iframe. IFRAME mode only — unused in redirect mode. */
-  hostURI?: string;
   /** Internal order reference (becomes the gateway `oid`). */
   orderId?: string;
   /** Admin-only signed-form probe; never used by customer checkout. */
