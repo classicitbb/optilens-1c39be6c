@@ -306,7 +306,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
       {showSidebar ? (
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
           <div className="flex items-center justify-between gap-1.5 border-b px-3 py-2">
-            <span className="flex items-center gap-1.5 text-xs font-semibold"><Bot className="h-3.5 w-3.5 text-cyan-600" /> Portal Copilot</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold"><Bot className="h-3.5 w-3.5 text-cyan-600" /> Iris — Portal Copilot</span>
             <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Hide chat history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-3.5 w-3.5" /></Button>
           </div>
           <div className="px-2 py-1.5">
@@ -348,7 +348,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
             <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden h-7 w-7 lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-3.5 w-3.5" /></Button>
           ) : null}
           <div className="min-w-0">
-            <h1 className="truncate text-xs font-semibold">{selectedConversation?.title ?? "CV Portal Copilot"}</h1>
+            <h1 className="truncate text-xs font-semibold">{selectedConversation?.title ?? "Iris — Portal Copilot"}</h1>
             <p className="truncate text-[11px] text-muted-foreground">Your operational conversation · live changes always need approval</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">

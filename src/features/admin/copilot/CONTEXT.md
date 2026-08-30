@@ -7,6 +7,10 @@ supports the ERP portal rollout and an evidence-backed qualified CRM scan while
 extending existing account, activity and opportunity paths rather than creating
 parallel systems.
 
+It is Iris's privileged workspace. The shared name and prompt foundation are
+in `docs/ai-assistant-identity.md` and `supabase/functions/_shared/aiIdentity.ts`;
+the admin's tool and approval policy remains specific to this workspace.
+
 ## Hard rules
 
 - `/admin/copilot` is additionally wrapped in `AdminOnlyRoute`; customers,

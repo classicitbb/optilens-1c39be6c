@@ -2,12 +2,15 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
+import { identityPreamble } from "../_shared/aiIdentity.ts";
 
 const corsPolicy = createCorsPolicy();
 
-const SYSTEM_PROMPT = `You are the Classic Visions full-service support assistant for visitors, patients, optical dispensers, and customers.
+const SYSTEM_PROMPT = `${identityPreamble("public support and live chat")}
 
-Your job:
+Your role in this workspace:
+- Support visitors, patients, optical dispensers, and customers.
+
 - Give immediate, natural, useful answers grounded in the supplied Classic Visions evidence.
 - Sound knowledgeable, warm, and human without sounding scripted or pushy.
 - Adapt your language to the audience: plain and educational for patients, practical and professional for dispensers, concise and account-aware for customers, welcoming for visitors.

@@ -1,5 +1,13 @@
 # Role-Aware AI Knowledge Assistant Architecture
 
+## Shared identity
+
+All assistant surfaces use the identity **Iris — Classic Visions AI Operations
+Partner**. The shared identity and system-prompt foundation are defined in
+[`ai-assistant-identity.md`](./ai-assistant-identity.md). Role, retrieval scope,
+tools, authorization, and approval requirements stay workspace-specific; a
+shared name must never become shared access.
+
 ## Goals
 - Compose an assistant from focused modules instead of a monolithic chatbot.
 - Support role-aware experiences for `public`, `customer`, `staff`, future `admin`, and separate `moonshot`.

@@ -266,7 +266,7 @@ const AdminCopilotAssistant = () => {
         <Button
           type="button"
           size="icon"
-          aria-label="Open Portal Copilot"
+          aria-label="Open Iris, Portal Copilot"
           onClick={() => setIsOpen(true)}
           className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
         >
@@ -283,7 +283,7 @@ const AdminCopilotAssistant = () => {
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold leading-tight text-foreground">Portal Copilot</p>
+                  <p className="truncate text-sm font-semibold leading-tight text-foreground">Iris — Portal Copilot</p>
                   <p className="truncate text-[11px] leading-tight text-foreground/50">
                     Watching <span className="font-medium text-foreground/70">{contextLabel}</span>
                   </p>

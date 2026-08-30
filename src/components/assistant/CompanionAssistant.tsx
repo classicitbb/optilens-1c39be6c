@@ -115,7 +115,7 @@ const AssistantResultCard = ({
       </div>
 
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Assistant response</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
         <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
           <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
             <ReactMarkdown>{result.answer}</ReactMarkdown>
@@ -657,7 +657,7 @@ const CompanionAssistant = () => {
   }, []);
 
   const title = useMemo(
-    () => (location.pathname.startsWith("/profile") ? "Search and support assistant" : "Search and help assistant"),
+    () => (location.pathname.startsWith("/profile") ? "Iris — portal support" : "Iris — search & help"),
     [location.pathname],
   );
   const [panelOffset, setPanelOffset] = useState({ x: 0, y: 0 });
@@ -933,7 +933,7 @@ const CompanionAssistant = () => {
           <Button
             type="button"
             size="icon"
-            aria-label="Open search & help assistant"
+            aria-label="Open Iris, search and help assistant"
             onClick={() => { setIsCollapsed(false); openAssistant(); }}
             className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
@@ -946,7 +946,7 @@ const CompanionAssistant = () => {
             className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
             <MessageCircle className="mr-2 h-5 w-5" />
-            Search & help
+            Ask Iris
           </Button>
         )
       ) : null}
