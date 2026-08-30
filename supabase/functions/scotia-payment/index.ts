@@ -365,26 +365,15 @@ Deno.serve(async (req) => {
       if (ownershipError) return json({ error: ownershipError }, 403, req);
     }
 
-    const formParams: Record<string, string> = {
+    const formParams: Record<string, string> = baseSaleParams(cfg, {
       chargetotal: normalizeAmount(p.chargetotal),
-      checkoutoption: DEFAULT_CHECKOUT_OPTION,
-      // Required by the Scotia hosted-page contract for this site. Keep this
-      // fixed even if an old credential-store row still has another value.
-      currency: "840",
-      language: "en_GB",
-      hash_algorithm: ALWAYS_HASH_ALGORITHM,
-      responseFailURL: p.responseFailURL,
       responseSuccessURL: p.responseSuccessURL,
-      storename: cfg.storeId,
-      timezone: cfg.timezone,
-      txndatetime: txnDateTime(cfg.timezone),
-      txntype: "sale",
-    };
+      responseFailURL: p.responseFailURL,
+    });
 
-    // IFRAME mode requires hostURI (manual page 13).
-    if (p.hostURI) formParams.hostURI = p.hostURI;
     // Support reference for reconciliation (shown to support as oid).
     if (p.orderId) formParams.oid = p.orderId;
+
 
     // Server-to-server webhook: Fiserv posts the outcome here directly, so
     // settlement doesn't depend on the buyer's browser completing the return
