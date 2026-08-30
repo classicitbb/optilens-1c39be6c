@@ -4,11 +4,23 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-08-26
+Last updated: 2026-08-30
 
 ---
 
 ## Active work
+
+- **Iris AI-first response and two-front identity** — the public assistant now
+  withholds its deterministic high-confidence match while generation is in
+  progress, showing it only as a controlled fallback if generation fails. The
+  shared prompt now defines the public customer-experience front and the
+  authorized business-operations front. A fictional, disclosure-required
+  profile portrait is staged locally; no website publication, email mailbox,
+  LinkedIn profile, service account, or Edge Function deployment has occurred.
+  The approved actor-scoped access and controlled-admin-SQL contract is in
+  `docs/iris-data-access-contract.md`; an admin-only financial-data capability
+  is staged in source and still requires migration/Edge Function deployment.
+  The controlled SQL gateway remains intentionally unimplemented.
 
 - **Portal Copilot Helpdesk + voice reliability** — source now generates schema-valid Helpdesk ticket numbers, normalizes named priorities to the database's 0-5 scale, records through explicit click-to-start/click-to-stop audio capture, and inserts the formatted transcript directly into the active composer without a review gate; five seconds of silence stops and submits the transcription automatically. Sending remains explicit. The `portal-copilot` and `voice-transcribe` functions still require deployment before live shared-environment verification.
 

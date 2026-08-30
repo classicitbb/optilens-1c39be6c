@@ -113,7 +113,7 @@ const ROUTER_TOOLS = [
 const COPILOT_PERSONA = `${identityPreamble("admin operations")}
 
 Your role in this workspace:
-- Assist an internal administrator. Be conversational, remember the thread, and complete the work you are asked to do instead of pushing it back to the admin.
+- Assist an internal administrator as a proactive operations partner. Be conversational, remember the thread, and complete the work you are asked to do instead of pushing it back to the admin. When useful, surface a concise decision, material risk, owner, dependency, and next action; do not manufacture urgency or perform work beyond the supplied tools and approvals.
 - You have read and write access to every admin module through the admin_* resource tools: call admin_list_resources when you are unsure which resource covers a request, then search, read, create or update records directly.
 - Ordinary changes execute immediately with no approval step. Deletes and price-bearing changes come back as an approval proposal — present that clearly and let the admin approve it.
 - Also use the dedicated ERP portal rollout and CRM opportunity scan workflows when the request matches them. Chain several tool calls in one turn when a task needs it, and only ask a clarifying question when the request is genuinely ambiguous or a required identifier is missing.
@@ -140,6 +140,7 @@ const runCopilotTurn = async (
   history: { role: "user" | "assistant"; content: string }[],
   db: any,
   actorUserId: string,
+  canAccessFinancialData: boolean,
   sendEmail: (payload: { to: string[]; subject: string; html: string }) => Promise<{ messageIds?: string[] }>,
   pageContext: string | null = null,
 ): Promise<{ ok: true; result: RouteResult } | { ok: false; status: number; message: string }> => {
@@ -194,7 +195,7 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
           : DOC_STUDIO_TOOL_NAMES.has(use.name as any)
           ? await dispatchDocStudioTool(db, use.name as string, input, actorUserId, { sendEmail })
           : ADMIN_RESOURCE_TOOL_NAMES.has(use.name as any)
-          ? await dispatchAdminResourceTool(db, use.name as string, input, actorUserId)
+          ? await dispatchAdminResourceTool(db, use.name as string, input, actorUserId, { canAccessFinancialData })
           : await dispatchLookupTool(db, use.name as string, input);
         const queuedRunId = (output as { runId?: unknown } | null)?.runId;
         if (typeof queuedRunId === "string") preparedRunId = queuedRunId;
@@ -598,6 +599,10 @@ Deno.serve(async (req) => {
     if (auth instanceof Response) return auth;
     const db = auth.supabaseAdminClient;
     const actorUserId = auth.user.id;
+    const { data: canAccessFinancialData, error: financialAccessError } = await db.rpc("can_access_financial_data", {
+      p_user_id: actorUserId,
+    });
+    if (financialAccessError) throw new Error(`Unable to resolve financial-data access: ${financialAccessError.message}`);
     const body = await req.json() as JsonRecord;
     const operation = stringValue(body.operation, 80);
 
@@ -645,7 +650,7 @@ Deno.serve(async (req) => {
       const history = existingConversation ? await loadConversationMessages(db, existingConversation.id) : [];
 
       const { apiKey: claudeApiKey, model: claudeModel } = await resolveClaudeCredentials(db, settings.model);
-      const routed = claudeApiKey && claudeModel ? await runCopilotTurn(claudeApiKey, claudeModel, command, history, db, actorUserId, async (payload) => {
+      const routed = claudeApiKey && claudeModel ? await runCopilotTurn(claudeApiKey, claudeModel, command, history, db, actorUserId, canAccessFinancialData === true, async (payload) => {
         const response = await invokeFunction(req, "docstudio-api/email/send", payload);
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data?.ok) throw new Error(stringValue(data?.error) || `Email send failed (${response.status})`);

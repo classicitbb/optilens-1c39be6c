@@ -24,6 +24,15 @@ the admin's tool and approval policy remains specific to this workspace.
   unknown; no planner may invent a cause, price, recipient or public-web fact.
 - The model never runs SQL. The `portal-copilot` Edge Function owns typed,
   whitelisted operations and durable audit state.
+- Internal financial resources in that typed registry are marked
+  `financialData` and require the server-resolved
+  `can_access_financial_data` capability. The current approved matrix grants
+  it only to existing app admins; operators and viewers do not receive it.
+- The future controlled admin SQL gateway is separate from this model. It must
+  resolve the actor's existing admin permissions, financial-data capability and
+  a fresh single-use authorization before server-side execution; see
+  `docs/iris-data-access-contract.md`. Until that component exists, direct SQL
+  remains unavailable to Iris.
 - Never undo a completed prior step after a later partial failure.
 - Enrichment may fill a BLANK contact field silently, with source URL,
   retrieval date and confidence recorded. It may never overwrite an
@@ -59,4 +68,5 @@ the admin's tool and approval policy remains specific to this workspace.
 - `supabase/functions/_shared/copilot/crmOpportunityScan.ts` — deterministic CRM signal planner.
 - `supabase/migrations/20260813130000_portal_copilot_mvp.sql` — run/action/audit data.
 - `supabase/migrations/20260814160000_portal_copilot_crm_opportunity_scan.sql` — CRM workflow registration.
+- `supabase/migrations/20260830140634_iris_financial_data_capability.sql` — admin-only financial-data capability (pending deployment).
 - `docs/portal-copilot-connected-capabilities.md` — verified CRM, pricing and enrichment seams.

@@ -971,7 +971,7 @@ export const PLATFORM_RESOURCE_DETAIL: Record<string, PlatformResourceDetail> = 
     "table": "profiles",
     "module": "Settings / Users",
     "description": "User profiles including portal access status.",
-    "columns": "id,email,full_name,portal_access_status,portal_access_note,linked_customer_id,created_at,updated_at",
+    "columns": "id,email,full_name,portal_access_status,portal_access_note,crm_customer_id,created_at,updated_at",
     "searchColumns": [
       "email",
       "full_name"

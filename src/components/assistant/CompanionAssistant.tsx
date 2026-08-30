@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Search, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
+import { Expand, ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +97,17 @@ const AssistantResultCard = ({
   const sources = result.citations ?? result.topLinks;
   const isLocalSampleMode = import.meta.env.DEV;
 
+  if (isEnhancing) {
+    return (
+      <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3 text-sm text-foreground/70">
+        <span className="inline-flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-secondary" />
+          Iris is preparing a grounded answer…
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-1">
@@ -106,12 +117,6 @@ const AssistantResultCard = ({
         ) : (
           <Badge variant="outline" className="h-5 border-foreground/20 px-1.5 py-0 text-[10px] leading-5 text-foreground/60">AI-generated response</Badge>
         )}
-        {isEnhancing ? (
-          <Badge variant="outline" className="h-5 border-amber-400/30 bg-amber-400/10 px-1.5 py-0 text-[10px] leading-5 text-amber-100">
-            <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
-            Refining
-          </Badge>
-        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -727,12 +732,14 @@ const CompanionAssistant = () => {
       >
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
-              <Search className="h-5 w-5" />
-            </div>
+            <img
+              src="/images/iris/iris-ai-operations-partner.png"
+              alt="Iris, Classic Visions' AI Operations Partner"
+              className="h-10 w-10 rounded-full border border-border/50 object-cover shadow-soft"
+            />
             <div>
               <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:flex"><GripHorizontal className="h-3 w-3" />Drag to move</p>
+              <p className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:flex"><GripHorizontal className="h-3 w-3" />AI assistant · Drag to move</p>
             </div>
           </div>
         </div>

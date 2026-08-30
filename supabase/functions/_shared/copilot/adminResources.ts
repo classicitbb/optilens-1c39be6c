@@ -31,6 +31,8 @@ export type AdminResource = {
   orderBy?: string;
   /** Writes touch money/prices — always require approval. */
   priceSensitive?: boolean;
+  /** Reads or writes can expose internal financial data; admins only. */
+  financialData?: boolean;
 };
 
 export const ADMIN_RESOURCES: AdminResource[] = [
@@ -160,6 +162,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["status", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "order_items",
@@ -171,6 +174,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["quantity", "status"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "rx_order_submissions",
@@ -202,6 +206,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["status", "notes", "valid_until"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "quote_lines",
@@ -213,6 +218,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["description", "quantity"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
 
   // ------------------------------------------------- Catalog & pricing
@@ -269,6 +275,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["price"],
     orderBy: "id",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "price_matrix",
@@ -280,6 +287,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["price"],
     orderBy: "id",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "pricelists",
@@ -291,6 +299,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["name"],
     orderBy: "id",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "pricelist_versions",
@@ -302,6 +311,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["name", "status", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "catalog_templates",
@@ -323,6 +333,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["is_published", "display_name", "sort_order"],
     orderBy: "updated_at",
     priceSensitive: true,
+    financialData: true,
   },
 
   // ------------------------------------------ Customers, portal, billing
@@ -335,6 +346,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: ["name", "account_number", "email"],
     writable: ["name", "email", "phone", "pipeline_stage", "assigned_pricelist_id", "is_active"],
     orderBy: "updated_at",
+    financialData: true,
   },
   {
     key: "profiles",
@@ -375,6 +387,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "created_at",
+    financialData: true,
   },
   {
     key: "statement_lines",
@@ -385,6 +398,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "created_at",
+    financialData: true,
   },
   {
     key: "account_payments",
@@ -395,6 +409,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "created_at",
+    financialData: true,
   },
   {
     key: "balances",
@@ -405,6 +420,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "updated_at",
+    financialData: true,
   },
 
   // ---------------------------------------------------------- Shipments
@@ -418,6 +434,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["reference", "status", "notes", "arrival_date"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "shipment_lines",
@@ -429,6 +446,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["quantity", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "shipment_charges",
@@ -440,6 +458,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["charge_type_id", "amount", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
 
   // ---------------------------------------- Docs, knowledge & settings
@@ -659,6 +678,10 @@ export type AdminToolResult = {
   ignoredFields?: string[];
 };
 
+export type AdminResourceAccess = {
+  canAccessFinancialData: boolean;
+};
+
 /**
  * Executes an admin resource tool. Writes classified as "approval" are NOT
  * executed — the caller (copilot / MCP tool) turns the returned proposal into
@@ -669,6 +692,7 @@ export const dispatchAdminResourceTool = async (
   name: string,
   input: Record<string, unknown>,
   actorUserId?: string,
+  access: AdminResourceAccess = { canAccessFinancialData: false },
 ): Promise<AdminToolResult> => {
   if (name === "admin_list_resources") {
     const moduleFilter = typeof input.module === "string" ? input.module.toLowerCase() : "";
@@ -680,11 +704,15 @@ export const dispatchAdminResourceTool = async (
         description: resource.description,
         writable: resource.writable,
         approvalOnWrite: Boolean(resource.priceSensitive),
+        financialData: Boolean(resource.financialData),
       }));
     return { status: "ok", resource: "*", operation: "list_resources", data: items };
   }
 
   const resource = findAdminResource(typeof input.resource === "string" ? input.resource : "");
+  if (resource.financialData && !access.canAccessFinancialData) {
+    throw new Error("Financial data is restricted to administrators with the financial-data capability.");
+  }
 
   if (name === "admin_search_records") {
     const query = typeof input.query === "string" ? input.query.trim() : "";

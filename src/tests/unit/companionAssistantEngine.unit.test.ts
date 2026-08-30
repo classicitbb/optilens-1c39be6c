@@ -80,7 +80,7 @@ describe("companion assistant engine", () => {
       errorState: true,
       corpus,
     });
-    expect(controlledFallback.confidence).toBe("high");
+    expect(controlledFallback.confidence).toBe("high"); // High is fallback-only, never the first AI response.
   });
 
   it("infers patient and dispenser audiences from route and language", () => {
