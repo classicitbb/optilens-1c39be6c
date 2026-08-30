@@ -4,6 +4,7 @@ import {
   dedupeCandidates,
   MAX_SEARCH_TASKS,
 } from "../../../supabase/functions/lead-intelligence/candidates";
+import { cleanBusinessName } from "../../../supabase/functions/lead-intelligence/providers/businessName";
 import type { LeadCandidate } from "../../../supabase/functions/lead-intelligence/providers/types";
 import type { SearchPlan } from "../../../supabase/functions/lead-intelligence/ai/planner";
 
@@ -102,5 +103,38 @@ describe("buildSearchTasks", () => {
     }));
 
     expect(tasks).toHaveLength(MAX_SEARCH_TASKS);
+  });
+});
+
+describe("cleanBusinessName", () => {
+  it("keeps legitimate separators inside a business name", () => {
+    expect(cleanBusinessName("Vision Care - Bridgetown", "https://visioncare.bb"))
+      .toBe("Vision Care - Bridgetown");
+    expect(cleanBusinessName("Smith | Optical", "https://smithoptical.bb"))
+      .toBe("Smith | Optical");
+  });
+
+  it("strips directory and site-brand suffixes", () => {
+    expect(cleanBusinessName("Acme Optical | Yelp", "https://www.yelp.com/biz/acme"))
+      .toBe("Acme Optical");
+    expect(cleanBusinessName("Island Eye Care - Contact Us", "https://islandeye.bb/contact"))
+      .toBe("Island Eye Care");
+  });
+
+  it("falls back to the url when there is no title", () => {
+    expect(cleanBusinessName(null, "https://islandeye.bb")).toBe("https://islandeye.bb");
+  });
+});
+
+describe("dedupeCandidates near-duplicates", () => {
+  it("collapses similar names in the same city and keeps the fuller name", () => {
+    const merged = dedupeCandidates([
+      candidate({ name: "Optical Solutions" }),
+      candidate({ name: "Optical Solutions Ltd", google_rating: 4.3 }),
+    ]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].google_rating).toBe(4.3);
+    expect(merged[0].name).toBe("Optical Solutions Ltd");
   });
 });
