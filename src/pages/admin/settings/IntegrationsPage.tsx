@@ -137,6 +137,8 @@ export default function IntegrationsPage() {
   });
   const [sharedSecret, setSharedSecret] = useState("");
   const [testPayment, setTestPayment] = useState<PreparePaymentInput | null>(null);
+  const [probeResult, setProbeResult] = useState<ScotiaProbeResult | null>(null);
+
   const [dhlForm, setDhlForm] = useState<Partial<{
     account_number: string;
     environment: "test" | "production";
