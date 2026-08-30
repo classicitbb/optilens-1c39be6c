@@ -215,7 +215,7 @@ export default function IntegrationsPage() {
         responseSuccessURL: `${window.location.origin}/checkout`,
         responseFailURL: `${window.location.origin}/checkout`,
       });
-      toast({ title: "Configuration valid", description: "The secure hosted-payment window is ready for an iframe test." });
+      toast({ title: "Configuration valid", description: "The gateway credentials resolve and a signed form was produced." });
     },
     onError: (error: any) => {
       qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
@@ -223,6 +223,34 @@ export default function IntegrationsPage() {
       toast({ title: "Test failed", description: error.message, variant: "destructive" });
     },
   });
+
+  // IPG health check: signs a probe sale and posts it to Fiserv server-side to
+  // see whether the store is actually accepted for Connect hosted-page use.
+  const probeMutation = useMutation({
+    mutationFn: async (): Promise<ScotiaProbeResult> => {
+      const { data, error } = await supabase.functions.invoke("scotia-payment", {
+        body: { action: "probe" },
+      });
+      if (error) throw new Error(error.message);
+      if (!data || typeof (data as any).accepted !== "boolean") {
+        throw new Error((data as { error?: string })?.error || "Health check returned an unexpected response.");
+      }
+      return data as ScotiaProbeResult;
+    },
+    onSuccess: (result) => {
+      setProbeResult(result);
+      toast({
+        title: result.accepted ? "Gateway accepted the store" : "Gateway rejected the request",
+        description: result.detail,
+        variant: result.accepted ? "default" : "destructive",
+      });
+    },
+    onError: (error: any) => {
+      setProbeResult(null);
+      toast({ title: "Health check failed", description: error.message, variant: "destructive" });
+    },
+  });
+
 
   const saveDhlMutation = useMutation({
     mutationFn: async () => {
