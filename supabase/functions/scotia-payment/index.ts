@@ -38,7 +38,12 @@ import {
 } from "../_shared/scotia/ipgConnect.ts";
 // Config resolution (StoreID/SharedSecret lookup) is shared with scotia-return
 // so both functions resolve credentials identically. See _shared/scotia/config.ts.
-import { getScotiaConfig as getConfig } from "../_shared/scotia/config.ts";
+import { getScotiaConfig as getConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/scotia/config.ts";
+import {
+  classifyProbeHtml,
+  logScotiaEvent,
+  probeSnippet,
+} from "../_shared/scotia/events.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -57,8 +62,6 @@ const prepareSchema = z.object({
   // independent of the buyer's browser return). Optional — the caller can
   // omit it and this function will derive the default scotia-notify URL.
   notificationURL: z.string().url().optional(),
-  // The page hosting the iframe — REQUIRED for IFRAME mode (manual page 13).
-  hostURI: z.string().url().optional(),
   // Your internal order reference for support/reconciliation (oid).
   orderId: z.string().min(1).optional(),
   // Admin-only reachability probe (Integrations page). Skips order ownership
@@ -86,7 +89,15 @@ const validateSchema = z.object({
   response: z.record(z.string(), z.string()),
 });
 
-const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema]);
+// Admin-only IPG health check: sign a real minimum-amount sale form and POST
+// it to the gateway from the server, then classify the HTML that comes back.
+// Nothing is charged — the hosted page is only rendered, never completed.
+const probeSchema = z.object({
+  action: z.literal("probe"),
+});
+
+const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema]);
+
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function normalizeAmount(v: string | number): string {
