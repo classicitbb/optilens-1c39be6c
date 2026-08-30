@@ -346,16 +346,20 @@ Deno.serve(async (req) => {
       }, 200, req);
     }
 
+    if (parsed.action === "probe") {
+      if (!(await requireAdmin(authContext))) {
+        return json({ error: "Admin role required for the gateway health check." }, 403, req);
+      }
+      return await runProbe(cfg, req);
+    }
+
     // action === "prepare"
     const p = parsed;
     if (p.testMode) {
-      const { data: isAdmin, error: roleError } = await authContext.supabaseAdminClient.rpc(
-        "has_role",
-        { _user_id: authContext.user.id, _role: "admin" },
-      );
-      if (roleError || !isAdmin) {
+      if (!(await requireAdmin(authContext))) {
         return json({ error: "Admin role required for gateway test." }, 403, req);
       }
+
     } else {
       const ownershipError = await assertPaymentOwnership(p.orderId, p.chargetotal, authContext);
       if (ownershipError) return json({ error: ownershipError }, 403, req);
