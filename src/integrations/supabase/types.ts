@@ -9231,6 +9231,69 @@ export type Database = {
         }
         Relationships: []
       }
+      scotia_gateway_events: {
+        Row: {
+          approval_code: string | null
+          approved: boolean | null
+          association_response_code: string | null
+          created_at: string
+          endpoint_url: string | null
+          env: string | null
+          fail_rc: string | null
+          fail_reason: string | null
+          http_status: number | null
+          id: string
+          kind: string
+          notes: string | null
+          oid: string | null
+          outcome: string
+          request_params: Json | null
+          response_params: Json | null
+          store_id: string | null
+          terminal_id: string | null
+        }
+        Insert: {
+          approval_code?: string | null
+          approved?: boolean | null
+          association_response_code?: string | null
+          created_at?: string
+          endpoint_url?: string | null
+          env?: string | null
+          fail_rc?: string | null
+          fail_reason?: string | null
+          http_status?: number | null
+          id?: string
+          kind: string
+          notes?: string | null
+          oid?: string | null
+          outcome: string
+          request_params?: Json | null
+          response_params?: Json | null
+          store_id?: string | null
+          terminal_id?: string | null
+        }
+        Update: {
+          approval_code?: string | null
+          approved?: boolean | null
+          association_response_code?: string | null
+          created_at?: string
+          endpoint_url?: string | null
+          env?: string | null
+          fail_rc?: string | null
+          fail_reason?: string | null
+          http_status?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          oid?: string | null
+          outcome?: string
+          request_params?: Json | null
+          response_params?: Json | null
+          store_id?: string | null
+          terminal_id?: string | null
+        }
+        Relationships: []
+      }
       security_alerts: {
         Row: {
           acknowledged_at: string | null

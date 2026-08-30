@@ -52,8 +52,6 @@ export interface PreparePaymentInput {
   chargetotal: number;
   responseSuccessURL: string;
   responseFailURL: string;
-  /** Page URL hosting the iframe. IFRAME mode only — unused in redirect mode. */
-  hostURI?: string;
   /** Internal order reference (becomes the gateway `oid`). */
   orderId?: string;
   /** Admin-only signed-form probe; never used by customer checkout. */
@@ -91,31 +89,7 @@ export async function prepareScotiaPayment(input: PreparePaymentInput): Promise<
 }
 
 /**
- * Build a hidden form from prepared params and POST it into the iframe.
- * Mirrors the IFRAME sale form shape in the manual (pages 12–13).
- */
-export function submitScotiaForm(prepared: PreparedPayment, iframeName: string): void {
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = prepared.gatewayUrl;
-  form.target = iframeName;
-  form.style.display = "none";
 
-  for (const [name, value] of Object.entries(prepared.formParams)) {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
-  }
-
-  document.body.appendChild(form);
-  form.submit();
-  // Leave the form in the DOM briefly so the POST completes, then clean up.
-  setTimeout(() => form.remove(), 0);
-}
-
-/**
  * Build a hidden form from prepared params and submit it as a full top-level
  * navigation (no target → the whole browser leaves this page). This is the
  * "Direct Sale" mode from the manual (page 11) — what checkout and statement

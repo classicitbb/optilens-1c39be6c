@@ -24,6 +24,8 @@
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/config.ts";
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
+import { logScotiaEvent } from "../_shared/scotia/events.ts";
+
 
 const CHECKOUT_RETURN_PATH = "/order-complete";
 const STATEMENT_RETURN_PATH = "/profile/statements";
@@ -111,6 +113,16 @@ Deno.serve(async (req) => {
         Object.entries(response).map(([k, v]) => [k, REDACT_KEYS.has(k.toLowerCase()) ? "[redacted]" : v]),
       );
       console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash, rawFields });
+      await logScotiaEvent(supabaseAdmin, {
+        kind: "return",
+        outcome: "hash_invalid",
+        oid,
+        storeId: cfg.storeId,
+        env: cfg.env,
+        failRc: result.failRc,
+        failReason: "Response hash did not validate",
+        responseParams: response,
+      });
       return redirect(req, returnPath, { scotia: "error" });
     }
 
@@ -133,6 +145,21 @@ Deno.serve(async (req) => {
     };
 
     const outcome = result.approved ? "success" : "declined";
+
+    // Diagnostics: exact parameters and failure code the gateway returned.
+    await logScotiaEvent(supabaseAdmin, {
+      kind: "return",
+      outcome: result.approved ? "ok" : "declined",
+      oid,
+      storeId: cfg.storeId,
+      env: cfg.env,
+      approved: result.approved,
+      associationResponseCode: result.associationResponseCode,
+      failRc: result.failRc,
+      failReason: response.fail_reason ?? null,
+      responseParams: response,
+    });
+
 
     if (isStatementFlow) {
       const paymentId = oid.slice("STMT-".length);

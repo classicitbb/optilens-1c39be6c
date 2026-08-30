@@ -39,6 +39,21 @@ interface PaymentGatewaySettings {
   updated_at: string;
 }
 
+/** Result of the admin IPG health check (scotia-payment `action: "probe"`). */
+interface ScotiaProbeResult {
+  accepted: boolean;
+  classification: string;
+  httpStatus: number | null;
+  detail: string;
+  failRc?: string | null;
+  snippet: string;
+  storeId: string;
+  environment: string;
+  currency: string;
+  checkedAt: string;
+}
+
+
 interface DhlExpressSettings {
   account_number: string | null;
   environment: "test" | "production";
@@ -122,6 +137,8 @@ export default function IntegrationsPage() {
   });
   const [sharedSecret, setSharedSecret] = useState("");
   const [testPayment, setTestPayment] = useState<PreparePaymentInput | null>(null);
+  const [probeResult, setProbeResult] = useState<ScotiaProbeResult | null>(null);
+
   const [dhlForm, setDhlForm] = useState<Partial<{
     account_number: string;
     environment: "test" | "production";
@@ -215,7 +232,7 @@ export default function IntegrationsPage() {
         responseSuccessURL: `${window.location.origin}/checkout`,
         responseFailURL: `${window.location.origin}/checkout`,
       });
-      toast({ title: "Configuration valid", description: "The secure hosted-payment window is ready for an iframe test." });
+      toast({ title: "Configuration valid", description: "The gateway credentials resolve and a signed form was produced." });
     },
     onError: (error: any) => {
       qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
@@ -223,6 +240,34 @@ export default function IntegrationsPage() {
       toast({ title: "Test failed", description: error.message, variant: "destructive" });
     },
   });
+
+  // IPG health check: signs a probe sale and posts it to Fiserv server-side to
+  // see whether the store is actually accepted for Connect hosted-page use.
+  const probeMutation = useMutation({
+    mutationFn: async (): Promise<ScotiaProbeResult> => {
+      const { data, error } = await supabase.functions.invoke("scotia-payment", {
+        body: { action: "probe" },
+      });
+      if (error) throw new Error(error.message);
+      if (!data || typeof (data as any).accepted !== "boolean") {
+        throw new Error((data as { error?: string })?.error || "Health check returned an unexpected response.");
+      }
+      return data as ScotiaProbeResult;
+    },
+    onSuccess: (result) => {
+      setProbeResult(result);
+      toast({
+        title: result.accepted ? "Gateway accepted the store" : "Gateway rejected the request",
+        description: result.detail,
+        variant: result.accepted ? "default" : "destructive",
+      });
+    },
+    onError: (error: any) => {
+      setProbeResult(null);
+      toast({ title: "Health check failed", description: error.message, variant: "destructive" });
+    },
+  });
+
 
   const saveDhlMutation = useMutation({
     mutationFn: async () => {
@@ -408,6 +453,14 @@ export default function IntegrationsPage() {
               {testMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlugZap className="mr-2 h-4 w-4" />}
               {currentStatus === "error" ? "Recheck & clear error" : "Test configuration"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => probeMutation.mutate()}
+              disabled={probeMutation.isPending || !data?.has_secret}
+            >
+              {probeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+              Run IPG health check
+            </Button>
           </div>
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
             {currentStatus === "connected" ? (
@@ -419,6 +472,38 @@ export default function IntegrationsPage() {
               ? "Gateway is configured."
               : "Add a Store ID and Shared Secret to configure the gateway."}
           </p>
+          <p className="text-xs text-muted-foreground">
+            The health check signs a $1.00 probe sale and posts it to Fiserv from the server to
+            see whether the store is accepted for Connect hosted-page transactions. Nothing is charged.
+          </p>
+          {probeResult && (
+            <div className="border border-border p-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                {probeResult.accepted ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                ) : (
+                  <ShieldCheck className="h-3.5 w-3.5 text-destructive" />
+                )}
+                <span className="font-medium">
+                  {probeResult.accepted ? "Hosted page rendered" : "Gateway did not render the hosted page"}
+                </span>
+                <Badge variant="outline">{probeResult.classification}</Badge>
+                {probeResult.httpStatus !== null && <Badge variant="outline">HTTP {probeResult.httpStatus}</Badge>}
+                {probeResult.failRc && <Badge variant="outline">fail_rc {probeResult.failRc}</Badge>}
+              </div>
+              <p className="mt-2 text-muted-foreground">{probeResult.detail}</p>
+              <p className="mt-1 text-muted-foreground">
+                Store {probeResult.storeId} · {probeResult.environment} · checked{" "}
+                {new Date(probeResult.checkedAt).toLocaleString()}
+              </p>
+              {probeResult.snippet && (
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words bg-muted p-2">
+                  {probeResult.snippet}
+                </pre>
+              )}
+            </div>
+          )}
+
         </CardContent>
       </Card>
 
@@ -496,8 +581,8 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>Scotia secure payment-window test</DialogTitle>
             <DialogDescription>
-              This uses the configured test gateway. Scotia's hosted page cannot be embedded
-              (it sends frame-ancestors 'self'), so the test opens it as a full-page redirect.
+              This uses the configured gateway and opens Scotia's hosted page as a full-page redirect.
+
             </DialogDescription>
           </DialogHeader>
           {testPayment && (
