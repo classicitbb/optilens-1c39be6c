@@ -412,12 +412,26 @@ Deno.serve(async (req) => {
 
     const hashExtended = await computeExtendedHash(formParams, cfg.sharedSecret);
 
+    // Diagnostics: record exactly what was signed so a later gateway failure
+    // can be matched against the form the buyer actually posted.
+    await logScotiaEvent(supabaseAdmin, {
+      kind: "prepare",
+      outcome: "ok",
+      oid: formParams.oid ?? null,
+      storeId: cfg.storeId,
+      env: cfg.env,
+      endpointUrl: GATEWAY_URLS[cfg.env],
+      requestParams: formParams,
+      notes: p.testMode ? "Admin signed-form test" : "Checkout prepare",
+    });
+
     return json({
       gatewayUrl: GATEWAY_URLS[cfg.env],
       // The browser auto-submits these as hidden inputs (incl. hashExtended).
       // SharedSecret is intentionally absent.
       formParams: { ...formParams, hashExtended },
     }, 200, req);
+
   } catch (err) {
     return json({ error: "Failed to prepare payment", detail: String(err) }, 500, req);
   }
