@@ -581,8 +581,8 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>Scotia secure payment-window test</DialogTitle>
             <DialogDescription>
-              This uses the configured test gateway. Scotia's hosted page cannot be embedded
-              (it sends frame-ancestors 'self'), so the test opens it as a full-page redirect.
+              This uses the configured gateway and opens Scotia's hosted page as a full-page redirect.
+
             </DialogDescription>
           </DialogHeader>
           {testPayment && (
