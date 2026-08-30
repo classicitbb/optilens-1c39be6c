@@ -1,4 +1,5 @@
 import type { LeadCandidate, ProviderAdapter, ProviderSearchParams } from "./types.ts";
+import { cleanBusinessName } from "./businessName.ts";
 
 const getApiKey = () => Deno.env.get("FIRECRAWL_API_KEY")?.trim() ?? "";
 
@@ -33,14 +34,8 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
   const data = await response.json();
   const results = Array.isArray(data?.data) ? data.data : [];
 
-  // Page titles often carry a site suffix ("Acme Optical | Yelp"). The lookup
-  // pipeline skips the AI qualifier, so strip the suffix here to keep suggested
-  // business names clean.
   return results.slice(0, 20).map((item: any) => ({
-    name: String(item.title ?? item.url ?? "Unknown Business")
-      .split(" | ")[0]
-      .split(" - ")[0]
-      .trim() || String(item.url ?? "Unknown Business"),
+    name: cleanBusinessName(item.title, item.url),
     city: city ?? null,
     country: country ?? null,
     website: item.url || null,
