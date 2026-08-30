@@ -22,6 +22,8 @@
 
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/scotia/config.ts";
+import { logScotiaEvent } from "../_shared/scotia/events.ts";
+
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
 
 function ok(body: Record<string, unknown> = { received: true }): Response {
