@@ -39,6 +39,21 @@ interface PaymentGatewaySettings {
   updated_at: string;
 }
 
+/** Result of the admin IPG health check (scotia-payment `action: "probe"`). */
+interface ScotiaProbeResult {
+  accepted: boolean;
+  classification: string;
+  httpStatus: number | null;
+  detail: string;
+  failRc?: string | null;
+  snippet: string;
+  storeId: string;
+  environment: string;
+  currency: string;
+  checkedAt: string;
+}
+
+
 interface DhlExpressSettings {
   account_number: string | null;
   environment: "test" | "production";
