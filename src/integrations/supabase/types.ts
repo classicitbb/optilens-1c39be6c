@@ -11715,6 +11715,10 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: boolean
       }
+      can_access_financial_data: {
+        Args: { p_user_id?: string }
+        Returns: boolean
+      }
       can_access_portal_account: {
         Args: { p_customer_id: number; p_user_id?: string }
         Returns: boolean
