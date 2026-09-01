@@ -90,7 +90,10 @@ function loadScript(src: string): Promise<void> {
 }
 
 function loadStylesheet(href: string) {
-  return new Promise<void>((resolve, reject) => {
+  // Non-fatal: a failed stylesheet (e.g. an icon font blocked by CSP or the
+  // network) only degrades visuals. Scripts stay strict — a missing script
+  // genuinely breaks the studio.
+  return new Promise<void>((resolve) => {
     const existing = document.querySelector<HTMLLinkElement>(`link[data-ds-native="${href}"]`);
     if (existing?.sheet) {
       resolve();
@@ -101,7 +104,10 @@ function loadStylesheet(href: string) {
     link.href = href;
     link.dataset.dsNative = href;
     link.onload = () => resolve();
-    link.onerror = () => reject(new Error(`Failed to load ${href}`));
+    link.onerror = () => {
+      console.warn(`Doc Studio: stylesheet failed to load (continuing without it): ${href}`);
+      resolve();
+    };
     if (!existing) document.head.appendChild(link);
   });
 }
