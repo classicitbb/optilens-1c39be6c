@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeDollarSign, Download, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
