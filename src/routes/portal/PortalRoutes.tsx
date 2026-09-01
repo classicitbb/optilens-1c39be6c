@@ -1,5 +1,4 @@
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
-import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AccountLayout from "@/components/account/AccountLayout";
