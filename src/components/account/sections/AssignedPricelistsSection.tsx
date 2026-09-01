@@ -103,7 +103,7 @@ const AssignedPricelistsSection = () => {
   const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
   const { addToCart } = useCartContext();
-  const navigate = useNavigate();
+  const { openAssistant } = useCompanionAssistant();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
     queryKey: ["portal-pricing-currency-settings"],
