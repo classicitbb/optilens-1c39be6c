@@ -1,148 +1,111 @@
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 
-const AdminLayout = lazy(() => import("@/components/admin/AdminLayout"));
+const AdminLayout = lazyWithRetry(() => import("@/components/admin/AdminLayout"));
 
-const AdminHomeRedirect = lazy(
-  () => import("@/components/admin/AdminHomeRedirect"),
+const AdminHomeRedirect = lazyWithRetry(() => import("@/components/admin/AdminHomeRedirect"),
 );
-const AdminDashboardHomePage = lazy(
-  () => import("@/pages/admin/AdminDashboardHomePage"),
+const AdminDashboardHomePage = lazyWithRetry(() => import("@/pages/admin/AdminDashboardHomePage"),
 );
 
-const ReferenceDataPage = lazy(() => import("@/pages/admin/ReferenceDataPage"));
-const AuditLogPage = lazy(() => import("@/pages/admin/AuditLogPage"));
-const ProductCatalogPage = lazy(
-  () => import("@/pages/admin/ProductCatalogPage"),
+const ReferenceDataPage = lazyWithRetry(() => import("@/pages/admin/ReferenceDataPage"));
+const AuditLogPage = lazyWithRetry(() => import("@/pages/admin/AuditLogPage"));
+const ProductCatalogPage = lazyWithRetry(() => import("@/pages/admin/ProductCatalogPage"),
 );
-const RxLensPricesPage = lazy(() => import("@/pages/admin/RxLensPricesPage"));
-const StockLensPricesPage = lazy(
-  () => import("@/pages/admin/StockLensPricesPage"),
+const RxLensPricesPage = lazyWithRetry(() => import("@/pages/admin/RxLensPricesPage"));
+const StockLensPricesPage = lazyWithRetry(() => import("@/pages/admin/StockLensPricesPage"),
 );
-const BuySellPricesPage = lazy(() => import("@/pages/admin/BuySellPricesPage"));
-const PricingComparePage = lazy(
-  () => import("@/pages/admin/PricingComparePage"),
+const BuySellPricesPage = lazyWithRetry(() => import("@/pages/admin/BuySellPricesPage"));
+const PricingComparePage = lazyWithRetry(() => import("@/pages/admin/PricingComparePage"),
 );
-const LensClassificationPage = lazy(
-  () => import("@/pages/admin/LensClassificationPage"),
+const LensClassificationPage = lazyWithRetry(() => import("@/pages/admin/LensClassificationPage"),
 );
-const ImportsPage = lazy(() => import("@/pages/admin/ImportsPage"));
-const UsersPage = lazy(() => import("@/pages/admin/UsersPage"));
-const CompanySettingsPage = lazy(
-  () => import("@/pages/admin/CompanySettingsPage"),
+const ImportsPage = lazyWithRetry(() => import("@/pages/admin/ImportsPage"));
+const UsersPage = lazyWithRetry(() => import("@/pages/admin/UsersPage"));
+const CompanySettingsPage = lazyWithRetry(() => import("@/pages/admin/CompanySettingsPage"),
 );
-const RolesPermissionsPage = lazy(
-  () => import("@/pages/admin/RolesPermissionsPage"),
+const RolesPermissionsPage = lazyWithRetry(() => import("@/pages/admin/RolesPermissionsPage"),
 );
-const AdminWikiPage = lazy(() => import("@/pages/admin/AdminWikiPage"));
-const ContentManagerPage = lazy(
-  () => import("@/pages/admin/ContentManagerPage"),
+const AdminWikiPage = lazyWithRetry(() => import("@/pages/admin/AdminWikiPage"));
+const ContentManagerPage = lazyWithRetry(() => import("@/pages/admin/ContentManagerPage"),
 );
-const ImportCostingsPage = lazy(
-  () => import("@/pages/admin/costings/ImportCostingsPage"),
+const ImportCostingsPage = lazyWithRetry(() => import("@/pages/admin/costings/ImportCostingsPage"),
 );
-const ShipmentDetailPage = lazy(
-  () => import("@/pages/admin/costings/ShipmentDetailPage"),
+const ShipmentDetailPage = lazyWithRetry(() => import("@/pages/admin/costings/ShipmentDetailPage"),
 );
-const CostingsReportsPage = lazy(
-  () => import("@/pages/admin/costings/CostingsReportsPage"),
+const CostingsReportsPage = lazyWithRetry(() => import("@/pages/admin/costings/CostingsReportsPage"),
 );
-const QuotationsListPage = lazy(
-  () => import("@/pages/admin/QuotationsListPage"),
+const QuotationsListPage = lazyWithRetry(() => import("@/pages/admin/QuotationsListPage"),
 );
-const RxOrderFormPage = lazy(() => import("@/pages/admin/RxOrderFormPage"));
-const StockOrderBuilderPage = lazy(
-  () => import("@/pages/admin/StockOrderBuilderPage"),
+const RxOrderFormPage = lazyWithRetry(() => import("@/pages/admin/RxOrderFormPage"));
+const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrderBuilderPage"),
 );
-const RxSubmissionsPage = lazy(() => import("@/pages/admin/RxSubmissionsPage"));
-const AliasMappingPage = lazy(() => import("@/pages/admin/AliasMappingPage"));
-const QuoteEditorPage = lazy(() => import("@/pages/admin/QuoteEditorPage"));
-const QuotePrintPreviewPage = lazy(
-  () => import("@/pages/admin/QuotePrintPreviewPage"),
+const RxSubmissionsPage = lazyWithRetry(() => import("@/pages/admin/RxSubmissionsPage"));
+const AliasMappingPage = lazyWithRetry(() => import("@/pages/admin/AliasMappingPage"));
+const QuoteEditorPage = lazyWithRetry(() => import("@/pages/admin/QuoteEditorPage"));
+const QuotePrintPreviewPage = lazyWithRetry(() => import("@/pages/admin/QuotePrintPreviewPage"),
 );
-const CatalogPublisherPage = lazy(
-  () => import("@/pages/admin/CatalogPublisherPage"),
+const CatalogPublisherPage = lazyWithRetry(() => import("@/pages/admin/CatalogPublisherPage"),
 );
-const CatalogPublisherV2Page = lazy(
-  () => import("@/pages/admin/CatalogPublisherV2Page"),
+const CatalogPublisherV2Page = lazyWithRetry(() => import("@/pages/admin/CatalogPublisherV2Page"),
 );
-const CatalogEditorPage = lazy(() => import("@/pages/admin/CatalogEditorPage"));
-const ContactsPage = lazy(() => import("@/pages/admin/erp/ContactsPage"));
-const ContactTagsConfigPage = lazy(
-  () => import("@/pages/admin/erp/ContactTagsConfigPage"),
+const CatalogEditorPage = lazyWithRetry(() => import("@/pages/admin/CatalogEditorPage"));
+const ContactsPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactsPage"));
+const ContactTagsConfigPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactTagsConfigPage"),
 );
-const IndustriesConfigPage = lazy(
-  () => import("@/pages/admin/erp/IndustriesConfigPage"),
+const IndustriesConfigPage = lazyWithRetry(() => import("@/pages/admin/erp/IndustriesConfigPage"),
 );
-const PricingSettingsPage = lazy(
-  () => import("@/pages/admin/PricingSettingsPage"),
+const PricingSettingsPage = lazyWithRetry(() => import("@/pages/admin/PricingSettingsPage"),
 );
-const LeadFinderPage = lazy(() => import("@/pages/admin/leads/LeadFinderPage"));
-const MyLeadsPage = lazy(() => import("@/pages/admin/leads/MyLeadsPage"));
-const LeadCampaignsPage = lazy(
-  () => import("@/pages/admin/leads/LeadCampaignsPage"),
+const LeadFinderPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadFinderPage"));
+const MyLeadsPage = lazyWithRetry(() => import("@/pages/admin/leads/MyLeadsPage"));
+const LeadCampaignsPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadCampaignsPage"),
 );
-const LeadAuditReportsPage = lazy(
-  () => import("@/pages/admin/leads/LeadAuditReportsPage"),
+const LeadAuditReportsPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadAuditReportsPage"),
 );
-const LeadsAiAssistantPage = lazy(
-  () => import("@/pages/admin/leads/LeadsAiAssistantPage"),
+const LeadsAiAssistantPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadsAiAssistantPage"),
 );
-const LeadSettingsPage = lazy(
-  () => import("@/pages/admin/leads/LeadSettingsPage"),
+const LeadSettingsPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadSettingsPage"),
 );
-const CrmPipelinePage = lazy(() => import("@/pages/admin/crm/CrmPipelinePage"));
-const CrmActivitiesPage = lazy(
-  () => import("@/pages/admin/crm/CrmActivitiesPage"),
+const CrmPipelinePage = lazyWithRetry(() => import("@/pages/admin/crm/CrmPipelinePage"));
+const CrmActivitiesPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmActivitiesPage"),
 );
-const CrmOutboxPage = lazy(() => import("@/pages/admin/crm/CrmOutboxPage"));
-const CrmDashboardPage = lazy(
-  () => import("@/pages/admin/crm/CrmDashboardPage"),
+const CrmOutboxPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmOutboxPage"));
+const CrmDashboardPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmDashboardPage"),
 );
-const RuntimeErrorsPage = lazy(() => import("@/pages/admin/RuntimeErrorsPage"));
-const IntegrationsPage = lazy(
-  () => import("@/pages/admin/settings/IntegrationsPage"),
+const RuntimeErrorsPage = lazyWithRetry(() => import("@/pages/admin/RuntimeErrorsPage"));
+const IntegrationsPage = lazyWithRetry(() => import("@/pages/admin/settings/IntegrationsPage"),
 );
-const ApiKeysPage = lazy(() => import("@/pages/admin/settings/ApiKeysPage"));
-const BankPaymentPortalsPage = lazy(
-  () => import("@/pages/admin/settings/BankPaymentPortalsPage"),
+const ApiKeysPage = lazyWithRetry(() => import("@/pages/admin/settings/ApiKeysPage"));
+const BankPaymentPortalsPage = lazyWithRetry(() => import("@/pages/admin/settings/BankPaymentPortalsPage"),
 );
-const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));
-const EmailPreviewsPage = lazy(
-  () => import("@/pages/admin/settings/EmailPreviewsPage"),
+const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
+const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
 );
-const EdgeFunctionStatusPage = lazy(
-  () => import("@/pages/admin/settings/EdgeFunctionStatusPage"),
+const EdgeFunctionStatusPage = lazyWithRetry(() => import("@/pages/admin/settings/EdgeFunctionStatusPage"),
 );
-const HelpdeskTicketsPage = lazy(
-  () => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"),
+const HelpdeskTicketsPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskTicketsPage"),
 );
-const HelpdeskConfigPage = lazy(
-  () => import("@/pages/admin/helpdesk/HelpdeskConfigPage"),
+const HelpdeskConfigPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"),
 );
-const HelpdeskOverviewPage = lazy(
-  () => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"),
+const HelpdeskOverviewPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"),
 );
-const HelpdeskTicketDetailPage = lazy(
-  () => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"),
+const HelpdeskTicketDetailPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"),
 );
-const WebsitePortalsPage = lazy(
-  () => import("@/pages/admin/WebsitePortalsPage"),
+const WebsitePortalsPage = lazyWithRetry(() => import("@/pages/admin/WebsitePortalsPage"),
 );
-const NpsDashboardPage = lazy(() => import("@/pages/admin/NpsDashboardPage"));
-const DocStudioPage = lazy(() => import("@/pages/admin/website/DocStudioPage"));
-const FeatureBoardPage = lazy(
-  () => import("@/pages/admin/website/FeatureBoardPage"),
+const NpsDashboardPage = lazyWithRetry(() => import("@/pages/admin/NpsDashboardPage"));
+const DocStudioPage = lazyWithRetry(() => import("@/pages/admin/website/DocStudioPage"));
+const FeatureBoardPage = lazyWithRetry(() => import("@/pages/admin/website/FeatureBoardPage"),
 );
-const WebsiteStorePage = lazy(() => import("@/pages/admin/WebsiteStorePage"));
-const WebsiteStoreVariantManagerPage = lazy(
-  () => import("@/pages/admin/WebsiteStoreVariantManagerPage"),
+const WebsiteStorePage = lazyWithRetry(() => import("@/pages/admin/WebsiteStorePage"));
+const WebsiteStoreVariantManagerPage = lazyWithRetry(() => import("@/pages/admin/WebsiteStoreVariantManagerPage"),
 );
-const OrdersPage = lazy(() => import("@/pages/admin/OrdersPage"));
-const ProductHubPage = lazy(() => import("@/pages/admin/ProductHubPage"));
-const AssistantQualityPage = lazy(
-  () => import("@/pages/admin/assistant/AssistantQualityPage"),
+const OrdersPage = lazyWithRetry(() => import("@/pages/admin/OrdersPage"));
+const ProductHubPage = lazyWithRetry(() => import("@/pages/admin/ProductHubPage"));
+const AssistantQualityPage = lazyWithRetry(() => import("@/pages/admin/assistant/AssistantQualityPage"),
 );
 
 const AdminRoutes = () => (
