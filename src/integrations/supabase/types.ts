@@ -11804,10 +11804,6 @@ export type Database = {
         Args: { p_actor_user_id?: string; p_provider: string }
         Returns: undefined
       }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
       effective_price: {
         Args: { p_customer_id: number; p_item_ref: string }
         Returns: number
@@ -11822,12 +11818,7 @@ export type Database = {
           treatment: string
         }[]
       }
-      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
-      }
       find_customer_by_account_number: {
         Args: { p_account_number: string }
         Returns: {
@@ -12222,15 +12213,6 @@ export type Database = {
         Args: { p_action: string; p_error_id: string }
         Returns: undefined
       }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
-      }
       next_billing_number: {
         Args: { p_document_type: string }
         Returns: string
@@ -12364,14 +12346,6 @@ export type Database = {
       queue_account_payment_receipt: {
         Args: { p_kind: string; p_payment_id: string }
         Returns: undefined
-      }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
-        }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
       record_ai_agent_test: {
