@@ -66,10 +66,9 @@ const FUNCTIONS = readdirSync(resolve(process.cwd(), "supabase/functions"), { wi
  * as "the function booted and is routing requests".
  */
 const NO_CORS_FUNCTIONS = new Set([
-  "handle-email-suppression",
+  "handle-email-events",
   "helpdesk-followup",
   "mcp",
-  "process-email-queue",
   // Scotia/Fiserv posts the transaction outcome server-to-server. The function
   // answers GET (version ping) and POST (notification) only and returns 405 to
   // anything else, including a browser preflight it will never receive. There

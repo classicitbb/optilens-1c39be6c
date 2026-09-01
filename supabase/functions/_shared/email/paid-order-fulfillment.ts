@@ -1,14 +1,13 @@
-// Queue a single, idempotent fulfillment notice only after a Scotia payment is
+// Send a single, idempotent fulfillment notice only after a Scotia payment is
 // settled. Both the browser return and the server notification webhook may
 // reach this path, so the message id is deliberately stable per order.
 
-import { getOrCreateUnsubscribeToken } from "./smtp.ts";
+import { sendManagedEmail } from "./managed-send.ts";
 
 const FULFILLMENT_RECIPIENT = "orders@classicvisions.net";
 
 type AdminClient = {
   from: (table: string) => any;
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: unknown }>;
 };
 
 const escapeHtml = (value: string) => value
@@ -50,32 +49,14 @@ export async function queuePaidOrderFulfillmentEmail(admin: AdminClient, orderId
   const html = `<h1>${orderType} ready for fulfillment</h1><p>Order <strong>${escapeHtml(orderId)}</strong> has been paid through Scotia eCom+.</p><p>Customer: ${escapeHtml(order.customer_name ?? "Customer")} (${escapeHtml(order.contact_email ?? "no email")})</p><ul>${lines}</ul><p>Total: <strong>$${Number(order.total_amount ?? 0).toFixed(2)} USD</strong></p>`;
   const text = `${orderType} ready for fulfillment\nOrder: ${orderId}\nCustomer: ${order.customer_name ?? "Customer"} (${order.contact_email ?? "no email"})\nItems:\n${(items ?? []).map((item: { product_name: string; quantity: number; product_price: number }) => `- ${item.product_name} x ${item.quantity} - $${(Number(item.product_price) * Number(item.quantity)).toFixed(2)}`).join("\n")}\nTotal: $${Number(order.total_amount ?? 0).toFixed(2)} USD`;
 
-  const { error: logError } = await admin.from("email_send_log").insert({
-    message_id: messageId,
-    template_name: "paid-order-fulfillment",
-    recipient_email: FULFILLMENT_RECIPIENT,
-    status: "pending",
+  await sendManagedEmail(admin, {
+    messageId,
+    to: FULFILLMENT_RECIPIENT,
+    from: "Classic Visions Orders <orders@classicvisions.net>",
+    subject,
+    html,
+    text,
+    label: "paid-order-fulfillment",
+    idempotencyKey: messageId,
   });
-  if (logError) return;
-
-  const unsubscribeToken = await getOrCreateUnsubscribeToken(admin, FULFILLMENT_RECIPIENT);
-
-  const { error: enqueueError } = await admin.rpc("enqueue_email", {
-    queue_name: "transactional_emails",
-    payload: {
-      message_id: messageId,
-      to: FULFILLMENT_RECIPIENT,
-      from: "Classic Visions Orders <orders@classicvisions.net>",
-      sender_domain: "support.classicvisions.net",
-      subject,
-      html,
-      text,
-      purpose: "transactional",
-      label: "paid-order-fulfillment",
-      idempotency_key: messageId,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
-  });
-  if (enqueueError) console.error("paid-order-fulfillment: failed to enqueue", { orderId, enqueueError });
 }
