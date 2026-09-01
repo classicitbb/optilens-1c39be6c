@@ -155,7 +155,10 @@ const AssignedPricelistsSection = () => {
     });
   };
 
-  const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
+  const { structure, isLoading: structureLoading } = usePortalRxPricingStructure(
+    identity?.crmCustomerId ?? null,
+    hasPricelist,
+  );
 
   const { data: canAccessLabPricing = false } = useQuery<boolean>({
     queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null],
