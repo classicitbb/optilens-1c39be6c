@@ -12316,6 +12316,10 @@ export type Database = {
           is_default: boolean
         }[]
       }
+      portal_rx_pricing_structure: {
+        Args: { p_customer_id?: number }
+        Returns: Json
+      }
       profile_privileged_fields_match: {
         Args: {
           _crm_contact_id: string
