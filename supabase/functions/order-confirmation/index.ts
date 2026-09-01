@@ -3,10 +3,10 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
 import { requireAuthenticatedUser, requireUserRole } from '../_shared/http/auth.ts'
 import { isAutoNotificationsDisabled } from '../_shared/email/smtp.ts'
+import { sendManagedEmail } from '../_shared/email/managed-send.ts'
 import { template } from '../_shared/transactional-email-templates/order-confirmation.tsx'
 
 const SITE_NAME = 'Classic Visions'
-const SENDER_DOMAIN = 'support.classicvisions.net'
 const FROM_DOMAIN = 'classicvisions.net'
 const SITE_URL = Deno.env.get('APP_BASE_URL') ?? 'https://classicvisions.net'
 
@@ -36,12 +36,6 @@ const formatAddress = (value: unknown) => {
     .map((part) => (typeof part === 'string' ? part.trim() : ''))
     .filter(Boolean)
     .join(', ')
-}
-
-const generateToken = () => {
-  const bytes = new Uint8Array(32)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
 Deno.serve(async (req) => {
@@ -103,29 +97,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true, skipped: 'missing_recipient_email' }, 200, corsHeaders)
   }
 
-  const normalizedEmail = recipientEmail.toLowerCase()
-  const { data: suppressed, error: suppressionError } = await supabase
-    .from('suppressed_emails')
-    .select('id')
-    .eq('email', normalizedEmail)
-    .maybeSingle()
-
-  if (suppressionError) {
-    console.error('Suppression check failed for order confirmation', { orderId, error: suppressionError })
-    return jsonResponse({ error: 'Failed to verify suppression status' }, 500, corsHeaders)
-  }
-
   const messageId = `order-confirmation-${order.id}`
-
-  if (suppressed) {
-    await supabase.from('email_send_log').insert({
-      message_id: messageId,
-      template_name: 'order-confirmation',
-      recipient_email: recipientEmail,
-      status: 'suppressed',
-    })
-    return jsonResponse({ success: false, reason: 'email_suppressed' }, 200, corsHeaders)
-  }
 
   const { data: existingSent } = await supabase
     .from('email_send_log')
@@ -159,54 +131,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Failed to load order items' }, 500, corsHeaders)
   }
 
-  const { data: existingToken, error: tokenLookupError } = await supabase
-    .from('email_unsubscribe_tokens')
-    .select('token, used_at')
-    .eq('email', normalizedEmail)
-    .maybeSingle()
-
-  if (tokenLookupError) {
-    console.error('Token lookup failed for order confirmation', { orderId, error: tokenLookupError })
-    return jsonResponse({ error: 'Failed to prepare email' }, 500, corsHeaders)
-  }
-
-  if (existingToken?.used_at) {
-    await supabase.from('email_send_log').insert({
-      message_id: messageId,
-      template_name: 'order-confirmation',
-      recipient_email: recipientEmail,
-      status: 'suppressed',
-      error_message: 'Unsubscribe token already used',
-    })
-    return jsonResponse({ success: false, reason: 'email_suppressed' }, 200, corsHeaders)
-  }
-
-  let unsubscribeToken = existingToken?.token
-  if (!unsubscribeToken) {
-    unsubscribeToken = generateToken()
-    const { error: tokenError } = await supabase
-      .from('email_unsubscribe_tokens')
-      .upsert({ token: unsubscribeToken, email: normalizedEmail }, { onConflict: 'email', ignoreDuplicates: true })
-
-    if (tokenError) {
-      console.error('Failed to create unsubscribe token for order confirmation', { orderId, error: tokenError })
-      return jsonResponse({ error: 'Failed to prepare email' }, 500, corsHeaders)
-    }
-
-    const { data: storedToken, error: reReadError } = await supabase
-      .from('email_unsubscribe_tokens')
-      .select('token')
-      .eq('email', normalizedEmail)
-      .maybeSingle()
-
-    if (reReadError || !storedToken?.token) {
-      console.error('Failed to read unsubscribe token for order confirmation', { orderId, error: reReadError })
-      return jsonResponse({ error: 'Failed to prepare email' }, 500, corsHeaders)
-    }
-
-    unsubscribeToken = storedToken.token
-  }
-
   const templateData = {
     customerName: order.customer_name || 'Customer',
     orderId: order.id,
@@ -215,49 +139,31 @@ Deno.serve(async (req) => {
     totalAmount: Number(order.total_amount ?? 0),
     shippingAddress: formatAddress(order.shipping_address),
     siteUrl: SITE_URL,
-    unsubscribeUrl: `${SITE_URL}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
   }
 
   const html = await renderAsync(React.createElement(template.component, templateData))
   const text = await renderAsync(React.createElement(template.component, templateData), { plainText: true })
   const subject = typeof template.subject === 'function' ? template.subject(templateData) : template.subject
 
-  await supabase.from('email_send_log').insert({
-    message_id: messageId,
-    template_name: 'order-confirmation',
-    recipient_email: recipientEmail,
-    status: 'pending',
+  const result = await sendManagedEmail(supabase, {
+    messageId,
+    to: recipientEmail,
+    from: `${SITE_NAME} Orders <orders@${FROM_DOMAIN}>`,
+    subject,
+    html,
+    text,
+    label: 'order-confirmation',
+    idempotencyKey: messageId,
   })
 
-  const { error: enqueueError } = await supabase.rpc('enqueue_email', {
-    queue_name: 'transactional_emails',
-    payload: {
-      message_id: messageId,
-      to: recipientEmail,
-      from: `${SITE_NAME} Orders <orders@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
-      subject,
-      html,
-      text,
-      purpose: 'transactional',
-      label: 'order-confirmation',
-      idempotency_key: messageId,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
-  })
-
-  if (enqueueError) {
-    console.error('Failed to enqueue order confirmation email', { orderId, error: enqueueError })
-    await supabase.from('email_send_log').insert({
-      message_id: messageId,
-      template_name: 'order-confirmation',
-      recipient_email: recipientEmail,
-      status: 'failed',
-      error_message: 'Failed to enqueue email',
-    })
-    return jsonResponse({ error: 'Failed to enqueue email' }, 500, corsHeaders)
+  if (result.status === 'failed') {
+    console.error('Failed to send order confirmation email', { orderId, error: result.error })
+    return jsonResponse({ error: 'Failed to send email' }, 500, corsHeaders)
   }
 
-  return jsonResponse({ success: true, queued: true }, 200, corsHeaders)
+  if (result.status === 'suppressed') {
+    return jsonResponse({ success: false, reason: 'email_suppressed' }, 200, corsHeaders)
+  }
+
+  return jsonResponse({ success: true, sent: true }, 200, corsHeaders)
 })

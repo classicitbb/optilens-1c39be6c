@@ -35,14 +35,13 @@ describe("public inquiry routing", () => {
     expect(zenvueWholesale).not.toContain('.from("wholesale_inquiries").insert');
   });
 
-  it("resolves the email recipient from company settings feedback_email with a Russell fallback and includes unsubscribe tokens", () => {
+  it("resolves the email recipient from company settings feedback_email with a Russell fallback", () => {
     const source = read("supabase/functions/contact-inquiry/index.ts");
 
     expect(source).toContain("feedback_email");
     expect(source).toContain("FEEDBACK_EMAIL_FALLBACK");
     expect(source).toContain("resolvedRecipient");
-    expect(source).toContain("getOrCreateUnsubscribeToken");
-    expect(source).toContain("unsubscribe_token");
+    expect(source).toContain("sendManagedEmail");
     expect(source).toContain("contact-inquiry-notification");
     expect(source).toContain("inquiry-confirmation");
   });

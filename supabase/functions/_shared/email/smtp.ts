@@ -1,18 +1,14 @@
 /**
- * Shared email sender — now routes through Lovable Emails queue.
+ * Shared raw-HTML email sender.
  *
- * Historically this module sent via a cPanel PHP mail relay. That path was
- * blocked by Cloudflare in front of classicvisions.net. We now enqueue
- * directly into the Lovable Emails `transactional_emails` queue, which the
- * `process-email-queue` cron dispatcher drains via the verified Lovable
- * sender domain (support.classicvisions.net).
- *
- * The exported API (`getSmtpConfig`, `sendViaSMTP`, `sendSmtpEmail`,
- * `isSmtpPermanentFailure`) is preserved so existing callers
- * (contact-inquiry, helpdesk-email) keep working without changes.
+ * Sends through Lovable's managed email API. The exported API
+ * (`getSmtpConfig`, `sendViaSMTP`, `sendSmtpEmail`, `isSmtpPermanentFailure`)
+ * is preserved so existing callers (contact-inquiry, helpdesk-email,
+ * crm-enrich-contacts, platform-health-check) keep working without changes.
  */
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { DEFAULT_FROM, sendManagedEmail } from "./managed-send.ts";
 
 export interface SmtpMailOptions {
   to: string;
@@ -28,57 +24,10 @@ export interface SmtpConfig {
   from: string;
 }
 
-const DEFAULT_FROM = "Classic Visions <support@classicvisions.net>";
-
 export function getSmtpConfig(): SmtpConfig | null {
-  // Always available now — the queue lives inside the Supabase project.
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return null;
+  if (!Deno.env.get("LOVABLE_API_KEY")) return null;
   const from = Deno.env.get("SMTP_FROM") || DEFAULT_FROM;
   return { from };
-}
-
-function generateUnsubscribeToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-// The Lovable email API rejects any purpose:"transactional" send that lacks
-// an unsubscribe_token ("missing_unsubscribe"), so every enqueue path needs
-// one — one token per recipient, reused across sends until it's used.
-export async function getOrCreateUnsubscribeToken(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
-  email: string,
-): Promise<string> {
-  const normalized = email.toLowerCase();
-  const { data: existing } = await supabase
-    .from("email_unsubscribe_tokens")
-    .select("token, used_at")
-    .eq("email", normalized)
-    .maybeSingle();
-
-  if (existing && !existing.used_at) return existing.token as string;
-
-  const token = generateUnsubscribeToken();
-  await supabase
-    .from("email_unsubscribe_tokens")
-    .upsert(
-      { token, email: normalized },
-      { onConflict: "email", ignoreDuplicates: true },
-    );
-
-  const { data: stored } = await supabase
-    .from("email_unsubscribe_tokens")
-    .select("token")
-    .eq("email", normalized)
-    .maybeSingle();
-
-  return (stored?.token as string) ?? token;
 }
 
 // Per-portal-user override, set from Website Portals > Operations > Feature
@@ -117,7 +66,7 @@ export async function sendViaSMTP(
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) {
-    throw new Error("Supabase env not configured for email queue");
+    throw new Error("Supabase env not configured for email audit log");
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, {
@@ -125,41 +74,24 @@ export async function sendViaSMTP(
   });
 
   const messageId = crypto.randomUUID();
-  const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, opts.to);
-
-  // Audit log — append-only pending row
-  await supabase.from("email_send_log").insert({
-    message_id: messageId,
-    template_name: "raw",
-    recipient_email: opts.to,
-    status: "pending",
+  const result = await sendManagedEmail(supabase, {
+    messageId,
+    to: opts.to,
+    from: opts.from ?? config.from,
+    replyTo: opts.replyTo,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text ?? "",
+    label: "raw",
   });
 
-  const { error } = await supabase.rpc("enqueue_email", {
-    queue_name: "transactional_emails",
-    payload: {
-      message_id: messageId,
-      to: opts.to,
-      from: opts.from ?? config.from,
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text ?? "",
-      ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
-      purpose: "transactional",
-      label: "raw",
-      idempotency_key: messageId,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
-  });
-
-  if (error) {
-    throw new Error(`Email enqueue failed: ${error.message}`);
+  if (result.status === "failed") {
+    throw new Error(`Email send failed: ${result.error}`);
   }
 }
 
-// Retained for API compatibility — queue-based sends are async, so there
-// are no synchronous permanent failures from this layer.
+// Retained for API compatibility — the managed API reports permanent failures
+// through structured errors handled inside sendManagedEmail.
 export function isSmtpPermanentFailure(_error: unknown): boolean {
   return false;
 }

@@ -2,7 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { z } from "npm:zod@^4.4.3";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
-import { getOrCreateUnsubscribeToken, getSmtpConfig, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { getSmtpConfig, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -312,12 +313,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Enqueue both emails through the transactional queue. This is the sole
-    // send path — an earlier "send immediately via SMTP" path was removed
-    // because sendViaSMTP() itself just enqueues into the same
-    // transactional_emails queue (see _shared/email/smtp.ts), so running
-    // both meant every submission sent two copies of each email, and the
-    // direct-send copy rendered without the unsubscribe link this path adds.
+    // Both emails are sent through Lovable's managed email API. Suppression,
+    // retries and the unsubscribe footer are handled there.
     try {
       const { renderAsync } = await import("npm:@react-email/components@0.0.22");
       const React = await import("npm:react@18.3.1");
@@ -328,7 +325,7 @@ Deno.serve(async (req) => {
         "../_shared/transactional-email-templates/inquiry-confirmation.tsx"
       );
 
-      const enqueueRenderedEmail = async (
+      const sendRenderedEmail = async (
         label: string,
         recipient: string,
         // deno-lint-ignore no-explicit-any
@@ -337,48 +334,26 @@ Deno.serve(async (req) => {
         idempotencyKey: string,
         replyTo?: string,
       ) => {
-        const messageId = crypto.randomUUID();
-        const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient);
-        const renderData = {
-          ...data,
-          unsubscribeUrl: `https://classicvisions.net/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
-        };
-        const html = await renderAsync(React.createElement(template.component, renderData));
-        const text = await renderAsync(React.createElement(template.component, renderData), { plainText: true });
+        const html = await renderAsync(React.createElement(template.component, data));
+        const text = await renderAsync(React.createElement(template.component, data), { plainText: true });
         const subject = typeof template.subject === "function" ? template.subject(data) : template.subject;
 
-        await supabase.from("email_send_log").insert({
-          message_id: messageId,
-          template_name: label,
-          recipient_email: recipient,
-          status: "pending",
+        await sendManagedEmail(supabase, {
+          messageId: idempotencyKey,
+          to: recipient,
+          from: smtpConfig?.from ?? `Classic Visions <notify@classicvisions.net>`,
+          replyTo,
+          subject,
+          html,
+          text,
+          label,
+          idempotencyKey,
         });
-
-        const { error: enqueueError } = await supabase.rpc("enqueue_email", {
-          queue_name: "transactional_emails",
-          payload: {
-            message_id: messageId,
-            to: recipient,
-            from: smtpConfig?.from ?? `notify@classicvisions.net`,
-            subject,
-            html,
-            text,
-            ...(replyTo ? { reply_to: replyTo } : {}),
-            purpose: "transactional",
-            label,
-            idempotency_key: idempotencyKey,
-            unsubscribe_token: unsubscribeToken,
-            queued_at: new Date().toISOString(),
-          },
-        });
-
-        if (enqueueError) {
-          console.error(`Failed to enqueue ${label}`, { error: enqueueError });
-        }
       };
 
+
       await Promise.all([
-        enqueueRenderedEmail(
+        sendRenderedEmail(
           "contact-inquiry-notification",
           resolvedRecipient,
           notificationTemplate,
@@ -398,7 +373,7 @@ Deno.serve(async (req) => {
           payload.email,
         ),
         ...(confirmationDisabled ? [] : [
-          enqueueRenderedEmail(
+          sendRenderedEmail(
             "inquiry-confirmation",
             payload.email,
             confirmationTemplate,
@@ -413,7 +388,7 @@ Deno.serve(async (req) => {
         ]),
       ]);
     } catch (queueErr) {
-      console.error("Email queue enqueue failed (non-fatal)", {
+      console.error("Inquiry email send failed (non-fatal)", {
         error: queueErr instanceof Error ? queueErr.message : String(queueErr),
       });
     }

@@ -4,7 +4,8 @@ import jsPDF from "npm:jspdf@4.2.1";
 import autoTable from "npm:jspdf-autotable@5.0.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
-import { getOrCreateUnsubscribeToken, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 import { ensureOneDriveFolderPath, uploadOneDrivePdf } from "../_shared/microsoft/graphOneDrive.ts";
 import { money, paginateStatementLines, statementTransactionDetail, STATEMENT_PDF_TEMPLATE_VERSION } from "../_shared/statements/statementDocumentModel.ts";
 
@@ -93,22 +94,31 @@ function buildPdf(statement: any, lines: any[], customer: any): Uint8Array {
 async function queueEmail(supabase: any, job: any, statement: any, customer: any, pdf: Uint8Array) {
   const recipient = customer?.email;
   if (!recipient) return { status: "failed", error: "Customer has no email address." };
-  if ((await supabase.from("suppressed_emails").select("id").eq("email", recipient.toLowerCase()).maybeSingle()).data) return { status: "suppressed" };
   if (await isAutoNotificationsDisabled(supabase, recipient)) return { status: "suppressed" };
   const template = TEMPLATES["statement-ready"];
   const baseUrl = Deno.env.get("APP_BASE_URL") ?? "https://classicvisions.net";
-  const token = await getOrCreateUnsubscribeToken(supabase, recipient);
-  const data = { customerName: customer.name ?? "there", accountNumber: customer.account_number ?? statement.account_number ?? "", periodStart: statement.from_date, periodEnd: statement.to_date, closingBalance: money(statement.closing_balance), dueDate: statement.due_date, siteUrl: baseUrl, statementUrl: `${baseUrl}/profile/statements?statement_id=${encodeURIComponent(statement.innovations_statement_id)}`, pdfUrl: `${baseUrl}/profile/statements?statement_id=${encodeURIComponent(statement.innovations_statement_id)}&download=1`, unsubscribeUrl: `${baseUrl}/unsubscribe?token=${encodeURIComponent(token)}` };
+  const data = { customerName: customer.name ?? "there", accountNumber: customer.account_number ?? statement.account_number ?? "", periodStart: statement.from_date, periodEnd: statement.to_date, closingBalance: money(statement.closing_balance), dueDate: statement.due_date, siteUrl: baseUrl, statementUrl: `${baseUrl}/profile/statements?statement_id=${encodeURIComponent(statement.innovations_statement_id)}`, pdfUrl: `${baseUrl}/profile/statements?statement_id=${encodeURIComponent(statement.innovations_statement_id)}&download=1` };
   const html = await renderAsync(React.createElement(template.component, data));
   const text = await renderAsync(React.createElement(template.component, data), { plainText: true });
   const subject = typeof template.subject === "function" ? template.subject(data) : template.subject;
   const messageId = `statement-ready-${statement.innovations_statement_id}`;
   const sent = await supabase.from("email_send_log").select("id").eq("message_id", messageId).eq("status", "sent").maybeSingle();
   if (sent.data) return { status: "sent", messageId };
-  const { error } = await supabase.rpc("enqueue_email", { queue_name: "transactional_emails", payload: { message_id: messageId, to: recipient, from: "classicvisions <noreply@classicvisions.net>", sender_domain: "support.classicvisions.net", subject, html, text, purpose: "transactional", label: "statement-ready", idempotency_key: messageId, unsubscribe_token: token, queued_at: new Date().toISOString(), attachments: [{ filename: job.pdf_filename, content: b64(pdf), content_type: "application/pdf" }] } });
-  if (error) return { status: "failed", error: error.message };
-  await supabase.from("email_send_log").insert({ message_id: messageId, template_name: "statement-ready", recipient_email: recipient, status: "pending", metadata: { statement_id: statement.innovations_statement_id } });
-  return { status: "queued", messageId };
+  const result = await sendManagedEmail(supabase, {
+    messageId,
+    to: recipient,
+    from: "Classic Visions <noreply@classicvisions.net>",
+    subject,
+    html,
+    text,
+    label: "statement-ready",
+    idempotencyKey: messageId,
+    logMetadata: { statement_id: statement.innovations_statement_id },
+    attachments: [{ filename: job.pdf_filename, content: b64(pdf), content_type: "application/pdf" }],
+  });
+  if (result.status === "failed") return { status: "failed", error: result.error };
+  if (result.status === "suppressed") return { status: "suppressed" };
+  return { status: "sent", messageId };
 }
 
 async function processJob(supabase: any, job: any) {

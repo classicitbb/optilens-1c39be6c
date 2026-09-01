@@ -6,7 +6,8 @@
 // { users:[] } { shares:[] } { ok:true }.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getOrCreateUnsubscribeToken, getSmtpConfig } from "../_shared/email/smtp.ts";
+import { getSmtpConfig } from "../_shared/email/smtp.ts";
+import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -334,34 +335,19 @@ serve(async (req) => {
       for (const recipient of recipientJobs) {
         const messageId = crypto.randomUUID();
         messageIds.push(messageId);
-        const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient.email);
-        await supabase.from("email_send_log").insert({
-          message_id: messageId,
-          template_name: `docstudio-email-${recipient.header}`,
-          recipient_email: recipient.email,
-          status: "pending",
-          metadata: { send_mode: "manual", subject, initiated_by: userId },
+        const result = await sendManagedEmail(supabase, {
+          messageId,
+          to: recipient.email,
+          from: smtpConfig.from,
+          replyTo: replyTo || undefined,
+          subject,
+          html,
+          text: stripHtml(html),
+          label: `docstudio-email-${recipient.header}`,
+          idempotencyKey: messageId,
+          logMetadata: { send_mode: "manual", subject, initiated_by: userId },
         });
-
-        const { error: enqueueError } = await supabase.rpc("enqueue_email", {
-          queue_name: "transactional_emails",
-          payload: {
-            message_id: messageId,
-            to: recipient.email,
-            from: smtpConfig.from,
-            subject,
-            html,
-            text: stripHtml(html),
-            ...(replyTo ? { reply_to: replyTo } : {}),
-            purpose: "transactional",
-            label: `docstudio-email-${recipient.header}`,
-            idempotency_key: messageId,
-            unsubscribe_token: unsubscribeToken,
-            queued_by: userId,
-            queued_at: new Date().toISOString(),
-          },
-        });
-        if (enqueueError) throw enqueueError;
+        if (result.status === "failed") throw new Error(result.error);
       }
       return json({ ok: true, messageIds });
     }
