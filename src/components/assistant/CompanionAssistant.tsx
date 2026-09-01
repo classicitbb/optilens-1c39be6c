@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import { cn } from "@/lib/utils";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
@@ -527,7 +528,6 @@ const CompanionAssistant = () => {
   const {
     isOpen,
     isDetachedRoute,
-    openDetachedWindow,
     currentQuery,
     setCurrentQuery,
     openAssistant,
@@ -547,6 +547,7 @@ const CompanionAssistant = () => {
   } = useCompanionAssistant();
   const { user } = useAuth();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [savedConversations, setSavedConversations] = useState<Array<{ id: string; title: string; audience: string; updated_at: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   useEffect(() => {
@@ -732,14 +733,22 @@ const CompanionAssistant = () => {
       >
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <img
-              src="/images/iris/iris-ai-operations-partner.png"
-              alt="Iris, Classic Visions' AI Operations Partner"
-              className="h-10 w-10 rounded-full border border-border/50 object-cover shadow-soft"
-            />
+            <button
+              type="button"
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+              onClick={() => setProfileOpen(true)}
+              aria-label="Meet Iris, Classic Visions AI Operations Partner"
+              title="Meet Iris"
+            >
+              <img
+                src="/images/iris/iris-ai-operations-partner.png"
+                alt="Iris, Classic Visions' AI Operations Partner"
+                className="h-10 w-10 rounded-full border border-border/50 object-cover shadow-soft"
+              />
+            </button>
             <div>
               <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:flex"><GripHorizontal className="h-3 w-3" />AI assistant · Drag to move</p>
+              <p className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:flex"><GripHorizontal className="h-3 w-3" />Iris is an AI assistant · Drag to move</p>
             </div>
           </div>
         </div>
@@ -912,6 +921,25 @@ const CompanionAssistant = () => {
 
   return (
     <>
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="max-w-md overflow-hidden p-0">
+          <div className="bg-[radial-gradient(circle_at_top_right,rgba(200,145,48,0.22),transparent_58%)] p-6 pb-0">
+            <div className="flex items-center gap-4">
+              <img src="/images/iris/iris-ai-operations-partner.png" alt="Iris, a fictional AI avatar" className="h-20 w-20 rounded-2xl border border-border/60 object-cover shadow-elegant" />
+              <DialogHeader className="space-y-1 text-left">
+                <DialogTitle>Iris — Classic Visions AI Operations Partner</DialogTitle>
+                <DialogDescription>I help customers find answers and help our team move work forward.</DialogDescription>
+              </DialogHeader>
+            </div>
+          </div>
+          <div className="space-y-3 px-6 pb-6 text-sm leading-6 text-muted-foreground">
+            <p><span className="font-semibold text-foreground">Iris is an AI assistant.</span> Her portrait is a fictional AI avatar, not a human employee.</p>
+            <p>Here, Iris provides public guidance from approved information and can prepare an explicit support handoff. She cannot view private records, make commercial promises, or take actions outside this assistant.</p>
+            <p>Her internal operations workspace is separately authorized and is never available through this public chat.</p>
+            <Button type="button" className="w-full" onClick={() => { setProfileOpen(false); openAssistant(); }}>Ask Iris a question</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {!isDetachedRoute && nudge && consentGiven ? (
         <div className="fixed bottom-24 right-4 z-40 max-w-xs rounded-[22px] border border-border/50 bg-background/80 p-4 text-foreground shadow-[0_30px_80px_rgba(2,6,23,0.24)] backdrop-blur-md sm:right-6">
           <div className="flex items-start justify-between gap-3">

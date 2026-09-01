@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import {
   CompanionAssistantProvider,
+  useCompanionAssistant,
   useRetailerAssistantPrompt,
 } from "@/features/assistant/CompanionAssistantContext";
 
@@ -97,6 +98,11 @@ const RetailerPromptHarness = () => {
 
 const ContactLinkHarness = () => <a href="/#contact">Contact our team</a>;
 
+const InPageAssistantHarness = () => {
+  const { openDetachedWindow } = useCompanionAssistant();
+  return <button type="button" onClick={openDetachedWindow}>Open in page</button>;
+};
+
 describe("CompanionAssistant", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -117,6 +123,40 @@ describe("CompanionAssistant", () => {
     expect(await screen.findByText("Find a retailer")).toBeInTheDocument();
     expect(screen.getByText("Find the right lens")).toBeInTheDocument();
     expect(screen.getByText("Get support")).toBeInTheDocument();
+  });
+
+  it("opens Iris's disclosed public profile from the assistant portrait", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <CompanionAssistantProvider>
+          <CompanionAssistant />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Meet Iris, Classic Visions AI Operations Partner" }));
+
+    expect(screen.getByText("Iris — Classic Visions AI Operations Partner")).toBeInTheDocument();
+    expect(screen.getByText("Iris is an AI assistant.", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByText(/internal operations workspace is separately authorized/i)).toBeInTheDocument();
+  });
+
+  it("keeps compatibility launches in the current page", async () => {
+    const popup = vi.spyOn(window, "open");
+    render(
+      <MemoryRouter initialEntries={["/profile/pricelists"]}>
+        <CompanionAssistantProvider>
+          <InPageAssistantHarness />
+          <CompanionAssistant />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open in page" }));
+
+    expect(await screen.findByPlaceholderText("Ask anything")).toBeInTheDocument();
+    expect(popup).not.toHaveBeenCalled();
   });
 
   it("opens with a contextual retailer prompt and returns results", async () => {

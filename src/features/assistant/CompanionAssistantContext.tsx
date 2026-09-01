@@ -837,30 +837,14 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
   }, [accountName, activeAudience, activeProfile, messages.length, pathname, resetConversation, submitQueryInternal, userEmail, userName]);
 
+  // The assistant stays in the current page so quote/support launches retain
+  // the visitor's place and route context instead of opening or redirecting to
+  // a separate window. Keep this public API as a compatibility seam for any
+  // older launcher while making its behavior explicitly in-page.
   const openDetachedWindow = useCallback(() => {
-    try {
-      window.sessionStorage.setItem(POPOUT_SNAPSHOT_KEY, JSON.stringify({
-        messages,
-        currentQuery,
-        formState,
-      }));
-    } catch {
-      // Ignore storage failures for pop-out handoff.
-    }
-
-    const popup = window.open(
-      `${window.location.origin}/assistant/window`,
-      "classic-visions-assistant",
-      "popup=yes,width=460,height=760,resizable=yes,scrollbars=no",
-    );
-
-    if (popup) {
-      popup.focus();
-      return;
-    }
-
-    window.location.href = "/assistant/window";
-  }, [currentQuery, formState, messages]);
+    setIsOpen(true);
+    setNudge(null);
+  }, []);
 
   const submitWebSearch = useCallback(async (query: string) => {
     const trimmed = query.trim();

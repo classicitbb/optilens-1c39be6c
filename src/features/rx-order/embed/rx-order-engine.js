@@ -379,7 +379,10 @@ function nextOrderNo(){
   return String(n);
 }
 function newOrderNo(){
-  S.orderNo=(ADAPTER.orderNo&&ADAPTER.orderNo())||nextOrderNo();
+  const assigned=ADAPTER.orderNo&&ADAPTER.orderNo();
+  /* The order identifier travels to the PO/lab payload, so it must remain a
+     numeric order number. Quote references are deliberately kept separate. */
+  S.orderNo=/^\d+$/.test(String(assigned||''))?String(assigned):nextOrderNo();
   const el=$('#ordNo');
   if(el) el.innerHTML='<span>Order</span> '+S.orderNo;
   return S.orderNo;
@@ -969,7 +972,6 @@ function price(){
      identical lenses cost 110% of the same unsplit pair. Half of each side's
      pair price is the only split that stays consistent with the unsplit
      price when both sides match. */
-  const share=split?0.5:1;
   let unpriced=false;
   sides.forEach(side=>{
     const t=lensTriple(side);
@@ -981,16 +983,26 @@ function price(){
     const quoted=ADAPTER.lensPrice?ADAPTER.lensPrice(t.m,t.d,t.c):undefined;
     const sideUnpriced=!!ADAPTER.lensPrice&&quoted==null;
     if(sideUnpriced) unpriced=true;
-    const eyeTag=split?(side==='a'?'OD · ':'OS · '):'';
-    /* `eye` lets persistPayload pair each quote line with its lens without
-       guessing from labels or positions. Null on an unsplit order. */
-    const eye=split?(side==='a'?'od':'os'):null;
-    lines.push({n:(split?(side==='a'?'OD ':'OS ')+d.n:d.n),i:`${eyeTag}${m.n} · ${c.n}`,
-      v:sideUnpriced?0:(quoted??(d.base+m.up))*share,unpriced:sideUnpriced,eye,lens:true}); /* the lens itself — not removable from the quote */
+    /* Every physical lens gets its own priced line. An unsplit pair still
+       represents two lenses, so split its pair price evenly into OD and OS;
+       that makes saved-draft and invoice detail match the lab payload without
+       changing the total. */
+    const pricedEyes=split
+      ? [side==='a'?'od':'os']
+      : S.eyes==='pair' ? ['od','os'] : [activeEyes()[0]];
+    const share=(split||pricedEyes.length===2)?0.5:1;
+    pricedEyes.forEach(eye=>{
+      const eyeLabel=eye==='od'?'OD':'OS';
+      const eyeTag=`${eyeLabel} · `;
+      lines.push({n:`${eyeLabel} ${d.n}`,i:`${eyeTag}${m.n} · ${c.n}`,
+        v:sideUnpriced?0:(quoted??(d.base+m.up))*share,unpriced:sideUnpriced,eye,lens:true}); /* the lens itself — not removable from the quote */
+      /* Colour upgrades apply to each physical lens, just as the base lens
+         does. Splitting the pair here keeps the displayed line total exact. */
+      if(c.up) lines.push({n:`${eyeLabel} ${c.n}`,i:'Extra over Clear · same material & design',v:c.up*share,eye});
+    });
     /* colour upcharge is a flat add-on regardless of material/design, so it already
        equals the delta vs Clear (which is always up:0 and simply shows no line) —
        the label now says so explicitly, per feedback asking "how much extra is it". */
-    if(c.up) lines.push({n:(split?eyeTag:'')+c.n,i:'Extra over Clear · same material & design',v:c.up*share,eye});
   });
   Array.from(S.treat).forEach(id=>{const t=TREAT.find(x=>x.id===id); if(t){
     let detail=t.c;
@@ -3151,7 +3163,7 @@ function stashOrder(kind){
   }catch(e){}
   return p;
 }
-function restorePayload(p){
+function restorePayload(p,{newOrderNumber=false}={}){
   if(!p) return;
   S.scope=p.job.scope; S.eyes=p.job.eyes; S.vision=p.job.vision; S.purpose=p.job.purpose;
   ['scopeSeg:scope','eyeSeg:eyes','visionSeg:vision','purposeSeg:purpose'].forEach(pair=>{
@@ -3197,8 +3209,19 @@ function restorePayload(p){
      looked at again before it folds shut. */
   S.treatConfirmed=false;
   S.revealAll=true;
-  /* a rebuilt order is a NEW order — fresh number, with a pointer back to the original */
-  S.rebuiltFrom=p.orderNo||null; newOrderNo();
+  /* Continuing a saved/in-progress order keeps its numeric PO identifier and
+     its database draft. Rebuilding history is the one explicit new-order
+     path, so it receives a fresh number and preserves the source reference. */
+  const savedOrderNo=String(p.orderNo||'').trim();
+  if(newOrderNumber||!/^\d+$/.test(savedOrderNo)){
+    S.rebuiltFrom=savedOrderNo||null;
+    newOrderNo();
+  } else {
+    S.rebuiltFrom=null;
+    S.orderNo=savedOrderNo;
+    const orderEl=$('#ordNo');
+    if(orderEl) orderEl.innerHTML='<span>Order</span> '+S.orderNo;
+  }
   $('#scopeSeg button[data-scope="'+S.scope+'"]').click();
   buildShapePick(); buildPopular(); buildTreatList(); render();
 }
@@ -4031,7 +4054,7 @@ $('#btnReorder').addEventListener('click',()=>{
   let hist=[]; try{ hist=JSON.parse(localStorage.getItem('cv-rx-history')||'[]'); }catch(e){}
   if(!hist.length){ toast('No order history yet — submit or save a draft first'); return; }
   const h=hist[0];
-  restorePayload(h.payload);
+  restorePayload(h.payload,{newOrderNumber:true});
   $('#draftBanner').classList.remove('hide');
   $('#draftBanner').querySelector('span:nth-child(2)').innerHTML=
     `<b>Rebuilt from order history</b> — ${h.label}, ${h.kind} on ${new Date(h.at).toLocaleString()}. Everything is editable; the quote reprices at today's rates.`;

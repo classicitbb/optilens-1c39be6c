@@ -4,7 +4,7 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-08-30
+Last updated: 2026-09-01
 
 ---
 
@@ -14,8 +14,9 @@ Last updated: 2026-08-30
   withholds its deterministic high-confidence match while generation is in
   progress, showing it only as a controlled fallback if generation fails. The
   shared prompt now defines the public customer-experience front and the
-  authorized business-operations front. A fictional, disclosure-required
-  profile portrait is staged locally; no website publication, email mailbox,
+  authorized business-operations front. Her staged fictional portrait now
+  opens an in-page public profile with the approved bio, AI disclosure, and
+  explicit public-versus-operations boundary; no email mailbox,
   LinkedIn profile, service account, or Edge Function deployment has occurred.
   The approved actor-scoped access and controlled-admin-SQL contract is in
   `docs/iris-data-access-contract.md`; an admin-only financial-data capability

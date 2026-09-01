@@ -12,11 +12,18 @@ only when that request fails, making the grounded AI answer the visitor's first
 answer. `supabase/functions/_shared/aiIdentity.ts` and
 `docs/ai-assistant-identity.md` define Iris's public customer-experience and
 authorized business-operations fronts, including her proactive operating
-posture and hard authority boundaries.
+posture and hard authority boundaries. The staged portrait in the public
+assistant header now opens an in-page Iris profile with the approved title,
+bio, fictional-avatar/AI disclosure, and explicit separation between public
+guidance and the separately authorized operations workspace. Her shared prompt
+uses she/her pronouns and a poised, warm, feminine, capable voice while
+retaining the existing anti-impersonation and authority limits. Quote/support
+launch compatibility now stays on the current page rather than opening or
+redirecting to a standalone assistant window.
 
 `public/images/iris/iris-ai-operations-partner.png` is a staged fictional AI
-portrait. No external account, email identity, LinkedIn profile, site
-publication, Supabase authorization change, or Edge Function deployment has
+portrait. No external account, email identity, LinkedIn profile, Supabase
+authorization change, or Edge Function deployment has
 been performed; those actions require explicit approval.
 
 The business owner approved actor-scoped Iris access, with a customer portal
@@ -31,6 +38,10 @@ Admin Copilot data path; the direct SQL gateway has not been implemented.
 
 ## Verification
 
+- Passed: `npx vitest run --coverage=false src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/embeddedRxOrderDraft.unit.test.ts` (9 tests), including the public profile/disclosure and in-page launch regression.
+- Passed: `npm run build` after the public profile, persona, quote-launch, and saved-Rx changes.
+- Passed: focused ESLint with 0 errors (existing warnings remain in the edited legacy files).
+- Pending rendered screenshot evidence: the local Vite server started successfully, but Playwright's Chromium binary is absent and its download is blocked by `UNABLE_TO_VERIFY_LEAF_SIGNATURE`. Re-run the local desktop/mobile browser check after the workstation trust chain is repaired or a browser binary is installed.
 - Passed: `npx vitest run --coverage=false src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/companionAssistantEngine.unit.test.ts` (10 tests).
 - Passed: `npx eslint src/components/assistant/CompanionAssistant.tsx src/features/assistant/companionAssistantEngine.ts src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/companionAssistantEngine.unit.test.ts` (three existing warnings in `CompanionAssistant.tsx`; no errors).
 - Passed: `npm run build`.

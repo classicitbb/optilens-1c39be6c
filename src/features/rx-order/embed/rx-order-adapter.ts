@@ -202,10 +202,16 @@ export async function persistPayload(
   };
 
   // `lens` is the right/shared eye; `lensOs` exists only on a split order.
+  // A non-split pair still contains two physical lenses. Persist those as OD
+  // and OS lines so the invoice and lab payload agree with the saved-draft
+  // price breakdown.
   const splitOrder = !!payload.split && !!payload.lensOs;
+  const pairOrder = payload?.job?.eyes === "pair";
   const sides: { eye: "od" | "os" | null; triple: any }[] = splitOrder
     ? [{ eye: "od", triple: payload.lens }, { eye: "os", triple: payload.lensOs }]
-    : [{ eye: null, triple: payload.lens }];
+    : pairOrder
+      ? [{ eye: "od", triple: payload.lens }, { eye: "os", triple: payload.lens }]
+      : [{ eye: payload?.job?.eyes === "os" ? "os" : "od", triple: payload.lens }];
   const resolvedSides = await Promise.all(sides.map(async (s) => ({ ...s, ...(await resolveLens(s.triple)) })));
 
   // Replace all lines for this quote (the engine is the source of truth).
@@ -228,9 +234,7 @@ export async function persistPayload(
     const unpriced = matrixPrice == null && !side.lens;
     // The engine tags each lens quote line with its eye, so a split order
     // pairs line to lens without guessing from label text or line order.
-    const quoted = splitOrder
-      ? quoteLines.find((l: any) => l.lens && l.eye === side.eye)
-      : quoteLines[0];
+    const quoted = quoteLines.find((l: any) => l.lens && l.eye === side.eye) ?? quoteLines[0];
     const amount = unpriced
       ? 0
       : quoted
