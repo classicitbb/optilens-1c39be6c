@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AccountLayout from "@/components/account/AccountLayout";
@@ -7,20 +7,20 @@ import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 
-const Profile = lazy(() => import("@/pages/Profile"));
-const MyAccountSection = lazy(() => import("@/components/account/sections/MyAccountSection"));
-const MyOrdersSection = lazy(() => import("@/components/account/sections/MyOrdersSection"));
-const QuoteFormSection = lazy(() => import("@/components/account/sections/QuoteFormSection"));
-const HelpdeskTicketsSection = lazy(() => import("@/components/account/sections/HelpdeskTicketsSection"));
-const HelpdeskTicketDetailSection = lazy(() => import("@/components/account/sections/HelpdeskTicketDetailSection"));
-const AssistantConversationsSection = lazy(() => import("@/components/account/sections/AssistantConversationsSection"));
-const AssignedPricelistsSection = lazy(() => import("@/components/account/sections/AssignedPricelistsSection"));
-const CartDraftsSection = lazy(() => import("@/components/account/sections/CartDraftsSection"));
-const StatementsSection = lazy(() => import("@/components/account/sections/StatementsSection"));
-const RxDraftSection = lazy(() => import("@/components/account/sections/RxDraftSection"));
-const LensAssistantSection = lazy(() => import("@/components/account/sections/LensAssistantSection"));
-const NetworkingCardPage = lazy(() => import("@/pages/NetworkingCardPage"));
-const HandbookSection = lazy(() => import("@/components/account/sections/HandbookSection"));
+const Profile = lazyWithRetry(() => import("@/pages/Profile"));
+const MyAccountSection = lazyWithRetry(() => import("@/components/account/sections/MyAccountSection"));
+const MyOrdersSection = lazyWithRetry(() => import("@/components/account/sections/MyOrdersSection"));
+const QuoteFormSection = lazyWithRetry(() => import("@/components/account/sections/QuoteFormSection"));
+const HelpdeskTicketsSection = lazyWithRetry(() => import("@/components/account/sections/HelpdeskTicketsSection"));
+const HelpdeskTicketDetailSection = lazyWithRetry(() => import("@/components/account/sections/HelpdeskTicketDetailSection"));
+const AssistantConversationsSection = lazyWithRetry(() => import("@/components/account/sections/AssistantConversationsSection"));
+const AssignedPricelistsSection = lazyWithRetry(() => import("@/components/account/sections/AssignedPricelistsSection"));
+const CartDraftsSection = lazyWithRetry(() => import("@/components/account/sections/CartDraftsSection"));
+const StatementsSection = lazyWithRetry(() => import("@/components/account/sections/StatementsSection"));
+const RxDraftSection = lazyWithRetry(() => import("@/components/account/sections/RxDraftSection"));
+const LensAssistantSection = lazyWithRetry(() => import("@/components/account/sections/LensAssistantSection"));
+const NetworkingCardPage = lazyWithRetry(() => import("@/pages/NetworkingCardPage"));
+const HandbookSection = lazyWithRetry(() => import("@/components/account/sections/HandbookSection"));
 
 const LensAssistantProfileRouteGate = () => {
   const { isLoading: identityLoading } = usePortalIdentity();
