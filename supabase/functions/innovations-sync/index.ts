@@ -300,10 +300,19 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// Columns that are NOT NULL with a database default. An explicit null from the
+// office payload would trip the not-null constraint instead of falling back to
+// the default, so those keys are dropped when the value is null/undefined.
+const DROP_IF_NULL = new Set(["country"]);
+
 function pick(row: Record<string, unknown>, allow: string[]): Record<string, unknown> {
   const set = new Set(allow);
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(row)) if (set.has(k)) out[k] = v;
+  for (const [k, v] of Object.entries(row)) {
+    if (!set.has(k)) continue;
+    if (DROP_IF_NULL.has(k) && (v === null || v === undefined)) continue;
+    out[k] = v;
+  }
   return out;
 }
 
