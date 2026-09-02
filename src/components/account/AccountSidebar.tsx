@@ -17,7 +17,6 @@ interface AccountSidebarProps {
 const AccountSidebar = ({ pathname, collapsed = false }: AccountSidebarProps) => {
   const { canAccessFeature, identity, emulation, effectiveUserId } = usePortalIdentity();
   const { user } = useAuth();
-  const { isAdmin } = useUserRole();
   const lensAssistantEnabled = canAccessFeature("rx-order");
   const targetUserId = emulation?.userId ?? effectiveUserId ?? user?.id ?? null;
   const { drafts: cartDrafts } = useCartDrafts(emulation?.userId);

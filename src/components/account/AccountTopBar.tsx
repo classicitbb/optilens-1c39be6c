@@ -31,7 +31,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
   const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useCompanionAssistant();
-  const { isAdmin, hasAccess } = useUserRole();
+  const { hasAccess } = useUserRole();
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
