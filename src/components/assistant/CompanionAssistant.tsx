@@ -103,7 +103,7 @@ const AssistantResultCard = ({
       <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3 text-sm text-foreground/70">
         <span className="inline-flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-secondary" />
-          Iris is preparing a grounded answer…
+          Just a moment…
         </span>
       </div>
     );
@@ -190,8 +190,16 @@ const AssistantResultCard = ({
   );
 };
 
+const STARTER_PROMPTS = [
+  "What lenses do I need?",
+  "Find lenses for my frame",
+  "Compare lens coatings & upgrades",
+  "Shipping, returns & warranty",
+];
+
 const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void }) => {
-  const { messages, submitQuickAction } = useCompanionAssistant();
+  const { messages, submitQuickAction, submitQuery, isSubmitting } = useCompanionAssistant();
+  const hasVisitorMessage = messages.some((message) => message.role === "user");
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const wasNearBottomRef = useRef(true);
 
@@ -289,8 +297,24 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
               </div>
             </div>
           ))}
+          {!hasVisitorMessage ? (
+            <div className="flex flex-col items-start gap-2 pt-1">
+              {STARTER_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => void submitQuery(prompt)}
+                  disabled={isSubmitting}
+                  className="rounded-full border border-border/60 bg-card/70 px-4 py-2 text-left text-sm text-foreground/80 shadow-soft transition hover:bg-card hover:text-foreground disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
+
     </div>
   );
 };

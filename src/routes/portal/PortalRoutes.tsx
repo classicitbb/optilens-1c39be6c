@@ -4,8 +4,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AccountLayout from "@/components/account/AccountLayout";
 import PortalFeatureGate from "@/components/account/PortalFeatureGate";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 
 const Profile = lazyWithRetry(() => import("@/pages/Profile"));
 const MyAccountSection = lazyWithRetry(() => import("@/components/account/sections/MyAccountSection"));
@@ -22,21 +20,15 @@ const LensAssistantSection = lazyWithRetry(() => import("@/components/account/se
 const NetworkingCardPage = lazyWithRetry(() => import("@/pages/NetworkingCardPage"));
 const HandbookSection = lazyWithRetry(() => import("@/components/account/sections/HandbookSection"));
 
-const LensAssistantProfileRouteGate = () => {
+const RxOrderRouteGate = () => {
   const { isLoading: identityLoading } = usePortalIdentity();
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
-  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
 
-  if (identityLoading || roleLoading || publicLensAssistant.isLoading || adminLensAssistant.isLoading) {
+  if (identityLoading) {
     return <div className="flex min-h-[240px] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
   }
 
-  const rolloutEnabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
-  if (!rolloutEnabled) return <Navigate to="/profile" replace />;
-
   return (
-    <PortalFeatureGate feature="lens-assistant">
+    <PortalFeatureGate feature="rx-order">
       <LensAssistantSection />
     </PortalFeatureGate>
   );
@@ -63,7 +55,7 @@ const PortalRoutes = () => {
         <Route path="assistant-chats" element={<AssistantConversationsSection />} />
         <Route path="pricelists" element={<PortalFeatureGate feature="pricelists"><AssignedPricelistsSection /></PortalFeatureGate>} />
         <Route path="drafts" element={<CartDraftsSection />} />
-        <Route path="rx-order" element={<LensAssistantProfileRouteGate />} />
+        <Route path="rx-order" element={<RxOrderRouteGate />} />
         <Route path="lens-assistant" element={<Navigate to="/profile/rx-order" replace />} />
         <Route path="rx-drafts/:draftId" element={<RxDraftSection />} />
         <Route path="statements" element={<PortalFeatureGate feature="statements"><StatementsSection /></PortalFeatureGate>} />

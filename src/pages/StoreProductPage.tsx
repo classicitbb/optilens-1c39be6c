@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { LensChatbot } from "@/components/LensChatbot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -225,7 +224,6 @@ const StoreProductPage = () => {
         </div>
       </main>
       <Footer />
-      <LensChatbot />
     </div>
   );
 };

@@ -18,7 +18,6 @@ const BlogPostPage = lazyWithRetry(() => import("@/pages/BlogPostPage"));
 const CompanionAssistantWindowPage = lazyWithRetry(() => import("@/pages/assistant/CompanionAssistantWindowPage"));
 const OpticalRetailWebsitesPage = lazyWithRetry(() => import("@/pages/OpticalRetailWebsitesPage"));
 const RxLabServicesPage = lazyWithRetry(() => import("@/pages/RxLabServicesPage"));
-const LensAssistantPage = lazyWithRetry(() => import("@/pages/LensAssistantPage"));
 const LabLinkEmbedPage = lazyWithRetry(() => import("@/pages/LabLinkEmbedPage"));
 const Knowledge = lazyWithRetry(() => import("@/pages/Knowledge"));
 const LegalPage = lazyWithRetry(() => import("@/pages/LegalPage"));
@@ -85,18 +84,6 @@ const ContactHashRedirect = () => {
   return null;
 };
 
-const LensAssistantRouteGate = () => {
-  const { user } = useAuth();
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
-  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
-  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
-
-  if ((user && roleLoading) || publicLensAssistant.isLoading || adminLensAssistant.isLoading) return null;
-
-  const enabled = isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled;
-  return enabled ? <LensAssistantPage /> : <Navigate to={user ? "/profile" : "/"} replace />;
-};
-
 import RepoHealthPage from "@/pages/RepoHealth";
 
 const PublicRoutes = () => (
@@ -110,7 +97,7 @@ const PublicRoutes = () => (
     <Route path="connect/:slug" element={<ConnectCardPage />} />
     <Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
-    <Route path="lens-assistant" element={<LensAssistantRouteGate />} />
+    <Route path="lens-assistant" element={<Navigate to="/profile/rx-order" replace />} />
     <Route
       path="rx-job-status"
       element={

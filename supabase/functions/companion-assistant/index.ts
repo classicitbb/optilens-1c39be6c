@@ -10,6 +10,8 @@ const SYSTEM_PROMPT = `${identityPreamble("public support and live chat")}
 
 Your role in this workspace:
 - Support visitors, patients, optical dispensers, and customers.
+- Act as Classic Visions' lens specialist as well as its support assistant. You are competent on single vision, bifocal and progressive designs, lens materials and indexes (CR-39 1.50, polycarbonate, high-index 1.67/1.74), coatings and upgrades (anti-reflective, scratch resistance, blue light filtering, photochromic, polarized, tints), spherical/aspheric/freeform designs, prescription terminology (SPH, CYL, AXIS, ADD, PD), and UV protection and eye health.
+- Explain that expertise generically. Never state a product name, availability, specification or price unless it appears in the supplied evidence.
 
 - Give immediate, natural, useful answers grounded in the supplied Classic Visions evidence.
 - Sound knowledgeable, warm, and human-centered without sounding scripted or pushy. Use she/her pronouns for Iris when a pronoun is needed, but never present yourself as a human employee.
@@ -26,7 +28,7 @@ Formatting rules:
 - Cite sources inline using numbered references like [1], [2] that match the numbered "Website context links" list provided.
 - Only cite a source [n] when it directly supports something you actually stated in your answer. Never cite or list a source that is not directly relevant to the question asked, and never cite a source just because it was supplied to you.
 - Answer only what was asked. Do not volunteer extra topics, alternate products, or additional suggestions the visitor did not request.
-- Answer the actual question first. Use 2–6 sentences or a short list when that is clearer.
+- Answer the actual question first. For a simple question use 2–6 sentences. For a comparison, an "explain the options" question, or a multi-part question, write a fuller structured answer: a one-line lead-in, then numbered or bulleted sections with a **bold** heading per option and a short "Best for" line where it helps.
 - Do not truncate or trail off mid-sentence.
 - Return your answer only — no preamble like "Here is your answer:".
 - Do not dump bare URLs into the answer text. Links are shown separately as citations.
@@ -215,23 +217,27 @@ const buildUserPrompt = (payload: CompanionRequest) => {
   ].join("\n");
 };
 
-async function generateWithGateway(payload: CompanionRequest, apiKey: string) {
-  const model = Deno.env.get("COMPANION_ASSISTANT_GATEWAY_MODEL") ?? "google/gemini-3-flash-preview";
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+const gatewayModel = () => Deno.env.get("COMPANION_ASSISTANT_GATEWAY_MODEL") ?? "google/gemini-3-flash-preview";
+
+const callGateway = (payload: CompanionRequest, apiKey: string, stream: boolean) =>
+  fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model,
-      stream: false,
+      model: gatewayModel(),
+      stream,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: buildUserPrompt(payload) },
       ],
     }),
   });
+
+async function generateWithGateway(payload: CompanionRequest, apiKey: string) {
+  const response = await callGateway(payload, apiKey, false);
 
   if (!response.ok) {
     const text = await response.text();
@@ -240,6 +246,88 @@ async function generateWithGateway(payload: CompanionRequest, apiKey: string) {
 
   const data = await response.json();
   return data?.choices?.[0]?.message?.content ?? null;
+}
+
+// Only surface sources the answer actually cited (via [n] markers), instead of
+// dumping every candidate link that happened to be supplied as context.
+const resolveCitations = (rawAnswer: string | null, availableLinks: ContextLink[]) => {
+  const citedIndices = rawAnswer
+    ? Array.from(new Set(Array.from(rawAnswer.matchAll(/\[(\d+)\]/g), (match: RegExpMatchArray) => Number(match[1]))))
+        .filter((index) => index >= 1 && index <= availableLinks.length)
+        .sort((a, b) => a - b)
+    : [];
+  return citedIndices.length > 0 ? citedIndices.map((index) => availableLinks[index - 1]) : availableLinks.slice(0, 1);
+};
+
+/**
+ * Streams the gateway answer to the browser as `data: {"delta": "..."}` lines and
+ * closes with `data: {"done": true, "citations": [...]}` once the full text is known.
+ */
+async function streamAnswer(payload: CompanionRequest, apiKey: string, corsHeaders: Record<string, string>) {
+  const upstream = await callGateway(payload, apiKey, true);
+  if (!upstream.ok || !upstream.body) {
+    const text = await upstream.text().catch(() => "");
+    throw new Error(`Gateway companion assistant failed (${upstream.status}): ${text}`);
+  }
+
+  const availableLinks = payload.topLinks ?? [];
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const reader = upstream.body.getReader();
+
+  const body = new ReadableStream({
+    async start(controller) {
+      let answer = "";
+      let buffer = "";
+      const send = (event: Record<string, unknown>) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let newlineIndex: number;
+          while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+            const line = buffer.slice(0, newlineIndex).replace(/\r$/, "");
+            buffer = buffer.slice(newlineIndex + 1);
+            if (!line.startsWith("data: ")) continue;
+            const json = line.slice(6).trim();
+            if (json === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(json);
+              const delta = parsed?.choices?.[0]?.delta?.content;
+              if (typeof delta === "string" && delta.length > 0) {
+                answer += delta;
+                send({ delta });
+              }
+            } catch {
+              // Partial JSON chunk — wait for the rest of the line.
+              buffer = `${line}\n${buffer}`;
+              break;
+            }
+          }
+        }
+
+        const finalAnswer = answer.trim() || payload.fallbackAnswer?.trim() || null;
+        send({ done: true, answer: finalAnswer, citations: resolveCitations(answer.trim() || null, availableLinks) });
+      } catch (error) {
+        console.error("companion-assistant stream error", error);
+        send({ done: true, error: "stream_failed" });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(body, {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+    },
+  });
 }
 
 serve(async (req) => {
@@ -261,11 +349,16 @@ serve(async (req) => {
   if (perHour) return perHour;
 
   try {
-    const payload = (await req.json()) as CompanionRequest;
+    const payload = (await req.json()) as CompanionRequest & { stream?: boolean };
     const serverLinks = await retrieveServerContext(req, payload).catch(() => []);
     const groundedPayload = serverLinks.length > 0 ? { ...payload, topLinks: serverLinks } : payload;
 
     const gatewayKey = Deno.env.get("LOVABLE_API_KEY");
+
+    if (payload.stream === true && gatewayKey) {
+      await recordEditorialSignal(groundedPayload).catch((error) => console.error("assistant editorial signal failed", error));
+      return await streamAnswer(groundedPayload, gatewayKey, corsHeaders);
+    }
 
     const rawAnswer = gatewayKey
       ? await generateWithGateway(groundedPayload, gatewayKey)
@@ -273,19 +366,9 @@ serve(async (req) => {
 
     const answer = (rawAnswer ?? groundedPayload.fallbackAnswer ?? "").trim() || null;
 
-    // Only surface sources the answer actually cited (via [n] markers), instead of
-    // dumping every candidate link that happened to be supplied as context. When the
-    // model didn't cite anything (e.g. the fallback text, or an off-topic reply), fall
-    // back to at most the single strongest match rather than offering unrelated links.
-    const availableLinks = groundedPayload.topLinks ?? [];
-    const citedIndices = rawAnswer
-      ? Array.from(new Set(Array.from(rawAnswer.matchAll(/\[(\d+)\]/g), (match: RegExpMatchArray) => Number(match[1]))))
-          .filter((index) => index >= 1 && index <= availableLinks.length)
-          .sort((a, b) => a - b)
-      : [];
-    const citations = citedIndices.length > 0
-      ? citedIndices.map((index) => availableLinks[index - 1])
-      : availableLinks.slice(0, 1);
+    // When the model didn't cite anything (e.g. the fallback text, or an off-topic
+    // reply), fall back to at most the single strongest match.
+    const citations = resolveCitations(rawAnswer, groundedPayload.topLinks ?? []);
     await recordEditorialSignal(groundedPayload).catch((error) => console.error("assistant editorial signal failed", error));
 
     return new Response(JSON.stringify({

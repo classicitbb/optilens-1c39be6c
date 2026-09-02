@@ -14,8 +14,6 @@ project_id = "dzsalnvmlvjoatryhqfz"
   [functions.voice-transcribe]
     verify_jwt = false
 
-  [functions.lens-assistant]
-    verify_jwt = true
   [functions.crm-draft-outreach]
     verify_jwt = true
   [functions.crm-activity-automation]

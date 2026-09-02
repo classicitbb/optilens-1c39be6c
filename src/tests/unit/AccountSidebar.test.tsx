@@ -22,7 +22,7 @@ vi.mock("@/hooks/usePortalIdentity", () => ({
     effectiveUserId: null,
     canAccessFeature: (feature: string) => {
       if (feature === "statements") return mocks.statementsEnabled;
-      if (feature === "lens-assistant") return mocks.lensAssistantProfileEnabled;
+      if (feature === "rx-order") return mocks.lensAssistantProfileEnabled;
       return true;
     },
   }),
@@ -110,18 +110,17 @@ describe("AccountSidebar", () => {
     expect(screen.queryByText("Statements")).not.toBeInTheDocument();
   });
 
-  it("hides the Rx Order Form entirely for customers until the public flag is enabled", () => {
+  it("hides the Rx Order Form entirely for customers without the portal feature", () => {
     mocks.isAdmin = false;
-    mocks.lensAssistantPublic = false;
+    mocks.lensAssistantProfileEnabled = false;
     renderSidebar();
 
     expect(screen.queryByRole("link", { name: "Rx Order Form" })).not.toBeInTheDocument();
     expect(screen.queryByText("Rx Order Form")).not.toBeInTheDocument();
   });
 
-  it("lets admins open the Rx Order Form when the admin flag is enabled", () => {
+  it("lets admins open the Rx Order Form", () => {
     mocks.isAdmin = true;
-    mocks.lensAssistantAdmin = true;
     renderSidebar();
 
     expect(screen.getByRole("link", { name: "Rx Order Form" })).toHaveAttribute("href", "/profile/rx-order");
@@ -129,7 +128,6 @@ describe("AccountSidebar", () => {
 
   it("hides the Rx Order Form when this profile has an explicit disabled override", () => {
     mocks.isAdmin = false;
-    mocks.lensAssistantPublic = true;
     mocks.lensAssistantProfileEnabled = false;
     renderSidebar();
 

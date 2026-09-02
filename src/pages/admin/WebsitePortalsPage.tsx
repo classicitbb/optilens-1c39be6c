@@ -157,7 +157,7 @@ interface ContactLookupRow {
   innovations_parent_customer_id: number | null;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices", "lens-assistant"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices", "rx-order"] as const;
 const PORTAL_ACCOUNTS_PAGE_SIZE = 100;
 
 const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
@@ -168,7 +168,7 @@ const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "live-order-status": "Live order status",
   statements: "Statements",
   "order-prices": "Order prices",
-  "lens-assistant": "Lens Assistant",
+  "rx-order": "Rx Order Form",
 };
 
 const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
@@ -179,7 +179,7 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "live-order-status": "Approved customer access for live lab and delivery status.",
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
   "order-prices": "Off by default. Enable to show item prices and totals on this customer's Order status and lab shipment views.",
-  "lens-assistant": "Approved customer access to the Lens Assistant in this profile. The global Lens Assistant rollout flag must also be enabled.",
+  "rx-order": "Approved customer access to the portal Rx order form in this profile.",
 };
 
 type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "active" | "all";
