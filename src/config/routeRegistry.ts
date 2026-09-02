@@ -40,7 +40,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.patients.regular-eye-exams", path: "/patients/regular-eye-exams", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.find-a-retailer", path: "/find-a-retailer", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.find-a-retailer.barbados", path: "/find-a-retailer/barbados", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
-  { id: "public.lens-assistant", path: "/lens-assistant", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "redirect", redirectTo: "/profile/rx-order" },
+  { id: "public.lens-assistant", path: "/lens-assistant", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "hidden", redirectTo: "/profile/rx-order" },
   { id: "public.patients.night-driving-aids", path: "/patients/night-driving-aids", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.dispensing-tips", path: "/dispensing-tips", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.professionals.price-list-request", path: "/professionals/price-list-request", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
