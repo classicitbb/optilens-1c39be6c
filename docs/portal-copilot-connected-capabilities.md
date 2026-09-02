@@ -40,5 +40,15 @@ A future pricing-advisor planner should return current price, known cost compone
 
 Enrichment starts from a selected CRM contact/lead and only public company clues such as company name, domain and location. Proposed country, address, website, public business phone, public/general email and role findings need field-level before/after values plus source URL, retrieval date and confidence.
 
-No existing field is overwritten during research. Review must support accepting fields individually, accepting all, or retaining findings only as sourced notes. Restricted or personal data is out of scope. The web-research adapter and durable field-proposal schema are intentionally not implemented by the first CRM slice; they must be added before enrichment can be enabled.
+No existing field is overwritten during research. Restricted or personal data is out of scope.
+
+**This is now implemented.** `crm-enrich-contacts` resolves a contact to a Google Place, and `_shared/enrichment/contactEnrichment.ts` applies one policy shared with the Copilot's `enrich_contact` tool:
+
+- A blank field is filled directly when match confidence is at least 0.70; `contact_enrichment_findings` records the old value, new value, source URL, retrieval date and confidence for every value written.
+- A value that contradicts a non-blank field is never written. It is stored as `pending_review` and becomes an `apply_contact_enrichment` action once an administrator asks the Copilot to queue it, grouped per contact so related fields such as country and country code cannot be applied inconsistently.
+- `country` is always an approval: `contacts.country` is `NOT NULL DEFAULT 'Barbados'`, so it is never blank and a default cannot be told apart from a deliberate entry. `country_code` is filled only when the listing's country matches the stored one.
+- Provider telemetry (place id, rating, review count) refreshes without approval, because it is not admin-entered fact.
+- The match guard is the safety boundary: Dice name similarity of at least 0.72, a 0.10 margin over the runner-up, and no write at all on a zero-result or ambiguous lookup.
+
+Sweeps run nightly and every fifteen minutes for newly created contacts, bounded by a 40-contact batch, a 150-attempt daily cap and a 30-day per-contact floor. `?dryRun=1` records findings without writing.
 

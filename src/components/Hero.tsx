@@ -25,10 +25,10 @@ const journeyContent = {
     title: "Start a prescription lens order",
     description: "We’ll help you find the right approved lens, capture the Rx, and keep the job easy to track.",
     primaryLabel: "Start an Rx order",
-    primaryHref: "/lens-assistant?mode=order&audience=professional",
+    primaryHref: "/profile/rx-order",
     actions: [
       { label: "Track an order", href: "/profile/orders", icon: PackageSearch },
-      { label: "Find a lens & price", href: "/lens-assistant?audience=professional", icon: ScanEye },
+      { label: "Find a lens & price", href: "/profile/rx-order", icon: ScanEye },
       { label: "Talk to our optical team", href: "/#contact", icon: Headphones },
     ],
   },

@@ -55,6 +55,7 @@ export type CopilotActionPayload = {
   customerName?: string;
   accountNumber?: string | null;
   recipientEmail?: string;
+  recipients?: string[];
   recipientName?: string;
   subject?: string;
   body?: string;
@@ -70,6 +71,19 @@ export type CopilotActionPayload = {
   recommendedNextAction?: string;
   outreachDraft?: string;
   suggestedOwnerId?: string;
+  /** apply_contact_enrichment: public-web findings awaiting approval. */
+  contactLabel?: string;
+  source?: "google_places" | "firecrawl";
+  sourceUrl?: string;
+  retrievedAt?: string;
+  matchConfidence?: number;
+  findings?: {
+    findingId: string;
+    field: string;
+    oldValue: string | null;
+    newValue: string;
+    confidence: number;
+  }[];
 };
 
 export type CopilotAction = {
@@ -147,6 +161,8 @@ export const submitCopilotCommand = (input: {
   inputMode: "text" | "voice";
   transcriptConfirmed: boolean;
   conversationId?: string;
+  /** Admin context slug for the page in view, so the Copilot knows where the admin is. */
+  pageContext?: string;
 }) => invokePortalCopilot({ operation: "submit-command", ...input });
 
 export const prepareErpRollout = submitCopilotCommand;

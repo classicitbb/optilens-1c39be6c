@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowUp,
   Bot,
-  Check,
   CheckCircle2,
   ChevronDown,
   Clock3,
@@ -19,7 +18,6 @@ import {
   PanelLeftOpen,
   Paperclip,
   Plus,
-  Settings2,
   ShieldCheck,
   Square,
   X,
@@ -27,18 +25,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -53,6 +42,8 @@ import {
   type CopilotState,
 } from "@/features/admin/copilot/api";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { VoiceSettingsMenu } from "@/features/admin/copilot/VoiceSettingsMenu";
+import { readStoredHoldToRecord, storeHoldToRecord } from "@/features/admin/copilot/voicePreferences";
 import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { ActionCard, statusLabel } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
@@ -82,7 +73,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
   const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
-  const [holdToRecord, setHoldToRecord] = useState(false);
+  const [holdToRecord, setHoldToRecord] = useState(readStoredHoldToRecord);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [state, setState] = useState<CopilotState | null>(null);
@@ -118,6 +109,11 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
     setSpeechConfidence(confidence);
   }, []);
   const speech = usePushToTalk(onTranscript);
+
+  const changeHoldToRecord = useCallback((next: boolean) => {
+    setHoldToRecord(next);
+    storeHoldToRecord(next);
+  }, []);
 
   const stateQuery = useQuery({
     queryKey: ["portal-copilot-state", selectedConversationId ?? "latest", selectedRunId ?? "latest"],
@@ -310,7 +306,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
       {showSidebar ? (
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
           <div className="flex items-center justify-between gap-1.5 border-b px-3 py-2">
-            <span className="flex items-center gap-1.5 text-xs font-semibold"><Bot className="h-3.5 w-3.5 text-cyan-600" /> Portal Copilot</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold"><Bot className="h-3.5 w-3.5 text-cyan-600" /> Iris — Portal Copilot</span>
             <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Hide chat history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-3.5 w-3.5" /></Button>
           </div>
           <div className="px-2 py-1.5">
@@ -352,7 +348,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
             <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden h-7 w-7 lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-3.5 w-3.5" /></Button>
           ) : null}
           <div className="min-w-0">
-            <h1 className="truncate text-xs font-semibold">{selectedConversation?.title ?? "CV Portal Copilot"}</h1>
+            <h1 className="truncate text-xs font-semibold">{selectedConversation?.title ?? "Iris — Portal Copilot"}</h1>
             <p className="truncate text-[11px] text-muted-foreground">Your operational conversation · live changes always need approval</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
@@ -653,46 +649,19 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
 
                 <div className="flex items-center gap-1">
                   <div className="flex items-center overflow-hidden rounded-full border border-transparent hover:border-input">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" className="h-8 gap-1 rounded-full px-2 text-xs font-medium text-foreground hover:text-foreground" aria-label="Voice and microphone settings">
-                          Copilot
-                          <span className="text-muted-foreground">High</span>
-                          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-72">
-                        <DropdownMenuLabel className="px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Microphone</DropdownMenuLabel>
-                        <div className="max-h-64 overflow-y-auto">
-                          <DropdownMenuItem
-                            className="flex items-center justify-between gap-2"
-                            onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: "default" }))}
-                          >
-                            <span className="truncate">System default</span>
-                            {speech.settings.deviceId === "default" ? <Check className="h-4 w-4 shrink-0" /> : null}
-                          </DropdownMenuItem>
-                          {speech.devices.filter((device) => device.deviceId && device.deviceId !== "default").map((device, index) => (
-                            <DropdownMenuItem
-                              key={device.deviceId}
-                              className="flex items-center justify-between gap-2"
-                              onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: device.deviceId }))}
-                            >
-                              <span className="truncate">{device.label || `Microphone ${index + 1}`}</span>
-                              {speech.settings.deviceId === device.deviceId ? <Check className="h-4 w-4 shrink-0" /> : null}
-                            </DropdownMenuItem>
-                          ))}
-                        </div>
-                        <DropdownMenuSeparator />
-                        <div className="flex items-center justify-between px-2 py-1 text-[11px]">
-                          <Label htmlFor="hold-to-record" className="cursor-pointer font-normal">Hold to record</Label>
-                          <Switch id="hold-to-record" checked={holdToRecord} onCheckedChange={setHoldToRecord} />
-                        </div>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => setShowAudioSettings(true)}>
-                          <Settings2 className="mr-1.5 h-3 w-3" /> More voice settings
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <VoiceSettingsMenu
+                      speech={speech}
+                      holdToRecord={holdToRecord}
+                      onHoldToRecordChange={changeHoldToRecord}
+                      onOpenAdvanced={() => setShowAudioSettings(true)}
+                      switchId="console-hold-to-record"
+                    >
+                      <Button type="button" variant="ghost" className="h-8 gap-1 rounded-full px-2 text-xs font-medium text-foreground hover:text-foreground" aria-label="Voice and microphone settings">
+                        Copilot
+                        <span className="text-muted-foreground">High</span>
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    </VoiceSettingsMenu>
 
                     <Button
                       type="button"

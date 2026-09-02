@@ -14,11 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToastAction } from "@/components/ui/toast";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink, BookOpenCheck, UserPlus } from "lucide-react";
+import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Building2, Globe, User, X, Trash2, Settings, Upload, Download, ShieldCheck, Kanban, BadgeDollarSign, Mic, MicOff, ImageIcon, ExternalLink, BookOpenCheck, UserPlus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { AccessDeploymentAssistantDialog } from "@/components/admin/AccessDeploymentAssistantDialog";
 import { AccessDeploymentTrainingDialog, hasCompletedAccessDeploymentTraining } from "@/components/admin/AccessDeploymentTrainingDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useContactEnrichment } from "@/features/admin/crm/hooks/useContactEnrichment";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
@@ -548,6 +549,7 @@ const ContactsPage = ({
     return () => window.clearTimeout(handle);
   }, [search]);
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
+  const enrichContact = useContactEnrichment();
   const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes">("details");
   // The portals page clears its account query parameter as the embedded dialog
   // closes. Do not treat that parent URL update as a request to reopen the
@@ -2777,6 +2779,16 @@ const ContactsPage = ({
                           onClick={() => toggleArchiveContact(editContact)}
                         >
                           {editContact.is_archived ? "Unarchive" : "Archive"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 gap-1"
+                          disabled={enrichContact.isPending}
+                          title="Look this business up on Google Places and fill in any blank public details"
+                          onClick={() => enrichContact.mutate({ contactId: editContact.id! })}
+                        >
+                          <Globe className="h-3 w-3" /> {enrichContact.isPending ? "Enriching…" : "Enrich from public web"}
                         </Button>
                         <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
                           <Trash2 className="h-3 w-3" /> Delete

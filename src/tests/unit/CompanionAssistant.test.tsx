@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import {
   CompanionAssistantProvider,
+  useCompanionAssistant,
   useRetailerAssistantPrompt,
 } from "@/features/assistant/CompanionAssistantContext";
 
@@ -74,7 +75,7 @@ vi.mock("@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket", () => ({
 }));
 
 vi.mock("@/features/assistant/assistantGeneration", () => ({
-  generateAssistantAnswer: vi.fn(async () => null),
+  generateAssistantAnswer: vi.fn(async () => ({ answer: "AI response from Iris", citations: [] })),
 }));
 
 vi.mock("@/lib/cookieConsent", () => ({
@@ -97,6 +98,11 @@ const RetailerPromptHarness = () => {
 
 const ContactLinkHarness = () => <a href="/#contact">Contact our team</a>;
 
+const InPageAssistantHarness = () => {
+  const { openDetachedWindow } = useCompanionAssistant();
+  return <button type="button" onClick={openDetachedWindow}>Open in page</button>;
+};
+
 describe("CompanionAssistant", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -112,11 +118,45 @@ describe("CompanionAssistant", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /search & help/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
 
     expect(await screen.findByText("Find a retailer")).toBeInTheDocument();
     expect(screen.getByText("Find the right lens")).toBeInTheDocument();
     expect(screen.getByText("Get support")).toBeInTheDocument();
+  });
+
+  it("opens Iris's disclosed public profile from the assistant portrait", async () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <CompanionAssistantProvider>
+          <CompanionAssistant />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Meet Iris, Classic Visions AI Operations Partner" }));
+
+    expect(screen.getByText("Iris — Classic Visions AI Operations Partner")).toBeInTheDocument();
+    expect(screen.getByText("Iris is an AI assistant.", { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByText(/internal operations workspace is separately authorized/i)).toBeInTheDocument();
+  });
+
+  it("keeps compatibility launches in the current page", async () => {
+    const popup = vi.spyOn(window, "open");
+    render(
+      <MemoryRouter initialEntries={["/profile/pricelists"]}>
+        <CompanionAssistantProvider>
+          <InPageAssistantHarness />
+          <CompanionAssistant />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open in page" }));
+
+    expect(await screen.findByPlaceholderText("Ask anything")).toBeInTheDocument();
+    expect(popup).not.toHaveBeenCalled();
   });
 
   it("opens with a contextual retailer prompt and returns results", async () => {
@@ -135,7 +175,8 @@ describe("CompanionAssistant", () => {
       expect(screen.getByText(/help me find a retailer in barbados/i)).toBeInTheDocument();
     });
 
-    expect(await screen.findByText(/assistant response/i)).toBeInTheDocument();
+    expect(await screen.findByText("AI response from Iris")).toBeInTheDocument();
+    expect(screen.queryByText(/relevant barbados provider match from the website/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Helpful answer" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Not helpful answer" })).toBeInTheDocument();
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: "start" }));
@@ -150,7 +191,7 @@ describe("CompanionAssistant", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /search & help/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
     const input = screen.getByPlaceholderText("Ask anything");
     fireEvent.change(input, { target: { value: "Which lens is best for computer use?" } });
     fireEvent.keyDown(input, { key: "Enter", code: "Enter", charCode: 13 });
@@ -169,7 +210,7 @@ describe("CompanionAssistant", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /search & help/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
     const input = screen.getByPlaceholderText("Ask anything") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "Which lens is best for computer use?" } });
     fireEvent.keyDown(input, { key: "Enter", code: "Enter", charCode: 13 });

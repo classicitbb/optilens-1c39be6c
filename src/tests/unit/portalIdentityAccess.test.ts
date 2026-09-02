@@ -41,10 +41,10 @@ describe("canAccessPortalFeature", () => {
   });
 
   it("allows Lens Assistant for approved customers unless the profile override disables it", () => {
-    expect(canAccessPortalFeature(identity(), "lens-assistant")).toBe(true);
-    expect(canAccessPortalFeature(identity({ portalAccessStatus: "pending_approval" }), "lens-assistant")).toBe(false);
-    expect(canAccessPortalFeature(identity({ featureOverrides: { "lens-assistant": false } }), "lens-assistant")).toBe(false);
-    expect(canAccessPortalFeature(identity({ portalAccessStatus: "pending_approval", featureOverrides: { "lens-assistant": true } }), "lens-assistant")).toBe(true);
+    expect(canAccessPortalFeature(identity(), "rx-order")).toBe(true);
+    expect(canAccessPortalFeature(identity({ portalAccessStatus: "pending_approval" }), "rx-order")).toBe(false);
+    expect(canAccessPortalFeature(identity({ featureOverrides: { "rx-order": false } }), "rx-order")).toBe(false);
+    expect(canAccessPortalFeature(identity({ portalAccessStatus: "pending_approval", featureOverrides: { "rx-order": true } }), "rx-order")).toBe(true);
   });
 
   it("keeps statements locked for approved contacts without billing tags", () => {

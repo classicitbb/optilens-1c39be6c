@@ -8,7 +8,7 @@ const read = (relativePath: string) =>
   readFileSync(resolve(repoRoot, relativePath), "utf8");
 
 describe("order confirmation email routing", () => {
-  it("queues a formatted order confirmation after checkout succeeds", () => {
+  it("sends a formatted order confirmation after checkout succeeds", () => {
     const useOrders = read("src/hooks/useOrders.ts");
     const edgeFunction = read("supabase/functions/order-confirmation/index.ts");
 
@@ -16,7 +16,7 @@ describe("order confirmation email routing", () => {
     expect(edgeFunction).toContain("order-confirmation");
     expect(edgeFunction).toContain("transactional-email-templates/order-confirmation.tsx");
     expect(edgeFunction).toContain("renderAsync");
-    expect(edgeFunction).toContain("enqueue_email");
+    expect(edgeFunction).toContain("sendManagedEmail");
   });
 
   it("requires an authenticated order owner or staff user", () => {
@@ -30,7 +30,7 @@ describe("order confirmation email routing", () => {
     expect(edgeFunction).toContain("['admin', 'operator']");
   });
 
-  it("queues an idempotent operations notice only after a Scotia order is paid", () => {
+  it("sends an idempotent operations notice only after a Scotia order is paid", () => {
     const fulfillment = read("supabase/functions/_shared/email/paid-order-fulfillment.ts");
     const callback = read("supabase/functions/scotia-return/index.ts");
     const notification = read("supabase/functions/scotia-notify/index.ts");

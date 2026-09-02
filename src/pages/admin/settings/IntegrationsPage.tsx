@@ -39,6 +39,21 @@ interface PaymentGatewaySettings {
   updated_at: string;
 }
 
+/** Result of the admin IPG health check (scotia-payment `action: "probe"`). */
+interface ScotiaProbeResult {
+  accepted: boolean;
+  classification: string;
+  httpStatus: number | null;
+  detail: string;
+  failRc?: string | null;
+  snippet: string;
+  storeId: string;
+  environment: string;
+  currency: string;
+  checkedAt: string;
+}
+
+
 interface DhlExpressSettings {
   account_number: string | null;
   environment: "test" | "production";
@@ -122,6 +137,8 @@ export default function IntegrationsPage() {
   });
   const [sharedSecret, setSharedSecret] = useState("");
   const [testPayment, setTestPayment] = useState<PreparePaymentInput | null>(null);
+  const [probeResult, setProbeResult] = useState<ScotiaProbeResult | null>(null);
+
   const [dhlForm, setDhlForm] = useState<Partial<{
     account_number: string;
     environment: "test" | "production";
@@ -215,7 +232,7 @@ export default function IntegrationsPage() {
         responseSuccessURL: `${window.location.origin}/checkout`,
         responseFailURL: `${window.location.origin}/checkout`,
       });
-      toast({ title: "Configuration valid", description: "The secure hosted-payment window is ready for an iframe test." });
+      toast({ title: "Configuration valid", description: "The gateway credentials resolve and a signed form was produced." });
     },
     onError: (error: any) => {
       qc.invalidateQueries({ queryKey: ["payment-gateway-settings"] });
@@ -223,6 +240,34 @@ export default function IntegrationsPage() {
       toast({ title: "Test failed", description: error.message, variant: "destructive" });
     },
   });
+
+  // IPG health check: signs a probe sale and posts it to Fiserv server-side to
+  // see whether the store is actually accepted for Connect hosted-page use.
+  const probeMutation = useMutation({
+    mutationFn: async (): Promise<ScotiaProbeResult> => {
+      const { data, error } = await supabase.functions.invoke("scotia-payment", {
+        body: { action: "probe" },
+      });
+      if (error) throw new Error(error.message);
+      if (!data || typeof (data as any).accepted !== "boolean") {
+        throw new Error((data as { error?: string })?.error || "Health check returned an unexpected response.");
+      }
+      return data as ScotiaProbeResult;
+    },
+    onSuccess: (result) => {
+      setProbeResult(result);
+      toast({
+        title: result.accepted ? "Gateway accepted the store" : "Gateway rejected the request",
+        description: result.detail,
+        variant: result.accepted ? "default" : "destructive",
+      });
+    },
+    onError: (error: any) => {
+      setProbeResult(null);
+      toast({ title: "Health check failed", description: error.message, variant: "destructive" });
+    },
+  });
+
 
   const saveDhlMutation = useMutation({
     mutationFn: async () => {
@@ -318,88 +363,81 @@ export default function IntegrationsPage() {
       <QboIntegrationCard />
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Gateway configuration</CardTitle>
-          <CardDescription>
-            Issued by Scotiabank after certification. Production StoreIDs begin with “62”.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label>Store ID</Label>
-            <Input
-              value={form.store_id}
-              onChange={(e) => setForm((p) => ({ ...p, store_id: e.target.value }))}
-              placeholder="399000002"
-            />
+        <CardHeader className="space-y-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Lock className="h-4 w-4" /> Scotia eCom+ payment gateway
+              </CardTitle>
+              <CardDescription>
+                Issued by Scotiabank after certification. Production StoreIDs begin with “62”.
+                Currency is fixed to USD (840) by the hosted-payment integration.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className={statusMeta[currentStatus].className}>
+              {statusMeta[currentStatus].label}
+            </Badge>
           </div>
-          <div className="space-y-1.5">
-            <Label>Environment</Label>
-            <Select
-              value={form.environment}
-              onValueChange={(value: "test" | "production") => setForm((p) => ({ ...p, environment: value }))}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="test">Test</SelectItem>
-                <SelectItem value="production">Production</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Currency (ISO numeric)</Label>
-            <Input
-              value="840"
-              readOnly
-              aria-describedby="scotia-currency-note"
-            />
-            <p id="scotia-currency-note" className="text-xs text-muted-foreground">USD is fixed by the hosted-payment integration.</p>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Timezone</Label>
-            <Input
-              value={form.timezone}
-              onChange={(e) => setForm((p) => ({ ...p, timezone: e.target.value }))}
-              placeholder="America/Barbados"
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm md:col-span-2">
-            <input
-              type="checkbox"
-              checked={form.enabled}
-              onChange={(e) => setForm((p) => ({ ...p, enabled: e.target.checked }))}
-            />
-            Enable live processing through this gateway
-          </label>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Lock className="h-4 w-4" /> Shared Secret
-          </CardTitle>
-          <CardDescription>
-            Stored encrypted server-side and never returned to the browser. Used to sign every
-            transaction hash.
-          </CardDescription>
+          <p className="text-xs text-muted-foreground">
+            Last tested: {fmt(data?.last_tested_at)} · Updated: {fmt(data?.updated_at)}
+          </p>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="space-y-1.5">
-            <Label>Shared Secret (HMAC key)</Label>
-            <Input
-              type="password"
-              value={sharedSecret}
-              onChange={(e) => setSharedSecret(e.target.value)}
-              placeholder={requiresSecret ? "Required to enable the gateway" : "Leave empty to keep the stored secret"}
-            />
-            {data?.has_secret && (
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <ShieldCheck className="h-3 w-3 text-emerald-600" /> A secret is stored. Enter a new value only to rotate it.
-              </p>
-            )}
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Store ID</Label>
+              <Input
+                value={form.store_id}
+                onChange={(e) => setForm((p) => ({ ...p, store_id: e.target.value }))}
+                placeholder="399000002"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Environment</Label>
+              <Select
+                value={form.environment}
+                onValueChange={(value: "test" | "production") => setForm((p) => ({ ...p, environment: value }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="test">Test</SelectItem>
+                  <SelectItem value="production">Production</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Timezone</Label>
+              <Input
+                value={form.timezone}
+                onChange={(e) => setForm((p) => ({ ...p, timezone: e.target.value }))}
+                placeholder="America/Barbados"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Shared Secret (HMAC key)</Label>
+              <Input
+                type="password"
+                value={sharedSecret}
+                onChange={(e) => setSharedSecret(e.target.value)}
+                placeholder={requiresSecret ? "Required to enable the gateway" : "Leave empty to keep the stored secret"}
+              />
+              {data?.has_secret && (
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ShieldCheck className="h-3 w-3 text-emerald-600" /> A secret is stored. Enter a new value only to rotate it.
+                </p>
+              )}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap items-center gap-3 border-t pt-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.enabled}
+                onChange={(e) => setForm((p) => ({ ...p, enabled: e.target.checked }))}
+              />
+              Enable live processing
+            </label>
             <Button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending || (!sharedSecret && requiresSecret) || !form.store_id}
@@ -415,9 +453,60 @@ export default function IntegrationsPage() {
               {testMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlugZap className="mr-2 h-4 w-4" />}
               {currentStatus === "error" ? "Recheck & clear error" : "Test configuration"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => probeMutation.mutate()}
+              disabled={probeMutation.isPending || !data?.has_secret}
+            >
+              {probeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+              Run IPG health check
+            </Button>
           </div>
+          <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            {currentStatus === "connected" ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+            ) : (
+              <ShieldCheck className="h-3.5 w-3.5 text-amber-600" />
+            )}
+            {currentStatus === "connected"
+              ? "Gateway is configured."
+              : "Add a Store ID and Shared Secret to configure the gateway."}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            The health check signs a $1.00 probe sale and posts it to Fiserv from the server to
+            see whether the store is accepted for Connect hosted-page transactions. Nothing is charged.
+          </p>
+          {probeResult && (
+            <div className="border border-border p-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                {probeResult.accepted ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                ) : (
+                  <ShieldCheck className="h-3.5 w-3.5 text-destructive" />
+                )}
+                <span className="font-medium">
+                  {probeResult.accepted ? "Hosted page rendered" : "Gateway did not render the hosted page"}
+                </span>
+                <Badge variant="outline">{probeResult.classification}</Badge>
+                {probeResult.httpStatus !== null && <Badge variant="outline">HTTP {probeResult.httpStatus}</Badge>}
+                {probeResult.failRc && <Badge variant="outline">fail_rc {probeResult.failRc}</Badge>}
+              </div>
+              <p className="mt-2 text-muted-foreground">{probeResult.detail}</p>
+              <p className="mt-1 text-muted-foreground">
+                Store {probeResult.storeId} · {probeResult.environment} · checked{" "}
+                {new Date(probeResult.checkedAt).toLocaleString()}
+              </p>
+              {probeResult.snippet && (
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words bg-muted p-2">
+                  {probeResult.snippet}
+                </pre>
+              )}
+            </div>
+          )}
+
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>
@@ -485,38 +574,15 @@ export default function IntegrationsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Status</CardTitle>
-          <CardDescription>Current gateway state and last update.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-2 text-sm md:grid-cols-2">
-          <div>Store ID: <strong>{data?.store_id ?? "—"}</strong></div>
-          <div>Environment: <strong className="capitalize">{data?.environment ?? "test"}</strong></div>
-          <div>Secret stored: <strong>{data?.has_secret ? "Yes" : "No"}</strong></div>
-          <div>Live processing: <strong>{data?.enabled ? "Enabled" : "Disabled"}</strong></div>
-          <div>Last tested: <strong>{fmt(data?.last_tested_at)}</strong></div>
-          <div>Updated: <strong>{fmt(data?.updated_at)}</strong></div>
-          <div className="md:col-span-2 flex items-center gap-2 text-muted-foreground">
-            {currentStatus === "connected" ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            ) : (
-              <ShieldCheck className="h-4 w-4 text-amber-600" />
-            )}
-            {currentStatus === "connected"
-              ? "Gateway is configured."
-              : "Add a Store ID and Shared Secret to configure the gateway."}
-          </div>
-        </CardContent>
-      </Card>
+
 
       <Dialog open={testPayment !== null} onOpenChange={(open) => !open && setTestPayment(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Scotia secure payment-window test</DialogTitle>
             <DialogDescription>
-              This uses the configured test gateway. Scotia's hosted page cannot be embedded
-              (it sends frame-ancestors 'self'), so the test opens it as a full-page redirect.
+              This uses the configured gateway and opens Scotia's hosted page as a full-page redirect.
+
             </DialogDescription>
           </DialogHeader>
           {testPayment && (

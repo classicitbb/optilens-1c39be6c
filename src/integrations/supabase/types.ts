@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1918,6 +1918,140 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_enrichment_attempts: {
+        Row: {
+          attempted_at: string
+          batch_id: string | null
+          contact_id: string
+          error: string | null
+          id: string
+          match_confidence: number | null
+          outcome: string
+          place_id: string | null
+          provider: string
+          trigger_source: string
+        }
+        Insert: {
+          attempted_at?: string
+          batch_id?: string | null
+          contact_id: string
+          error?: string | null
+          id?: string
+          match_confidence?: number | null
+          outcome: string
+          place_id?: string | null
+          provider?: string
+          trigger_source: string
+        }
+        Update: {
+          attempted_at?: string
+          batch_id?: string | null
+          contact_id?: string
+          error?: string | null
+          id?: string
+          match_confidence?: number | null
+          outcome?: string
+          place_id?: string | null
+          provider?: string
+          trigger_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_enrichment_attempts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_attempts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
+      contact_enrichment_findings: {
+        Row: {
+          action_id: string | null
+          applied_at: string | null
+          attempt_id: string
+          confidence: number
+          contact_id: string
+          created_at: string
+          disposition: string
+          field: string
+          id: string
+          new_value: string
+          old_value: string | null
+          retrieved_at: string
+          source: string
+          source_url: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          applied_at?: string | null
+          attempt_id: string
+          confidence: number
+          contact_id: string
+          created_at?: string
+          disposition: string
+          field: string
+          id?: string
+          new_value: string
+          old_value?: string | null
+          retrieved_at?: string
+          source: string
+          source_url?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          applied_at?: string | null
+          attempt_id?: string
+          confidence?: number
+          contact_id?: string
+          created_at?: string
+          disposition?: string
+          field?: string
+          id?: string
+          new_value?: string
+          old_value?: string | null
+          retrieved_at?: string
+          source?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_enrichment_findings_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_findings_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "contact_enrichment_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_findings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_enrichment_findings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
       contact_sync_dead_letters: {
         Row: {
           attempt_count: number
@@ -3181,6 +3315,24 @@ export type Database = {
           totals?: Json
           updated_at?: string
           version?: string
+        }
+        Relationships: []
+      }
+      docstudio_billing_sequences: {
+        Row: {
+          document_type: string
+          next_value: number
+          updated_at: string
+        }
+        Insert: {
+          document_type: string
+          next_value?: number
+          updated_at?: string
+        }
+        Update: {
+          document_type?: string
+          next_value?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -9079,6 +9231,69 @@ export type Database = {
         }
         Relationships: []
       }
+      scotia_gateway_events: {
+        Row: {
+          approval_code: string | null
+          approved: boolean | null
+          association_response_code: string | null
+          created_at: string
+          endpoint_url: string | null
+          env: string | null
+          fail_rc: string | null
+          fail_reason: string | null
+          http_status: number | null
+          id: string
+          kind: string
+          notes: string | null
+          oid: string | null
+          outcome: string
+          request_params: Json | null
+          response_params: Json | null
+          store_id: string | null
+          terminal_id: string | null
+        }
+        Insert: {
+          approval_code?: string | null
+          approved?: boolean | null
+          association_response_code?: string | null
+          created_at?: string
+          endpoint_url?: string | null
+          env?: string | null
+          fail_rc?: string | null
+          fail_reason?: string | null
+          http_status?: number | null
+          id?: string
+          kind: string
+          notes?: string | null
+          oid?: string | null
+          outcome: string
+          request_params?: Json | null
+          response_params?: Json | null
+          store_id?: string | null
+          terminal_id?: string | null
+        }
+        Update: {
+          approval_code?: string | null
+          approved?: boolean | null
+          association_response_code?: string | null
+          created_at?: string
+          endpoint_url?: string | null
+          env?: string | null
+          fail_rc?: string | null
+          fail_reason?: string | null
+          http_status?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          oid?: string | null
+          outcome?: string
+          request_params?: Json | null
+          response_params?: Json | null
+          store_id?: string | null
+          terminal_id?: string | null
+        }
+        Relationships: []
+      }
       security_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -11435,6 +11650,10 @@ export type Database = {
         Args: { p_api_key_id: string }
         Returns: number
       }
+      apply_contact_enrichment: {
+        Args: { p_contact_id: string; p_finding_ids: string[] }
+        Returns: number
+      }
       approve_pending_payment: {
         Args: { p_order_id: string }
         Returns: undefined
@@ -11493,6 +11712,10 @@ export type Database = {
         Returns: boolean
       }
       can_access_customer_statement: {
+        Args: { p_user_id?: string }
+        Returns: boolean
+      }
+      can_access_financial_data: {
         Args: { p_user_id?: string }
         Returns: boolean
       }
@@ -11581,10 +11804,6 @@ export type Database = {
         Args: { p_actor_user_id?: string; p_provider: string }
         Returns: undefined
       }
-      delete_email: {
-        Args: { message_id: number; queue_name: string }
-        Returns: boolean
-      }
       effective_price: {
         Args: { p_customer_id: number; p_item_ref: string }
         Returns: number
@@ -11599,12 +11818,7 @@ export type Database = {
           treatment: string
         }[]
       }
-      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
-      enqueue_email: {
-        Args: { payload: Json; queue_name: string }
-        Returns: number
-      }
       find_customer_by_account_number: {
         Args: { p_account_number: string }
         Returns: {
@@ -11999,14 +12213,9 @@ export type Database = {
         Args: { p_action: string; p_error_id: string }
         Returns: undefined
       }
-      move_to_dlq: {
-        Args: {
-          dlq_name: string
-          message_id: number
-          payload: Json
-          source_queue: string
-        }
-        Returns: number
+      next_billing_number: {
+        Args: { p_document_type: string }
+        Returns: string
       }
       normalized_customer_account_number: {
         Args: { p_account_number: string }
@@ -12107,6 +12316,10 @@ export type Database = {
           is_default: boolean
         }[]
       }
+      portal_rx_pricing_structure: {
+        Args: { p_customer_id?: number }
+        Returns: Json
+      }
       profile_privileged_fields_match: {
         Args: {
           _crm_contact_id: string
@@ -12137,14 +12350,6 @@ export type Database = {
       queue_account_payment_receipt: {
         Args: { p_kind: string; p_payment_id: string }
         Returns: undefined
-      }
-      read_email_batch: {
-        Args: { batch_size: number; queue_name: string; vt: number }
-        Returns: {
-          message: Json
-          msg_id: number
-          read_ct: number
-        }[]
       }
       recommend_lenses: { Args: { p_input: Json }; Returns: Json }
       record_ai_agent_test: {
@@ -12289,6 +12494,24 @@ export type Database = {
         Returns: {
           order_total: number
           submission_id: string
+        }[]
+      }
+      select_contacts_for_enrichment: {
+        Args: { p_limit?: number; p_mode?: string }
+        Returns: {
+          business_name: string
+          city: string
+          country: string
+          country_code: string
+          google_place_id: string
+          id: string
+          innovations_contact_id: number
+          name: string
+          phone: string
+          state: string
+          street: string
+          website: string
+          zip: string
         }[]
       }
       send_helpdesk_ticket_message: {
@@ -12603,12 +12826,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -12632,11 +12855,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -12657,11 +12880,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -12682,11 +12905,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -12699,11 +12922,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

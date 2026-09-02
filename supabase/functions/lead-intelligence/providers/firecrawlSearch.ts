@@ -1,4 +1,5 @@
 import type { LeadCandidate, ProviderAdapter, ProviderSearchParams } from "./types.ts";
+import { cleanBusinessName } from "./businessName.ts";
 
 const getApiKey = () => Deno.env.get("FIRECRAWL_API_KEY")?.trim() ?? "";
 
@@ -33,23 +34,20 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
   const data = await response.json();
   const results = Array.isArray(data?.data) ? data.data : [];
 
-  return results.slice(0, 20).map((item: any) => {
-    const title = String(item.title ?? item.url ?? "Unknown Business");
-    // Extract domain as a rough business name
-    const name = title.length > 3 ? title.split(" - ")[0].split(" | ")[0].trim() : title;
-
-    return {
-      name,
-      city: city ?? null,
-      country: country ?? null,
-      website: item.url || null,
-      instagram_handle: null,
-      facebook_page: null,
-      google_rating: null,
-      google_reviews_count: null,
-      score: 0,
-    };
-  });
+  return results.slice(0, 20).map((item: any) => ({
+    name: cleanBusinessName(item.title, item.url),
+    city: city ?? null,
+    country: country ?? null,
+    website: item.url || null,
+    instagram_handle: null,
+    facebook_page: null,
+    google_rating: null,
+    google_reviews_count: null,
+    formatted_address: null,
+    source_snippet: typeof item.description === "string" ? item.description : null,
+    source_provider: "firecrawl_search",
+    score: 0,
+  } satisfies LeadCandidate));
 };
 
 export const firecrawlSearchProvider: ProviderAdapter = {

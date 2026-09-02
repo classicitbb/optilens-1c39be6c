@@ -7,6 +7,11 @@ export type LeadCandidate = {
   facebook_page?: string | null;
   google_rating?: number | null;
   google_reviews_count?: number | null;
+  formatted_address?: string | null;
+  /** Raw text the provider returned about this row; read by the AI qualifier. */
+  source_snippet?: string | null;
+  /** Which provider surfaced this row. */
+  source_provider?: string | null;
   score?: number;
   lead_score_breakdown?: Record<string, { points: number; evidence: string[] }>;
 };

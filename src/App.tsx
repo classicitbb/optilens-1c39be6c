@@ -1,3 +1,4 @@
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from "react-router";
@@ -10,7 +11,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 // is substituted with a literal false at build time, so this whole branch (and
 // the chunk) is dropped instead.
 const RxOrderPreview = import.meta.env.DEV
-  ? lazy(() => import("@/features/rx-order/dev/RxOrderPreview"))
+  ? lazyWithRetry(() => import("@/features/rx-order/dev/RxOrderPreview"))
   : () => null;
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
@@ -23,28 +24,28 @@ import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PortalRouteErrorBoundary } from "@/components/PortalRouteErrorBoundary";
 
-const PublicRoutes = lazy(() => import("@/routes/public/PublicRoutes"));
-const PortalRoutes = lazy(() => import("@/routes/portal/PortalRoutes"));
-const OpsRoutes = lazy(() => import("@/routes/ops/OpsRoutes"));
-const AdminRoutes = lazy(() => import("@/routes/admin/AdminRoutes"));
-const Auth = lazy(() => import("@/pages/Auth"));
-const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
-const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
-const Store = lazy(() => import("@/pages/Store"));
-const StoreProductPage = lazy(() => import("@/pages/StoreProductPage"));
-const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
-const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
-const OrderCompletePage = lazy(() => import("@/pages/OrderCompletePage"));
-const CartPage = lazy(() => import("@/pages/CartPage"));
-const Toaster = lazy(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
-const Sonner = lazy(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
-const GlobalErrorLogger = lazy(() => import("@/components/GlobalErrorLogger"));
+const PublicRoutes = lazyWithRetry(() => import("@/routes/public/PublicRoutes"));
+const PortalRoutes = lazyWithRetry(() => import("@/routes/portal/PortalRoutes"));
+const OpsRoutes = lazyWithRetry(() => import("@/routes/ops/OpsRoutes"));
+const AdminRoutes = lazyWithRetry(() => import("@/routes/admin/AdminRoutes"));
+const Auth = lazyWithRetry(() => import("@/pages/Auth"));
+const ResetPassword = lazyWithRetry(() => import("@/pages/ResetPassword"));
+const OAuthConsent = lazyWithRetry(() => import("@/pages/OAuthConsent"));
+const NotFound = lazyWithRetry(() => import("@/pages/NotFound"));
+const Store = lazyWithRetry(() => import("@/pages/Store"));
+const StoreProductPage = lazyWithRetry(() => import("@/pages/StoreProductPage"));
+const Unsubscribe = lazyWithRetry(() => import("@/pages/Unsubscribe"));
+const CheckoutPage = lazyWithRetry(() => import("@/pages/CheckoutPage"));
+const OrderCompletePage = lazyWithRetry(() => import("@/pages/OrderCompletePage"));
+const CartPage = lazyWithRetry(() => import("@/pages/CartPage"));
+const Toaster = lazyWithRetry(() => import("@/components/ui/toaster").then((module) => ({ default: module.Toaster })));
+const Sonner = lazyWithRetry(() => import("@/components/ui/sonner").then((module) => ({ default: module.Toaster })));
+const GlobalErrorLogger = lazyWithRetry(() => import("@/components/GlobalErrorLogger"));
 // CookieConsentBanner is imported eagerly so it renders immediately on first
 // visit — no idle-callback delay — ensuring consent is collected before any
 // analytics or tracking code is initialized.
-const CookieConsentBanner = lazy(() => import("@/components/CookieConsentBanner"));
-const CopilotWorkspacePage = lazy(() => import("@/pages/CopilotWorkspacePage"));
+const CookieConsentBanner = lazyWithRetry(() => import("@/components/CookieConsentBanner"));
+const CopilotWorkspacePage = lazyWithRetry(() => import("@/pages/CopilotWorkspacePage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {

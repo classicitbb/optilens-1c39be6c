@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { Expand, ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Search, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import { cn } from "@/lib/utils";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
@@ -97,6 +98,17 @@ const AssistantResultCard = ({
   const sources = result.citations ?? result.topLinks;
   const isLocalSampleMode = import.meta.env.DEV;
 
+  if (isEnhancing) {
+    return (
+      <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3 text-sm text-foreground/70">
+        <span className="inline-flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-secondary" />
+          Just a moment…
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-1">
@@ -106,16 +118,10 @@ const AssistantResultCard = ({
         ) : (
           <Badge variant="outline" className="h-5 border-foreground/20 px-1.5 py-0 text-[10px] leading-5 text-foreground/60">AI-generated response</Badge>
         )}
-        {isEnhancing ? (
-          <Badge variant="outline" className="h-5 border-amber-400/30 bg-amber-400/10 px-1.5 py-0 text-[10px] leading-5 text-amber-100">
-            <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
-            Refining
-          </Badge>
-        ) : null}
       </div>
 
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Assistant response</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
         <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
           <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
             <ReactMarkdown>{result.answer}</ReactMarkdown>
@@ -184,8 +190,16 @@ const AssistantResultCard = ({
   );
 };
 
+const STARTER_PROMPTS = [
+  "What lenses do I need?",
+  "Find lenses for my frame",
+  "Compare lens coatings & upgrades",
+  "Shipping, returns & warranty",
+];
+
 const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void }) => {
-  const { messages, submitQuickAction } = useCompanionAssistant();
+  const { messages, submitQuickAction, submitQuery, isSubmitting } = useCompanionAssistant();
+  const hasVisitorMessage = messages.some((message) => message.role === "user");
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const wasNearBottomRef = useRef(true);
 
@@ -283,8 +297,24 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
               </div>
             </div>
           ))}
+          {!hasVisitorMessage ? (
+            <div className="flex flex-col items-start gap-2 pt-1">
+              {STARTER_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => void submitQuery(prompt)}
+                  disabled={isSubmitting}
+                  className="rounded-full border border-border/60 bg-card/70 px-4 py-2 text-left text-sm text-foreground/80 shadow-soft transition hover:bg-card hover:text-foreground disabled:opacity-50"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
+
     </div>
   );
 };
@@ -522,7 +552,6 @@ const CompanionAssistant = () => {
   const {
     isOpen,
     isDetachedRoute,
-    openDetachedWindow,
     currentQuery,
     setCurrentQuery,
     openAssistant,
@@ -542,6 +571,7 @@ const CompanionAssistant = () => {
   } = useCompanionAssistant();
   const { user } = useAuth();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [savedConversations, setSavedConversations] = useState<Array<{ id: string; title: string; audience: string; updated_at: string }>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   useEffect(() => {
@@ -657,7 +687,7 @@ const CompanionAssistant = () => {
   }, []);
 
   const title = useMemo(
-    () => (location.pathname.startsWith("/profile") ? "Search and support assistant" : "Search and help assistant"),
+    () => (location.pathname.startsWith("/profile") ? "Iris — portal support" : "Iris — search & help"),
     [location.pathname],
   );
   const [panelOffset, setPanelOffset] = useState({ x: 0, y: 0 });
@@ -727,12 +757,22 @@ const CompanionAssistant = () => {
       >
         <div className="min-w-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/50 bg-card/80 text-primary shadow-soft">
-              <Search className="h-5 w-5" />
-            </div>
+            <button
+              type="button"
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+              onClick={() => setProfileOpen(true)}
+              aria-label="Meet Iris, Classic Visions AI Operations Partner"
+              title="Meet Iris"
+            >
+              <img
+                src="/images/iris/iris-ai-operations-partner.png"
+                alt="Iris, Classic Visions' AI Operations Partner"
+                className="h-10 w-10 rounded-full border border-border/50 object-cover shadow-soft"
+              />
+            </button>
             <div>
               <p className="text-sm font-semibold text-foreground">{title}</p>
-              <p className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:flex"><GripHorizontal className="h-3 w-3" />Drag to move</p>
+              <p className="hidden items-center gap-1 text-[10px] text-muted-foreground sm:flex"><GripHorizontal className="h-3 w-3" />Iris is an AI assistant · Drag to move</p>
             </div>
           </div>
         </div>
@@ -905,6 +945,25 @@ const CompanionAssistant = () => {
 
   return (
     <>
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="max-w-md overflow-hidden p-0">
+          <div className="bg-[radial-gradient(circle_at_top_right,rgba(200,145,48,0.22),transparent_58%)] p-6 pb-0">
+            <div className="flex items-center gap-4">
+              <img src="/images/iris/iris-ai-operations-partner.png" alt="Iris, a fictional AI avatar" className="h-20 w-20 rounded-2xl border border-border/60 object-cover shadow-elegant" />
+              <DialogHeader className="space-y-1 text-left">
+                <DialogTitle>Iris — Classic Visions AI Operations Partner</DialogTitle>
+                <DialogDescription>I help customers find answers and help our team move work forward.</DialogDescription>
+              </DialogHeader>
+            </div>
+          </div>
+          <div className="space-y-3 px-6 pb-6 text-sm leading-6 text-muted-foreground">
+            <p><span className="font-semibold text-foreground">Iris is an AI assistant.</span> Her portrait is a fictional AI avatar, not a human employee.</p>
+            <p>Here, Iris provides public guidance from approved information and can prepare an explicit support handoff. She cannot view private records, make commercial promises, or take actions outside this assistant.</p>
+            <p>Her internal operations workspace is separately authorized and is never available through this public chat.</p>
+            <Button type="button" className="w-full" onClick={() => { setProfileOpen(false); openAssistant(); }}>Ask Iris a question</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       {!isDetachedRoute && nudge && consentGiven ? (
         <div className="fixed bottom-24 right-4 z-40 max-w-xs rounded-[22px] border border-border/50 bg-background/80 p-4 text-foreground shadow-[0_30px_80px_rgba(2,6,23,0.24)] backdrop-blur-md sm:right-6">
           <div className="flex items-start justify-between gap-3">
@@ -933,7 +992,7 @@ const CompanionAssistant = () => {
           <Button
             type="button"
             size="icon"
-            aria-label="Open search & help assistant"
+            aria-label="Open Iris, search and help assistant"
             onClick={() => { setIsCollapsed(false); openAssistant(); }}
             className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
@@ -946,7 +1005,7 @@ const CompanionAssistant = () => {
             className="fixed bottom-4 right-4 z-50 h-14 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
           >
             <MessageCircle className="mr-2 h-5 w-5" />
-            Search & help
+            Ask Iris
           </Button>
         )
       ) : null}

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeDollarSign, Download, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
-import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
+import { usePortalRxPricingStructure } from "@/hooks/usePortalRxPricingStructure";
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
@@ -103,7 +103,7 @@ const AssignedPricelistsSection = () => {
   const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
   const { addToCart } = useCartContext();
-  const navigate = useNavigate();
+  const { openAssistant } = useCompanionAssistant();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
     queryKey: ["portal-pricing-currency-settings"],
@@ -147,15 +147,22 @@ const AssignedPricelistsSection = () => {
   };
 
   // RX lens designs & add-ons -> no structured Rx-cart exists today, so this
-  // hands off to the existing free-text Quote Requests form instead of
-  // inventing new schema for a hover button.
+  // opens the assistant's quote request form pre-filled with the row details.
   const addToRxQuoteRequest = (description: string, bbdPrice: number) => {
-    navigate("/profile/quotes", {
-      state: { prefillNote: `${description} — wholesale BBD $${bbdPrice.toFixed(2)}. Please quote pricing and lead time.` },
+    openAssistant({
+      formKind: "quote_request",
+      formValues: {
+        requestTitle: description,
+        summary: `${description} — wholesale BBD $${bbdPrice.toFixed(2)}. Please quote pricing and lead time.`,
+      },
     });
   };
 
-  const { structure, isLoading: structureLoading } = useRxPricingStructure(assignedPricelistId);
+
+  const { structure, isLoading: structureLoading } = usePortalRxPricingStructure(
+    identity?.crmCustomerId ?? null,
+    hasPricelist,
+  );
 
   const { data: canAccessLabPricing = false } = useQuery<boolean>({
     queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null],

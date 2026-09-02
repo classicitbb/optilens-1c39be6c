@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Check, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
+import { AlertCircle, Check, Globe, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

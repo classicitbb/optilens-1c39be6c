@@ -11,7 +11,7 @@ describe("customer onboarding email wiring", () => {
   it("registers the welcome-pricelist template in the shared transactional registry", () => {
     const registry = read("supabase/functions/_shared/transactional-email-templates/registry.ts");
     const previewFunction = read("supabase/functions/preview-transactional-email/index.ts");
-    const senderFunction = read("supabase/functions/send-transactional-email/index.ts");
+    const senderFunction = read("supabase/functions/send-test-email/index.ts");
 
     expect(registry).toContain("welcome-pricelist");
     expect(registry).toContain("welcomePricelist");
@@ -40,12 +40,12 @@ describe("customer onboarding email wiring", () => {
     expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUser.user.id, email, displayName, sendWelcomeEmail === true);');
   });
 
-  it("queues the welcome-pricelist email from customer onboarding", () => {
+  it("sends the welcome-pricelist email from customer onboarding", () => {
     const onboardingFunction = read("supabase/functions/customer-onboarding/index.ts");
 
     expect(onboardingFunction).toContain("transactional-email-templates/welcome-pricelist.tsx");
     expect(onboardingFunction).toContain("renderAsync");
-    expect(onboardingFunction).toContain("enqueue_email");
+    expect(onboardingFunction).toContain("sendManagedEmail");
     expect(onboardingFunction).toContain("template_name: 'welcome-pricelist'");
     expect(onboardingFunction).toContain("label: 'welcome-pricelist'");
   });

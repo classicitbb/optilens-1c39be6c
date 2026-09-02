@@ -52,7 +52,7 @@ const personalize = (value: string, name: string, email: string) => value.replac
 
 const SITE_URL = "https://classicvisions.net";
 
-// Application-group templates are registered with the send-transactional-email
+// Application-group templates are registered with the send-test-email
 // function (supabase/functions/_shared/transactional-email-templates/registry.ts)
 // and can be test-sent for real. Authentication-group templates are rendered
 // by Supabase Auth itself on real signup/invite/recovery events — there's no
@@ -148,12 +148,11 @@ export default function EmailPreviewsPage() {
     mutationFn: async () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(sampleEmail)) throw new Error("Enter a valid sample recipient email address first.");
-      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+      const { data, error } = await supabase.functions.invoke("send-test-email", {
         body: {
           templateName: selected.id,
           recipientEmail: sampleEmail,
           templateData: buildTestTemplateData(selected.id, sampleName, sampleEmail),
-          auditSource: "manual",
         },
       });
       if (error) throw new Error(error.message);
@@ -161,7 +160,7 @@ export default function EmailPreviewsPage() {
       return data;
     },
     onSuccess: () => {
-      toast({ title: "Test email queued", description: `"${selected.title}" was queued for delivery to ${sampleEmail}. Check the delivery status below in a few seconds.` });
+      toast({ title: "Test email sent", description: `"${selected.title}" was sent to ${sampleEmail}. Check the delivery status below in a few seconds.` });
     },
     onError: (error: Error) => {
       toast({ title: "Could not send test email", description: error.message, variant: "destructive" });

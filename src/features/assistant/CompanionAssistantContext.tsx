@@ -631,7 +631,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         kind: "text",
         text: "You’re signed in as an optical professional, so I’ll skip public retailer-finding assistance. I can help with lens selection, dispensing, ordering, LabLink, or a support request instead.",
         quickActions: [
-          { type: "link", label: "Open the lens assistant", href: "/lens-assistant?audience=professional" },
+          { type: "link", label: "Open the Rx order form", href: "/profile/rx-order" },
           { type: "query", label: "Dispensing guidance", query: "Give me practical dispensing guidance.", audience: "dispenser" },
           { type: "form", label: "Prepare support request", profile: "portal_support" },
         ],
@@ -679,7 +679,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           text = `You have ${account.drafts.length} saved draft${account.drafts.length === 1 ? "" : "s"}. Rx drafts are not submitted orders until you complete the final step in LabLink.`;
           quickActions = [
             { type: "link", label: "Open saved drafts", href: "/profile/drafts" },
-            { type: "link", label: "Start lens assistant", href: "/lens-assistant?audience=professional" },
+            { type: "link", label: "Start an Rx order", href: "/profile/rx-order" },
           ];
         } else if (/pricelist|price/.test(normalizedPortalQuery)) {
           text = account.pricelist
@@ -687,7 +687,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
             : "No customer pricelist is assigned to this account yet, so I will not invent or substitute a price.";
           quickActions = [
             { type: "link", label: "View assigned pricing", href: "/profile/pricelists" },
-            { type: "link", label: "Find a lens", href: "/lens-assistant?audience=professional" },
+            { type: "link", label: "Find a lens", href: "/store" },
           ];
         } else if (/support|warranty|remake/.test(normalizedPortalQuery)) {
           text = `You have ${account.tickets.filter((ticket) => !ticket.closedAt).length} open support request${account.tickets.filter((ticket) => !ticket.closedAt).length === 1 ? "" : "s"}. I can prepare a new request, but I will ask for confirmation before it is submitted.`;
@@ -755,6 +755,15 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         conversation: [...conversation, { role: "user", text: queryForModel }],
         anonymousSessionId: getAnonymousSessionId(),
         taskContext: taskContextRef.current,
+        onDelta: (partialAnswer) => {
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === resultMessageId && message.kind === "result"
+                ? { ...message, result: { ...message.result, answer: partialAnswer }, isEnhancing: false }
+                : message,
+            ),
+          );
+        },
       });
 
       setMessages((current) =>
@@ -837,30 +846,14 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
   }, [accountName, activeAudience, activeProfile, messages.length, pathname, resetConversation, submitQueryInternal, userEmail, userName]);
 
+  // The assistant stays in the current page so quote/support launches retain
+  // the visitor's place and route context instead of opening or redirecting to
+  // a separate window. Keep this public API as a compatibility seam for any
+  // older launcher while making its behavior explicitly in-page.
   const openDetachedWindow = useCallback(() => {
-    try {
-      window.sessionStorage.setItem(POPOUT_SNAPSHOT_KEY, JSON.stringify({
-        messages,
-        currentQuery,
-        formState,
-      }));
-    } catch {
-      // Ignore storage failures for pop-out handoff.
-    }
-
-    const popup = window.open(
-      `${window.location.origin}/assistant/window`,
-      "classic-visions-assistant",
-      "popup=yes,width=460,height=760,resizable=yes,scrollbars=no",
-    );
-
-    if (popup) {
-      popup.focus();
-      return;
-    }
-
-    window.location.href = "/assistant/window";
-  }, [currentQuery, formState, messages]);
+    setIsOpen(true);
+    setNudge(null);
+  }, []);
 
   const submitWebSearch = useCallback(async (query: string) => {
     const trimmed = query.trim();
@@ -965,7 +958,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       id: createId("assistant"), role: "assistant", kind: "text",
       text: `Got it — a lens mainly for ${useCaseLabel}. ${rxNote} Want me to open the lens finder now with that in mind?`,
       quickActions: [
-        { type: "link", label: "Open the lens finder", href: `/lens-assistant?audience=${audience}` },
+        { type: "link", label: "Browse the store", href: "/store" },
         { type: "query", label: "Ask something else instead", query: "Help me with something else." },
       ],
     }]);

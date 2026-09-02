@@ -16,7 +16,7 @@ export type ScotiaEnv = "test" | "production";
 
 export const GATEWAY_URLS: Record<ScotiaEnv, string> = {
   test: "https://test.ipg-online.com/connect/gateway/processing",
-  production: "https://www.ipg-online.com/connect/gateway/processing",
+  production: "https://www2.ipg-online.com/connect/gateway/processing",
 };
 
 /** Always required by the manual (page 8), regardless of operation. */

@@ -13,14 +13,14 @@
         "object-src": ["'none'"],
         "frame-ancestors": ["'self'"],
         "script-src": ["'self'"],
-        "style-src": ["'self'", "'unsafe-inline'"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "img-src": ["'self'", "data:", "blob:", "https://*.supabase.co", "https://lh3.googleusercontent.com"],
-        "font-src": ["'self'", "data:"],
+        "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
         "connect-src": ["'self'", "https://*.supabase.co", "wss://*.supabase.co", "https://api.openai.com"],
         "worker-src": ["'self'", "blob:"],
         "manifest-src": ["'self'"],
-        "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com"],
-        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com"],
+        "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
+        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
         "upgrade-insecure-requests": []
       },
       "reportUri": "https://security-report.example.com/csp"
@@ -32,14 +32,14 @@
         "object-src": ["'none'"],
         "frame-ancestors": ["'self'"],
         "script-src": ["'self'"],
-        "style-src": ["'self'", "'unsafe-inline'"],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         "img-src": ["'self'", "data:", "blob:", "https://*.supabase.co", "https://lh3.googleusercontent.com"],
-        "font-src": ["'self'", "data:"],
+        "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
         "connect-src": ["'self'", "https://*.supabase.co", "wss://*.supabase.co", "https://api.openai.com"],
         "worker-src": ["'self'", "blob:"],
         "manifest-src": ["'self'"],
-        "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com"],
-        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com"],
+        "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
+        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
         "upgrade-insecure-requests": []
       }
     }

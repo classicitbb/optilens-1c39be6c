@@ -14,7 +14,6 @@ import { useLocation } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useSupportAvailability } from "@/hooks/useSupportAvailability";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { capitalizeDisplayName } from "@/lib/profileData";
 import { getLastNonProfilePath } from "@/lib/lastExternalPath";
 import { CartSheet } from "@/components/CartSheet";
@@ -32,9 +31,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
   const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useCompanionAssistant();
-  const { isAdmin, hasAccess } = useUserRole();
-  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
-  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
+  const { hasAccess } = useUserRole();
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
@@ -57,8 +54,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
     });
   }, [closeAssistant, isAssistantOpen, openAssistant]);
 
-  const lensAssistantEnabled = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
-    && canAccessFeature("lens-assistant");
+  const lensAssistantEnabled = canAccessFeature("rx-order");
   const visibleItems = ACCOUNT_NAV_ITEMS.filter((item) => {
     if (item.to === "/profile/rx-order") return lensAssistantEnabled;
     if (item.to === "/profile/quotes") return canAccessFeature("quotes");

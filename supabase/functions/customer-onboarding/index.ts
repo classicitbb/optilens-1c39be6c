@@ -26,7 +26,8 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from '../_shared/http/cors.ts'
 import { requirePrivilegedAccess } from '../_shared/http/auth.ts'
-import { getOrCreateUnsubscribeToken, isAutoNotificationsDisabled } from '../_shared/email/smtp.ts'
+import { isAutoNotificationsDisabled } from '../_shared/email/smtp.ts'
+import { sendManagedEmail } from '../_shared/email/managed-send.ts'
 import { template as welcomeTemplate } from '../_shared/transactional-email-templates/welcome-pricelist.tsx'
 
 const SITE_NAME = 'Classic Visions'
@@ -90,11 +91,7 @@ async function enqueueWelcomeEmail(
     loginUrl,
   }
 
-  const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, email)
-  const renderData = {
-    ...templateData,
-    unsubscribeUrl: `${SITE_URL}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
-  }
+  const renderData = { ...templateData }
 
   let html: string
   let text: string
@@ -112,51 +109,38 @@ async function enqueueWelcomeEmail(
 
   const messageId = generateMessageId()
 
-  // Log the send attempt
-  await supabase.from('email_send_log').insert({
-    message_id: messageId,
-    template_name: 'welcome-pricelist',
-    recipient_email: email,
-    status: 'pending',
+  const result = await sendManagedEmail(supabase, {
+    messageId,
+    to: email,
+    from: `${SITE_NAME} <welcome@${FROM_DOMAIN}>`,
+    subject,
+    html,
+    text,
+    label: 'welcome-pricelist',
+    idempotencyKey: `welcome-pricelist-${userId}`,
   })
 
-  const { error: enqueueError } = await supabase.rpc('enqueue_email', {
-    queue_name: 'transactional_emails',
-    payload: {
-      message_id: messageId,
-      to: email,
-      from: `${SITE_NAME} <welcome@${FROM_DOMAIN}>`,
-      sender_domain: `support.${FROM_DOMAIN}`,
-      subject,
-      html,
-      text,
-      purpose: 'transactional',
-      label: 'welcome-pricelist',
-      idempotency_key: `welcome-pricelist-${userId}`,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
-  })
-
-  if (enqueueError) {
-    console.error('customer-onboarding: failed to enqueue welcome email', enqueueError)
-    await supabase.from('email_send_log').insert({
-      message_id: messageId,
-      template_name: 'welcome-pricelist',
-      recipient_email: email,
-      status: 'failed',
-      error_message: 'Failed to enqueue email',
-    })
+  if (result.status === 'failed') {
     // Don't fail the whole request — pricelist was already assigned
     return jsonResponse(207, {
       success: true,
       pricelistAssigned,
       emailQueued: false,
-      warning: 'Pricelist assigned but welcome email could not be queued',
+      warning: 'Pricelist assigned but welcome email could not be sent',
     }, corsHeaders)
   }
 
-  console.log('customer-onboarding: welcome email queued', { messageId, email })
+  if (result.status === 'suppressed') {
+    return jsonResponse(200, {
+      success: true,
+      pricelistAssigned,
+      pricelistVersionId,
+      emailQueued: false,
+      reason: 'recipient_suppressed',
+    }, corsHeaders)
+  }
+
+  console.log('customer-onboarding: welcome email sent', { messageId, email })
 
   return jsonResponse(200, {
     success: true,

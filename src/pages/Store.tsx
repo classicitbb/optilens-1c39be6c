@@ -8,7 +8,6 @@ import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { LensChatbot } from "@/components/LensChatbot";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -455,7 +454,6 @@ const Store = () => {
       </main>
 
       <Footer />
-      <LensChatbot />
     </div>
   );
 };
