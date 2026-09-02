@@ -1,12 +1,11 @@
 import { toWikiRendererDocument } from "@/components/admin/WikiArticleRenderer";
-import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
+import type { BlogCanonicalContent, BlogInlineNode } from "@/components/blog/BlogPostRenderer";
 import {
   CURATED_KNOWLEDGE_ARTICLES,
   KNOWLEDGE_CATEGORY_META,
   KNOWLEDGE_CATEGORY_ORDER,
   type CuratedKnowledgeArticle,
   type KnowledgeCategoryId,
-  formatKnowledgeCategoryTitle,
   resolveKnowledgeCategoryId,
 } from "@/data/knowledgeCenter";
 import type { ContentArticle } from "@/hooks/useContentArticles";
@@ -136,6 +135,57 @@ export const extractCanonicalHeadings = (content?: BlogCanonicalContent | null) 
     })
     .filter((heading) => heading.text.length > 0);
 
+const inlineToText = (nodes: BlogInlineNode[]): string =>
+  nodes
+    .map((node) => (node.type === "text" ? node.text : "children" in node ? inlineToText(node.children) : ""))
+    .join("");
+
+/** Flatten canonical body content to plain prose, dropping headings and images. */
+export const extractCanonicalPlainText = (content?: BlogCanonicalContent | null): string =>
+  (content?.blocks ?? [])
+    .map((block) => {
+      if (block.type === "paragraph" || block.type === "blockquote") return inlineToText(block.children);
+      if (block.type === "list") return block.items.map(inlineToText).join(" ");
+      return "";
+    })
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Legacy `content` is stored as HTML or markdown depending on the article's age. */
+const stripLegacyMarkup = (raw: string) =>
+  raw
+    .replace(/<[^>]+>/g, " ")
+    .replace(/[#*_>`|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const EXCERPT_MAX_CHARS = 160;
+
+/**
+ * Summary of last resort. Previously this fell back to the article's *category
+ * title*, which rendered a label like "Pricing Engine" in the slot reserved for
+ * a description. An excerpt of the body is always more useful, and an empty
+ * string is still better than a misleading one.
+ */
+export const toSummaryExcerpt = (
+  bodyJson?: BlogCanonicalContent | null,
+  legacyContent?: string | null,
+): string => {
+  const source = extractCanonicalPlainText(bodyJson) || stripLegacyMarkup(legacyContent ?? "");
+  if (!source) return "";
+  if (source.length <= EXCERPT_MAX_CHARS) return source;
+
+  // Prefer a sentence boundary, then a word boundary, before hard-truncating.
+  const window = source.slice(0, EXCERPT_MAX_CHARS + 1);
+  const sentenceEnd = window.search(/[.!?](\s|$)/);
+  if (sentenceEnd > 60) return window.slice(0, sentenceEnd + 1);
+
+  const lastSpace = window.lastIndexOf(" ");
+  return `${window.slice(0, lastSpace > 60 ? lastSpace : EXCERPT_MAX_CHARS).trimEnd()}...`;
+};
+
 const createSectionNode = (categoryId: KnowledgeCategoryId): HelpCenterNode => ({
   id: `section:${categoryId}`,
   title: KNOWLEDGE_CATEGORY_META[categoryId].title,
@@ -175,11 +225,15 @@ const toPublicArticleNode = (article: ContentArticle): HelpCenterNode => {
   const meta = parseHelpEntrySummary(article.summary ?? article.description ?? "");
   const slug = toKnowledgeArticleSlug({ id: article.id, title: article.title, slug: article.slug });
   const categoryId = article.content_type === "faq" ? "faq" : resolveKnowledgeCategoryId(article.category);
+  const bodyJson = toWikiRendererDocument({
+    bodyJson: article.body_json as BlogCanonicalContent | null,
+    legacyContent: article.content,
+  });
   return {
     id: article.id,
     title: article.title,
     slug,
-    summary: meta.summary || article.description || formatKnowledgeCategoryTitle(article.category || "knowledge"),
+    summary: meta.summary || article.description || toSummaryExcerpt(bodyJson, article.content),
     kind: meta.kind,
     categoryId,
     parentId: (article.parent_id as string | null | undefined) ?? null,
@@ -199,7 +253,7 @@ const toPublicArticleNode = (article: ContentArticle): HelpCenterNode => {
     visibility: (article.visibility ?? "public") as HelpCenterNode["visibility"],
     sortOrder: article.sort_order ?? 0,
     content: article.content,
-    bodyJson: toWikiRendererDocument({ bodyJson: article.body_json as BlogCanonicalContent | null, legacyContent: article.content }),
+    bodyJson,
     updatedAt: article.updated_at,
     children: [],
     source: "cms",

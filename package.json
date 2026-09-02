@@ -10,6 +10,8 @@
     "mcp:generate": "node scripts/generate_mcp_function.mjs",
   "copilot:facts": "node scripts/generate_copilot_platform_facts.mjs",
   "qa:copilot-facts": "node scripts/generate_copilot_platform_facts.mjs --check",
+  "search:index": "node scripts/generate_public_content_index.mjs",
+  "qa:search-index": "node scripts/generate_public_content_index.mjs --check",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",
