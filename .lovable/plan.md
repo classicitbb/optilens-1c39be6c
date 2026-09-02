@@ -34,7 +34,14 @@ The old widget's product knowledge was hardcoded in its backend, including fixed
    - Delete the `lens-assistant` edge function.
    - Update `src/tests/e2e/anonStorefrontCostSafety.e2e.test.tsx`, which mocks `LensChatbot`.
 
-Unaffected: `/lens-assistant` (the prescription entry form), the portal Rx order form, and the admin copilot.
+6. Retire the standalone Lens Assistant page and its permissions
+   - Delete `/lens-assistant` (`src/pages/LensAssistantPage.tsx`, `LensAssistantForm`) and its route gate in `src/routes/public/PublicRoutes.tsx`; remove the `public.lens-assistant` entry from `src/config/routeRegistry.ts` and add a redirect to `/` for the old path.
+   - Remove the `lens-assistant` portal feature key from `src/hooks/usePortalIdentity.ts` and from the admin portal settings toggles in `src/pages/admin/WebsitePortalsPage.tsx`.
+   - Retire the `lens_assistant_public` / `lens_assistant_admin` website feature flags (migration removing the rows, plus the `useWebsiteFeature` calls that read them).
+   - The portal Rx order form at `/profile/rx-order` stays — it is an order form, not chat. It currently rides on the same flags and the `lens-assistant` permission key, so it gets its own key (`rx-order`, labelled "Rx Order Form", with a migration updating the allowed override keys) and drops the rollout-flag gate. Its shared code under `src/features/lens-assistant/` (`api.ts`, `types.ts`, prefill) stays in place and is only touched where the deleted page imported it.
+   - Update the affected tests: `AccountSidebar.test.tsx`, `portalIdentityAccess.test.ts`, `portalFeatureOverrideErrors.unit.test.ts`, `supabaseEdgeAuth.integration.test.ts`, and the route accessibility tests.
+
+Unaffected: the portal Rx order form itself, the Rx draft flow, and the admin copilot.
 
 ## Verification
 
