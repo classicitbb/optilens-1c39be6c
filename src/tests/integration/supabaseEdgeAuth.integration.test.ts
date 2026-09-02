@@ -12,7 +12,6 @@ describe("supabase edge-function auth hardening", () => {
     "customer-onboarding",
     "crm-draft-outreach",
     "lead-intelligence",
-    "lens-assistant",
     "order-confirmation",
     "preview-transactional-email",
     "send-test-email",
