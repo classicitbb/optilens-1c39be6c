@@ -692,7 +692,6 @@ export const dispatchAdminResourceTool = async (
   name: string,
   input: Record<string, unknown>,
   actorUserId?: string,
-  access: AdminResourceAccess = { canAccessFinancialData: false },
 ): Promise<AdminToolResult> => {
   if (name === "admin_list_resources") {
     const moduleFilter = typeof input.module === "string" ? input.module.toLowerCase() : "";

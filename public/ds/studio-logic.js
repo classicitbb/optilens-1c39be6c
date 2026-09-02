@@ -1697,10 +1697,7 @@
       const settings = data.settings || {};
       const patch = {};
       ['bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote'].forEach(k => {
-        // Only adopt values that are actually set. Company settings default to
-        // '' for unseeded issuer fields, and blindly applying those blanked out
-        // bank details that had been saved in the Studio.
-        if (typeof settings[k] === 'string' && settings[k].trim() !== '') patch[k] = settings[k];
+        if (settings[k] !== undefined && settings[k] !== null) patch[k] = settings[k];
       });
       if (settings.blCurrency) patch.blCurrency = settings.blCurrency;
       if (settings.blVatRate) patch.blVatRate = settings.blVatRate;
