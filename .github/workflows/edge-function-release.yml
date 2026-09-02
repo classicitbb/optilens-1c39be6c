@@ -103,11 +103,11 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Resolve canonical Supabase project configuration
+      - name: Resolve live Supabase health target
         run: |
-          project_ref="$(awk -F'"' '/^project_id = "/ { print $2; exit }' supabase/config.toml)"
-          test -n "$project_ref"
-          echo "VITE_SUPABASE_URL=https://$project_ref.supabase.co" >> "$GITHUB_ENV"
+          live_url="$(node -e 'const manifest = require("./.lovable/mcp/manifest.json"); process.stdout.write(new URL(manifest.auth.issuer).origin)')"
+          test -n "$live_url"
+          echo "VITE_SUPABASE_URL=$live_url" >> "$GITHUB_ENV"
       - name: Run readiness smoke suite and record its result
         env:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
