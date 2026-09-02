@@ -20,6 +20,7 @@ import { useMatrixAllocations } from "@/hooks/useMatrixAllocations";
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
+import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import { compareCategoryOrder } from "@/lib/sortOrder";
 import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixSectionLabel, parseMatrixRowKey } from "@/features/admin/rx-pricing/structure";
@@ -97,7 +98,8 @@ const ListCatalogTab = ({
   const { structure: rxStructure } = useRxPricingStructure(versionId ?? null);
   const { toast } = useToast();
   const { data: companySettings } = useCompanySettings();
-  const { hasOverride, lineOverrides } = usePriceHierarchy(versionId);
+  const { getLineOverride, calcFinalPrice } = usePriceHierarchy(versionId);
+  const { data: pricelistVersions = [] } = usePricelistVersions();
   const { versions: pricingVersions } = usePricingSettings();
   const { upsertRow: upsertCatalogRow, deleteRow: deleteCatalogRow } = usePricelistCatalogRowUpsert(versionId ?? null, catalogType);
   const queryClient = useQueryClient();
@@ -168,6 +170,10 @@ const ListCatalogTab = ({
 
   const isLoading = lLoading || aLoading || sLoading || rowsLoading;
   const hasPending = (pendingMatrixRowKeys?.size ?? 0) > 0;
+  const activeVersion = useMemo(
+    () => pricelistVersions.find((version) => version.id === versionId) ?? null,
+    [pricelistVersions, versionId],
+  );
 
   // Mark as viewed when tab is opened
   useEffect(() => {
@@ -833,11 +839,14 @@ const ListCatalogTab = ({
     // Check for line-level override
     const refId = row.lensId || row.addonId || row.supplyId;
     const refType = row.lensId ? "lens" : row.addonId ? "addon" : row.supplyId ? "supply" : "";
-    const isOverridden = refId && refType ? hasOverride(refId, refType) : false;
-    const overrideData = isOverridden ? lineOverrides.find(o => o.reference_id === refId && o.reference_type === refType) : null;
+    const overrideData = refId && refType ? getLineOverride(refId, refType, catalogType) : undefined;
+    const isOverridden = overrideData?.overridden_price_bbd != null;
 
-    // Use override price if present
-    const displayBbd = isOverridden && overrideData?.overridden_price_bbd != null ? overrideData.overridden_price_bbd : row.bbd;
+    // The editor shows the same effective price customers receive: base price,
+    // then master and section adjustments, unless a line override replaces it.
+    const displayBbd = activeVersion
+      ? calcFinalPrice(row.bbd, activeVersion, catalogType, refId, refType)
+      : row.bbd;
     const displayUsd = displayBbd !== null ? displayBbd * fxRate : null;
     const displayMargin = rowCost != null && rowCost > 0 && displayBbd != null && displayBbd > 0
       ? parseFloat(((displayBbd - rowCost) / displayBbd * 100).toFixed(1))
@@ -927,8 +936,8 @@ const ListCatalogTab = ({
             <button
               type="button"
               className="rounded px-1 py-0.5 transition-colors hover:bg-primary/10"
-              title={row.key.startsWith("matrix::") ? "Edit price and sync to the matrix immediately" : "Edit price"}
-              onClick={() => setEditingPrice({ key: row.key, value: displayBbd != null ? displayBbd.toFixed(2) : "" })}
+              title={activeVersion && displayBbd !== row.bbd ? "Edit base price; displayed price includes pricelist adjustments" : row.key.startsWith("matrix::") ? "Edit price and sync to the matrix immediately" : "Edit price"}
+                      onClick={() => setEditingPrice({ key: row.key, value: row.bbd != null ? row.bbd.toFixed(2) : "" })}
             >
               {displayBbd !== null ? `$${displayBbd.toFixed(2)}` : "—"}
             </button>
@@ -1171,6 +1180,8 @@ const ListCatalogTab = ({
   const isSavingRows = saveRows.isPending;
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
+  const handleRestoreRef = useRef(handleRestore);
+  handleRestoreRef.current = handleRestore;
 
   const saveBarContent = useMemo(() => (
     <div className="space-y-2 no-print">
@@ -1186,7 +1197,7 @@ const ListCatalogTab = ({
         </div>
         <div className="flex items-center gap-2">
           {isDirty && (
-            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={handleRestore}>
+            <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={() => handleRestoreRef.current()}>
               Restore
             </Button>
           )}
@@ -1204,7 +1215,7 @@ const ListCatalogTab = ({
         </div>
       </div>
     </div>
-  ), [hasPending, isDirty, isSavingRows, pendingCount, handleRestore]);
+  ), [hasPending, isDirty, isSavingRows, pendingCount]);
 
   useEffect(() => {
     if (renderSaveBar) renderSaveBar(saveBarContent);

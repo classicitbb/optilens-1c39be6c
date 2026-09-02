@@ -23,7 +23,8 @@ export const useLeadBusinessSuggestions = (query: string) => {
     queryFn: async () => {
       const [webRes, contactRes] = await Promise.all([
         supabase.functions.invoke("lead-intelligence", {
-          body: { query: trimmed, cities: [], country: null },
+          // Typeahead uses the cheap provider-only path; no AI planning or qualification.
+          body: { brief: trimmed, pipeline: "lookup", limit: 10 },
         }),
         (supabase.from("contacts") as any)
           .select("id,name,city,country,website,ai_intent_score")

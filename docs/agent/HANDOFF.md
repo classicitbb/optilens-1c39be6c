@@ -1,30 +1,55 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Active work exists — read `STATUS.md`
-- Last synchronized: 2026-08-24
+- Status: Source complete — deployment pending
+- Last synchronized: 2026-08-30
 
-## Current state
+## Completed work
 
-This is the verified active hosted-site repository. `STATUS.md` is the authoritative feature and deployment ledger.
+The public Companion Assistant now displays an in-progress state while its AI
+generation request runs. Its deterministic high-confidence match is displayed
+only when that request fails, making the grounded AI answer the visitor's first
+answer. `supabase/functions/_shared/aiIdentity.ts` and
+`docs/ai-assistant-identity.md` define Iris's public customer-experience and
+authorized business-operations fronts, including her proactive operating
+posture and hard authority boundaries. The staged portrait in the public
+assistant header now opens an in-page Iris profile with the approved title,
+bio, fictional-avatar/AI disclosure, and explicit separation between public
+guidance and the separately authorized operations workspace. Her shared prompt
+uses she/her pronouns and a poised, warm, feminine, capable voice while
+retaining the existing anti-impersonation and authority limits. Quote/support
+launch compatibility now stays on the current page rather than opening or
+redirecting to a standalone assistant window.
 
-## Exact next action
+`public/images/iris/iris-ai-operations-partner.png` is a staged fictional AI
+portrait. No external account, email identity, LinkedIn profile, Supabase
+authorization change, or Edge Function deployment has
+been performed; those actions require explicit approval.
 
-Read `STATUS.md`, then the relevant feature `CONTEXT.md`. Select the first task matching the user’s request and verify the required service connector before implementation or deployment.
+The business owner approved actor-scoped Iris access, with a customer portal
+user limited to their ERP-linked account, financial data reduced for users
+without that capability, and a future admin-only controlled SQL gateway using
+fresh single-use authorization. The complete contract is
+`docs/iris-data-access-contract.md`. The staged migration
+`20260830140634_iris_financial_data_capability.sql` exposes a server-side
+admin-only capability, and `portal-copilot` now passes that resolved value into
+the financial-marked typed resources. `admin_*` typed tools remain the only
+Admin Copilot data path; the direct SQL gateway has not been implemented.
 
-## End-of-session requirement
+## Verification
 
-When work remains, replace this section with:
+- Passed: `npx vitest run --coverage=false src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/embeddedRxOrderDraft.unit.test.ts` (9 tests), including the public profile/disclosure and in-page launch regression.
+- Passed: `npm run build` after the public profile, persona, quote-launch, and saved-Rx changes.
+- Passed: focused ESLint with 0 errors (existing warnings remain in the edited legacy files).
+- Pending rendered screenshot evidence: the local Vite server started successfully, but Playwright's Chromium binary is absent and its download is blocked by `UNABLE_TO_VERIFY_LEAF_SIGNATURE`. Re-run the local desktop/mobile browser check after the workstation trust chain is repaired or a browser binary is installed.
+- Passed: `npx vitest run --coverage=false src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/companionAssistantEngine.unit.test.ts` (10 tests).
+- Passed: `npx eslint src/components/assistant/CompanionAssistant.tsx src/features/assistant/companionAssistantEngine.ts src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/companionAssistantEngine.unit.test.ts` (three existing warnings in `CompanionAssistant.tsx`; no errors).
+- Passed: `npm run build`.
+- After deploying the changed `companion-assistant` function, run `npm run qa:edge-smoke`.
 
-- Active objective and current state.
-- Completed steps and affected files.
-- Commands/tests run and exact failures.
-- Deployment/environment state.
-- Blocker and approval required.
-- One exact executable next action.
+## Pending deployment
 
-Update `STATUS.md` and the durable knowledge/integration files when their facts change.
-
-## Baseline verification
-
-Repository identity, Lovable synchronization, hosting linkage, manifests, routing sources, and project status were inspected. No application build or deployment ran during this documentation rollout.
+- Do not deploy the financial capability migration or the updated
+  `portal-copilot` function without explicit production approval.
+- Customer statement and balance access retains the existing account-level
+  feature/tag gate; do not broaden it merely because a user is ERP-linked.

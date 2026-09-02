@@ -3,6 +3,7 @@ import { useLocation } from "react-router";
 import { Analytics } from "@vercel/analytics/react";
 import { COOKIE_PREFERENCES_EVENT, hasAnalyticsConsent } from "@/lib/cookieConsent";
 import { flushTrackedSession, shouldTrackWebsitePath, trackPageView, trackWebVital } from "@/lib/websiteAnalytics";
+import { shouldLoadVercelAnalytics } from "@/lib/analyticsRuntime";
 
 const useAnalyticsConsentState = () => {
   const location = useLocation();
@@ -86,7 +87,7 @@ const shouldSendToVercel = (url: string) => {
 const RuntimeAnalytics = () => {
   const enabled = useAnalyticsConsentState();
 
-  if (!enabled) return null;
+  if (!enabled || !shouldLoadVercelAnalytics(window.location.protocol)) return null;
 
   return <Analytics beforeSend={(event) => (shouldSendToVercel(event.url) ? event : null)} />;
 };

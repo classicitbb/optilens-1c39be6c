@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { createAnalyticsUuid } from "@/lib/analyticsRuntime";
 
 const VISITOR_KEY = "website_analytics_visitor_id";
 const SESSION_KEY = "website_analytics_session";
@@ -64,7 +65,8 @@ const ensureVisitorId = () => {
   const existing = window.localStorage.getItem(VISITOR_KEY);
   if (existing) return existing;
 
-  const nextId = crypto.randomUUID();
+  const nextId = createAnalyticsUuid();
+  if (!nextId) return null;
   window.localStorage.setItem(VISITOR_KEY, nextId);
   return nextId;
 };
@@ -84,14 +86,18 @@ const sessionIsExpired = (session: SessionState) => {
   return Number.isNaN(lastSeen) || Date.now() - lastSeen > SESSION_TIMEOUT_MS;
 };
 
-const buildSession = (): SessionState => {
+const buildSession = (): SessionState | null => {
   const existingVisitorId = window.localStorage.getItem(VISITOR_KEY);
   const visitorId = ensureVisitorId();
+  const id = createAnalyticsUuid();
+  const writeTokenA = createAnalyticsUuid();
+  const writeTokenB = createAnalyticsUuid();
+  if (!visitorId || !id || !writeTokenA || !writeTokenB) return null;
   const timestamp = nowIso();
 
   return {
-    id: crypto.randomUUID(),
-    writeToken: crypto.randomUUID() + crypto.randomUUID(),
+    id,
+    writeToken: writeTokenA + writeTokenB,
     visitorId,
     startedAt: timestamp,
     lastSeenAt: timestamp,
@@ -108,7 +114,7 @@ const getOrCreateSession = () => {
   if (stored && stored.writeToken && !sessionIsExpired(stored)) return stored;
 
   const session = buildSession();
-  persistSession(session);
+  if (session) persistSession(session);
   return session;
 };
 
@@ -149,6 +155,7 @@ export const trackPageView = async (pathname: string) => {
   if (typeof window === "undefined" || !shouldTrackPath(pathname)) return;
 
   const session = getOrCreateSession();
+  if (!session) return;
   if (session.lastTrackedPath === pathname) return;
 
   const timestamp = nowIso();
@@ -185,6 +192,7 @@ export const trackWebVital = async ({ id, name, value, delta, rating, pathname }
   if (typeof window === "undefined" || !shouldTrackPath(pathname)) return;
 
   const session = getOrCreateSession();
+  if (!session) return;
   session.lastSeenAt = nowIso();
   persistSession(session);
 

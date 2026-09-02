@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Check, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
+import { AlertCircle, Check, Globe, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +32,13 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
   const [taskContent, setTaskContent] = useState(action.payload.taskContent ?? "");
   const canAct = action.status === "pending_approval" || action.status === "failed";
 
-  const changed = action.action_type === "send_portal_invite"
+  const isEmail = action.action_type === "send_portal_invite" || action.action_type === "send_docstudio_email";
+  const isEnrichment = action.action_type === "apply_contact_enrichment";
+  // Enrichment findings are evidence, not a draft — there is nothing to edit,
+  // so it must never look unsaved or the Approve button stays disabled.
+  const changed = isEnrichment
+    ? false
+    : isEmail
     ? subject !== (action.payload.subject ?? "") || body !== (action.payload.body ?? "")
     : taskContent !== (action.payload.taskContent ?? "");
   const partialAccountCreated = action.result?.portalAccountCreated === true && action.result?.emailQueued === false;
@@ -42,8 +48,8 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
       <CardHeader className="space-y-2 pb-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 gap-2">
-            <div className={cn("mt-0.5 p-1", action.action_type === "send_portal_invite" ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700")}>
-              {action.action_type === "send_portal_invite" ? <Mail className="h-3 w-3" /> : <UserRoundSearch className="h-3 w-3" />}
+            <div className={cn("mt-0.5 p-1", isEmail ? "bg-sky-100 text-sky-700" : isEnrichment ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700")}>
+              {isEmail ? <Mail className="h-3 w-3" /> : isEnrichment ? <Globe className="h-3 w-3" /> : <UserRoundSearch className="h-3 w-3" />}
             </div>
             <div className="min-w-0">
               <CardTitle className="text-xs font-semibold">{action.title}</CardTitle>
@@ -64,10 +70,58 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
         ) : null}
       </CardHeader>
       <CardContent className="space-y-2">
-        {action.action_type === "send_portal_invite" ? (
+        {isEnrichment ? (
           <div className="space-y-2 border bg-muted/20 p-2">
-            <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipient</span><span>{action.payload.recipientName} &lt;{action.payload.recipientEmail}&gt;</span></div>
-            <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Template rule</span><span>{action.payload.templateName}</span></div>
+            <div className="flex flex-wrap items-center gap-1">
+              {action.payload.matchConfidence != null ? (
+                <Badge variant="outline" className="text-[10px]">Match confidence {Math.round(action.payload.matchConfidence * 100)}%</Badge>
+              ) : null}
+              {action.payload.retrievedAt ? (
+                <Badge variant="outline" className="text-[10px]">Retrieved {new Date(action.payload.retrievedAt).toLocaleDateString()}</Badge>
+              ) : null}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              These values contradict what is already stored, so nothing has been written. Blank fields were filled automatically.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="text-left text-muted-foreground">
+                    <th className="pb-1 pr-2 font-medium">Field</th>
+                    <th className="pb-1 pr-2 font-medium">Currently</th>
+                    <th className="pb-1 pr-2 font-medium">Public listing says</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(action.payload.findings ?? []).map((finding) => (
+                    <tr key={finding.findingId} className="border-t border-border/50 align-top">
+                      <td className="py-1 pr-2 font-medium">{finding.field}</td>
+                      <td className="py-1 pr-2 text-muted-foreground">{finding.oldValue || <span className="italic">blank</span>}</td>
+                      <td className="py-1 pr-2">{finding.newValue}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {action.payload.sourceUrl ? (
+              <p className="text-[11px]">
+                <span className="text-muted-foreground">Source: </span>
+                <a href={action.payload.sourceUrl} target="_blank" rel="noreferrer noopener" className="underline underline-offset-2">
+                  Google Places listing
+                </a>
+              </p>
+            ) : null}
+          </div>
+        ) : isEmail ? (
+          <div className="space-y-2 border bg-muted/20 p-2">
+            {action.action_type === "send_docstudio_email" ? (
+              <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipients</span><span>{(action.payload.recipients ?? []).join(", ")}</span></div>
+            ) : (
+              <>
+                <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipient</span><span>{action.payload.recipientName} &lt;{action.payload.recipientEmail}&gt;</span></div>
+                <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Template rule</span><span>{action.payload.templateName}</span></div>
+              </>
+            )}
             <div className="space-y-0.5">
               <Label htmlFor={`subject-${action.id}`} className="text-[11px]">Subject</Label>
               <Input id={`subject-${action.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} className="h-6 text-xs" />
@@ -112,13 +166,13 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
         {canAct ? (
           <div className="flex flex-wrap items-center gap-1.5">
             {changed ? (
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => onSave(action, action.action_type === "send_portal_invite" ? { subject, body } : { taskContent })} className="h-6 text-xs">
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => onSave(action, isEmail ? { subject, body } : { taskContent })} className="h-6 text-xs">
                 <Save className="mr-1 h-3 w-3" /> Save edit
               </Button>
             ) : null}
             <Button size="sm" disabled={busy || changed} onClick={() => onDecide(action, "approve")} className="h-6 text-xs">
               {busy ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : action.status === "failed" ? <RotateCcw className="mr-1 h-3 w-3" /> : <Check className="mr-1 h-3 w-3" />}
-              {action.status === "failed" ? "Retry" : action.action_type === "send_portal_invite" ? "Approve & send" : "Approve"}
+              {action.status === "failed" ? "Retry" : isEmail ? "Approve & send" : isEnrichment ? "Apply fields" : "Approve"}
             </Button>
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => onDecide(action, "reject")} className="h-6 text-xs">
               <X className="mr-1 h-3 w-3" /> Reject

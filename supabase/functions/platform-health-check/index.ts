@@ -94,12 +94,14 @@ const alert = async (db: any, failures: Check[]) => {
     const rows = failures
       .map((check) => `<li><strong>${check.name}</strong>: ${check.error ?? "unhealthy"}</li>`)
       .join("");
+    const smtpConfig = getSmtpConfig();
+    if (!smtpConfig) return;
     await sendSmtpEmail({
       to,
       subject: `[OpticAdmin] Platform health check failed (${failures.length})`,
       html: `<p>The scheduled platform health check found failing agent surfaces:</p><ul>${rows}</ul><p>Checked at ${now()}.</p>`,
       text: failures.map((check) => `${check.name}: ${check.error ?? "unhealthy"}`).join("\n"),
-    });
+    }, smtpConfig);
   } catch {
     // Alerting must never fail the health check itself.
   }

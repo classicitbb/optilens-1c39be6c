@@ -9,7 +9,9 @@ describe("global search creation actions", () => {
   });
 
   it("matches ticket creation with support keywords", () => {
-    expect(CREATE_TICKET_SEARCH_KEYWORDS).toEqual(["support", "request", "help", "helpdesk", "ticket", "repair", "collection"]);
+    expect(CREATE_TICKET_SEARCH_KEYWORDS).toEqual(["support", "request", "help", "helpdesk", "ticket", "repair", "collection", "collect", "payment", "job", "note", "call", "task"]);
     expect(fieldsMatch("repair", "Create Ticket", "Helpdesk", "Actions", ...CREATE_TICKET_SEARCH_KEYWORDS)).toBe(true);
+    expect(fieldsMatch("payment", "Create Ticket", "Helpdesk", "Actions", ...CREATE_TICKET_SEARCH_KEYWORDS)).toBe(true);
+    expect(fieldsMatch("job", "Create Ticket", "Helpdesk", "Actions", ...CREATE_TICKET_SEARCH_KEYWORDS)).toBe(true);
   });
 });

@@ -86,21 +86,23 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const managementToken = Deno.env.get("SUPABASE_MANAGEMENT_API_TOKEN");
+  const managementToken =
+    Deno.env.get("EDGE_MANAGEMENT_API_TOKEN") ?? Deno.env.get("SUPABASE_MANAGEMENT_API_TOKEN");
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const projectRef = supabaseUrl.match(/^https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1] ?? "";
 
   if (!managementToken || !projectRef) {
     const missing = [
-      !managementToken ? "SUPABASE_MANAGEMENT_API_TOKEN" : null,
+      !managementToken ? "EDGE_MANAGEMENT_API_TOKEN" : null,
       !projectRef ? "a resolvable project ref (SUPABASE_URL did not match https://<ref>.supabase.co)" : null,
     ].filter((value): value is string => value !== null);
     return json(req, 501, {
       error: "Redeploy is not configured yet.",
       missing,
-      detail: "Add SUPABASE_MANAGEMENT_API_TOKEN as an edge function secret — a Supabase personal access token generated from an account with admin access to this project's Management API (Account > Access Tokens in the Supabase dashboard). Once set, retry this request.",
+      detail: "Add EDGE_MANAGEMENT_API_TOKEN as an edge function secret — a Supabase personal access token (sbp_...) from an account with Management API access to this project. Once set, retry this request.",
     });
   }
+
 
   let files: Array<{ name: string; content: string }>;
   try {

@@ -2,6 +2,27 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-08-27 — Enrichment writes were silently reverted, and Enrich All did nothing
+- Area: CRM contacts, the Innovations preserve trigger, and the Leads bulk-action bar.
+- Impact: `Enrich All` had no click handler at all. Worse, any enrichment that corrected an existing value on an Innovations-linked contact would have reported success and changed nothing.
+- Root cause: `preserve_populated_crm_fields_on_innovations_sync` reverts every service-role write over a non-blank admin-entered value, and it checks only `auth.role()`, so it could not tell an approved correction from an Innovations overwrite. Separately, `get_lead_provider_credentials` is gated on `has_role(auth.uid(),'admin')` and returns `{}` under the service role, which would have made every scheduled run a silent no-op.
+- Resolution: give the trigger a transaction-local opt-in that only `apply_contact_enrichment` sets, read the provider credential table directly in both service-role callers, and wire the button.
+- Regression prevention: `crmContactEnrichment.integration.test.ts` asserts the opt-in, the unchanged Innovations protection, both service-role guards, and that neither caller uses the admin-gated RPC.
+
+## 2026-08-27 — Floating Copilot had no microphone choice and no memory of one
+- Area: admin floating Portal Copilot composer and the shared push-to-talk hook.
+- Impact: an admin with more than one input device could not choose which microphone the floating Copilot used, and any choice made in the full console was lost on the next mount.
+- Root cause: `usePushToTalk` already enumerated devices and accepted a `deviceId`, but only `PortalCopilotPage` rendered a picker, and the setting lived in component state with no persistence.
+- Resolution: share the picker through `VoiceSettingsMenu`, render it in the floating widget, and persist `deviceId` through `voicePreferences`.
+- Regression prevention: `voiceEntrySurfaces.test.ts` asserts both surfaces import the shared menu and that the stored device is read and written by the hook.
+
+## 2026-08-27 — Copilot could not describe the platform it runs in
+- Area: Portal Copilot grounding context.
+- Impact: the Copilot could not say which pages exist, which data it could change, or where the app is hosted, so it answered capability questions with generic manual instructions. The "Watching ..." label was cosmetic — the page was never sent to the server.
+- Root cause: grounding was a hand-maintained module list in `systemContext.ts` with no capability or infrastructure detail, and `submitCopilotCommand` never forwarded the route.
+- Resolution: generate the grounding context and a capability index from `apps.ts` and `adminResources.ts`, serve deeper detail through `get_platform_facts`, and forward a whitelisted page slug on every command.
+- Regression prevention: `npm run qa:copilot-facts` fails a stale generated file inside `qa:pr-checks`, and an integration test asserts every slug `adminContexts` can emit exists in the generated route table.
+
 ## 2026-08-22 — Sitewide validation drift after portal refactors
 - Area: anonymous storefront, Portal Copilot, and embedded Rx order verification.
 - Impact: both Node validation jobs failed even though lint, typecheck, and production build succeeded, preventing sitewide releases.

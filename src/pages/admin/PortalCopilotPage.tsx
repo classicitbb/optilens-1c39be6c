@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowUp,
   Bot,
-  Check,
   CheckCircle2,
   ChevronDown,
   Clock3,
@@ -18,25 +18,16 @@ import {
   PanelLeftOpen,
   Paperclip,
   Plus,
-  Settings2,
   ShieldCheck,
+  Square,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -51,6 +42,8 @@ import {
   type CopilotState,
 } from "@/features/admin/copilot/api";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { VoiceSettingsMenu } from "@/features/admin/copilot/VoiceSettingsMenu";
+import { readStoredHoldToRecord, storeHoldToRecord } from "@/features/admin/copilot/voicePreferences";
 import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { ActionCard, statusLabel } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
@@ -73,14 +66,14 @@ const SUGGESTIONS = [
   "Show me which ERP customers still need a portal contact",
 ];
 
-const PortalCopilotPage = () => {
+const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const { toast } = useToast();
   const [command, setCommand] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
   const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
   const [showAudioSettings, setShowAudioSettings] = useState(false);
-  const [holdToRecord, setHoldToRecord] = useState(false);
+  const [holdToRecord, setHoldToRecord] = useState(readStoredHoldToRecord);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
   const [state, setState] = useState<CopilotState | null>(null);
@@ -116,6 +109,11 @@ const PortalCopilotPage = () => {
     setSpeechConfidence(confidence);
   }, []);
   const speech = usePushToTalk(onTranscript);
+
+  const changeHoldToRecord = useCallback((next: boolean) => {
+    setHoldToRecord(next);
+    storeHoldToRecord(next);
+  }, []);
 
   const stateQuery = useQuery({
     queryKey: ["portal-copilot-state", selectedConversationId ?? "latest", selectedRunId ?? "latest"],
@@ -280,7 +278,10 @@ const PortalCopilotPage = () => {
 
   return (
     <div
-      className="relative flex h-[calc(100vh-4rem)] w-full overflow-hidden border-t bg-background"
+      className={cn(
+        "relative flex w-full overflow-hidden border-t bg-background",
+        standalone ? "h-full min-h-0" : "h-[calc(100vh-4rem)]",
+      )}
       onDragOver={(event) => {
         if (!event.dataTransfer.types.includes("Files")) return;
         event.preventDefault();
@@ -305,7 +306,7 @@ const PortalCopilotPage = () => {
       {showSidebar ? (
         <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/30 lg:flex">
           <div className="flex items-center justify-between gap-1.5 border-b px-3 py-2">
-            <span className="flex items-center gap-1.5 text-xs font-semibold"><Bot className="h-3.5 w-3.5 text-cyan-600" /> Portal Copilot</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold"><Bot className="h-3.5 w-3.5 text-cyan-600" /> Iris — Portal Copilot</span>
             <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Hide chat history" onClick={() => setShowSidebar(false)}><PanelLeftClose className="h-3.5 w-3.5" /></Button>
           </div>
           <div className="px-2 py-1.5">
@@ -338,11 +339,16 @@ const PortalCopilotPage = () => {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-2 border-b px-4 py-2">
+          {standalone ? (
+            <Button size="icon" variant="ghost" aria-label="Back to admin" className="h-7 w-7" asChild>
+              <a href="/admin/dashboard"><ArrowLeft className="h-3.5 w-3.5" /></a>
+            </Button>
+          ) : null}
           {!showSidebar ? (
             <Button size="icon" variant="ghost" aria-label="Show chat history" className="hidden h-7 w-7 lg:inline-flex" onClick={() => setShowSidebar(true)}><PanelLeftOpen className="h-3.5 w-3.5" /></Button>
           ) : null}
           <div className="min-w-0">
-            <h1 className="truncate text-xs font-semibold">{selectedConversation?.title ?? "CV Portal Copilot"}</h1>
+            <h1 className="truncate text-xs font-semibold">{selectedConversation?.title ?? "Iris — Portal Copilot"}</h1>
             <p className="truncate text-[11px] text-muted-foreground">Your operational conversation · live changes always need approval</p>
           </div>
           <div className="ml-auto flex items-center gap-1.5">
@@ -493,11 +499,11 @@ const PortalCopilotPage = () => {
                     {message.text ? <CopilotMarkdown content={message.text} tone="user" /> : null}
                     {message.files?.length ? (
                       <div className="flex flex-wrap gap-2">
-                        {message.files.map((file) => (
+                        {message.files.map((file, fileIndex) => (
                           file.kind === "image" && file.previewUrl ? (
-                            <img key={file.name} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover transition-transform duration-200 hover:scale-105" />
+                            <img key={`${file.name}:${fileIndex}`} src={file.previewUrl} alt={file.name} className="h-20 w-20 border border-primary-foreground/30 object-cover transition-transform duration-200 hover:scale-105" />
                           ) : (
-                            <span key={file.name} className="flex items-center gap-1 border border-primary-foreground/30 px-2 py-1 text-xs">
+                            <span key={`${file.name}:${fileIndex}`} className="flex items-center gap-1 border border-primary-foreground/30 px-2 py-1 text-xs">
                               <FileText className="h-3 w-3" /> {file.name}
                             </span>
                           )
@@ -594,8 +600,8 @@ const PortalCopilotPage = () => {
               }}
             />
 
-            <div className="rounded-2xl border border-input bg-muted/30 shadow-sm transition-colors focus-within:border-foreground/30 focus-within:bg-background focus-within:shadow-md">
-              <div className="flex items-end gap-2 px-4 pt-3.5">
+            <div className="rounded-[1.75rem] border border-input bg-background shadow-sm transition-colors focus-within:border-foreground/30 focus-within:shadow-md">
+              <div className="px-4 pt-3.5">
                 <Textarea
                   aria-label="Message the Copilot"
                   value={command}
@@ -616,24 +622,14 @@ const PortalCopilotPage = () => {
                       submit();
                     }
                   }}
-                  rows={1}
-                  className="max-h-40 min-h-[2.75rem] flex-1 resize-none border-0 bg-transparent p-0 text-base leading-6 shadow-none focus-visible:ring-0"
-                  placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : `Message Copilot — e.g. "${DEFAULT_COMMAND}"`}
+                  rows={2}
+                  className="max-h-40 min-h-[2.75rem] w-full flex-1 resize-none border-0 bg-transparent p-0 text-base leading-6 shadow-none focus-visible:ring-0"
+                  placeholder={attachments.length ? "Add a note about this file (optional) and press Enter" : "Do anything"}
                 />
-                <Button
-                  type="button"
-                  size="icon"
-                  className="mb-0.5 h-8 w-8 shrink-0 rounded-lg"
-                  aria-label={attachments.length ? "Analyse attachment" : "Send message"}
-                  disabled={!canPrepare}
-                  onClick={submit}
-                >
-                  {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
-                </Button>
               </div>
 
               <div className="flex items-center justify-between gap-1.5 px-2.5 pb-2.5 pt-1.5">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Button
                     type="button"
                     size="icon"
@@ -642,10 +638,31 @@ const PortalCopilotPage = () => {
                     aria-label="Attach a prescription or order file"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <Plus className="h-4 w-4" />
                   </Button>
 
+                  <span className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-500">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Full access
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
                   <div className="flex items-center overflow-hidden rounded-full border border-transparent hover:border-input">
+                    <VoiceSettingsMenu
+                      speech={speech}
+                      holdToRecord={holdToRecord}
+                      onHoldToRecordChange={changeHoldToRecord}
+                      onOpenAdvanced={() => setShowAudioSettings(true)}
+                      switchId="console-hold-to-record"
+                    >
+                      <Button type="button" variant="ghost" className="h-8 gap-1 rounded-full px-2 text-xs font-medium text-foreground hover:text-foreground" aria-label="Voice and microphone settings">
+                        Copilot
+                        <span className="text-muted-foreground">High</span>
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                    </VoiceSettingsMenu>
+
                     <Button
                       type="button"
                       size="icon"
@@ -684,58 +701,26 @@ const PortalCopilotPage = () => {
                     >
                       {speech.isStarting || speech.isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : speech.isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button type="button" size="icon" variant="ghost" className="h-8 w-6 rounded-full text-muted-foreground hover:text-foreground" aria-label="Microphone settings">
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-72">
-                        <DropdownMenuLabel className="px-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Microphone</DropdownMenuLabel>
-                        <div className="max-h-64 overflow-y-auto">
-                          <DropdownMenuItem
-                            className="flex items-center justify-between gap-2"
-                            onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: "default" }))}
-                          >
-                            <span className="truncate">System default</span>
-                            {speech.settings.deviceId === "default" ? <Check className="h-4 w-4 shrink-0" /> : null}
-                          </DropdownMenuItem>
-                          {speech.devices.filter((device) => device.deviceId && device.deviceId !== "default").map((device, index) => (
-                            <DropdownMenuItem
-                              key={device.deviceId}
-                              className="flex items-center justify-between gap-2"
-                              onSelect={() => speech.setSettings((current) => ({ ...current, deviceId: device.deviceId }))}
-                            >
-                              <span className="truncate">{device.label || `Microphone ${index + 1}`}</span>
-                              {speech.settings.deviceId === device.deviceId ? <Check className="h-4 w-4 shrink-0" /> : null}
-                            </DropdownMenuItem>
-                          ))}
-                        </div>
-                        <DropdownMenuSeparator />
-                        <div className="flex items-center justify-between px-2 py-1 text-[11px]">
-                          <Label htmlFor="hold-to-record" className="cursor-pointer font-normal">Hold to record</Label>
-                          <Switch id="hold-to-record" checked={holdToRecord} onCheckedChange={setHoldToRecord} />
-                        </div>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => setShowAudioSettings(true)}>
-                          <Settings2 className="mr-1.5 h-3 w-3" /> More voice settings
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
 
                   {speech.isListening ? (
-                    <div className="ml-1 h-1 w-12 overflow-hidden rounded-full bg-muted">
+                    <div className="h-1 w-12 overflow-hidden rounded-full bg-muted">
                       <div className="h-full bg-cyan-500 transition-[width]" style={{ width: `${speech.level}%` }} />
                     </div>
                   ) : null}
-                </div>
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {speech.isTranscribing ? <span>Transcribing…</span> : null}
-                  <span className="hidden truncate sm:inline">{speech.activeDeviceLabel}</span>
-                  <span className="hidden lg:inline">Enter to send · Shift+Enter for a new line</span>
+                  {speech.isTranscribing ? <span className="text-xs text-muted-foreground">Transcribing…</span> : null}
+
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 rounded-full"
+                    aria-label={attachments.length ? "Analyse attachment" : "Send message"}
+                    disabled={!canPrepare}
+                    onClick={submit}
+                  >
+                    {prepareMutation.isPending || isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : canPrepare ? <ArrowUp className="h-4 w-4" /> : <Square className="h-3 w-3 fill-current" />}
+                  </Button>
                 </div>
               </div>
             </div>

@@ -13,10 +13,14 @@ import {
   type CrmOrderHealth,
   type CrmScanContact,
 } from "../_shared/copilot/crmOpportunityScan.ts";
-import { COPILOT_SYSTEM_CONTEXT } from "../_shared/copilot/systemContext.ts";
+import { COPILOT_SYSTEM_CONTEXT, PLATFORM_ROUTES } from "../_shared/copilot/platformFacts.generated.ts";
 import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/copilot/lookupTools.ts";
 import { ADMIN_RESOURCE_TOOLS, ADMIN_RESOURCE_TOOL_NAMES, dispatchAdminResourceTool } from "../_shared/copilot/adminResources.ts";
+import { DOC_STUDIO_TOOLS, DOC_STUDIO_TOOL_NAMES, dispatchDocStudioTool } from "../_shared/copilot/docStudioTools.ts";
+import { PLATFORM_TOOLS, PLATFORM_TOOL_NAMES, dispatchPlatformTool } from "../_shared/copilot/platformTools.ts";
+import { ENRICHMENT_TOOLS, ENRICHMENT_TOOL_NAMES, dispatchEnrichmentTool } from "../_shared/copilot/enrichmentTools.ts";
 import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
+import { identityPreamble } from "../_shared/aiIdentity.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -106,7 +110,14 @@ const ROUTER_TOOLS = [
   },
 ] as const;
 
-const COPILOT_PERSONA = "You are the Classic Visions Portal Copilot assisting an internal admin. Be conversational, remember the thread, and complete the work you are asked to do instead of pushing it back to the admin. You have read and write access to every admin module through the admin_* resource tools: call admin_list_resources when you are unsure which resource covers a request, then search, read, create or update records directly. Ordinary changes execute immediately with no approval step. Deletes and price-bearing changes come back as an approval proposal — present that clearly and let the admin approve it. Also use the dedicated ERP portal rollout and CRM opportunity scan workflows when the request matches them. Chain several tool calls in one turn when a task needs it, and only ask a clarifying question when the request is genuinely ambiguous or a required identifier is missing. Never invent prices, discounts, credit terms, delivery dates, customer facts, or completed actions; report exactly what you did and what still needs approval."
+const COPILOT_PERSONA = `${identityPreamble("admin operations")}
+
+Your role in this workspace:
+- Assist an internal administrator as a proactive operations partner. Be conversational, remember the thread, and complete the work you are asked to do instead of pushing it back to the admin. When useful, surface a concise decision, material risk, owner, dependency, and next action; do not manufacture urgency or perform work beyond the supplied tools and approvals.
+- You have read and write access to every admin module through the admin_* resource tools: call admin_list_resources when you are unsure which resource covers a request, then search, read, create or update records directly.
+- Ordinary changes execute immediately with no approval step. Deletes and price-bearing changes come back as an approval proposal — present that clearly and let the admin approve it.
+- Also use the dedicated ERP portal rollout and CRM opportunity scan workflows when the request matches them. Chain several tool calls in one turn when a task needs it, and only ask a clarifying question when the request is genuinely ambiguous or a required identifier is missing.
+- For Doc Studio billing documents — invoices, quotes, pro formas and receipts — use docstudio_create_document rather than writing the table directly. It resolves the customer, the company letterhead and bank details, the VAT rate, the next document number and the line totals itself, so do not ask the admin for anything it can look up, do not invent a document number, and never calculate a total yourself. Documents are created as drafts and are inert until a human opens them; after creating one, give the admin the returned link and a one-line summary of the totals, and mention only the fields the tool reports as genuinely unresolved.`;
 
 const COPILOT_SYSTEM_PROMPT = `${COPILOT_PERSONA}\n\n${COPILOT_SYSTEM_CONTEXT}`;
 
@@ -115,12 +126,12 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS];
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =
   | { kind: "workflow"; workflow: "erp_portal_rollout" | "crm_opportunity_scan" }
-  | { kind: "reply"; text: string };
+  | { kind: "reply"; text: string; runId?: string | null };
 
 const runCopilotTurn = async (
   apiKey: string,
@@ -128,13 +139,24 @@ const runCopilotTurn = async (
   command: string,
   history: { role: "user" | "assistant"; content: string }[],
   db: any,
+  actorUserId: string,
+  canAccessFinancialData: boolean,
+  sendEmail: (payload: { to: string[]; subject: string; html: string }) => Promise<{ messageIds?: string[] }>,
+  pageContext: string | null = null,
 ): Promise<{ ok: true; result: RouteResult } | { ok: false; status: number; message: string }> => {
   const messages: JsonRecord[] = [...history.slice(-12), { role: "user", content: command }];
+  // Set when a tool queues durable approval cards, so the reply can show them.
+  let preparedRunId: string | null = null;
+  // Appended to the system prompt, never to the user message, so the stored
+  // conversation keeps the admin's literal words.
+  const system = pageContext ? `${COPILOT_SYSTEM_PROMPT}
+
+${pageContext}` : COPILOT_SYSTEM_PROMPT;
 
   for (let iteration = 0; iteration < MAX_LOOKUP_ITERATIONS; iteration += 1) {
     const response = await callClaude(apiKey, model, {
       max_tokens: 1024,
-      system: COPILOT_SYSTEM_PROMPT,
+      system,
       tools: COPILOT_TOOLS,
       tool_choice: { type: "auto" },
       messages,
@@ -153,18 +175,30 @@ const runCopilotTurn = async (
     }
 
     const lookupUses = toolUses.filter((use) =>
-      LOOKUP_TOOL_NAMES.has(use.name as string) || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string));
+      LOOKUP_TOOL_NAMES.has(use.name as any)
+      || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as any)
+      || DOC_STUDIO_TOOL_NAMES.has(use.name as any)
+      || PLATFORM_TOOL_NAMES.has(use.name as any)
+      || ENRICHMENT_TOOL_NAMES.has(use.name as any));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
-      return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?" } };
+      return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?", runId: preparedRunId } };
     }
 
     const toolResults = await Promise.all(lookupUses.map(async (use) => {
       try {
         const input = (use.input ?? {}) as Record<string, unknown>;
-        const output = ADMIN_RESOURCE_TOOL_NAMES.has(use.name as string)
-          ? await dispatchAdminResourceTool(db, use.name as string, input)
+        const output = PLATFORM_TOOL_NAMES.has(use.name as any)
+          ? dispatchPlatformTool(use.name as string, input)
+          : ENRICHMENT_TOOL_NAMES.has(use.name as any)
+          ? await dispatchEnrichmentTool(db, use.name as string, input, actorUserId)
+          : DOC_STUDIO_TOOL_NAMES.has(use.name as any)
+          ? await dispatchDocStudioTool(db, use.name as string, input, actorUserId, { sendEmail })
+          : ADMIN_RESOURCE_TOOL_NAMES.has(use.name as any)
+          ? await dispatchAdminResourceTool(db, use.name as string, input, actorUserId, { canAccessFinancialData })
           : await dispatchLookupTool(db, use.name as string, input);
+        const queuedRunId = (output as { runId?: unknown } | null)?.runId;
+        if (typeof queuedRunId === "string") preparedRunId = queuedRunId;
         return { type: "tool_result", tool_use_id: use.id, content: JSON.stringify(output) };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Lookup failed";
@@ -179,13 +213,13 @@ const runCopilotTurn = async (
   // was gathered rather than looping forever or erroring.
   const finalResponse = await callClaude(apiKey, model, {
     max_tokens: 1024,
-    system: COPILOT_SYSTEM_PROMPT,
+    system,
     messages,
   });
   if (!finalResponse.ok) return { ok: false, status: finalResponse.status, message: await claudeErrorMessage(finalResponse) };
   const finalData = await finalResponse.json().catch(() => null) as JsonRecord | null;
   const finalText = claudeTextFromContent(finalData?.content);
-  return { ok: true, result: { kind: "reply", text: finalText || "I gathered some information but couldn't finish putting together an answer — could you narrow your question?" } };
+  return { ok: true, result: { kind: "reply", text: finalText || "I gathered some information but couldn't finish putting together an answer — could you narrow your question?", runId: preparedRunId } };
 };
 
 const createConversation = async (db: any, actorUserId: string, title = "New chat") => {
@@ -360,6 +394,23 @@ const queueInviteEmail = async (req: Request, payload: JsonRecord, actionLink: s
 
 const executeAction = async (req: Request, db: any, actorUserId: string, action: any) => {
   const payload = (action.payload ?? {}) as JsonRecord;
+  if (action.action_type === "apply_contact_enrichment") {
+    const contactId = stringValue(payload.contactId, 80);
+    const findings = Array.isArray(payload.findings) ? payload.findings as JsonRecord[] : [];
+    const findingIds = findings
+      .map((finding) => stringValue(finding.findingId, 80))
+      .filter((id) => id.length > 0);
+    if (!contactId || !findingIds.length) throw new Error("This enrichment proposal has no fields to apply");
+    // apply_contact_enrichment is the only writer allowed past the
+    // preserve-populated-fields trigger, so approved corrections actually land.
+    const { data, error } = await db.rpc("apply_contact_enrichment", {
+      p_contact_id: contactId,
+      p_finding_ids: findingIds,
+    });
+    if (error) throw new Error(error.message);
+    return { contactId, fieldsApplied: data ?? 0, fields: findings.map((finding) => stringValue(finding.field, 60)) };
+  }
+
   if (action.action_type === "create_followup_task") {
     const taskContent = stringValue(payload.taskContent, 4000);
     const contactId = stringValue(payload.contactId, 80) || null;
@@ -419,6 +470,27 @@ const executeAction = async (req: Request, db: any, actorUserId: string, action:
       };
       throw partial;
     }
+  }
+
+  if (action.action_type === "send_docstudio_email") {
+    const recipients = Array.isArray(payload.recipients) ? payload.recipients.map((entry) => stringValue(entry, 320)) : [];
+    const subject = stringValue(payload.subject, 240);
+    const html = stringValue(payload.body, 500000);
+    if (!recipients.length) throw new Error("The approved send has no recipients");
+    if (!html) throw new Error("The approved send has no document body");
+    // docstudio-api/email/send owns the unsubscribe token and the send log, so
+    // routing through it keeps this path identical to every other sender.
+    const response = await invokeFunction(req, "docstudio-api/email/send", { to: recipients, subject, html });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data?.ok) {
+      throw new Error(stringValue(data?.error) || `Document send failed (${response.status})`);
+    }
+    return {
+      documentId: stringValue(payload.documentId, 80),
+      recipients,
+      emailQueued: true,
+      messageIds: data.messageIds ?? [],
+    };
   }
 
   throw new Error(`Unsupported Copilot action: ${action.action_type}`);
@@ -527,6 +599,10 @@ Deno.serve(async (req) => {
     if (auth instanceof Response) return auth;
     const db = auth.supabaseAdminClient;
     const actorUserId = auth.user.id;
+    const { data: canAccessFinancialData, error: financialAccessError } = await db.rpc("can_access_financial_data", {
+      p_user_id: actorUserId,
+    });
+    if (financialAccessError) throw new Error(`Unable to resolve financial-data access: ${financialAccessError.message}`);
     const body = await req.json() as JsonRecord;
     const operation = stringValue(body.operation, 80);
 
@@ -548,6 +624,15 @@ Deno.serve(async (req) => {
       const command = stringValue(body.command, 2000);
       const inputMode = body.inputMode === "voice" ? "voice" : "text";
       const transcriptConfirmed = body.transcriptConfirmed === true;
+      // The page the admin is looking at. Client-supplied, so it is resolved
+      // through the generated route table and never interpolated raw.
+      const requestedPageSlug = stringValue(body.pageContext, 120);
+      const currentRoute = requestedPageSlug
+        ? PLATFORM_ROUTES.find((route) => route.slug === requestedPageSlug)
+        : undefined;
+      const pageContext = currentRoute
+        ? `The admin is currently viewing "${currentRoute.label}" (${currentRoute.path}) in the ${currentRoute.module} module. When their question is ambiguous, prefer this page's data and terminology, and say so if you answer about something else.`
+        : null;
       if (!command) return jsonResponse(req, 400, { error: "Enter or speak a command first" });
       if (inputMode === "voice" && !transcriptConfirmed) {
         return jsonResponse(req, 400, { error: "Review and confirm the transcript before preparing actions" });
@@ -565,7 +650,12 @@ Deno.serve(async (req) => {
       const history = existingConversation ? await loadConversationMessages(db, existingConversation.id) : [];
 
       const { apiKey: claudeApiKey, model: claudeModel } = await resolveClaudeCredentials(db, settings.model);
-      const routed = claudeApiKey && claudeModel ? await runCopilotTurn(claudeApiKey, claudeModel, command, history, db) : null;
+      const routed = claudeApiKey && claudeModel ? await runCopilotTurn(claudeApiKey, claudeModel, command, history, db, actorUserId, canAccessFinancialData === true, async (payload) => {
+        const response = await invokeFunction(req, "docstudio-api/email/send", payload);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data?.ok) throw new Error(stringValue(data?.error) || `Email send failed (${response.status})`);
+        return { messageIds: data.messageIds ?? [] };
+      }, pageContext) : null;
       if (routed && !routed.ok) {
         const status = routed.status === 429 || routed.status === 529 ? routed.status : 502;
         return jsonResponse(req, status, { error: routed.message });
@@ -595,7 +685,14 @@ Deno.serve(async (req) => {
         ]);
         if (chatMessagesError) throw chatMessagesError;
         await touchConversation(db, chatConversation.id, chatConversation.title === "New chat" ? command : undefined);
-        return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, null));
+        // A tool may have queued approval cards on a run that had no
+        // conversation yet. Attach it now, or loadState cannot see it.
+        const queuedRunId = route?.kind === "reply" ? route.runId ?? null : null;
+        if (queuedRunId) {
+          await db.from("copilot_runs").update({ conversation_id: chatConversation.id }).eq("id", queuedRunId);
+          await audit(db, actorUserId, "crm_enrichment_queued", { runId: queuedRunId });
+        }
+        return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, queuedRunId));
       }
 
       // route.kind === "workflow" && route.workflow === "erp_portal_rollout"
@@ -679,9 +776,14 @@ Deno.serve(async (req) => {
         return jsonResponse(req, 409, { error: "Only pending or failed actions can be edited" });
       }
       const payload = { ...(action.payload ?? {}) } as JsonRecord;
-      if (action.action_type === "send_portal_invite") {
+      if (action.action_type === "apply_contact_enrichment") {
+        // Enrichment findings are sourced evidence, not a draft. Editing them
+        // would break the link to the recorded provenance.
+        return jsonResponse(req, 400, { error: "Enrichment findings cannot be edited. Approve or reject them as found." });
+      }
+      if (action.action_type === "send_portal_invite" || action.action_type === "send_docstudio_email") {
         const subject = stringValue(body.subject, 240);
-        const emailBody = stringValue(body.body, 12000);
+        const emailBody = stringValue(body.body, 500000);
         if (!subject || !emailBody) return jsonResponse(req, 400, { error: "Subject and email body are required" });
         payload.subject = subject;
         payload.body = emailBody;
@@ -711,6 +813,16 @@ Deno.serve(async (req) => {
       if (decision === "reject") {
         const { error: rejectError } = await db.from("copilot_actions").update({ status: "rejected", approved_by: actorUserId, approved_at: new Date().toISOString() }).eq("id", actionId).eq("status", action.status);
         if (rejectError) throw rejectError;
+        if (action.action_type === "apply_contact_enrichment") {
+          // Otherwise the findings stay pending_review and the nightly sweep
+          // keeps re-proposing what an admin has already turned down.
+          const rejectedFindingIds = (Array.isArray(action.payload?.findings) ? action.payload.findings as JsonRecord[] : [])
+            .map((finding) => stringValue(finding.findingId, 80))
+            .filter((id) => id.length > 0);
+          if (rejectedFindingIds.length) {
+            await db.from("contact_enrichment_findings").update({ disposition: "rejected" }).in("id", rejectedFindingIds);
+          }
+        }
         await audit(db, actorUserId, "action_rejected", { runId: action.run_id, actionId });
         await refreshRunStatus(db, action.run_id);
         const { data: run } = await db.from("copilot_runs").select("conversation_id").eq("id", action.run_id).single();
@@ -787,7 +899,7 @@ Deno.serve(async (req) => {
 
       const aiResponse = await callClaude(apiKey, model, {
         max_tokens: 2048,
-        system: "You are the Classic Visions Portal Copilot assisting an internal admin. Read attached prescriptions, order forms or invoices and extract the key details: patient/customer, Rx values (sphere, cylinder, axis, add, PD, prism), lens type, material, coatings, quantities, and any special instructions. Present a short structured summary, then list anything missing or ambiguous that must be clarified before the order can be placed. Never invent prices, discounts, credit terms or delivery dates. If the file is unreadable, say so plainly.",
+        system: `${identityPreamble("admin document analysis")}\n\nYour role in this workspace:\n- Read attached prescriptions, order forms or invoices and extract the key details: patient/customer, Rx values (sphere, cylinder, axis, add, PD, prism), lens type, material, coatings, quantities, and any special instructions.\n- Present a short structured summary, then list anything missing or ambiguous that must be clarified before the order can be placed.\n- If the file is unreadable, say so plainly.`,
         messages: [{ role: "user", content }],
       });
       if (!aiResponse.ok) {

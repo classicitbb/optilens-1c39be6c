@@ -262,9 +262,8 @@ const inferIntent = (query: string, route: string, profile: AssistantProfile): A
 };
 
 const inferConfidence = (topScore: number, errorState: boolean): AssistantQueryResult["confidence"] => {
-  // High confidence is reserved for a controlled deterministic fallback after
-  // the model/gateway has failed. Normal generated answers are never promoted
-  // beyond medium because source overlap alone does not prove contextual fit.
+  // This is a deterministic fallback confidence, not a model-quality score.
+  // It is only surfaced after the AI generation path fails.
   if (errorState && topScore >= 30) return "high";
   if (topScore >= 16) return "medium";
   return "low";

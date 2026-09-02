@@ -1,28 +1,57 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getOperatorAttentionItems, isOperatorAttentionSnoozed, type AttentionTask, type AttentionTicket } from "./operatorAttention";
 import { playAlertJingle } from "@/features/admin/helpdesk/hooks/useHelpdeskTicketAlerts";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SOUND_WINDOW_MS = 60_000;
 const SOUND_INTERVAL_MS = 6_000;
 const CHECK_INTERVAL_MS = 30_000;
-const SNOOZE_STORAGE_KEY = "operator-attention-snoozed-until";
-
-const readSnoozedUntil = () => {
-  try {
-    const value = Number(window.localStorage.getItem(SNOOZE_STORAGE_KEY));
-    return Number.isFinite(value) && value > Date.now() ? value : null;
-  } catch {
-    return null;
-  }
-};
-
 export const useOperatorAttentionAlerts = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [now, setNow] = useState(() => Date.now());
-  const [snoozedUntil, setSnoozedUntil] = useState(readSnoozedUntil);
+  const [pendingSnoozedUntil, setPendingSnoozedUntil] = useState<number | null>(null);
   const alertStartedAt = useRef<Map<string, number>>(new Map());
   const soundedAt = useRef<Map<string, number>>(new Map());
+
+  const snoozeQuery = useQuery<number | null>({
+    queryKey: ["operator-attention-snooze", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("operator_attention_snoozes")
+        .select("snoozed_until")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      const until = data?.snoozed_until ? Date.parse(data.snoozed_until) : NaN;
+      return Number.isFinite(until) && until > Date.now() ? until : null;
+    },
+    refetchInterval: CHECK_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+  });
+
+  const persistedSnoozedUntil = snoozeQuery.data ?? null;
+  const snoozedUntil = pendingSnoozedUntil ?? persistedSnoozedUntil;
+  const snoozeMutation = useMutation({
+    mutationFn: async (until: number) => {
+      if (!user) throw new Error("Sign in to snooze attention alerts.");
+      const { error } = await (supabase as any)
+        .from("operator_attention_snoozes")
+        .upsert(
+          { user_id: user.id, snoozed_until: new Date(until).toISOString() },
+          { onConflict: "user_id" },
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setPendingSnoozedUntil(null);
+      queryClient.invalidateQueries({ queryKey: ["operator-attention-snooze", user?.id] });
+    },
+    onError: () => setPendingSnoozedUntil(null),
+  });
 
   const ticketsQuery = useQuery({
     queryKey: ["operator-attention-helpdesk-tickets"],
@@ -89,12 +118,8 @@ export const useOperatorAttentionAlerts = () => {
 
   const snooze = (durationMs: number) => {
     const until = Date.now() + durationMs;
-    setSnoozedUntil(until);
-    try {
-      window.localStorage.setItem(SNOOZE_STORAGE_KEY, String(until));
-    } catch {
-      // The in-memory timer still provides snooze when browser storage is unavailable.
-    }
+    setPendingSnoozedUntil(until);
+    snoozeMutation.mutate(until);
   };
 
   return {

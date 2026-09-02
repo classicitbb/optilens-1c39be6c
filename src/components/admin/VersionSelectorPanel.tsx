@@ -168,10 +168,14 @@ const VersionSelectorPanel = ({
     };
   }, [dialogOpen, selectorCollapsed]);
 
-  // Auto-select first version if none selected
-  if (!selectedVersionId && versions && versions.length > 0 && !isLoading) {
-    onVersionChange(versions[0].id);
-  }
+  // Auto-select the first version after the list arrives. This must run in an
+  // effect; updating the parent while this component renders can otherwise
+  // cause React's nested-update loop on a fresh pricing-page visit.
+  useEffect(() => {
+    if (!selectedVersionId && versions && versions.length > 0 && !isLoading) {
+      onVersionChange(versions[0].id);
+    }
+  }, [isLoading, onVersionChange, selectedVersionId, versions]);
 
   const resetForm = () => {
     setName("");

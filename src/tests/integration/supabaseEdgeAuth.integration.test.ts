@@ -12,10 +12,9 @@ describe("supabase edge-function auth hardening", () => {
     "customer-onboarding",
     "crm-draft-outreach",
     "lead-intelligence",
-    "lens-assistant",
     "order-confirmation",
     "preview-transactional-email",
-    "send-transactional-email",
+    "send-test-email",
   ] as const;
 
   /** Functions that set verify_jwt = false but enforce auth in code */
@@ -26,8 +25,7 @@ describe("supabase edge-function auth hardening", () => {
   const explicitPublicFunctions = [
     "auth-email-hook",
     "contact-inquiry",
-    "handle-email-suppression",
-    "handle-email-unsubscribe",
+    "handle-email-events",
   ] as const;
 
   it("enables verify_jwt for privileged functions", () => {
@@ -55,7 +53,6 @@ describe("supabase edge-function auth hardening", () => {
       "supabase/functions/admin-user-management/index.ts",
       "supabase/functions/customer-onboarding/index.ts",
       "supabase/functions/lead-intelligence/index.ts",
-      "supabase/functions/send-transactional-email/index.ts",
     ]) {
       const source = read(file);
       expect(source).toContain("requirePrivilegedAccess");
@@ -82,14 +79,10 @@ describe("supabase edge-function auth hardening", () => {
       expect(source).toContain("if (authContext instanceof Response)");
     }
 
-    const transactionalSender = read("supabase/functions/send-transactional-email/index.ts");
-    expect(transactionalSender).toMatch(/sourceFunction:\s*['"]send-transactional-email['"]/);
+    const transactionalSender = read("supabase/functions/send-test-email/index.ts");
+    expect(transactionalSender).toMatch(/sourceFunction:\s*['"]send-test-email['"]/);
     expect(transactionalSender).toMatch(/allowedRoles:\s*\[['"]admin['"],\s*['"]operator['"]\]/);
     expect(transactionalSender).toContain("if (authContext instanceof Response)");
-
-    const lensAssistant = read("supabase/functions/lens-assistant/index.ts");
-    expect(lensAssistant).toContain("requireAuthenticatedUser");
-    expect(lensAssistant).toContain("if (authContext instanceof Response)");
 
     const crmDraftOutreach = read("supabase/functions/crm-draft-outreach/index.ts");
     expect(crmDraftOutreach).toContain("requirePrivilegedAccess");
@@ -101,7 +94,6 @@ describe("supabase edge-function auth hardening", () => {
   it("removes wildcard CORS origin headers from non-scaffolded edge functions", () => {
     const files = [
       "supabase/functions/admin-user-management/index.ts",
-      "supabase/functions/lens-assistant/index.ts",
       "supabase/functions/contact-inquiry/index.ts",
       "supabase/functions/lead-intelligence/index.ts",
     ];
@@ -119,13 +111,8 @@ describe("supabase edge-function auth hardening", () => {
     expect(contactInquiry).toContain("MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR");
     expect(contactInquiry).toContain("Payload too large");
 
-    const unsubscribe = read("supabase/functions/handle-email-unsubscribe/index.ts");
-    // Scaffolded unsubscribe validates token presence
-    expect(unsubscribe).toContain("Token is required");
-
-    const lensAssistant = read("supabase/functions/lens-assistant/index.ts");
-    expect(lensAssistant).toContain("getClientIp");
-    expect(lensAssistant).toContain("checkRateLimit(ip, corsHeaders, 6, 60_000)");
-    expect(lensAssistant).toContain("checkRateLimit(`hour:${ip}`, corsHeaders, 60, 60 * 60_000)");
+    const eventsReceiver = read("supabase/functions/handle-email-events/index.ts");
+    // Managed delivery events are signature-verified by the scaffolded handler
+    expect(eventsReceiver).toContain("createEmailWebhookHandler");
   });
 });

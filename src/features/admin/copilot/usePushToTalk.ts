@@ -4,13 +4,16 @@ import {
   formatVoiceTranscript,
   isLikelyTranscriptionPromptEcho,
 } from "@/features/admin/copilot/transcriptFormatting";
+import { readStoredDeviceId, storeDeviceId } from "@/features/admin/copilot/voicePreferences";
 
 export type SpeechSettings = {
   deviceId: string;
-  language: "en-BB" | "en-US" | "en-GB";
+  language: string;
   confidenceThreshold: number;
   vocabulary: string;
 };
+
+type PushToTalkOptions = Partial<Pick<SpeechSettings, "language" | "vocabulary">>;
 
 const DEFAULT_SETTINGS: SpeechSettings = {
   deviceId: "default",
@@ -18,9 +21,19 @@ const DEFAULT_SETTINGS: SpeechSettings = {
   confidenceThreshold: 0.65,
   vocabulary: "Innovations, ERP, Classic Visions, portal access, pricelist, lens",
 };
+const AUTO_TRANSCRIBE_SILENCE_MS = 5_000;
 
-export const usePushToTalk = (onTranscript: (transcript: string, confidence: number) => void) => {
-  const [settings, setSettings] = useState<SpeechSettings>(DEFAULT_SETTINGS);
+export const usePushToTalk = (
+  onTranscript: (transcript: string, confidence: number) => void,
+  options: PushToTalkOptions = {},
+) => {
+  // Only deviceId is persisted — it is a per-browser hardware choice. language
+  // and vocabulary stay caller-supplied, because each surface passes its own.
+  const [settings, setSettings] = useState<SpeechSettings>(() => ({
+    ...DEFAULT_SETTINGS,
+    ...options,
+    deviceId: readStoredDeviceId() ?? DEFAULT_SETTINGS.deviceId,
+  }));
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [isListening, setIsListening] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -35,11 +48,16 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
   const chunksRef = useRef<BlobPart[]>([]);
   const recorderMimeRef = useRef("audio/webm");
   const peakLevelRef = useRef(0);
+  const silenceTimerRef = useRef<number | null>(null);
   const settingsRef = useRef(DEFAULT_SETTINGS);
 
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    storeDeviceId(settings.deviceId);
+  }, [settings.deviceId]);
 
   const refreshDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -58,6 +76,8 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
   }, [refreshDevices]);
 
   const releaseAudio = useCallback(() => {
+    if (silenceTimerRef.current != null) window.clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = null;
     if (animationRef.current != null) window.cancelAnimationFrame(animationRef.current);
     animationRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -165,11 +185,20 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       analyser.fftSize = 256;
       audioContext.createMediaStreamSource(stream).connect(analyser);
       const values = new Uint8Array(analyser.frequencyBinCount);
+      const scheduleAutoTranscription = () => {
+        if (silenceTimerRef.current != null) window.clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = window.setTimeout(() => {
+          if (recorderRef.current === recorder && recorder.state !== "inactive") stop();
+        }, AUTO_TRANSCRIBE_SILENCE_MS);
+      };
       const meter = () => {
         analyser.getByteFrequencyData(values);
         const average = values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
         const next = Math.min(100, Math.round((average / 128) * 100));
         peakLevelRef.current = Math.max(peakLevelRef.current, next);
+        // The client has no live speech-to-text stream. Treat audible speech
+        // as activity, then finish and transcribe after five quiet seconds.
+        if (next >= 4) scheduleAutoTranscription();
         setLevel(next);
         animationRef.current = window.requestAnimationFrame(meter);
       };
@@ -189,17 +218,26 @@ export const usePushToTalk = (onTranscript: (transcript: string, confidence: num
       recorderRef.current = recorder;
       setIsStarting(false);
       setIsListening(true);
+      scheduleAutoTranscription();
     } catch (caught) {
       recorderRef.current = null;
       setIsStarting(false);
       setIsListening(false);
       const message = caught instanceof Error ? caught.message : "Could not start the selected microphone.";
-      setError(message.toLowerCase().includes("permission") || message.toLowerCase().includes("denied")
-        ? "Microphone permission was denied. Allow microphone access and try again."
-        : message);
+      const lowered = message.toLowerCase();
+      if (lowered.includes("overconstrained") || lowered.includes("notfound") || lowered.includes("not found")) {
+        // A remembered microphone was unplugged. Fall back rather than leaving
+        // the user stuck on a device that can no longer be opened.
+        setSettings((current) => ({ ...current, deviceId: "default" }));
+        setError("That microphone is no longer available — switched back to the system default. Try recording again.");
+      } else if (lowered.includes("permission") || lowered.includes("denied")) {
+        setError("Microphone permission was denied. Allow microphone access and try again.");
+      } else {
+        setError(message);
+      }
       releaseAudio();
     }
-  }, [isListening, isStarting, isTranscribing, refreshDevices, releaseAudio, settings.deviceId, transcribeRecording]);
+  }, [isListening, isStarting, isTranscribing, refreshDevices, releaseAudio, settings.deviceId, stop, transcribeRecording]);
 
   const activeDeviceLabel = devices.find((device) => device.deviceId === settings.deviceId)?.label
     || devices.find((device) => device.deviceId === "default")?.label

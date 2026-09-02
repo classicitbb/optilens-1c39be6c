@@ -13,9 +13,9 @@ import { CustomerAccountOption } from "@/hooks/useCustomerAccounts";
 import { computeLineProfit } from "@/hooks/useQuotes";
 
 // ── Engine data shapes (mirror the prototype's constants) ──
-export interface EngineBranch { id: string; code: string; name: string; info: string; cur: string; prices: boolean }
+export interface EngineBranch { id: string; code: string; name: string; info: string; cur: string; prices: boolean; country: string | null }
 export interface EngineItem { id: string; n: string; up?: number; base?: number; v?: string; prog?: boolean; needsAdd?: boolean }
-export interface EngineTreat { id: string; c: string; n: string; d: string; p: number; grp?: string; pop?: boolean; rev?: boolean }
+export interface EngineTreat { id: string; c: string; n: string; d: string; p: number; grp?: string; pop?: boolean; rev?: boolean; unpriced?: boolean }
 export interface EngineData {
   branches: EngineBranch[];
   materials: EngineItem[];
@@ -102,16 +102,25 @@ export function buildEngineData(opts: {
     }
   }
 
-  const treatments: EngineTreat[] = opts.addons.map((a, i) => {
+  const treatments: EngineTreat[] = opts.addons.map((a) => {
     const g = CATEGORY_GROUPS[a.category] ?? { c: "Specialty" };
+    const price = Math.round(opts.addonPriceFor(a.id, a.price) * 100) / 100;
     return {
       id: a.id,
       c: g.c,
       n: a.name,
       d: a.description || "",
-      p: Math.round(opts.addonPriceFor(a.id, a.price) * 100) / 100,
+      p: price,
+      // An add-on that resolves to nothing is not free — it is an add-on this
+      // account has no price for, either because the pricelist carries no row
+      // for it or because the catalogue price is unset. Charging zero for real
+      // lab work is the silent failure; the form raises it instead.
+      unpriced: !(price > 0),
       grp: g.grp,
-      pop: i < 6 && !!g.grp, // first few grouped items surface as "popular"
+      // Popular choices are intentional, not whichever records happen to be
+      // first in the RPC result. Back AR must earn its way into this set from
+      // real usage data; the current catalogue does not expose that count.
+      pop: /blue\s*defen[cs]e|super\s*ar/i.test(a.name),
     };
   });
 
@@ -123,6 +132,7 @@ export function buildEngineData(opts: {
       info: a.account_number ? `Account #${a.account_number}` : "ERP account",
       cur: opts.currency ?? "BBD",
       prices: opts.pricesVisible ?? true,
+      country: a.country_code ?? null,
     })),
     materials: [...materials.values()].sort((a, b) => a.n.localeCompare(b.n)),
     designs: [...designs.values()].sort((a, b) => a.n.localeCompare(b.n)),
@@ -157,10 +167,6 @@ export async function persistPayload(
   const rate = payload?.quote?.rate || 1;
   const toBBD = (amt: number) => Math.round((amt / rate) * 100) / 100;
 
-  const lensKey = `${payload.lens.material}|${payload.lens.design}|${payload.lens.colour}`;
-  const lens = ctx.lensIndex.get(lensKey) ?? null;
-  const resolved = ctx.resolveAlias?.(payload.lens.material, payload.lens.design, payload.lens.colour) ?? null;
-
   // Legacy path: the CV-sourced form selected a finish type, so the 13-digit
   // colour alias had to be recovered through the confirmed mapping. Only an
   // exact normalized colour match is safe — a primary alias can describe a
@@ -172,19 +178,41 @@ export async function persistPayload(
     .replace(/colou?r/g, "")
     .replace(/[^a-z0-9]+/g, "")
     .trim();
-  let innovationsAlias: string | null = resolved?.alias ?? null;
-  if (!innovationsAlias && lens?.colourName) {
-    const { data: mappedAliases, error: aliasError } = await (supabase.from("lens_alias_map") as any)
-      .select("innovations_alias, innovations_lens_aliases(color_description, is_active)")
-      .eq("lens_id", lens.lensId)
-      .not("confirmed_at", "is", null);
-    if (aliasError) throw aliasError;
-    const wantedColour = normaliseColour(lens.colourName);
-    innovationsAlias = (mappedAliases ?? []).find((row: any) =>
-      row.innovations_lens_aliases?.is_active !== false
-      && normaliseColour(row.innovations_lens_aliases?.color_description ?? "") === wantedColour,
-    )?.innovations_alias ?? null;
-  }
+
+  // One lens triple → everything needed to write its quote line. A split-eye
+  // order resolves this twice, once per side; an unsplit order once, exactly
+  // as before.
+  const resolveLens = async (triple: { material: string; design: string; colour: string }) => {
+    const lens = ctx.lensIndex.get(`${triple.material}|${triple.design}|${triple.colour}`) ?? null;
+    const resolved = ctx.resolveAlias?.(triple.material, triple.design, triple.colour) ?? null;
+    let innovationsAlias: string | null = resolved?.alias ?? null;
+    if (!innovationsAlias && lens?.colourName) {
+      const { data: mappedAliases, error: aliasError } = await (supabase.from("lens_alias_map") as any)
+        .select("innovations_alias, innovations_lens_aliases(color_description, is_active)")
+        .eq("lens_id", lens.lensId)
+        .not("confirmed_at", "is", null);
+      if (aliasError) throw aliasError;
+      const wantedColour = normaliseColour(lens.colourName);
+      innovationsAlias = (mappedAliases ?? []).find((row: any) =>
+        row.innovations_lens_aliases?.is_active !== false
+        && normaliseColour(row.innovations_lens_aliases?.color_description ?? "") === wantedColour,
+      )?.innovations_alias ?? null;
+    }
+    return { lens, resolved, innovationsAlias, triple };
+  };
+
+  // `lens` is the right/shared eye; `lensOs` exists only on a split order.
+  // A non-split pair still contains two physical lenses. Persist those as OD
+  // and OS lines so the invoice and lab payload agree with the saved-draft
+  // price breakdown.
+  const splitOrder = !!payload.split && !!payload.lensOs;
+  const pairOrder = payload?.job?.eyes === "pair";
+  const sides: { eye: "od" | "os" | null; triple: any }[] = splitOrder
+    ? [{ eye: "od", triple: payload.lens }, { eye: "os", triple: payload.lensOs }]
+    : pairOrder
+      ? [{ eye: "od", triple: payload.lens }, { eye: "os", triple: payload.lens }]
+      : [{ eye: payload?.job?.eyes === "os" ? "os" : "od", triple: payload.lens }];
+  const resolvedSides = await Promise.all(sides.map(async (s) => ({ ...s, ...(await resolveLens(s.triple)) })));
 
   // Replace all lines for this quote (the engine is the source of truth).
   const { error: delErr } = await (supabase.from("quote_lines") as any).delete().eq("quote_id", quoteId);
@@ -192,7 +220,7 @@ export async function persistPayload(
 
   const lines: any[] = [];
   const quoteLines: any[] = Array.isArray(payload?.quote?.lines) ? payload.quote.lines : [];
-  const matrixPrice = ctx.lensPriceBBD(payload.lens.material, payload.lens.design, payload.lens.colour);
+
   // No matrix cell and no CV lens row = not offered on this account. Such an
   // order cannot reach the cart (the engine blocks submit and offers only
   // "save as draft"), so what lands here is a quote request to be priced by
@@ -201,38 +229,65 @@ export async function persistPayload(
   // The amount columns are NOT NULL DEFAULT 0, so a genuine "no price" cannot
   // be stored as null without a migration. needs_assistance + assistance_note
   // are what distinguish it from a line that is actually free.
-  const unpriced = matrixPrice == null && !lens;
-  const lensAmount = unpriced
-    ? 0
-    : quoteLines.length
-      ? toBBD(quoteLines[0].amount)
-      : matrixPrice ?? lens?.listPrice ?? 0;
+  const priced = resolvedSides.map((side) => {
+    const matrixPrice = ctx.lensPriceBBD(side.triple.material, side.triple.design, side.triple.colour);
+    const unpriced = matrixPrice == null && !side.lens;
+    // The engine tags each lens quote line with its eye, so a split order
+    // pairs line to lens without guessing from label text or line order.
+    const quoted = quoteLines.find((l: any) => l.lens && l.eye === side.eye) ?? quoteLines[0];
+    const amount = unpriced
+      ? 0
+      : quoted
+        ? toBBD(quoted.amount)
+        : matrixPrice ?? side.lens?.listPrice ?? 0;
+    return { ...side, unpriced, amount };
+  });
+
+  const anyUnpriced = priced.some((s) => s.unpriced);
   const assistReasons = [
     ...(payload.assistance ?? []),
-    ...(unpriced && !(payload.assistance ?? []).some((a: string) => /not priced/i.test(a))
+    ...(anyUnpriced && !(payload.assistance ?? []).some((a: string) => /not priced/i.test(a))
       ? ["Lens not priced on this account — quote requested"]
       : []),
   ];
   const assistNote = assistReasons.length ? `Assistance requested: ${assistReasons.join(", ")}` : null;
 
-  lines.push({
-    quote_id: quoteId,
-    line_type: "Lens",
-    product_id: lens?.lensId ?? null,
-    innovations_alias: innovationsAlias,
-    sku: "",
-    item_name: lens?.name ?? resolved?.label
-      ?? `${payload.lens.material} ${payload.lens.design} ${payload.lens.colour}`,
-    qty: 1,
-    unit_cost_landed_bbd: lens?.basePrice ?? 0,
-    unit_base_price_bbd: lensAmount,
-    unit_sell_price_bbd: lensAmount,
-    threshold_percent: 48,
-    ...computeLineProfit(lensAmount, lens?.basePrice ?? 0, 1, "RX"),
-    sort_order: 0,
-    needs_assistance: !!assistNote,
-    assistance_note: assistNote,
+  priced.forEach((side, i) => {
+    const eyeLabel = side.eye === "od" ? "OD · " : side.eye === "os" ? "OS · " : "";
+    lines.push({
+      quote_id: quoteId,
+      line_type: "Lens",
+      product_id: side.lens?.lensId ?? null,
+      innovations_alias: side.innovationsAlias,
+      sku: "",
+      item_name: eyeLabel + (side.lens?.name ?? side.resolved?.label
+        ?? `${side.triple.material} ${side.triple.design} ${side.triple.colour}`),
+      qty: 1,
+      unit_cost_landed_bbd: side.lens?.basePrice ?? 0,
+      unit_base_price_bbd: side.amount,
+      unit_sell_price_bbd: side.amount,
+      threshold_percent: 48,
+      ...computeLineProfit(side.amount, side.lens?.basePrice ?? 0, 1, "RX"),
+      sort_order: i,
+      needs_assistance: !!assistNote,
+      assistance_note: assistNote,
+    });
   });
+
+  // A treatment the catalogue no longer knows about used to be skipped here in
+  // silence — it stayed in payload.treatments (so the lab saw it) but produced
+  // no quote line (so nobody charged for it). The form now blocks submit on
+  // exactly this condition; refusing here as well means a payload that reaches
+  // persistence by any other route still cannot write a half-recorded order.
+  const unknownTreatments = (payload.treatments ?? []).filter(
+    (tid: string) => !ctx.addons.some((a) => a.id === tid),
+  );
+  if (unknownTreatments.length) {
+    throw new Error(
+      `This order carries ${unknownTreatments.length} coating${unknownTreatments.length > 1 ? "s" : ""} `
+      + "that are no longer available on this account. Remove them and submit again.",
+    );
+  }
 
   (payload.treatments ?? []).forEach((tid: string, i: number) => {
     const addon = ctx.addons.find((a) => a.id === tid);
@@ -251,7 +306,7 @@ export async function persistPayload(
       unit_sell_price_bbd: amt,
       threshold_percent: 48,
       ...computeLineProfit(amt, addon.cost, 1, "RX"),
-      sort_order: i + 1,
+      sort_order: priced.length + i,
       // Supabase batches every row into one INSERT and fills a row missing a
       // key that another row in the batch has with NULL, not the column
       // default — so this must be explicit or it violates quote_lines'
@@ -265,9 +320,15 @@ export async function persistPayload(
     .insert(lines)
     .select("id, line_type");
   if (insErr) throw insErr;
+  // Both eyes stay on ONE rx_details row, hung off the first lens line, even
+  // for a split order. The table is shaped od_*/os_* on a single row and every
+  // reader downstream (print, the lab handoff, optilens-local's buildOrder)
+  // expects exactly one row per job — splitting the prescription across two
+  // rows would break them for no gain, since the split is about which lens
+  // each eye gets, not about the prescription itself.
   const lensLineId = (inserted ?? []).find((l: any) => l.line_type === "Lens")?.id;
 
-  // Prescription — both eyes on the single lens line, prototype field names →
+  // Prescription — both eyes on the first lens line, prototype field names →
   // rx_details columns.
   if (lensLineId && payload.rx) {
     const num = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));

@@ -22,6 +22,8 @@
 
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/scotia/config.ts";
+import { logScotiaEvent } from "../_shared/scotia/events.ts";
+
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
 
 function ok(body: Record<string, unknown> = { received: true }): Response {
@@ -93,8 +95,32 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
           oid,
           ...result.debugHash,
         });
+        await logScotiaEvent(supabaseAdmin, {
+          kind: "notify",
+          outcome: "hash_invalid",
+          oid,
+          storeId: cfg.storeId,
+          env: cfg.env,
+          failReason: "Response hash did not validate",
+          responseParams: response,
+        });
         return ok({ received: true, settled: false, reason: "bad_hash" });
       }
+
+      // Diagnostics: exact parameters and failure code from the S2S callback.
+      await logScotiaEvent(supabaseAdmin, {
+        kind: "notify",
+        outcome: result.approved ? "ok" : "declined",
+        oid,
+        storeId: cfg.storeId,
+        env: cfg.env,
+        approved: result.approved,
+        associationResponseCode: result.associationResponseCode,
+        failRc: result.failRc,
+        failReason: response.fail_reason ?? null,
+        responseParams: response,
+      });
+
 
       const gatewayPayload = {
         approved: result.approved,

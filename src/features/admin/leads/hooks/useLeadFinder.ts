@@ -3,69 +3,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { IDEAL_CUSTOMER_PROFILE } from "@/config/idealCustomerProfile";
 import type { LeadRecord } from "../types";
 
-interface FinderConstraints {
-  productCategories?: string[];
-  marginTiers?: string[];
-  fulfillmentGeography?: string;
-  existingCustomerProfile?: string;
-  exclusions?: string[];
-  maxIntents?: number;
+interface FinderInput {
+  /** What the operator typed, in their own words. */
+  brief: string;
+  limit?: number;
 }
 
-interface FinderInput {
-  query?: string;
-  country?: string;
-  cities?: string[];
-  globalSearch?: boolean;
-  mode: "manual" | "autopilot";
-  constraints?: FinderConstraints;
+export interface LeadFinderPlan {
+  interpretation: string;
+  businessTypes: string[];
+  locations: Array<{ city: string | null; country: string | null }>;
+  searchQueries: string[];
+  mustHave: string[];
+  exclude: string[];
+  aiPlanned: boolean;
 }
 
 export interface LeadFinderDiagnostics {
-  mode: "manual" | "autopilot";
-  scopeMode: "global" | "country_city";
-  searchRunId: string | null;
-  planner: {
-    mode: "manual" | "autopilot";
-    rankedIntents: Array<{
-      rank: number;
-      score: number;
-      strategyId: string;
-      searchIntent: string;
-      query: string;
-      industry: string;
-      channelHints: string[];
-      rationale: string[];
-      whySuggested: string[];
-      historicalPerformance: {
-        sampleSize: number;
-        winRate: number;
-        avgDealSize: number | null;
-        cacProxy: number | null;
-      } | null;
-    }>;
-    selectedIntent: {
-      rank: number;
-      score: number;
-      strategyId: string;
-      searchIntent: string;
-      query: string;
-      industry: string;
-      channelHints: string[];
-      rationale: string[];
-      whySuggested: string[];
-      historicalPerformance: {
-        sampleSize: number;
-        winRate: number;
-        avgDealSize: number | null;
-        cacProxy: number | null;
-      } | null;
-    } | null;
+  pipeline: "brief" | "lookup";
+  brief: string;
+  plan: LeadFinderPlan;
+  aiStatus: {
+    plannerUsed: boolean;
+    qualifierUsed: boolean;
+    error: string | null;
   };
   providerStatus: {
     googlePlacesConfigured: boolean;
     firecrawlSearchConfigured: boolean;
-    aiSearchConfigured: boolean;
+    aiConfigured: boolean;
   };
   providersUsed: string[];
   providerTelemetry: Record<string, {
@@ -74,12 +40,11 @@ export interface LeadFinderDiagnostics {
     latencyMs: number;
     errorCode: string | null;
   }>;
-  emptyReason: "no_providers_configured" | "provider_failures" | "no_matches" | null;
-  queryEcho: {
-    query: string;
-    country?: string;
-    city?: string;
-  };
+  candidatesFound: number;
+  qualifiedCount: number;
+  rejected: Array<{ name: string; reason: string }>;
+  emptyReason: "no_providers_configured" | "provider_failures" | "no_matches" | "no_qualified_matches" | null;
+  searchRunId: string | null;
   fetchedAt: string;
 }
 
@@ -89,45 +54,32 @@ export interface LeadFinderResult {
   warning?: string | null;
 }
 
-const ICP_DEFAULT_CONSTRAINTS: FinderConstraints = {
-  productCategories: IDEAL_CUSTOMER_PROFILE.productCategories,
-  marginTiers: IDEAL_CUSTOMER_PROFILE.marginTiers,
-  fulfillmentGeography: IDEAL_CUSTOMER_PROFILE.geography.fulfillmentGeography,
-  existingCustomerProfile: IDEAL_CUSTOMER_PROFILE.description,
-  exclusions: IDEAL_CUSTOMER_PROFILE.exclusions,
-};
+/** Background context for the planner: who we sell to, in one paragraph. */
+const ICP_SUMMARY = [
+  IDEAL_CUSTOMER_PROFILE.description,
+  `Typical buyers: ${IDEAL_CUSTOMER_PROFILE.firmographics.roles.join(", ")}.`,
+  `Products: ${IDEAL_CUSTOMER_PROFILE.productCategories.join(", ")}.`,
+  `Core markets: ${IDEAL_CUSTOMER_PROFILE.geography.primaryCountries.join("; ")}.`,
+].join(" ");
 
 export const useLeadFinder = () => {
   return useMutation({
-    mutationFn: async ({ query, country, cities, globalSearch, mode, constraints }: FinderInput): Promise<LeadFinderResult> => {
-      const resolvedConstraints: FinderConstraints = { ...ICP_DEFAULT_CONSTRAINTS, ...constraints };
+    mutationFn: async ({ brief, limit }: FinderInput): Promise<LeadFinderResult> => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
-        body: { query, country, cities, globalSearch: !!globalSearch, includeDiagnostics: true, mode, constraints: resolvedConstraints },
+        body: { brief, limit, includeDiagnostics: true, icpSummary: ICP_SUMMARY },
       });
 
       if (error) {
         const message = `${error.message ?? ""}`;
-        const unavailable = message.includes("Failed to send a request to the Edge Function") || message.includes("FunctionsFetchError") || message.includes("404");
+        const unavailable = message.includes("Failed to send a request to the Edge Function") ||
+          message.includes("FunctionsFetchError") ||
+          message.includes("404");
         if (!unavailable) throw error;
         return {
           leads: [],
-          diagnostics: {
-            mode: globalSearch ? "autopilot" : "manual",
-            scopeMode: globalSearch ? "global" : "country_city",
-            searchRunId: null,
-            planner: { mode: "manual", rankedIntents: [], selectedIntent: null },
-            providerStatus: {
-              googlePlacesConfigured: false,
-              firecrawlSearchConfigured: false,
-              aiSearchConfigured: false,
-            },
-            providersUsed: [],
-            providerTelemetry: {},
-            emptyReason: "no_providers_configured",
-            queryEcho: { query, country, city: cities?.[0] },
-            fetchedAt: new Date().toISOString(),
-          },
-          warning: "Live provider search is temporarily unavailable. Confirm backend function deployment and provider credentials in /admin/leads/settings.",
+          diagnostics: null,
+          warning:
+            "Live lead search is temporarily unavailable. Confirm the lead-intelligence function is deployed and provider credentials are set in /admin/leads/settings.",
         };
       }
 
@@ -141,12 +93,17 @@ export const useLeadFinder = () => {
         facebook_page: lead.facebook_page ?? null,
         google_rating: lead.google_rating ?? null,
         google_reviews_count: lead.google_reviews_count ?? null,
-        ai_intent_score: null,
+        ai_intent_score: typeof lead.fit_score === "number" ? lead.fit_score : null,
         status: "lead",
         score: Number(lead.score ?? 0),
+        lead_score_breakdown: lead.lead_score_breakdown ?? null,
+        fit_reason: lead.fit_reason ?? null,
+        source_provider: lead.source_provider ?? null,
+        formatted_address: lead.formatted_address ?? null,
         notes: null,
         search_run_id: lead.search_run_id ?? data?.diagnostics?.searchRunId ?? null,
       })) as LeadRecord[];
+
       return {
         leads,
         diagnostics: (data?.diagnostics ?? null) as LeadFinderDiagnostics | null,

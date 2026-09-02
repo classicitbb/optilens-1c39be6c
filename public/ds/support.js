@@ -683,7 +683,9 @@
       return {};
     }
   };
-  function evalDcLogic(src) {
+  function evalDcLogic(name, src) {
+    const registered = window.__dcLogicClasses?.[name];
+    if (typeof registered === "function") return registered;
     //! nosemgrep: eval-and-function-constructor
     const fn = new Function(
       "DCLogic",
@@ -693,6 +695,7 @@
     );
     return fn(StreamableLogic, StreamableLogic, getReact());
   }
+  window.__dcLogicBase = StreamableLogic;
 
   // src/component.ts
   function shallowEqual(a, b) {
@@ -1337,7 +1340,7 @@
       const r = registry.get(name);
       const seq = r.jsSeq = (r.jsSeq || 0) + 1;
       try {
-        const Cls = evalDcLogic(src);
+        const Cls = evalDcLogic(name, src);
         if (r.jsSeq !== seq) return;
         if (typeof Cls !== "function") {
           r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";

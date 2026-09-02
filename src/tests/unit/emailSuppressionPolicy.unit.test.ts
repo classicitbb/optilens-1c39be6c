@@ -45,47 +45,11 @@ describe("email suppression policy", () => {
     expect(isSuppressionBlocking("some_future_reason", AUTH_QUEUE)).toBe(false);
   });
 
-  it("keeps the hard-reason set aligned with what the webhooks write", () => {
-    const suppressionHook = read("supabase/functions/handle-email-suppression/index.ts");
-    // The hook's union type is the source of truth for valid reasons.
-    expect(suppressionHook).toContain("'bounce' | 'complaint' | 'unsubscribe'");
-
-    const unsubscribeHook = read("supabase/functions/handle-email-unsubscribe/index.ts");
-    expect(unsubscribeHook).toContain("reason: 'unsubscribe'");
+  it("keeps the hard-reason set aligned with what the events receiver writes", () => {
+    const receiver = read("supabase/functions/handle-email-events/index.ts");
+    expect(receiver).toContain("'bounce' | 'complaint' | 'unsubscribe'");
+    expect(receiver).toContain("reason: 'unsubscribe'");
 
     expect([...HARD_SUPPRESSION_REASONS].sort()).toEqual(["bounce", "complaint"]);
-  });
-});
-
-describe("process-email-queue suppression enforcement", () => {
-  const source = () => read("supabase/functions/process-email-queue/index.ts");
-
-  it("checks suppression before handing the message to the send API", () => {
-    const src = source();
-    const checkAt = src.indexOf("await checkSuppression(");
-    const sendAt = src.indexOf("await sendLovableEmail(");
-
-    expect(checkAt).toBeGreaterThan(-1);
-    expect(sendAt).toBeGreaterThan(-1);
-    expect(checkAt).toBeLessThan(sendAt);
-  });
-
-  it("fails closed by leaving the message queued when the lookup errors", () => {
-    const src = source();
-    expect(src).toContain("runErrors.push({ queue, stage: 'suppression_check'");
-    // A lookup failure must not fall through to the send path.
-    expect(src).toMatch(/if \(suppression\.lookupError\)[\s\S]*?\bcontinue\b/);
-  });
-
-  it("logs a suppressed row and drains the message instead of retrying it", () => {
-    const src = source();
-    expect(src).toMatch(/status: 'suppressed'/);
-    expect(src).toMatch(/if \(suppression\.blocked\)[\s\S]*?delete_email/);
-  });
-
-  it("delegates the auth-queue exemption to the shared policy", () => {
-    const src = source();
-    expect(src).toContain("isSuppressionBlocking(reason, queue)");
-    expect(src).toContain("_shared/email/suppression.ts");
   });
 });

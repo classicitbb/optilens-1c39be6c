@@ -378,19 +378,71 @@ const StatementsSection = () => {
     retry: 1,
   });
 
-  const statements = useMemo(() => (liveAccountQuery.data?.statements ?? []).map((statement) => ({
-    ...statement,
-    id: String(statement.id),
-  })) as StatementRow[], [liveAccountQuery.data?.statements]);
+  // DB fallback: when the live Innovations connector is unreachable, serve the
+  // last synced statement snapshot instead of a dead error page.
+  const fallbackAccountQuery = useQuery({
+    queryKey: ["synced-statements-fallback", crmCustomerId],
+    enabled: typeof crmCustomerId === "number" && liveAccountQuery.isError,
+    retry: 1,
+    queryFn: async () => {
+      const [{ data: rows, error: rowsError }, { data: bal, error: balError }] = await Promise.all([
+        (supabase as any).from("statements_public").select("*").eq("customer_id", crmCustomerId).order("period_end", { ascending: false }),
+        (supabase as any).from("balances_public").select("*").eq("customer_id", crmCustomerId).maybeSingle(),
+      ]);
+      if (rowsError) throw rowsError;
+      if (balError) throw balError;
+      return {
+        statements: (rows ?? []) as Record<string, unknown>[],
+        balance: (bal ?? null) as BalanceRow | null,
+      };
+    },
+  });
 
-  const balance = liveAccountQuery.data?.balance ?? null;
+  const usingFallback = liveAccountQuery.isError && fallbackAccountQuery.isSuccess;
+
+  const statements = useMemo(() => {
+    if (usingFallback) {
+      return (fallbackAccountQuery.data?.statements ?? []).map((row) => ({
+        id: String(row.id),
+        account_number: (row.account_number as string | null) ?? null,
+        statement_date: null,
+        period_start: (row.period_start as string | null) ?? null,
+        period_end: (row.period_end as string | null) ?? null,
+        volume_discount: null,
+        opening_balance: (row.opening_balance as number | null) ?? null,
+        transactions: null,
+        closing_balance: (row.closing_balance as number | null) ?? null,
+        payments: (row.payments as number | null) ?? null,
+        finance_charges: (row.finance_charges as number | null) ?? null,
+        discount: (row.discount as number | null) ?? null,
+        allowance: null,
+        discounts_allowance: (row.discount as number | null) ?? null,
+        aging_amount_1: null,
+        aging_amount_2: null,
+        aging_amount_3: null,
+        aging_amount_4: null,
+        due_date: (row.due_date as string | null) ?? null,
+        status: (row.status as number | null) ?? null,
+        void: (row.void as boolean | null) ?? null,
+        printed: (row.printed as boolean | null) ?? null,
+      })) as StatementRow[];
+    }
+    return (liveAccountQuery.data?.statements ?? []).map((statement) => ({
+      ...statement,
+      id: String(statement.id),
+    })) as StatementRow[];
+  }, [usingFallback, fallbackAccountQuery.data?.statements, liveAccountQuery.data?.statements]);
+
+  const balance = usingFallback
+    ? fallbackAccountQuery.data?.balance ?? null
+    : liveAccountQuery.data?.balance ?? null;
 
   const activeStatementId = selectedStatementId ?? statements[0]?.id ?? null;
   const activeStatement = statements.find((s) => s.id === activeStatementId) ?? null;
 
   const linesQuery = useQuery({
     queryKey: ["live-innovations-statement", activeStatementId],
-    enabled: !!activeStatementId,
+    enabled: !!activeStatementId && !liveAccountQuery.isError,
     queryFn: ({ signal }) => requestLiveData<LiveStatementResponse>(
       "innovations.customer_statement",
       { statement_id: Number(activeStatementId) },
@@ -399,7 +451,56 @@ const StatementsSection = () => {
     staleTime: 30_000,
     retry: 1,
   });
-  const rawLines = useMemo(() => linesQuery.data?.lines ?? [], [linesQuery.data?.lines]);
+
+  // Fallback line items: the synced view keys lines by innovations_statement_id
+  // (not the statements_public id), so match them to the active statement by
+  // posting date within its period.
+  const fallbackLinesQuery = useQuery({
+    queryKey: ["synced-statement-lines-fallback", crmCustomerId],
+    enabled: usingFallback && typeof crmCustomerId === "number",
+    retry: 1,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("statement_lines_public")
+        .select("*")
+        .eq("customer_id", crmCustomerId)
+        .order("post_date", { ascending: false })
+        .limit(2000);
+      if (error) throw error;
+      return (data ?? []) as Array<Record<string, unknown>>;
+    },
+  });
+
+  const rawLines = useMemo<StatementLineRow[]>(() => {
+    if (usingFallback) {
+      if (!activeStatement) return [];
+      return (fallbackLinesQuery.data ?? [])
+        .filter((row) => {
+          const d = String(row.post_date ?? "");
+          if (activeStatement.period_start && d < activeStatement.period_start) return false;
+          if (activeStatement.period_end && d > activeStatement.period_end) return false;
+          return true;
+        })
+        .map((row) => ({
+          id: (row.id as number | null) ?? null,
+          statement_id: row.statement_id != null ? String(row.statement_id) : null,
+          account_number: (row.account_number as string | null) ?? null,
+          order_type_name: (row.order_type as string | null) ?? null,
+          invoice_id: (row.invoice_id as number | null) ?? null,
+          order_id: null,
+          reference: (row.reference as string | null) ?? null,
+          patient: (row.patient as string | null) ?? null,
+          payment_method: null,
+          post_date: (row.post_date as string | null) ?? null,
+          amount: (row.amount as number | null) ?? null,
+        }));
+    }
+    return linesQuery.data?.lines ?? [];
+  }, [usingFallback, fallbackLinesQuery.data, activeStatement, linesQuery.data?.lines]);
+
+  const linesLoading = usingFallback ? fallbackLinesQuery.isLoading : linesQuery.isLoading;
+  const linesError = usingFallback ? fallbackLinesQuery.error : linesQuery.error;
+  const linesIsError = usingFallback ? fallbackLinesQuery.isError : linesQuery.isError;
 
   useEffect(() => {
     if (searchParams.get("download") !== "1" || !activeStatementId) return;
@@ -556,8 +657,8 @@ const StatementsSection = () => {
     </button>
   );
 
-  const isLoading = liveAccountQuery.isLoading;
-  const currentBalance = liveAccountQuery.data?.balance?.current_balance ?? 0;
+  const isLoading = liveAccountQuery.isLoading || (liveAccountQuery.isError && fallbackAccountQuery.isLoading);
+  const currentBalance = (usingFallback ? balance?.current_balance : liveAccountQuery.data?.balance?.current_balance) ?? 0;
 
   // Card payments require the gateway build flag, the admin website feature
   // switch, and (unless a Feature Board testing bypass is active) the
@@ -659,7 +760,9 @@ const StatementsSection = () => {
     );
   }
 
-  if (liveAccountQuery.isError) {
+  // Hard error only when the synced snapshot is unavailable too — otherwise the
+  // page renders the last synced data with an offline notice below.
+  if (liveAccountQuery.isError && (fallbackAccountQuery.isError || (!fallbackAccountQuery.isLoading && !usingFallback))) {
     return (
       <section className="space-y-6">
         <header className="space-y-1">
@@ -684,6 +787,18 @@ const StatementsSection = () => {
         <h2 className="text-2xl font-semibold text-foreground">Statements & Billing</h2>
         <p className="text-sm text-muted-foreground">Live account balance and statements, fetched only when you open this page.</p>
       </header>
+
+      {usingFallback && (
+        <Alert role="status" className="border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+          <AlertCircle className="h-4 w-4 text-amber-600" aria-hidden="true" />
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3 text-amber-900 dark:text-amber-300">
+            <span>Live billing data is temporarily unavailable — showing your last synced statement snapshot.</span>
+            <Button variant="outline" size="sm" onClick={() => liveAccountQuery.refetch()}>
+              Try live source again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Returning from Scotia (redirect mode) */}
       {scotiaReturn === "success" && (
@@ -814,13 +929,13 @@ const StatementsSection = () => {
 
       {/* Transaction Table */}
       <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border overflow-hidden">
-        {linesQuery.isError ? (
+        {linesIsError ? (
           <Alert variant="destructive" className="m-4" role="alert">
             <AlertDescription>
-              {linesQuery.error instanceof Error ? linesQuery.error.message : "The selected live statement could not be loaded."}
+              {linesError instanceof Error ? linesError.message : "The selected statement could not be loaded."}
             </AlertDescription>
           </Alert>
-        ) : linesQuery.isLoading ? (
+        ) : linesLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>

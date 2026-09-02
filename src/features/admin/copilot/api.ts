@@ -55,6 +55,7 @@ export type CopilotActionPayload = {
   customerName?: string;
   accountNumber?: string | null;
   recipientEmail?: string;
+  recipients?: string[];
   recipientName?: string;
   subject?: string;
   body?: string;
@@ -70,6 +71,19 @@ export type CopilotActionPayload = {
   recommendedNextAction?: string;
   outreachDraft?: string;
   suggestedOwnerId?: string;
+  /** apply_contact_enrichment: public-web findings awaiting approval. */
+  contactLabel?: string;
+  source?: "google_places" | "firecrawl";
+  sourceUrl?: string;
+  retrievedAt?: string;
+  matchConfidence?: number;
+  findings?: {
+    findingId: string;
+    field: string;
+    oldValue: string | null;
+    newValue: string;
+    confidence: number;
+  }[];
 };
 
 export type CopilotAction = {
@@ -77,7 +91,7 @@ export type CopilotAction = {
   run_id: string;
   customer_id: number | null;
   contact_id: string | null;
-  action_type: "send_portal_invite" | "create_followup_task";
+  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email" | "apply_contact_enrichment";
   risk_level: number;
   status: "pending_approval" | "executing" | "completed" | "failed" | "rejected" | "blocked";
   title: string;
@@ -147,6 +161,8 @@ export const submitCopilotCommand = (input: {
   inputMode: "text" | "voice";
   transcriptConfirmed: boolean;
   conversationId?: string;
+  /** Admin context slug for the page in view, so the Copilot knows where the admin is. */
+  pageContext?: string;
 }) => invokePortalCopilot({ operation: "submit-command", ...input });
 
 export const prepareErpRollout = submitCopilotCommand;

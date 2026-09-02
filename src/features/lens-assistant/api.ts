@@ -61,6 +61,13 @@ export const useRxDrafts = (targetUserId?: string) => {
 export const isEmbeddedRxOrderPayload = (value: unknown): value is EmbeddedRxOrderPayload =>
   !!value && typeof value === "object" && (value as { schema?: unknown }).schema === "cv.rxorder/1";
 
+/**
+ * A draft keeps its database identity even when an older Lens Assistant
+ * payload is upgraded to the embedded order payload on its next save.
+ */
+export const resolveResumedRxDraftId = (draftId: string | undefined, payload: unknown) =>
+  draftId && payload ? draftId : undefined;
+
 export const buildEmbeddedRxOrderDraftFields = (payload: EmbeddedRxOrderPayload) => {
   const patientReference = [payload.patient?.first, payload.patient?.last]
     .map((value) => value?.trim())
@@ -70,9 +77,10 @@ export const buildEmbeddedRxOrderDraftFields = (payload: EmbeddedRxOrderPayload)
     ? `Order ${payload.orderNo.trim()}`
     : "Untitled Rx order";
   const label = patientReference || fallback;
+  const orderNumber = typeof payload.orderNo === "string" ? payload.orderNo.trim() : "";
 
   return {
-    name: `Rx order — ${label}`,
+    name: `Rx order — ${label}${orderNumber && !label.includes(orderNumber) ? ` · Order ${orderNumber}` : ""}`,
     patient_reference: patientReference || null,
     status: "draft" as const,
     input_payload: payload,
@@ -92,8 +100,21 @@ export const useSaveEmbeddedRxOrderDraft = () => {
     mutationFn: async ({ payload, id }: { payload: EmbeddedRxOrderPayload; id?: string }) => {
       if (!user) throw new Error("Sign in to save an Rx order draft.");
       const fields = buildEmbeddedRxOrderDraftFields(payload);
-      const query = id
-        ? (supabase as any).from("rx_order_drafts").update(fields).eq("id", id).eq("user_id", user.id)
+      let targetId = id;
+      if (!targetId && payload.orderNo?.trim()) {
+        const { data: existing, error: lookupError } = await (supabase as any)
+          .from("rx_order_drafts")
+          .select("id")
+          .eq("user_id", user.id)
+          .contains("input_payload", { orderNo: payload.orderNo.trim() })
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        targetId = existing?.id;
+      }
+      const query = targetId
+        ? (supabase as any).from("rx_order_drafts").update(fields).eq("id", targetId).eq("user_id", user.id)
         : (supabase as any).from("rx_order_drafts").insert({ user_id: user.id, ...fields });
       const { data, error } = await query.select("*").single();
       if (error) throw error;

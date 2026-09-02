@@ -116,8 +116,13 @@ const CUR={
 };
 
 /* ---------- state ---------- */
+/* m/d/c is the job's lens. When S.split is on (pair jobs only) it becomes the
+   RIGHT eye's lens and m2/d2/c2 carries the LEFT — see lensOf(). Keeping the
+   original triple as the OD/shared selection means every existing read of
+   S.m/S.d/S.c stays correct for an unsplit order, which is all of them today. */
 const S={branch:null,scope:'uncut',vision:'sv',purpose:'dist',eyes:'pair',
-  m:'',d:'',c:'', treat:new Set(), cur:'USD', pricesOn:true, assists:new Set(), file:null, shapeOk:false, notesConfirmed:false,
+  m:'',d:'',c:'', split:false, m2:'',d2:'',c2:'', treatConfirmed:false, deliveryTouched:false,
+  treat:new Set(), cur:'USD', pricesOn:true, assists:new Set(), file:null, shapeOk:false, notesConfirmed:false,
   shape:null, shapeSrc:'', stdShape:'', shapeExpanded:false, frameExpanded:false, orderNo:'',
   tintCfg:{colour:'Grey',density:75,gradTop:80,gradBottom:10,finish:'Standard',match:false},
   chemClips:[],
@@ -165,29 +170,45 @@ const activeEyes=()=>S.eyes==='pair'?['od','os']:[S.eyes];
 const design=()=>DESIGNS.find(x=>x.id===S.d);
 const material=()=>MATERIALS.find(x=>x.id===S.m);
 const colour=()=>COLOURS.find(x=>x.id===S.c);
-const isProg=()=>!!(design()&&design().prog);
+/* ---------- split eyes: a different lens per side ----------
+   Only meaningful on a pair — a single-eye job already has exactly one lens,
+   so the toggle is hidden and forced off there (see syncSplitUI). Side 'b' is
+   the left eye's own triple; every other side reads 'a'. */
+const splitActive=()=>S.split&&S.eyes==='pair';
+const lensOf=eye=>(splitActive()&&eye==='os')
+  ? {m:S.m2,d:S.d2,c:S.c2}
+  : {m:S.m,d:S.d,c:S.c};
+const sideOf=eye=>(splitActive()&&eye==='os')?'b':'a';
+const lensTriple=side=>side==='b'?{m:S.m2,d:S.d2,c:S.c2}:{m:S.m,d:S.d,c:S.c};
+const lensComplete=side=>{const t=lensTriple(side);return !!(t.m&&t.d&&t.c);};
+/* Sides that must be chosen before the lens section is complete. */
+const activeSides=()=>splitActive()?['a','b']:['a'];
+const namedLens=side=>{
+  const t=lensTriple(side);
+  const m=MATERIALS.find(x=>x.id===t.m), d=DESIGNS.find(x=>x.id===t.d), c=COLOURS.find(x=>x.id===t.c);
+  return (m&&d&&c)?`${m.n} · ${d.n} · ${c.n}`:null;
+};
+/* A progressive on EITHER side means the fitting-height rules apply — the
+   height column is shared, so the stricter of the two sides has to govern. */
+const isProg=()=>activeSides().some(s=>{const d=DESIGNS.find(x=>x.id===lensTriple(s).d);return !!(d&&d.prog);});
 const needsAdd=()=>S.vision==='mf'||!!(design()&&design().needsAdd);
 const needsHt=()=>S.vision==='mf';
 const needsNearPD=()=>S.vision==='sv'&&(S.purpose==='read'||S.purpose==='inter');
-/* "some Rx data exists" — deliberately looser than secValid()'s rxOk, which
-   requires every producible field to be filled. Used only to let the section
-   collapse into its at-a-glance summary while still in progress; the summary
-   itself (sectionSummary('sec-rx')) flags whatever's still missing. */
-const rxStarted=()=>activeEyes().some(e=>{
-  const r=readRow(e);
-  return r.sph!==null||r.cyl!==null||r.axis!==null||r.add!==null||r.pd!==null||r.npd!==null||r.ht!==null||!!r.prism;
-});
 
 /* ---------- catalogue constraint ---------- */
 function valid(cmb){
   const d=DESIGNS.find(x=>x.id===cmb.d);
   return d && d.v===S.vision;
 }
-function options(){
+/* Both narrowing and repair work on one side's triple at a time — the two
+   sides pick independently, so the left eye's choice must never narrow the
+   right eye's lists. */
+function options(side){
+  const t=lensTriple(side||'a');
   const pool=COMBOS.filter(valid);
-  const okM=c=>(!S.d||c.d===S.d)&&(!S.c||c.c===S.c);
-  const okD=c=>(!S.m||c.m===S.m)&&(!S.c||c.c===S.c);
-  const okC=c=>(!S.m||c.m===S.m)&&(!S.d||c.d===S.d);
+  const okM=c=>(!t.d||c.d===t.d)&&(!t.c||c.c===t.c);
+  const okD=c=>(!t.m||c.m===t.m)&&(!t.c||c.c===t.c);
+  const okC=c=>(!t.m||c.m===t.m)&&(!t.d||c.d===t.d);
   return {
     mats:[...new Set(pool.filter(okM).map(c=>c.m))],
     designs:[...new Set(pool.filter(okD).map(c=>c.d))],
@@ -195,30 +216,37 @@ function options(){
     pool
   };
 }
-function repair(){
+function repairSide(side){
+  const keys=side==='b'?{m:'m2',d:'d2',c:'c2'}:{m:'m',d:'d',c:'c'};
   const pool=COMBOS.filter(valid);
-  let ok=pool.some(c=>(!S.m||c.m===S.m)&&(!S.d||c.d===S.d)&&(!S.c||c.c===S.c));
-  if(ok) return;
+  const fits=()=>{const t=lensTriple(side);return pool.some(c=>(!t.m||c.m===t.m)&&(!t.d||c.d===t.d)&&(!t.c||c.c===t.c));};
+  if(fits()) return;
   /* drop the oldest conflicting choice until valid again */
   const order=['c','d','m'];
   for(const k of order){
-    const bak=S[k]; S[k]='';
-    if(pool.some(c=>(!S.m||c.m===S.m)&&(!S.d||c.d===S.d)&&(!S.c||c.c===S.c))){
+    const sk=keys[k], bak=S[sk]; S[sk]='';
+    if(fits()){
       toast('Cleared '+({m:'material',d:'design',c:'colour'}[k])+' — that combination isn\'t on your pricelist');
       return;
     }
-    S[k]=bak;
+    S[sk]=bak;
   }
-  S.m=S.d=S.c='';
+  S[keys.m]=S[keys.d]=S[keys.c]='';
 }
+function repair(){ activeSides().forEach(repairSide); }
 /* ---------- filterable material/design/colour combo ----------
    Type-to-search comboboxes: each narrows the other two (same catalogue logic as
    before) AND filters by whatever the user has typed, substring, case-insensitive. */
 const COMBO_DEFS={
-  m:{inputId:'material',listId:'materialList',all:MATERIALS,poolKey:'mats'},
-  d:{inputId:'design', listId:'designList', all:DESIGNS, poolKey:'designs'},
-  c:{inputId:'colour', listId:'colourList', all:COLOURS, poolKey:'cols'}
+  m:{inputId:'material',listId:'materialList',all:MATERIALS,poolKey:'mats',side:'a'},
+  d:{inputId:'design', listId:'designList', all:DESIGNS, poolKey:'designs',side:'a'},
+  c:{inputId:'colour', listId:'colourList', all:COLOURS, poolKey:'cols',side:'a'},
+  /* Left-eye mirror of the three above, live only while split is on. */
+  m2:{inputId:'material2',listId:'materialList2',all:MATERIALS,poolKey:'mats',side:'b'},
+  d2:{inputId:'design2', listId:'designList2', all:DESIGNS, poolKey:'designs',side:'b'},
+  c2:{inputId:'colour2', listId:'colourList2', all:COLOURS, poolKey:'cols',side:'b'}
 };
+const comboKeysFor=side=>Object.keys(COMBO_DEFS).filter(k=>COMBO_DEFS[k].side===side);
 /* Each list keeps a direct element reference (and its original parent, to
    restore into) captured once here — once opened it moves to document.body
    (see openCombo), so it can no longer be found via $()/$$(), which only
@@ -227,11 +255,19 @@ Object.values(COMBO_DEFS).forEach(def=>{
   def.listEl=$('#'+def.listId);
   def.listHome=def.listEl.parentElement;
 });
-let comboActive={m:-1,d:-1,c:-1};
+let comboActive={m:-1,d:-1,c:-1,m2:-1,d2:-1,c2:-1};
+/* Whether the user has typed into this combo since it was focused. Without it,
+   reopening a combo that already holds a choice filtered the list by that
+   choice's own name — so the list came back holding exactly one item, the
+   thing you had already picked, and every other option looked unavailable.
+   Changing your mind meant clearing the field by hand first. The typed query
+   only narrows the list once there actually is one. */
+let comboTyped={m:false,d:false,c:false,m2:false,d2:false,c2:false};
+const resetComboActive=()=>Object.keys(COMBO_DEFS).forEach(k=>{comboActive[k]=-1;});
 function comboFilteredItems(k,o){
   const def=COMBO_DEFS[k], input=$('#'+def.inputId);
   const items=def.all.filter(x=>o[def.poolKey].includes(x.id));
-  const q=(input&&document.activeElement===input)?input.value.trim().toLowerCase():'';
+  const q=(comboTyped[k]&&input&&document.activeElement===input)?input.value.trim().toLowerCase():'';
   return q?items.filter(x=>x.n.toLowerCase().includes(q)):items;
 }
 function renderComboList(k,o){
@@ -246,7 +282,7 @@ function renderComboList(k,o){
   }));
 }
 function pickCombo(k,id){
-  S[k]=id; comboActive.m=comboActive.d=comboActive.c=-1;
+  S[k]=id; resetComboActive(); comboTyped[k]=false;
   /* set the picked input's own display text directly — fillLensSelects() only
      syncs inputs that AREN'T focused, and this one still is (mousedown on the
      option preventDefaults to avoid a blur, so keyboard flow keeps working). */
@@ -294,21 +330,43 @@ function openCombo(k){
   if(list.parentElement!==portal) portal.appendChild(list);
   positionComboList(k);
   list.classList.add('on');
-  renderComboList(k,options());
+  renderComboList(k,options(def.side));
 }
 function fillLensSelects(){
   repair();
-  const o=options();
+  const byside={a:options('a'),b:options('b')};
   Object.entries(COMBO_DEFS).forEach(([k,def])=>{
-    const input=$('#'+def.inputId), item=def.all.find(x=>x.id===S[k]);
+    const input=$('#'+def.inputId); if(!input) return;
+    const item=def.all.find(x=>x.id===S[k]);
     if(document.activeElement!==input) input.value=item?item.n:'';
-    if(def.listEl.classList.contains('on')) renderComboList(k,o);
+    if(def.listEl&&def.listEl.classList.contains('on')) renderComboList(k,byside[def.side]);
   });
-  $('#comboCount').textContent=o.pool.length+' valid combinations';
-  const nm=(S.m&&S.d&&S.c)?`${material().n} · ${design().n} · ${colour().n}`:null;
-  $('#lensName').innerHTML=nm
-    ? `<b>${nm}</b><br><span style="opacity:.8">Named material → design → option, the way it prints on your pricelist.</span>`
-    : 'Pick a material, design and colour to name the lens. Lists narrow each other — choose in whatever order suits you.';
+  $('#comboCount').textContent=byside.a.pool.length+' valid combinations';
+  const split=splitActive();
+  const nmA=namedLens('a'), nmB=split?namedLens('b'):null;
+  const tail='<br><span style="opacity:.8">Named material → design → option, the way it prints on your pricelist.</span>';
+  if(split){
+    $('#lensName').innerHTML=(nmA||nmB)
+      ? `<b>OD (right)</b> ${nmA||'<span style="opacity:.7">not chosen yet</span>'}<br><b>OS (left)</b> ${nmB||'<span style="opacity:.7">not chosen yet</span>'}${tail}`
+      : 'Pick a material, design and colour for each eye. The two sides choose independently.';
+  } else {
+    $('#lensName').innerHTML=nmA
+      ? `<b>${nmA}</b>${tail}`
+      : 'Pick a material, design and colour to name the lens. Lists narrow each other — choose in whatever order suits you.';
+  }
+  syncSplitUI();
+}
+/* Show/hide the left-eye column and keep the toggle honest about when a split
+   is even possible. A single-eye job has one lens by definition. */
+function syncSplitUI(){
+  const possible=S.eyes==='pair';
+  const on=splitActive();
+  const row=$('#splitRow'), toggle=$('#splitOn'), block=$('#lensSplitB');
+  if(row) row.classList.toggle('hide',!possible);
+  if(toggle) toggle.checked=on;
+  if(block) block.classList.toggle('hide',!on);
+  const head=$('#lensSideAHead');
+  if(head) head.classList.toggle('hide',!on);
 }
 
 /* ---------- order number: 8 digits, sequential from 80000000 ---------- */
@@ -321,7 +379,10 @@ function nextOrderNo(){
   return String(n);
 }
 function newOrderNo(){
-  S.orderNo=(ADAPTER.orderNo&&ADAPTER.orderNo())||nextOrderNo();
+  const assigned=ADAPTER.orderNo&&ADAPTER.orderNo();
+  /* The order identifier travels to the PO/lab payload, so it must remain a
+     numeric order number. Quote references are deliberately kept separate. */
+  S.orderNo=/^\d+$/.test(String(assigned||''))?String(assigned):nextOrderNo();
   const el=$('#ordNo');
   if(el) el.innerHTML='<span>Order</span> '+S.orderNo;
   return S.orderNo;
@@ -329,6 +390,23 @@ function newOrderNo(){
 
 /* ---------- frame measurement limits ---------- */
 const LIMITS={ fa:{max:78,label:'A'}, fb:{max:60,label:'B'}, fed:{max:88,label:'ED'}, fdbl:{max:30,label:'DBL'} };
+/* The traced outline is only meaningful against a known box — ED in particular
+   is derived from the current A and B. Confirming the shape before those exist
+   verifies it against nothing, so the confirm stays locked until all four are in. */
+function frameBoxComplete(){ return Object.keys(LIMITS).every(id=>parseNum($('#'+id).value)!==null); }
+/* Anti-reflective coatings are applied off-site, which roughly doubles the
+   turnaround — the service select has to say so rather than quoting the
+   uncoated 5–7 days for a job that cannot make it. */
+const AR_LEAD='9–14 working days', PLAIN_LEAD='5–7 working days';
+function arSelected(){ return Array.from(S.treat).some(id=>{const t=TREAT.find(x=>x.id===id); return !!t&&t.grp==='ar';}); }
+/* Barbados is the only domestic destination; everywhere else the job leaves the
+   island and goes out through a forwarder. */
+const branchIsExport=()=>{
+  const c=(S.branch&&S.branch.country||'').trim().toUpperCase();
+  return !!c && c!=='BB' && !/^BARBADOS$/i.test(c);
+};
+const EXPORT_DELIVERY='Export — freight forwarder';
+
 function limitErrors(){
   const out=[];
   Object.entries(LIMITS).forEach(([id,L])=>{
@@ -462,11 +540,73 @@ function clashOf(id){
   if(t.grp){ const o=TREAT.find(x=>x.grp===t.grp&&x.id!==id&&S.treat.has(x.id));
     if(o) return 'Replaces '+o.n; }
   for(const [a,b,w] of CLASH){ if(a===id&&S.treat.has(b)) return w; if(b===id&&S.treat.has(a)) return w; }
-  if(/^tn-(solid|grad|dgrad)$/.test(id)&&/^ph-/.test(S.c)) return 'Cannot tint a photochromic lens';
+  if(/^tn-(solid|grad|dgrad)$/.test(id)&&activeSides().some(s=>/^ph-/.test(lensTriple(s).c))) return 'Cannot tint a photochromic lens';
   return null;
 }
+/* ---------- add-on verification ----------
+   The selected set and the live catalogue can disagree, and every way they can
+   used to fail silently:
+
+   · withdrawn — a treatment selected before the catalogue refreshed (an
+     account switch re-scopes to that pricelist, or the add-on was deactivated)
+     is skipped by price() and by persistPayload's addon lookup, yet stays in
+     S.treat and therefore in payload.treatments. The lab receives an add-on
+     nobody quoted and nobody recorded as a line.
+   · unpriced — an add-on this account has no price for resolves to 0 and is
+     quoted as free lab work.
+   · clash — toggleTreat() blocks an incompatible pair at click time, but a
+     restored draft or a Lens Assistant prefill writes S.treat wholesale with
+     no such check, so an order can carry a pair the lab cannot make.
+
+   Each is a real error about the order's data, so each blocks submit and is
+   reported with the one action that fixes it. */
+function addonIssues(){
+  const out=[];
+  const selected=Array.from(S.treat);
+  selected.forEach(id=>{
+    const t=TREAT.find(x=>x.id===id);
+    if(!t){
+      out.push({id,kind:'withdrawn',
+        t:'A coating on this order is no longer available on this account and cannot be quoted.'});
+      return;
+    }
+    if(t.unpriced){
+      out.push({id,kind:'unpriced',name:t.n,
+        t:`${t.n} has no price on this account — it cannot be added at no charge.`});
+    }
+  });
+  /* Report each clashing pair once, from the second-selected side. */
+  selected.forEach((id,i)=>{
+    const t=TREAT.find(x=>x.id===id); if(!t) return;
+    for(const [a,b,w] of CLASH){
+      const other=a===id?b:(b===id?a:null);
+      if(!other||!S.treat.has(other)) continue;
+      if(selected.indexOf(other)>i) continue; /* the earlier one reports it */
+      const o=TREAT.find(x=>x.id===other);
+      out.push({id,kind:'clash',name:t.n,
+        t:`${t.n} and ${o?o.n:'another coating'} cannot go on the same lens — ${w}.`});
+    }
+  });
+  return out;
+}
+function renderAddonIssues(){
+  const box=$('#treatIssues'); if(!box) return;
+  const issues=addonIssues();
+  box.classList.toggle('hide',!issues.length);
+  if(!issues.length){ box.innerHTML=''; return; }
+  box.innerHTML=issues.map(x=>`<div class="callout danger"><span class="ci">!</span>
+    <span>${x.t}</span>
+    <button class="cx" data-drop="${x.id}" title="Remove it from this order">Remove</button></div>`).join('');
+  $$('#treatIssues [data-drop]').forEach(b=>b.addEventListener('click',()=>{
+    S.treat.delete(b.dataset.drop); render(); toast('Removed from this order');
+  }));
+}
+
 function toggleTreat(id){
   const t=TREAT.find(x=>x.id===id); if(!t) return;
+  /* The confirmation was about a particular set of coatings; changing the set
+     retracts it rather than silently carrying the old approval forward. */
+  S.treatConfirmed=false;
   if(S.treat.has(id)) S.treat.delete(id);
   else{
     if(t.grp) TREAT.filter(x=>x.grp===t.grp).forEach(x=>S.treat.delete(x.id));
@@ -476,8 +616,18 @@ function toggleTreat(id){
   }
   buildPopular(); buildTreatList(); render();
 }
+function treatmentUseCount(id){
+  try{
+    const hist=JSON.parse(localStorage.getItem('cv-rx-history')||'[]');
+    return hist.filter(h=>h.kind==='submitted'&&Array.isArray(h.payload?.treatments)&&h.payload.treatments.includes(id)).length;
+  }catch(e){ return 0; }
+}
+function isPopularTreatment(t){
+  if(/back\s*ar/i.test(t.n)) return treatmentUseCount(t.id)>5;
+  return !!t.pop||/blue\s*defen[cs]e|super\s*ar/i.test(t.n);
+}
 function buildPopular(){
-  $('#popOpts').innerHTML=TREAT.filter(t=>t.pop).map(t=>{
+  $('#popOpts').innerHTML=TREAT.filter(isPopularTreatment).slice(0,3).map(t=>{
     const sel=S.treat.has(t.id), bad=sel?null:clashOf(t.id);
     const hard=!!bad&&!bad.startsWith('Replaces');
     return `<div class="opt ${sel?'sel':''} ${hard?'dis':''}" data-tid="${t.id}" tabindex="0" title="${bad||''}">
@@ -502,12 +652,18 @@ function buildTreatList(){
     if(!items.length) return;
     html+=`<div class="tcat">${c}</div>`;
     items.forEach(t=>{
-      const sel=S.treat.has(t.id), bad=sel?null:clashOf(t.id);
-      const hard=!!bad&&!bad.startsWith('Replaces');
+      /* A selected row is not a blocked row. Feeding "Already selected" through
+         the clash branch marked it .dis and disabled its checkbox, so clicking
+         it did nothing — and for any treatment that isn't one of the handful in
+         "Popular choices", this drawer is the only place it appears, leaving the
+         chip's ✕ outside the drawer as the sole way to take it off again. */
+      const sel=S.treat.has(t.id), clash=sel?null:clashOf(t.id);
+      const hard=!!clash&&!clash.startsWith('Replaces');
+      const note=sel?'Selected — click to remove':clash;
       html+=`<label class="trow ${sel?'sel':''} ${hard?'dis':''}" data-tid="${t.id}">
         <input type="checkbox" ${sel?'checked':''} ${hard?'disabled':''}>
         <span style="min-width:0"><span class="tn">${t.n}${t.rev?' <span class="badge-rev">owner review</span>':''}</span>
-        <span class="td">${t.d}</span>${bad?`<span class="tw">${bad}</span>`:''}</span></label>`;
+        <span class="td">${t.d}</span>${note?`<span class="tw">${note}</span>`:''}</span></label>`;
     });
   });
   $('#treatList').innerHTML=html||'<div class="dr-empty">No treatments match that search.</div>';
@@ -567,26 +723,66 @@ const CHEM_TYPES=[
   {id:'readers',n:'Chemistrie Readers',d:'Magnetic near-add overlay',           p:84},
   {id:'drive',  n:'Chemistrie Drive',  d:'Contrast-boosting driving overlay',   p:104}
 ];
-const CHEM_COLOURS=['Grey','Brown','Green','G15','Rose'];
-const CHEM_MIRRORS=[{id:'none',n:'No mirror',p:0},{id:'silver',n:'Silver',p:26},{id:'blue',n:'Blue',p:26},
-  {id:'gold',n:'Gold',p:26},{id:'green',n:'Green',p:26},{id:'red',n:'Red flash',p:30}];
-const CHEM_MAGNETS=['Black','Silver','Gold','Gunmetal'];
-const CHEM_BRIDGES=['Black','Tortoise','Crystal clear','Matte black'];
-const CHEM_CRYSTALS=[{id:'none',n:'None',p:0},{id:'clear',n:'Clear crystal',p:18},
-  {id:'black',n:'Black diamond',p:22},{id:'rosegold',n:'Rose gold',p:22},{id:'ab',n:'Aurora borealis',p:26}];
+const CHEM_COLOURS=[{id:'Grey',n:'Grey',hex:'#6B7280'},{id:'Brown',n:'Brown',hex:'#92400E'},
+  {id:'G-15',n:'G-15',hex:'#4B5320'},{id:'Blue',n:'Blue',hex:'#1E40AF'},
+  {id:'Copper',n:'Copper',hex:'#B45309'},{id:'Amber',n:'Amber',hex:'#D97706'},
+  {id:'Pink',n:'Pink',hex:'#DB2777'},{id:'Purple',n:'Purple',hex:'#7C3AED'}];
+const CHEM_MIRRORS=[{id:'silver',n:'Silver Mirror',p:26,hex:'#C0C0C0'},
+  {id:'gold',n:'Gold Mirror',p:26,hex:'#D4AF37'},{id:'blue',n:'Blue Mirror',p:26,hex:'#3B82F6'},
+  {id:'green',n:'Green Mirror',p:26,hex:'#16A34A'},{id:'rosegold',n:'Rose Gold Mirror',p:30,hex:'#C7849C'},
+  {id:'red',n:'Red Mirror',p:30,hex:'#DC2626'},{id:'orange',n:'Orange Mirror',p:30,hex:'#EA580C'},
+  {id:'purple',n:'Purple Mirror',p:30,hex:'#9333EA'}];
+const CHEM_MAGNETS=[{id:'Black',n:'Black',hex:'#1A1A1A'},{id:'Silver',n:'Silver',hex:'#A8A9AD'},
+  {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'}];
+const CHEM_BRIDGES=[{id:'Bronze',n:'Bronze',hex:'#CD7F32'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'},
+  {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Silver',n:'Silver',hex:'#A8A9AD'},{id:'Black',n:'Black',hex:'#1A1A1A'}];
+const CHEM_CRYSTALS=[{id:'hematite',n:'Hematite Crystals',p:22,hex:'#55565A'},
+  {id:'hyacinth',n:'Hyacinth Crystals',p:22,hex:'#D22630'},
+  {id:'crystal-gold',n:'Crystal Gold Crystals',p:22,hex:'#D4AF37'},
+  {id:'cobalt',n:'Cobalt Crystals',p:22,hex:'#2453B3'},
+  {id:'aquamarine',n:'Aquamarine Crystals',p:22,hex:'#35B7E7'},
+  {id:'emerald',n:'Emerald Crystals',p:22,hex:'#009B77'},
+  {id:'olivine',n:'Olivine Crystals',p:22,hex:'#6B8E23'},
+  {id:'amethyst',n:'Amethyst Crystals',p:22,hex:'#8E55B7'},
+  {id:'fireopal',n:'Fireopal Crystals',p:26,hex:'#F36C21'},
+  {id:'rose',n:'Rose Crystals',p:22,hex:'#EFA0B5'},
+  {id:'topaz',n:'Topaz Crystals',p:22,hex:'#D99A27'},
+  {id:'diamond',n:'Diamond Crystals',p:26,hex:'#F5F7FA'}];
 const CHEM_MAX_CLIPS=3;
 let chemClipSeq=0;
 function newChemClip(){
   const used=new Set(S.chemClips.map(c=>c.type));
   const free=CHEM_TYPES.find(t=>!used.has(t.id));
-  return {id:'clip'+(++chemClipSeq),type:(free||CHEM_TYPES[0]).id,colour:'Grey',mirror:'none',
-    polarised:false,add:'',magnet:'Black',bridge:'Black',crystal:'none'};
+  const type=(free||CHEM_TYPES[0]).id;
+  return {id:'clip'+(++chemClipSeq),type,colour:'',mirror:'',
+    polarised:type==='sun',add:'',magnet:'Black',bridge:'Black',crystal:'none'};
+}
+function chemClipComplete(c){
+  if(!c||!c.type) return false;
+  if(c.type==='readers'){
+    const add=parseNum(c.add,true);
+    return add!==null&&add>=.25&&add<=4.5;
+  }
+  const hasSolid=!!c.colour, hasMirror=!!c.mirror;
+  return hasSolid!==hasMirror && (c.type!=='sun'||c.polarised===true);
 }
 function chemClipKey(c){ return [c.type,c.colour,c.mirror,c.polarised,c.add,c.magnet,c.bridge,c.crystal].join('|'); }
 function chemDuplicateIds(){
   const seen=new Map(), dupes=new Set();
   S.chemClips.forEach(c=>{ const k=chemClipKey(c); if(seen.has(k)){ dupes.add(c.id); dupes.add(seen.get(k)); } else seen.set(k,c.id); });
   return dupes;
+}
+function chemSwatchHTML(c,field,label,items,placeholder,disabled){
+  const current=items.find(x=>x.id===c[field]);
+  const dot=x=>x?`<span class="chem-swatch-dot" style="--swatch:${x.hex}" aria-hidden="true"></span>`:'';
+  return `<div class="field"><label>${label}</label>
+    <details class="chem-swatch-select ${disabled?'disabled':''}" data-chem-field="${field}">
+      <summary aria-disabled="${disabled?'true':'false'}"><span>${current?.n||placeholder}</span>${dot(current)}<span class="chem-swatch-chevron" aria-hidden="true">⌄</span></summary>
+      <div class="chem-swatch-menu" role="listbox" aria-label="${label.replace(/<[^>]*>/g,'')}">
+        <button type="button" role="option" aria-selected="${!c[field]}" data-clip="${c.id}" data-swatch-field="${field}" data-swatch-value=""><span>${placeholder}</span></button>
+        ${items.map(x=>`<button type="button" role="option" aria-selected="${c[field]===x.id}" data-clip="${c.id}" data-swatch-field="${field}" data-swatch-value="${x.id}"><span>${x.n}</span>${dot(x)}</button>`).join('')}
+      </div>
+    </details></div>`;
 }
 function chemClipCardHTML(c,i){
   const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
@@ -602,32 +798,30 @@ function chemClipCardHTML(c,i){
           <div class="on">${x.n}</div><div class="od">${x.d}</div></div>`).join('')}</div>
       <div class="grid g3" style="margin-top:13px">
         ${t.id!=='readers'?`
-        <div class="field"><label>Lens colour</label>
-          <select data-clip="${c.id}" data-field="colour">${CHEM_COLOURS.map(x=>`<option ${c.colour===x?'selected':''}>${x}</option>`).join('')}</select></div>
-        <div class="field"><label>Mirror finish</label>
-          <select data-clip="${c.id}" data-field="mirror">${CHEM_MIRRORS.map(x=>`<option value="${x.id}" ${c.mirror===x.id?'selected':''}>${x.n}</option>`).join('')}</select></div>`:''}
+        ${chemSwatchHTML(c,'colour',`${t.id==='sun'?'Solid polarised':'Solid lens colour'} <span class="req">*</span>`,CHEM_COLOURS,'Select a colour',!!c.mirror)}
+        ${chemSwatchHTML(c,'mirror',`${t.id==='sun'?'Mirror polarised':'Mirror finish'} <span class="req">*</span>`,CHEM_MIRRORS,'Select a mirror finish',!!c.colour)}`:''}
         ${t.id==='sun'||t.id==='drive'?`
         <div class="field"><label>Polarised</label>
-          <select data-clip="${c.id}" data-field="polarised"><option value="no" ${!c.polarised?'selected':''}>No</option><option value="yes" ${c.polarised?'selected':''}>Yes</option></select></div>`:''}
+          <select data-clip="${c.id}" data-field="polarised" ${t.id==='sun'?'disabled aria-disabled="true"':''}><option value="no" ${!c.polarised?'selected':''}>No</option><option value="yes" ${c.polarised?'selected':''}>Yes</option></select></div>`:''}
         ${t.id==='readers'?`
         <div class="field"><label>Near add <span class="req">*</span></label>
           <input type="text" inputmode="decimal" data-clip="${c.id}" data-field="add" value="${c.add||''}" placeholder="+2.00"></div>`:''}
       </div>
       <div class="blk" style="margin:13px 0 8px">Clip hardware</div>
       <div class="grid g3">
-        <div class="field"><label>Magnet colour</label>
-          <select data-clip="${c.id}" data-field="magnet">${CHEM_MAGNETS.map(x=>`<option ${c.magnet===x?'selected':''}>${x}</option>`).join('')}</select></div>
-        <div class="field"><label>Bridge colour</label>
-          <select data-clip="${c.id}" data-field="bridge">${CHEM_BRIDGES.map(x=>`<option ${c.bridge===x?'selected':''}>${x}</option>`).join('')}</select></div>
-        <div class="field"><label>Crystal colour <span class="opt-tag">optional accent</span></label>
-          <select data-clip="${c.id}" data-field="crystal">${CHEM_CRYSTALS.map(x=>`<option value="${x.id}" ${c.crystal===x.id?'selected':''}>${x.n}</option>`).join('')}</select></div>
+        ${chemSwatchHTML(c,'magnet','Magnet colour',CHEM_MAGNETS,'Select a magnet colour',false)}
+        ${chemSwatchHTML(c,'bridge','Bridge colour',CHEM_BRIDGES,'Select a bridge colour',false)}
+        ${chemSwatchHTML(c,'crystal','Crystal colour <span class="opt-tag">optional accent</span>',CHEM_CRYSTALS,'None',false)}
       </div>
       ${dupes.has(c.id)?`<p class="hint" style="margin-top:9px;color:hsl(38 70% 30%)">⚠ Identical to another clip on this order — change an option here or remove one.</p>`:''}
+      ${!chemClipComplete(c)?`<p class="hint chem-required" style="margin-top:9px;color:var(--danger)">Complete this clip before leaving the section.</p>`:''}
       <p class="hint" style="margin-top:9px">Cut to the same shape as the main order — the frame trace or standard shape above is reused, so it clips flush.</p>
     </div>`;
 }
 function renderChemCfg(){
   const box=$('#chemCfg'), on=S.chemClips.length>0;
+  const incomplete=on&&(!S.chemClips.every(chemClipComplete)||chemDuplicateIds().size>0);
+  $('#chemBlock').classList.toggle('chem-incomplete',incomplete);
   $('#chemToggle').classList.toggle('sel',on);
   $('#chemOn').checked=on;
   if(!on){ box.innerHTML=''; return; }
@@ -639,16 +833,29 @@ function renderChemCfg(){
         <span class="clipcount">${S.chemClips.length} / ${CHEM_MAX_CLIPS} clips</span>
       </div>`;
   $$('#chemCfg [data-chem]').forEach(el=>el.addEventListener('click',()=>{
-    const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(clip){ clip.type=el.dataset.chem; render(); }
+    const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(clip&&clip.type!==el.dataset.chem){
+      clip.type=el.dataset.chem; clip.colour=''; clip.mirror=''; clip.add=''; clip.polarised=clip.type==='sun'; render();
+    }
   }));
   $$('#chemCfg [data-field]').forEach(el=>{
     el.addEventListener('input',e=>{
       const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(!clip) return;
       const f=el.dataset.field;
       clip[f]=f==='polarised'?(e.target.value==='yes'):e.target.value;
+      if(f==='colour'&&clip.colour) clip.mirror='';
+      if(f==='mirror'&&clip.mirror) clip.colour='';
+      if(clip.type==='sun') clip.polarised=true;
       render();
     });
   });
+  $$('#chemCfg [data-swatch-field]').forEach(el=>el.addEventListener('click',()=>{
+    const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(!clip) return;
+    const f=el.dataset.swatchField;
+    clip[f]=el.dataset.swatchValue;
+    if(f==='colour'&&clip.colour) clip.mirror='';
+    if(f==='mirror'&&clip.mirror) clip.colour='';
+    render();
+  }));
   $$('#chemCfg [data-rmclip]').forEach(b=>b.addEventListener('click',()=>{
     S.chemClips=S.chemClips.filter(c=>c.id!==b.dataset.rmclip); render();
     toast('Clip removed');
@@ -660,14 +867,48 @@ function renderChemCfg(){
     toast('Clip '+S.chemClips.length+' added — configure it below');
   });
 }
+const CHEM_NOTES_START='[Chemistrie specifications]';
+const CHEM_NOTES_END='[/Chemistrie specifications]';
+function chemChoiceName(items,id,fallback){
+  return items.find(x=>x.id===id)?.n || fallback;
+}
+function chemClipParts(c){
+  const type=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
+  const parts=[type.n];
+  if(type.id==='readers'){
+    const nearAdd=parseNum(c.add,true);
+    parts.push('Near add: '+(nearAdd===null?'—':sgn(nearAdd)));
+  } else {
+    if(c.colour) parts.push('Solid polarised: '+chemChoiceName(CHEM_COLOURS,c.colour,c.colour));
+    if(c.mirror) parts.push('Mirror polarised: '+chemChoiceName(CHEM_MIRRORS,c.mirror,c.mirror));
+  }
+  if(type.id==='sun'||type.id==='drive') parts.push('Polarised: '+(c.polarised?'Yes':'No'));
+  parts.push('Magnet: '+chemChoiceName(CHEM_MAGNETS,c.magnet,'Black'));
+  parts.push('Bridge: '+chemChoiceName(CHEM_BRIDGES,c.bridge,'Black'));
+  parts.push('Crystal: '+chemChoiceName(CHEM_CRYSTALS,c.crystal,'None'));
+  return parts;
+}
+function chemClipSummary(c,index){
+  return 'Chemistrie clip '+(index+1)+' — '+chemClipParts(c).join(' · ');
+}
+function chemLabNotes(){
+  if(!S.chemClips.length) return '';
+  return CHEM_NOTES_START+'\n'+S.chemClips.map((c,index)=>chemClipSummary(c,index)).join('\n')+'\n'+CHEM_NOTES_END;
+}
+function stripChemNotes(value){
+  return String(value||'').replace(new RegExp('\\s*'+CHEM_NOTES_START.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[\\s\\S]*?'+CHEM_NOTES_END.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*','g'),'\n').trim();
+}
+function notesWithChemistrie(manualNotes){
+  return [stripChemNotes(manualNotes),chemLabNotes()].filter(Boolean).join('\n\n');
+}
 function chemPriceLines(){
   return S.chemClips.map((c,i)=>{
     const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
     let v=t.p, bits=[t.n];
     if(t.id!=='readers'){
       const mir=CHEM_MIRRORS.find(x=>x.id===c.mirror);
-      if(mir&&mir.p){ v+=mir.p; bits.push(mir.n+' mirror'); }
-      if(c.colour) bits.push(c.colour);
+      if(mir&&mir.p){ v+=mir.p; bits.push(mir.n); }
+      if(c.colour) bits.push(CHEM_COLOURS.find(x=>x.id===c.colour)?.n||c.colour);
     }
     if((t.id==='sun'||t.id==='drive')&&c.polarised){ v+=34; bits.push('polarised'); }
     if(c.magnet&&c.magnet!=='Black') bits.push(c.magnet+' magnet');
@@ -689,7 +930,10 @@ function suggestions(){
   if(maxSph>=8) out.push({id:'sp-roll',why:'High minus edge will show without polishing'});
   if(maxSph>=12) out.push({id:'sp-lent',why:'Beyond ±12.00 a lenticular carrier is usually the only producible option'});
   if(aniso>=2&&S.vision==='mf') out.push({id:'sp-slab',why:`${aniso.toFixed(2)} difference between eyes causes vertical imbalance at near`});
-  return out.filter(s=>!S.dismissed.has(s.id)&&!S.treat.has(s.id));
+  /* Live catalogues can legitimately omit prototype-only specialty services.
+     Do not offer a suggestion unless its treatment definition is currently
+     orderable; renderSuggestions needs the definition's label and id. */
+  return out.filter(s=>TREAT.some(t=>t.id===s.id)&&!S.dismissed.has(s.id)&&!S.treat.has(s.id));
 }
 function renderSuggestions(){
   const box=$('#suggBlock'), list=suggestions();
@@ -719,19 +963,47 @@ function renderSuggestions(){
 /* ---------- pricing ---------- */
 function price(){
   const lines=[];
-  if(!(S.m&&S.d&&S.c)) return {lines,sub:0,ready:false,unpriced:false};
-  const d=design(), m=material(), c=colour();
-  /* An adapter that answers null means the combination has no price on this
-     account's matrix — "not offered". That is NOT the same as costing zero, and
-     collapsing the two would let a $0.00 order through. Without an adapter at
-     all (the standalone prototype) the synthetic base+upcharge still applies. */
-  const quoted=ADAPTER.lensPrice?ADAPTER.lensPrice(S.m,S.d,S.c):undefined;
-  const unpriced=!!ADAPTER.lensPrice&&quoted==null;
-  lines.push({n:d.n,i:`${m.n} · ${c.n}`,v:unpriced?0:(quoted??(d.base+m.up)),unpriced}); /* the lens itself — not removable from the quote */
-  /* colour upcharge is a flat add-on regardless of material/design, so it already
-     equals the delta vs Clear (which is always up:0 and simply shows no line) —
-     the label now says so explicitly, per feedback asking "how much extra is it". */
-  if(c.up) lines.push({n:c.n,i:'Extra over Clear · same material & design',v:c.up});
+  const sides=activeSides();
+  if(!sides.every(lensComplete)) return {lines,sub:0,ready:false,unpriced:false};
+  const split=splitActive();
+  /* A split pair is two half-pairs. Charging each side the FULL pair price
+     would double the job; charging each the engine's existing single-lens rate
+     (0.55, applied below for one-eye jobs) would make a split pair of two
+     identical lenses cost 110% of the same unsplit pair. Half of each side's
+     pair price is the only split that stays consistent with the unsplit
+     price when both sides match. */
+  let unpriced=false;
+  sides.forEach(side=>{
+    const t=lensTriple(side);
+    const d=DESIGNS.find(x=>x.id===t.d), m=MATERIALS.find(x=>x.id===t.m), c=COLOURS.find(x=>x.id===t.c);
+    /* An adapter that answers null means the combination has no price on this
+       account's matrix — "not offered". That is NOT the same as costing zero, and
+       collapsing the two would let a $0.00 order through. Without an adapter at
+       all (the standalone prototype) the synthetic base+upcharge still applies. */
+    const quoted=ADAPTER.lensPrice?ADAPTER.lensPrice(t.m,t.d,t.c):undefined;
+    const sideUnpriced=!!ADAPTER.lensPrice&&quoted==null;
+    if(sideUnpriced) unpriced=true;
+    /* Every physical lens gets its own priced line. An unsplit pair still
+       represents two lenses, so split its pair price evenly into OD and OS;
+       that makes saved-draft and invoice detail match the lab payload without
+       changing the total. */
+    const pricedEyes=split
+      ? [side==='a'?'od':'os']
+      : S.eyes==='pair' ? ['od','os'] : [activeEyes()[0]];
+    const share=(split||pricedEyes.length===2)?0.5:1;
+    pricedEyes.forEach(eye=>{
+      const eyeLabel=eye==='od'?'OD':'OS';
+      const eyeTag=`${eyeLabel} · `;
+      lines.push({n:`${eyeLabel} ${d.n}`,i:`${eyeTag}${m.n} · ${c.n}`,
+        v:sideUnpriced?0:(quoted??(d.base+m.up))*share,unpriced:sideUnpriced,eye,lens:true}); /* the lens itself — not removable from the quote */
+      /* Colour upgrades apply to each physical lens, just as the base lens
+         does. Splitting the pair here keeps the displayed line total exact. */
+      if(c.up) lines.push({n:`${eyeLabel} ${c.n}`,i:'Extra over Clear · same material & design',v:c.up*share,eye});
+    });
+    /* colour upcharge is a flat add-on regardless of material/design, so it already
+       equals the delta vs Clear (which is always up:0 and simply shows no line) —
+       the label now says so explicitly, per feedback asking "how much extra is it". */
+  });
   Array.from(S.treat).forEach(id=>{const t=TREAT.find(x=>x.id===id); if(t){
     let detail=t.c;
     if(/^tn-/.test(id)){ detail=S.tintCfg.colour+(/grad/.test(id)?` · ${S.tintCfg.gradTop}→${S.tintCfg.gradBottom}%`:` · ${S.tintCfg.density}%`); }
@@ -766,7 +1038,7 @@ function secValid(){
     &&limitErrors().length===0
     &&(!S.shape||S.shapeOk)
     &&(S.scope!=='remote'||!!S.file);
-  const lens=!!(S.m&&S.d&&S.c);
+  const lens=activeSides().every(lensComplete);
   const rxOk=rows.every(x=>x.r.sph!==null&&Math.abs(x.r.sph)<=25)
     &&rows.every(x=>!x.r.cyl||x.r.cyl===0||(x.r.axis!==null&&x.r.axis>=1&&x.r.axis<=180))
     &&(!needsAdd()||rows.every(x=>x.r.add!==null&&x.r.add>=.25&&x.r.add<=4.5))
@@ -774,7 +1046,8 @@ function secValid(){
     &&(!needsNearPD()||rows.every(x=>x.r.npd!==null&&x.r.npd>=18&&x.r.npd<=45))
     &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35))
     &&errors().length===0;
-  return {'sec-patient':patient,'sec-frame':frame,'sec-lens':lens,'sec-rx':rxOk,'sec-treat':true,'sec-notes':true};
+  const chemOk=S.chemClips.every(chemClipComplete)&&chemDuplicateIds().size===0&&addonIssues().length===0;
+  return {'sec-patient':patient,'sec-frame':frame,'sec-lens':lens,'sec-rx':rxOk,'sec-treat':chemOk,'sec-notes':true};
 }
 const SECTION_IDS=['sec-patient','sec-frame','sec-lens','sec-rx','sec-treat','sec-notes'];
 const selectLabel=id=>{
@@ -783,7 +1056,10 @@ const selectLabel=id=>{
 };
 function sectionHasCapturedData(id){
   if(id==='sec-patient'||id==='sec-frame'||id==='sec-lens'||id==='sec-rx') return true;
-  if(id==='sec-treat') return S.treat.size>0||S.chemClips.length>0;
+  /* Deliberately NOT "has a treatment selected": a job with no coatings at all
+     is a real answer, and one mid-selection looks identical to one that's
+     finished. The section folds when the dispenser says it's finished. */
+  if(id==='sec-treat') return S.treatConfirmed;
   return !!$('#notes').value.trim()||$('#service').value!=='std'||$('#delivery').selectedIndex!==0||S.notesConfirmed;
 }
 /* A pristine, never-touched form. Saving that as a draft just clutters
@@ -792,7 +1068,7 @@ function sectionHasCapturedData(id){
 function orderIsEmpty(){
   const patientBlank=!$('#pfirst').value.trim()&&!$('#plast').value.trim()&&!$('#ref').value.trim();
   const frameBlank=!$('#fname').value.trim()&&parseNum($('#fa').value)===null&&parseNum($('#fb').value)===null&&parseNum($('#fdbl').value)===null&&!S.shape;
-  const lensBlank=!(S.m||S.d||S.c);
+  const lensBlank=!(S.m||S.d||S.c||S.m2||S.d2||S.c2);
   const rxBlank=activeEyes().every(e=>{
     const r=readRow(e);
     return r.sph===null&&r.cyl===null&&r.axis===null&&r.add===null&&r.pd===null&&r.npd===null&&r.ht===null&&!r.prism;
@@ -811,27 +1087,32 @@ function sectionSummary(id){
     return [$('#pfirst').value.trim()+' '+$('#plast').value.trim(),ref&&'Ref '+ref].filter(Boolean).join(' · ');
   }
   if(id==='sec-frame') return [$('#fname').value.trim(),`${$('#fa').value} × ${$('#fb').value} mm`, `DBL ${$('#fdbl').value} mm`,S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
-  if(id==='sec-lens') return [material()?.n,design()?.n,colour()?.n].filter(Boolean).join(' · ');
+  if(id==='sec-lens') return splitActive()
+    ? `OD ${namedLens('a')||'—'}  │  OS ${namedLens('b')||'—'}`
+    : (namedLens('a')||'');
   if(id==='sec-rx'){
-    /* Always list every field this vision type actually needs — including
-       blanks — instead of hiding what's missing. A progressive with no Add
-       or fitting height yet should say so here, not just disappear. */
-    const gap=t=>`<span class="rx-missing">${t} missing</span>`;
     const htLbl=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
-    return activeEyes().map(e=>{
+    const columns=[['sph','Sphere'],['cyl','Cylinder'],['axis','Axis']];
+    if(needsAdd()) columns.push(['add','Add']);
+    columns.push(['pd','Dist PD']);
+    if(needsNearPD()) columns.push(['npd','Near PD']);
+    if(needsHt()) columns.push(['ht',htLbl]);
+    columns.push(['prism','Prism'],['base','Base']);
+    const display=(e,key)=>{
       const r=readRow(e);
-      const parts=[
-        r.sph!==null?'Sph '+sgn(r.sph):gap('Sph'),
-        r.cyl?'Cyl '+sgn(r.cyl):'Cyl —',
-        r.cyl?(r.axis!==null?'Axis '+r.axis:gap('Axis')):'Axis —',
-      ];
-      if(needsAdd()) parts.push(r.add!==null?'Add '+sgn(r.add):gap('Add'));
-      parts.push(r.pd!==null?'PD '+r.pd:gap('PD'));
-      if(needsNearPD()) parts.push(r.npd!==null?'Near PD '+r.npd:gap('Near PD'));
-      if(needsHt()) parts.push(r.ht!==null?htLbl+' '+r.ht:gap(htLbl));
-      if(r.prism) parts.push('Prism '+r.prism.toFixed(2)+(r.base?' '+r.base:''));
-      return `<b>${e.toUpperCase()}</b> ${parts.join(' · ')}`;
-    }).join('<br>');
+      const v=r[key];
+      if(key==='base') return v||'—';
+      if(v===null||v===undefined) return '—';
+      if(key==='sph'||key==='cyl'||key==='add') return sgn(v);
+      if(key==='pd'||key==='npd'||key==='ht') return Number(v).toFixed(1);
+      if(key==='prism') return Number(v).toFixed(2);
+      return String(v);
+    };
+    const style=`grid-template-columns:minmax(54px,.8fr) repeat(${columns.length},minmax(68px,1fr));min-width:${54+columns.length*68}px`;
+    return `<div class="rx-summary-grid" style="${style}" role="table" aria-label="Prescription summary">
+      <div class="rx-summary-head" role="columnheader">Eye</div>${columns.map(([,label])=>`<div class="rx-summary-head" role="columnheader">${label}</div>`).join('')}
+      ${activeEyes().map(e=>`<div class="rx-summary-eye" role="rowheader"><b>${e.toUpperCase()}</b><span>${e==='od'?'Right':'Left'}</span></div>${columns.map(([key])=>`<div class="rx-summary-value" role="cell">${display(e,key)}</div>`).join('')}`).join('')}
+    </div>`;
   }
   if(id==='sec-treat'){
     const items=Array.from(S.treat).map(tid=>{
@@ -841,22 +1122,21 @@ function sectionSummary(id){
         : t.d;
       return `<b>${t.n}</b> — ${detail}`;
     }).filter(Boolean);
-    if(S.chemClips.length) items.push(`<b>Chemistrie</b> — ${S.chemClips.length} clip${S.chemClips.length>1?'s':''}`);
+    S.chemClips.forEach((clip,index)=>items.push(`<b>Chemistrie clip ${index+1}</b> — ${chemClipParts(clip).join(' · ')}`));
     return items.join('<br>');
   }
-  return [selectLabel('service'),selectLabel('delivery'),$('#notes').value.trim()&&'Lab notes added'].filter(Boolean).join(' · ');
+  return [selectLabel('service'),selectLabel('delivery'),($('#notes').value.trim()||chemLabNotes())&&'Lab notes added'].filter(Boolean).join(' · ');
 }
 const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-rx','sec-treat']);
 function syncSectionCollapse(V){
   const justCollapsed=[];
   SECTION_IDS.forEach(id=>{
     const section=$('#'+id); if(!section) return;
-    /* Every other section only collapses once fully valid. The Rx section
-       collapses as soon as it has any data at all, because it's the one
-       place a wearer benefits from an at-a-glance "here's what's filled in
-       and here's what's still missing" view instead of staying wide open
-       until every last field (Add, fitting height...) is complete. */
-    const complete=(id==='sec-rx'?rxStarted():!!V[id])&&sectionHasCapturedData(id);
+    /* A section only folds once it is actually complete. In particular, a
+       restored prescription can already contain sphere/cylinder while still
+       needing dispensing PDs or heights; collapsing it at that point hides
+       the controls the customer must use to finish the order. */
+    const complete=!!V[id]&&sectionHasCapturedData(id);
     const wasCollapsed=S.collapsedSections.has(id);
     if(!complete){ S.collapsedSections.delete(id); S.editingSections.delete(id); }
     else if(!S.editingSections.has(id)&&!section.contains(document.activeElement)) S.collapsedSections.add(id);
@@ -867,7 +1147,6 @@ function syncSectionCollapse(V){
     const multiline=MULTILINE_SUMMARY_SECTIONS.has(id);
     if(summary){
       summary.classList.toggle('multiline',multiline);
-      summary.classList.toggle('has-gaps',collapsed&&id==='sec-rx'&&!V[id]);
       const text=collapsed?sectionSummary(id):'';
       if(multiline) summary.innerHTML=text; else summary.textContent=text;
     }
@@ -929,6 +1208,10 @@ function prompts(){
 /* ---------- render ---------- */
 let lastTotal=null;
 function render(){
+  /* A confirmation is only ever about the shape AS MEASURED. If one of the box
+     figures is cleared after the fact, what was verified no longer exists, so
+     the confirmation is withdrawn rather than left standing over a gap. */
+  if(S.shapeOk&&!frameBoxComplete()) S.shapeOk=false;
   /* conditional fields */
   $$('.c-add').forEach(el=>el.classList.toggle('hide',!needsAdd()));
   /* height is retained (not hidden) for single vision too — it just means
@@ -996,6 +1279,7 @@ function render(){
     np.innerHTML='<b>Your order details are ready to review.</b><br>You can complete and submit this order as normal. We will confirm the final order details before production.';
   } else if(np) np.remove();
 
+  renderAddonIssues();
   renderSuggestions(); renderChips();
   if(typeof renderTintCfg==='function') renderTintCfg();
   if(typeof renderChemCfg==='function') renderChemCfg();
@@ -1047,6 +1331,9 @@ function render(){
     {t:'Material, design & colour',ok:V['sec-lens'],go:'#sec-lens'},
     {t:'Prescription complete & valid',ok:V['sec-rx'],go:'#sec-rx'}
   ];
+  /* Only appears once something is actually wrong with the coatings — a
+     permanently-green fifth row would just be noise on every other order. */
+  if(!V['sec-treat']) checks.push({t:'Coatings & treatments',ok:false,go:'#sec-treat'});
   $('#vList').innerHTML=checks.map(k=>`<li class="${k.ok?'ok':''}" data-go="${k.go}"><span class="vi">✓</span><span class="vt">${k.t}</span></li>`).join('');
   $$('#vList li').forEach(li=>li.addEventListener('click',()=>{const t=rootEl.querySelector(li.dataset.go); if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});}));
   $('#vBar').style.width=Math.round(checks.filter(k=>k.ok).length/checks.length*100)+'%';
@@ -1068,6 +1355,9 @@ function render(){
   $('#saveDraft2').textContent=goToDrafts?'Go to saved drafts':'Save as draft';
   $('#saveDraft3').textContent=goToDrafts?'Go to saved drafts':'Draft';
 
+  syncTreatConfirm();
+  syncServiceLead();
+  syncSubmitMode();
   markNeeded(V);
   buildSteps(V);
   $('#assistList').classList.toggle('on',S.assists.size>0);
@@ -1198,16 +1488,36 @@ seg('scopeSeg','scope',()=>{
     :remote?'You trace the frame and send us the file; we cut, edge and finish to shape and ship glazing-ready lenses. The frame never leaves your practice.'
     :'Send us the frame and we edge, mount and return it dispense-ready.';
 });
-seg('visionSeg','vision',()=>{ S.d=''; fillLensSelects(); });
+seg('visionSeg','vision',()=>{ S.d=''; S.d2=''; fillLensSelects(); });
+
+/* ---------- split eyes ---------- */
+$('#splitOn').addEventListener('change',e=>{
+  S.split=e.target.checked;
+  /* Turning the split ON seeds the left eye from the right, so the common case
+     — same lens, one property different — is one edit rather than three. */
+  if(S.split){ if(!(S.m2||S.d2||S.c2)){ S.m2=S.m; S.d2=S.d; S.c2=S.c; } }
+  else { S.m2=S.d2=S.c2=''; }
+  fillLensSelects(); render();
+  toast(S.split?'Split eyes on — the left lens is quoted separately':'Split eyes off — one lens for both eyes');
+});
+$('#copyLensToOs').addEventListener('click',()=>{
+  S.m2=S.m; S.d2=S.d; S.c2=S.c;
+  fillLensSelects(); render(); toast('Left lens matched to the right');
+});
 seg('purposeSeg','purpose');
-seg('eyeSeg','eyes');
+/* A single-eye job supplies one lens by definition — drop the split rather
+   than leaving a hidden second selection silently priced into the order. */
+seg('eyeSeg','eyes',()=>{
+  if(S.eyes!=='pair'&&S.split){ S.split=false; S.m2=S.d2=S.c2=''; }
+  fillLensSelects();
+});
 
 /* ---------- lens selects ---------- */
 Object.entries(COMBO_DEFS).forEach(([k,def])=>{
   const input=$('#'+def.inputId);
-  input.addEventListener('focus',()=>{ input.select(); openCombo(k); });
+  input.addEventListener('focus',()=>{ comboTyped[k]=false; input.select(); openCombo(k); });
   input.addEventListener('click',()=>openCombo(k));
-  input.addEventListener('input',()=>{ comboActive[k]=0; openCombo(k); });
+  input.addEventListener('input',()=>{ comboTyped[k]=true; comboActive[k]=0; openCombo(k); });
   input.addEventListener('keydown',e=>{
     if(!['ArrowDown','ArrowUp','Enter','Escape'].includes(e.key)) return;
     e.stopPropagation();
@@ -1370,7 +1680,8 @@ function clearSection(k){
   (SECFIELDS[k]||[]).forEach(id=>{const el=$('#'+id); if(el) el.value='';});
   if(k==='frame'){ S.file=null; S.shapeOk=false; S.edTouched=false; S.shape=null; S.stdShape=''; S.shapeSrc='';
     $('#mount').value=''; $('#fileList').innerHTML=''; $('#shapePreview').innerHTML=''; $('#fileInput').value=''; $('#drop').classList.remove('hide'); buildShapePick(); }
-  if(k==='lens'){ S.m=S.d=S.c=''; S.diamTouched=false; fillLensSelects(); }
+  if(k==='lens'){ S.m=S.d=S.c=S.m2=S.d2=S.c2=''; S.split=false; S.diamTouched=false; fillLensSelects(); }
+  if(k==='treat') S.treatConfirmed=false;
   if(k==='rx'){ $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value=''); S.warnOff.clear();
     $('#plusCylOn').checked=false; $('#plusCylBlock').classList.add('hide'); }
   if(k==='treat'){ S.treat.clear(); S.dismissed.clear(); S.suggOff=false; buildPopular(); buildTreatList(); }
@@ -1392,7 +1703,7 @@ docListen('focusout',e=>{
 function clearAll(){
   Object.keys(SECFIELDS).forEach(k=>{(SECFIELDS[k]||[]).forEach(id=>{const el=$('#'+id); if(el) el.value='';});});
   $$('.rxtable input').forEach(i=>i.value=''); $$('.rxtable select').forEach(s=>s.value='');
-  S.m=S.d=S.c=''; S.treat.clear(); S.assists.clear(); S.dismissed.clear(); S.warnOff.clear();
+  S.m=S.d=S.c=S.m2=S.d2=S.c2=''; S.split=false; S.treatConfirmed=false; S.deliveryTouched=false; S.treat.clear(); S.assists.clear(); S.dismissed.clear(); S.warnOff.clear();
   S.file=null; S.shapeOk=false; S.suggOff=false; S.edTouched=false; S.diamTouched=false;
   S.shape=null; S.stdShape=''; S.shapeSrc=''; S.shapeExpanded=false; S.frameExpanded=false;
   S.stdShapesOpen=false; S.rebuiltFrom=null; S.chemClips=[]; S.notesConfirmed=false;
@@ -2731,14 +3042,19 @@ function updatePreview(){
         <div class="pv-stat"><div class="k">DBL gap</div><div class="v">${g.dbl.toFixed(2)} mm</div></div>
         <div class="pv-stat"><div class="k">Circumference</div><div class="v">${m.circ.toFixed(1)} mm</div></div>
       </div>
-      <button type="button" class="confirmrow" id="shapeConfirm" aria-pressed="${S.shapeOk?'true':'false'}">
+      <button type="button" class="confirmrow" id="shapeConfirm" aria-pressed="${S.shapeOk?'true':'false'}"
+        ${frameBoxComplete()?'':'disabled'}>
         <span class="cri">✓</span><span>This is the correct shape for the frame in hand</span></button>
-      <div class="pv-note">Right lens shown left, as you face the patient. ED is measured from the boxing centre of the
-        outline at the current A and B, so it is the field's source of truth and can't be typed over.
-        Confirm it to collapse this panel.</div>
+      <div class="pv-note">${frameBoxComplete()
+        ? `Right lens shown left, as you face the patient. ED is measured from the boxing centre of the
+           outline at the current A and B, so it is the field's source of truth and can't be typed over.
+           Confirm it to collapse this panel.`
+        : `Enter A, B, ED and DBL above before confirming — the shape is measured against that box, so
+           confirming it first would verify the outline against numbers that aren't there yet.`}</div>
     </div>`;
   const cb = $('#shapeConfirm');
   if (cb) cb.addEventListener('click', () => {
+    if (!frameBoxComplete()) return;
     S.shapeOk = !S.shapeOk;
     S.shapeExpanded = false;          /* verifying collapses it to the mini strip */
     render();
@@ -2806,17 +3122,24 @@ function buildPayload(){
       radii: { R: sh.points.R, L: sh.points.L },
       angles:{ R: sh.angles.R, L: sh.angles.L }
     } : null,
+    /* `lens` stays the single job lens — for an unsplit order that is still
+       the whole truth, and every downstream reader (persistPayload, the lab
+       handoff, optilens-local) keeps working untouched. A split order adds
+       `lensOs` and sets split:true; readers that don't know about the split
+       still get the right-eye lens rather than nothing. */
     lens: { material:S.m, design:S.d, colour:S.c, diameter:effDiam(),
             corridor:$('#corridor').value, baseCurve:$('#basecurve').value },
+    split: splitActive(),
+    lensOs: splitActive() ? { material:S.m2, design:S.d2, colour:S.c2 } : null,
     rx: rows,
     treatments: Array.from(S.treat),
     tintConfig: tintSelected() ? { treatment:tintSelected(), ...S.tintCfg } : null,
     chemistrie: S.chemClips.length ? S.chemClips.map(c=>({ ...c })) : null,
     ownerReview: S.ownerReview,
     assistance: Array.from(S.assists),
-    delivery: { service:$('#service').value, method:$('#delivery').value, notes:$('#notes').value },
+    delivery: { service:$('#service').value, method:$('#delivery').value, notes:notesWithChemistrie($('#notes').value) },
     quote: S.pricesOn ? { currency:S.cur, symbol:c.sym, rate:c.rate,
-      lines:p.lines.map(l=>({ label:l.n, detail:l.i, amount:+(l.v*c.rate).toFixed(2) })),
+      lines:p.lines.map(l=>({ label:l.n, detail:l.i, amount:+(l.v*c.rate).toFixed(2), ...(l.eye?{eye:l.eye}:{}), ...(l.lens?{lens:true}:{}) })),
       total:+(p.sub*c.rate).toFixed(2), lockedAt:new Date().toISOString() }
       : { currency:S.cur, hidden:true, reason:'pricing not enabled on account' }
   };
@@ -2840,7 +3163,7 @@ function stashOrder(kind){
   }catch(e){}
   return p;
 }
-function restorePayload(p){
+function restorePayload(p,{newOrderNumber=false}={}){
   if(!p) return;
   S.scope=p.job.scope; S.eyes=p.job.eyes; S.vision=p.job.vision; S.purpose=p.job.purpose;
   ['scopeSeg:scope','eyeSeg:eyes','visionSeg:vision','purposeSeg:purpose'].forEach(pair=>{
@@ -2859,15 +3182,46 @@ function restorePayload(p){
       points:p.shape.radii, angles:p.shape.angles };
     S.shapeSrc=p.shape.source; S.stdShape=p.shape.standardId||''; S.shapeOk=!!p.shape.confirmed;
   } else { S.shape=null; S.stdShape=''; }
-  S.m=p.lens.material; S.d=p.lens.design; S.c=p.lens.colour; fillLensSelects();
+  S.m=p.lens.material; S.d=p.lens.design; S.c=p.lens.colour;
+  /* Older payloads have neither key; absent means unsplit, which is correct. */
+  S.split=!!p.split&&!!p.lensOs;
+  S.m2=p.lensOs?.material||''; S.d2=p.lensOs?.design||''; S.c2=p.lensOs?.colour||'';
+  fillLensSelects();
   S.treat=new Set(p.treatments||[]); S.assists=new Set(p.assistance||[]);
+  S.chemClips=Array.isArray(p.chemistrie) ? p.chemistrie.map(c=>({
+    ...c,
+    id:c.id||'clip'+(++chemClipSeq),
+    colour:c.colour||'',
+    mirror:c.mirror==='none'?'':(c.mirror||''),
+    polarised:c.type==='sun'?true:!!c.polarised,
+  })) : [];
   Object.entries(p.rx||{}).forEach(([e,r])=>{
     rowEls(e).forEach(i=>{ const v=r[i.dataset.f]; i.value=(v===null||v===undefined)?'':v; });
   });
-  $('#service').value=p.delivery.service||'std'; $('#notes').value=p.delivery.notes||'';
+  $('#service').value=p.delivery.service||'std'; $('#notes').value=stripChemNotes(p.delivery.notes||'');
+  /* A saved delivery method is an explicit choice, so it must survive the
+     account's export default rather than be overwritten on restore. */
+  if(p.delivery.method){
+    const dsel=$('#delivery'), opt=Array.from(dsel.options).find(o=>o.text===p.delivery.method);
+    if(opt){ dsel.value=opt.value||opt.text; S.deliveryTouched=true; }
+  }
+  /* The coatings confirmation is not restored: a resumed order should be
+     looked at again before it folds shut. */
+  S.treatConfirmed=false;
   S.revealAll=true;
-  /* a rebuilt order is a NEW order — fresh number, with a pointer back to the original */
-  S.rebuiltFrom=p.orderNo||null; newOrderNo();
+  /* Continuing a saved/in-progress order keeps its numeric PO identifier and
+     its database draft. Rebuilding history is the one explicit new-order
+     path, so it receives a fresh number and preserves the source reference. */
+  const savedOrderNo=String(p.orderNo||'').trim();
+  if(newOrderNumber||!/^\d+$/.test(savedOrderNo)){
+    S.rebuiltFrom=savedOrderNo||null;
+    newOrderNo();
+  } else {
+    S.rebuiltFrom=null;
+    S.orderNo=savedOrderNo;
+    const orderEl=$('#ordNo');
+    if(orderEl) orderEl.innerHTML='<span>Order</span> '+S.orderNo;
+  }
   $('#scopeSeg button[data-scope="'+S.scope+'"]').click();
   buildShapePick(); buildPopular(); buildTreatList(); render();
 }
@@ -3057,6 +3411,7 @@ function renderBranches(){
     const b=BRANCHES.find(x=>x.id===el.dataset.b), changing=S.branch&&S.branch.id!==b.id;
     if(changing&&!confirm('Move this order to '+b.name+'?\n\nPricing, currency and delivery may differ.')) return;
     S.branch=b; if(ADAPTER.onBranchChange) ADAPTER.onBranchChange(b.id); $('#branchName').textContent=b.name.replace('Bridgetown Optical — ','');
+    applyDeliveryDefault();
     /* currency and price visibility follow the account */
     S.cur=b.cur||'USD'; S.pricesOn=b.prices!==false;
     $('#curSim').value=S.cur; $('#pricesOn').checked=S.pricesOn;
@@ -3064,6 +3419,22 @@ function renderBranches(){
     if(changing) toast('Order now placed against '+b.name+(S.pricesOn?'':' — pricing not enabled on that account'));
     render();
   }));
+}
+/* An overseas account cannot use the weekly courier run — that is the Barbados
+   road round. Default them to the forwarder instead of making every export
+   order correct the same wrong answer, but only until the dispenser picks for
+   themselves, after which their choice stands even if the account changes. */
+function applyDeliveryDefault(){
+  const sel=$('#delivery'); if(!sel||S.deliveryTouched) return;
+  const wanted=branchIsExport()?EXPORT_DELIVERY:'Weekly courier run';
+  const opt=Array.from(sel.options).find(o=>o.text===wanted);
+  if(opt) sel.value=opt.value||opt.text;
+  const hint=$('#deliveryHint');
+  if(hint){
+    const on=branchIsExport();
+    hint.classList.toggle('hide',!on);
+    if(on) hint.textContent='This account ships outside Barbados, so export is the default.';
+  }
 }
 function openBranchPicker(){
   branchQuery=''; const s=$('#branchSearch'); if(s) s.value='';
@@ -3103,7 +3474,7 @@ $('#btnPrefill').addEventListener('click',()=>{
   applyLens('1.60','pg-enh','ph-grey');
   S.prefilled=true; S.revealAll=true;
   const chip=$('#prefillChip'); chip.classList.remove('hide');
-  chip.textContent='↩ Prefilled from your pricelist · '+material().n+' · '+design().n+' · '+colour().n;
+  chip.textContent='↩ Prefilled from your pricelist · '+(namedLens('a')||'lens');
   render(); toast('Lens prefilled from the price you clicked — everything stays swappable');
 });
 $('#btnDraft').addEventListener('click',()=>{
@@ -3224,7 +3595,9 @@ $('#printBtn').addEventListener('click',()=>{
     const sph=$('#pc-'+e+'-sph').value||'—', cyl=$('#pc-'+e+'-cyl').value||'—', axis=$('#pc-'+e+'-axis').value||'—';
     return `<tr><th>${e.toUpperCase()}</th><td>${sph}</td><td>${cyl}</td><td>${axis}</td></tr>`;
   }).join(''):'';
-  const lensNm=(S.m&&S.d&&S.c)?`${material().n} · ${design().n} · ${colour().n}`:'—';
+  const lensNm=splitActive()
+    ? `OD ${namedLens('a')||'—'} / OS ${namedLens('b')||'—'}`
+    : (namedLens('a')||'—');
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rx Order — ${$('#pfirst').value} ${$('#plast').value}</title>
   <style>body{font:13px/1.55 ui-sans-serif,system-ui,Segoe UI,Arial;color:#0B1E35;margin:34px;max-width:760px}
   .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0B1E35;padding-bottom:12px;margin-bottom:18px}
@@ -3267,7 +3640,7 @@ $('#printBtn').addEventListener('click',()=>{
   <span>Treatments</span><div>${tr.length?tr.join(', '):'None'}</div>
   <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} Temple ${$('#ftemple').value||'—'} · ${$('#mount').options[$('#mount').selectedIndex].text}</div>
   <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${$('#delivery').value}</div>
-  ${$('#notes').value?`<span>Notes</span><div>${$('#notes').value.replace(/</g,'&lt;')}</div>`:''}</div>
+  ${(function(){ const notes=notesWithChemistrie($('#notes').value); return notes?`<span>Notes</span><div>${notes.replace(/</g,'&lt;')}</div>`:''; })()}</div>
   ${S.pricesOn?`<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub*c.rate)}</span></div>`
     :`<div class="tot" style="font-size:12.5px;font-weight:500;color:#557"><span>Pricing not enabled on this account</span><span>Confirmed before production</span></div>`}
   ${S.ownerReview?'<p style="font-size:11.5px;color:#8a6a20;margin-top:10px">⚑ Contains specialty work pending owner review.</p>':''}
@@ -3279,11 +3652,48 @@ $('#printBtn').addEventListener('click',()=>{
   w.document.write(html); w.document.close();
 });
 
+/* ---------- instant submission (credit-approved accounts) ----------
+   A credit-approved account has nothing to settle at checkout, so the cart is
+   pure ceremony for them: the Rx form already knows the job, the delivery
+   method and the account to bill. ADAPTER.canSubmitDirect is the surface's
+   answer to "is this account credit-approved" — the privilege is re-checked
+   server-side in place_rx_order_direct(), so a stale or tampered client
+   cannot grant itself the shortcut. */
+const canSubmitDirect=()=>!!ADAPTER.canSubmitDirect&&!!ADAPTER.onSubmittedDirect;
+function syncTreatConfirm(){
+  const b=$('#treatConfirm'); if(!b) return;
+  b.setAttribute('aria-pressed', S.treatConfirmed?'true':'false');
+  const label=$('#treatConfirmLabel');
+  if(label) label.textContent=S.treat.size||S.chemClips.length
+    ? 'Done — these are all the coatings for this job'
+    : 'Done — no coatings needed on this job';
+}
+/* The lead time the customer is quoted has to follow what they actually chose. */
+function syncServiceLead(){
+  const sel=$('#service'); if(!sel) return;
+  const std=sel.querySelector('option[value="std"]');
+  if(std) std.textContent='Standard — '+(arSelected()?AR_LEAD:PLAIN_LEAD);
+}
+function syncSubmitMode(){
+  const direct=canSubmitDirect();
+  const note=$('#directNote');
+  ['#submitBtn','#submitBtn2'].forEach(sel=>{
+    const b=$(sel); if(!b) return;
+    const wasDisabled=b.disabled;
+    b.textContent=direct?'Place order now':'Submit to cart';
+    b.disabled=wasDisabled;
+  });
+  if(note){
+    note.classList.toggle('hide',!direct);
+    note.textContent='Your account is credit-approved — this order goes straight to the lab and is billed to your account. Nothing else to check out.';
+  }
+}
+
 let submitInFlight=false;
 async function submit(){
   if(submitInFlight) return;
   const V=secValid();
-  if(!(V['sec-patient']&&V['sec-frame']&&V['sec-lens']&&V['sec-rx'])) return;
+  if(!(V['sec-patient']&&V['sec-frame']&&V['sec-lens']&&V['sec-rx']&&V['sec-treat'])) return;
   const c=CUR[S.cur], {sub}=price();
   const rows=activeEyes().map(e=>({e,r:readRow(e)}));
   const fmt=r=>`${r.sph!==null?sgn(r.sph):'—'} / ${r.cyl!==null?sgn(r.cyl):'—'} × ${r.axis??'—'}`;
@@ -3291,23 +3701,40 @@ async function submit(){
   $('#mSum').innerHTML=`
     <div class="r"><span>Order number</span><b>${S.orderNo}</b></div>
     <div class="r"><span>Store</span><b>${S.branch?S.branch.name:'—'}</b></div>
-    <div class="r"><span>Lens</span><b>${material().n} · ${design().n} · ${colour().n}</b></div>
+    ${splitActive()
+      ? `<div class="r"><span>Lens OD</span><b>${namedLens('a')||'—'}</b></div><div class="r"><span>Lens OS</span><b>${namedLens('b')||'—'}</b></div>`
+      : `<div class="r"><span>Lens</span><b>${namedLens('a')||'—'}</b></div>`}
     ${rows.map(({e,r})=>`<div class="r"><span>${e.toUpperCase()}</span><b>${fmt(r)}</b></div>`).join('')}
     <div class="r"><span>Treatments</span><b>${tr.length?tr.join(', '):'None'}</b></div>
     <div class="r"><span>Job</span><b>${S.scope==='uncut'?'Uncut Rx lenses':S.scope==='remote'?'Remote edge':'Full glaze'} · ${S.eyes==='pair'?'pair':S.eyes==='od'?'right only':'left only'}</b></div>
     ${S.ownerReview?'<div class="r"><span>Flag</span><b style="color:hsl(38 70% 30%)">Owner review before production</b></div>':''}
     <div class="r" style="border-top:1px solid var(--border-soft);margin-top:6px;padding-top:8px"><span>${S.pricesOn?'Locked price':'Price'}</span><b>${S.pricesOn?c.sym+' '+money(sub*c.rate):'Confirmed with you before production'}</b></div>`;
-  $('#scrim .mhead p').textContent=S.pricesOn
-    ? 'Price is now locked at this quote and will be honoured through checkout.'
-    : 'Your order is in the cart. We will confirm the final order details before production.';
+  const direct=canSubmitDirect();
+  $('#scrim .mhead h2').textContent=direct?'Order placed':'Added to your cart';
+  $('#scrim .mhead p').textContent=direct
+    ? (S.pricesOn
+        ? 'This order is with the lab and billed to your account at the price above.'
+        : 'This order is with the lab and billed to your account. We will confirm the final details before production.')
+    : (S.pricesOn
+        ? 'Price is now locked at this quote and will be honoured through checkout.'
+        : 'Your order is in the cart. We will confirm the final order details before production.');
+  /* A placed order has nothing left to check out, and duplicating it would
+     place a second real order rather than copy a basket row. */
+  $$('#scrim .choice').forEach(b=>{
+    const n=b.dataset.next;
+    b.classList.toggle('hide',direct&&(n==='checkout'||n==='duplicate'));
+  });
   submitInFlight=true;
   try{
     const __p=stashOrder('submitted');
-    if(ADAPTER.onSubmitted) await ADAPTER.onSubmitted(__p);
+    if(direct) await ADAPTER.onSubmittedDirect(__p);
+    else if(ADAPTER.onSubmitted) await ADAPTER.onSubmitted(__p);
     $('#scrim').classList.add('on');
   }catch(err){
     console.error('Rx order submission could not be persisted',err);
-    toast('Could not save the order and add it to the cart. Please try again.');
+    toast(direct
+      ? ('Could not place the order'+(err&&err.message?': '+err.message:'')+'. Please try again.')
+      : 'Could not save the order and add it to the cart. Please try again.');
   }finally{ submitInFlight=false; }
 }
 $('#submitBtn').addEventListener('click',()=>{void submit();});
@@ -3346,6 +3773,12 @@ docListen('change',e=>{
   render();
 });
 
+$('#delivery').addEventListener('change',()=>{ S.deliveryTouched=true; });
+$('#treatConfirm').addEventListener('click',()=>{
+  S.treatConfirmed=!S.treatConfirmed;
+  render();
+  if(S.treatConfirmed) toast('Coatings confirmed');
+});
 $('#notesConfirmed').addEventListener('change',e=>{
   S.notesConfirmed=e.target.checked; render();
 });
@@ -3621,7 +4054,7 @@ $('#btnReorder').addEventListener('click',()=>{
   let hist=[]; try{ hist=JSON.parse(localStorage.getItem('cv-rx-history')||'[]'); }catch(e){}
   if(!hist.length){ toast('No order history yet — submit or save a draft first'); return; }
   const h=hist[0];
-  restorePayload(h.payload);
+  restorePayload(h.payload,{newOrderNumber:true});
   $('#draftBanner').classList.remove('hide');
   $('#draftBanner').querySelector('span:nth-child(2)').innerHTML=
     `<b>Rebuilt from order history</b> — ${h.label}, ${h.kind} on ${new Date(h.at).toLocaleString()}. Everything is editable; the quote reprices at today's rates.`;

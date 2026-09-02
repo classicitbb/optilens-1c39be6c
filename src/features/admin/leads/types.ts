@@ -26,6 +26,11 @@ export interface LeadRecord {
   score: number;
   lead_score_breakdown?: LeadScoreBreakdown | null;
   notes: string | null;
+  /** One-line rationale from the AI qualifier explaining the fit score. */
+  fit_reason?: string | null;
+  /** Which provider(s) surfaced this lead. */
+  source_provider?: string | null;
+  formatted_address?: string | null;
   search_run_id?: string | null;
   lead_source?: string | null;
   lead_segment?: "decision_makers" | "operators" | "procurement_influencers" | null;

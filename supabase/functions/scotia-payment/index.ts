@@ -38,7 +38,12 @@ import {
 } from "../_shared/scotia/ipgConnect.ts";
 // Config resolution (StoreID/SharedSecret lookup) is shared with scotia-return
 // so both functions resolve credentials identically. See _shared/scotia/config.ts.
-import { getScotiaConfig as getConfig } from "../_shared/scotia/config.ts";
+import { getScotiaConfig as getConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/scotia/config.ts";
+import {
+  classifyProbeHtml,
+  logScotiaEvent,
+  probeSnippet,
+} from "../_shared/scotia/events.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -57,8 +62,6 @@ const prepareSchema = z.object({
   // independent of the buyer's browser return). Optional — the caller can
   // omit it and this function will derive the default scotia-notify URL.
   notificationURL: z.string().url().optional(),
-  // The page hosting the iframe — REQUIRED for IFRAME mode (manual page 13).
-  hostURI: z.string().url().optional(),
   // Your internal order reference for support/reconciliation (oid).
   orderId: z.string().min(1).optional(),
   // Admin-only reachability probe (Integrations page). Skips order ownership
@@ -83,10 +86,18 @@ const prepareSchema = z.object({
 const validateSchema = z.object({
   action: z.literal("validate"),
   // The raw POST parameters received at responseSuccessURL / responseFailURL.
-  response: z.record(z.string()),
+  response: z.record(z.string(), z.string()),
 });
 
-const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema]);
+// Admin-only IPG health check: sign a real minimum-amount sale form and POST
+// it to the gateway from the server, then classify the HTML that comes back.
+// Nothing is charged — the hosted page is only rendered, never completed.
+const probeSchema = z.object({
+  action: z.literal("probe"),
+});
+
+const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema]);
+
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function normalizeAmount(v: string | number): string {
@@ -179,6 +190,123 @@ function json(body: unknown, status: number, req: Request): Response {
   });
 }
 
+/** The always-present sale fields, shared by checkout prepares and the probe. */
+function baseSaleParams(cfg: ScotiaConfig, opts: {
+  chargetotal: string;
+  responseSuccessURL: string;
+  responseFailURL: string;
+}): Record<string, string> {
+  return {
+    chargetotal: opts.chargetotal,
+    checkoutoption: DEFAULT_CHECKOUT_OPTION,
+    // Required by the Scotia hosted-page contract for this site. Keep this
+    // fixed even if an old credential-store row still has another value.
+    currency: "840",
+    language: "en_GB",
+    hash_algorithm: ALWAYS_HASH_ALGORITHM,
+    responseFailURL: opts.responseFailURL,
+    responseSuccessURL: opts.responseSuccessURL,
+    storename: cfg.storeId,
+    timezone: cfg.timezone,
+    txndatetime: txnDateTime(cfg.timezone),
+    txntype: "sale",
+  };
+}
+
+/**
+ * Admin IPG health check. Signs a real minimum-amount sale form and POSTs it
+ * to the gateway server-side. A healthy store answers with the hosted payment
+ * page; a store that Fiserv has not enabled for Connect answers with the
+ * generic error page instead. Nothing is charged either way.
+ */
+async function runProbe(cfg: ScotiaConfig, req: Request): Promise<Response> {
+  const origin = req.headers.get("origin") ?? "https://classicvisions.net";
+  const returnUrl = `${origin.replace(/\/$/, "")}/checkout`;
+  const formParams = baseSaleParams(cfg, {
+    chargetotal: "1.00",
+    responseSuccessURL: returnUrl,
+    responseFailURL: returnUrl,
+  });
+  formParams.oid = `PROBE-${Date.now()}`;
+  const hashExtended = await computeExtendedHash(formParams, cfg.sharedSecret);
+  const endpointUrl = GATEWAY_URLS[cfg.env];
+
+  const body = new URLSearchParams({ ...formParams, hashExtended });
+  let status = 0;
+  let html = "";
+  try {
+    const gatewayResponse = await fetch(endpointUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+    status = gatewayResponse.status;
+    html = await gatewayResponse.text();
+  } catch (err) {
+    await logScotiaEvent(supabaseAdmin, {
+      kind: "probe",
+      outcome: "error",
+      oid: formParams.oid,
+      storeId: cfg.storeId,
+      env: cfg.env,
+      endpointUrl,
+      requestParams: formParams,
+      notes: `Gateway unreachable: ${String(err)}`,
+    });
+    return json({
+      accepted: false,
+      classification: "http_error",
+      httpStatus: null,
+      detail: `Could not reach the gateway: ${String(err)}`,
+      snippet: "",
+      storeId: cfg.storeId,
+      environment: cfg.env,
+      currency: cfg.currency,
+      checkedAt: new Date().toISOString(),
+    }, 200, req);
+  }
+
+  const verdict = classifyProbeHtml(status, html);
+  const snippet = probeSnippet(html);
+
+  await logScotiaEvent(supabaseAdmin, {
+    kind: "probe",
+    outcome: verdict.accepted ? "ok" : verdict.classification === "http_error" ? "error" : "declined",
+    oid: formParams.oid,
+    storeId: cfg.storeId,
+    env: cfg.env,
+    endpointUrl,
+    httpStatus: status,
+    failRc: verdict.failRc,
+    failReason: verdict.detail,
+    requestParams: formParams,
+    responseParams: { classification: verdict.classification, snippet },
+    notes: "Admin IPG health check",
+  });
+
+  return json({
+    accepted: verdict.accepted,
+    classification: verdict.classification,
+    httpStatus: status,
+    detail: verdict.detail,
+    failRc: verdict.failRc,
+    snippet,
+    storeId: cfg.storeId,
+    environment: cfg.env,
+    currency: cfg.currency,
+    checkedAt: new Date().toISOString(),
+  }, 200, req);
+}
+
+async function requireAdmin(authContext: AuthContext): Promise<boolean> {
+  const { data: isAdmin, error } = await authContext.supabaseAdminClient.rpc(
+    "has_role",
+    { _user_id: authContext.user.id, _role: "admin" },
+  );
+  return !error && !!isAdmin;
+}
+
+
 // ── Handler ────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflight(req, corsPolicy);
@@ -218,41 +346,34 @@ Deno.serve(async (req) => {
       }, 200, req);
     }
 
+    if (parsed.action === "probe") {
+      if (!(await requireAdmin(authContext))) {
+        return json({ error: "Admin role required for the gateway health check." }, 403, req);
+      }
+      return await runProbe(cfg, req);
+    }
+
     // action === "prepare"
     const p = parsed;
     if (p.testMode) {
-      const { data: isAdmin, error: roleError } = await authContext.supabaseAdminClient.rpc(
-        "has_role",
-        { _user_id: authContext.user.id, _role: "admin" },
-      );
-      if (roleError || !isAdmin) {
+      if (!(await requireAdmin(authContext))) {
         return json({ error: "Admin role required for gateway test." }, 403, req);
       }
+
     } else {
       const ownershipError = await assertPaymentOwnership(p.orderId, p.chargetotal, authContext);
       if (ownershipError) return json({ error: ownershipError }, 403, req);
     }
 
-    const formParams: Record<string, string> = {
+    const formParams: Record<string, string> = baseSaleParams(cfg, {
       chargetotal: normalizeAmount(p.chargetotal),
-      checkoutoption: DEFAULT_CHECKOUT_OPTION,
-      // Required by the Scotia hosted-page contract for this site. Keep this
-      // fixed even if an old credential-store row still has another value.
-      currency: "840",
-      language: "en_GB",
-      hash_algorithm: ALWAYS_HASH_ALGORITHM,
-      responseFailURL: p.responseFailURL,
       responseSuccessURL: p.responseSuccessURL,
-      storename: cfg.storeId,
-      timezone: cfg.timezone,
-      txndatetime: txnDateTime(cfg.timezone),
-      txntype: "sale",
-    };
+      responseFailURL: p.responseFailURL,
+    });
 
-    // IFRAME mode requires hostURI (manual page 13).
-    if (p.hostURI) formParams.hostURI = p.hostURI;
     // Support reference for reconciliation (shown to support as oid).
     if (p.orderId) formParams.oid = p.orderId;
+
 
     // Server-to-server webhook: Fiserv posts the outcome here directly, so
     // settlement doesn't depend on the buyer's browser completing the return
@@ -291,12 +412,26 @@ Deno.serve(async (req) => {
 
     const hashExtended = await computeExtendedHash(formParams, cfg.sharedSecret);
 
+    // Diagnostics: record exactly what was signed so a later gateway failure
+    // can be matched against the form the buyer actually posted.
+    await logScotiaEvent(supabaseAdmin, {
+      kind: "prepare",
+      outcome: "ok",
+      oid: formParams.oid ?? null,
+      storeId: cfg.storeId,
+      env: cfg.env,
+      endpointUrl: GATEWAY_URLS[cfg.env],
+      requestParams: formParams,
+      notes: p.testMode ? "Admin signed-form test" : "Checkout prepare",
+    });
+
     return json({
       gatewayUrl: GATEWAY_URLS[cfg.env],
       // The browser auto-submits these as hidden inputs (incl. hashExtended).
       // SharedSecret is intentionally absent.
       formParams: { ...formParams, hashExtended },
     }, 200, req);
+
   } catch (err) {
     return json({ error: "Failed to prepare payment", detail: String(err) }, 500, req);
   }

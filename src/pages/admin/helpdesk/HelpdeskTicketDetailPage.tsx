@@ -80,12 +80,17 @@ const HelpdeskTicketDetailPage = () => {
             {ticket.partner_contact && (
               <div className="mt-0.5 flex items-center gap-1.5">
                 <User size={13} className="shrink-0 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  className="text-left text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(ticket.partner_contact!.id)}`)}
+                  title="Open contact"
+                >
                   {ticket.partner_contact.name}
                   {ticket.partner_contact.email && (
                     <span className="ml-1.5 text-xs">· {ticket.partner_contact.email}</span>
                   )}
-                </span>
+                </button>
               </div>
             )}
           </div>

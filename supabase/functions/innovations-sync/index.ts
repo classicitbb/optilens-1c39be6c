@@ -16,7 +16,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
-import { getOrCreateUnsubscribeToken, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
+import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 import { buildOrderHashref, canonicalOrderFor, type OrderKind } from "../_shared/orders/hashref.ts";
 
 const corsHeaders: Record<string, string> = {
@@ -299,10 +300,19 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+// Columns that are NOT NULL with a database default. An explicit null from the
+// office payload would trip the not-null constraint instead of falling back to
+// the default, so those keys are dropped when the value is null/undefined.
+const DROP_IF_NULL = new Set(["country"]);
+
 function pick(row: Record<string, unknown>, allow: string[]): Record<string, unknown> {
   const set = new Set(allow);
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(row)) if (set.has(k)) out[k] = v;
+  for (const [k, v] of Object.entries(row)) {
+    if (!set.has(k)) continue;
+    if (DROP_IF_NULL.has(k) && (v === null || v === undefined)) continue;
+    out[k] = v;
+  }
   return out;
 }
 
@@ -529,13 +539,6 @@ async function enqueueStatementReadyEmail(
     const recipient = (customer as any)?.email;
     if (!recipient || typeof recipient !== "string" || !recipient.trim()) return;
 
-    const { data: suppressed } = await supabase
-      .from("suppressed_emails")
-      .select("id")
-      .eq("email", recipient.toLowerCase())
-      .maybeSingle();
-    if (suppressed) return;
-
     if (await isAutoNotificationsDisabled(supabase, recipient)) {
       await supabase.from("email_send_log").insert({
         message_id: crypto.randomUUID(),
@@ -550,7 +553,6 @@ async function enqueueStatementReadyEmail(
     const template = TEMPLATES["statement-ready"];
     if (!template) return;
 
-    const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient);
     const templateData = {
       customerName: (customer as any)?.name || "there",
       accountNumber: (customer as any)?.account_number || statementRow.account_number || "",
@@ -559,47 +561,23 @@ async function enqueueStatementReadyEmail(
       closingBalance: Number(statementRow.closing_balance ?? 0),
       dueDate: statementRow.due_date,
       siteUrl: Deno.env.get("APP_BASE_URL") ?? "https://classicvisions.net",
-      unsubscribeUrl: `https://classicvisions.net/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`,
     };
 
     const html = await renderAsync(React.createElement(template.component, templateData));
     const text = await renderAsync(React.createElement(template.component, templateData), { plainText: true });
     const resolvedSubject = typeof template.subject === "function" ? template.subject(templateData) : template.subject;
-    const messageId = crypto.randomUUID();
+    const messageId = `statement-ready-${statementRow.innovations_statement_id ?? crypto.randomUUID()}`;
 
-    await supabase.from("email_send_log").insert({
-      message_id: messageId,
-      template_name: "statement-ready",
-      recipient_email: recipient,
-      status: "pending",
+    await sendManagedEmail(supabase as any, {
+      messageId,
+      to: recipient,
+      from: "Classic Visions <noreply@classicvisions.net>",
+      subject: resolvedSubject,
+      html,
+      text,
+      label: "statement-ready",
+      idempotencyKey: messageId,
     });
-
-    const { error: enqueueError } = await supabase.rpc("enqueue_email", {
-      queue_name: "transactional_emails",
-      payload: {
-        message_id: messageId,
-        to: recipient,
-        from: "classicvisions <noreply@classicvisions.net>",
-        sender_domain: "support.classicvisions.net",
-        subject: resolvedSubject,
-        html,
-        text,
-        purpose: "transactional",
-        label: "statement-ready",
-        idempotency_key: messageId,
-        unsubscribe_token: unsubscribeToken,
-        queued_at: new Date().toISOString(),
-      },
-    });
-    if (enqueueError) {
-      await supabase.from("email_send_log").insert({
-        message_id: crypto.randomUUID(),
-        template_name: "statement-ready",
-        recipient_email: recipient,
-        status: "failed",
-        error_message: `enqueue failed: ${enqueueError.message}`,
-      });
-    }
   } catch (err) {
     // Best-effort — a failed email must never fail the statement sync itself.
     console.error("enqueueStatementReadyEmail failed", err);

@@ -6,7 +6,7 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
-import { isEmbeddedRxOrderPayload, useRxDraft } from "@/features/lens-assistant/api";
+import { isEmbeddedRxOrderPayload, resolveResumedRxDraftId, useRxDraft } from "@/features/lens-assistant/api";
 import { buildPrefillBanner, buildRxPrefillPayload } from "@/features/rx-order/prefill/rxOrderPrefill";
 
 // Shared portal form used both from the standalone order route and My Account.
@@ -88,8 +88,12 @@ const PortalRxOrderForm = () => {
       onStartAnother={() => { setQuoteId(null); creatingRef.current = false; }}
       prefill={prefill}
       prefillBanner={prefillBanner}
-      resumedDraftId={isEmbeddedDraft ? draftId : undefined}
+      resumedDraftId={resolveResumedRxDraftId(draftId, draft?.input_payload)}
       pricesVisible={isStaff || canAccessFeature("order-prices")}
+      // Credit-approved customers place Rx jobs straight onto their account.
+      // Staff do not: an order placed from the admin surface still belongs in
+      // the cart, where the account it bills is an explicit choice.
+      allowDirectSubmit={!isStaff && identity?.paymentTerms === "credit"}
       currency="BBD"
     />
   ) : (

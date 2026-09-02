@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -157,7 +157,7 @@ interface ContactLookupRow {
   innovations_parent_customer_id: number | null;
 }
 
-const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices", "lens-assistant"] as const;
+const FEATURE_KEYS = ["quotes", "helpdesk", "pricelists", "private-orders", "live-order-status", "statements", "order-prices", "rx-order"] as const;
 const PORTAL_ACCOUNTS_PAGE_SIZE = 100;
 
 const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
@@ -168,7 +168,7 @@ const FEATURE_LABELS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "live-order-status": "Live order status",
   statements: "Statements",
   "order-prices": "Order prices",
-  "lens-assistant": "Lens Assistant",
+  "rx-order": "Rx Order Form",
 };
 
 const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
@@ -179,7 +179,7 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "live-order-status": "Approved customer access for live lab and delivery status.",
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
   "order-prices": "Off by default. Enable to show item prices and totals on this customer's Order status and lab shipment views.",
-  "lens-assistant": "Approved customer access to the Lens Assistant in this profile. The global Lens Assistant rollout flag must also be enabled.",
+  "rx-order": "Approved customer access to the portal Rx order form in this profile.",
 };
 
 type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "active" | "all";
@@ -223,6 +223,7 @@ const WebsitePortalsPage = () => {
   const legacySelectedAccountId = searchParams.get("account") ?? searchParams.get("customer");
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(() => legacySelectedAccountId);
   const dismissedLegacyAccountRef = useRef<string | null>(null);
+  const autoEmulationAttemptedRef = useRef<string | null>(null);
   const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", organization_name: "" });
   const [accountNumberDraft, setAccountNumberDraft] = useState("");
   const [provisioningMode, setProvisioningMode] = useState<"create" | "invite" | null>(null);
@@ -1140,7 +1141,7 @@ const WebsitePortalsPage = () => {
     setAccountDialogOpen(true);
   };
 
-  const emulatePortalAccount = async (account: PortalAccountRecord) => {
+  const emulatePortalAccount = useCallback(async (account: PortalAccountRecord) => {
     if (!account.portalUser) return;
     const label = account.fullName || account.email || "customer";
     try {
@@ -1173,7 +1174,36 @@ const WebsitePortalsPage = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [emulatePortalUser, toast]);
+
+  // User Management links here with one specific customer selected. Keep the
+  // searchable list visible, then immediately use the existing governed
+  // emulation flow rather than duplicating token/session handling there.
+  useEffect(() => {
+    const userId = searchParams.get("emulate");
+    if (!userId || autoEmulationAttemptedRef.current === userId) return;
+
+    const directAccount = (customersQuery.data ?? []).find((account) => account.portalUser?.userId === userId);
+    const linkedAccount = directAccount ? null : (customersQuery.data ?? []).find((account) => account.linkedPortalUsers.some((portalUser) => portalUser.userId === userId));
+    if (!directAccount && !linkedAccount) {
+      if (!customersQuery.isLoading) {
+        autoEmulationAttemptedRef.current = userId;
+        const next = new URLSearchParams(searchParams);
+        next.delete("emulate");
+        setSearchParams(next, { replace: true });
+        toast({ title: "Portal login not found", description: "The selected user is not available for portal emulation.", variant: "destructive" });
+      }
+      return;
+    }
+
+    const account = directAccount ?? linkedAccount!;
+    const linkedUser = account.linkedPortalUsers.find((portalUser) => portalUser.userId === userId) ?? null;
+    autoEmulationAttemptedRef.current = userId;
+    const next = new URLSearchParams(searchParams);
+    next.delete("emulate");
+    setSearchParams(next, { replace: true });
+    void emulatePortalAccount(linkedUser ? { ...account, portalUser: linkedUser } : account);
+  }, [customersQuery.data, customersQuery.isLoading, emulatePortalAccount, searchParams, setSearchParams, toast]);
 
   // Only a real login can be invited to the portal, so the action stays hidden
   // for ERP-only accounts and company records with no login of their own.

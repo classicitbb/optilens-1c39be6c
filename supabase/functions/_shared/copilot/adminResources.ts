@@ -31,6 +31,8 @@ export type AdminResource = {
   orderBy?: string;
   /** Writes touch money/prices — always require approval. */
   priceSensitive?: boolean;
+  /** Reads or writes can expose internal financial data; admins only. */
+  financialData?: boolean;
 };
 
 export const ADMIN_RESOURCES: AdminResource[] = [
@@ -160,6 +162,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["status", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "order_items",
@@ -171,6 +174,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["quantity", "status"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "rx_order_submissions",
@@ -202,6 +206,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["status", "notes", "valid_until"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "quote_lines",
@@ -213,6 +218,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["description", "quantity"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
 
   // ------------------------------------------------- Catalog & pricing
@@ -269,6 +275,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["price"],
     orderBy: "id",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "price_matrix",
@@ -280,6 +287,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["price"],
     orderBy: "id",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "pricelists",
@@ -291,6 +299,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["name"],
     orderBy: "id",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "pricelist_versions",
@@ -302,6 +311,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["name", "status", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "catalog_templates",
@@ -323,6 +333,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["is_published", "display_name", "sort_order"],
     orderBy: "updated_at",
     priceSensitive: true,
+    financialData: true,
   },
 
   // ------------------------------------------ Customers, portal, billing
@@ -335,13 +346,14 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: ["name", "account_number", "email"],
     writable: ["name", "email", "phone", "pipeline_stage", "assigned_pricelist_id", "is_active"],
     orderBy: "updated_at",
+    financialData: true,
   },
   {
     key: "profiles",
     table: "profiles",
     module: "Settings / Users",
     description: "User profiles including portal access status.",
-    select: "id,email,full_name,portal_access_status,portal_access_note,linked_customer_id,created_at,updated_at",
+    select: "id,email,full_name,portal_access_status,portal_access_note,crm_customer_id,created_at,updated_at",
     searchColumns: ["email", "full_name"],
     writable: ["full_name", "portal_access_status", "portal_access_note"],
     orderBy: "updated_at",
@@ -375,6 +387,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "created_at",
+    financialData: true,
   },
   {
     key: "statement_lines",
@@ -385,6 +398,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "created_at",
+    financialData: true,
   },
   {
     key: "account_payments",
@@ -395,6 +409,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "created_at",
+    financialData: true,
   },
   {
     key: "balances",
@@ -405,6 +420,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     searchColumns: [],
     writable: [],
     orderBy: "updated_at",
+    financialData: true,
   },
 
   // ---------------------------------------------------------- Shipments
@@ -418,6 +434,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["reference", "status", "notes", "arrival_date"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "shipment_lines",
@@ -429,6 +446,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["quantity", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
   {
     key: "shipment_charges",
@@ -440,6 +458,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     writable: ["charge_type_id", "amount", "notes"],
     orderBy: "created_at",
     priceSensitive: true,
+    financialData: true,
   },
 
   // ---------------------------------------- Docs, knowledge & settings
@@ -447,11 +466,28 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     key: "docstudio_billing_documents",
     table: "docstudio_billing_documents",
     module: "Doc Studio",
-    description: "Generated billing documents.",
+    description:
+      "Doc Studio billing documents: invoices, quotes, pro formas and receipts. Prefer the docstudio_create_document tool, which resolves the customer, the issuer details and the document number and computes the totals for you. Use this resource directly only to read documents or amend one you already created. Never invent a billing_number; never hand-write the content or totals JSON.",
     select: "*",
-    searchColumns: ["title"],
-    writable: ["title", "status"],
+    searchColumns: ["document_name", "billing_number", "customer_name", "customer_company"],
+    writable: [
+      "document_name", "document_type", "billing_number",
+      "customer_name", "customer_company", "customer_account",
+      "paper_size", "status", "content", "totals",
+      "source_document_type", "source_document_id",
+    ],
     orderBy: "created_at",
+  },
+  {
+    key: "docstudio_files",
+    table: "docstudio_files",
+    module: "Doc Studio",
+    description:
+      "Doc Studio content files. The copilot may author email and letter files; signature, social, ship-label, statement and pricelist files are edited in the studio. Content must be built with the shared content builder, not hand-written.",
+    select: "id,owner_user_id,file_type,file_name,customer_name,customer_account,metadata,version,created_at,updated_at",
+    searchColumns: ["file_name", "customer_name", "customer_account"],
+    writable: ["file_name", "file_type", "customer_name", "customer_account", "metadata", "content"],
+    orderBy: "updated_at",
   },
   {
     key: "help_articles",
@@ -487,10 +523,19 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     key: "company_settings",
     table: "company_settings",
     module: "Settings",
-    description: "Company profile and global settings.",
+    description:
+      "Company profile and global settings. Also holds the issuer details every Doc Studio document is built from — letterhead address, registration numbers and bank details — so changing them here changes every document produced afterwards.",
     select: "*",
     searchColumns: [],
-    writable: ["company_name", "support_email", "feedback_email", "phone", "address"],
+    // support_email / phone / address were listed here but are not columns on
+    // this table; the real ones are email / tel / the split physical_* fields.
+    writable: [
+      "company_name", "email", "feedback_email", "tel", "fax", "slogan",
+      "physical_line1", "physical_line2", "physical_city", "physical_state", "physical_postcode", "physical_country",
+      "tax_tin", "company_reg_no", "base_currency", "default_vat",
+      "bank_name", "bank_account_name", "bank_account_no", "bank_branch", "bank_swift", "bank_note",
+      "default_paper_size", "default_due_days",
+    ],
     orderBy: "id",
   },
   {
@@ -569,6 +614,39 @@ const normalizeHelpdeskPriority = (value: unknown): number => {
   return numeric;
 };
 
+/** Opaque per-save token the Doc Studio API uses for optimistic locking. */
+const newDocStudioVersion = () => {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+};
+
+/**
+ * Doc Studio tables carry two NOT NULL columns with no default that the model
+ * has no way to supply — owner_user_id and version. Stamping them here is what
+ * makes a copilot-created document possible at all; without it every insert
+ * fails on a not-null violation.
+ *
+ * Copilot-created documents are always drafts. They are inert until a human
+ * opens one in Doc Studio, which is the review gate.
+ */
+const applyDocStudioCreateDefaults = (
+  resource: AdminResource,
+  allowed: Record<string, unknown>,
+  actorUserId?: string,
+) => {
+  if (!resource.table.startsWith("docstudio_")) return;
+  if (!actorUserId) {
+    throw new Error("Doc Studio documents need a signed-in admin to own them; no acting user was supplied.");
+  }
+  allowed.owner_user_id = actorUserId;
+  allowed.version = newDocStudioVersion();
+  if (resource.table === "docstudio_billing_documents") {
+    allowed.created_by_copilot = true;
+    allowed.status = "draft";
+  }
+};
+
 const normalizeAdminWriteValues = (
   resource: AdminResource,
   input: Record<string, unknown>,
@@ -600,6 +678,10 @@ export type AdminToolResult = {
   ignoredFields?: string[];
 };
 
+export type AdminResourceAccess = {
+  canAccessFinancialData: boolean;
+};
+
 /**
  * Executes an admin resource tool. Writes classified as "approval" are NOT
  * executed — the caller (copilot / MCP tool) turns the returned proposal into
@@ -609,6 +691,8 @@ export const dispatchAdminResourceTool = async (
   db: any,
   name: string,
   input: Record<string, unknown>,
+  actorUserId?: string,
+  access: AdminResourceAccess = { canAccessFinancialData: false },
 ): Promise<AdminToolResult> => {
   if (name === "admin_list_resources") {
     const moduleFilter = typeof input.module === "string" ? input.module.toLowerCase() : "";
@@ -620,11 +704,15 @@ export const dispatchAdminResourceTool = async (
         description: resource.description,
         writable: resource.writable,
         approvalOnWrite: Boolean(resource.priceSensitive),
+        financialData: Boolean(resource.financialData),
       }));
     return { status: "ok", resource: "*", operation: "list_resources", data: items };
   }
 
   const resource = findAdminResource(typeof input.resource === "string" ? input.resource : "");
+  if (resource.financialData && !access.canAccessFinancialData) {
+    throw new Error("Financial data is restricted to administrators with the financial-data capability.");
+  }
 
   if (name === "admin_search_records") {
     const query = typeof input.query === "string" ? input.query.trim() : "";
@@ -667,6 +755,13 @@ export const dispatchAdminResourceTool = async (
       allowed.priority = allowed.priority ?? 1;
       allowed.source_channel = "ai_assistant";
       allowed.opened_at = new Date().toISOString();
+    }
+    if (operation === "create") applyDocStudioCreateDefaults(resource, allowed, actorUserId);
+    // Amending a Doc Studio document has to move its version token, or a studio
+    // tab holding the old one will overwrite the change without warning.
+    if (operation === "update" && resource.table.startsWith("docstudio_")) {
+      allowed.version = newDocStudioVersion();
+      allowed.updated_at = new Date().toISOString();
     }
     const id = input.id;
     if (operation === "update" && (id === undefined || id === null || id === "")) {

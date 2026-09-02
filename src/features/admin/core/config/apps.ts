@@ -25,13 +25,13 @@ export interface SidebarItem {
 export const ADMIN_APPS = {
   copilot: {
     key: 'copilot' as const,
-    title: 'Portal Copilot',
+    title: 'Copilot Workspace',
     icon: Bot,
-    baseRoute: '/admin/copilot',
-    defaultRoute: '/admin/copilot',
+    baseRoute: '/copilot',
+    defaultRoute: '/copilot',
     featurePrefix: 'copilot',
     sidebarItems: [
-      { label: 'ERP Rollout', route: '/admin/copilot', icon: Bot },
+      { label: 'Open Workspace', route: '/copilot', icon: Bot },
     ] satisfies SidebarItem[],
   },
   pricing: {

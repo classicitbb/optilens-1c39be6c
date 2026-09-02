@@ -1,5 +1,18 @@
 # Automation and QA Module Docs
 
+## 2026-08-27 — Enrichment capability in the generated platform facts
+
+- `scripts/generate_copilot_platform_facts.mjs` also reads the tool names in `supabase/functions/_shared/copilot/enrichmentTools.ts` and advertises them in the always-on tier-1 context, separately from the read-only lookups because they write.
+- If the Copilot stops offering to enrich a contact, check that line first: the tool list is read from source, so a renamed tool silently drops out of the prompt until `npm run copilot:facts` is re-run. `npm run qa:copilot-facts` fails the PR when the committed artifact is stale.
+
+## 2026-08-27 — Copilot platform-facts generation
+
+- `scripts/generate_copilot_platform_facts.mjs` builds `supabase/functions/_shared/copilot/platformFacts.generated.ts` from `src/features/admin/core/config/apps.ts`, `supabase/functions/_shared/copilot/adminResources.ts` and the hand-maintained `platformFacts.source.ts`.
+- It bundles those modules with esbuild rather than parsing them, stubbing `lucide-react` as CommonJS so `apps.ts` can be imported without its icons.
+- Its route slugs deliberately mirror `buildContextOptions()` in `src/lib/adminContexts.ts`. If that transform changes, page context silently stops resolving — an integration test compares the two tables.
+- The always-on tier-1 context is capped at 6000 characters. The cap is a drift guard, not a target: when it trips, move detail into `PLATFORM_RESOURCE_DETAIL` and let the `get_platform_facts` tool serve it, rather than trimming real content.
+- `npm run copilot:facts` regenerates; `npm run qa:copilot-facts` fails when the committed file is stale and runs inside `npm run qa:pr-checks`.
+
 ## 2026-08-13 — Windows admin smoke process launch
 
 - `scripts/admin_smoke_and_error_checks.mjs` starts npm through the active Node executable and `npm_execpath` when available, avoiding Windows `spawn npm ENOENT` and `.cmd` `EINVAL` failures.

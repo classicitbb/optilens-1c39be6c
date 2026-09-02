@@ -3,8 +3,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
 import {
   AlertCircle,
-  Check,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   FileText,
   Loader2,
@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   analyzeCopilotAttachments,
@@ -32,12 +31,13 @@ import {
   type CopilotState,
 } from "@/features/admin/copilot/api";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { VoiceSettingsMenu } from "@/features/admin/copilot/VoiceSettingsMenu";
+import { readStoredHoldToRecord, storeHoldToRecord } from "@/features/admin/copilot/voicePreferences";
 import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { ActionCard } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment } from "@/features/admin/copilot/attachments";
 import { getContextLabel, pathnameToContextSlug } from "@/lib/adminContexts";
-import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = [
   "Explain what I'm looking at on this screen",
@@ -66,13 +66,13 @@ const AdminCopilotAssistant = () => {
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
-  const contextLabel = useMemo(() => getContextLabel(pathnameToContextSlug(location.pathname)), [location.pathname]);
+  const contextSlug = useMemo(() => pathnameToContextSlug(location.pathname), [location.pathname]);
+  const contextLabel = useMemo(() => getContextLabel(contextSlug), [contextSlug]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [command, setCommand] = useState("");
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [transcriptConfirmed, setTranscriptConfirmed] = useState(false);
-  const [speechConfidence, setSpeechConfidence] = useState<number | null>(null);
   const [state, setState] = useState<CopilotState | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [selectedRunId, setSelectedRunId] = useState<string | undefined>();
@@ -80,17 +80,22 @@ const AdminCopilotAssistant = () => {
   const [attachments, setAttachments] = useState<CopilotAttachment[]>([]);
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [holdToRecord, setHoldToRecord] = useState(readStoredHoldToRecord);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const commandInputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const onTranscript = useCallback((transcript: string, confidence: number) => {
+  const onTranscript = useCallback((transcript: string) => {
     setCommand(transcript);
     setInputMode("voice");
-    setTranscriptConfirmed(false);
-    setSpeechConfidence(confidence);
+    setTranscriptConfirmed(true);
   }, []);
   const speech = usePushToTalk(onTranscript);
+
+  const changeHoldToRecord = useCallback((next: boolean) => {
+    setHoldToRecord(next);
+    storeHoldToRecord(next);
+  }, []);
 
   const stateQuery = useQuery({
     queryKey: ["admin-copilot-widget-state", selectedConversationId ?? "latest", selectedRunId ?? "latest"],
@@ -111,13 +116,13 @@ const AdminCopilotAssistant = () => {
       inputMode,
       transcriptConfirmed,
       conversationId: selectedConversationId ?? stateQuery.data?.selectedConversationId ?? undefined,
+      pageContext: contextSlug,
     }),
     onSuccess: (next) => {
       acceptState(next);
       setCommand("");
       setInputMode("text");
       setTranscriptConfirmed(false);
-      setSpeechConfidence(null);
     },
     onError: (error: Error) => toast({ title: "Copilot could not respond", description: error.message, variant: "destructive" }),
   });
@@ -129,7 +134,6 @@ const AdminCopilotAssistant = () => {
       setCommand("");
       setInputMode("text");
       setTranscriptConfirmed(false);
-      setSpeechConfidence(null);
       setAttachments([]);
       setLocalMessages([]);
     },
@@ -173,10 +177,8 @@ const AdminCopilotAssistant = () => {
   );
 
   const hasAttachments = attachments.length > 0;
-  const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
   const canSend = !prepareMutation.isPending && !isAnalyzing
-    && (hasAttachments || command.trim().length > 0)
-    && (inputMode === "text" || transcriptConfirmed);
+    && (hasAttachments || command.trim().length > 0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -264,7 +266,7 @@ const AdminCopilotAssistant = () => {
         <Button
           type="button"
           size="icon"
-          aria-label="Open Portal Copilot"
+          aria-label="Open Iris, Portal Copilot"
           onClick={() => setIsOpen(true)}
           className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border border-accent/70 bg-background/75 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
         >
@@ -281,7 +283,7 @@ const AdminCopilotAssistant = () => {
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold leading-tight text-foreground">Portal Copilot</p>
+                  <p className="truncate text-sm font-semibold leading-tight text-foreground">Iris — Portal Copilot</p>
                   <p className="truncate text-[11px] leading-tight text-foreground/50">
                     Watching <span className="font-medium text-foreground/70">{contextLabel}</span>
                   </p>
@@ -440,16 +442,6 @@ const AdminCopilotAssistant = () => {
             </div>
 
             <div className="border-t border-border/50 bg-muted/30 px-3 py-2">
-              {inputMode === "voice" && command.trim() ? (
-                <div className={cn("mb-2 flex items-start gap-1.5 rounded-xl border px-2.5 py-2 text-[11px]", lowConfidence ? "border-amber-300 bg-amber-50 text-amber-900" : "border-sky-200 bg-sky-50 text-sky-900")}>
-                  {lowConfidence ? <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> : <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />}
-                  <label className="flex cursor-pointer items-start gap-1.5">
-                    <Checkbox checked={transcriptConfirmed} onCheckedChange={(checked) => setTranscriptConfirmed(checked === true)} className="mt-0.5 h-3.5 w-3.5" />
-                    <span>{lowConfidence ? "Low-confidence transcript — review the text, then confirm." : "Review the transcript, then confirm before sending."}</span>
-                  </label>
-                </div>
-              ) : null}
-
               {attachments.length ? (
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {attachments.map((file) => (
@@ -499,30 +491,78 @@ const AdminCopilotAssistant = () => {
                   >
                     <Paperclip className="h-4 w-4" />
                   </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant={speech.isListening ? "destructive" : "ghost"}
-                    className="h-9 w-9 shrink-0 rounded-full text-foreground/50 hover:text-foreground"
-                    aria-label={speech.isListening ? "Stop recording and transcribe" : speech.isStarting ? "Starting microphone" : speech.isTranscribing ? "Transcribing" : "Start recording"}
-                    title={speech.isListening ? "Click to stop and transcribe" : speech.isStarting ? "Starting microphone…" : speech.isTranscribing ? "Transcribing…" : "Click to record"}
-                    disabled={prepareMutation.isPending || isAnalyzing || speech.isStarting || speech.isTranscribing}
-                    onClick={() => {
-                      if (speech.isListening) {
-                        speech.stop();
-                      } else {
+                  <div className="flex shrink-0 items-center overflow-hidden rounded-full border border-transparent hover:border-input">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant={speech.isListening ? "destructive" : "ghost"}
+                      className="h-9 w-9 shrink-0 rounded-full text-foreground/50 hover:text-foreground"
+                      aria-label={speech.isListening ? "Stop recording and transcribe" : speech.isStarting ? "Starting microphone" : speech.isTranscribing ? "Transcribing" : holdToRecord ? "Hold to talk, then release to review the transcript" : "Start recording"}
+                      title={speech.isListening ? "Click to stop and transcribe" : speech.isStarting ? "Starting microphone…" : speech.isTranscribing ? "Transcribing…" : `Click to record — ${speech.activeDeviceLabel}`}
+                      disabled={prepareMutation.isPending || isAnalyzing || speech.isStarting || speech.isTranscribing}
+                      onPointerDown={(event) => {
+                        if (!holdToRecord) return;
+                        event.preventDefault();
+                        event.currentTarget.setPointerCapture(event.pointerId);
                         void speech.start();
-                      }
-                    }}
-                  >
-                    {speech.isStarting || speech.isTranscribing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : speech.isListening ? (
-                      <MicOff className="h-4 w-4" />
-                    ) : (
-                      <Mic className="h-4 w-4" />
-                    )}
-                  </Button>
+                      }}
+                      onPointerUp={() => holdToRecord && speech.stop()}
+                      onPointerCancel={() => holdToRecord && speech.stop()}
+                      onKeyDown={(event) => {
+                        if (!holdToRecord) return;
+                        if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+                          event.preventDefault();
+                          void speech.start();
+                        }
+                      }}
+                      onKeyUp={(event) => {
+                        if (!holdToRecord) return;
+                        if (event.key === " " || event.key === "Enter") {
+                          event.preventDefault();
+                          speech.stop();
+                        }
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (holdToRecord) return;
+                        if (speech.isListening) {
+                          speech.stop();
+                        } else {
+                          void speech.start();
+                        }
+                      }}
+                    >
+                      {speech.isStarting || speech.isTranscribing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : speech.isListening ? (
+                        <MicOff className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <VoiceSettingsMenu
+                      speech={speech}
+                      holdToRecord={holdToRecord}
+                      onHoldToRecordChange={changeHoldToRecord}
+                      switchId="widget-hold-to-record"
+                    >
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-5 shrink-0 rounded-full px-0 text-foreground/50 hover:text-foreground"
+                        aria-label="Microphone and voice settings"
+                        title="Choose a microphone"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </VoiceSettingsMenu>
+                  </div>
+                  {speech.isListening ? (
+                    <div className="mb-3 h-1 w-8 shrink-0 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-cyan-500 transition-[width]" style={{ width: `${speech.level}%` }} />
+                    </div>
+                  ) : null}
                   <Textarea
                     ref={commandInputRef}
                     dir="ltr"
@@ -530,7 +570,7 @@ const AdminCopilotAssistant = () => {
                     value={command}
                     onChange={(event) => {
                       setCommand(event.target.value);
-                      if (inputMode === "voice") setTranscriptConfirmed(false);
+                      if (inputMode === "voice") setTranscriptConfirmed(true);
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {

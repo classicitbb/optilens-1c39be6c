@@ -8,7 +8,6 @@ import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { LensChatbot } from "@/components/LensChatbot";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -17,6 +16,7 @@ import {
   getStableStoreProductCartId,
   getStoreProductRoute,
 } from "@/hooks/useStoreProducts";
+import { useTradePricing } from "@/hooks/useTradePricing";
 import { getProductHubRoute } from "@/lib/productLinks";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createAuthHref } from "@/lib/authFlow";
@@ -31,7 +31,17 @@ const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
 type ProductLayout = "grid" | "list";
 type SortMode = "price_low_high" | "price_high_low";
 
-const ProductCard = ({ product, index, layout }: { product: StoreProduct; index: number; layout: ProductLayout }) => {
+const ProductCard = ({
+  product,
+  index,
+  layout,
+  isTradeCustomer,
+}: {
+  product: StoreProduct;
+  index: number;
+  layout: ProductLayout;
+  isTradeCustomer: boolean;
+}) => {
   const { addToCart } = useCartContext();
   const { user } = useAuth();
   const { canEdit } = useUserRole();
@@ -81,11 +91,16 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
           {user ? (
             <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[240px]">
               <div className="flex items-baseline justify-between gap-4">
-                <div className="text-2xl font-bold text-foreground">
-                  ${product.sell_price_usd.toFixed(2)}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {product.product_type === "supply" ? "/unit" : "/pair"}
-                  </span>
+                <div>
+                  <div className="text-2xl font-bold text-foreground">
+                    ${product.sell_price_usd.toFixed(2)}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {product.product_type === "supply" ? "/unit" : "/pair"}
+                    </span>
+                  </div>
+                  {isTradeCustomer && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-accent">Trade price</span>
+                  )}
                 </div>
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</span>
               </div>
@@ -209,11 +224,16 @@ const ProductCard = ({ product, index, layout }: { product: StoreProduct; index:
       <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
         {user ? (
           <>
-            <div className="text-2xl font-bold text-foreground">
-              ${product.sell_price_usd.toFixed(2)}
-              <span className="text-sm font-normal text-muted-foreground">
-                {product.product_type === "supply" ? "/unit" : "/pair"}
-              </span>
+            <div>
+              <div className="text-2xl font-bold text-foreground">
+                ${product.sell_price_usd.toFixed(2)}
+                <span className="text-sm font-normal text-muted-foreground">
+                  {product.product_type === "supply" ? "/unit" : "/pair"}
+                </span>
+              </div>
+              {isTradeCustomer && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-accent">Trade price</span>
+              )}
             </div>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</span>
             <Button variant="hero" size="sm" onClick={handleAdd}>
@@ -268,7 +288,8 @@ const Store = () => {
   const [sortMode, setSortMode] = useState<SortMode>("price_low_high");
   const [layout, setLayout] = useState<ProductLayout>("grid");
 
-  const { data: products, isLoading } = useStoreProducts();
+  const { tradePricing, customerId: tradeCustomerId, isTradeCustomer } = useTradePricing();
+  const { data: products, isLoading } = useStoreProducts(tradePricing, tradeCustomerId);
 
   const filtered = useMemo(() => {
     const categorySlug = initialCategory.toLowerCase();
@@ -416,6 +437,7 @@ const Store = () => {
                         product={product}
                         index={index}
                         layout={layout}
+                        isTradeCustomer={isTradeCustomer}
                       />
                     ))}
                   </div>
@@ -432,7 +454,6 @@ const Store = () => {
       </main>
 
       <Footer />
-      <LensChatbot />
     </div>
   );
 };

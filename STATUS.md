@@ -4,13 +4,28 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-08-22
+Last updated: 2026-09-01
 
 ---
 
 ## Active work
 
-- **Portal Copilot Helpdesk + voice reliability** — source now generates schema-valid Helpdesk ticket numbers, normalizes named priorities to the database's 0-5 scale, records through explicit click-to-start/click-to-stop audio capture, and formats the returned transcript for review. The `portal-copilot` and `voice-transcribe` functions still require deployment before live shared-environment verification.
+- **Iris AI-first response and two-front identity** — the public assistant now
+  withholds its deterministic high-confidence match while generation is in
+  progress, showing it only as a controlled fallback if generation fails. The
+  shared prompt now defines the public customer-experience front and the
+  authorized business-operations front. Her staged fictional portrait now
+  opens an in-page public profile with the approved bio, AI disclosure, and
+  explicit public-versus-operations boundary; no email mailbox,
+  LinkedIn profile, service account, or Edge Function deployment has occurred.
+  The approved actor-scoped access and controlled-admin-SQL contract is in
+  `docs/iris-data-access-contract.md`; an admin-only financial-data capability
+  is staged in source and still requires migration/Edge Function deployment.
+  The controlled SQL gateway remains intentionally unimplemented.
+
+- **Portal Copilot Helpdesk + voice reliability** — source now generates schema-valid Helpdesk ticket numbers, normalizes named priorities to the database's 0-5 scale, records through explicit click-to-start/click-to-stop audio capture, and inserts the formatted transcript directly into the active composer without a review gate; five seconds of silence stops and submits the transcription automatically. Sending remains explicit. The `portal-copilot` and `voice-transcribe` functions still require deployment before live shared-environment verification.
+
+- **Doc Studio annotation completion** — My Files now loads through the cloud bridge, searches saved-file content and metadata, filters by type, avoids the duplicate file-manager heading, keeps its dark styling limited to the sidebar, loads Material icons, exposes a blank-email Compose action, and autosaves edits to an open saved file. Local browser verification and focused tests passed; edge-function deployment is still required before shared-environment release.
 
 - **CV Portal Copilot connected capabilities** — source implementation now includes
   a deterministic qualified-CRM scan using contacts, order-health, opportunity

@@ -48,6 +48,13 @@ npm ci
 npm run dev
 ```
 
+For a double-clickable local preview that installs missing dependencies, builds
+the current checkout, and opens the site, run `launch-site.bat` (or the legacy
+`launchsite.bat` entry point). The launcher uses Node 22 and npm 10, and serves
+the preview on `http://127.0.0.1:8080` by default. Set `PORT` before launching
+only when 8080 is unavailable; it deliberately fails rather than silently
+switching to a different address.
+
 ## Security header regression checks
 
 Run policy tests locally:

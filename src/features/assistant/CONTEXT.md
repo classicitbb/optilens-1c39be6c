@@ -20,6 +20,9 @@ and internal knowledge retrieval layer.
 
 Full architecture doc: `docs/ai-knowledge-assistant-architecture.md`
 
+Shared Iris identity: `docs/ai-assistant-identity.md` and
+`supabase/functions/_shared/aiIdentity.ts`.
+
 ## Invariants
 
 - The assistant must route knowledge queries through the shared knowledge retrieval

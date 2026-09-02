@@ -1,0 +1,2703 @@
+// Precompiled Doc Studio logic. Loaded as a same-origin script so the runtime
+// does not need CSP-blocked string evaluation (`new Function`).
+(function registerDocStudioLogic() {
+  const DCLogic = window.__dcLogicBase;
+  if (typeof DCLogic !== "function") {
+    throw new Error("Doc Studio runtime logic base is unavailable");
+  }
+
+  class Component extends DCLogic {
+  KEY = 'cv_doc_studio_v1';
+
+  logos = null;
+  logoSrc = (key) => (this.logos && this.logos[key]) ? this.logos[key] : `/ds/assets/logo_${key}.svg`;
+  // PNG raster of the logo — SVG isn't reliably rendered in email clients or pasted content, so outputs use this.
+  logoPng = (key) => (this.logosPng && this.logosPng[key]) ? this.logosPng[key] : this.logoSrc(key);
+  rasterize = (svgDataUri, w, h) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => { try { const c = document.createElement('canvas'); c.width = w; c.height = h; const ctx = c.getContext('2d'); ctx.clearRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h); resolve(c.toDataURL('image/png')); } catch (e) { reject(e); } };
+    img.onerror = reject;
+    img.src = svgDataUri;
+  });
+  loadLogos = async () => {
+    try {
+      const base = '/ds/';
+      const raw = await (await fetch(base + 'assets/logo.svg')).text();
+      const mk = (c) => 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(raw.replace(/fill="#[0-9A-Fa-f]{6}"/, `fill="${c}"`))));
+      this.logos = { navy: mk('#0B1E35'), linen: mk('#F4F2ED'), gold: mk('#C89130'), teal: mk('#1A8A9C') };
+      this.forceUpdate();
+      // rasterize each variant to a PNG data URI for email/clipboard embedding
+      this.logosPng = {};
+      await Promise.all(Object.entries(this.logos).map(([k, uri]) => this.rasterize(uri, 132, 132).then(png => { this.logosPng[k] = png; }).catch(() => {})));
+      this.forceUpdate();
+    } catch (e) {}
+  };
+
+  esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  state = {
+    tab: 'email',
+    bCompany: 'Classic Visions', bWebsite: 'www.classicvisions.net', bEmail: 'info@classicvisions.net',
+    bPhone: '+1 246 433-4928', bPhone2: '+1 (246) 243-9703', brandOpen: false, dlOpen: false, docxOpen: false,
+    emHeader: 'navy', emFooter: 'navy',
+    emEyebrow: 'Company Update',
+    emPreheader: 'A quick note from the team at Classic Visions.',
+    emHeading: 'Clearer vision, delivered wholesale.',
+    emBody: `<p>Hi there,</p><p>We're writing with a quick update from the team at <strong>Classic Visions</strong>. Paste your blog post or announcement right here — every heading, list and link picks up the house style automatically.</p><h2>What's new this month</h2><ul><li>New polarized lens range, now shipping island-wide.</li><li>Faster turnaround on bulk frame orders.</li></ul><p>Questions? Just reply to this email and we'll take care of you.</p>`,
+    emCta: 'Read the full update', emCtaUrl: 'https://www.classicvisions.net',
+    emHeroUrl: '',
+    emTagline: 'Classic Visions — wholesale optical supply, Barbados.',
+    emDisclaimer: 'You are receiving this email as a valued Classic Visions trade partner. This message and any attachments are confidential.',
+    docType: 'business',
+    ltDate: '',
+    ltRecipient: 'Mr. David Brathwaite\nBrathwaite Optical\nBridgetown, Barbados',
+    ltSubject: 'Your June wholesale order',
+    ltSignName: 'First Name Last Name', ltSignTitle: 'Position',
+    ltEyebrow: 'Announcement', ltAmount: 'BBD $2,480.00',
+    ltTo: 'All Staff', ltFrom: 'Management', ltRe: 'Holiday opening hours',
+    ltBody: `<p>Thank you for your continued partnership with Classic Visions. We are pleased to confirm the details below and remain at your service for anything you need.</p><p>Please do not hesitate to reach out should any questions arise. We value your business and look forward to continuing to serve you.</p>`,
+    sgName: 'First Name Last Name', sgTitle: 'Position',
+    sgPhone: '+1 246 433-4928', sgEmail: 'email@classicvisions.net',
+    sgWeb: 'www.classicvisions.net', sgTagline: '', sgLogo: true,
+    emailLib: [], letterLib: [], sigLib: [], snippets: [],
+    smFormat: 'instagram', smStyle: 'navy', smHeadline: 'Vision starts here.', smHeadlineAlign: 'left', smHeadlineItalic: false, smBody: '', smSub: '', smHandle: '@classicvisions', smPostLib: [],
+    copied: '', libraryDelete: null,
+    // Shipping label
+    slFromName: 'Classic Visions', slFromAddr: 'Worthing, Christ Church\nBarbados', slFromPhone: '+1 246 433-4928',
+    slToName: '', slToCompany: '', slToAddr: '', slToPhone: '', slCarrier: '', slService: '', slTracking: '', slWeight: '', slDims: '', slNote: '',
+    // Customer statement
+    stCustomer: '', stAccount: '', stAddr: '', stFrom: '', stTo: '', stCurrency: 'BBD', stOpenBal: '0.00',
+    stRows: [{ id: '1', date: '', desc: '', patient: '', debit: '', credit: '' }], stNote: '',
+    stType: 'simple', stDbId: '', stDbData: null, stDbLoading: false, stStatementDate: '', stStatementNo: '',
+    stCurrentDue: '', stAging1: '', stAging2: '', stAging3: '', stAging4: '', stNewBalance: '',
+    stAgingDesc1: '30 Days', stAgingDesc2: '60 Days', stAgingDesc3: '90 Days', stAgingDesc4: '120+ Days',
+    stInvTotal: '', stCreditTotal: '', stDebitTotal: '', stRegularBal: '',
+    stRxAmount: '', stStockAmount: '', stNetAmount: '', stSuperNetAmount: '', stTaxAmount: '',
+    // Supplier identity (tax-compliance fields, shared)
+    bAddress: 'Worthing, Christ Church, Barbados', bRegNo: '', bVatReg: '',
+    // Bank details (shared, shown on invoice / quote / proforma)
+    bkBankName: '', bkAccName: 'Classic Visions', bkAccNo: '', bkBranch: '', bkSwift: '', bkNote: '',
+    // Billing — unified Invoice / Quotation / Pro Forma / Receipt
+    billType: 'invoice', blNumber: '', blDate: '', blDue: '', blPO: '',
+    blToName: '', blToCompany: '', blToAddr: '', blToAttn: '',
+    blCurrency: 'BBD', blVatEnabled: true, blVatRate: '17.5',
+    blDiscount: '', blShipping: '',
+    blRows: [{ id: '1', code: '', desc: '', qty: '1', unit: '', taxable: true }],
+    blPaidMethod: 'Bank transfer', blPaidRef: '', blAmountPaid: '',
+    blNotes: 'Thank you for your business. Please make payment by the due date shown above.',
+    billPaperSize: 'letter',
+    billSeq: { invoice: 1, quote: 1, proforma: 1, receipt: 1 },
+    lineItemLib: [], billDrafts: [],
+    billingFiles: [], sharedBillingFiles: [], billingFilesLoaded: false,
+    currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true,
+    billSaveState: 'Local recovery only', billShareOpen: false, billShareUsers: [], billCollaborators: [], billShareUserId: '', billShareAccess: 'view',
+    sidebarWidth: 396,
+    myFiles: [], myFilesLoaded: false, fileTypeFilter: '', fileAccessFilter: '', fileSearch: '', myFilesViewMode: 'grid', myFilesSortCol: 'date', myFilesSortDir: -1,
+    currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true,
+    fileSaveState: 'DB save ready', fileSaveDialogOpen: false, fileSaveDialogKind: '', fileSaveDialogMode: 'save', fileSaveDialogType: '', fileSaveDialogName: '', fileSaveDialogError: '', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
+    emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
+    emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
+    emailContacts: [], staffInviteDraft: false,
+    dsCustomers: [],
+    selectedStatementCustomer: '', selectedShipCustomer: '', selectedBillingCustomer: ''
+  };
+
+  componentDidMount() {
+    this.loadLogos();
+    try {
+      const raw = localStorage.getItem(this.KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        this.setState(s, () => { this.refreshTinyContent(); });
+      }
+    } catch (e) {}
+    this.consumeStaffInviteHandoff();
+    if (!this.state.ltDate) {
+      const dt = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      this.set('ltDate', dt);
+    }
+    if (!this.state.blDate) {
+      const dt = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      this.set('blDate', dt);
+    }
+    this.loadDocStudioSettings();
+    this.loadBillingSequences();
+    this.loadDocStudioData();
+    this.loadMyFiles();
+    window._dsApp = this;
+    this.loadBillingFiles();
+    // A stock quotation can hand off directly to its server-created billing
+    // document. Keep this optional so normal Studio launches remain unchanged.
+    const billingDocumentId = new URLSearchParams(location.search).get('billingDocument');
+    if (billingDocumentId) {
+      this.switchTab('billing');
+      this.openBillingFile(billingDocumentId);
+    }
+    this.loadFileShareUsers();
+    this.loadBillShareUsers();
+    setTimeout(() => { this._billingReady = true; }, 900);
+    this.scheduleControlMetadata();
+  }
+
+  componentDidUpdate() {
+    this.scheduleControlMetadata();
+    this.focusLibraryDeleteDialog();
+  }
+
+  scheduleControlMetadata = () => {
+    cancelAnimationFrame(this._controlMetadataFrame);
+    this._controlMetadataFrame = requestAnimationFrame(() => this.applyControlMetadata());
+  };
+
+  consumeStaffInviteHandoff = () => {
+    try {
+      const handoff = new URLSearchParams(window.location.search).get('staffInvite');
+      if (!handoff) return;
+      const key = 'cv_doc_studio_staff_invite:' + handoff;
+      const raw = sessionStorage.getItem(key);
+      // Keep the handoff for this browser tab so a refresh reconstructs the
+      // same draft. sessionStorage is cleared when the tab closes.
+      if (!raw) return;
+      const invite = JSON.parse(raw);
+      const name = String(invite.name || '').trim();
+      const email = String(invite.email || '').trim();
+      const password = String(invite.password || '');
+      if (!name || !email || !password) return;
+      const firstName = name.split(/\s+/)[0] || 'there';
+      this.setState({
+        tab: 'email',
+        emEyebrow: 'Staff access',
+        emPreheader: 'Your Classic Visions access is ready.',
+        emHeading: 'Your Classic Visions access is ready',
+        emBody: `<p>Hi ${this.esc(firstName)},</p><p>Your Classic Visions access has been set up.</p><p><strong>Email:</strong> ${this.esc(email)}<br><strong>Temporary password:</strong> ${this.esc(password)}</p><p>Please sign in and change this temporary password as soon as possible.</p><p>If you need help, simply reply to this email.</p>`,
+        emCta: 'Open Classic Visions',
+        emCtaUrl: window.location.origin,
+        emailTo: email,
+        emailSubject: 'Your Classic Visions access is ready',
+        emailSendOpen: true,
+        emailSendError: '',
+        staffInviteDraft: true
+      }, () => { this.refreshTinyContent(); this.loadEmailSendData(); });
+    } catch (e) {}
+  };
+
+  applyControlMetadata = () => {
+    const root = document.getElementById('dc-root');
+    if (!root) return;
+    const names = new Map();
+    const labelFor = (control) => {
+      const caption = [...(control.parentElement?.children || [])]
+        .find((sibling) => sibling !== control && sibling.tagName === 'DIV')
+        ?.textContent?.replace(/\s+/g, ' ').trim();
+      return caption || control.getAttribute('placeholder') || 'Document field';
+    };
+
+    root.querySelectorAll('input.cv-in, textarea.cv-in, select.cv-in').forEach((control) => {
+      const label = labelFor(control);
+      const key = this.slug(label);
+      const occurrence = (names.get(key) || 0) + 1;
+      names.set(key, occurrence);
+      control.setAttribute('aria-label', label);
+      control.setAttribute('name', `doc-studio-${this.state.tab}-${key}-${occurrence}`);
+      control.setAttribute('autocomplete', 'off');
+    });
+
+    root.querySelectorAll('button').forEach((button) => {
+      if (button.textContent.trim() !== '×' || button.hasAttribute('aria-label')) return;
+      const nearby = button.parentElement?.textContent?.toLowerCase() || '';
+      const label = /(brand details|share billing file|share file)/.test(nearby) ? 'Close dialog' : 'Remove item';
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+    });
+  };
+
+  focusLibraryDeleteDialog = () => {
+    const pending = this.state.libraryDelete;
+    const key = pending ? `${pending.collection}:${pending.id}` : '';
+    if (!key) { this._focusedLibraryDelete = ''; return; }
+    if (this._focusedLibraryDelete === key) return;
+    this._focusedLibraryDelete = key;
+    requestAnimationFrame(() => document.getElementById('ds-library-delete-dialog')?.focus());
+  };
+
+  // ---------- persistence ----------
+  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
+  set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); if (this.isCurrentFileField(k)) this.scheduleFileAutosave(); if (this.isIssuerField(k)) this.saveDocStudioSettingsSoon(); }); };
+  toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
+
+  toggleBrand = () => this.setState(s => ({ brandOpen: !s.brandOpen }));
+  toggleDl = () => this.setState(s => ({ dlOpen: !s.dlOpen }));
+
+  slug = (s) => (String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 44)) || 'classic-visions-email';
+  downloadFile = (name, content, mime) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  };
+  emailDocHtml = () => {
+    const esc = this.esc, d = this.state;
+    const subject = d.emHeading || d.emEyebrow || this.brand().name;
+    return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>${esc(subject)}</title>\n<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">\n<style>body{margin:0;padding:0;background:#F4F2ED;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}img{border:0;line-height:100%;outline:none;text-decoration:none}table{border-collapse:collapse}</style></head>\n<body style="margin:0;padding:0;background:#F4F2ED">\n${this.buildEmail()}\n</body></html>`;
+  };
+  dlHtml = () => { this.setState({ dlOpen: false }); this.downloadFile(this.slug(this.state.emHeading) + '.html', this.emailDocHtml(), 'text/html;charset=utf-8'); this.toast('Downloaded HTML email'); };
+  dlEml = () => {
+    this.setState({ dlOpen: false });
+    const subject = (this.state.emHeading || this.state.emEyebrow || this.brand().name).replace(/[\r\n]+/g, ' ');
+    let html = this.emailDocHtml();
+    // Pull every inline PNG data-URI (the logo) out into a related MIME part referenced by cid:
+    // so it embeds reliably in Outlook / Apple Mail rather than relying on data: URIs.
+    const parts = [], cidMap = {}; let n = 0;
+    html = html.replace(/data:image\/png;base64,[A-Za-z0-9+\/=]+/g, (m) => {
+      if (!cidMap[m]) { n++; const cid = 'logo' + n + '.cv@classicvisions'; cidMap[m] = cid; parts.push({ cid, b64: m.slice(m.indexOf(',') + 1) }); }
+      return 'cid:' + cidMap[m];
+    });
+    const wrap76 = (s) => s.replace(/.{1,76}/g, '$&\r\n').replace(/\r\n$/, '');
+    let eml;
+    if (parts.length) {
+      const bd = 'cv_rel_' + Date.now();
+      const lines = ['X-Unsent: 1', 'To: ', 'Subject: ' + subject, 'MIME-Version: 1.0', 'Content-Type: multipart/related; boundary="' + bd + '"', '', '--' + bd, 'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: 8bit', '', html, ''];
+      parts.forEach(p => { lines.push('--' + bd, 'Content-Type: image/png', 'Content-Transfer-Encoding: base64', 'Content-ID: <' + p.cid + '>', 'Content-Disposition: inline; filename="logo.png"', '', wrap76(p.b64), ''); });
+      lines.push('--' + bd + '--', '');
+      eml = lines.join('\r\n');
+    } else {
+      eml = ['X-Unsent: 1', 'To: ', 'Subject: ' + subject, 'MIME-Version: 1.0', 'Content-Type: text/html; charset=utf-8', 'Content-Transfer-Encoding: 8bit', '', html].join('\r\n');
+    }
+    this.downloadFile(this.slug(this.state.emHeading) + '.eml', eml, 'message/rfc822');
+    this.toast('Downloaded .eml — open it to send');
+  };
+
+  emailSubjectLine = () => (this.state.emHeading || this.state.emEyebrow || this.brand().name).replace(/[\r\n]+/g, ' ').trim();
+  splitEmails = (value) => String(value || '').split(/[,\n;]/).map(v => v.trim()).filter(Boolean);
+  isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  uniqueEmails = (values) => {
+    const seen = new Set();
+    return values.filter((email) => {
+      const key = String(email || '').trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+  selectedEmailCandidates = () => {
+    const d = this.state;
+    const accounts = [d.selectedStatementCustomer, d.selectedBillingCustomer, d.selectedShipCustomer].filter(Boolean);
+    return this.uniqueEmails(accounts.map(account => this.findCustomer(account)?.email).filter(Boolean));
+  };
+  loadEmailSendData = async () => {
+    try {
+      const [defaults, contacts] = await Promise.all([
+        this.docApi('/api/docstudio/email/defaults').catch(() => ({})),
+        this.docApi('/api/docstudio/email/contacts').catch(() => ({ contacts: [] }))
+      ]);
+      this.setState({
+        emailFromLabel: defaults.from || this.state.emailFromLabel,
+        emailDefaultReplyTo: defaults.replyTo || this.state.emailDefaultReplyTo,
+        emailReplyTo: this.state.emailReplyTo || defaults.replyTo || this.brand().email,
+        emailContacts: Array.isArray(contacts.contacts) ? contacts.contacts : []
+      });
+    } catch (e) {}
+  };
+  openEmailSend = async () => {
+    this.syncActive();
+    if (!this.state.emailDefaultReplyTo || !(this.state.emailContacts || []).length) await this.loadEmailSendData();
+    const selected = this.selectedEmailCandidates();
+    this.setState((s) => ({
+      emailSendOpen: true,
+      emailContactsOpen: false,
+      emailSendError: '',
+      emailTo: s.emailTo || selected.join(', '),
+      emailReplyTo: s.emailReplyTo || s.emailDefaultReplyTo || this.brand().email,
+      emailSubject: s.emailSubject || this.emailSubjectLine()
+    }));
+  };
+  closeEmailSend = () => this.setState({ emailSendOpen: false, emailSendError: '', emailSending: false });
+  toggleEmailContacts = () => this.setState(s => ({ emailContactsOpen: !s.emailContactsOpen }));
+  showEmailCc = () => this.setState({ emailCcOpen: true });
+  showEmailBcc = () => this.setState({ emailBccOpen: true });
+  setEmailTo = (e) => this.setState({ emailTo: e.target.value, emailSendError: '' });
+  setEmailCc = (e) => this.setState({ emailCc: e.target.value, emailSendError: '' });
+  setEmailBcc = (e) => this.setState({ emailBcc: e.target.value, emailSendError: '' });
+  setEmailReplyTo = (e) => this.setState({ emailReplyTo: e.target.value, emailSendError: '' });
+  setEmailSubject = (e) => this.setState({ emailSubject: e.target.value, emailSendError: '' });
+  toggleEmailContact = (email) => {
+    const target = String(email || '').trim();
+    if (!target) return;
+    this.setState((s) => {
+      const current = this.splitEmails(s.emailTo);
+      const exists = current.some(v => v.toLowerCase() === target.toLowerCase());
+      const next = exists ? current.filter(v => v.toLowerCase() !== target.toLowerCase()) : [...current, target];
+      return { emailTo: next.join(', '), emailSendError: '' };
+    });
+  };
+  sendEmailNow = async () => {
+    if (this.state.emailSending) return;
+    const to = this.uniqueEmails(this.splitEmails(this.state.emailTo));
+    const cc = this.uniqueEmails(this.splitEmails(this.state.emailCc));
+    const bcc = this.uniqueEmails(this.splitEmails(this.state.emailBcc));
+    const replyTo = String(this.state.emailReplyTo || '').trim();
+    const all = [...to, ...cc, ...bcc, replyTo].filter(Boolean);
+    const invalid = all.find(v => !this.isValidEmail(v));
+    if (!to.length) return this.setState({ emailSendError: 'Add at least one recipient.' });
+    if (invalid) return this.setState({ emailSendError: 'Check this email address: ' + invalid });
+    if (!String(this.state.emailSubject || '').trim()) return this.setState({ emailSendError: 'Add a subject line.' });
+    this.setState({ emailSending: true, emailSendError: '' });
+    try {
+      await this.docApi('/api/docstudio/email/send', {
+        method: 'POST',
+        body: {
+          to,
+          cc,
+          bcc,
+          replyTo,
+          subject: this.state.emailSubject,
+          html: this.emailDocHtml()
+        }
+      });
+      this.setState({ emailSending: false, emailSendOpen: false, emailTo: '', emailCc: '', emailBcc: '', emailSendError: '' });
+      this.toast('Email queued for sending');
+    } catch (err) {
+      this.setState({ emailSending: false, emailSendError: err && err.message ? err.message : 'Email could not be sent.' });
+    }
+  };
+
+  // ---------- letter: Word / Google Docs export ----------
+  toggleDocx = () => this.setState(s => ({ docxOpen: !s.docxOpen }));
+  letterDocHtml = () => {
+    const esc = this.esc;
+    const title = this.state.ltSubject || (this.brand().name + ' Letter');
+    return `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>${esc(title)}</title>\n`
+      + `<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">\n`
+      + `<style>@page{margin:0}body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif}</style></head>\n`
+      + `<body>${this.buildLetter()}</body></html>`;
+  };
+  exportLetterWord = () => {
+    this.setState({ docxOpen: false });
+    // Word opens an HTML document and renders it with full CSS fidelity, so the
+    // file matches the preview and stays fully editable. Office namespaces tell
+    // Word to treat it as a Word document.
+    const inner = this.letterDocHtml().replace(/^[\s\S]*?<html[^>]*>/i, '').replace(/<\/html>\s*$/i, '');
+    const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" '
+      + 'xmlns:w="urn:schemas-microsoft-com:office:word" '
+      + 'xmlns="http://www.w3.org/TR/REC-html40">' + inner + '</html>';
+    this.downloadFile(this.slug(this.state.ltSubject || 'classic-visions-letter') + '.doc', doc, 'application/msword');
+    this.toast('Downloaded Word document');
+  };
+  openLetterGoogleDocs = async () => {
+    this.setState({ docxOpen: false });
+    await this.copyRich(this.buildLetter());
+    window.open('https://docs.google.com/document/create', '_blank', 'noopener');
+    this.toast('Letter copied — press Ctrl/Cmd+V to paste into Google Docs');
+  };
+
+  brand = () => ({
+    name: this.state.bCompany || 'Classic Visions',
+    email: this.state.bEmail || 'info@classicvisions.net',
+    web: this.state.bWebsite || 'www.classicvisions.net',
+    phone: this.state.bPhone || '+1 246 433-4928',
+    phone2: this.state.bPhone2 || '+1 (246) 243-9703'
+  });
+
+  // ---------- TinyMCE rich text editors ----------
+  TINY = {};
+  TINY_HOSTS = {};
+  TINY_MOUNT_IDS = {};
+  TINY_KEYS = { email: 'emBody', letter: 'ltBody', social: 'smBody' };
+  mountTiny = (tab, node) => {
+    if (!node || typeof tinymce === 'undefined') return;
+    // The host survives tab switches and file saves. Only skip mounting when
+    // this exact host still owns a live editor; a stale data flag must never
+    // prevent the editor from coming back.
+    if (node.dataset.tmceMounted === '1' && this.TINY_HOSTS[tab] === node && this.TINY[tab]) return;
+    if (node.dataset.tmceMounted === '1') node.dataset.tmceMounted = '0';
+    const mountId = (this.TINY_MOUNT_IDS[tab] || 0) + 1;
+    this.TINY_MOUNT_IDS[tab] = mountId;
+    this.TINY_HOSTS[tab] = node;
+    node.dataset.tmceMounted = '1';
+    const ta = document.createElement('textarea');
+    ta.dataset.tmceMountId = String(mountId);
+    node.appendChild(ta);
+    const self = this, key = this.TINY_KEYS[tab];
+    tinymce.init({
+      target: ta,
+      menubar: false, statusbar: false, branding: false, resize: false, toolbar_sticky: false,
+      plugins: 'lists link autolink image',
+      toolbar: 'bold italic | blocks | bullist numlist | link image | alignleft aligncenter alignjustify | removeformat',
+      toolbar_mode: 'wrap',
+      block_formats: 'Paragraph=p; Heading=h2; Subheading=h3',
+      height: tab === 'social' ? 230 : 300,
+      convert_urls: false, relative_urls: false, paste_data_images: true,
+      // Insert/edit image dialog: add a Browse button that picks a local image
+      // file and embeds it as a data URL (no server upload needed).
+      automatic_uploads: false,
+      object_resizing: true,
+      image_dimensions: true,
+      image_advtab: true,
+      file_picker_types: 'image',
+      file_picker_callback: (cb, value, meta) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.addEventListener('change', () => {
+          const file = input.files && input.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => { cb(reader.result, { title: file.name, alt: file.name }); };
+          reader.readAsDataURL(file);
+        });
+        input.click();
+      },
+      skin: 'oxide', content_css: false,
+      content_style: "@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap'); body{font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:13.5px;line-height:1.65;color:#0B1E35;margin:12px 14px} h2{font-size:18px;font-weight:800;letter-spacing:-.01em} h3{font-size:15px;font-weight:700} a{color:#1A8A9C} img{max-width:100%}",
+      setup: (ed) => {
+        if (self.TINY_MOUNT_IDS[tab] !== mountId) {
+          ed.on('init', () => { try { ed.remove(); } catch (e) {} });
+          return;
+        }
+        self.TINY[tab] = ed;
+        ed.on('init', () => {
+          if (self.TINY_MOUNT_IDS[tab] !== mountId || self.TINY_HOSTS[tab] !== node || node.dataset.tmceMounted !== '1') {
+            try { ed.remove(); } catch (e) {}
+            return;
+          }
+          ed.setContent(self.state[key] || '');
+          const sync = () => { self.setState({ [key]: ed.getContent() }, () => { self.persistSoon(); self.scheduleFileAutosave(); }); };
+          ed.on('input change undo redo ExecCommand', sync);
+        });
+      }
+    }).catch(() => {
+      if (self.TINY_MOUNT_IDS[tab] === mountId && self.TINY_HOSTS[tab] === node) {
+        node.dataset.tmceMounted = '0';
+        if (self.TINY[tab] && self.TINY[tab].targetElm === ta) self.TINY[tab] = null;
+        ta.remove();
+      }
+    });
+  };
+  syncTiny = (tab) => { const ed = this.TINY[tab], key = this.TINY_KEYS[tab]; if (ed && key) { try { this.setState({ [key]: ed.getContent() }); } catch (e) {} } };
+  destroyTiny = (tab) => {
+    this.TINY_MOUNT_IDS[tab] = (this.TINY_MOUNT_IDS[tab] || 0) + 1;
+    const ed = this.TINY[tab];
+    const node = this.TINY_HOSTS[tab];
+    if (ed) { try { ed.remove(); } catch (e) {} }
+    this.TINY[tab] = null;
+    if (node) {
+      node.dataset.tmceMounted = '0';
+      node.querySelectorAll('.tox-tinymce, textarea').forEach(child => child.remove());
+    }
+  };
+  refreshTinyContent = () => { Object.keys(this.TINY_KEYS).forEach(tab => { const ed = this.TINY[tab]; if (ed) { try { ed.setContent(this.state[this.TINY_KEYS[tab]] || ''); } catch (e) {} } }); };
+  activeTiny = () => this.TINY[this.state.tab];
+  setEmailHost = (node) => this.mountTiny('email', node);
+  setLetterHost = (node) => this.mountTiny('letter', node);
+  setSocialHost = (node) => this.mountTiny('social', node);
+
+  // ---------- editors (legacy contentEditable helpers, retained for non-body paths) ----------
+  setEmailEditor = (el) => { if (el) { this.emailEditor = el; if (el.dataset.i !== '1') { el.dataset.i = '1'; el.innerHTML = this.state.emBody || ''; this.styleEditorImages(el); } } };
+  setLetterEditor = (el) => { if (el) { this.letterEditor = el; if (el.dataset.i !== '1') { el.dataset.i = '1'; el.innerHTML = this.state.ltBody || ''; this.styleEditorImages(el); } } };
+  setSocialEditor = (el) => { if (el) { this.socialEditor = el; if (el.dataset.i !== '1') { el.dataset.i = '1'; el.innerHTML = this.state.smBody || ''; this.styleEditorImages(el); } } };
+  onEmailInput = (e) => { this.setState({ emBody: e.currentTarget.innerHTML }); this.persistSoon(); };
+  onLetterInput = (e) => { this.setState({ ltBody: e.currentTarget.innerHTML }); this.persistSoon(); };
+  onSocialInput = (e) => { this.setState({ smBody: e.currentTarget.innerHTML }); this.persistSoon(); };
+  activeEditor = () => this.state.tab === 'letter' ? this.letterEditor : this.state.tab === 'social' ? this.socialEditor : this.emailEditor;
+  syncActive = () => { const ed = this.activeEditor(); if (!ed) return; if (this.state.tab === 'letter') this.setState({ ltBody: ed.innerHTML }); else if (this.state.tab === 'social') this.setState({ smBody: ed.innerHTML }); else this.setState({ emBody: ed.innerHTML }); this.persistSoon(); };
+
+  onEmailPaste = (e) => this.handlePaste(e);
+  onLetterPaste = (e) => this.handlePaste(e);
+  onSocialPaste = (e) => this.handlePaste(e);
+  handlePaste = (e) => {
+    e.preventDefault();
+    const cb = e.clipboardData; if (!cb) return;
+    const imageFile = [...(cb.files || [])].find(f => /^image\//.test(f.type));
+    if (imageFile) {
+      const reader = new FileReader();
+      reader.onload = () => { this.insertImage(reader.result); };
+      reader.readAsDataURL(imageFile);
+      return;
+    }
+    let html = cb.getData('text/html');
+    if (html) { html = this.sanitize(html); }
+    else {
+      const t = cb.getData('text/plain') || '';
+      html = t.split(/\n{2,}/).filter(Boolean).map(p => '<p>' + this.esc(p).replace(/\n/g, '<br>') + '</p>').join('');
+    }
+    try { document.execCommand('insertHTML', false, html); } catch (er) { const ed = this.activeEditor(); if (ed) ed.innerHTML += html; }
+    this.styleEditorImages(this.activeEditor());
+    this.syncActive();
+  };
+
+  fmt = (cmd, val) => { const ed = this.activeEditor(); if (ed) { ed.focus(); try { document.execCommand(cmd, false, val); } catch (e) {} } this.syncActive(); };
+  fmtBold = () => this.fmt('bold');
+  fmtItalic = () => this.fmt('italic');
+  fmtP = () => this.fmt('formatBlock', 'P');
+  fmtH2 = () => this.fmt('formatBlock', 'H2');
+  fmtUL = () => this.fmt('insertUnorderedList');
+  fmtCenter = () => this.fmt('justifyCenter');
+  fmtJustify = () => this.fmt('justifyFull');
+  fmtLink = () => { const u = prompt('Link URL (https://…)'); if (u) this.fmt('createLink', u); };
+  onEditorClick = (e) => {
+    if (e.target && e.target.tagName === 'IMG') this.selectImage(e.target);
+  };
+  selectImage = (img) => {
+    if (this.activeImage && this.activeImage !== img) this.activeImage.style.outline = '';
+    this.activeImage = img;
+    img.style.outline = '2px solid #1A8A9C';
+    img.style.outlineOffset = '2px';
+  };
+  styleEditorImages = (ed) => {
+    if (!ed) return;
+    ed.querySelectorAll('img').forEach(img => {
+      img.dataset.imgWidth = String(Math.max(20, Math.min(100, parseInt(img.dataset.imgWidth || img.getAttribute('width') || '100', 10) || 100)));
+      img.dataset.imgRadius = img.dataset.imgRadius === '18' ? '18' : '0';
+      img.dataset.imgShadow = img.dataset.imgShadow === '1' ? '1' : '0';
+      img.dataset.imgAlign = ['left', 'right', 'center'].includes(img.dataset.imgAlign) ? img.dataset.imgAlign : 'center';
+      img.setAttribute('style', this.imgStyle(img, { editor: true }));
+    });
+  };
+  imageHtml = (src) => `<p><img src="${this.esc(src)}" alt="" data-img-width="100" data-img-radius="0" data-img-shadow="0" data-img-align="center" style="${this.imgStyle({ dataset: { imgWidth:'100', imgRadius:'0', imgShadow:'0', imgAlign:'center' } }, { editor: true })}"></p>`;
+  insertImage = (src) => {
+    if (!/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(src || '') && !/^https?:\/\//i.test(src || '')) return;
+    const html = this.imageHtml(src);
+    const ed = this.activeEditor();
+    if (ed) ed.focus();
+    try { document.execCommand('insertHTML', false, html); } catch (e) { if (ed) ed.innerHTML += html; }
+    this.syncActive();
+  };
+  activeEditorImage = () => {
+    const ed = this.activeEditor();
+    if (this.activeImage && ed && ed.contains(this.activeImage)) return this.activeImage;
+    return ed ? ed.querySelector('img') : null;
+  };
+  restyleEditorImage = (img) => {
+    img.setAttribute('style', this.imgStyle(img, { editor: true }));
+    this.selectImage(img);
+    this.syncActive();
+  };
+  fmtImgLarger = () => {
+    const img = this.activeEditorImage(); if (!img) { this.toast('Click an image first'); return; }
+    img.dataset.imgWidth = String(Math.min(100, (parseInt(img.dataset.imgWidth || '100', 10) || 100) + 10));
+    this.restyleEditorImage(img);
+  };
+  fmtImgSmaller = () => {
+    const img = this.activeEditorImage(); if (!img) { this.toast('Click an image first'); return; }
+    img.dataset.imgWidth = String(Math.max(20, (parseInt(img.dataset.imgWidth || '100', 10) || 100) - 10));
+    this.restyleEditorImage(img);
+  };
+  fmtImgRound = () => {
+    const img = this.activeEditorImage(); if (!img) { this.toast('Click an image first'); return; }
+    img.dataset.imgRadius = img.dataset.imgRadius === '18' ? '0' : '18';
+    this.restyleEditorImage(img);
+  };
+  fmtImgShadow = () => {
+    const img = this.activeEditorImage(); if (!img) { this.toast('Click an image first'); return; }
+    img.dataset.imgShadow = img.dataset.imgShadow === '1' ? '0' : '1';
+    this.restyleEditorImage(img);
+  };
+  smHeadlineItalicToggle = () => this.set('smHeadlineItalic', !this.state.smHeadlineItalic);
+  smHeadlineLeft = () => this.set('smHeadlineAlign', 'left');
+  smHeadlineCenter = () => this.set('smHeadlineAlign', 'center');
+  smHeadlineRight = () => this.set('smHeadlineAlign', 'right');
+
+  switchTab = (k) => {
+    const cur = this.state.tab;
+    this.syncTiny(cur);
+    this.destroyTiny(cur);
+    const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
+    this.setState({ tab: k, ...reset }, this.persistSoon);
+  };
+
+  composeNewEmail = () => {
+    this.syncTiny('email');
+    this.destroyTiny('email');
+    this.setState({
+      tab: 'email', emHeader: 'navy', emFooter: 'navy', emEyebrow: '', emPreheader: '', emHeading: '', emBody: '', emCta: '', emCtaUrl: '', emHeroUrl: '', emTagline: '', emDisclaimer: '',
+      currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready'
+    }, () => { const host = this.TINY_HOSTS.email; if (host) this.mountTiny('email', host); this.persist(); });
+  };
+
+  // ---------- sanitize / theme ----------
+  sanitize = (html) => {
+    const d = document.createElement('div'); d.innerHTML = html || '';
+    d.querySelectorAll('script,style,meta,link,svg,iframe,table,thead,tbody,tr,td,th,figure,figcaption,header,footer,nav').forEach(n => n.remove());
+    const ren = (sel, tag) => d.querySelectorAll(sel).forEach(n => { const e = document.createElement(tag); while (n.firstChild) e.appendChild(n.firstChild); n.replaceWith(e); });
+    ren('b,strong', 'strong'); ren('i,em', 'em'); ren('h1', 'h2'); ren('h4,h5,h6', 'h3'); ren('div,section,article,p', 'p');
+    d.querySelectorAll('img').forEach(img => {
+      const src = img.getAttribute('src') || '';
+      if (!/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(src) && !/^https?:\/\//i.test(src)) { img.remove(); return; }
+      img.setAttribute('src', src);
+      img.setAttribute('alt', img.getAttribute('alt') || '');
+      img.dataset.imgWidth = String(Math.max(20, Math.min(100, parseInt(img.dataset.imgWidth || img.getAttribute('width') || '100', 10) || 100)));
+      img.dataset.imgRadius = img.dataset.imgRadius === '18' ? '18' : '0';
+      img.dataset.imgShadow = img.dataset.imgShadow === '1' ? '1' : '0';
+      img.dataset.imgAlign = ['left', 'right', 'center'].includes(img.dataset.imgAlign) ? img.dataset.imgAlign : 'center';
+    });
+    d.querySelectorAll('p,h2,h3,li,blockquote').forEach(n => {
+      const align = String(n.style.textAlign || n.getAttribute('align') || n.dataset.textAlign || '').toLowerCase();
+      if (['left', 'center', 'right', 'justify'].includes(align)) n.dataset.textAlign = align;
+    });
+    d.querySelectorAll('*').forEach(n => { [...n.attributes].forEach(a => {
+      const keepLink = n.tagName === 'A' && a.name === 'href';
+      const keepImg = n.tagName === 'IMG' && ['src', 'alt', 'data-img-width', 'data-img-radius', 'data-img-shadow', 'data-img-align'].includes(a.name);
+      const keepTextAlign = ['P', 'H2', 'H3', 'LI', 'BLOCKQUOTE'].includes(n.tagName) && a.name === 'data-text-align';
+      if (!keepLink && !keepImg && !keepTextAlign) n.removeAttribute(a.name);
+    }); });
+    const ok = new Set(['H2', 'H3', 'P', 'UL', 'OL', 'LI', 'A', 'STRONG', 'EM', 'BR', 'BLOCKQUOTE', 'HR', 'IMG']);
+    let pass = 0;
+    while (pass++ < 6) {
+      let changed = false;
+      d.querySelectorAll('*').forEach(n => { if (!ok.has(n.tagName)) { const p = n.parentNode; if (!p) return; while (n.firstChild) p.insertBefore(n.firstChild, n); p.removeChild(n); changed = true; } });
+      if (!changed) break;
+    }
+    d.querySelectorAll('p').forEach(p => { if (!p.textContent.trim() && !p.querySelector('br,a,img')) p.remove(); });
+    return d.innerHTML;
+  };
+
+  imgStyle = (img, opts) => {
+    opts = opts || {};
+    const r = img.dataset.imgRadius === '18' ? 18 : 0;
+    const shadow = img.dataset.imgShadow === '1';
+    const align = ['left', 'right', 'center'].includes(img.dataset.imgAlign) ? img.dataset.imgAlign : 'center';
+    const margin = align === 'left' ? '10px auto 14px 0' : align === 'right' ? '10px 0 14px auto' : '10px auto 14px';
+    const box = shadow ? '0 14px 34px -16px rgba(11,30,53,.45)' : 'none';
+    // An explicit size set via the image dialog or drag-resize (px or %) takes
+    // priority so the preview matches what the user sized in the editor. Falls
+    // back to the legacy percentage control (data-img-width).
+    const sw = (img.style && img.style.width) || '';
+    const aw = (img.getAttribute && img.getAttribute('width')) || '';
+    const sh = (img.style && img.style.height) || '';
+    const ah = (img.getAttribute && img.getAttribute('height')) || '';
+    let widthCss = /^\d+(\.\d+)?(px|%)$/.test(sw) ? sw : (/^\d+$/.test(aw) ? aw + 'px' : '');
+    if (!widthCss) {
+      const w = Math.max(20, Math.min(100, parseInt(img.dataset.imgWidth || '100', 10) || 100));
+      widthCss = w + '%';
+    }
+    const heightCss = /^\d+(\.\d+)?px$/.test(sh) ? sh : (/^\d+$/.test(ah) ? ah + 'px' : 'auto');
+    return `display:block;width:${widthCss};max-width:100%;height:${heightCss};border:0;border-radius:${r}px;box-shadow:${box};margin:${margin};outline:${opts.editor ? 'none' : '0'}`;
+  };
+  textAlignStyle = (n) => {
+    const align = n && ['left', 'center', 'right', 'justify'].includes(n.dataset.textAlign) ? n.dataset.textAlign : '';
+    return align ? `;text-align:${align}` : '';
+  };
+  textOnly = (html) => {
+    const d = document.createElement('div'); d.innerHTML = html || '';
+    return (d.textContent || '').replace(/\s+/g, ' ').trim();
+  };
+  fitScale = (text, capacity, min) => {
+    const len = Math.max(1, this.textOnly(text).length);
+    const raw = Math.sqrt(Math.max(1, capacity) / len);
+    return Math.max(min || .55, Math.min(1, raw));
+  };
+  socialFit = (fmt, headline, bodyHtml, sub) => {
+    const textLen = this.textOnly(bodyHtml).length + this.textOnly(sub).length;
+    const bodyBlocks = (String(bodyHtml || '').match(/<(p|li|h2|h3|blockquote|img)\b/gi) || []).length;
+    const imgCount = (String(bodyHtml || '').match(/<img\b/gi) || []).length;
+    const cap = fmt === 'whatsapp_status' ? 900 : fmt === 'outdoor' ? 520 : fmt === 'instagram' ? 620 : 420;
+    const bodyScale = Math.max(.42, Math.min(1, Math.sqrt(cap / Math.max(1, textLen + bodyBlocks * 42 + imgCount * 90))));
+    const headCap = fmt === 'outdoor' ? 32 : fmt === 'whatsapp_status' ? 42 : fmt === 'instagram' ? 34 : 28;
+    const headScale = Math.max(.44, Math.min(1, Math.sqrt(headCap / Math.max(1, this.textOnly(headline).length))));
+    return { body: bodyScale, head: headScale };
+  };
+  fitFont = (base, scale, min) => Math.max(min || 8, Math.round(base * scale));
+  clampTextStyle = () => 'overflow-wrap:anywhere;word-break:normal;hyphens:auto';
+
+  styleBody = (html) => {
+    const fit = this.fitScale(html, 1700, .72);
+    const p = this.fitFont(15, fit, 10), h2 = this.fitFont(17, fit, 12), h3 = this.fitFont(14.5, fit, 11), li = this.fitFont(15, fit, 10);
+    const map = {
+      H1: `font:800 ${this.fitFont(21, fit, 13)}px/1.2 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin:${Math.round(26*fit)}px 0 ${Math.round(10*fit)}px;${this.clampTextStyle()}`,
+      H2: `font:700 ${h2}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.01em;color:#0B1E35;margin:${Math.round(24*fit)}px 0 ${Math.round(8*fit)}px;${this.clampTextStyle()}`,
+      H3: `font:700 ${h3}px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin:${Math.round(20*fit)}px 0 ${Math.round(6*fit)}px;${this.clampTextStyle()}`,
+      P: `font:400 ${p}px/1.62 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round(14*fit)}px;${this.clampTextStyle()}`,
+      UL: `margin:0 0 ${Math.round(14*fit)}px;padding-left:${Math.round(22*fit)}px`, OL: `margin:0 0 ${Math.round(14*fit)}px;padding-left:${Math.round(22*fit)}px`,
+      LI: `font:400 ${li}px/1.55 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round(6*fit)}px;${this.clampTextStyle()}`,
+      A: "color:#1A8A9C;text-decoration:underline",
+      STRONG: "font-weight:700;color:#0B1E35", EM: "font-style:italic",
+      BLOCKQUOTE: "margin:0 0 16px;padding:4px 0 4px 18px;border-left:3px solid #C89130;color:#5b6b7c;font-style:italic",
+      HR: "border:0;border-top:1px solid #e7e4db;margin:22px 0"
+    };
+    const d = document.createElement('div'); d.innerHTML = html || '';
+    d.querySelectorAll('*').forEach(n => { const s = n.tagName === 'IMG' ? this.imgStyle(n) : map[n.tagName]; if (s) n.setAttribute('style', s + this.textAlignStyle(n)); });
+    return d.innerHTML;
+  };
+
+  styleSocialBody = (html, opts) => {
+    const safe = this.sanitize(html || '');
+    if (!safe) return '';
+    opts = opts || {};
+    const color = opts.color || '#5b6b7c';
+    const strong = opts.strong || color;
+    const accent = opts.accent || '#1A8A9C';
+    const scale = opts.scale || 1;
+    const base = Math.max(8, Math.round((opts.base || 22) * scale));
+    const h2 = Math.round(base * 1.18);
+    const li = Math.max(8, Math.round(base * 0.9));
+    const d = document.createElement('div'); d.innerHTML = safe;
+    d.querySelectorAll('*').forEach(n => {
+      const map = {
+        H2: `font:800 ${h2}px/1.12 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.015em;color:${strong};margin:${Math.round(base*.65)}px 0 ${Math.round(base*.28)}px;${this.clampTextStyle()}`,
+        H3: `font:700 ${base}px/1.2 'Plus Jakarta Sans',Arial,sans-serif;color:${strong};margin:${Math.round(base*.6)}px 0 ${Math.round(base*.25)}px;${this.clampTextStyle()}`,
+        P: `font:400 ${base}px/1.42 'Plus Jakarta Sans',Arial,sans-serif;color:${color};margin:0 0 ${Math.round(base*.42)}px;${this.clampTextStyle()}`,
+        UL: `margin:0 0 ${Math.round(base*.55)}px;padding-left:${Math.round(base*1.05)}px`,
+        OL: `margin:0 0 ${Math.round(base*.55)}px;padding-left:${Math.round(base*1.05)}px`,
+        LI: `font:400 ${li}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:${color};margin:0 0 ${Math.round(base*.22)}px;${this.clampTextStyle()}`,
+        A: `color:${accent};text-decoration:none;font-weight:700`,
+        STRONG: `font-weight:800;color:${strong}`,
+        EM: 'font-style:italic',
+        BLOCKQUOTE: `margin:0 0 ${Math.round(base*.55)}px;padding:2px 0 2px ${Math.round(base*.65)}px;border-left:3px solid ${accent};color:${color};font-style:italic`,
+        HR: `border:0;border-top:1px solid ${accent};opacity:.45;margin:${base}px 0`
+      };
+      const style = n.tagName === 'IMG' ? this.imgStyle(n) : map[n.tagName];
+      if (style) n.setAttribute('style', style + this.textAlignStyle(n));
+    });
+    return d.innerHTML;
+  };
+
+  // ---------- brand lockup ----------
+  lockup = (scheme, opts) => {
+    opts = opts || {};
+    const big = opts.big;
+    const txt = scheme === 'dark' ? '#F4F2ED' : '#0B1E35';
+    const sub = scheme === 'dark' ? '#C89130' : '#1A8A9C';
+    const size = big ? 58 : 48; const word = big ? '21px' : '18px';
+    const src = this.logoPng(scheme === 'dark' ? 'linen' : 'navy');
+    return `<table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-block;vertical-align:middle;border-collapse:collapse"><tr><td style="vertical-align:middle"><img src="${src}" width="${size}" height="${size}" alt="Classic Visions" style="display:block;width:${size}px;height:${size}px;border:0"></td><td style="vertical-align:middle;padding-left:13px;text-align:left"><div style="font:800 ${word}/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.04em;color:${txt}">CLASSIC VISIONS</div><div style="font:700 8.5px/1.4 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.3em;color:${sub};margin-top:6px">OPTICAL · BARBADOS</div></td></tr></table>`;
+  };
+
+  // ---------- EMAIL ----------
+  emailHeader = (style) => {
+    if (style === 'minimal') return `<tr><td style="background:#ffffff;padding:28px 44px 20px;border-bottom:2px solid #C89130">${this.lockup('light', { align: 'left' })}</td></tr>`;
+    if (style === 'teal') return `<tr><td style="height:6px;background:#1A8A9C;font-size:0;line-height:0">&nbsp;</td></tr><tr><td style="background:#ffffff;padding:24px 44px 18px;border-bottom:1px solid #ece9e0">${this.lockup('light', { align: 'left' })}</td></tr>`;
+    return `<tr><td align="center" style="background:#0B1E35;padding:30px 40px">${this.lockup('dark', { align: 'center' })}</td></tr><tr><td style="height:3px;background:#C89130;font-size:0;line-height:0">&nbsp;</td></tr>`;
+  };
+
+  emailFooter = (style) => {
+    const b = this.brand(), d = this.state, esc = this.esc;
+    if (style === 'linen') return `<tr><td style="background:#F4F2ED;padding:28px 44px 32px;border-top:1px solid #e1ddd0">
+      <div style="font:800 13px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.05em;color:#0B1E35;margin-bottom:12px">CLASSIC VISIONS</div>
+      <div style="font:400 12.5px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c">${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.phone2)}<br><a href="mailto:${esc(b.email)}" style="color:#1A8A9C;text-decoration:none">${esc(b.email)}</a> &nbsp;·&nbsp; <a href="https://${esc(b.web)}" style="color:#1A8A9C;text-decoration:none">${esc(b.web)}</a></div>
+      <div style="height:1px;background:#ddd8ca;margin:16px 0"></div>
+      <div style="font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(d.emTagline)}<br>${esc(d.emDisclaimer)}</div>
+      <div style="margin-top:9px;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0"><a href="#" style="color:#5b6b7c">Unsubscribe</a> &nbsp;·&nbsp; <a href="#" style="color:#5b6b7c">View in browser</a></div>
+    </td></tr>`;
+    return `<tr><td style="background:#0B1E35;padding:30px 44px 34px">
+      <div style="font:800 13px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.05em;color:#F4F2ED;margin-bottom:12px">CLASSIC VISIONS</div>
+      <div style="font:400 12.5px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#9fb0c4">${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.phone2)}<br><a href="mailto:${esc(b.email)}" style="color:#3fb5c6;text-decoration:none">${esc(b.email)}</a> &nbsp;·&nbsp; <a href="https://${esc(b.web)}" style="color:#3fb5c6;text-decoration:none">${esc(b.web)}</a></div>
+      <div style="height:1px;background:rgba(255,255,255,.13);margin:16px 0"></div>
+      <div style="font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#718498">${esc(d.emTagline)}<br>${esc(d.emDisclaimer)}</div>
+      <div style="margin-top:9px;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#718498"><a href="#" style="color:#9fb0c4">Unsubscribe</a> &nbsp;·&nbsp; <a href="#" style="color:#9fb0c4">View in browser</a></div>
+    </td></tr>`;
+  };
+
+  buildEmail = () => {
+    const d = this.state, esc = this.esc;
+    const body = this.styleBody(d.emBody || '');
+    const hero = d.emHeroUrl ? `<tr><td style="padding:0"><img src="${esc(d.emHeroUrl)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0"></td></tr>` : '';
+    const eyebrow = d.emEyebrow ? `<div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#1A8A9C;margin:0 0 14px">${esc(d.emEyebrow)}</div>` : '';
+    const cta = d.emCta ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 2px"><tr><td style="border-radius:8px;background:#C89130"><a href="${esc(d.emCtaUrl || '#')}" style="display:inline-block;padding:13px 28px;font:700 14px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;text-decoration:none">${esc(d.emCta)}</a></td></tr></table>` : '';
+    const pre = d.emPreheader ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#F4F2ED">${esc(d.emPreheader)}</div>` : '';
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#F4F2ED" style="background:#F4F2ED;margin:0;padding:0;border-collapse:collapse">
+ <tr><td align="center" style="padding:8px 14px">
+  ${pre}
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid #ece9e0;border-radius:14px;overflow:hidden;border-collapse:collapse;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">
+   ${this.emailHeader(d.emHeader)}
+   ${hero}
+   <tr><td style="padding:38px 44px 30px">
+     ${eyebrow}
+     <h1 style="font:800 27px/1.12 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin:0 0 14px">${esc(d.emHeading)}</h1>
+     <div style="width:44px;height:3px;background:#C89130;margin:0 0 22px;font-size:0;line-height:0">&nbsp;</div>
+     ${body}
+     ${cta}
+   </td></tr>
+   ${this.emailFooter(d.emFooter)}
+  </table>
+ </td></tr>
+</table>`;
+  };
+
+  // ---------- LETTER ----------
+  buildLetter = () => {
+    const d = this.state, b = this.brand(), esc = this.esc;
+    const head = `<div style="padding:46px 60px 0">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+        <td style="vertical-align:middle">${this.lockup('light', { big: true })}</td>
+        <td style="vertical-align:middle;text-align:right;font:400 11.5px/1.75 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c">${esc(b.phone)}<br>${esc(b.email)}<br>${esc(b.web)}</td>
+      </tr></table>
+      <div style="height:2px;background:#C89130;margin:22px 0 0;font-size:0;line-height:0">&nbsp;</div>
+    </div>`;
+    let inner = '';
+    if (d.docType === 'memo') {
+      const row = (l, v) => `<tr><td style="font:700 11px/1.9 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#1A8A9C;padding-right:20px;vertical-align:top">${l}</td><td style="font:400 13.5px/1.8 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(v)}</td></tr>`;
+      inner = `<div style="padding:32px 60px 8px">
+        <div style="font:800 23px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin-bottom:22px">MEMORANDUM</div>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${row('To', d.ltTo)}${row('From', d.ltFrom)}${row('Date', d.ltDate)}${row('Re', d.ltRe)}</table>
+        <div style="height:1px;background:#ece9e0;margin:20px 0 4px"></div>
+      </div>`;
+    } else if (d.docType === 'announcement') {
+      inner = `<div style="padding:36px 60px 0;text-align:center">
+        <div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#1A8A9C;margin-bottom:14px">${esc(d.ltEyebrow)}</div>
+        <h1 style="font:800 28px/1.14 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin:0 0 8px">${esc(d.ltSubject)}</h1>
+        <div style="font:400 12px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(d.ltDate)}</div>
+        <div style="width:44px;height:3px;background:#C89130;margin:20px auto 0;font-size:0;line-height:0">&nbsp;</div>
+      </div>`;
+    } else {
+      inner = `<div style="padding:32px 60px 0">
+        <div style="font:400 13px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-bottom:20px">${esc(d.ltDate)}</div>
+        <div style="font:400 13.5px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-bottom:18px">${(d.ltRecipient || '').split('\n').map(esc).join('<br>')}</div>
+        ${d.ltSubject ? `<div style="font:700 13.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-bottom:6px">Re: ${esc(d.ltSubject)}</div>` : ''}
+      </div>`;
+    }
+    const amount = (d.docType === 'collection' && d.ltAmount) ? `<div style="margin:6px 60px 2px;border:1px solid #C89130;border-radius:8px;padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px">${esc(d.ltAmount)}</div></div>` : '';
+    const bodyHtml = `<div style="padding:16px 60px 0">${this.styleBody(d.ltBody)}</div>`;
+    const sign = d.docType === 'memo' ? '' : `<div style="padding:10px 60px 0">
+      <p style="font:400 14px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#1c2b3a;margin:0 0 40px">Sincerely,</p>
+      <div style="font:700 14px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(d.ltSignName)}</div>
+      <div style="font:600 12.5px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#1A8A9C">${esc(d.ltSignTitle)}</div>
+    </div>`;
+    const foot = `<div style="padding:34px 60px 42px"><div style="height:1px;background:#ece9e0;margin-bottom:14px"></div><div style="text-align:center;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(b.name)} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)} &nbsp;·&nbsp; ${esc(b.web)}</div></div>`;
+    return `<div style="width:680px;max-width:680px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">${head}${inner}${amount}${bodyHtml}${sign}${foot}</div>`;
+  };
+
+  // ---------- SIGNATURE ----------
+  buildSignature = () => {
+    const d = this.state, esc = this.esc;
+    const fit = this.fitScale([d.sgName, d.sgTitle, d.sgPhone, d.sgEmail, d.sgWeb, d.sgTagline].join(' '), 160, .68);
+    const nameSz = this.fitFont(16, fit, 11), bodySz = this.fitFont(12, fit, 9), labelSz = this.fitFont(10, fit, 8);
+    const mono = d.sgLogo ? `<td style="vertical-align:top;padding-right:18px"><img src="${this.logoPng('navy')}" width="56" height="56" alt="Classic Visions" style="display:block;width:56px;height:56px;border:0"></td>` : '';
+    return `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:'Plus Jakarta Sans',Arial,sans-serif;max-width:520px;table-layout:fixed"><tr>
+      ${mono}
+      <td style="vertical-align:top;border-left:2px solid #C89130;padding-left:18px;max-width:430px">
+        <div style="font:800 ${nameSz}px/1.16 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.sgName)}</div>
+        <div style="font:600 ${bodySz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#1A8A9C;margin-top:2px;${this.clampTextStyle()}">${esc(d.sgTitle)}</div>
+        <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#0B1E35;margin:${Math.round(10*fit)}px 0">CLASSIC VISIONS</div>
+        <div style="font:400 ${bodySz}px/1.55 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">
+          ${d.sgPhone ? `${esc(d.sgPhone)}<br>` : ''}
+          ${d.sgEmail ? `<a href="mailto:${esc(d.sgEmail)}" style="color:#1A8A9C;text-decoration:none">${esc(d.sgEmail)}</a><br>` : ''}
+          ${d.sgWeb ? `<a href="https://${esc(d.sgWeb)}" style="color:#1A8A9C;text-decoration:none">${esc(d.sgWeb)}</a>` : ''}
+        </div>
+        ${d.sgTagline ? `<div style="font:italic 400 ${this.fitFont(11, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;margin-top:${Math.round(9*fit)}px;${this.clampTextStyle()}">${esc(d.sgTagline)}</div>` : ''}
+      </td>
+    </tr></table>`;
+  };
+  buildSignatureBoard = () => `<div style="background:#fff;border:1px solid #e7e4db;border-radius:12px;padding:36px 40px;box-shadow:0 10px 40px -10px rgba(11,30,53,.12)">${this.buildSignature()}</div>`;
+
+  // ---------- copy / print ----------
+  copyRich = async (html) => {
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()], { type: 'text/plain' })
+        })]);
+      } else throw new Error('no-clip');
+    } catch (e) {
+      const tmp = document.createElement('div');
+      tmp.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:normal';
+      tmp.innerHTML = html; document.body.appendChild(tmp);
+      const r = document.createRange(); r.selectNode(tmp);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      try { document.execCommand('copy'); } catch (er) {}
+      sel.removeAllRanges(); tmp.remove();
+    }
+    this.toast('Copied — paste into your email or doc');
+  };
+  copyNow = () => {
+    const t = this.state.tab;
+    if (t === 'files') { this.toast('Open a file to preview it'); return; }
+    if (t === 'social') { this.openSmFull(); return; }
+    if (t === 'shiplabel') { this.printDoc(this.buildShippingLabel(), 'Shipping Label'); return; }
+    if (t === 'statement') { this.printDoc(this.state.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement(), 'Customer Statement'); return; }
+    if (t === 'billing') { this.printDoc(this.buildBilling(), this.billMeta().title, this.state.billPaperSize || 'letter'); return; }
+    this.copyRich(t === 'email' ? this.buildEmail() : t === 'letter' ? this.buildLetter() : this.buildSignature());
+  };
+  printLetter = () => {
+    const w = window.open('', '_blank', 'width=820,height=1040');
+    if (!w) { this.toast('Allow pop-ups to print'); return; }
+    const base = '/ds/';
+    const doc = this.buildLetter().replace(/box-shadow:0 10px 40px -10px rgba\(11,30,53,\.18\)/, 'box-shadow:none');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(this.brand().name)}</title><link rel="stylesheet" href="${base}_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css"><style>@page{size:letter;margin:0}body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>${doc}</body></html>`);
+    w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 500);
+  };
+
+  // ---------- letterhead custom blocks ----------
+  LH_BLOCKS = [
+    { label: 'Intro', html: '<p>Thank you for your continued partnership with Classic Visions. We are pleased to share the details below.</p>' },
+    { label: 'Payment terms', html: '<p>Payment is due within 30 days of the invoice date. Kindly reference your invoice number on all remittances.</p>' },
+    { label: 'Bank details', html: '<p>Payment may be made by bank transfer to Classic Visions. Full bank details appear on your invoice or are available on request.</p>' },
+    { label: 'Delivery', html: '<p>Goods will be dispatched within 3–5 business days of order confirmation, delivered island-wide.</p>' },
+    { label: 'Warranty', html: '<p>All products carry our standard manufacturer warranty against defects. Please retain your receipt as proof of purchase.</p>' },
+    { label: 'Sign-off', html: '<p>Please do not hesitate to contact us should you have any questions. We value your business and look forward to continuing to serve you.</p>' }
+  ];
+
+  // ---------- snippets ----------
+  saveSnippet = () => {
+    const ed = this.activeTiny();
+    let html = '';
+    if (ed) { try { html = this.sanitize(ed.selection.getContent({ format: 'html' }) || ''); } catch (e) {} }
+    let label;
+    if (html) { label = prompt('Name this snippet:'); }
+    else { const t = prompt('No text selected. Type the snippet text to save:'); if (t) { html = '<p>' + this.esc(t) + '</p>'; label = prompt('Name this snippet:') || t.slice(0, 22); } }
+    if (!label || !html) return;
+    this.setState(s => ({ snippets: [...s.snippets, { id: Date.now() + '', label, html }] }), this.persist);
+    this.toast('Snippet saved');
+  };
+  insertSnippet = (html) => { const ed = this.activeTiny(); if (!ed) return; ed.focus(); ed.insertContent(html); };
+
+  // ---------- libraries ----------
+  delLib = (collection, id, label) => this.setState({ libraryDelete: { collection, id, label } });
+  cancelLibraryDelete = () => this.setState({ libraryDelete: null });
+  confirmLibraryDelete = () => {
+    const pending = this.state.libraryDelete;
+    if (!pending) return;
+    this.setState(
+      (state) => ({
+        [pending.collection]: (state[pending.collection] || []).filter((item) => item.id !== pending.id),
+        libraryDelete: null,
+      }),
+      () => { this.persist(); this.toast(`${pending.label} deleted`); },
+    );
+  };
+  handleLibraryDeleteKeydown = (event) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    this.cancelLibraryDelete();
+  };
+  loadEmail = (it) => { this.setState({ ...it.fields }, () => { const ed = this.TINY.email; if (ed) { try { ed.setContent(this.state.emBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded “' + it.name + '”'); };
+  loadLetter = (it) => { this.setState({ ...it.fields }, () => { const ed = this.TINY.letter; if (ed) { try { ed.setContent(this.state.ltBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded “' + it.name + '”'); };
+  loadSig = (it) => { this.setState({ ...it.fields }, this.persist); this.toast('Loaded “' + it.name + '”'); };
+  saveEmail = () => this.openFileSaveDialog('file', 'template', 'email');
+  saveLetter = () => {
+    this.saveCurrentFile('letter').catch(() => {});
+    return;
+    const name = prompt('Name this letterhead template:'); if (!name) return;
+    const ltBody = this.letterEditor ? this.letterEditor.innerHTML : this.state.ltBody;
+    const k = ['docType', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe'];
+    const fields = { ltBody }; k.forEach(x => fields[x] = this.state[x]);
+    this.setState(s => ({ letterLib: [...s.letterLib, { id: Date.now() + '', name, fields }] }), this.persist);
+    this.toast('Template saved');
+  };
+  saveSig = () => {
+    this.saveCurrentFile('signature').catch(() => {});
+    return;
+    const name = prompt('Save signature as (e.g. person name):', this.state.sgName); if (!name) return;
+    const k = ['sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'sgLogo'];
+    const fields = {}; k.forEach(x => fields[x] = this.state[x]);
+    this.setState(s => ({ sigLib: [...s.sigLib, { id: Date.now() + '', name, fields }] }), this.persist);
+    this.toast('Signature saved');
+  };
+  toggleLogo = (e) => this.set('sgLogo', e.target.checked);
+
+  // ===== SOCIAL MEDIA =====
+  SM_FMTS = {
+    instagram:       { w:1080, h:1080, label:'Instagram Post',      sz:'1080 × 1080' },
+    facebook:        { w:1200, h:630,  label:'Facebook Post',       sz:'1200 × 630'  },
+    whatsapp_chat:   { w:1200, h:628,  label:'WhatsApp Image',      sz:'1200 × 628'  },
+    whatsapp_status: { w:1080, h:1920, label:'WhatsApp Status',     sz:'1080 × 1920' },
+    outdoor:         { w:2400, h:1200, label:'Outdoor / Billboard', sz:'2400 × 1200' }
+  };
+  SM_PAL = {
+    navy:  { bg:'#0B1E35', txt:'#F4F2ED', sub:'#8fa3b8', acc:'#C89130', logo:'linen', sep:'rgba(255,255,255,.12)' },
+    linen: { bg:'#F4F2ED', txt:'#0B1E35', sub:'#5b6b7c', acc:'#1A8A9C', logo:'navy',  sep:'rgba(11,30,53,.12)'   },
+    teal:  { bg:'#1A8A9C', txt:'#F4F2ED', sub:'rgba(244,242,237,.68)', acc:'#C89130', logo:'linen', sep:'rgba(255,255,255,.14)' }
+  };
+  buildSocialPost = () => {
+    const d = this.state, fk = d.smFormat||'instagram', sk = d.smStyle||'navy';
+    const f = this.SM_FMTS[fk], s = this.SM_PAL[sk], esc = this.esc;
+    const w = f.w, h = f.h;
+    const headline = esc(d.smHeadline||'Vision starts here.').replace(/\n/g, '<br>');
+    const hAlign = ['left', 'center', 'right'].includes(d.smHeadlineAlign) ? d.smHeadlineAlign : 'left';
+    const headlineExtra = `text-align:${hAlign};font-style:${d.smHeadlineItalic ? 'italic' : 'normal'}`;
+    const sub = esc(d.smSub||''), handle = esc(d.smHandle||'');
+    const web = esc(this.brand().web);
+    const logo = (this.logos&&this.logos[s.logo]) ? this.logos[s.logo] : `/ds/assets/logo_${s.logo}.svg`;
+    const FF = "'Plus Jakarta Sans',Arial,sans-serif";
+    const root = `width:${w}px;height:${h}px;position:relative;overflow:hidden;background:${s.bg};font-family:${FF};box-sizing:border-box`;
+    const fit = this.socialFit(fk, d.smHeadline || '', d.smBody || '', d.smSub || '');
+    if (fk === 'outdoor') {
+      const lW = Math.round(w*0.335), hlSz = this.fitFont(Math.round(h*0.115), fit.head, 34), subSz = this.fitFont(Math.round(h*0.036), fit.body, 13);
+      const body = this.styleSocialBody(d.smBody, { base: Math.round(h*0.028), scale: fit.body, color: s.sub, strong: s.txt, accent: s.acc });
+      return `<div style="${root}"><div style="position:absolute;top:0;left:0;width:${lW}px;bottom:0;background:#0B1E35;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px"><img src="${logo}" width="80" height="80" alt="" style="display:block;width:80px;height:80px"><div style="text-align:center"><div style="font:800 19px/1 ${FF};letter-spacing:.06em;color:#F4F2ED">CLASSIC VISIONS</div><div style="font:700 9.5px/1 ${FF};letter-spacing:.26em;color:#C89130;margin-top:7px">OPTICAL · BARBADOS</div></div><div style="font:400 12px/1 ${FF};letter-spacing:.09em;color:rgba(244,242,237,.45)">${web}</div></div><div style="position:absolute;top:0;left:${lW}px;width:5px;bottom:0;background:#C89130"></div><div style="position:absolute;top:0;left:${lW+5}px;right:0;bottom:0;display:flex;flex-direction:column;justify-content:flex-start;padding:${Math.round(h*0.11)}px ${Math.round(w*0.065)}px 0;box-sizing:border-box"><div style="width:60px;height:4px;background:${s.acc};margin-bottom:${Math.round(h*0.035*fit.body)}px"></div><div style="font:800 ${hlSz}px/0.95 ${FF};letter-spacing:-.03em;color:${s.txt};${headlineExtra};${this.clampTextStyle()}">${headline}</div>${body?`<div style="margin-top:${Math.round(h*0.026*fit.body)}px">${body}</div>`:''}${sub?`<div style="margin-top:${Math.round(h*0.028*fit.body)}px;font:400 ${subSz}px/1.35 ${FF};color:${s.sub};${this.clampTextStyle()}">${sub}</div>`:''} ${handle?`<div style="margin-top:${Math.round(h*0.035*fit.body)}px;font:600 ${Math.max(8, Math.round(h*0.018*fit.body))}px/1 ${FF};letter-spacing:.05em;color:${s.sub};${this.clampTextStyle()}">${handle}</div>`:''}</div><div style="position:absolute;top:0;left:0;right:0;height:5px;background:#C89130"></div><div style="position:absolute;bottom:0;left:0;right:0;height:5px;background:#C89130"></div></div>`;
+    }
+    if (fk === 'whatsapp_status') {
+      const pad = 70, hlSz = this.fitFont(Math.min(114, Math.round(w*0.102)), fit.head, 36);
+      const body = this.styleSocialBody(d.smBody, { base: 26, scale: fit.body, color: s.sub, strong: s.txt, accent: s.acc });
+      const subSz = this.fitFont(26, fit.body, 12);
+      return `<div style="${root}"><div style="position:absolute;top:0;left:0;right:0;height:5px;background:${s.acc}"></div><div style="position:absolute;top:${pad}px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:14px"><img src="${logo}" width="64" height="64" alt="" style="display:block;width:64px;height:64px"><div style="text-align:center"><div style="font:800 17px/1 ${FF};letter-spacing:.05em;color:${s.txt}">CLASSIC VISIONS</div><div style="font:700 9px/1 ${FF};letter-spacing:.24em;color:${s.acc};margin-top:6px">OPTICAL · BARBADOS</div></div><div style="width:36px;height:2px;background:${s.acc};margin-top:6px"></div></div><div style="position:absolute;top:${Math.round(h*0.22)}px;left:${pad}px;right:${pad}px;bottom:${Math.round(h*0.13)}px;display:flex;flex-direction:column;align-items:${hAlign==='left'?'flex-start':hAlign==='right'?'flex-end':'center'};justify-content:flex-start"><div style="font:800 ${hlSz}px/0.96 ${FF};letter-spacing:-.03em;color:${s.txt};${headlineExtra};${this.clampTextStyle()}">${headline}</div>${body?`<div style="margin-top:${Math.round(24*fit.body)}px;text-align:${hAlign}">${body}</div>`:''}${sub?`<div style="margin-top:${Math.round(24*fit.body)}px;font:400 ${subSz}px/1.35 ${FF};color:${s.sub};text-align:${hAlign};${this.clampTextStyle()}">${sub}</div>`:''}</div><div style="position:absolute;bottom:0;left:0;right:0;padding:0 ${pad}px ${pad}px"><div style="height:1px;background:${s.sep};margin-bottom:24px"></div><div style="text-align:center;font:600 15px/1 ${FF};letter-spacing:.1em;text-transform:uppercase;color:${s.sub}">${web}</div>${handle?`<div style="margin-top:12px;text-align:center;font:600 17px/1 ${FF};color:${s.sub};${this.clampTextStyle()}">${handle}</div>`:''}</div><div style="position:absolute;bottom:0;left:0;right:0;height:5px;background:${s.acc}"></div></div>`;
+    }
+    const pad=56, logoSz=46, topH=106, botH=70;
+    const hlSz = this.fitFont(fk==='instagram' ? Math.min(90,Math.round(w*0.083)) : Math.min(68,Math.round(h*0.108)), fit.head, fk==='instagram' ? 30 : 22);
+    const subSz = this.fitFont(fk==='instagram' ? 21 : Math.round(h*0.033), fit.body, 9);
+    const isInsta = fk==='instagram';
+    const leftPad = isInsta ? pad : pad+10;
+    const leftAccent = isInsta ? '' : `<div style="position:absolute;top:0;left:0;width:6px;bottom:0;background:${s.acc}"></div>`;
+    const topBar = isInsta ? `<div style="position:absolute;top:0;left:0;right:0;height:5px;background:${s.acc}"></div>` : '';
+    const botBar = isInsta ? '' : `<div style="position:absolute;bottom:0;left:0;right:0;height:5px;background:${s.acc}"></div>`;
+    const body = this.styleSocialBody(d.smBody, { base: subSz, scale: 1, color: s.sub, strong: s.txt, accent: s.acc });
+    return `<div style="${root}">${leftAccent}${topBar}<div style="position:absolute;top:0;left:${leftPad}px;right:${pad}px;height:${topH}px;display:flex;align-items:center"><div style="display:flex;align-items:center;gap:12px"><img src="${logo}" width="${logoSz}" height="${logoSz}" alt="" style="display:block;width:${logoSz}px;height:${logoSz}px;flex:none"><div><div style="font:800 16px/1 ${FF};letter-spacing:.04em;color:${s.txt}">CLASSIC VISIONS</div><div style="font:700 8.5px/1 ${FF};letter-spacing:.24em;color:${s.acc};margin-top:5px">OPTICAL · BARBADOS</div></div></div></div><div style="position:absolute;top:${topH}px;left:${leftPad}px;right:${pad}px;height:2px;background:${s.acc}"></div><div style="position:absolute;top:${topH+2}px;left:${leftPad}px;right:${pad}px;bottom:${botH}px;display:flex;flex-direction:column;justify-content:flex-start;padding-top:${Math.round(h*0.09)}px;box-sizing:border-box"><div style="font:800 ${hlSz}px/${hlSz>60?'0.96':'1.08'} ${FF};letter-spacing:-.03em;color:${s.txt};${headlineExtra};${this.clampTextStyle()}">${headline}</div>${body?`<div style="margin-top:${Math.round(h*0.02*fit.body)}px">${body}</div>`:''}${sub?`<div style="margin-top:${Math.round(h*0.022*fit.body)}px;font:400 ${subSz}px/1.35 ${FF};color:${s.sub};text-align:${hAlign};${this.clampTextStyle()}">${sub}</div>`:''}</div><div style="position:absolute;bottom:0;left:${leftPad}px;right:${pad}px;height:${botH}px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid ${s.sep}"><div style="font:600 11.5px/1 ${FF};letter-spacing:.12em;text-transform:uppercase;color:${s.sub}">${web}</div>${handle?`<div style="font:600 14px/1 ${FF};color:${s.sub};${this.clampTextStyle()}">${handle}</div>`:''}</div>${botBar}</div>`;
+  };
+  openSmFull = () => {
+    const d = this.state, f = this.SM_FMTS[d.smFormat||'instagram'];
+    const base = location.href.replace(/[^/]*$/,'');
+    let postHtml = this.buildSocialPost();
+    postHtml = postHtml.replace(/src="assets\//g, `src="${base}assets/`);
+    const w = window.open('','_blank','width=1200,height=900');
+    if (!w) { this.toast('Allow pop-ups to open full size'); return; }
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(f.label)} — Classic Visions</title><link rel="stylesheet" href="/ds/_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css"><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;padding:24px;background:#111;display:flex;flex-direction:column;align-items:center;min-height:100vh;box-sizing:border-box;gap:14px}.note{font:400 12px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#666;text-align:center}@media print{body{background:none;padding:0}.note{display:none}@page{size:${f.w}px ${f.h}px;margin:0}}</style></head><body><p class="note">${this.esc(f.label)} · ${f.sz} px — Screenshot or Cmd+P / Ctrl+P to export</p>${postHtml}</body></html>`);
+    w.document.close();
+  };
+  savePost = () => {
+    this.saveCurrentFile('social').catch(() => {});
+    return;
+    const name = prompt('Name this post:'); if (!name) return;
+    this.syncActive();
+    const fields = { smBody: this.socialEditor ? this.socialEditor.innerHTML : this.state.smBody };
+    ['smFormat','smStyle','smHeadline','smHeadlineAlign','smHeadlineItalic','smSub','smHandle'].forEach(x => { fields[x] = this.state[x]; });
+    this.setState(s => ({ smPostLib: [...(s.smPostLib||[]), { id: Date.now()+'', name, fields }] }), this.persist);
+    this.toast('Post saved');
+  };
+  loadPost = (it) => { this.setState({ smBody: '', ...it.fields }, () => { const ed = this.TINY.social; if (ed) { try { ed.setContent(this.state.smBody || ''); } catch (e) {} } this.persist(); }); this.toast('Loaded "' + it.name + '"'); };
+
+  // ---------- view helpers ----------
+  tabStyle = (active) => `padding:7px 16px;border:0;border-radius:7px;cursor:pointer;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;background:${active ? '#F4F2ED' : 'transparent'};color:${active ? '#0B1E35' : '#cdd8e4'};transition:.15s`;
+  segStyle = (active) => `flex:1;padding:9px 6px;border-radius:8px;border:1px solid ${active ? '#0B1E35' : '#d9d7cf'};background:${active ? '#0B1E35' : '#fff'};color:${active ? '#fff' : '#0B1E35'};font:700 11.5px/1.2 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:center;transition:.15s`;
+  seg = (key, opts) => opts.map(o => ({ label: o.l, style: this.segStyle(this.state[key] === o.k), onClick: () => this.set(key, o.k) }));
+
+
+  // ---------- customer reference data ----------
+  loadDocStudioData = async () => {
+    const getJson = async (url, fallback) => {
+      try {
+        const r = await fetch(url, { credentials: 'same-origin' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const j = await r.json();
+        return Array.isArray(j) ? j : fallback;
+      } catch (e) { return fallback; }
+    };
+    const [customers] = await Promise.all([
+      getJson('/api/pl/customers', [])
+    ]);
+    this.setState({
+      dsCustomers: customers.filter(c => c && (c.account || c.name))
+    });
+  };
+  customerLabel = (c) => `${c.name || c.customerName || c.account || 'Customer'}${c.account ? ' (' + c.account + ')' : ''}`;
+  customerAddressBlock = (c) => {
+    // ERP customers store their preferred billing address as one formatted
+    // value. Preserve it before trying the legacy, split-address shapes.
+    if (c.address && String(c.address).trim()) return String(c.address).trim();
+    const lines = [
+      c.address1 || c.addressLine1 || c.street || c.street1,
+      c.address2 || c.addressLine2 || c.street2,
+      c.address3 || c.addressLine3,
+      [c.city || c.locality, c.state || c.region || c.province, c.postalCode || c.postCode || c.zip].filter(Boolean).join(', '),
+      c.country
+    ].filter(Boolean);
+    return lines.join('\n');
+  };
+  findCustomer = (account) => (this.state.dsCustomers || []).find(c => String(c.account || '') === String(account || '')) || null;
+  applyCustomerToStatement = (e) => {
+    const account = e.target.value, c = this.findCustomer(account);
+    if (!c) return this.set('selectedStatementCustomer', '');
+    this.setState({
+      selectedStatementCustomer: account,
+      stCustomer: c.name || c.customerName || '',
+      stAccount: c.account || '',
+      stAddr: this.customerAddressBlock(c)
+    }, this.persistSoon);
+  };
+  applyCustomerToShipLabel = (e) => {
+    const account = e.target.value, c = this.findCustomer(account);
+    if (!c) return this.set('selectedShipCustomer', '');
+    this.setState({
+      selectedShipCustomer: account,
+      slToCompany: c.name || c.customerName || '',
+      slToAddr: this.customerAddressBlock(c),
+      slToPhone: c.phone || c.phoneNumber || ''
+    }, this.persistSoon);
+  };
+  applyCustomerToBilling = (e) => {
+    const account = e.target.value, c = this.findCustomer(account);
+    if (!c) return this.set('selectedBillingCustomer', '');
+    this.setState({
+      selectedBillingCustomer: account,
+      blToCompany: c.name || c.customerName || '',
+      blToAddr: this.customerAddressBlock(c)
+    }, this.billingChanged);
+  };
+  // ---------- STATEMENT rows ----------
+  addStRow = () => this.setState(s => ({ stRows: [...(s.stRows||[]), { id: Date.now()+'', date:'', desc:'', patient:'', debit:'', credit:'' }] }), this.persistSoon);
+  delStRow = (i) => this.setState(s => { const r=[...(s.stRows||[])]; r.splice(i,1); return { stRows: r.length ? r : [{ id:Date.now()+'', date:'', desc:'', patient:'', debit:'', credit:'' }] }; }, this.persistSoon);
+  updateStRow = (i, key, val) => this.setState(s => { const r=[...(s.stRows||[])]; r[i]={...r[i],[key]:val}; return { stRows:r }; }, this.persistSoon);
+
+  // ---------- STATEMENT db populate ----------
+  promptStatementDb = () => {
+    const id = prompt('Enter Statement ID to load from database:', this.state.stDbId || '');
+    if (id === null) return;
+    if (!id.trim()) { this.clearStatementDb(); return; }
+    this.populateStatementFromDb(id.trim());
+  };
+  clearStatementDb = () => {
+    this.setState({ stDbId: '', stDbData: null, stDbLoading: false }, this.persistSoon);
+    this.toast('Database data cleared — using manual fields');
+  };
+  populateStatementFromDb = async (id) => {
+    this.setState({ stDbLoading: true, stDbId: id });
+    try {
+      const r = await fetch('/api/statement/' + encodeURIComponent(id), { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      const d = data.statement || data;
+      const fmt = (v) => v != null ? String(v) : '';
+      this.setState({
+        stDbLoading: false, stDbData: d,
+        stCustomer:      d.customerName   || this.state.stCustomer,
+        stAccount:       d.accountNumber  || this.state.stAccount,
+        stAddr:          d.address        || this.state.stAddr,
+        stFrom:          d.periodFrom     || this.state.stFrom,
+        stTo:            d.periodTo       || this.state.stTo,
+        stOpenBal:       fmt(d.openingBalance),
+        stStatementNo:   String(d.statementId || id),
+        stStatementDate: d.dueDate        || '',
+        stCurrentDue:    fmt(d.currentDue),
+        stAging1:        fmt(d.agingAmount1),
+        stAging2:        fmt(d.agingAmount2),
+        stAging3:        fmt(d.agingAmount3),
+        stAging4:        fmt(d.agingAmount4),
+        stAgingDesc1:    d.agingDesc1     || '30 Days',
+        stAgingDesc2:    d.agingDesc2     || '60 Days',
+        stAgingDesc3:    d.agingDesc3     || '90 Days',
+        stAgingDesc4:    d.agingDesc4     || '120+ Days',
+        stNewBalance:    fmt(d.closingBalance),
+        stInvTotal:      fmt(d.invoiceTotal),
+        stCreditTotal:   fmt(d.creditTotal),
+        stDebitTotal:    fmt(d.debitTotal),
+        stRegularBal:    fmt(d.regularBalance),
+        stRxAmount:      fmt(d.rxAmount),
+        stStockAmount:   fmt(d.stockAmount),
+        stNetAmount:     fmt(d.netAmount),
+        stSuperNetAmount:fmt(d.superNetAmount),
+        stTaxAmount:     '',
+        stRows: Array.isArray(d.transactions) && d.transactions.length
+          ? d.transactions.map((t, idx) => ({
+              id: String(idx + 1), date: t.date || '', desc: t.desc || '',
+              patient: t.patient || '', debit: t.debit || '', credit: t.credit || ''
+            }))
+          : this.state.stRows
+      }, this.persistSoon);
+      this.toast('Statement ' + id + ' loaded from database');
+    } catch (e) {
+      this.setState({ stDbLoading: false });
+      this.toast('Could not load statement: ' + (e.message || 'check connection'));
+    }
+  };
+
+  // ---------- generic print ----------
+  printDoc = (html, title, pageSize) => {
+    const w = window.open('', '_blank', 'width=860,height=1100');
+    if (!w) { this.toast('Allow pop-ups to print'); return; }
+    const paper = String(pageSize || 'letter').toLowerCase() === 'a4' ? 'A4' : 'letter';
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${this.esc(title)} — Classic Visions</title><link rel="stylesheet" href="/ds/_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css"><style>*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif}@page{size:${paper};margin:6mm}@media print{body{background:#fff}.ds-bill-page{box-shadow:none!important}}</style></head><body>${html}</body></html>`);
+    w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 500);
+  };
+
+  // ---------- SHIPPING LABEL build ----------
+  buildShippingLabel = () => {
+    const d = this.state, esc = this.esc;
+    const total = [d.slFromName,d.slFromAddr,d.slFromPhone,d.slToName,d.slToCompany,d.slToAddr,d.slToPhone,d.slCarrier,d.slService,d.slTracking,d.slWeight,d.slDims,d.slNote].join(' ');
+    const fit = this.fitScale(total, 520, .58);
+    const labelSz = this.fitFont(9, fit, 7), bodySz = this.fitFont(12, fit, 8), nameSz = this.fitFont(14, fit, 9), pad = this.fitFont(16, fit, 9);
+    const box = (label, val) => val ? `<div style="margin-bottom:${Math.max(2, Math.round(4*fit))}px"><span style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">${label}: </span><span style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(val)}</span></div>` : '';
+    return `<div style="width:432px;max-width:432px;font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#fff;border:2px solid #0B1E35;border-radius:10px;overflow:visible;box-shadow:0 6px 24px -8px rgba(11,30,53,.25);box-sizing:border-box">
+      <div style="background:#0B1E35;padding:${Math.round(14*fit)}px 20px;display:flex;align-items:center;gap:12px">
+        <img src="/ds/assets/logo_linen.svg" width="36" height="36" alt="" style="display:block;width:36px;height:36px">
+        <div><div style="font:800 ${this.fitFont(13, fit, 9)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.06em;color:#F4F2ED">CLASSIC VISIONS</div><div style="font:700 ${this.fitFont(8, fit, 6)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.22em;color:#C89130;margin-top:4px">OPTICAL · BARBADOS</div></div>
+        ${d.slCarrier || d.slService ? `<div style="margin-left:auto;text-align:right;max-width:145px"><div style="font:700 ${this.fitFont(13, fit, 8)}px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#F4F2ED;${this.clampTextStyle()}">${esc(d.slCarrier)}</div><div style="font:400 ${this.fitFont(11, fit, 7)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#8fa3b8;${this.clampTextStyle()}">${esc(d.slService)}</div></div>` : ''}
+      </div>
+      <div style="display:flex">
+        <div style="flex:1;min-width:0;padding:${pad}px 20px;border-right:1px solid #e7e4db">
+          <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:${Math.round(8*fit)}px">From</div>
+          <div style="font:600 ${this.fitFont(13, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slFromName)}</div>
+          <div style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slFromAddr)}</div>
+          ${box('Tel', d.slFromPhone)}
+        </div>
+        <div style="flex:1;min-width:0;padding:${pad}px 20px">
+          <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#0B1E35;margin-bottom:${Math.round(8*fit)}px">Ship to</div>
+          <div style="font:700 ${nameSz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slToName)}</div>
+          ${d.slToCompany ? `<div style="font:600 ${this.fitFont(12.5, fit, 8)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">${esc(d.slToCompany)}</div>` : ''}
+          <div style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slToAddr)}</div>
+          ${box('Tel', d.slToPhone)}
+        </div>
+      </div>
+      ${d.slTracking ? `<div style="padding:${Math.round(10*fit)}px 20px;background:#f7f5ef;border-top:1px solid #e7e4db;display:flex;align-items:center;gap:12px"><div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">Tracking</div><div style="font:700 ${this.fitFont(14, fit, 9)}px/1.15 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;letter-spacing:.03em;${this.clampTextStyle()}">${esc(d.slTracking)}</div></div>` : ''}
+      ${d.slWeight || d.slDims || d.slNote ? `<div style="padding:${Math.round(10*fit)}px 20px;border-top:1px solid #e7e4db;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">${box('Weight', d.slWeight)}${box('Dims', d.slDims)}${d.slNote?`<div style="margin-left:auto;max-width:100%;font:600 ${this.fitFont(11, fit, 7)}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#C89130;font-style:italic;${this.clampTextStyle()}">${esc(d.slNote)}</div>`:''}</div>` : ''}
+    </div>`;
+  };
+
+  // ---------- CUSTOMER STATEMENT build ----------
+  buildStatement = () => {
+    const d = this.state, b = this.brand(), esc = this.esc;
+    const cur = d.stCurrency || 'BBD';
+    const rows = d.stRows || [];
+    const fit = Math.max(.55, Math.min(1, this.fitScale([d.stCustomer,d.stAccount,d.stAddr,d.stFrom,d.stTo,d.stNote].join(' '), 520, .72) * Math.sqrt(12 / Math.max(6, rows.length || 1))));
+    const cellSz = this.fitFont(12.5, fit, 8), headSz = this.fitFont(10, fit, 7), padY = Math.max(5, Math.round(9 * fit)), padX = Math.max(8, Math.round(16 * fit));
+    let bal = parseFloat(d.stOpenBal) || 0;
+    let rowsHtml = `<tr style="background:#f7f5ef"><td colspan="4" style="padding:${padY}px ${padX}px;font:600 ${cellSz}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;${this.clampTextStyle()}">Opening balance</td><td style="padding:${padY}px ${padX}px;font:700 ${this.fitFont(13, fit, 8)}px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;text-align:right;${this.clampTextStyle()}">${cur} ${bal.toFixed(2)}</td></tr>`;
+    rows.forEach((r, i) => {
+      const debit = parseFloat(r.debit) || 0;
+      const credit = parseFloat(r.credit) || 0;
+      bal += debit - credit;
+      rowsHtml += `<tr style="background:${i%2===0?'#fff':'#f9f8f5'}"><td style="padding:${padY}px ${padX}px;font:400 ${cellSz}px/1.28 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;border-bottom:1px solid #f0ede6;${this.clampTextStyle()}">${esc(r.date)}</td><td style="padding:${padY}px ${padX}px;font:400 ${cellSz}px/1.28 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;border-bottom:1px solid #f0ede6;${this.clampTextStyle()}">${esc(r.desc)}</td><td style="padding:${padY}px ${padX}px;font:400 ${cellSz}px/1.28 'Plus Jakarta Sans',Arial,sans-serif;color:${r.debit?'#c0392b':'#a7a596'};text-align:right;border-bottom:1px solid #f0ede6;${this.clampTextStyle()}">${r.debit?cur+' '+parseFloat(r.debit).toFixed(2):''}</td><td style="padding:${padY}px ${padX}px;font:400 ${cellSz}px/1.28 'Plus Jakarta Sans',Arial,sans-serif;color:${r.credit?'#389457':'#a7a596'};text-align:right;border-bottom:1px solid #f0ede6;${this.clampTextStyle()}">${r.credit?cur+' '+parseFloat(r.credit).toFixed(2):''}</td><td style="padding:${padY}px ${padX}px;font:600 ${cellSz}px/1.28 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;text-align:right;border-bottom:1px solid #f0ede6;${this.clampTextStyle()}">${cur} ${bal.toFixed(2)}</td></tr>`;
+    });
+    return `<div style="width:700px;max-width:700px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif">
+      <div style="padding:${Math.round(44*fit)}px 52px 0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+          <td style="vertical-align:top">${this.lockup('light',{big:true})}</td>
+          <td style="vertical-align:top;text-align:right">
+            <div style="font:800 ${this.fitFont(18, fit, 11)}px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">CUSTOMER STATEMENT</div>
+            <div style="font:400 ${this.fitFont(12, fit, 8)}px/1.45 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-top:6px;${this.clampTextStyle()}">${d.stFrom && d.stTo ? esc(d.stFrom)+' - '+esc(d.stTo) : esc(d.stFrom||d.stTo)}</div>
+          </td>
+        </tr></table>
+        <div style="height:2px;background:#C89130;margin:20px 0 0"></div>
+      </div>
+      <div style="padding:${Math.round(20*fit)}px 52px 0;display:flex;gap:40px">
+        <div style="min-width:0;max-width:430px"><div style="font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Account</div><div style="font:600 ${this.fitFont(14, fit, 9)}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.stCustomer)}</div>${d.stAccount?`<div style="font:400 ${this.fitFont(12, fit, 8)}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;${this.clampTextStyle()}">Acct: ${esc(d.stAccount)}</div>`:''}<div style="font:400 ${this.fitFont(12, fit, 8)}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.stAddr)}</div></div>
+        <div style="margin-left:auto;text-align:right;min-width:150px"><div style="font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Balance due</div><div style="font:800 ${this.fitFont(26, fit, 15)}px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${cur} ${bal.toFixed(2)}</div></div>
+      </div>
+      <div style="padding:22px 52px 0">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7e4db;border-radius:10px;overflow:hidden">
+          <thead><tr style="background:#0B1E35"><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#F4F2ED;text-align:left">Date</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#F4F2ED;text-align:left">Description</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#c0392b;text-align:right">Debit</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#C89130;text-align:right">Credit</th><th style="padding:${Math.round(10*fit)}px ${padX}px;font:700 ${headSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#F4F2ED;text-align:right">Balance</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      ${d.stNote?`<div style="padding:${Math.round(14*fit)}px 52px 0;font:400 ${this.fitFont(12, fit, 8)}px/1.45 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;font-style:italic;${this.clampTextStyle()}">${esc(d.stNote)}</div>`:''}
+      <div style="padding:${Math.round(34*fit)}px 52px ${Math.round(44*fit)}px"><div style="height:1px;background:#e7e4db;margin-bottom:14px"></div><div style="text-align:center;font:400 ${this.fitFont(11, fit, 7)}px/1.45 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;${this.clampTextStyle()}">${esc(b.name)} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)} &nbsp;·&nbsp; ${esc(b.web)}</div></div>
+    </div>`;
+  };
+
+  // ---------- ADVANCED STATEMENT build ----------
+  buildAdvancedStatement = () => {
+    const d = this.state, b = this.brand(), esc = this.esc;
+    const cur = d.stCurrency || 'BBD';
+    const fmt  = (n) => { const v = parseFloat(n); return isNaN(v) ? '0.00' : v.toFixed(2); };
+    const fmtC = (n) => `${cur} ${fmt(n)}`;
+    const FF = "'Plus Jakarta Sans',Arial,sans-serif";
+    const rows = d.stRows || [];
+
+    // ── numeric fields ──────────────────────────────────────────────────────
+    const openBal      = parseFloat(d.stOpenBal)      || 0;
+    const currentDue   = parseFloat(d.stCurrentDue)   || 0;
+    const aging1       = parseFloat(d.stAging1)        || 0;
+    const aging2       = parseFloat(d.stAging2)        || 0;
+    const aging3       = parseFloat(d.stAging3)        || 0;
+    const aging4       = parseFloat(d.stAging4)        || 0;
+    const newBalance   = parseFloat(d.stNewBalance)    || (currentDue + aging1 + aging2 + aging3 + aging4);
+    const invTotal     = parseFloat(d.stInvTotal)      || 0;
+    const creditTotal  = parseFloat(d.stCreditTotal)   || 0;
+    const debitTotal   = parseFloat(d.stDebitTotal)    || 0;
+    const regularBal   = parseFloat(d.stRegularBal)    || 0;
+    const rxAmount     = parseFloat(d.stRxAmount)      || 0;
+    const stockAmount  = parseFloat(d.stStockAmount)   || 0;
+    const netAmount    = parseFloat(d.stNetAmount)     || (invTotal - creditTotal);
+    const superNetAmount = parseFloat(d.stSuperNetAmount) || 0;
+    const taxAmount    = parseFloat(d.stTaxAmount)     || 0;
+
+    // ── aging labels ────────────────────────────────────────────────────────
+    const agDesc1 = esc(d.stAgingDesc1 || '30 Days');
+    const agDesc2 = esc(d.stAgingDesc2 || '60 Days');
+    const agDesc3 = esc(d.stAgingDesc3 || '90 Days');
+    const agDesc4 = esc(d.stAgingDesc4 || '120+ Days');
+
+    // ── helper: section title with extending rule ───────────────────────────
+    const secTitle = (label) =>
+      `<div style="display:flex;align-items:center;gap:8px;font:700 6.5pt/1 ${FF};letter-spacing:.2em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">
+        ${label}<div style="flex:1;height:1px;background:#c9d4de;margin-left:4px"></div></div>`;
+
+    // ── helper: meta field row ──────────────────────────────────────────────
+    const metaRow = (label, val) => !val ? '' :
+      `<div style="display:grid;grid-template-columns:90px 1fr;gap:4px;padding:2.5px 0;border-bottom:1px solid #c9d4de">
+        <span style="font:700 6.5pt/1.65 ${FF};letter-spacing:.08em;text-transform:uppercase;color:#5a7490">${label}</span>
+        <span style="font:600 7.5pt/1.65 ${FF};color:#0B1E35">${esc(val)}</span></div>`;
+
+    // ── helper: summary row ─────────────────────────────────────────────────
+    const sumRow = (label, val, highlight, balance) => {
+      const bg   = balance ? '#0B1E35' : highlight ? '#e8f5f7' : '';
+      const lCol = balance ? '#F4F2ED' : '#0B1E35';
+      const vCol = balance ? '#C89130' : '#0B1E35';
+      const vFnt = balance ? `font:700 8pt/1 ${FF}` : `font:600 7pt/1 ${FF}`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 10px;border-bottom:1px solid #c9d4de;${bg?`background:${bg};`:''}">
+        <span style="font:${highlight||balance?'700':'400'} 7pt/1 ${FF};color:${lCol}">${label}</span>
+        <span style="${vFnt};color:${vCol};font-variant-numeric:tabular-nums;min-width:80px;text-align:right">${fmtC(val)}</span></div>`;
+    };
+
+    // ── helper: totals column ───────────────────────────────────────────────
+    const totCol = (items, borderRight) =>
+      `<div style="padding:8px 10px;${borderRight?'border-right:1px solid #c9d4de;':''}">
+        ${items.map(([l,v,red])=>`<div style="display:flex;justify-content:space-between;gap:4px;margin-bottom:3px">
+          <span style="font:700 6.5pt/1 ${FF};letter-spacing:.06em;text-transform:uppercase;color:#5a7490">${l}</span>
+          <span style="font:700 7pt/1 ${FF};font-variant-numeric:tabular-nums;color:${red?'#c0392b':'#0B1E35'}">${fmtC(v)}</span>
+        </div>`).join('')}</div>`;
+
+    // ── transaction rows ────────────────────────────────────────────────────
+    let rowsHtml = '';
+    rows.forEach((r, i) => {
+      const debit  = parseFloat(r.debit)  || 0;
+      const credit = parseFloat(r.credit) || 0;
+      rowsHtml += `<tr style="background:${i%2===0?'#fff':'#F4F2ED'}">
+        <td style="padding:4px 8px;font:400 7pt/1.3 ${FF};color:#5a7490;border-bottom:1px solid #c9d4de;white-space:nowrap">${esc(r.date)}</td>
+        <td style="padding:4px 8px;font:400 7pt/1.3 ${FF};color:#0B1E35;border-bottom:1px solid #c9d4de">${esc(r.patient||'')}</td>
+        <td style="padding:4px 8px;font:400 7pt/1.3 ${FF};color:#0B1E35;border-bottom:1px solid #c9d4de">${esc(r.desc)}</td>
+        <td style="padding:4px 8px;font:600 7pt/1.3 ${FF};color:${debit?'#c0392b':'#b0b8c4'};text-align:right;border-bottom:1px solid #c9d4de;font-variant-numeric:tabular-nums;white-space:nowrap">${debit?fmtC(debit):''}</td>
+        <td style="padding:4px 8px;font:600 7pt/1.3 ${FF};color:${credit?'#1c7a52':'#b0b8c4'};text-align:right;border-bottom:1px solid #c9d4de;font-variant-numeric:tabular-nums;white-space:nowrap">${credit?fmtC(credit):''}</td>
+      </tr>`;
+    });
+    if (!rowsHtml) rowsHtml = `<tr><td colspan="5" style="padding:14px 8px;font:400 7pt/1.4 ${FF};color:#a7a596;font-style:italic">No transactions recorded.</td></tr>`;
+
+    // ── bank details (use billing bank fields if set, else CV defaults) ─────
+    const bankName    = esc(d.bkBankName  || 'Bank of Nova Scotia');
+    const bankAccName = esc(d.bkAccName   || 'Classic Visions');
+    const bankAccNo   = esc(d.bkAccNo     || '448873');
+    const bankSwift   = esc(d.bkSwift     || 'NOSCBBBB');
+    const bankBranch  = esc(d.bkBranch    || 'Chequing');
+
+    // ── print date ──────────────────────────────────────────────────────────
+    const printDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    return `<style>
+      /* All pages: 0.25 in top, room at bottom for footer */
+      @page           { size: A4; margin: 6.35mm 18mm 22mm; }
+      /* First page: no extra top margin — the document header fills it */
+      @page :first    { margin-top: 0; margin-bottom: 6.35mm; }
+      @media print {
+        body { margin: 0; }
+        .cv-doc { box-shadow: none !important; border: none !important; }
+        .cv-footer { position: fixed; bottom: 0; left: 0; right: 0; }
+      }
+      /* Built-in CSS page counters — no JS needed, auto-calculated by print engine */
+      .cv-pg::before  { content: counter(page); }
+      .cv-pgs::before { content: counter(pages); }
+    </style>
+    <div class="cv-doc" style="width:780px;max-width:780px;margin:0 auto;background:#fff;font-family:${FF};box-shadow:0 4px 24px -6px rgba(11,30,53,.1);border:1px solid #dde3ea;padding-bottom:32px">
+
+      <!-- ═══ HEADER — light ═══ -->
+      <div style="padding:18px 24px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:#fff;border-bottom:1px solid #e4e9ee">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${this.lockup('light', { big: true })}
+          <div style="font:400 6.5pt/1.65 ${FF};color:#8a9aaa;letter-spacing:.01em;margin-top:2px">
+            ${esc(b.address||'Uplands, St. John · Barbados')}<br>
+            ${[b.phone, b.phone2].filter(Boolean).map(esc).join(' · ')}<br>
+            ${[b.email, b.web].filter(Boolean).map(esc).join(' · ')}
+          </div>
+        </div>
+        <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+          <div style="font:700 6pt/1 ${FF};letter-spacing:.22em;text-transform:uppercase;color:#1A8A9C">Account Statement</div>
+          <div style="font:800 36pt/1 ${FF};letter-spacing:-.03em;color:rgba(11,30,53,.07);text-transform:uppercase;line-height:.9;user-select:none">Statement</div>
+        </div>
+      </div>
+      <div style="height:2px;background:linear-gradient(90deg,#C89130 0%,rgba(200,145,48,.15) 100%)"></div>
+
+      <!-- ═══ BODY ═══ -->
+      <div style="padding:16px 24px;display:flex;flex-direction:column;gap:14px">
+
+        <!-- META + ACCOUNT SUMMARY ROW -->
+        <div style="display:flex;gap:16px;align-items:flex-start">
+
+          <!-- Left: statement meta fields (includes address) -->
+          <div style="flex:1;border:1px solid #dde3ea;border-left:3px solid #C89130;border-radius:4px;padding:10px 12px;background:#fafaf8">
+            ${metaRow('Statement ID', d.stStatementNo)}
+            ${metaRow('Date as of',   d.stTo || d.stStatementDate)}
+            ${metaRow('Period',       d.stFrom && d.stTo ? `${d.stFrom} — ${d.stTo}` : (d.stFrom || d.stTo || ''))}
+            ${metaRow('Due date',     d.stStatementDate)}
+            ${metaRow('Customer',     d.stCustomer)}
+            ${metaRow('Account #',    d.stAccount)}
+            ${d.stAddr ? metaRow('Address', d.stAddr) : ''}
+          </div>
+
+          <!-- Right: account summary only -->
+          <div style="width:220px;flex:none">
+            <div style="border:1px solid #dde3ea;border-radius:4px;overflow:hidden">
+              <div style="background:#f2f6f8;border-bottom:1px solid #dde3ea;font:700 6pt/1 ${FF};letter-spacing:.18em;text-transform:uppercase;padding:5px 10px;color:#1A8A9C">Account Summary</div>
+              ${sumRow('Opening Balance',      openBal,      false, false)}
+              ${sumRow('Invoices / Credits',   invTotal,     false, false)}
+              ${sumRow('Finance Charges',      0,            false, false)}
+              ${sumRow('Payments Received',    creditTotal,  false, false)}
+              ${sumRow('Discounts / Allowance',0,            false, false)}
+              ${sumRow('New Balance',          newBalance,   false, true)}
+            </div>
+          </div>
+        </div>
+
+        <!-- AGEING -->
+        ${secTitle('Ageing')}
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #dde3ea;border-radius:4px;overflow:hidden;margin-top:-4px">
+          <thead>
+            <tr style="background:#f2f6f8">
+              <th style="padding:6px 10px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:center;color:#0B1E35;border-right:1px solid #dde3ea;border-bottom:1px solid #dde3ea">Current</th>
+              <th style="padding:6px 10px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:center;color:#0B1E35;border-right:1px solid #dde3ea;border-bottom:1px solid #dde3ea">${agDesc1}</th>
+              <th style="padding:6px 10px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:center;color:#0B1E35;border-right:1px solid #dde3ea;border-bottom:1px solid #dde3ea">${agDesc2}</th>
+              <th style="padding:6px 10px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:center;color:#0B1E35;border-right:1px solid #dde3ea;border-bottom:1px solid #dde3ea">${agDesc3}</th>
+              <th style="padding:6px 10px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:center;color:#a83220;border-bottom:1px solid #dde3ea">Overdue (${agDesc4})</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:#fff">
+              <td style="padding:7px 10px;font:700 8pt/1 ${FF};text-align:center;font-variant-numeric:tabular-nums;color:#0B1E35;border-right:1px solid #dde3ea">${fmtC(currentDue)}</td>
+              <td style="padding:7px 10px;font:400 7.5pt/1 ${FF};text-align:center;font-variant-numeric:tabular-nums;color:#3b5268;border-right:1px solid #dde3ea">${fmtC(aging1)}</td>
+              <td style="padding:7px 10px;font:400 7.5pt/1 ${FF};text-align:center;font-variant-numeric:tabular-nums;color:#3b5268;border-right:1px solid #dde3ea">${fmtC(aging2)}</td>
+              <td style="padding:7px 10px;font:400 7.5pt/1 ${FF};text-align:center;font-variant-numeric:tabular-nums;color:#3b5268;border-right:1px solid #dde3ea">${fmtC(aging3)}</td>
+              <td style="padding:7px 10px;font:700 7.5pt/1 ${FF};text-align:center;font-variant-numeric:tabular-nums;color:#a83220">${fmtC(aging4)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- TRANSACTION DETAIL -->
+        ${secTitle('Transaction Detail')}
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #dde3ea;overflow:hidden;margin-top:-4px">
+          <thead>
+            <tr style="background:#f2f6f8;border-bottom:1px solid #dde3ea">
+              <th style="padding:6px 8px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid #dde3ea;width:68px;color:#3b5268">Date</th>
+              <th style="padding:6px 8px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid #dde3ea;width:100px;color:#3b5268">Patient</th>
+              <th style="padding:6px 8px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid #dde3ea;color:#3b5268">Description</th>
+              <th style="padding:6px 8px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:right;border-right:1px solid #dde3ea;width:86px;color:#a83220">Debit</th>
+              <th style="padding:6px 8px;font:700 6.5pt/1 ${FF};letter-spacing:.1em;text-transform:uppercase;text-align:right;width:86px;color:#1A8A9C">Credit</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+            <tr style="background:#fafaf8;border-top:1.5px solid #dde3ea">
+              <td colspan="4" style="padding:6px 8px;font:700 6.5pt/1 ${FF};letter-spacing:.06em;text-transform:uppercase;text-align:right;color:#0B1E35">New Balance</td>
+              <td style="padding:6px 8px;font:700 9pt/1 ${FF};text-align:right;color:#C89130;font-variant-numeric:tabular-nums">${fmtC(newBalance)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- TOTALS BAND -->
+        <div style="border:1px solid #dde3ea;border-radius:4px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #dde3ea">
+            ${totCol([['Invoices', invTotal, false],['Credits', creditTotal, false],['Debits', debitTotal, true]], true)}
+            ${totCol([['Regular', regularBal, false],['Net', netAmount, false],['SuperNet', superNetAmount, false]], true)}
+            ${totCol([['Rx', rxAmount, false],['Stock', stockAmount, false],['Tax Amount', taxAmount, false]], false)}
+          </div>
+          <div style="background:#fdf6e3;border-top:1.5px solid #C89130;padding:5px 12px;font:700 6.5pt/1 ${FF};letter-spacing:.08em;text-transform:uppercase;color:#C89130;text-align:right">Please Deduct</div>
+        </div>
+
+      </div><!-- /.doc-body -->
+
+      <!-- ═══ FOOTER ═══ -->
+      <div style="padding:0 24px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="border:1px solid #dde3ea;border-left:3px solid #1A8A9C;border-radius:4px;padding:10px 14px;background:#fafaf8">
+          <div style="font:400 6.5pt/1.6 ${FF};color:#6b7f93">${esc(d.stNote||'Account due when rendered. 1.5% Finance Charge per month will be made on accounts not cleared within terms stated above. In the event of non-payment of this account, the Account Holder becomes liable for all collection fees &amp; expenses.')}</div>
+          <div style="font:600 7pt/1 ${FF};color:#1A8A9C;font-style:italic;margin-top:6px">Thank you for your business!</div>
+        </div>
+        <!-- Bank block — light -->
+        <div style="border:1px solid #dde3ea;border-top:2px solid #C89130;border-radius:4px;padding:8px 14px;background:#fdf6e3">
+          <div style="font:700 5.5pt/1 ${FF};letter-spacing:.2em;text-transform:uppercase;color:#C89130;margin-bottom:5px">Bank Transfer Information</div>
+          <div style="font:400 6.5pt/1.7 ${FF};color:#3b5268">
+            <strong style="color:#0B1E35">Bank:</strong> ${bankName} &nbsp;·&nbsp;
+            <strong style="color:#0B1E35">SWIFT/BIC:</strong> ${bankSwift} &nbsp;·&nbsp;
+            <strong style="color:#0B1E35">Account No.:</strong> ${bankAccNo}<br>
+            <strong style="color:#0B1E35">Account Type:</strong> ${bankBranch} &nbsp;·&nbsp;
+            <strong style="color:#0B1E35">Account Name:</strong> ${bankAccName} &nbsp;·&nbsp;
+            <strong style="color:#0B1E35">Payment due:</strong> 30 days from date of statement
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ REPEATING PAGE FOOTER (fixed — prints on every page) ═══ -->
+      <div class="cv-footer" style="left:0;right:0;bottom:0;background:#fff">
+        <div style="height:1px;background:linear-gradient(90deg,transparent,#c9d4de 25%,#c9d4de 75%,transparent)"></div>
+        <div style="padding:4px 24px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font:400 6pt/1 ${FF};letter-spacing:.05em;color:#9aabb8">${esc(b.name||'Classic Visions')} &nbsp;·&nbsp; ${esc(b.address||'Barbados')}</span>
+          <span style="font:400 6pt/1 ${FF};color:#9aabb8">Page <span class="cv-pg"></span> of <span class="cv-pgs"></span></span>
+          <span style="font:400 6pt/1 ${FF};color:#9aabb8">Printed: ${printDate}</span>
+        </div>
+      </div>
+
+    </div>`;
+  };
+
+  // ---------- BILLING (Invoice / Quotation / Pro Forma / Receipt) ----------
+  BILL_META = {
+    invoice:  { title: 'INVOICE',           prefix: 'INV', toLabel: 'Bill to',      dueLabel: 'Due date',    showBank: true,  showPay: false, note: '' },
+    quote:    { title: 'QUOTATION',          prefix: 'QTE', toLabel: 'Prepared for', dueLabel: 'Valid until',  showBank: true,  showPay: false, note: 'This quotation is valid until the date shown above and is subject to our standard terms of sale. Prices are subject to change thereafter.' },
+    proforma: { title: 'PRO FORMA INVOICE',  prefix: 'PRF', toLabel: 'Prepared for', dueLabel: 'Valid until',  showBank: true,  showPay: false, note: 'This is a pro forma invoice for customs and quotation purposes only. It is not a tax invoice and not a demand for payment. Goods remain the property of the supplier until paid in full.' },
+    receipt:  { title: 'RECEIPT',            prefix: 'RCT', toLabel: 'Received from', dueLabel: '',            showBank: false, showPay: true,  note: '' }
+  };
+  billMeta = () => this.BILL_META[this.state.billType] || this.BILL_META.invoice;
+  peekBillNumber = (type) => { const m = this.BILL_META[type] || this.BILL_META.invoice; const seq = (this.state.billSeq && this.state.billSeq[type]) || 1; return `${m.prefix}-${String(seq).padStart(4, '0')}`; };
+  nextBillNumber = () => {
+    const type = this.state.billType, m = this.BILL_META[type] || this.BILL_META.invoice;
+    this.setState(s => { const seq = { ...(s.billSeq || {}) }; const cur = seq[type] || 1; const num = `${m.prefix}-${String(cur).padStart(4, '0')}`; seq[type] = cur + 1; return { billSeq: seq, blNumber: num }; }, this.billingChanged);
+    this.toast('New number assigned');
+  };
+  setBillType = (k) => this.setState({ billType: k }, () => {
+    const n = this.state.blNumber;
+    if (!n || /^(INV|QTE|PRF|RCT)-\d+$/.test(n)) this.set('blNumber', this.peekBillNumber(k));
+    else this.billingChanged();
+  });
+
+  addBlRow = () => this.setState(s => ({ blRows: [...(s.blRows || []), { id: Date.now() + '', code: '', desc: '', qty: '1', unit: '', taxable: true }] }), this.billingChanged);
+  delBlRow = (i) => this.setState(s => { const r = [...(s.blRows || [])]; r.splice(i, 1); return { blRows: r.length ? r : [{ id: Date.now() + '', code: '', desc: '', qty: '1', unit: '', taxable: true }] }; }, this.billingChanged);
+  updateBlRow = (i, key, val) => this.setState(s => { const r = [...(s.blRows || [])]; r[i] = { ...r[i], [key]: val }; return { blRows: r }; }, this.billingChanged);
+  toggleBlRowTax = (i) => this.setState(s => { const r = [...(s.blRows || [])]; r[i] = { ...r[i], taxable: r[i].taxable === false }; return { blRows: r }; }, this.billingChanged);
+
+  saveLineItem = (i) => {
+    const r = (this.state.blRows || [])[i];
+    if (!r || !(r.desc || r.code)) { this.toast('Add a description first'); return; }
+    this.setState(s => ({ lineItemLib: [...(s.lineItemLib || []), { id: Date.now() + '', code: r.code || '', desc: r.desc || '', unit: r.unit || '', taxable: r.taxable !== false }] }), this.persist);
+    this.toast('Line item saved for later');
+  };
+  insertLineItem = (it) => this.setState(s => {
+    const rows = [...(s.blRows || [])];
+    const blank = rows.length === 1 && !rows[0].desc && !rows[0].code && !rows[0].unit;
+    const row = { id: Date.now() + '', code: it.code || '', desc: it.desc || '', qty: '1', unit: it.unit || '', taxable: it.taxable !== false };
+    return { blRows: blank ? [row] : [...rows, row] };
+  }, this.billingChanged);
+
+  BILL_FILE_KEYS = ['billType', 'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blCurrency', 'blVatEnabled', 'blVatRate', 'blDiscount', 'blShipping', 'blRows', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes', 'billPaperSize', 'bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote', 'selectedBillingCustomer'];
+  BILL_DRAFT_KEYS = this.BILL_FILE_KEYS;
+  isBillingField = (k) => this.BILL_FILE_KEYS.includes(k);
+  canEditBillingFile = () => this.state.currentBillingAccess !== 'view';
+  billingChanged = () => { this.persistSoon(); this.scheduleBillingAutosave(); };
+
+  saveBillDraft = () => {
+    const def = (this.state.blNumber || this.billMeta().title) + (this.state.blToCompany ? ' — ' + this.state.blToCompany : (this.state.blToName ? ' — ' + this.state.blToName : ''));
+    const name = prompt('Name this draft:', def); if (!name) return;
+    const fields = {}; this.BILL_DRAFT_KEYS.forEach(k => fields[k] = k === 'blRows' ? (this.state.blRows || []).map(r => ({ ...r })) : this.state[k]);
+    this.setState(s => ({ billDrafts: [...(s.billDrafts || []), { id: Date.now() + '', name, type: this.state.billType, fields, savedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }] }), this.persist);
+    this.toast('Local recovery draft saved');
+  };
+  loadBillDraft = (it) => { this.setState({ ...it.fields, currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true }, this.persist); this.toast('Loaded local draft "' + it.name + '"'); };
+
+  docApi = async (url, opts) => {
+    const options = opts || {};
+    const fetchOptions = { method: options.method || 'GET', headers: { ...(options.headers || {}) }, cache: 'no-store' };
+    if (options.body !== undefined) {
+      fetchOptions.headers['Content-Type'] = 'application/json';
+      fetchOptions.body = JSON.stringify(options.body);
+    }
+    const res = await fetch(url, fetchOptions);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || 'Doc Studio request failed');
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  };
+
+  TYPE_LABELS = { email: 'Email', letter: 'Letterhead', signature: 'Signature', social: 'Social', shiplabel: 'Ship Label', statement: 'Statement', billing: 'Billing' };
+  TYPE_COLORS = { email: { c: '#3B6D11', bg: '#dff0d4', hdr: '#C0DD97' }, letter: { c: '#534AB7', bg: '#e5e3f9', hdr: '#AFA9EC' }, billing: { c: '#185FA5', bg: '#ddeaf8', hdr: '#B5D4F4' }, shiplabel: { c: '#0F6E56', bg: '#d3efe7', hdr: '#9FE1CB' }, signature: { c: '#993556', bg: '#f4d0df', hdr: '#ED93B1' }, social: { c: '#185FA5', bg: '#ddeaf8', hdr: '#B5D4F4' }, statement: { c: '#534AB7', bg: '#e5e3f9', hdr: '#AFA9EC' } };
+  TYPE_ICONS_SVG = { email: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', letter: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', billing: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', shiplabel: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0', signature: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z', social: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z', statement: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' };
+
+  _showFileCtxMenu = (itemJson, x, y) => {
+    const item = JSON.parse(itemJson);
+    let menu = document.getElementById('_ds-ctx-menu');
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = '_ds-ctx-menu';
+      menu.style.cssText = 'position:fixed;background:#fff;border:1px solid #d9d7cf;border-radius:10px;padding:5px 0;min-width:160px;z-index:9999;box-shadow:0 12px 36px -8px rgba(11,30,53,.3);display:none;font-family:Plus Jakarta Sans,sans-serif';
+      document.body.appendChild(menu);
+      document.addEventListener('mousedown', (e) => { if (!menu.contains(e.target)) menu.style.display = 'none'; });
+    }
+    const ci = (label, color, fn, show = true) => show ? `<button onclick="(${fn.toString()})()" style="display:flex;align-items:center;gap:9px;width:100%;padding:7px 14px;border:0;background:none;color:${color};font:400 12.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:left" onmouseover="this.style.background='#f7f5ef'" onmouseout="this.style.background='none'">${label}</button>` : '';
+    const sep = '<div style="height:1px;background:#e7e4db;margin:4px 0"></div>';
+    menu.innerHTML = ci('Open', '#0B1E35', () => { window._dsApp.openFile(JSON.parse(document.getElementById('_ds-ctx-menu').dataset.item)); document.getElementById('_ds-ctx-menu').style.display='none'; })
+      + (item.isOwner ? sep + ci('Rename', '#0B1E35', () => { window._dsApp.renameFileFromList(JSON.parse(document.getElementById('_ds-ctx-menu').dataset.item)); document.getElementById('_ds-ctx-menu').style.display='none'; }) + ci('Share', '#0B1E35', () => { window._dsApp.openFileShare(JSON.parse(document.getElementById('_ds-ctx-menu').dataset.item)); document.getElementById('_ds-ctx-menu').style.display='none'; }) + sep + ci('Delete', '#a23b3b', () => { window._dsApp.deleteFileFromList(JSON.parse(document.getElementById('_ds-ctx-menu').dataset.item)); document.getElementById('_ds-ctx-menu').style.display='none'; }) : '');
+    menu.dataset.item = itemJson;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mw = 170, mh = item.isOwner ? 160 : 40;
+    menu.style.left = (x + mw > vw ? x - mw : x) + 'px';
+    menu.style.top = (y + mh > vh ? y - mh : y) + 'px';
+    menu.style.display = 'block';
+  };
+
+  buildFileBrowserHtml = (files, viewMode, sortCol, sortDir, accessFilter) => {
+    const fmtDate = (s) => { if (!s) return ''; const d = new Date(s); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); };
+    const draftBadge = (f) => f.status === 'draft'
+      ? `<span title="${f.createdByCopilot ? 'Drafted by the Copilot — review before sending' : 'Draft'}" style="border-radius:999px;padding:2px 6px;font:700 9.5px/1 'Plus Jakarta Sans',sans-serif;background:#fdf0d5;color:#8a5a00">${f.createdByCopilot ? 'AI draft' : 'Draft'}</span>`
+      : '';
+    const pill = (label, val, active) => `<button onclick="window._dsApp.setState({fileAccessFilter:'${val}'})" style="height:22px;padding:0 9px;border:1px solid ${active ? 'transparent' : '#d9d7cf'};border-radius:999px;font:${active ? '700' : '400'} 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;background:${active ? '#1A8A9C' : '#fff'};color:${active ? '#fff' : '#5b6b7c'};white-space:nowrap">${label}</button>`;
+    const vbtn = (icon, val, active) => `<button onclick="window._dsApp.setState({myFilesViewMode:'${val}'})" title="${val} view" style="width:26px;height:22px;border:1px solid ${active ? 'transparent' : '#d9d7cf'};border-radius:7px;background:${active ? '#1A8A9C' : '#fff'};color:${active ? '#fff' : '#5b6b7c'};cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">${icon}</svg></button>`;
+    const toolbar = `<div style="height:34px;padding:0 12px;display:flex;align-items:center;gap:5px;border-bottom:1px solid #e7e4db;background:#f4f2ed;flex:none">${pill('All','',!accessFilter)}${pill('Mine','owner',accessFilter==='owner')}${pill('Shared','shared',accessFilter==='shared')}${pill('Can edit','edit',accessFilter==='edit')}${pill('View only','view',accessFilter==='view')}${pill('Drafts','draft',accessFilter==='draft')}<div style="margin-left:auto;display:flex;gap:3px">${vbtn('<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>','grid',viewMode==='grid')}${vbtn('<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>','list',viewMode==='list')}</div></div>`;
+    const hint = `<div style="height:24px;padding:0 12px;display:flex;align-items:center;border-bottom:1px solid #e7e4db;background:#f4f2ed;flex:none"><span style="font:400 10.5px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">Right-click a file for options &nbsp;&middot;&nbsp; Double-click to open</span></div>`;
+    if (!files.length) return toolbar + hint + `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#e9e5da"><svg width="36" height="36" fill="none" stroke="#aaa" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2z"/></svg><span style="font:400 12.5px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">No files match this filter</span></div>`;
+    const sFiles = [...files].sort((a, b) => {
+      let av = sortCol === 'date' ? (a.latestAutosaveAt || a.updatedAt || a.createdAt || '') : sortCol === 'type' ? (a.fileType || '') : sortCol === 'customer' ? (a.customerName || '') : (a.fileName || '');
+      let bv = sortCol === 'date' ? (b.latestAutosaveAt || b.updatedAt || b.createdAt || '') : sortCol === 'type' ? (b.fileType || '') : sortCol === 'customer' ? (b.customerName || '') : (b.fileName || '');
+      return av < bv ? -sortDir : av > bv ? sortDir : 0;
+    });
+    const itemJson = (f) => JSON.stringify({ id: f.id, kind: f.kind, fileType: f.fileType, fileName: f.fileName, isOwner: f.isOwner, accessLevel: f.accessLevel }).replace(/"/g, '&quot;');
+    const onCtx = (f) => `oncontextmenu="event.preventDefault();event.stopPropagation();window._dsApp._showFileCtxMenu('${itemJson(f).replace(/'/g,'\\x27')}',event.clientX,event.clientY)"`;
+    const onDbl = (f) => `ondblclick="window._dsApp.openFile(${JSON.stringify({ id: f.id, kind: f.kind, fileType: f.fileType, fileName: f.fileName }).replace(/"/g,'&quot;')})"`;
+    if (viewMode === 'grid') {
+      const cards = sFiles.map(f => {
+        const tc = this.TYPE_COLORS[f.fileType] || { c: '#5b6b7c', bg: '#f1ede5', hdr: '#d9d7cf' };
+        const icon = this.TYPE_ICONS_SVG[f.fileType] || '';
+        return `<div ${onCtx(f)} ${onDbl(f)} style="border:1px solid #e7e4db;border-radius:10px;overflow:hidden;cursor:pointer;background:#fff;user-select:none" onmouseover="this.style.borderColor='#c8c4bc'" onmouseout="this.style.borderColor='#e7e4db'">
+          <div style="height:90px;display:flex;flex-direction:column;padding:8px 9px;gap:4px;background:${tc.bg}">
+            <div style="height:16px;border-radius:3px;display:flex;align-items:center;gap:5px;padding:0 5px;background:${tc.hdr};flex:none">
+              <svg width="10" height="10" fill="none" stroke="${tc.c}" stroke-width="2" viewBox="0 0 24 24"><path d="${icon}"/></svg>
+              <div style="flex:1;height:3px;background:${tc.c};opacity:.25;border-radius:2px"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3.5px;padding-top:2px;flex:1">
+              ${[85,65,75,50,80,60].map(w=>`<div style="height:5px;border-radius:2.5px;background:rgba(0,0,0,0.1);width:${w}%"></div>`).join('')}
+            </div>
+          </div>
+          <div style="padding:7px 9px 8px;border-top:1px solid #e7e4db">
+            <div style="font:700 11px/1.3 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px">${f.fileName || 'Untitled'}</div>
+            <div style="display:flex;align-items:center;gap:5px">
+              <span style="border-radius:999px;padding:2px 6px;font:700 9.5px/1 'Plus Jakarta Sans',sans-serif;background:${tc.bg};color:${tc.c}">${this.TYPE_LABELS[f.fileType] || f.fileType}</span>${draftBadge(f)}
+              <span style="font:400 10px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">${fmtDate(f.latestAutosaveAt || f.updatedAt || f.createdAt)}</span>
+              ${!f.isOwner ? `<svg style="margin-left:auto" width="11" height="11" fill="none" stroke="#aaa" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+      return toolbar + hint + `<div style="flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;align-content:start;background:#e9e5da">${cards}</div>`;
+    } else {
+      const si = (col) => { if (sortCol !== col) return `<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="opacity:.35"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>`; return sortDir === 1 ? `<svg width="10" height="10" fill="none" stroke="#1A8A9C" stroke-width="2" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg>` : `<svg width="10" height="10" fill="none" stroke="#1A8A9C" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>`; };
+      const hcol = (label, col) => `<div onclick="window._dsApp.sortMyFiles('${col}')" style="display:flex;align-items:center;gap:3px;cursor:pointer;color:${sortCol===col?'#1A8A9C':'#8a93a0'};user-select:none"><span>${label}</span>${si(col)}</div>`;
+      const rows = sFiles.map(f => {
+        const tc = this.TYPE_COLORS[f.fileType] || { c: '#5b6b7c', bg: '#f1ede5', hdr: '#d9d7cf' };
+        const icon = this.TYPE_ICONS_SVG[f.fileType] || '';
+        return `<div ${onCtx(f)} ${onDbl(f)} style="display:grid;grid-template-columns:1fr 88px 100px 70px 18px;gap:8px;padding:8px 14px;border-bottom:1px solid #f1ede5;align-items:center;cursor:pointer;background:#fff" onmouseover="this.style.background='#f7f5ef'" onmouseout="this.style.background='#fff'">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0"><svg width="14" height="14" fill="none" stroke="${tc.c}" stroke-width="1.8" viewBox="0 0 24 24" style="flex:none"><path d="${icon}"/></svg><span style="font:500 12px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.fileName || 'Untitled'}</span>${draftBadge(f)}</div>
+          <div><span style="border-radius:999px;padding:2px 6px;font:700 9.5px/1 'Plus Jakarta Sans',sans-serif;background:${tc.bg};color:${tc.c}">${this.TYPE_LABELS[f.fileType] || f.fileType}</span></div>
+          <div style="font:400 11.5px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.customerName || '—'}</div>
+          <div style="font:400 11.5px/1 'Plus Jakarta Sans',sans-serif;color:#8a93a0">${fmtDate(f.latestAutosaveAt || f.updatedAt || f.createdAt)}</div>
+          <div>${!f.isOwner ? `<svg width="12" height="12" fill="none" stroke="#aaa" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>` : ''}</div>
+        </div>`;
+      }).join('');
+      return toolbar + hint + `<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;background:#fff"><div style="display:grid;grid-template-columns:1fr 88px 100px 70px 18px;gap:8px;padding:5px 14px;border-bottom:1px solid #e7e4db;background:#f4f2ed;position:sticky;top:0;z-index:1;font:500 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.07em;text-transform:uppercase">${hcol('Name','name')}${hcol('Type','type')}${hcol('Customer','customer')}${hcol('Date','date')}<div></div></div>${rows}</div>`;
+    }
+  };
+
+  sortMyFiles = (col) => {
+    const { myFilesSortCol, myFilesSortDir } = this.state;
+    this.setState({ myFilesSortCol: col, myFilesSortDir: myFilesSortCol === col ? myFilesSortDir * -1 : 1 });
+  };
+  FILE_KEYS = {
+    email: ['emHeader', 'emFooter', 'emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'emBody'],
+    letter: ['docType', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe', 'ltBody'],
+    signature: ['sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'sgLogo'],
+    social: ['smFormat', 'smStyle', 'smHeadline', 'smHeadlineAlign', 'smHeadlineItalic', 'smBody', 'smSub', 'smHandle'],
+    shiplabel: ['slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
+    statement: ['stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stCurrency', 'stOpenBal', 'stRows', 'stNote', 'selectedStatementCustomer']
+  };
+  isCurrentFileField = (key) => this.state.currentFileKind === 'file' && this.state.currentFileId && this.FILE_KEYS[this.state.currentFileType]?.includes(key);
+
+  // Letterhead and bank details used to live in this browser's localStorage,
+  // so they differed per machine and nothing server-side could see them. They
+  // now come from company_settings, which is what lets a document created
+  // outside the Studio carry a complete letterhead.
+  loadDocStudioSettings = async () => {
+    try {
+      const data = await this.docApi('/api/docstudio/settings');
+      const settings = data.settings || {};
+      const patch = {};
+      ['bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote'].forEach(k => {
+        // Only adopt values that are actually set. Company settings default to
+        // '' for unseeded issuer fields, and blindly applying those blanked out
+        // bank details that had been saved in the Studio.
+        if (typeof settings[k] === 'string' && settings[k].trim() !== '') patch[k] = settings[k];
+      });
+      if (settings.blCurrency) patch.blCurrency = settings.blCurrency;
+      if (settings.blVatRate) patch.blVatRate = settings.blVatRate;
+      if (settings.billPaperSize) patch.billPaperSize = settings.billPaperSize;
+      if (Object.keys(patch).length) this.setState(patch);
+    } catch (e) { /* keep whatever is already loaded; the Studio still works offline */ }
+  };
+
+  ISSUER_FIELDS = ['bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote'];
+  isIssuerField = (key) => this.ISSUER_FIELDS.includes(key);
+
+  saveDocStudioSettingsSoon = () => {
+    clearTimeout(this._issuerSaveTimer);
+    this._issuerSaveTimer = setTimeout(async () => {
+      const payload = {};
+      this.ISSUER_FIELDS.forEach(k => { payload[k] = this.state[k] == null ? '' : this.state[k]; });
+      try { await this.docApi('/api/docstudio/settings', { method: 'PUT', body: payload }); }
+      catch (e) { /* non-fatal: the value stays on screen and in the document */ }
+    }, 1200);
+  };
+
+  // Numbering is a shared sequence now. These values are for display only —
+  // the number is actually reserved server-side when the document is saved,
+  // so two people drafting at once cannot end up with the same invoice number.
+  loadBillingSequences = async () => {
+    try {
+      const data = await this.docApi('/api/docstudio/billing-number');
+      if (data.next) {
+        this.setState({ billSeq: { ...this.state.billSeq, ...data.next } }, () => {
+          if (!this.state.blNumber) this.set('blNumber', this.peekBillNumber(this.state.billType));
+        });
+        return;
+      }
+    } catch (e) { /* fall through to the local placeholder */ }
+    if (!this.state.blNumber) this.set('blNumber', this.peekBillNumber(this.state.billType));
+  };
+
+  reserveBillingNumber = async (type) => {
+    const data = await this.docApi('/api/docstudio/billing-number', { method: 'POST', body: { documentType: type } });
+    return data.billingNumber || '';
+  };
+
+  loadMyFiles = async () => {
+    try {
+      const data = await this.docApi('/api/docstudio/my-files');
+      this.setState({ myFiles: data.files || [], myFilesLoaded: true, fileSaveState: 'DB save ready' });
+    } catch (e) {
+      this.setState({ myFiles: [], myFilesLoaded: false, fileSaveState: 'Local recovery only' });
+    }
+  };
+
+  refreshMyFiles = () => { this.loadMyFiles(); this.loadBillingFiles(); };
+
+  loadFileShareUsers = async () => {
+    try {
+      const data = await this.docApi('/api/docstudio/users');
+      this.setState({ fileShareUsers: data.users || [], billShareUsers: data.users || [] });
+    } catch (e) {
+      this.setState({ fileShareUsers: [], billShareUsers: [] });
+    }
+  };
+
+  fileSnapshot = (type) => {
+    const content = {};
+    (this.FILE_KEYS[type] || []).forEach(k => {
+      const val = this.state[k];
+      content[k] = Array.isArray(val) ? val.map(x => ({ ...x })) : val;
+    });
+    const editorKey = this.TINY_KEYS[type], editor = this.TINY[type];
+    if (editor && editorKey) { try { content[editorKey] = editor.getContent(); } catch (e) {} }
+    return content;
+  };
+
+  defaultFileName = (type) => {
+    const d = this.state;
+    if (type === 'email') return d.emHeading || d.emEyebrow || 'Email template';
+    if (type === 'letter') return d.ltSubject || this.TYPE_LABELS.letter;
+    if (type === 'signature') return d.sgName || 'Email signature';
+    if (type === 'social') return d.smHeadline || 'Social post';
+    if (type === 'shiplabel') return d.slToCompany || d.slToName ? 'Ship label - ' + (d.slToCompany || d.slToName) : 'Ship label';
+    if (type === 'statement') return d.stCustomer ? 'Statement - ' + d.stCustomer : 'Statement';
+    return 'Doc Studio file';
+  };
+
+  renderedForFile = (type) => type === 'email' ? this.buildEmail() : type === 'letter' ? this.buildLetter() : type === 'signature' ? this.buildSignature() : type === 'social' ? this.buildSocialPost() : type === 'shiplabel' ? this.buildShippingLabel() : type === 'statement' ? this.buildStatement() : '';
+
+  filePayload = (type, name, options = {}) => ({
+    fileType: type,
+    fileName: name || this.state.currentFileName || this.defaultFileName(type),
+    customerName: type === 'statement' ? this.state.stCustomer : type === 'shiplabel' ? (this.state.slToCompany || this.state.slToName) : '',
+    customerAccount: type === 'statement' ? this.state.selectedStatementCustomer : type === 'shiplabel' ? this.state.selectedShipCustomer : '',
+    metadata: {
+      typeLabel: this.TYPE_LABELS[type] || type,
+      ...(type === 'email' ? { isTemplate: options.isTemplate ?? (this.state.currentFileType === 'email' ? !!this.state.currentFileIsTemplate : false) } : {})
+    },
+    content: this.fileSnapshot(type),
+    renderedHtml: this.renderedForFile(type),
+    version: this.state.currentFileVersion || ''
+  });
+
+  canEditCurrentFile = () => this.state.currentFileAccess !== 'view';
+
+  openFileSaveDialog = (kind, mode = 'save', type = this.state.tab) => {
+    const isBilling = kind === 'billing';
+    if (isBilling ? !this.canEditBillingFile() : !this.canEditCurrentFile()) {
+      this.toast('Read-only shared file');
+      return;
+    }
+    const existingName = isBilling
+      ? this.billingDocumentName()
+      : (this.state.currentFileKind === 'file' && this.state.currentFileType === type ? this.state.currentFileName : '');
+    const fallbackName = isBilling ? this.billingDocumentName() : this.defaultFileName(type);
+    const suggestedName = mode === 'template' && existingName
+      ? existingName + ' template'
+      : (existingName || fallbackName);
+    this.setState({
+      fileSaveDialogOpen: true,
+      fileSaveDialogKind: kind,
+      fileSaveDialogMode: mode,
+      fileSaveDialogType: type,
+      fileSaveDialogName: suggestedName,
+      fileSaveDialogError: ''
+    }, () => requestAnimationFrame(() => document.getElementById('ds-file-save-name')?.focus()));
+  };
+
+  closeFileSaveDialog = () => this.setState({ fileSaveDialogOpen: false, fileSaveDialogError: '' });
+  setFileSaveDialogName = (e) => this.setState({ fileSaveDialogName: e.target.value, fileSaveDialogError: '' });
+  submitFileSaveDialog = async () => {
+    const name = (this.state.fileSaveDialogName || '').trim();
+    if (!name) { this.setState({ fileSaveDialogError: 'Enter a name before saving.' }); return; }
+    const { fileSaveDialogKind: kind, fileSaveDialogMode: mode, fileSaveDialogType: type } = this.state;
+    if (kind === 'billing') {
+      await this.saveBillingFile({ name, forceNew: mode === 'save-as' });
+    } else {
+      await this.saveCurrentFile(type, { name, forceNew: mode === 'save-as' || mode === 'template', isTemplate: mode === 'template' ? true : undefined });
+    }
+  };
+
+  saveCurrentFile = async (type, options = {}) => {
+    if (!this.canEditCurrentFile()) { this.toast('Read-only shared file'); return; }
+    const currentId = this.state.currentFileKind === 'file' && this.state.currentFileType === type ? this.state.currentFileId : '';
+    const existing = options.forceNew ? '' : currentId;
+    if (!existing && !options.name) { this.openFileSaveDialog('file', 'save', type); return; }
+    const name = options.name || this.state.currentFileName || this.defaultFileName(type);
+    try {
+      this.setState({ fileSaveState: 'Saving...' });
+      const data = existing
+        ? await this.docApi('/api/docstudio/files/' + encodeURIComponent(existing), { method: 'PUT', body: this.filePayload(type, name, options) })
+        : await this.docApi('/api/docstudio/files', { method: 'POST', body: this.filePayload(type, name, options) });
+      this.applyFile(data.file);
+      this.loadMyFiles();
+      this.closeFileSaveDialog();
+      this.toast('File saved');
+    } catch (e) {
+      this.setState({ fileSaveState: e.status === 409 ? 'Conflict - reload needed' : 'Save failed' });
+      this.toast(e.message || 'Save failed');
+    }
+  };
+
+  applyFile = (file) => {
+    const type = file.fileType;
+    const fields = file.content || {};
+    const cur = this.state.tab;
+    this.syncTiny(cur);
+    this.destroyTiny(cur);
+    this.setState({
+      ...fields,
+      tab: type,
+      currentFileId: file.id || '',
+      currentFileKind: 'file',
+      currentFileType: type,
+      currentFileVersion: file.version || '',
+      currentFileName: file.fileName || '',
+      currentFileIsTemplate: type === 'email' && file.metadata?.isTemplate !== false,
+      currentFileAccess: file.accessLevel || 'owner',
+      currentFileIsOwner: !!file.isOwner,
+      fileCollaborators: file.shares || [],
+      fileShareOpen: false,
+      fileSaveState: file.accessLevel === 'view' ? 'Read-only shared file' : (file.hasNewerAutosave ? 'Recovered latest autosave' : 'Saved')
+     }, () => {
+       this.refreshTinyContent();
+       // Applying a file can destroy an editor without changing tabs. React
+       // reuses the host node in that case, so its ref callback does not fire
+       // again; explicitly remount the editor on the reused host.
+       const host = this.TINY_HOSTS[type]; if (host) this.mountTiny(type, host);
+       this.persist();
+     });
+  };
+
+  openFile = async (item) => {
+    if (item.kind === 'billing') { this.switchTab('billing'); return this.openBillingFile(item.id); }
+    try {
+      this.setState({ fileSaveState: 'Loading...' });
+      const data = await this.docApi('/api/docstudio/files/' + encodeURIComponent(item.id));
+      this.applyFile(data.file);
+    } catch (e) {
+      this.setState({ fileSaveState: 'Load failed' });
+      this.toast(e.message || 'Load failed');
+    }
+  };
+
+  renameFileFromList = async (item) => {
+    if (!item.isOwner) { this.toast('Only the owner can rename this file'); return; }
+    if (item.kind === 'billing') {
+      await this.openBillingFile(item.id);
+      return this.renameBillingFile();
+    }
+    const name = prompt('Rename file:', item.fileName || 'Doc Studio file');
+    if (!name) return;
+    try {
+      const data = await this.docApi('/api/docstudio/files/' + encodeURIComponent(item.id));
+      const file = data.file;
+      await this.docApi('/api/docstudio/files/' + encodeURIComponent(item.id), { method: 'PUT', body: { fileType: file.fileType, fileName: name, customerName: file.customerName, customerAccount: file.customerAccount, metadata: file.metadata || {}, content: file.content || {}, renderedHtml: file.renderedHtml || '', version: file.version || '' } });
+      this.loadMyFiles();
+      this.toast('File renamed');
+    } catch (e) { this.toast(e.message || 'Rename failed'); }
+  };
+
+  deleteFileFromList = async (item) => {
+    if (!item.isOwner) { this.toast('Only the owner can delete this file'); return; }
+    if (!confirm('Remove this file from your list?')) return;
+    try {
+      const url = item.kind === 'billing' ? '/api/docstudio/billing-documents/' : '/api/docstudio/files/';
+      await this.docApi(url + encodeURIComponent(item.id), { method: 'DELETE' });
+      this.refreshMyFiles();
+      this.toast('File deleted');
+    } catch (e) { this.toast(e.message || 'Delete failed'); }
+  };
+
+  openFileShare = async (item) => {
+    if (!item.isOwner) { this.toast('Only the owner can share this file'); return; }
+    try {
+      let shares = [];
+      if (item.kind === 'billing') {
+        const data = await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(item.id));
+        shares = data.document.shares || [];
+      } else {
+        const data = await this.docApi('/api/docstudio/files/' + encodeURIComponent(item.id));
+        shares = data.file.shares || [];
+      }
+      this.setState({ fileShareOpen: true, fileShareKind: item.kind, fileShareId: item.id, fileShareName: item.fileName || item.documentName || 'Doc Studio file', fileCollaborators: shares, fileShareUserId: '', fileShareAccess: 'view' });
+    } catch (e) { this.toast(e.message || 'Share failed'); }
+  };
+
+  toggleFileShare = () => this.setState(s => ({ fileShareOpen: !s.fileShareOpen }));
+  addFileCollaborator = () => {
+    const userId = this.state.fileShareUserId;
+    if (!userId) return;
+    const accessLevel = this.state.fileShareAccess === 'edit' ? 'edit' : 'view';
+    this.setState(s => {
+      const existing = (s.fileCollaborators || []).filter(x => x.userId !== userId);
+      return { fileCollaborators: [...existing, { userId, accessLevel }], fileShareUserId: '' };
+    });
+  };
+  removeFileCollaborator = (userId) => this.setState(s => ({ fileCollaborators: (s.fileCollaborators || []).filter(x => x.userId !== userId) }));
+  saveFileShares = async () => {
+    if (!this.state.fileShareKind || !this.state.fileShareId) return;
+    try {
+      const data = await this.docApi('/api/docstudio/files/' + encodeURIComponent(this.state.fileShareKind) + '/' + encodeURIComponent(this.state.fileShareId) + '/shares', { method: 'PUT', body: { shares: this.state.fileCollaborators || [] } });
+      this.setState({ fileCollaborators: data.shares || [], fileShareOpen: false });
+      this.refreshMyFiles();
+      this.toast('Sharing updated');
+    } catch (e) { this.toast(e.message || 'Sharing update failed'); }
+  };
+
+  saveActiveFile = () => this.saveCurrentFile(this.state.tab);
+  saveAsActiveFile = () => this.openFileSaveDialog('file', 'save-as', this.state.tab);
+  scheduleFileAutosave = () => {
+    const id = this.state.currentFileId, type = this.state.currentFileType;
+    if (!id || !type || !this.canEditCurrentFile()) return;
+    clearTimeout(this._fileAutosaveTimer);
+    this.setState({ fileSaveState: 'Unsaved' });
+    this._fileAutosaveTimer = setTimeout(this.autosaveCurrentFile, 1200);
+  };
+  autosaveCurrentFile = async () => {
+    const id = this.state.currentFileId, type = this.state.currentFileType;
+    if (!id || !type || !this.canEditCurrentFile()) return;
+    try {
+      this.setState({ fileSaveState: 'Saving...' });
+      await this.docApi('/api/docstudio/files/' + encodeURIComponent(id) + '/autosave', {
+        method: 'POST',
+        body: this.filePayload(type, this.state.currentFileName)
+      });
+      if (this.state.currentFileId === id) this.setState({ fileSaveState: 'Saved' });
+      this.loadMyFiles();
+    } catch (e) {
+      if (this.state.currentFileId === id) this.setState({ fileSaveState: e.status === 409 ? 'Conflict - reload needed' : 'Autosave failed' });
+    }
+  };
+  renameActiveFile = async () => {
+    if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { return this.saveActiveFile(); }
+    if (!this.state.currentFileIsOwner) { this.toast('Only the owner can rename this file'); return; }
+    this.openFileSaveDialog('file', 'rename', this.state.tab);
+  };
+  shareActiveFile = () => {
+    if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { this.toast('Save this file before sharing'); return; }
+    this.openFileShare({ kind: 'file', id: this.state.currentFileId, isOwner: this.state.currentFileIsOwner, fileName: this.state.currentFileName });
+  };
+  deleteActiveFile = async () => {
+    if (this.state.currentFileKind !== 'file' || !this.state.currentFileId) { this.toast('No saved file selected'); return; }
+    await this.deleteFileFromList({ kind: 'file', id: this.state.currentFileId, isOwner: this.state.currentFileIsOwner });
+    this.setState({ currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' }, this.persistSoon);
+  };
+
+  clampSidebarWidth = (value) => {
+    const workspace = Math.max(640, window.innerWidth || 1188);
+    const max = Math.min(792, Math.max(320, workspace - 420));
+    return Math.max(320, Math.min(max, Math.round(Number(value) || 396)));
+  };
+  startSidebarDrag = (e) => {
+    const touch = e.touches && e.touches[0];
+    const startX = touch ? touch.clientX : e.clientX;
+    const startW = this.state.sidebarWidth || 396;
+    e.preventDefault();
+    this.setState({ sidebarDragging: true });
+    const move = (ev) => {
+      const mt = ev.touches && ev.touches[0];
+      const x = mt ? mt.clientX : ev.clientX;
+      this.setState({ sidebarWidth: this.clampSidebarWidth(startW + x - startX) }, this.persistSoon);
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      window.removeEventListener('touchmove', move);
+      window.removeEventListener('touchend', up);
+      this.setState({ sidebarDragging: false }, this.persistSoon);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', up);
+  };
+
+  loadBillingFiles = async () => {
+    try {
+      const [mine, shared] = await Promise.all([
+        this.docApi('/api/docstudio/billing-documents?scope=mine'),
+        this.docApi('/api/docstudio/billing-documents?scope=shared')
+      ]);
+      this.setState({
+        billingFiles: mine.documents || [],
+        sharedBillingFiles: shared.documents || [],
+        billingFilesLoaded: true,
+        billSaveState: 'DB save ready'
+      });
+    } catch (e) {
+      this.setState({ billingFilesLoaded: false, billSaveState: 'Local recovery only' });
+    }
+  };
+
+  loadBillShareUsers = async () => {
+    try {
+      const data = await this.docApi('/api/docstudio/users');
+      this.setState({ billShareUsers: data.users || [] });
+    } catch (e) {
+      this.setState({ billShareUsers: [] });
+    }
+  };
+
+  billingDocumentName = () => {
+    return this.state.currentBillingDocumentName
+      || (this.state.blNumber || this.billMeta().title) + (this.state.blToCompany ? ' - ' + this.state.blToCompany : (this.state.blToName ? ' - ' + this.state.blToName : ''));
+  };
+
+  billingSnapshot = () => {
+    const content = {};
+    this.BILL_FILE_KEYS.forEach(k => content[k] = k === 'blRows' ? (this.state.blRows || []).map(r => ({ ...r })) : this.state[k]);
+    return content;
+  };
+
+  billFilePayload = (name) => ({
+    documentType: this.state.billType,
+    documentName: name || this.billingDocumentName(),
+    billingNumber: this.state.blNumber || '',
+    customerName: this.state.blToName || '',
+    customerCompany: this.state.blToCompany || '',
+    customerAccount: this.state.selectedBillingCustomer || '',
+    paperSize: this.state.billPaperSize || 'letter',
+    content: this.billingSnapshot(),
+    renderedHtml: this.buildBilling(),
+    totals: this.billTotals(),
+    version: this.state.currentBillingVersion || ''
+  });
+
+  applyBillingDocument = (doc) => {
+    const fields = doc.content || {};
+    this._suspendBillingAutosave = true;
+    this.setState({
+      ...fields,
+      currentBillingDocumentId: doc.id || '',
+      currentBillingVersion: doc.version || '',
+      currentBillingDocumentName: doc.documentName || '',
+      currentBillingAccess: doc.accessLevel || 'owner',
+      currentBillingIsOwner: !!doc.isOwner,
+      billCollaborators: doc.shares || [],
+      billShareOpen: false,
+      billSaveState: doc.accessLevel === 'view' ? 'Read-only shared file' : (doc.hasNewerAutosave ? 'Recovered latest autosave' : 'Saved')
+    }, () => {
+      this._suspendBillingAutosave = false;
+      this.persist();
+    });
+  };
+
+  saveBillingFile = async (options = {}) => {
+    if (!this.canEditBillingFile()) { this.toast('Read-only shared file'); return; }
+    const currentId = this.state.currentBillingDocumentId;
+    const id = options.forceNew ? '' : currentId;
+    if (!id && !options.name) { this.openFileSaveDialog('billing', 'save'); return; }
+    try {
+      this.setState({ billSaveState: 'Saving...' });
+      // A new document takes its number from the shared sequence at save time,
+      // not from the placeholder shown while drafting.
+      if (!id) {
+        try {
+          const reserved = await this.reserveBillingNumber(this.state.billType);
+          if (reserved) await new Promise(done => this.setState({ blNumber: reserved }, done));
+        } catch (e) { /* keep the placeholder rather than blocking the save */ }
+      }
+      const data = id
+        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id), { method: 'PUT', body: this.billFilePayload(options.name) })
+        : await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload(options.name) });
+      this.applyBillingDocument(data.document);
+      this.loadBillingFiles();
+      this.loadMyFiles();
+      this.closeFileSaveDialog();
+      this.toast('Billing file saved');
+    } catch (e) {
+      this.setState({ billSaveState: e.status === 409 ? 'Conflict - reload needed' : 'Save failed' });
+      this.toast(e.message || 'Save failed');
+    }
+  };
+
+  saveBillingFileAs = () => this.openFileSaveDialog('billing', 'save-as');
+
+  renameBillingFile = async () => {
+    if (!this.state.currentBillingDocumentId) { this.saveBillingFileAs(); return; }
+    if (!this.canEditBillingFile()) { this.toast('Read-only shared file'); return; }
+    this.openFileSaveDialog('billing', 'rename');
+  };
+
+  deleteBillingFile = async () => {
+    if (!this.state.currentBillingDocumentId || !this.state.currentBillingIsOwner) { this.toast('Only the owner can delete this file'); return; }
+    if (!confirm('Remove this billing file from your list?')) return;
+    try {
+      await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(this.state.currentBillingDocumentId), { method: 'DELETE' });
+      this.setState({ currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true, billCollaborators: [], billSaveState: 'Deleted' });
+      this.loadBillingFiles();
+      this.loadMyFiles();
+    } catch (e) {
+      this.toast(e.message || 'Delete failed');
+    }
+  };
+
+  openBillingFile = async (id) => {
+    try {
+      this.setState({ billSaveState: 'Loading...' });
+      const data = await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id));
+      this.applyBillingDocument(data.document);
+    } catch (e) {
+      this.setState({ billSaveState: 'Load failed' });
+      this.toast(e.message || 'Load failed');
+    }
+  };
+
+  scheduleBillingAutosave = () => {
+    if (!this._billingReady || this._suspendBillingAutosave || this.state.tab !== 'billing' || !this.canEditBillingFile()) return;
+    clearTimeout(this._billAutosaveTimer);
+    this.setState({ billSaveState: this.state.currentBillingDocumentId ? 'Unsaved' : 'Unsaved local draft' });
+    this._billAutosaveTimer = setTimeout(this.autosaveBillingFile, 1600);
+  };
+
+  autosaveBillingFile = async () => {
+    if (!this.canEditBillingFile()) return;
+    try {
+      this.setState({ billSaveState: 'Saving...' });
+      const id = this.state.currentBillingDocumentId;
+      const data = id
+        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id) + '/autosave', { method: 'PUT', body: this.billFilePayload() })
+        : await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload() });
+      this.applyBillingDocument(data.document);
+      this.loadBillingFiles();
+      this.loadMyFiles();
+      this.setState({ billSaveState: 'Saved' });
+    } catch (e) {
+      this.setState({ billSaveState: e.status === 409 ? 'Conflict - reload needed' : 'Autosave failed' });
+    }
+  };
+
+  toggleBillShare = () => {
+    if (!this.state.currentBillingDocumentId) { this.toast('Save this file before sharing'); return; }
+    if (!this.state.currentBillingIsOwner) { this.toast('Only the owner can share this file'); return; }
+    this.setState(s => ({ billShareOpen: !s.billShareOpen }));
+  };
+
+  addBillCollaborator = () => {
+    const userId = this.state.billShareUserId;
+    if (!userId) return;
+    const accessLevel = this.state.billShareAccess === 'edit' ? 'edit' : 'view';
+    this.setState(s => {
+      const existing = (s.billCollaborators || []).filter(x => x.userId !== userId);
+      return { billCollaborators: [...existing, { userId, accessLevel }], billShareUserId: '' };
+    });
+  };
+
+  removeBillCollaborator = (userId) => this.setState(s => ({ billCollaborators: (s.billCollaborators || []).filter(x => x.userId !== userId) }));
+
+  saveBillShares = async () => {
+    if (!this.state.currentBillingDocumentId || !this.state.currentBillingIsOwner) return;
+    try {
+      const data = await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(this.state.currentBillingDocumentId) + '/shares', { method: 'PUT', body: { shares: this.state.billCollaborators || [] } });
+      this.setState({ billCollaborators: data.shares || [], billShareOpen: false });
+      this.loadMyFiles();
+      this.toast('Sharing updated');
+    } catch (e) {
+      this.toast(e.message || 'Sharing update failed');
+    }
+  };
+
+  billTotals = () => {
+    const d = this.state, rows = (d.blRows || []);
+    let subtotal = 0, taxableSum = 0;
+    rows.forEach(r => { const amt = (parseFloat(r.qty) || 0) * (parseFloat(r.unit) || 0); subtotal += amt; if (r.taxable !== false) taxableSum += amt; });
+    const discount = parseFloat(d.blDiscount) || 0;
+    const shipping = parseFloat(d.blShipping) || 0;
+    const discTaxable = subtotal > 0 ? discount * (taxableSum / subtotal) : 0;
+    const rate = parseFloat(d.blVatRate) || 0;
+    const vatBase = Math.max(0, (taxableSum - discTaxable) + shipping);
+    const vat = d.blVatEnabled ? vatBase * rate / 100 : 0;
+    const total = subtotal - discount + shipping + vat;
+    const paidRaw = parseFloat(d.blAmountPaid);
+    const amountPaid = isNaN(paidRaw) ? (d.billType === 'receipt' ? total : 0) : paidRaw;
+    const balance = total - amountPaid;
+    return { subtotal, discount, shipping, vat, rate, total, amountPaid, balance };
+  };
+
+  buildBilling = () => {
+    const d = this.state, b = this.brand(), esc = this.esc, m = this.billMeta();
+    const paper = (d.billPaperSize || 'letter') === 'a4' ? 'a4' : 'letter';
+    const pageW = paper === 'a4' ? 660 : 680;
+    const pagePad = paper === 'a4' ? 34 : 38;
+    const topPad = paper === 'a4' ? 34 : 38;
+    const bottomPad = paper === 'a4' ? 34 : 38;
+    const cur = d.blCurrency || 'BBD';
+    const money = (n) => cur + ' ' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const t = this.billTotals();
+    const rows = (d.blRows || []).filter(r => r.desc || r.code || r.unit || (r.qty && r.qty !== '1') || parseFloat(r.unit));
+    const showZeroTag = d.blVatEnabled && (d.blRows || []).some(r => r.taxable === false);
+
+    // ---- supplier identity (right of logo) ----
+    const supplierLines = [
+      d.bAddress ? esc(d.bAddress).replace(/\n/g, '<br>') : '',
+      esc(b.phone) + (b.email ? ' &nbsp;·&nbsp; ' + esc(b.email) : ''),
+      esc(b.web)
+    ].filter(Boolean).join('<br>');
+    const supplierRegs = [
+      d.bVatReg ? `VAT Reg: ${esc(d.bVatReg)}` : '',
+      d.bRegNo ? `Reg No: ${esc(d.bRegNo)}` : ''
+    ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+    // ---- meta rows (number / date / due) ----
+    const metaRow = (l, v) => v ? `<tr><td style="font:700 9.5px/1.9 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8a93a0;padding-right:14px;text-align:right;white-space:nowrap">${l}</td><td style="font:700 12.5px/1.9 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;text-align:right;white-space:nowrap">${esc(v)}</td></tr>` : '';
+    const metaTable = `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-left:auto;margin-top:12px">${metaRow(m.title.includes('RECEIPT') ? 'Receipt #' : (m.title.includes('QUOT') ? 'Quote #' : (m.title.includes('PRO') ? 'Pro forma #' : 'Invoice #')), d.blNumber)}${metaRow('Date', d.blDate)}${m.dueLabel ? metaRow(m.dueLabel, d.blDue) : ''}${metaRow('Your ref', d.blPO)}</table>`;
+
+    // ---- line items table ----
+    const rowsHtml = rows.length ? rows.map((r, i) => {
+      const qty = parseFloat(r.qty) || 0, unit = parseFloat(r.unit) || 0, amt = qty * unit;
+      const zr = d.blVatEnabled && r.taxable === false;
+      return `<tr style="background:${i % 2 === 0 ? '#fff' : '#f9f8f5'}">
+        <td style="padding:11px 16px;font:400 13px/1.45 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;border-bottom:1px solid #f0ede6;vertical-align:top">${esc(r.desc || '')}${r.code ? `<div style="font:600 11px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;margin-top:2px">${esc(r.code)}</div>` : ''}${zr ? `<span style="display:inline-block;margin-top:4px;font:700 9px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#5b6b7c;background:#eceae3;border-radius:4px;padding:3px 6px">Zero-rated</span>` : ''}</td>
+        <td style="padding:11px 16px;font:400 13px/1.45 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;text-align:right;border-bottom:1px solid #f0ede6;vertical-align:top;white-space:nowrap">${r.qty ? esc(r.qty) : ''}</td>
+        <td style="padding:11px 16px;font:400 13px/1.45 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;text-align:right;border-bottom:1px solid #f0ede6;vertical-align:top;white-space:nowrap">${unit ? money(unit) : ''}</td>
+        <td style="padding:11px 16px;font:600 13px/1.45 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;text-align:right;border-bottom:1px solid #f0ede6;vertical-align:top;white-space:nowrap">${amt ? money(amt) : ''}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="4" style="padding:22px 16px;font:400 13px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#a7a596;font-style:italic">No line items added yet.</td></tr>`;
+
+    // ---- totals ----
+    const totLine = (l, v, opts) => { opts = opts || {}; return `<tr><td style="padding:${opts.big ? '12px 18px' : '6px 18px'};font:${opts.big ? '700' : '500'} ${opts.big ? '14px' : '12.5px'}/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:${opts.big ? '#0B1E35' : '#5b6b7c'};text-align:right">${l}</td><td style="padding:${opts.big ? '12px 18px 12px 0' : '6px 18px 6px 0'};font:${opts.big ? '800' : '600'} ${opts.big ? '17px' : '13px'}/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:${opts.neg ? '#c0392b' : '#0B1E35'};text-align:right;white-space:nowrap">${v}</td></tr>`; };
+    let totalsRows = totLine('Subtotal', money(t.subtotal));
+    if (t.discount) totalsRows += totLine('Discount', '− ' + money(t.discount), { neg: true });
+    if (t.shipping) totalsRows += totLine('Shipping / handling', money(t.shipping));
+    if (d.blVatEnabled) totalsRows += totLine(`VAT @ ${esc(d.blVatRate)}%`, money(t.vat));
+    const totalsBlock = `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-left:auto;min-width:280px">
+      ${totalsRows}
+      <tr><td colspan="2" style="padding:0 18px"><div style="height:2px;background:#C89130"></div></td></tr>
+      ${totLine(m.showPay ? 'Total' : 'Total due', money(t.total), { big: true })}
+    </table>`;
+
+    // ---- receipt payment block ----
+    let payBlock = '';
+    if (m.showPay) {
+      const paidOff = t.balance <= 0.001;
+      payBlock = `<div style="padding:20px 52px 0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#f3f7f5;border:1px solid #d8e5df;border-radius:12px"><tr>
+          <td style="padding:18px 22px;vertical-align:middle">
+            <div style="font:700 10px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">Payment received</div>
+            <div style="font:800 22px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#1c7a52">${money(t.amountPaid)}</div>
+            <div style="font:500 12px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-top:6px">${d.blPaidMethod ? 'Method: ' + esc(d.blPaidMethod) : ''}${d.blPaidRef ? ' &nbsp;·&nbsp; Ref: ' + esc(d.blPaidRef) : ''}</div>
+            ${t.balance > 0.001 ? `<div style="font:700 12.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#c0392b;margin-top:6px">Balance outstanding: ${money(t.balance)}</div>` : ''}
+          </td>
+          <td style="padding:18px 22px;text-align:right;vertical-align:middle;white-space:nowrap">
+            <div style="display:inline-block;border:2.5px solid ${paidOff ? '#1c7a52' : '#C89130'};color:${paidOff ? '#1c7a52' : '#C89130'};border-radius:10px;padding:8px 18px;font:800 19px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;transform:rotate(-5deg)">${paidOff ? 'PAID' : 'PART-PAID'}</div>
+          </td>
+        </tr></table>
+      </div>`;
+    }
+
+    // ---- bank details ----
+    let bankBlock = '';
+    if (m.showBank && (d.bkBankName || d.bkAccNo || d.bkAccName || d.bkSwift)) {
+      const bankRow = (l, v) => v ? `<div style="display:flex;gap:10px;margin-bottom:4px"><span style="font:700 9.5px/1.6 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8a93a0;width:120px;flex:none">${l}</span><span style="font:600 12px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(v)}</span></div>` : '';
+      bankBlock = `<div style="padding:22px 52px 0">
+        <div style="background:#f7f5ef;border:1px solid #e7e4db;border-radius:12px;padding:18px 22px">
+          <div style="font:700 10px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:11px">Payment / bank details</div>
+          ${bankRow('Bank', d.bkBankName)}${bankRow('Account name', d.bkAccName)}${bankRow('Account no.', d.bkAccNo)}${bankRow('Branch / Transit', d.bkBranch)}${bankRow('SWIFT / BIC', d.bkSwift)}
+          ${d.bkNote ? `<div style="font:400 11.5px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-top:8px">${esc(d.bkNote).replace(/\n/g, '<br>')}</div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    // ---- bill-to + summary callout ----
+    const billTo = `<div style="min-width:0;max-width:340px">
+      <div style="font:700 10px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:8px">${m.toLabel}</div>
+      ${d.blToCompany ? `<div style="font:700 14px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(d.blToCompany)}</div>` : ''}
+      ${d.blToName ? `<div style="font:600 13px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(d.blToName)}</div>` : ''}
+      ${d.blToAttn ? `<div style="font:400 12.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c">Attn: ${esc(d.blToAttn)}</div>` : ''}
+      ${d.blToAddr ? `<div style="font:400 12.5px/1.55 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;white-space:pre-wrap;margin-top:2px">${esc(d.blToAddr)}</div>` : ''}
+    </div>`;
+    const calloutLabel = m.showPay ? (t.balance <= 0.001 ? 'Amount paid' : 'Balance due') : 'Total due';
+    const calloutValue = m.showPay ? (t.balance <= 0.001 ? t.amountPaid : t.balance) : t.total;
+    const callout = `<div style="margin-left:auto;text-align:right;min-width:170px">
+      <div style="font:700 10px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">${calloutLabel}</div>
+      <div style="font:800 27px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${money(calloutValue)}</div>
+      ${m.dueLabel && d.blDue ? `<div style="font:500 11.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;margin-top:6px">${m.dueLabel}: ${esc(d.blDue)}</div>` : ''}
+    </div>`;
+
+    const legal = m.note ? `<div style="padding:18px 52px 0"><div style="font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;font-style:italic">${esc(m.note)}</div></div>` : '';
+    const notes = d.blNotes ? `<div style="padding:18px 52px 0"><div style="font:700 10px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:6px">Notes &amp; terms</div><div style="font:400 12px/1.65 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;white-space:pre-wrap">${esc(d.blNotes)}</div></div>` : '';
+    const vatNote = d.blVatEnabled ? '' : `<div style="padding:10px 52px 0"><div style="font:400 10.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#a7a596;font-style:italic">No VAT charged on this document.</div></div>`;
+
+    let billHtml = `<div class="ds-bill-page" style="width:${pageW}px;max-width:${pageW}px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">
+      <div style="padding:44px 52px 0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+          <td style="vertical-align:top">
+            ${this.lockup('light', { big: true })}
+            <div style="font:400 11px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-top:14px">${supplierLines}</div>
+            ${supplierRegs ? `<div style="font:600 10.5px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;margin-top:6px">${supplierRegs}</div>` : ''}
+          </td>
+          <td style="vertical-align:top;text-align:right">
+            <div style="font:800 22px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.01em;color:#0B1E35">${m.title}</div>
+            ${metaTable}
+          </td>
+        </tr></table>
+        <div style="height:2px;background:#C89130;margin:22px 0 0"></div>
+      </div>
+      <div style="padding:24px 52px 0;display:flex;gap:30px;align-items:flex-start">${billTo}${callout}</div>
+      <div style="padding:22px 52px 0">
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e7e4db;border-radius:10px;overflow:hidden">
+          <thead><tr style="background:#0B1E35">
+            <th style="padding:11px 16px;font:700 10.5px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#F4F2ED;text-align:left">Description</th>
+            <th style="padding:11px 16px;font:700 10.5px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#F4F2ED;text-align:right;white-space:nowrap">Qty</th>
+            <th style="padding:11px 16px;font:700 10.5px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#F4F2ED;text-align:right;white-space:nowrap">Unit (${esc(cur)})</th>
+            <th style="padding:11px 16px;font:700 10.5px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#C89130;text-align:right;white-space:nowrap">Amount (${esc(cur)})</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      <div style="padding:18px 52px 0">${totalsBlock}</div>
+      ${showZeroTag ? `<div style="padding:8px 52px 0;text-align:right"><span style="font:400 10.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#a7a596;font-style:italic">Zero-rated items are exempt from VAT.</span></div>` : ''}
+      ${vatNote}
+      ${payBlock}
+      ${bankBlock}
+      ${notes}
+      ${legal}
+      <div style="padding:30px 52px 44px"><div style="height:1px;background:#e7e4db;margin-bottom:14px"></div><div style="text-align:center;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(b.name)} &nbsp;·&nbsp; ${esc(d.bAddress ? d.bAddress.replace(/\n/g, ', ') : '')} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)}</div></div>
+    </div>`;
+    return billHtml
+      .replaceAll('52px', pagePad + 'px')
+      .replaceAll('44px', bottomPad + 'px')
+      .replace('padding:' + bottomPad + 'px ' + pagePad + 'px 0', 'padding:' + topPad + 'px ' + pagePad + 'px 0');
+  };
+
+  renderVals() {
+    const d = this.state;
+    const f = {};
+    ['emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltTo', 'ltFrom', 'ltRe', 'ltEyebrow', 'ltAmount', 'sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'smHeadline', 'smSub', 'smHandle', 'plCustomer', 'plAttn', 'plDate', 'plValidity', 'plNote', 'slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stOpenBal', 'stNote',
+      'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blVatRate', 'blDiscount', 'blShipping', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes',
+      'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote',
+      'stStatementDate', 'stStatementNo', 'stCurrentDue', 'stAging1', 'stAging2', 'stAging3', 'stAging4', 'stNewBalance',
+      'stInvTotal', 'stCreditTotal', 'stDebitTotal', 'stRegularBal', 'stRxAmount', 'stStockAmount', 'stNetAmount', 'stSuperNetAmount', 'stTaxAmount'].forEach(k => {
+      f[k] = { v: d[k] == null ? '' : d[k], on: (e) => this.set(k, e.target.value) };
+    });
+    const tab = d.tab;
+    const filteredFiles = (d.myFiles || []).filter(item => {
+      if (d.fileTypeFilter && item.fileType !== d.fileTypeFilter) return false;
+      if (d.fileAccessFilter === 'owner' && !item.isOwner) return false;
+      if (d.fileAccessFilter === 'shared' && item.isOwner) return false;
+      if (d.fileAccessFilter === 'edit' && item.accessLevel !== 'edit') return false;
+      if (d.fileAccessFilter === 'view' && item.accessLevel !== 'view') return false;
+      if (d.fileAccessFilter === 'draft' && item.status !== 'draft') return false;
+      const query = (d.fileSearch || '').trim().toLowerCase();
+      if (query && ![item.fileName, item.documentName, item.customerName, item.customerCompany, item.customerAccount, item.searchText].filter(Boolean).join(' ').toLowerCase().includes(query)) return false;
+      return true;
+    });
+    let previewNode;
+    if (tab === 'files') {
+      previewNode = React.createElement('div', { style: { height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }, dangerouslySetInnerHTML: { __html: this.buildFileBrowserHtml(filteredFiles, d.myFilesViewMode || 'grid', d.myFilesSortCol || 'date', d.myFilesSortDir != null ? d.myFilesSortDir : -1, d.fileAccessFilter || '') } });
+    } else if (tab === 'social') {
+      const smFmt = this.SM_FMTS[d.smFormat||'instagram'];
+      const smScale = Math.min(680/smFmt.w, 555/smFmt.h);
+      const smPW = Math.round(smFmt.w*smScale), smPH = Math.round(smFmt.h*smScale);
+      previewNode = React.createElement('div', { style: { display:'flex', justifyContent:'center', alignItems:'flex-start' } },
+        React.createElement('div', { style: { width:smPW+'px', height:smPH+'px', position:'relative', overflow:'hidden', borderRadius:'8px', boxShadow:'0 12px 48px -8px rgba(11,30,53,.45)', flexShrink:0 } },
+          React.createElement('div', { dangerouslySetInnerHTML: { __html: this.buildSocialPost() }, style: { position:'absolute', top:0, left:0, width:smFmt.w+'px', height:smFmt.h+'px', transform:`scale(${smScale})`, transformOrigin:'top left' } })
+        )
+      );
+    } else {
+      const html = tab === 'email' ? this.buildEmail() : tab === 'letter' ? this.buildLetter() : tab === 'shiplabel' ? this.buildShippingLabel() : tab === 'statement' ? (d.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement()) : tab === 'billing' ? this.buildBilling() : this.buildSignatureBoard();
+      previewNode = React.createElement('div', { style: { width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }, dangerouslySetInnerHTML: { __html: html } });
+    }
+    const tabs = [['files', 'My Files'], ['email', 'Email'], ['letter', 'Letterhead'], ['signature', 'Signature'], ['social', 'Social'], ['billing', 'Billing'], ['shiplabel', 'Ship Label'], ['statement', 'Statement']].map(([k, l]) => ({ key: k, label: l, onClick: () => this.switchTab(k), style: this.tabStyle(tab === k) }));
+    // Render real React buttons. Inline onclick attributes are blocked by the
+    // production CSP and previously left every native-mounted tab except Email inert.
+    const _styleObject = (css) => Object.fromEntries(css.split(';').filter(Boolean).map(rule => {
+      const split = rule.indexOf(':');
+      const property = rule.slice(0, split).trim().replace(/-([a-z])/g, (_match, char) => char.toUpperCase());
+      return [property, rule.slice(split + 1).trim()];
+    }));
+    const _mkTabBar = () => React.createElement(
+      React.Fragment,
+      null,
+      ...tabs.map(item => React.createElement('button', {
+        key: item.key,
+        type: 'button',
+        onClick: item.onClick,
+        style: _styleObject(item.style)
+      }, item.label))
+    );
+    // Saved email templates are durable Doc Studio files. Rendering from the
+    // same collection as My Files keeps the quick-reuse panel in sync after a
+    // save, refresh, or a later sign-in instead of relying on local storage.
+    const emailLib = (d.myFiles || [])
+      // Older email records predate the explicit marker and originated from
+      // this Saved templates panel, so preserve them as reusable templates.
+      .filter(item => item.kind === 'file' && item.fileType === 'email' && item.metadata?.isTemplate !== false)
+      .map(item => ({ name: item.fileName || 'Untitled email', load: () => this.openFile(item), del: () => this.deleteFileFromList(item) }));
+    const letterLib = (d.letterLib || []).map(it => ({ name: it.name, load: () => this.loadLetter(it), del: () => this.delLib('letterLib', it.id, 'saved letterhead') }));
+    const sigLib = (d.sigLib || []).map(it => ({ name: it.name, load: () => this.loadSig(it), del: () => this.delLib('sigLib', it.id, 'saved signature') }));
+    const snippetItems = (d.snippets || []).map(s => ({ label: s.label, insert: () => this.insertSnippet(s.html), del: () => this.delLib('snippets', s.id, 'saved snippet') }));
+    const letterheadBlocks = this.LH_BLOCKS.map(bk => ({ label: bk.label, insert: () => this.insertSnippet(bk.html) }));
+    const isBizColl = d.docType === 'business' || d.docType === 'collection';
+    const brandFields = [['Company name', 'bCompany'], ['Website', 'bWebsite'], ['Email', 'bEmail'], ['Phone', 'bPhone'], ['Phone 2', 'bPhone2'], ['Registered address', 'bAddress'], ['VAT registration no.', 'bVatReg'], ['Company registration no.', 'bRegNo']].map(([label, key]) => ({ label, v: d[key] == null ? '' : d[key], on: (e) => this.set(key, e.target.value) }));
+    const smFormatOpts = Object.entries(this.SM_FMTS).map(([k, fmt]) => {
+      const active = (d.smFormat||'instagram') === k;
+      return { label: fmt.label, sz: fmt.sz, onClick: () => this.set('smFormat', k), style: `display:flex;align-items:center;gap:10px;width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid ${active?'#0B1E35':'#d9d7cf'};background:${active?'#0B1E35':'#fff'};color:${active?'#F4F2ED':'#0B1E35'};cursor:pointer;transition:.12s` };
+    });
+    const smStyleOpts = [
+      { k:'navy',  l:'Navy',  bg:'#0B1E35', ring:'#0B1E35', txt:'#F4F2ED' },
+      { k:'linen', l:'Linen', bg:'#F4F2ED', ring:'#5b6b7c', txt:'#0B1E35' },
+      { k:'teal',  l:'Teal',  bg:'#1A8A9C', ring:'#1A8A9C', txt:'#F4F2ED' }
+    ].map(o => {
+      const active = (d.smStyle||'navy') === o.k;
+      return { label: o.l, onClick: () => this.set('smStyle', o.k), style: `flex:1;padding:9px 6px;border-radius:8px;border:${active?'2.5px':'1px'} solid ${active?o.ring:'#d9d7cf'};background:${o.bg};color:${o.txt};font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:center;transition:.12s` };
+    });
+    const smPostLib = (d.smPostLib||[]).map(it => ({ name: it.name, load: () => this.loadPost(it), del: () => this.delLib('smPostLib', it.id, 'saved post') }));
+    const customerOptions = (d.dsCustomers || [])
+      .slice()
+      .sort((a, b) => this.customerLabel(a).localeCompare(this.customerLabel(b)))
+      .map(c => ({ account: c.account || '', label: this.customerLabel(c) }));
+    const selectedEmailSet = new Set(this.splitEmails(d.emailTo).map(v => v.toLowerCase()));
+    const emailContactOptions = (d.emailContacts || [])
+      .filter(c => c && c.email)
+      .slice()
+      .sort((a, b) => String(a.name || a.email || '').localeCompare(String(b.name || b.email || '')))
+      .map(c => ({
+        name: c.name || c.email,
+        email: c.email,
+        checked: selectedEmailSet.has(String(c.email).toLowerCase()),
+        toggle: () => this.toggleEmailContact(c.email)
+      }));
+    const emailSendPreviewNode = React.createElement('div', { style: { display:'flex', justifyContent:'center', alignItems:'flex-start' } },
+      React.createElement('div', { style: { width:'640px', maxWidth:'100%', background:'#F4F2ED', boxShadow:'0 12px 44px -18px rgba(11,30,53,.38)' }, dangerouslySetInnerHTML: { __html: this.buildEmail() } })
+    );
+    // ---- billing bindings ----
+    const bm = this.BILL_META[d.billType] || this.BILL_META.invoice;
+    const billCur = d.blCurrency || 'BBD';
+    const fmtMoney = (n) => billCur + ' ' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const bt = this.billTotals();
+    const billTypeOpts = [['invoice', 'Invoice'], ['quote', 'Quotation'], ['proforma', 'Pro forma'], ['receipt', 'Receipt']].map(([k, l]) => ({ label: l, onClick: () => this.setBillType(k), style: this.segStyle(d.billType === k) }));
+    const blRowViews = (d.blRows || []).map((r, i) => {
+      const taxable = r.taxable !== false;
+      return {
+        code: r.code, desc: r.desc, qty: r.qty, unit: r.unit,
+        amount: fmtMoney((parseFloat(r.qty) || 0) * (parseFloat(r.unit) || 0)),
+        taxLabel: taxable ? 'VAT' : 'Zero',
+        taxBtnStyle: `flex:none;padding:7px 10px;border-radius:7px;border:1px solid ${taxable ? '#1A8A9C' : '#d9d7cf'};background:${taxable ? '#e7f4f6' : '#fff'};color:${taxable ? '#127080' : '#a7a596'};font:700 11px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer`,
+        onCode: (e) => this.updateBlRow(i, 'code', e.target.value),
+        onDesc: (e) => this.updateBlRow(i, 'desc', e.target.value),
+        onQty: (e) => this.updateBlRow(i, 'qty', e.target.value),
+        onUnit: (e) => this.updateBlRow(i, 'unit', e.target.value),
+        toggleTax: () => this.toggleBlRowTax(i),
+        save: () => this.saveLineItem(i),
+        del: () => this.delBlRow(i)
+      };
+    });
+    const lineItemLibViews = (d.lineItemLib || []).map(it => ({ label: (it.code ? it.code + ' · ' : '') + (it.desc || 'item'), insert: () => this.insertLineItem(it), del: () => this.delLib('lineItemLib', it.id, 'saved line item') }));
+    const billDraftViews = (d.billDrafts || []).map(it => ({ name: it.name, meta: (this.BILL_META[it.type] ? this.BILL_META[it.type].title : '') + (it.savedAt ? ' · ' + it.savedAt : ''), load: () => this.loadBillDraft(it), del: () => this.delLib('billDrafts', it.id, 'local recovery draft') }));
+    const billPaperOpts = [['letter', 'Letter'], ['a4', 'A4']].map(([k, l]) => ({ label: l, onClick: () => this.set('billPaperSize', k), style: this.segStyle((d.billPaperSize || 'letter') === k) }));
+    const billFileMeta = (doc) => {
+      const title = this.BILL_META[doc.documentType] ? this.BILL_META[doc.documentType].title : String(doc.documentType || '').toUpperCase();
+      const when = doc.latestAutosaveAt || doc.updatedAt || doc.createdAt || '';
+      const date = when ? new Date(when).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+      const who = doc.accessLevel === 'owner' ? 'Owner' : (doc.accessLevel === 'edit' ? 'Can edit' : 'View only');
+      return [title, doc.billingNumber || '', doc.customerCompany || doc.customerName || '', date, who].filter(Boolean).join(' - ');
+    };
+    const billFileViews = (d.billingFiles || []).map(doc => ({ name: doc.documentName || doc.billingNumber || 'Billing file', meta: billFileMeta(doc), load: () => this.openBillingFile(doc.id) }));
+    const sharedBillFileViews = (d.sharedBillingFiles || []).map(doc => ({ name: doc.documentName || doc.billingNumber || 'Shared billing file', meta: billFileMeta(doc), load: () => this.openBillingFile(doc.id) }));
+    const userById = new Map((d.billShareUsers || []).map(u => [u.userId, u]));
+    const billShareUserOptions = (d.billShareUsers || [])
+      .filter(u => !(d.billCollaborators || []).some(c => c.userId === u.userId))
+      .map(u => ({ userId: u.userId, label: (u.displayName || u.username || 'User') + (u.email ? ' - ' + u.email : '') }));
+    const billCollaboratorViews = (d.billCollaborators || []).map(c => {
+      const user = userById.get(c.userId) || {};
+      return {
+        name: user.displayName || user.username || c.userId,
+        access: c.accessLevel === 'edit' ? 'Can edit' : 'View only',
+        remove: () => this.removeBillCollaborator(c.userId)
+      };
+    });
+    const fileUserById = new Map((d.fileShareUsers || []).map(u => [u.userId, u]));
+    const fileShareUserOptions = (d.fileShareUsers || [])
+      .filter(u => !(d.fileCollaborators || []).some(c => c.userId === u.userId))
+      .map(u => ({ userId: u.userId, label: (u.displayName || u.username || 'User') + (u.email ? ' - ' + u.email : '') }));
+    const fileCollaboratorViews = (d.fileCollaborators || []).map(c => {
+      const user = fileUserById.get(c.userId) || {};
+      return {
+        name: user.displayName || user.username || c.userId,
+        access: c.accessLevel === 'edit' ? 'Can edit' : 'View only',
+        remove: () => this.removeFileCollaborator(c.userId)
+      };
+    });
+    const sidebarWidth = this.clampSidebarWidth(d.sidebarWidth || 396);
+    return {
+      tab,
+      isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
+      f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
+      showPreviewHeader: tab !== 'files',
+      previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
+      showEmailFileIdentity: tab === 'email',
+      activeEmailFileName: d.currentFileKind === 'file' && d.currentFileType === 'email' ? (d.currentFileName || 'Untitled email') : 'Unsaved email',
+      activeEmailFileStatus: d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? 'Unsaved' : d.currentFileIsTemplate ? 'Template' : 'File',
+      activeEmailFileBadgeStyle: `padding:4px 7px;border-radius:999px;background:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#f1ede5' : d.currentFileIsTemplate ? '#dceef0' : '#e7edf5'};color:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#7a715f' : d.currentFileIsTemplate ? '#176d7a' : '#415b7a'};font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap`,
+      copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
+      copyNow: this.copyNow, printLetter: this.printLetter,
+      composeNewEmail: this.composeNewEmail, openEmailSend: this.openEmailSend,
+      emailSendOpen: d.emailSendOpen, closeEmailSend: this.closeEmailSend,
+      emailFromLabel: d.emailFromLabel || 'Classic Visions <support@classicvisions.net>',
+      emailReplyTo: d.emailReplyTo || '', emailTo: d.emailTo || '', emailCc: d.emailCc || '', emailBcc: d.emailBcc || '', emailSubject: d.emailSubject || this.emailSubjectLine(),
+      setEmailReplyTo: this.setEmailReplyTo, setEmailTo: this.setEmailTo, setEmailCc: this.setEmailCc, setEmailBcc: this.setEmailBcc, setEmailSubject: this.setEmailSubject,
+      emailContactsOpen: d.emailContactsOpen, toggleEmailContacts: this.toggleEmailContacts, emailContactOptions, noEmailContacts: emailContactOptions.length === 0,
+      emailCcOpen: d.emailCcOpen, emailBccOpen: d.emailBccOpen, showEmailCc: this.showEmailCc, showEmailBcc: this.showEmailBcc,
+      emailCcBtnStyle: `height:30px;padding:0 13px;border:1px solid ${d.emailCcOpen ? '#0B1E35' : '#d9d7cf'};border-radius:8px;background:${d.emailCcOpen ? '#0B1E35' : '#fff'};color:${d.emailCcOpen ? '#fff' : '#0B1E35'};font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer`,
+      emailBccBtnStyle: `height:30px;padding:0 13px;border:1px solid ${d.emailBccOpen ? '#0B1E35' : '#d9d7cf'};border-radius:8px;background:${d.emailBccOpen ? '#0B1E35' : '#fff'};color:${d.emailBccOpen ? '#fff' : '#0B1E35'};font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer`,
+      emailSendPreviewNode,
+      emailSending: d.emailSending, emailSendError: d.emailSendError || '', sendEmailNow: this.sendEmailNow,
+      emailSendButtonLabel: d.emailSending ? 'Sending...' : 'Send Email',
+      emailSendButtonOpacity: d.emailSending ? '.65' : '1',
+      showFileActions: ['email', 'letter', 'signature', 'social', 'shiplabel', 'statement'].includes(tab),
+      fileSaveState: d.fileSaveState || '',
+      saveActiveFile: this.saveActiveFile, saveAsActiveFile: this.saveAsActiveFile, renameActiveFile: this.renameActiveFile, shareActiveFile: this.shareActiveFile, deleteActiveFile: this.deleteActiveFile,
+      fileSaveDialogOpen: d.fileSaveDialogOpen,
+      fileSaveDialogName: d.fileSaveDialogName || '', fileSaveDialogError: d.fileSaveDialogError || '',
+      fileSaveDialogTitle: d.fileSaveDialogMode === 'template' ? 'Save as template' : d.fileSaveDialogMode === 'save-as' ? 'Save as' : d.fileSaveDialogMode === 'rename' ? 'Rename file' : 'Save file',
+      fileSaveDialogDescription: d.fileSaveDialogMode === 'template' ? 'Create a reusable email template in Saved templates.' : d.fileSaveDialogMode === 'save-as' ? 'Create a new copy with this name.' : d.fileSaveDialogMode === 'rename' ? 'Choose a new name for this saved file.' : 'Choose a name for this new file.',
+      fileSaveDialogSubmitLabel: d.fileSaveDialogMode === 'template' ? 'Save template' : d.fileSaveDialogMode === 'save-as' ? 'Save copy' : d.fileSaveDialogMode === 'rename' ? 'Rename' : 'Save',
+      closeFileSaveDialog: this.closeFileSaveDialog, setFileSaveDialogName: this.setFileSaveDialogName, submitFileSaveDialog: this.submitFileSaveDialog,
+      sidebarStyle: `width:${sidebarWidth}px;flex:none;background:#fff;border-right:1px solid #e7e4db;overflow:auto`,
+      sidebarResizerStyle: `width:8px;flex:none;cursor:col-resize;background:${d.sidebarDragging ? '#1A8A9C' : '#e7e4db'};border-right:1px solid #d8d2c4;outline:none;transition:background .12s`,
+      startSidebarDrag: this.startSidebarDrag,
+      showCopyNow: !['files', 'email', 'letter'].includes(tab),
+      previewAreaStyle: tab === 'files' ? 'flex:1;min-height:0;overflow:hidden;padding:0' : 'flex:1;min-height:0;overflow:auto;padding:34px 28px',
+      sortMyFiles: this.sortMyFiles,
+      myFileTypeTree: (() => {
+        const counts = {};
+        (d.myFiles || []).forEach(f => { counts[f.fileType] = (counts[f.fileType] || 0) + 1; });
+        const total = (d.myFiles || []).length;
+        const types = [['', 'All types', total, 'apps'], ['email','Email',counts.email||0,'mail'], ['letter','Letterhead',counts.letter||0,'description'], ['billing','Billing',counts.billing||0,'receipt_long'], ['shiplabel','Ship label',counts.shiplabel||0,'local_shipping'], ['signature','Signature',counts.signature||0,'draw'], ['social','Social',counts.social||0,'campaign'], ['statement','Statement',counts.statement||0,'account_balance']];
+        return types.map(([type, label, count, icon]) => {
+          const active = (d.fileTypeFilter || '') === type;
+          return {
+            label, count, icon,
+            iconStyle: 'font-size:18px;width:22px;text-align:center;flex:none;line-height:1',
+            rowStyle: `display:flex;align-items:center;gap:6px;width:100%;padding:6px ${type ? '12px 6px 24px' : '12px'};border:0;background:${active?'#1A8A9C':'transparent'};color:${active?'#fff':'#5b6b7c'};font:${active?'700':'400'} 12px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:left`,
+            countStyle: `font:600 10px/1 'Plus Jakarta Sans',sans-serif;background:${active?'rgba(255,255,255,.2)':'#f1ede5'};color:${active?'#fff':'#8a93a0'};border-radius:999px;padding:2px 6px`,
+            onClick: () => this.setState({ fileTypeFilter: type })
+          };
+        });
+      })(),
+      refreshMyFiles: this.refreshMyFiles, fileSearch: d.fileSearch || '', setFileSearch: (e) => this.set('fileSearch', e.target.value),
+      fileShareOpen: d.fileShareOpen, fileShareName: d.fileShareName || '', toggleFileShare: this.toggleFileShare,
+      fileShareUserId: d.fileShareUserId || '', fileShareAccess: d.fileShareAccess || 'view', fileShareUserOptions, fileCollaboratorViews,
+      setFileShareUser: (e) => this.setState({ fileShareUserId: e.target.value }),
+      setFileShareAccess: (e) => this.setState({ fileShareAccess: e.target.value }),
+      addFileCollaborator: this.addFileCollaborator, saveFileShares: this.saveFileShares,
+      dlOpen: d.dlOpen, toggleDl: this.toggleDl, dlHtml: this.dlHtml, dlEml: this.dlEml,
+      docxOpen: d.docxOpen, toggleDocx: this.toggleDocx, exportLetterWord: this.exportLetterWord, openLetterGoogleDocs: this.openLetterGoogleDocs,
+      brandOpen: d.brandOpen, toggleBrand: this.toggleBrand, brandFields,
+      gearStyle: `display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:0;cursor:pointer;background:${d.brandOpen ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,.06)'};transition:.15s`,
+      emHeaderOpts: this.seg('emHeader', [{ k: 'navy', l: 'Navy band' }, { k: 'minimal', l: 'Minimal' }, { k: 'teal', l: 'Teal edge' }]),
+      emFooterOpts: this.seg('emFooter', [{ k: 'navy', l: 'Navy' }, { k: 'linen', l: 'Light' }]),
+      docTypeOpts: this.seg('docType', [{ k: 'business', l: 'Business' }, { k: 'announcement', l: 'Announcement' }, { k: 'collection', l: 'Collection' }, { k: 'memo', l: 'Memo' }]),
+      isMemo: d.docType === 'memo', notMemo: d.docType !== 'memo', isAnnounce: d.docType === 'announcement', isBizColl, isCollection: d.docType === 'collection',
+      showSubject: d.docType !== 'memo', subjectLabel: d.docType === 'announcement' ? 'Title' : 'Subject (Re:)',
+      emailLib, letterLib, sigLib, snippetItems, letterheadBlocks,
+      hasEmailLib: emailLib.length > 0, noEmailLib: emailLib.length === 0,
+      hasLetterLib: letterLib.length > 0, noLetterLib: letterLib.length === 0,
+      hasSigLib: sigLib.length > 0, noSigLib: sigLib.length === 0,
+      hasSnippets: snippetItems.length > 0,
+      sgLogo: d.sgLogo, toggleLogo: this.toggleLogo,
+      setEmailHost: this.setEmailHost, setLetterHost: this.setLetterHost, setSocialHost: this.setSocialHost,
+      onEmailInput: this.onEmailInput, onLetterInput: this.onLetterInput, onSocialInput: this.onSocialInput,
+      onEmailPaste: this.onEmailPaste, onLetterPaste: this.onLetterPaste, onSocialPaste: this.onSocialPaste,
+      fmtBold: this.fmtBold, fmtItalic: this.fmtItalic, fmtP: this.fmtP, fmtH2: this.fmtH2, fmtUL: this.fmtUL, fmtLink: this.fmtLink,
+      fmtCenter: this.fmtCenter, fmtJustify: this.fmtJustify,
+      fmtImgSmaller: this.fmtImgSmaller, fmtImgLarger: this.fmtImgLarger, fmtImgRound: this.fmtImgRound, fmtImgShadow: this.fmtImgShadow,
+      onEditorClick: this.onEditorClick,
+      saveSnippet: this.saveSnippet, saveEmail: this.saveEmail, saveLetter: this.saveLetter, saveSig: this.saveSig,
+      toolBtn: "width:32px;height:30px;border:1px solid #d9d7cf;border-radius:6px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer",
+      smFormatOpts, smStyleOpts, smPostLib, savePost: this.savePost, openSmFull: this.openSmFull,
+      hasSmPostLib: smPostLib.length > 0, noSmPostLib: smPostLib.length === 0,
+      smHeadlineV: d.smHeadline ?? '', smSubV: d.smSub ?? '', smHandleV: d.smHandle ?? '',
+      smHeadlineOn: (e) => this.set('smHeadline', e.target.value), smSubOn: (e) => this.set('smSub', e.target.value), smHandleOn: (e) => this.set('smHandle', e.target.value),
+      smHeadlineItalicToggle: this.smHeadlineItalicToggle, smHeadlineLeft: this.smHeadlineLeft, smHeadlineCenter: this.smHeadlineCenter, smHeadlineRight: this.smHeadlineRight,
+      customerOptions,
+      selectedStatementCustomer: d.selectedStatementCustomer || '',
+      selectedShipCustomer: d.selectedShipCustomer || '',
+      selectedBillingCustomer: d.selectedBillingCustomer || '',
+      applyCustomerToStatement: this.applyCustomerToStatement,
+      applyCustomerToShipLabel: this.applyCustomerToShipLabel,
+      applyCustomerToBilling: this.applyCustomerToBilling,
+      stCurrencyOpts: this.seg('stCurrency', [{ k: 'BBD', l: 'BBD' }, { k: 'USD', l: 'USD' }]),
+      stTypeOpts: [{ k: 'simple', l: 'Simple Statement' }, { k: 'advanced', l: 'Advanced Statement' }].map(o => ({ label: o.l, onClick: () => this.set('stType', o.k), style: this.segStyle(d.stType === o.k) })),
+      isSimpleStatement: d.stType !== 'advanced',
+      isAdvancedStatement: d.stType === 'advanced',
+      stHasDbData: !!d.stDbData,
+      stDbLoading: d.stDbLoading || false,
+      stDbStatusLabel: d.stDbData ? ('Loaded: Statement ' + (d.stDbId || '')) : (d.stDbId ? 'Statement ' + d.stDbId + ' — not yet loaded' : 'No data loaded — fields are manual'),
+      stDbBtnLabel: d.stDbLoading ? 'Loading…' : (d.stDbData ? 'Change ID' : 'Enter ID'),
+      stDbDataAndRows: !!d.stDbData && (d.stRows || []).some(r => r.date || r.desc || r.debit || r.credit),
+      stDbLockStyle: d.stDbData ? 'pointer-events:none;opacity:.7;user-select:none' : '',
+      stAgingDesc1: d.stAgingDesc1 || '30 Days',
+      stAgingDesc2: d.stAgingDesc2 || '60 Days',
+      stAgingDesc3: d.stAgingDesc3 || '90 Days',
+      stAgingDesc4: d.stAgingDesc4 || '120+ Days',
+      promptStatementDb: this.promptStatementDb,
+      clearStatementDb: this.clearStatementDb,
+      stRowViews: (d.stRows || []).map((r, i) => ({
+        date: r.date, desc: r.desc, patient: r.patient || '', debit: r.debit, credit: r.credit,
+        onDate: (e) => this.updateStRow(i, 'date', e.target.value),
+        onDesc: (e) => this.updateStRow(i, 'desc', e.target.value),
+        onPatient: (e) => this.updateStRow(i, 'patient', e.target.value),
+        onDebit: (e) => this.updateStRow(i, 'debit', e.target.value),
+        onCredit: (e) => this.updateStRow(i, 'credit', e.target.value),
+        del: () => this.delStRow(i)
+      })),
+      addStRow: this.addStRow,
+      // ---- billing ----
+      billTypeOpts, billTitle: bm.title, isReceipt: d.billType === 'receipt', notReceipt: d.billType !== 'receipt',
+      showBank: bm.showBank, billDueLabel: bm.dueLabel || 'Valid until', hasDue: !!bm.dueLabel,
+      billCurrencyOpts: this.seg('blCurrency', [{ k: 'BBD', l: 'BBD' }, { k: 'USD', l: 'USD' }]),
+      blVatEnabled: d.blVatEnabled, toggleBlVat: (e) => this.set('blVatEnabled', e.target.checked),
+      blRowViews, addBlRow: this.addBlRow,
+      lineItemLibViews, hasLineItemLib: lineItemLibViews.length > 0,
+      billDraftViews, hasBillDrafts: billDraftViews.length > 0, noBillDrafts: billDraftViews.length === 0,
+      billPaperOpts,
+      billFileViews, sharedBillFileViews,
+      hasBillingFiles: billFileViews.length > 0, noBillingFiles: billFileViews.length === 0,
+      hasSharedBillingFiles: sharedBillFileViews.length > 0, noSharedBillingFiles: sharedBillFileViews.length === 0,
+      billSaveState: d.billSaveState || '',
+      billShareOpen: d.billShareOpen, billShareUserId: d.billShareUserId || '', billShareAccess: d.billShareAccess || 'view',
+      billShareUserOptions, billCollaboratorViews,
+      setBillShareUser: (e) => this.setState({ billShareUserId: e.target.value }),
+      setBillShareAccess: (e) => this.setState({ billShareAccess: e.target.value }),
+      addBillCollaborator: this.addBillCollaborator, saveBillShares: this.saveBillShares, toggleBillShare: this.toggleBillShare,
+      nextBillNumber: this.nextBillNumber, saveBillDraft: this.saveBillDraft,
+      saveBillingFile: this.saveBillingFile, saveBillingFileAs: this.saveBillingFileAs, renameBillingFile: this.renameBillingFile, deleteBillingFile: this.deleteBillingFile,
+      blSubtotalStr: fmtMoney(bt.subtotal), blVatStr: fmtMoney(bt.vat), blTotalStr: fmtMoney(bt.total),
+      blVatRowLabel: `VAT @ ${d.blVatRate || '0'}%`, blPaidStr: fmtMoney(bt.amountPaid), blBalanceStr: fmtMoney(bt.balance),
+      hasLibraryDeleteConfirm: !!d.libraryDelete,
+      libraryDeleteLabel: d.libraryDelete?.label || 'saved item',
+      cancelLibraryDelete: this.cancelLibraryDelete,
+      confirmLibraryDelete: this.confirmLibraryDelete,
+      handleLibraryDeleteKeydown: this.handleLibraryDeleteKeydown,
+      copied: d.copied
+    };
+  }
+}
+
+  window.__dcLogicClasses = window.__dcLogicClasses || {};
+  window.__dcLogicClasses.studio = Component;
+})();

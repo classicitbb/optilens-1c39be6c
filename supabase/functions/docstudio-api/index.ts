@@ -6,7 +6,8 @@
 // { users:[] } { shares:[] } { ok:true }.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getOrCreateUnsubscribeToken, getSmtpConfig } from "../_shared/email/smtp.ts";
+import { getSmtpConfig } from "../_shared/email/smtp.ts";
+import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -77,6 +78,19 @@ const contactRows = (rows: any[] | null | undefined, source: string) =>
     }))
     .filter((row) => row.email && emailRegex.test(row.email));
 
+// The file manager searches names, customer references, and saved document
+// content without having to load each file one-by-one. Keep the returned value
+// plain text so it is never rendered as HTML in the Studio client.
+function fileSearchText(...values: any[]) {
+  return values
+    .map((value) => typeof value === "string" ? value : JSON.stringify(value ?? ""))
+    .join(" ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 50000);
+}
+
 // deno-lint-ignore no-explicit-any
 function publicFile(row: any, detail = false) {
   const autosaveAt = row.latest_autosave_at ? new Date(row.latest_autosave_at).getTime() : 0;
@@ -99,6 +113,7 @@ function publicFile(row: any, detail = false) {
     createdAt: row.created_at,
     version: row.version,
     hasNewerAutosave: Boolean(useAutosave),
+    searchText: fileSearchText(row.file_name, row.customer_name, row.customer_account, row.metadata, row.content, row.rendered_html, row.autosave_content, row.autosave_rendered_html),
   };
   if (detail) {
     doc.content = useAutosave ? row.autosave_content ?? {} : row.content ?? {};
@@ -128,11 +143,14 @@ function publicDocument(row: any, detail = false) {
     customerAccount: row.customer_account || "",
     paperSize: row.paper_size || "letter",
     status: row.status || "saved",
+    createdByCopilot: Boolean(row.created_by_copilot),
+    sourceDocumentType: row.source_document_type || "",
     updatedAt: row.updated_at,
     latestAutosaveAt: row.latest_autosave_at,
     createdAt: row.created_at,
     version: row.version,
     hasNewerAutosave: Boolean(useAutosave),
+    searchText: fileSearchText(row.document_name, row.document_type, row.billing_number, row.customer_name, row.customer_company, row.customer_account, row.content, row.rendered_html, row.autosave_content, row.autosave_rendered_html),
   };
   if (detail) {
     doc.content = useAutosave ? row.autosave_content ?? {} : row.content ?? {};
@@ -168,6 +186,7 @@ const documentWriteColumns = (p: any, userId: string) => ({
   content: asObject(p.content ?? p.contentJson),
   rendered_html: String(p.renderedHtml || ""),
   totals: asObject(p.totals ?? p.totalsJson),
+  status: ["draft", "saved", "sent"].includes(String(p.status)) ? String(p.status) : "saved",
 });
 
 serve(async (req) => {
@@ -179,6 +198,10 @@ serve(async (req) => {
   const parts = url.pathname.split("/").filter(Boolean);
   const base = parts.indexOf("docstudio-api");
   const route = parts.slice(base + 1);
+  // Native React Studio uses the explicit v2 namespace. Keep the original
+  // routes intact for the legacy fallback during the cutover window; both
+  // surfaces deliberately share the same authorization and persistence logic.
+  if (route[0] === "v2") route.shift();
   // Older bridge builds forwarded the full /api/docstudio/... path — accept both.
   if (route[0] === "docstudio") route.shift();
   const method = req.method;
@@ -312,34 +335,19 @@ serve(async (req) => {
       for (const recipient of recipientJobs) {
         const messageId = crypto.randomUUID();
         messageIds.push(messageId);
-        const unsubscribeToken = await getOrCreateUnsubscribeToken(supabase, recipient.email);
-        await supabase.from("email_send_log").insert({
-          message_id: messageId,
-          template_name: `docstudio-email-${recipient.header}`,
-          recipient_email: recipient.email,
-          status: "pending",
-          metadata: { send_mode: "manual", subject, initiated_by: userId },
+        const result = await sendManagedEmail(supabase, {
+          messageId,
+          to: recipient.email,
+          from: smtpConfig.from,
+          replyTo: replyTo || undefined,
+          subject,
+          html,
+          text: stripHtml(html),
+          label: `docstudio-email-${recipient.header}`,
+          idempotencyKey: messageId,
+          logMetadata: { send_mode: "manual", subject, initiated_by: userId },
         });
-
-        const { error: enqueueError } = await supabase.rpc("enqueue_email", {
-          queue_name: "transactional_emails",
-          payload: {
-            message_id: messageId,
-            to: recipient.email,
-            from: smtpConfig.from,
-            subject,
-            html,
-            text: stripHtml(html),
-            ...(replyTo ? { reply_to: replyTo } : {}),
-            purpose: "transactional",
-            label: `docstudio-email-${recipient.header}`,
-            idempotency_key: messageId,
-            unsubscribe_token: unsubscribeToken,
-            queued_by: userId,
-            queued_at: new Date().toISOString(),
-          },
-        });
-        if (enqueueError) throw enqueueError;
+        if (result.status === "failed") throw new Error(result.error);
       }
       return json({ ok: true, messageIds });
     }
@@ -550,6 +558,74 @@ serve(async (req) => {
           transactions,
         },
       });
+    }
+
+    // Issuer identity for the letterhead and payment block. These used to live
+    // only in this browser's localStorage, which meant they differed per
+    // machine and were invisible to anything server-side — so a document
+    // created outside the studio came out blank. company_settings is now the
+    // single source.
+    if (route[0] === "settings" && method === "GET") {
+      const { data } = await supabase.from("company_settings").select("*").limit(1).maybeSingle();
+      const c = data ?? {};
+      const address = [c.physical_line1, c.physical_line2, c.physical_city, c.physical_state, c.physical_postcode, c.physical_country]
+        .map((part: unknown) => String(part ?? "").trim())
+        .filter(Boolean)
+        .join(", ");
+      return json({
+        settings: {
+          bAddress: address,
+          bRegNo: c.company_reg_no ?? "",
+          bVatReg: c.tax_tin ?? "",
+          bkBankName: c.bank_name ?? "",
+          bkAccName: c.bank_account_name ?? "",
+          bkAccNo: c.bank_account_no ?? "",
+          bkBranch: c.bank_branch ?? "",
+          bkSwift: c.bank_swift ?? "",
+          bkNote: c.bank_note ?? "",
+          blCurrency: c.base_currency ?? "BBD",
+          blVatRate: c.default_vat === null || c.default_vat === undefined ? "" : String(c.default_vat),
+          billPaperSize: c.default_paper_size ?? "letter",
+          dueDays: c.default_due_days ?? 30,
+        },
+      });
+    }
+
+    if (route[0] === "settings" && method === "PUT") {
+      const { data: existing } = await supabase.from("company_settings").select("id").limit(1).maybeSingle();
+      if (!existing) return json({ error: "Company settings have not been set up yet" }, 404);
+      const patch: Record<string, unknown> = {};
+      const map: Record<string, string> = {
+        bRegNo: "company_reg_no", bVatReg: "tax_tin",
+        bkBankName: "bank_name", bkAccName: "bank_account_name", bkAccNo: "bank_account_no",
+        bkBranch: "bank_branch", bkSwift: "bank_swift", bkNote: "bank_note",
+      };
+      for (const [field, column] of Object.entries(map)) {
+        if (body[field] !== undefined) patch[column] = text(body[field], 300) ?? "";
+      }
+      if (!Object.keys(patch).length) return json({ error: "No settings supplied" }, 400);
+      const { error } = await supabase.from("company_settings").update(patch).eq("id", existing.id);
+      if (error) throw error;
+      return json({ ok: true });
+    }
+
+    // Peek at the next number per type, for the placeholder the Studio shows
+    // while drafting. Does not consume — POST does that, at save time.
+    if (route[0] === "billing-number" && method === "GET") {
+      const { data } = await supabase.from("docstudio_billing_sequences").select("document_type,next_value");
+      const next: Record<string, number> = {};
+      for (const row of data ?? []) next[row.document_type] = row.next_value;
+      return json({ next });
+    }
+
+    // Document numbering. Previously a per-browser counter that restarted at 1,
+    // so two machines happily issued the same invoice number.
+    if (route[0] === "billing-number" && method === "POST") {
+      const documentType = String(body.documentType || body.billType || "invoice");
+      if (!DOCUMENT_TYPES.has(documentType)) return json({ error: `Unknown document type: ${documentType}` }, 400);
+      const { data, error } = await supabase.rpc("next_billing_number", { p_document_type: documentType });
+      if (error) throw error;
+      return json({ billingNumber: data });
     }
 
     if (route[0] === "users") return json({ users: [] });

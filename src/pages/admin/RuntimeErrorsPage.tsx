@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { clearRuntimeErrorLog, getRuntimeErrorLog } from "@/lib/runtimeErrorLog";
+import { supabase } from "@/integrations/supabase/client";
 
 const formatTimestamp = (value: string) => {
   const d = new Date(value);
@@ -10,10 +12,39 @@ const formatTimestamp = (value: string) => {
   return d.toLocaleString();
 };
 
+type ServerRuntimeError = {
+  id: string;
+  route: string | null;
+  source: string | null;
+  title: string | null;
+  detail: string | null;
+  component_stack: string | null;
+  user_agent: string | null;
+  url: string | null;
+  created_at: string;
+};
+
+async function loadServerErrors(): Promise<ServerRuntimeError[]> {
+  const { data, error } = await (supabase as any)
+    .from("runtime_error_events")
+    .select("id, route, source, title, detail, component_stack, user_agent, url, created_at")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return data ?? [];
+}
+
 export default function RuntimeErrorsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const localEntries = useMemo(() => getRuntimeErrorLog(), [refreshKey]);
+  const serverQuery = useQuery<ServerRuntimeError[]>({
+    queryKey: ["runtime_error_events"],
+    queryFn: loadServerErrors,
+    refetchInterval: 10000,
+  });
 
-  const entries = useMemo(() => getRuntimeErrorLog(), [refreshKey]);
+  const serverEntries = serverQuery.data ?? [];
+  const isLoading = serverQuery.isLoading;
 
   return (
     <div className="p-6 space-y-4">
@@ -21,11 +52,14 @@ export default function RuntimeErrorsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Runtime Error Log</h1>
           <p className="text-sm text-muted-foreground">
-            One-line log of destructive toasts and unhandled browser errors for quick QA/Codex review.
+            Server-side runtime error events plus local browser log for quick QA/Codex review.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => setRefreshKey((x) => x + 1)}>Refresh</Button>
+          <Button variant="outline" onClick={() => {
+            setRefreshKey((x) => x + 1);
+            void serverQuery.refetch();
+          }}>Refresh</Button>
           <Button
             variant="destructive"
             onClick={() => {
@@ -33,20 +67,52 @@ export default function RuntimeErrorsPage() {
               setRefreshKey((x) => x + 1);
             }}
           >
-            Clear log
+            Clear local log
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent errors ({entries.length})</CardTitle>
+          <CardTitle>Server events ({serverEntries.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {entries.length === 0 ? (
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading server events…</p>
+          ) : serverQuery.isError ? (
+            <p className="text-sm text-destructive">
+              Could not load server events: {(serverQuery.error as Error)?.message ?? "Unknown error"}
+            </p>
+          ) : serverEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No server events yet.</p>
+          ) : (
+            serverEntries.map((entry) => (
+              <div key={entry.id} className="rounded-md border p-3 text-sm space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{entry.source ?? "server"}</Badge>
+                  <span className="font-medium">{entry.title ?? "Unhandled error"}</span>
+                </div>
+                <p className="text-muted-foreground">
+                  {formatTimestamp(entry.created_at)} {entry.route ? `• ${entry.route}` : ""}
+                </p>
+                {entry.detail ? <p className="break-all">{entry.detail}</p> : null}
+                {entry.url ? <p className="break-all text-xs text-muted-foreground">{entry.url}</p> : null}
+                {entry.component_stack ? <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded bg-muted p-2 text-xs">{entry.component_stack}</pre> : null}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Local browser log ({localEntries.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {localEntries.length === 0 ? (
             <p className="text-sm text-muted-foreground">No captured errors yet.</p>
           ) : (
-            entries.map((entry) => (
+            localEntries.map((entry) => (
               <div key={entry.id} className="rounded-md border p-3 text-sm space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{entry.source}</Badge>

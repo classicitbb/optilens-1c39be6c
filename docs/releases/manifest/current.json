@@ -1,20 +1,27 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-22T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-08-27T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Sitewide release validation is restored across the storefront, Portal Copilot, Rx ordering, and the public store-variant security boundary.",
-    "Portal customers can preview saved drafts, open lab-order details, collapse account navigation, and use a roomier support assistant with in-place chat history and dictation.",
-    "Barbados lab prices are identified as BBD, web-cart prices remain identified as USD, and users without price access no longer see pricing-availability language in Rx ordering.",
-    "My Profile now contains checkout-saved payment methods for editing or removal; customers no longer see a separate card-creation page or internal CRM linkage badges.",
-    "My Profile now also contains saved addresses, and Enter applies an active inline contact-detail edit.",
-    "Portal Copilot voice input now uses a predictable Record → Stop → Transcribe flow, and its Helpdesk ticket tool supplies the required ticket number and numeric priority automatically."
+    "CRM contacts are enriched from public business listings automatically: a nightly sweep plus a 15-minute worker for newly created contacts fill in blank website, phone and address details.",
+    "Existing values are never overwritten silently. A listing that disagrees becomes an approval card in the Copilot with the current value, the proposed value, the source link, the retrieval date and a confidence score.",
+    "Enrichment can also be run on demand — from the Copilot, from **Leads → Enrich All**, or from a single contact's editor."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": " edge function with scheduler-secret or administrator auth, a 40-contact batch, a 150/day attempt cap, a 30-day per-contact floor and a ",
       "impact": "medium",
-      "notes": "Updated as part of Customer portal experience pass."
+      "notes": "Updated as part of Continuous CRM contact enrichment."
+    },
+    {
+      "module": "_shared/enrichment",
+      "impact": "medium",
+      "notes": "Updated as part of Continuous CRM contact enrichment."
+    },
+    {
+      "module": " record field-level before/after with source URL, retrieval date and confidence. ",
+      "impact": "medium",
+      "notes": "Updated as part of Continuous CRM contact enrichment."
     }
   ],
   "migrationNotes": [

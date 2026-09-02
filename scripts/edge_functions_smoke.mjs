@@ -66,16 +66,20 @@ const FUNCTIONS = readdirSync(resolve(process.cwd(), "supabase/functions"), { wi
  * as "the function booted and is routing requests".
  */
 const NO_CORS_FUNCTIONS = new Set([
-  "handle-email-suppression",
+  "handle-email-events",
   "helpdesk-followup",
   "mcp",
-  "process-email-queue",
   // Scotia/Fiserv posts the transaction outcome server-to-server. The function
   // answers GET (version ping) and POST (notification) only and returns 405 to
   // anything else, including a browser preflight it will never receive. There
   // is no CORS contract to keep here — "booted and routing, not 5xx" is the
   // correct assertion.
   "scotia-notify",
+  // JWT-gated document endpoints: the browser never preflights a same-origin
+  // PDF fetch, and the function rejects unauthenticated OPTIONS with 401 by
+  // design. Accept any non-5xx response as evidence the function booted.
+  "statement-document",
+  "statement-document-worker",
 ]);
 
 

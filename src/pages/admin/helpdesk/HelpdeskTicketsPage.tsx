@@ -28,6 +28,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import InlineDictationButton from "@/components/admin/InlineDictationButton";
 
 
 interface TeamOption { id: string; name: string; }
@@ -87,6 +88,9 @@ const HelpdeskTicketsPage = () => {
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "", dueDate: "" });
+  const applyTicketDescriptionDictation = useCallback((nextValue: string) => {
+    setForm((current) => ({ ...current, description: nextValue }));
+  }, []);
 
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
@@ -268,7 +272,7 @@ const HelpdeskTicketsPage = () => {
                 <Plus className="h-3.5 w-3.5" />
                 New Ticket
               </Button>
-              <DialogContent className="admin-tool admin-overlay-surface sm:max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogContent className="admin-tool admin-overlay-surface sm:max-w-xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="text-sm font-medium text-center">Create Ticket</DialogTitle>
                 </DialogHeader>
@@ -324,14 +328,17 @@ const HelpdeskTicketsPage = () => {
                   {/* 3: Description */}
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Description</Label>
-                    <Textarea
-                      ref={setFieldRef(3) as any}
-                      value={form.description}
-                      onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                      placeholder="Brief description"
-                      className="text-xs min-h-[96px]"
-                      onKeyDown={handleFieldKeyDown(3) as any}
-                    />
+                    <div className="relative">
+                      <Textarea
+                        ref={setFieldRef(3) as any}
+                        value={form.description}
+                        onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                        placeholder="Brief description"
+                        className="min-h-[96px] pr-11 text-xs"
+                        onKeyDown={handleFieldKeyDown(3) as any}
+                      />
+                      <InlineDictationButton ariaLabel="Dictate ticket description" onValueChange={applyTicketDescriptionDictation} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+                    </div>
                   </div>
 
                   {/* 4: Team */}

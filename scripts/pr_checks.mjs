@@ -13,6 +13,11 @@ const checks = [
     args: ["run", "qa:doc-symmetry"],
   },
   {
+    name: "Copilot platform facts drift check",
+    command: "npm",
+    args: ["run", "qa:copilot-facts"],
+  },
+  {
     name: "Release ledger drift check",
     command: "npm",
     args: ["run", "qa:release-ledger"],

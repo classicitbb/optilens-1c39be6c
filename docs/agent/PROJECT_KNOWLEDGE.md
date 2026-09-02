@@ -32,6 +32,7 @@ Evidence: `package.json`, `.nvmrc`, repository configuration, and project docume
 | Runtime | `nvm use` |
 | Install | `npm ci` |
 | Develop | `npm run dev` |
+| Double-click local preview | `launch-site.bat` (legacy alias: `launchsite.bat`) |
 | Build | `npm run build` |
 | Lint | `npm run lint` |
 | Test | `npm test` |
@@ -43,6 +44,11 @@ Evidence: `package.json`, `.nvmrc`, repository configuration, and project docume
 | Edge smoke | `npm run qa:edge-smoke` |
 
 Use the more specific validation matrix in `AGENTS.md`.
+
+The local-preview launcher selects the supported Node 22/npm 10 toolchain,
+builds the checkout, and serves a strict local port (8080 by default). Set the
+`PORT` environment-variable name before launch only when an alternate local
+port is needed.
 
 ## Sources of truth
 
