@@ -11,6 +11,7 @@
   "copilot:facts": "node scripts/generate_copilot_platform_facts.mjs",
   "qa:copilot-facts": "node scripts/generate_copilot_platform_facts.mjs --check",
     "build:dev": "vite build --mode development",
+    "build:sites-preview": "node scripts/build-sites-preview.mjs",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",
     "preview": "vite preview",

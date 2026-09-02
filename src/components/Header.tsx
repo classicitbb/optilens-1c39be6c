@@ -589,7 +589,7 @@ const Header = () => {
             )}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Open mobile navigation menu">

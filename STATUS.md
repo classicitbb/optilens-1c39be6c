@@ -43,6 +43,14 @@ Last updated: 2026-09-01
   regenerated `mcp`, updated `admin-user-management`, and `docstudio-api`
   functions still require deployment before live workflow verification.
 - **Classic Visions MCP deployment** — Codex is registered against the streamable-HTTP endpoint and the local OAuth-protected function exposes three read-only tools. The live endpoint still returns `404 Requested function was not found`; direct deployment is blocked because the currently authenticated Supabase account returns `403` for function access.
+- **On-demand live-data gateway** — the CV Web request/response function,
+  short-lived gateway migration, live Innovations statements/balances, and live
+  OptiLens delivery-status UI are implemented and verified locally. The
+  migration and edge function still need deployment, and the network-hosted
+  OptiLens checkout must be updated before the gateway can be enabled live.
+
+- **Smart customer journey** — first-release code, database migration, controlled lens rules, customer command centre, Rx draft handoff, and route/test coverage are implemented. The migration still needs to be applied to the target Supabase project and an approved rule set must be published before live recommendations are enabled.
+
 - **Catalog editor wizard** — `NewCatalogDialog` component not yet shipped.
   Implementation prompts exist in `plan.md` (Codex handoff sequence). Three
   component prompts + one SQL migration for the `status` column are queued.
