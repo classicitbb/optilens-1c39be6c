@@ -26,7 +26,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { fetchCustomerCommandCenter } from "@/features/portal/customerCommandCenter";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
-import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { requestLiveData } from "@/lib/liveDataGateway";
 import { resolveUserFullName } from "@/lib/profileData";
 import { useUserRole } from "@/hooks/useUserRole";

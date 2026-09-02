@@ -14,7 +14,6 @@ import { useLocation } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useSupportAvailability } from "@/hooks/useSupportAvailability";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { capitalizeDisplayName } from "@/lib/profileData";
 import { getLastNonProfilePath } from "@/lib/lastExternalPath";
 import { CartSheet } from "@/components/CartSheet";

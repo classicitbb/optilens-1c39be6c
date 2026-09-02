@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import SidebarNavList from "@/components/shared/SidebarNavList";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { ACCOUNT_NAV_ITEMS } from "@/components/account/accountNav";
 import { useCartDrafts } from "@/hooks/useCartDrafts";
 import { useRxDrafts } from "@/features/lens-assistant/api";
