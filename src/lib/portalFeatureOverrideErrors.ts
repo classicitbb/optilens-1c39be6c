@@ -8,7 +8,7 @@ const FEATURE_LABELS: Record<string, string> = {
   "live-order-status": "Live order status",
   statements: "Statements",
   "auto-notifications": "Auto notifications",
-  "lens-assistant": "Lens Assistant",
+  "rx-order": "Rx Order Form",
 };
 
 const FEATURE_MIGRATION_HINTS: Record<string, string> = {
@@ -18,8 +18,8 @@ const FEATURE_MIGRATION_HINTS: Record<string, string> = {
     "Apply supabase/migrations/20260716120000_allow_statements_feature_key.sql so the check constraint includes statements.",
   "auto-notifications":
     "Add auto-notifications to the portal feature override allowlist or move notification opt-out state to a table with its own supported keys.",
-  "lens-assistant":
-    "Apply supabase/migrations/20260727110000_allow_lens_assistant_portal_feature_key.sql so the check constraint includes lens-assistant.",
+  "rx-order":
+    "Apply supabase/migrations/20260902_rename_lens_assistant_portal_feature_to_rx_order.sql so the check constraint includes rx-order.",
 };
 
 const getErrorMessage = (error: unknown) => {

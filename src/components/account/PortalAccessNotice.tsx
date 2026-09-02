@@ -21,7 +21,7 @@ const featureLabels: Record<PortalFeature, string> = {
   "live-order-status": "Live order status",
   statements: "Statements",
   "order-prices": "Order prices",
-  "lens-assistant": "Lens Assistant",
+  "rx-order": "Rx Order Form",
 
 };
 

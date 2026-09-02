@@ -85,7 +85,7 @@ export const heroPaths = {
     actions: [
       { label: "Request a price list", href: "/professionals/price-list-request", icon: ClipboardCheck },
       { label: "Track an order", href: "/profile/orders", icon: PackageSearch },
-      { label: "Find a lens & price", href: "/lens-assistant?audience=professional", icon: ScanEye },
+      { label: "Find a lens & price", href: "/profile/rx-order", icon: ScanEye },
     ],
   },
   visitor: {

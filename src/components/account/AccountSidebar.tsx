@@ -19,10 +19,7 @@ const AccountSidebar = ({ pathname, collapsed = false }: AccountSidebarProps) =>
   const { canAccessFeature, identity, emulation, effectiveUserId } = usePortalIdentity();
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
-  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
-  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
-  const lensAssistantEnabled = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
-    && canAccessFeature("lens-assistant");
+  const lensAssistantEnabled = canAccessFeature("rx-order");
   const targetUserId = emulation?.userId ?? effectiveUserId ?? user?.id ?? null;
   const { drafts: cartDrafts } = useCartDrafts(emulation?.userId);
   const { data: rxDrafts = [] } = useRxDrafts(emulation?.userId);

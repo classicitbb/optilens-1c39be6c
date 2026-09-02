@@ -47,8 +47,6 @@ const Profile = () => {
   const { identity, isLoading: identityLoading, canAccessFeature, emulation, effectiveUserId } = usePortalIdentity();
   const { openAssistant } = useCompanionAssistant();
   const { role, isAdmin } = useUserRole();
-  const publicLensAssistant = useWebsiteFeature("lens_assistant_public", false);
-  const adminLensAssistant = useWebsiteFeature("lens_assistant_admin", true);
   const activeCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : null;
   const commandCenterQuery = useQuery({
     queryKey: ["customer-command-center", user?.id, activeCustomerId],
@@ -59,8 +57,7 @@ const Profile = () => {
   const canViewStatements = canAccessFeature("statements");
   const canViewPricelists = canAccessFeature("pricelists");
   const canSeeLiveOrderStatus = canAccessFeature("live-order-status");
-  const canUseLensAssistant = (isAdmin ? adminLensAssistant.enabled : publicLensAssistant.enabled)
-    && canAccessFeature("lens-assistant");
+  const canUseLensAssistant = canAccessFeature("rx-order");
   // Under admin emulation the gateway must fetch the emulated customer's data, not the admin's.
   const websiteCustomerId = typeof identity?.crmCustomerId === "number" ? identity.crmCustomerId : undefined;
   const localFallbackTarget = { accountNumber: identity?.accountNumber ?? null, ordersUseBillToAccount: identity?.ordersUseBillToAccount ?? false };
