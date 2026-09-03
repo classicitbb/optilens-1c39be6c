@@ -692,7 +692,12 @@ export const dispatchAdminResourceTool = async (
   name: string,
   input: Record<string, unknown>,
   actorUserId?: string,
+  // Fail closed: a caller that does not resolve the capability never gets
+  // financial resources. Do not remove this parameter — line ~712 depends on it
+  // and dropping it makes every tool call throw at runtime (500).
+  access: AdminResourceAccess = { canAccessFinancialData: false },
 ): Promise<AdminToolResult> => {
+
   if (name === "admin_list_resources") {
     const moduleFilter = typeof input.module === "string" ? input.module.toLowerCase() : "";
     const items = ADMIN_RESOURCES

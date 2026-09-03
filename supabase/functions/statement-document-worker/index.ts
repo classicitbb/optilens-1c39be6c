@@ -1,13 +1,20 @@
 import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import jsPDF from "npm:jspdf@4.2.1";
-import autoTable from "npm:jspdf-autotable@5.0.8";
+import * as autoTableModule from "npm:jspdf-autotable@5.0.8";
+
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
 import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 import { ensureOneDriveFolderPath, uploadOneDrivePdf } from "../_shared/microsoft/graphOneDrive.ts";
 import { money, paginateStatementLines, statementTransactionDetail, STATEMENT_PDF_TEMPLATE_VERSION } from "../_shared/statements/statementDocumentModel.ts";
+// jspdf-autotable ships a namespace-shaped type under Deno's npm resolution, so
+// the callable has to be unwrapped explicitly or `deno check` rejects every call.
+type AutoTableFn = (doc: unknown, options: Record<string, unknown>) => void;
+const autoTable: AutoTableFn =
+  ((autoTableModule as unknown as { default?: AutoTableFn }).default
+    ?? (autoTableModule as unknown as AutoTableFn));
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const maxBatch = 5;
