@@ -367,7 +367,9 @@ const createDocument = async (db: Db, input: Loose, actorUserId: string) => {
       totals,
       ...(source ? { source_document_type: source.type, source_document_id: source.id } : {}),
     },
-  }, actorUserId);
+    // docstudio_billing_documents is not a financial-data resource; the access
+    // object is passed explicitly so the dispatcher signature stays enforced.
+  }, actorUserId, { canAccessFinancialData: false });
 
   const created = Array.isArray(result.data) ? result.data[0] : result.data;
   const documentId = (created as Loose)?.id;
