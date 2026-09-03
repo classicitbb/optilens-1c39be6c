@@ -409,7 +409,7 @@ const updateDocument = async (db: Db, input: Loose, actorUserId: string) => {
       document_name: billingDocumentName(content),
       ...(input.status === "draft" || input.status === "saved" ? { status: input.status } : {}),
     },
-  }, actorUserId);
+  }, actorUserId, { canAccessFinancialData: false });
 
   return {
     status: "updated",
