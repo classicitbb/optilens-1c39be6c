@@ -58,6 +58,19 @@ async function currentUserId(ctx) {
   const { data } = await supabaseForUser(ctx).auth.getUser();
   return data?.user?.id;
 }
+async function callerCanAccessFinancialData(ctx) {
+  try {
+    const db = supabaseForUser(ctx);
+    const { data: userData } = await db.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) return { canAccessFinancialData: false };
+    const { data, error } = await db.rpc("can_access_financial_data", { p_user_id: userId });
+    if (error) return { canAccessFinancialData: false };
+    return { canAccessFinancialData: data === true };
+  } catch {
+    return { canAccessFinancialData: false };
+  }
+}
 var notAuthenticated = {
   content: [{ type: "text", text: "Not authenticated." }],
   isError: true
@@ -819,7 +832,8 @@ var ADMIN_RESOURCES = [
     searchColumns: ["customer_name", "contact_email"],
     writable: ["status", "notes"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "order_items",
@@ -830,7 +844,8 @@ var ADMIN_RESOURCES = [
     searchColumns: ["product_name"],
     writable: ["quantity", "status"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "rx_order_submissions",
@@ -861,7 +876,8 @@ var ADMIN_RESOURCES = [
     searchColumns: ["quote_number", "customer_name"],
     writable: ["status", "notes", "valid_until"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "quote_lines",
@@ -872,7 +888,8 @@ var ADMIN_RESOURCES = [
     searchColumns: ["description"],
     writable: ["description", "quantity"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   // ------------------------------------------------- Catalog & pricing
   {
@@ -927,7 +944,8 @@ var ADMIN_RESOURCES = [
     searchColumns: [],
     writable: ["price"],
     orderBy: "id",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "price_matrix",
@@ -938,7 +956,8 @@ var ADMIN_RESOURCES = [
     searchColumns: [],
     writable: ["price"],
     orderBy: "id",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "pricelists",
@@ -949,7 +968,8 @@ var ADMIN_RESOURCES = [
     searchColumns: ["name"],
     writable: ["name"],
     orderBy: "id",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "pricelist_versions",
@@ -960,7 +980,8 @@ var ADMIN_RESOURCES = [
     searchColumns: ["name"],
     writable: ["name", "status", "notes"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "catalog_templates",
@@ -981,7 +1002,8 @@ var ADMIN_RESOURCES = [
     searchColumns: [],
     writable: ["is_published", "display_name", "sort_order"],
     orderBy: "updated_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   // ------------------------------------------ Customers, portal, billing
   {
@@ -992,7 +1014,8 @@ var ADMIN_RESOURCES = [
     select: "*",
     searchColumns: ["name", "account_number", "email"],
     writable: ["name", "email", "phone", "pipeline_stage", "assigned_pricelist_id", "is_active"],
-    orderBy: "updated_at"
+    orderBy: "updated_at",
+    financialData: true
   },
   {
     key: "profiles",
@@ -1032,7 +1055,8 @@ var ADMIN_RESOURCES = [
     select: "*",
     searchColumns: [],
     writable: [],
-    orderBy: "created_at"
+    orderBy: "created_at",
+    financialData: true
   },
   {
     key: "statement_lines",
@@ -1042,7 +1066,8 @@ var ADMIN_RESOURCES = [
     select: "*",
     searchColumns: [],
     writable: [],
-    orderBy: "created_at"
+    orderBy: "created_at",
+    financialData: true
   },
   {
     key: "account_payments",
@@ -1052,7 +1077,8 @@ var ADMIN_RESOURCES = [
     select: "*",
     searchColumns: [],
     writable: [],
-    orderBy: "created_at"
+    orderBy: "created_at",
+    financialData: true
   },
   {
     key: "balances",
@@ -1062,7 +1088,8 @@ var ADMIN_RESOURCES = [
     select: "*",
     searchColumns: [],
     writable: [],
-    orderBy: "updated_at"
+    orderBy: "updated_at",
+    financialData: true
   },
   // ---------------------------------------------------------- Shipments
   {
@@ -1074,7 +1101,8 @@ var ADMIN_RESOURCES = [
     searchColumns: ["reference", "supplier_name"],
     writable: ["reference", "status", "notes", "arrival_date"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "shipment_lines",
@@ -1085,7 +1113,8 @@ var ADMIN_RESOURCES = [
     searchColumns: [],
     writable: ["quantity", "notes"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   {
     key: "shipment_charges",
@@ -1096,7 +1125,8 @@ var ADMIN_RESOURCES = [
     searchColumns: [],
     writable: ["charge_type_id", "amount", "notes"],
     orderBy: "created_at",
-    priceSensitive: true
+    priceSensitive: true,
+    financialData: true
   },
   // ---------------------------------------- Docs, knowledge & settings
   {
@@ -1291,7 +1321,7 @@ var clampLimit = (value, fallback = 20) => {
   if (!Number.isFinite(num)) return fallback;
   return Math.min(Math.max(Math.trunc(num), 1), 50);
 };
-var dispatchAdminResourceTool = async (db, name, input, actorUserId) => {
+var dispatchAdminResourceTool = async (db, name, input, actorUserId, access = { canAccessFinancialData: false }) => {
   if (name === "admin_list_resources") {
     const moduleFilter = typeof input.module === "string" ? input.module.toLowerCase() : "";
     const items = ADMIN_RESOURCES.filter((resource2) => !moduleFilter || resource2.module.toLowerCase().includes(moduleFilter)).map((resource2) => ({
@@ -1299,11 +1329,15 @@ var dispatchAdminResourceTool = async (db, name, input, actorUserId) => {
       module: resource2.module,
       description: resource2.description,
       writable: resource2.writable,
-      approvalOnWrite: Boolean(resource2.priceSensitive)
+      approvalOnWrite: Boolean(resource2.priceSensitive),
+      financialData: Boolean(resource2.financialData)
     }));
     return { status: "ok", resource: "*", operation: "list_resources", data: items };
   }
   const resource = findAdminResource(typeof input.resource === "string" ? input.resource : "");
+  if (resource.financialData && !access.canAccessFinancialData) {
+    throw new Error("Financial data is restricted to administrators with the financial-data capability.");
+  }
   if (name === "admin_search_records") {
     const query = typeof input.query === "string" ? input.query.trim() : "";
     const limit = clampLimit(input.limit);
@@ -1513,7 +1547,7 @@ var admin_search_records_default = defineTool25({
         query,
         filters,
         limit
-      });
+      }, void 0, await callerCanAccessFinancialData(ctx));
       return ok(result.data, { resource, count: Array.isArray(result.data) ? result.data.length : 0, rows: result.data });
     } catch (error) {
       return fail(error instanceof Error ? error.message : "Search failed");
@@ -1536,7 +1570,7 @@ var admin_get_record_default = defineTool26({
   handler: async ({ resource, id }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
     try {
-      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), "admin_get_record", { resource, id });
+      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), "admin_get_record", { resource, id }, void 0, await callerCanAccessFinancialData(ctx));
       return ok(result.data, { resource, record: result.data });
     } catch (error) {
       return fail(error instanceof Error ? error.message : "Lookup failed");
@@ -1562,7 +1596,7 @@ var admin_write_record_default = defineTool27({
     if (!ctx.isAuthenticated()) return notAuthenticated;
     const toolName = operation === "create" ? "admin_create_record" : operation === "update" ? "admin_update_record" : "admin_delete_record";
     try {
-      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), toolName, { resource, id, values }, await currentUserId(ctx));
+      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), toolName, { resource, id, values }, await currentUserId(ctx), await callerCanAccessFinancialData(ctx));
       return ok(result, {
         status: result.status,
         resource: result.resource,
@@ -1578,7 +1612,7 @@ var admin_write_record_default = defineTool27({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "dzsalnvmlvjoatryhqfz";
+var projectRef = "xstmeirxhfbiyayrrsob";
 var mcp_default = defineMcp({
   name: "classic-visions-mcp",
   title: "Classic Visions",
