@@ -22,12 +22,14 @@ A second, unrelated typecheck failure also blocks clean function verification:
 ## The fix
 
 1. Restore the missing parameter on `dispatchAdminResourceTool`:
-   `(db, name, input, actorUserId?, access: AdminResourceAccess = { canAccessFinancialData: false })`.
+  `(db, name, input, actorUserId?, access: AdminResourceAccess = { canAccessFinancialData: false })`.
    Defaulting to `false` keeps the financial gate closed for callers that don't pass it, so restricted data is never widened by accident.
 2. Update the internal callers that legitimately act on behalf of an already-authorised admin (`docStudioTools.ts`) to pass an explicit access object rather than relying on the default, so Doc Studio writes keep working.
 3. Update `src/lib/mcp/tools/*` callers (`admin-search-records`, `admin-get-record`, `admin-write-record`) to pass the caller's financial-data capability instead of silently taking the default.
 4. Fix the `jspdf-autotable` call sites in `statement-document-worker` with the correct default-import interop typing so `deno check` passes.
-5. Redeploy the affected edge functions (`portal-copilot`, `statement-document-worker`) and re-run the deno typecheck to confirm zero errors.
+5. Redeploy the affected edge functions (`portal-copilot`, `statement-document-worker`) and re-run the deno typecheck to confirm zero errors.  
+  
+put in a harness or regression test to ensure that we dont revert to older code. 
 
 ## Verification
 
