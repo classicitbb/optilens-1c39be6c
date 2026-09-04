@@ -2,6 +2,7 @@ import AdminContentEditLink from "@/components/admin/AdminContentEditLink";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import HelpFeedbackButtons from "@/components/admin/HelpFeedbackButtons";
+import KnowledgeLanding from "@/components/knowledge/KnowledgeLanding";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
 import { usePublicKnowledge } from "@/hooks/useContentArticles";
 import {
   buildPublicHelpCenterTree,
@@ -23,13 +23,10 @@ import {
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
-  BookOpen,
   ChevronRight,
-  LayoutGrid,
   Link2,
   Menu,
   Search,
-  Sparkles,
 } from "lucide-react";
 import {
   startTransition,
@@ -61,23 +58,6 @@ const nodeMatchesQuery = (node: HelpCenterNode, query: string) => {
 
 const getNodeHref = (node: HelpCenterNode) =>
   node.kind === "article" ? toKnowledgeArticlePath(node.slug) : node.href ?? "/knowledge";
-
-const toPopularSearches = (nodes: HelpCenterNode[]) => {
-  const terms = new Set<string>();
-  const result: string[] = [];
-
-  for (const node of nodes) {
-    for (const keyword of node.keywords ?? []) {
-      const trimmed = keyword.trim();
-      if (trimmed.length < 4 || terms.has(trimmed)) continue;
-      terms.add(trimmed);
-      result.push(trimmed);
-      if (result.length >= 6) return result;
-    }
-  }
-
-  return result;
-};
 
 const KnowledgeSidebar = ({
   sections,
@@ -208,7 +188,6 @@ const Knowledge = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: articles = [], isLoading } = usePublicKnowledge();
-  const { data: blogPosts = [] } = usePublicBlogPosts("blog_post");
 
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearch = useDeferredValue(searchTerm.trim().toLowerCase());
@@ -227,9 +206,6 @@ const Knowledge = () => {
     [deferredSearch, tree.sections],
   );
 
-  const featuredSections = filteredSections.slice(0, 3);
-  const allVisibleNodes = filteredSections.flatMap((section) => section.children);
-  const popularSearches = useMemo(() => toPopularSearches(allVisibleNodes), [allVisibleNodes]);
 
   useEffect(() => {
     if (!articleSlug) return;
@@ -280,7 +256,10 @@ const Knowledge = () => {
       <Header />
 
       <main id="main-content" className="pb-16 pt-24">
-        <div className="container mx-auto px-4 lg:px-8">
+        {/* The landing renders its own full-bleed hero, so it lives outside
+            the container that the article view needs. */}
+        {articleSlug ? (
+          <div className="container mx-auto px-4 lg:px-8">
           <div className="mb-5 flex items-center justify-between gap-3 xl:hidden">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -303,7 +282,6 @@ const Knowledge = () => {
               </SheetContent>
             </Sheet>
           </div>
-
           {isLoading ? (
             <div className="grid gap-6 xl:grid-cols-[20rem_minmax(0,1fr)]">
               <Skeleton className="hidden h-[46rem] rounded-[1.75rem] xl:block" />
@@ -405,252 +383,11 @@ const Knowledge = () => {
                 <KnowledgeDetailRail node={selectedNode} />
               </aside>
             </div>
-          ) : (
-            <div className="grid gap-6 xl:grid-cols-[20rem_minmax(0,1fr)]">
-              <aside className="hidden xl:block xl:sticky xl:top-28 xl:h-[calc(100vh-8rem)]">
-                {sidebar}
-              </aside>
-
-              <div className="min-w-0 space-y-8">
-                <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/90">
-                  <div className="bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_30%)] px-6 py-5 sm:px-8 sm:py-6">
-                    <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.22em]">
-                      Help Center
-                    </Badge>
-                    <div className="mt-2 max-w-3xl">
-                      <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                        {HOME_TITLE}
-                      </h1>
-                      <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                        {HOME_DESCRIPTION}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 max-w-3xl rounded-[1.4rem] border border-border/60 bg-background/90 p-2 shadow-sm">
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          value={searchTerm}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            startTransition(() => {
-                              setSearchTerm(value);
-                            });
-                          }}
-                          placeholder="Search help articles, categories, and existing pages"
-                          className="h-10 border-0 bg-transparent pl-10 pr-10 text-sm shadow-none focus-visible:ring-0"
-                        />
-                        <Sparkles className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
-                      </div>
-                    </div>
-
-                    {popularSearches.length > 0 ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-medium">Popular searches:</span>
-                        {popularSearches.map((term) => (
-                          <button
-                            key={term}
-                            type="button"
-                            onClick={() => setSearchTerm(term)}
-                            className="rounded-full border border-border/70 bg-background/70 px-3 py-1.5 transition-colors hover:border-foreground/20 hover:text-foreground"
-                          >
-                            {term}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                </section>
-
-                <section className="grid gap-4 md:grid-cols-3">
-                  {featuredSections.map((section) => (
-                    <Card key={section.id} className="overflow-hidden border-border/60 bg-card/90">
-                      <CardContent className="p-0">
-                        <div className="border-b border-border/60 px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-11 items-center justify-center rounded-2xl bg-muted">
-                              <LayoutGrid className="h-5 w-5 text-foreground" />
-                            </div>
-                            <div>
-                              <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
-                              <p className="text-sm text-muted-foreground">{section.children.length} topics</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-3 p-5">
-                          <p className="text-sm leading-6 text-muted-foreground">{section.summary}</p>
-                          <div className="space-y-1">
-                            {section.children.slice(0, 3).map((node) => (
-                              <div
-                                key={node.id}
-                                className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                              >
-                                <Link
-                                  to={getNodeHref(node)}
-                                  className="flex min-w-0 flex-1 items-center justify-between gap-3"
-                                >
-                                  <span className="break-words text-pretty font-medium leading-5">{node.title}</span>
-                                  <ChevronRight className="h-4 w-4 shrink-0" />
-                                </Link>
-                                {node.kind === "article" && node.source === "cms" ? (
-                                  <AdminContentEditLink
-                                    mode="article"
-                                    articleId={node.id}
-                                    contentType={node.categoryId === "faq" ? "faq" : "knowledge"}
-                                    className="h-7 rounded-full px-2 text-[11px]"
-                                  />
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </section>
-
-                {blogPosts.length > 0 ? (
-                  <section className="overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/85">
-                    <div className="px-6 py-5">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="max-w-2xl">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                            From The Blog
-                          </p>
-                          <h3 className="mt-2 text-2xl font-semibold text-foreground">
-                            Editorial stories that complement the Knowledge Base
-                          </h3>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            Browse practical eyecare articles, Caribbean optical-business commentary, and longer-form posts without leaving the Classic Visions content system.
-                          </p>
-                        </div>
-                        <Button asChild>
-                          <Link to="/blog">
-                            Open blog
-                            <ArrowRight data-icon="inline-end" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="grid gap-4 p-6 md:grid-cols-3">
-                      {blogPosts.slice(0, 3).map((post) => (
-                        <div
-                          key={post.id}
-                          className="rounded-[1.25rem] border border-border/60 bg-background/80 p-4 transition-colors hover:bg-muted/50"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="secondary">{post.category || "Blog Post"}</Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {post.published_at ? new Date(post.published_at).toLocaleDateString() : "Draft"}
-                            </span>
-                            <AdminContentEditLink mode="blog" blogId={post.id} className="h-7 rounded-full px-2 text-[11px]" />
-                          </div>
-                          <h4 className="mt-3 text-lg font-semibold text-foreground">{post.title}</h4>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
-                          <div className="mt-4">
-                            <Button asChild variant="ghost" className="h-auto px-0 py-0 text-sm font-medium">
-                              <Link to={`/blog/${post.slug}`}>
-                                Read article
-                                <ArrowRight data-icon="inline-end" />
-                              </Link>
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                <section className="space-y-6">
-                  {filteredSections.length > 0 ? (
-                    filteredSections.map((section) => (
-                      <div
-                        key={section.id}
-                        id={section.slug}
-                        className="overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/85"
-                      >
-                        <div className="px-6 py-5">
-                          <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div className="max-w-2xl">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                                {section.title}
-                              </p>
-                              <h3 className="mt-2 text-2xl font-semibold text-foreground">
-                                Browse {section.title.toLowerCase()}
-                              </h3>
-                              <p className="mt-2 text-sm leading-6 text-muted-foreground">{section.summary}</p>
-                            </div>
-                            <Badge variant="outline">{section.children.length} topics</Badge>
-                          </div>
-                        </div>
-                        <Separator />
-                        <div className="divide-y divide-border/50">
-                          {section.children.map((node) => (
-                            <div
-                              key={node.id}
-                              id={node.legacyAnchors[0]}
-                              className="px-6 py-5"
-                            >
-                              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <Badge variant={node.kind === "article" ? "secondary" : "outline"}>
-                                      {node.kind === "article" ? "Article" : "Existing page"}
-                                    </Badge>
-                                    {node.kind === "article" && node.source === "cms" ? (
-                                      <AdminContentEditLink
-                                        mode="article"
-                                        articleId={node.id}
-                                        contentType={node.categoryId === "faq" ? "faq" : "knowledge"}
-                                        className="h-7 rounded-full px-2 text-[11px]"
-                                      />
-                                    ) : null}
-                                  </div>
-                                  <h4 className="mt-3 text-lg font-semibold text-foreground">{node.title}</h4>
-                                  <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                                    {node.summary}
-                                  </p>
-                                </div>
-                                <Button asChild>
-                                  <Link to={getNodeHref(node)}>
-                                    {node.kind === "article" ? "Read article" : "Open page"}
-                                    <ArrowRight data-icon="inline-end" />
-                                  </Link>
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <Card className="border-dashed border-border/70">
-                      <CardContent className="px-6 py-16 text-center">
-                        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-muted">
-                          <BookOpen className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                        <h2 className="mt-5 text-2xl font-semibold text-foreground">
-                          No topics match "{searchTerm}"
-                        </h2>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                          Try a broader term like progressive, coatings, patient, ordering, or wholesale.
-                        </p>
-                        <Button
-                          variant="outline"
-                          className="mt-5"
-                          onClick={() => setSearchTerm("")}
-                        >
-                          Clear search
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
-                </section>
-              </div>
-            </div>
-          )}
-        </div>
+            ) : null}
+          </div>
+        ) : (
+          <KnowledgeLanding />
+        )}
       </main>
 
       <Footer />
