@@ -245,8 +245,8 @@ const UsersPage = () => {
                     ) : user.contact_id ? (
                       <button
                         className="text-[13px] font-medium hover:underline cursor-pointer text-left text-[hsl(var(--admin-table-fg))]"
-                        onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}
-                        title="Open linked contact"
+                        onClick={() => navigate(`/admin/website/portals?account=${encodeURIComponent(`user:${user.user_id}`)}`)}
+                        title="Open portal account"
                       >
                         {userName}
                       </button>

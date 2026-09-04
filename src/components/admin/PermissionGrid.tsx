@@ -59,7 +59,7 @@ const PermissionGrid = () => {
   };
 
   return (
-    <div className="border border-[hsl(var(--admin-border))] rounded max-h-[70vh] overflow-auto">
+    <div className="min-h-0 flex-1 overflow-auto rounded border border-[hsl(var(--admin-border))]">
       <table className="w-full table-fixed text-xs">
         <colgroup>
           <col className="w-40" />
@@ -72,27 +72,39 @@ const PermissionGrid = () => {
         </colgroup>
         <thead className="sticky top-0 z-10">
           <tr className="bg-[hsl(var(--admin-accent))]">
-            <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-[10px] text-[hsl(var(--admin-accent-fg))]">
+            <th
+              className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-[10px] text-[hsl(var(--admin-accent-fg))]"
+              style={{ borderTopRightRadius: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+            >
               Feature
             </th>
-            {ROLE_ORDER.map((role) => (
-              <th
-                key={role}
-                colSpan={2}
-                className="text-center px-1 py-1.5 font-semibold uppercase tracking-wider text-[10px] capitalize text-[hsl(var(--admin-accent-fg))]"
-              >
-                {role}
-              </th>
-            ))}
+            {ROLE_ORDER.map((role, roleIdx) => {
+              const isLast = roleIdx === ROLE_ORDER.length - 1;
+              return (
+                <th
+                  key={role}
+                  colSpan={2}
+                  className="text-center px-1 py-1.5 font-semibold uppercase tracking-wider text-[10px] capitalize text-[hsl(var(--admin-accent-fg))]"
+                  style={{
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                    borderBottomRightRadius: 0,
+                    ...(isLast ? {} : { borderTopRightRadius: 0 }),
+                  }}
+                >
+                  {role}
+                </th>
+              );
+            })}
           </tr>
           <tr className="bg-[hsl(var(--admin-table-header-bg))]">
-            <td />
+            <td style={{ borderRadius: 0 }} />
             {ROLE_ORDER.map((role) => (
               <Fragment key={role}>
-                <td className="text-center px-0.5 py-1 font-medium text-[9px] text-[hsl(var(--admin-table-muted-fg))]">
+                <td className="text-center px-0.5 py-1 font-medium text-[9px] text-[hsl(var(--admin-table-muted-fg))]" style={{ borderRadius: 0 }}>
                   View
                 </td>
-                <td className="text-center px-0.5 py-1 font-medium text-[9px] text-[hsl(var(--admin-table-muted-fg))]">
+                <td className="text-center px-0.5 py-1 font-medium text-[9px] text-[hsl(var(--admin-table-muted-fg))]" style={{ borderRadius: 0 }}>
                   Edit
                 </td>
               </Fragment>
