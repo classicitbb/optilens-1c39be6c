@@ -10663,6 +10663,72 @@ export type Database = {
         }
         Relationships: []
       }
+      walk_in_payments: {
+        Row: {
+          amount: number
+          card_brand: string | null
+          card_last4: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          customer_name: string
+          gateway_fail_rc: string | null
+          gateway_oid: string | null
+          gateway_response_code: string | null
+          gateway_transaction_id: string | null
+          id: string
+          order_reference: string | null
+          paid_at: string | null
+          payment_reference: string
+          provider: string
+          reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          created_by: string
+          currency?: string
+          customer_name: string
+          gateway_fail_rc?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
+          gateway_transaction_id?: string | null
+          id?: string
+          order_reference?: string | null
+          paid_at?: string | null
+          payment_reference: string
+          provider?: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_name?: string
+          gateway_fail_rc?: string | null
+          gateway_oid?: string | null
+          gateway_response_code?: string | null
+          gateway_transaction_id?: string | null
+          id?: string
+          order_reference?: string | null
+          paid_at?: string | null
+          payment_reference?: string
+          provider?: string
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       website_analytics_pageviews: {
         Row: {
           device_type: string
@@ -11786,6 +11852,15 @@ export type Database = {
           payment_id: string
         }[]
       }
+      create_walk_in_payment: {
+        Args: {
+          p_amount: number
+          p_customer_name: string
+          p_order_reference?: string
+          p_reason?: string
+        }
+        Returns: string
+      }
       crm_dashboard_kpis: {
         Args: { p_end_date?: string; p_period?: string; p_start_date?: string }
         Returns: {
@@ -12561,6 +12636,10 @@ export type Database = {
         Returns: string
       }
       settle_statement_payment: {
+        Args: { p_gateway?: Json; p_payment_id: string }
+        Returns: string
+      }
+      settle_walk_in_payment: {
         Args: { p_gateway?: Json; p_payment_id: string }
         Returns: string
       }
