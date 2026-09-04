@@ -20,7 +20,7 @@ describe("admin-only CV Portal Copilot", () => {
 
     const app = read("src/App.tsx");
     const routes = read("src/routes/admin/AdminRoutes.tsx");
-    expect(app).toContain('const CopilotWorkspacePage = lazy(() => import("@/pages/CopilotWorkspacePage"));');
+    expect(app).toContain('const CopilotWorkspacePage = lazyWithRetry(() => import("@/pages/CopilotWorkspacePage"));');
     expect(app).toContain('<Route path="/copilot" element={<AdminProtectedRoute>');
     expect(routes).toContain('<Route path="copilot" element={<Navigate to="/copilot" replace />} />');
   });
@@ -158,13 +158,15 @@ describe("admin-only CV Portal Copilot", () => {
 
   it("grounds the Copilot in OpticAdmin's own modules and gives it real read-only lookups", () => {
     const edge = read("supabase/functions/portal-copilot/index.ts");
+    const prompts = read("supabase/functions/_shared/copilot/prompts.ts");
     const systemContext = read("supabase/functions/_shared/copilot/platformFacts.generated.ts");
     const lookupTools = read("supabase/functions/_shared/copilot/lookupTools.ts");
     const apps = read("src/features/admin/core/config/apps.ts");
 
     expect(edge).toContain('from "../_shared/copilot/platformFacts.generated.ts"');
     expect(edge).toContain('from "../_shared/copilot/lookupTools.ts"');
-    expect(edge).toContain("COPILOT_SYSTEM_CONTEXT");
+    expect(edge).toContain("ADMIN_COPILOT_SYSTEM_PROMPT");
+    expect(prompts).toContain("COPILOT_SYSTEM_CONTEXT");
 
     expect(systemContext).toContain("OpticAdmin");
     expect(systemContext).toContain("ERP");

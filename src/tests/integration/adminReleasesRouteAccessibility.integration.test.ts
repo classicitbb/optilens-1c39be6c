@@ -16,7 +16,7 @@ describe("admin releases route accessibility", () => {
     const adminRoutesPath = path.resolve(process.cwd(), "src/routes/admin/AdminRoutes.tsx");
     const source = fs.readFileSync(adminRoutesPath, "utf8");
 
-    expect(source).toContain('const ReleasesPage = lazy(() => import("@/pages/admin/settings/ReleasesPage"));');
+    expect(source).toContain('const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));');
     expect(source).toContain('<Route path="settings/releases" element={<ReleasesPage />} />');
   });
 

@@ -235,7 +235,9 @@ describe("Rx order validation rules", () => {
     it("prices a combination the matrix covers", () => {
       const h = mountRxOrder().fillValidOrder();
 
-      expect(h.quoteText()).toContain("278.25");
+      // The default fixture frame (A 52 / B 38 / DBL 18) needs a 75 mm blank,
+      // so the total is the 278.25 pair price plus the 22.00 oversize surcharge.
+      expect(h.field("#qTotal")?.textContent).toContain("300.25");
       expect(h.quoteText()).not.toContain("on request");
       expect(h.assistFlags()).toEqual([]);
 

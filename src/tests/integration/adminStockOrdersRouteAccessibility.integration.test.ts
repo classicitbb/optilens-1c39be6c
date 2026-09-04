@@ -33,7 +33,7 @@ describe("admin stock order builder route accessibility", () => {
     const search = read("src/components/admin/GlobalSearch.tsx");
     const labScopeMigration = read("supabase/migrations/20260811010000_scope_stock_order_accounts_to_labs.sql");
 
-    expect(routes).toContain('const StockOrderBuilderPage = lazy(() => import("@/pages/admin/StockOrderBuilderPage"));');
+    expect(routes).toContain('const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrderBuilderPage")');
     expect(routes).toContain('<Route path="website/stock-orders" element={<StockOrderBuilderPage />} />');
     expect(apps).toContain("{ label: 'Stock Order Builder', route: '/admin/website/stock-orders'");
     expect(navigation).toContain('id: "admin.website.stock-orders"');

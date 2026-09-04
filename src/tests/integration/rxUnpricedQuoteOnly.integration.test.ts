@@ -62,7 +62,7 @@ describe("unpriced combinations are quote-only", () => {
     select("plastic 1.50", "single vision|regular", "uncoated");
     engine.refreshData();
 
-    expect(quoteText(host)).toContain("278.25");
+    expect(host.querySelector("#qTotal")?.textContent).toContain("278.25");
     expect(quoteText(host)).not.toContain("on request");
 
     engine.destroy();

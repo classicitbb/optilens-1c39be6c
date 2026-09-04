@@ -43,7 +43,7 @@ const mount = (adapter: Record<string, unknown> = {}) => {
   host.className = "cv-rx-embed";
   host.innerHTML = markup;
   document.body.appendChild(host);
-  const engine = createRxOrderEngine(host, { orderNo: () => "Q-1001", ...adapter });
+  const engine = createRxOrderEngine(host, { orderNo: () => "80019001", ...adapter });
   const field = (selector: string) => host.querySelector<HTMLInputElement | HTMLSelectElement>(selector);
   const rxCell = (eye: "od" | "os", f: string) => field(`tr[data-eye="${eye}"] [data-f="${f}"]`);
   return { host, engine, field, rxCell };
@@ -142,7 +142,7 @@ describe("lens assistant → rx order handoff", () => {
   it("keeps the quote's own order number instead of stamping a rebuild", () => {
     const { engine } = mount({ prefill: buildRxPrefillPayload(draft()) });
 
-    expect(engine.state.orderNo).toBe("Q-1001");
+    expect(engine.state.orderNo).toBe("80019001");
     expect(engine.state.rebuiltFrom).toBeNull();
 
     engine.destroy();
