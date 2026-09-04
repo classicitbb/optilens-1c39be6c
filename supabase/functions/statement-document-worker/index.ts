@@ -141,7 +141,7 @@ async function processJob(supabase: any, job: any) {
       supabase.from("customers").select("name,email,account_number").eq("id", statement.customer_id).maybeSingle(),
     ]);
     let pdf: Uint8Array;
-    let filename = current.pdf_filename ?? `Statement-${statement.innovations_statement_id}.pdf`;
+    const filename = current.pdf_filename ?? `Statement-${statement.innovations_statement_id}.pdf`;
     let folder: { driveId: string; itemId: string; path: string } | null = null;
     let uploaded: any = { id: current.one_drive_item_id, webUrl: current.one_drive_url };
     if (current.one_drive_item_id && current.upload_status === "uploaded") {

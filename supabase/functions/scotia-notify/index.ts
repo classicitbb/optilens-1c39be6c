@@ -63,7 +63,7 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
       return new Response("Method not allowed", { status: 405 });
     }
 
-    let response: Record<string, string> = {};
+    const response: Record<string, string> = {};
     try {
       const ct = req.headers.get("content-type") ?? "";
       if (ct.includes("application/json")) {

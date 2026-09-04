@@ -3,6 +3,7 @@ import releaseManifestRaw from "../../docs/releases/manifest/current.json?raw";
 
 export const releaseManifestSchema = z.object({
   semanticVersion: z.string().regex(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-.]+)?(?:\+[0-9A-Za-z-.]+)?$/),
+  sourceEntry: z.string().min(1),
   releaseDateTimeUtc: z.string().datetime({ offset: true }),
   environment: z.enum(["development", "test", "staging", "production"]),
   releaseSummary: z.array(z.string().min(1)).min(1),

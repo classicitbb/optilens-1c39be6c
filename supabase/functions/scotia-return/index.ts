@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     return redirect(req, CHECKOUT_RETURN_PATH, { scotia: "error" });
   }
 
-  let response: Record<string, string> = {};
+  const response: Record<string, string> = {};
   try {
     const form = await req.formData();
     for (const [key, value] of form.entries()) {

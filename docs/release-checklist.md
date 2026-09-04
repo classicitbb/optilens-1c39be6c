@@ -82,7 +82,16 @@ Use this lane for version upgrades that cross major versions or require migratio
    - **Technical Changelog**
 2. Before merge, run `npm run release-ledger:sync` to regenerate:
    - `docs/release-notes.md`
+   - `docs/releases/manifest/current.json` (the manifest read by **Settings → System Releases**)
+   - `package.json` `version`
    - `src/data/wikiContent.ts` under the `major-update-ledger` article payload.
+
+   Each new dated `CHANGELOG.md` entry is treated as one release: the sync script bumps
+   the **minor** version automatically (e.g. `0.1.0` → `0.2.0`). Prefix a Release Notes or
+   Technical Changelog bullet with `BREAKING:` (or include the phrase "breaking change")
+   to bump **major** instead (e.g. `0.2.0` → `1.0.0`) and flag `hasBreakingChanges` on the
+   manifest. Re-running the sync script against the same entry is a no-op — the version
+   only moves when a new dated entry appears.
 3. Run PR and smoke/build checks before merge:
    - `npm run qa:pr-checks`
    - `npm run qa:smoke`

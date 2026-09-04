@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { CheckCircle2, ChevronRight, FileCode2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
+import { CheckCircle2, FileCode2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import EmailDeliveryHealthCard from "@/components/admin/EmailDeliveryHealthCard";
 import { Badge } from "@/components/ui/badge";
@@ -169,31 +169,27 @@ export default function EmailPreviewsPage() {
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4 lg:p-6">
-      <AdminPageHeader icon={Mail} title="Email Previews">
+      <AdminPageHeader icon={Mail} title="Email Previews" tooltip="Review the authentication and application emails currently wired into the sending pipeline. Sample values only affect this preview.">
         <Badge variant="outline" className="gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />{EMAIL_TEMPLATES.length} active templates</Badge>
       </AdminPageHeader>
-
-      <p className="-mt-2 text-sm text-muted-foreground">Review the authentication and application emails currently wired into the sending pipeline. Sample values only affect this preview.</p>
 
       <EmailDeliveryHealthCard />
 
       <div className="grid min-h-0 flex-1 gap-4 lg:min-h-[480px] lg:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
-          <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-semibold">Email templates</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Choose an email to inspect its sent copy.</p>
+          <div className="border-b px-3 py-2">
+            <h2 className="text-xs font-semibold">Email templates</h2>
           </div>
           <ScrollArea className="min-h-0 flex-1">
-            <div className="p-2">
+            <div className="p-1.5">
               {groups.map((group) => (
-                <section key={group} className="mb-4 last:mb-0">
-                  <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{group}</p>
+                <section key={group} className="mb-2 last:mb-0">
+                  <p className="px-2 pb-0.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{group}</p>
                   {EMAIL_TEMPLATES.filter((template) => template.group === group).map((template) => {
                     const isSelected = selected.id === template.id;
-                    return <button key={template.id} type="button" onClick={() => selectTemplate(template)} className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors", isSelected ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted") }>
-                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-md", isSelected ? "bg-primary-foreground/15" : "bg-muted text-muted-foreground")}><Mail className="h-4 w-4" /></span>
-                      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{template.title}</span><span className={cn("mt-0.5 block truncate text-xs", isSelected ? "text-primary-foreground/75" : "text-muted-foreground")}>{template.trigger}</span></span>
-                      <ChevronRight className={cn("h-4 w-4 shrink-0", isSelected ? "text-primary-foreground/75" : "text-muted-foreground")} />
+                    return <button key={template.id} type="button" title={template.trigger} onClick={() => selectTemplate(template)} className={cn("flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors", isSelected ? "bg-primary text-primary-foreground" : "hover:bg-muted") }>
+                      <Mail className={cn("h-3 w-3 shrink-0", isSelected ? "text-primary-foreground/75" : "text-muted-foreground")} />
+                      <span className="truncate">{template.title}</span>
                     </button>;
                   })}
                 </section>
@@ -203,37 +199,30 @@ export default function EmailPreviewsPage() {
         </aside>
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
-          <div className="flex flex-col gap-4 border-b p-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2"><Badge variant="secondary">{selected.group}</Badge><Badge variant="outline" className="gap-1"><Send className="h-3 w-3" />Active</Badge></div>
-              <h2 className="text-lg font-semibold">{selected.title}</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Sent when: {selected.trigger} · To: {selected.recipient}</p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground"><FileCode2 className="h-3.5 w-3.5" /><code>{selected.source}</code></div>
+          <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+            <Badge variant="secondary" className="text-[11px]">{selected.group}</Badge>
+            <h2 className="text-sm font-semibold">{selected.title}</h2>
+            <span className="text-xs text-muted-foreground">Sent when: {selected.trigger} · To: {selected.recipient}</span>
+            <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground"><FileCode2 className="h-3 w-3" /><code>{selected.source}</code></span>
           </div>
 
-          <div className="grid gap-3 border-b bg-muted/30 p-4 sm:grid-cols-2 xl:grid-cols-3">
-            <div className="space-y-1.5"><Label htmlFor="preview-name" className="text-xs">Sample customer name</Label><Input id="preview-name" value={sampleName} onChange={(event) => setSampleName(event.target.value)} className="h-8 text-sm" /></div>
-            <div className="space-y-1.5"><Label htmlFor="preview-email" className="text-xs">Sample recipient</Label><Input id="preview-email" type="email" value={sampleEmail} onChange={(event) => setSampleEmail(event.target.value)} className="h-8 text-sm" /></div>
-            <div className="space-y-1.5 sm:col-span-2 xl:col-span-1"><Label htmlFor="preview-subject" className="text-xs">Subject preview</Label><Input id="preview-subject" value={subject} onChange={(event) => setSubject(event.target.value)} className="h-8 text-sm" /></div>
-            <div className="flex items-end sm:col-span-2 xl:col-span-3">
-              {canSendTest ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" onClick={() => sendTestEmail.mutate()} disabled={sendTestEmail.isPending}>
-                    {sendTestEmail.isPending ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-2 h-3.5 w-3.5" />}
-                    Send test email
-                  </Button>
-                  <p className="text-xs text-muted-foreground">Sends a real email to the sample recipient above through the live pipeline.</p>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Button size="sm" variant="outline" disabled>
-                    <Send className="mr-2 h-3.5 w-3.5" />Send test email
-                  </Button>
-                  <span>Authentication emails are sent by Supabase Auth on real signup/invite/recovery events — there's no way to test-send one without those side effects.</span>
-                </div>
-              )}
-            </div>
+          <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 px-3 py-2">
+            <Label htmlFor="preview-name" className="sr-only">Sample customer name</Label>
+            <Input id="preview-name" placeholder="Sample name" value={sampleName} onChange={(event) => setSampleName(event.target.value)} className="h-7 w-36 text-xs" />
+            <Label htmlFor="preview-email" className="sr-only">Sample recipient</Label>
+            <Input id="preview-email" type="email" placeholder="Sample recipient" value={sampleEmail} onChange={(event) => setSampleEmail(event.target.value)} className="h-7 w-44 text-xs" />
+            <Label htmlFor="preview-subject" className="sr-only">Subject preview</Label>
+            <Input id="preview-subject" placeholder="Subject preview" value={subject} onChange={(event) => setSubject(event.target.value)} className="h-7 min-w-[160px] flex-1 text-xs" />
+            {canSendTest ? (
+              <Button size="sm" className="h-7 text-xs" onClick={() => sendTestEmail.mutate()} disabled={sendTestEmail.isPending}>
+                {sendTestEmail.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Send className="mr-1.5 h-3.5 w-3.5" />}
+                Send test
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="h-7 text-xs" disabled title="Authentication emails are sent by Supabase Auth on real signup/invite/recovery events — there's no way to test-send one without those side effects.">
+                <Send className="mr-1.5 h-3.5 w-3.5" />Send test
+              </Button>
+            )}
           </div>
 
           <ScrollArea className="min-h-0 flex-1 bg-slate-100 p-4 dark:bg-slate-950/40">

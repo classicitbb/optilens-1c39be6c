@@ -35,7 +35,7 @@ const HelpdeskTicketsSection = () => {
   useEffect(() => {
     if (!prefill?.prefillTitle && !prefill?.prefillDescription) return;
     openAssistant({ profile: "portal_support", formKind: "portal_support", formValues: { issueType: prefill.prefillTitle ?? "", summary: prefill.prefillDescription ?? "" } });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [location.state, openAssistant, prefill?.prefillDescription, prefill?.prefillTitle]);
   const { data: tickets = [] } = useQuery({
     queryKey: ["customer-helpdesk", effectiveUserId, identity?.crmContactId],

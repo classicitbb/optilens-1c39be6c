@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 // ══════════════════════════════════════════════════════════════════════════
 // Rx Order Form engine — ported VERBATIM from rx-order-form-prototype.html
 // (v3). The UI, on-screen flow, validation, OMA tracing, coach, clash logic

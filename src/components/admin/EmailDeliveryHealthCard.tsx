@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -65,27 +65,38 @@ export default function EmailDeliveryHealthCard() {
 
   const meta = data ? STATUS_META[data.status] : STATUS_META.no_data;
   const StatusIcon = meta.icon;
+  const failed24h = (data?.counts24h.failed ?? 0) + (data?.counts24h.dlq ?? 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <StatusIcon className="h-4 w-4" /> Email delivery status
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={meta.className}>{meta.label}</Badge>
-            <Button variant="outline" size="sm" onClick={() => void recheck()} disabled={isLoading || isRefetching}>
-              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
-              Recheck
-            </Button>
+    <Accordion type="single" collapsible className="rounded-lg border">
+      <AccordionItem value="email-delivery-status" className="border-none">
+        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+          <div className="flex flex-1 flex-wrap items-center justify-between gap-2 pr-2">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <StatusIcon className="h-4 w-4" /> Email delivery status
+              <Badge variant="outline" className={meta.className}>{meta.label}</Badge>
+            </span>
+            {!isLoading && (
+              <span className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="text-emerald-700">{data?.counts24h.sent ?? 0} sent</span>
+                <span className={failed24h > 0 ? "text-red-600" : ""}>{failed24h} failed</span>
+                <span>{data?.counts24h.pending ?? 0} pending</span>
+                <span className="hidden sm:inline">Last sent: {fmt(data?.lastSentAt)}</span>
+              </span>
+            )}
           </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Live status for outbound mail from {data?.sender ?? "support@classicvisions.net"} — shared by Doc Studio's email tool, contact forms, and every transactional email.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => void recheck()} disabled={isLoading || isRefetching}>
+            <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
+            Recheck
+          </Button>
         </div>
-        <CardDescription>
-          Live status for outbound mail from {data?.sender ?? "support@classicvisions.net"} — shared by Doc Studio's email tool, contact forms, and every transactional email.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+        <div className="space-y-3 text-sm">
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Checking delivery status…
@@ -159,7 +170,9 @@ export default function EmailDeliveryHealthCard() {
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+        </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }

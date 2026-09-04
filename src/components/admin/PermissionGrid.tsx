@@ -59,18 +59,27 @@ const PermissionGrid = () => {
   };
 
   return (
-    <div className="border border-[hsl(var(--admin-border))] rounded overflow-auto">
-      <table className="w-full text-xs">
-        <thead>
+    <div className="border border-[hsl(var(--admin-border))] rounded max-h-[70vh] overflow-auto">
+      <table className="w-full table-fixed text-xs">
+        <colgroup>
+          <col className="w-40" />
+          {ROLE_ORDER.map((role) => (
+            <Fragment key={role}>
+              <col className="w-11" />
+              <col className="w-11" />
+            </Fragment>
+          ))}
+        </colgroup>
+        <thead className="sticky top-0 z-10">
           <tr className="bg-[hsl(var(--admin-accent))]">
-            <th className="text-left px-3 py-2.5 font-semibold uppercase tracking-wider text-[11px] text-[hsl(var(--admin-accent-fg))]">
+            <th className="text-left px-2 py-1.5 font-semibold uppercase tracking-wider text-[10px] text-[hsl(var(--admin-accent-fg))]">
               Feature
             </th>
             {ROLE_ORDER.map((role) => (
               <th
                 key={role}
                 colSpan={2}
-                className="text-center px-2 py-2.5 font-semibold uppercase tracking-wider text-[11px] capitalize text-[hsl(var(--admin-accent-fg))]"
+                className="text-center px-1 py-1.5 font-semibold uppercase tracking-wider text-[10px] capitalize text-[hsl(var(--admin-accent-fg))]"
               >
                 {role}
               </th>
@@ -80,10 +89,10 @@ const PermissionGrid = () => {
             <td />
             {ROLE_ORDER.map((role) => (
               <Fragment key={role}>
-                <td className="text-center px-1 py-1.5 font-medium text-[10px] text-[hsl(var(--admin-table-muted-fg))]">
+                <td className="text-center px-0.5 py-1 font-medium text-[9px] text-[hsl(var(--admin-table-muted-fg))]">
                   View
                 </td>
-                <td className="text-center px-1 py-1.5 font-medium text-[10px] text-[hsl(var(--admin-table-muted-fg))]">
+                <td className="text-center px-0.5 py-1 font-medium text-[9px] text-[hsl(var(--admin-table-muted-fg))]">
                   Edit
                 </td>
               </Fragment>
@@ -96,7 +105,7 @@ const PermissionGrid = () => {
               key={feature}
               className={`border-b border-[hsl(var(--admin-table-border))] ${idx % 2 === 0 ? "bg-[hsl(var(--admin-table-row-even))]" : "bg-[hsl(var(--admin-table-row-odd))]"}`}
             >
-              <td className="px-3 py-2 font-medium text-[hsl(var(--admin-table-fg))]">
+              <td className="truncate px-2 py-1 font-medium text-[hsl(var(--admin-table-fg))]">
                 {FEATURE_LABELS[feature] ?? feature}
               </td>
               {ROLE_ORDER.map((role) => {
@@ -104,14 +113,14 @@ const PermissionGrid = () => {
                 if (!perm) return <td key={role} colSpan={2} />;
                 return (
                   <Fragment key={role}>
-                    <td className="text-center px-1 py-2">
+                    <td className="text-center px-0.5 py-1">
                       <Checkbox
                         checked={perm.can_view}
                         onCheckedChange={(v) => handleToggle(perm, "can_view", !!v)}
                         className="mx-auto border-[hsl(var(--admin-border))] data-[state=checked]:bg-[hsl(var(--admin-accent))] data-[state=checked]:border-[hsl(var(--admin-accent))]"
                       />
                     </td>
-                    <td className="text-center px-1 py-2">
+                    <td className="text-center px-0.5 py-1">
                       <Checkbox
                         checked={perm.can_edit}
                         onCheckedChange={(v) => handleToggle(perm, "can_edit", !!v)}
