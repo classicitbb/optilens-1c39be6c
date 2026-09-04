@@ -24,6 +24,7 @@
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/config.ts";
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
+import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
 import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 
@@ -170,6 +171,9 @@ Deno.serve(async (req) => {
       if (error) {
         console.error("scotia-return: settle_statement_payment failed", { paymentId, error });
         return redirect(req, returnPath, { scotia: "error" });
+      }
+      if (result.approved) {
+        await sendStatementPaymentReceipt(supabaseAdmin as never, paymentId);
       }
       return redirect(req, returnPath, {
         scotia: outcome,

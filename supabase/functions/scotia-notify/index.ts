@@ -25,6 +25,7 @@ import { getScotiaConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/sc
 import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
+import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
 
 function ok(body: Record<string, unknown> = { received: true }): Response {
   return new Response(JSON.stringify(body), {
@@ -148,6 +149,9 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
         if (error) {
           console.error("scotia-notify: settle_statement_payment failed", { paymentId, error });
           return ok({ received: true, settled: false, reason: "rpc_error" });
+        }
+        if (result.approved) {
+          await sendStatementPaymentReceipt(deps.admin as never, paymentId);
         }
         return ok({ received: true, settled: true, flow: "statement", approved: result.approved });
       }

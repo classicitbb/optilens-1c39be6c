@@ -11,16 +11,17 @@ The failure is on our side, after the money was taken: the step that marks the p
 Settling a statement payment also tries to send the payment receipt email. It calls a database helper called `enqueue_email`, which was **removed during the recent email-sending rebuild**. The call now fails, and because it happens inside the same database transaction, the whole settlement is rolled back.
 
 Confirmed in the live database:
+
 - Three approved gateway responses logged today (14:25, 13:00, and earlier).
 - The matching payment records are all still `status = pending`.
 - `enqueue_email` no longer exists; the receipt helper still calls it.
 
 ## The fix
 
-1. Rewrite the payment-receipt helper so it no longer calls the removed queue. It will only record the receipt in the email log, and the receipt email itself will be sent by the current email system (the same one every other email now uses) instead of the old queue.
+1. Rewrite the payment-receipt helper so it no longer calls the removed queue. It will only record the receipt in the email log, and the receipt email itself will be sent by the current email system (the same one every other email now uses) instead of the old queue. The email should note that the payment will only be reflected on the statement after reconciliation with the bank in 3-5 business days. 
 2. Make receipt sending non-blocking: even if the email step fails, the payment settlement must still commit. Money taken must never be lost because an email failed.
 3. Re-settle the three approved-but-pending payments from today (2.00, 2.00 and 3.00 BBD) so they are applied to the account against statement 4372.
-4. Re-run a small live card payment end to end and confirm the statements page shows "payment received" and the record turns settled.
+4. Re-run a small live card payment end to end and confirm the statements page shows "payment received" and the record turns settled. The notification of payment should note that the payment will only be reflected on the statement after reconciliation with the bank in 3-5 business days.
 
 ## Secondary items from your console log
 

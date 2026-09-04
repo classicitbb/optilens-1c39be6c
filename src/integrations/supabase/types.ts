@@ -12788,6 +12788,10 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_website_analytics_session: {
+        Args: { p_session: Json }
+        Returns: undefined
+      }
       verify_api_key: {
         Args: { p_token: string }
         Returns: {
