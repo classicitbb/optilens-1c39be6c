@@ -4,11 +4,22 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-01
+Last updated: 2026-09-04
 
 ---
 
 ## Active work
+
+- **Scotia payment activity and statement card saving** — source now adds the
+  admin-only `/admin/settings/payment-activity` confirmation ledger, backed by
+  a security-invoker projection that exposes only time, reference, type,
+  amount/currency, and result. Statement payments now offer an explicit
+  pre-redirect save-card choice; the provider-issued token is stored only after
+  a signed approved callback. Migration
+  `20260904170609_card_payment_activity_and_statement_token_save.sql` and the
+  updated `scotia-return` function require deployment before shared-environment
+  verification. Never expose gateway parameter bags, CVV, PAN, expiry, or
+  token data in the activity UI.
 
 - **Iris AI-first response and two-front identity** — the public assistant now
   withholds its deterministic high-confidence match while generation is in

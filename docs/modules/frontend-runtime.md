@@ -1,5 +1,10 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-04 — Scotia payment activity
+
+- `PaymentActivityPage` reads only the display-safe `scotia_payment_activity` projection and keeps the activity list bounded to the latest 100 rows. It never selects gateway parameter JSON, response codes, card metadata, expiry, or tokens.
+- `StatementsSection` passes `assignToken` only when the customer explicitly checks the save-card option before the hosted Scotia redirect. A signed callback can return only the boolean confirmation that a card was saved.
+
 ## 2026-08-27 — Contact enrichment surfaces
 
 - `useContactEnrichment` is the single client entry point for `crm-enrich-contacts`, used by both **Leads → Enrich All** (batch of 25) and a contact's **Enrich from public web** action. It reports filled fields and needs-approval findings as separate counts, because they mean different things to the user.

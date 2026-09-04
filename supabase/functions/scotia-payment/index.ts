@@ -251,7 +251,6 @@ async function runProbe(cfg: ScotiaConfig, req: Request): Promise<Response> {
       storeId: cfg.storeId,
       env: cfg.env,
       endpointUrl,
-      requestParams: formParams,
       notes: `Gateway unreachable: ${String(err)}`,
     });
     return json({
@@ -280,8 +279,8 @@ async function runProbe(cfg: ScotiaConfig, req: Request): Promise<Response> {
     httpStatus: status,
     failRc: verdict.failRc,
     failReason: verdict.detail,
-    requestParams: formParams,
-    responseParams: { classification: verdict.classification, snippet },
+    amount: Number(formParams.chargetotal),
+    currency: cfg.currency,
     notes: "Admin IPG health check",
   });
 
@@ -413,8 +412,8 @@ Deno.serve(async (req) => {
 
     const hashExtended = await computeExtendedHash(formParams, cfg.sharedSecret);
 
-    // Diagnostics: record exactly what was signed so a later gateway failure
-    // can be matched against the form the buyer actually posted.
+    // Persist a minimal reconciliation event; signed form parameters and
+    // gateway payloads must never be retained by this application.
     await logScotiaEvent(supabaseAdmin, {
       kind: "prepare",
       outcome: "ok",
@@ -422,7 +421,8 @@ Deno.serve(async (req) => {
       storeId: cfg.storeId,
       env: cfg.env,
       endpointUrl: GATEWAY_URLS[cfg.env],
-      requestParams: formParams,
+      amount: Number(formParams.chargetotal),
+      currency: cfg.currency,
       notes: p.testMode ? "Admin signed-form test" : "Checkout prepare",
     });
 

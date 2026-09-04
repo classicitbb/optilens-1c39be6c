@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-09-04 — Scotia payment confirmations and saved statement cards
+
+### Release Notes
+- Administrators now have **Settings → Payment Activity**, a compact Scotia card-payment confirmation list showing only when a payment happened, its reference, type, amount, and result.
+- Statement amounts remain on one line, and customers can opt in to securely save a card before they continue to Scotiabank.
+
 ## 2026-08-27 — Continuous CRM contact enrichment
 
 ### Release Notes

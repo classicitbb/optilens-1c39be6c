@@ -103,17 +103,8 @@ Deno.serve(async (req) => {
     const result = await classifyScotiaResponse(response, cfg.sharedSecret, cfg.storeId);
 
     if (!result.hashValid) {
-      // debugHash is safe to log: HMAC digests, not the shared secret, and
-      // response_hash already travels in plaintext from Fiserv. Temporary —
-      // remove once the mismatch is diagnosed.
-      // Also dump every raw field Fiserv actually sent (masking anything
-      // card-like) — storename came back empty on the last attempt, so we
-      // need to see the true field name/shape rather than guess again.
-      const REDACT_KEYS = new Set(["cardnumber", "cvm", "cvv2", "track1", "track2"]);
-      const rawFields = Object.fromEntries(
-        Object.entries(response).map(([k, v]) => [k, REDACT_KEYS.has(k.toLowerCase()) ? "[redacted]" : v]),
-      );
-      console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash, rawFields });
+      // Log only validation metadata; never emit the bank callback payload.
+      console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash });
       await logScotiaEvent(supabaseAdmin, {
         kind: "return",
         outcome: "hash_invalid",
@@ -122,7 +113,8 @@ Deno.serve(async (req) => {
         env: cfg.env,
         failRc: result.failRc,
         failReason: "Response hash did not validate",
-        responseParams: response,
+        amount: result.chargetotal ? Number(result.chargetotal) : null,
+        currency: result.currency,
       });
       return redirect(req, returnPath, { scotia: "error" });
     }
@@ -147,7 +139,7 @@ Deno.serve(async (req) => {
 
     const outcome = result.approved ? "success" : "declined";
 
-    // Diagnostics: exact parameters and failure code the gateway returned.
+    // Keep only scalar reconciliation fields; never retain callback payloads.
     await logScotiaEvent(supabaseAdmin, {
       kind: "return",
       outcome: result.approved ? "ok" : "declined",
@@ -158,7 +150,8 @@ Deno.serve(async (req) => {
       associationResponseCode: result.associationResponseCode,
       failRc: result.failRc,
       failReason: response.fail_reason ?? null,
-      responseParams: response,
+      amount: result.chargetotal ? Number(result.chargetotal) : null,
+      currency: result.currency,
     });
 
 
@@ -172,12 +165,21 @@ Deno.serve(async (req) => {
         console.error("scotia-return: settle_statement_payment failed", { paymentId, error });
         return redirect(req, returnPath, { scotia: "error" });
       }
+      const { data: settledPayment, error: savedCardLookupError } = await supabaseAdmin
+        .from("account_payments")
+        .select("card_saved_at")
+        .eq("id", paymentId)
+        .maybeSingle();
+      if (savedCardLookupError) {
+        console.error("scotia-return: saved-card status lookup failed", { paymentId, savedCardLookupError });
+      }
       if (result.approved) {
         await sendStatementPaymentReceipt(supabaseAdmin as never, paymentId);
       }
       return redirect(req, returnPath, {
         scotia: outcome,
         ...(result.chargetotal ? { amt: String(result.chargetotal) } : {}),
+        ...(settledPayment?.card_saved_at ? { card_saved: "true" } : {}),
       });
     }
 
