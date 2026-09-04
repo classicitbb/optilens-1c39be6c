@@ -27,6 +27,7 @@ import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/config.ts";
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
 import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
+import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
 import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 
