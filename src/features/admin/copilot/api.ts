@@ -91,7 +91,7 @@ export type CopilotAction = {
   run_id: string;
   customer_id: number | null;
   contact_id: string | null;
-  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email";
+  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email" | "apply_contact_enrichment";
   risk_level: number;
   status: "pending_approval" | "executing" | "completed" | "failed" | "rejected" | "blocked";
   title: string;

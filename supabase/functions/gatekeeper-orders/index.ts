@@ -136,12 +136,16 @@ async function recordDispatchLog(log: DispatchLog | null, entry: {
   if (error) console.error("gatekeeper dispatch log write failed", error.message);
 }
 
+const GATEKEEPER_TIMEOUT_MS = 20_000;
+
 // Single place where Gatekeeper is called, so no request can escape logging.
 async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: string, init: RequestInit, requestSnapshot?: unknown, expectedStatuses: number[] = []) {
   const startedAt = Date.now();
   const method = (init.method ?? "GET").toUpperCase();
   try {
-    const response = await fetch(url, init);
+    // Gatekeeper occasionally stalls. Without a deadline the edge worker is
+    // killed by the runtime and the caller gets an unhandled 502 with no log.
+    const response = await fetch(url, { ...init, signal: AbortSignal.timeout(GATEKEEPER_TIMEOUT_MS) });
     const raw = await response.text();
     let body: any = {};
     try { body = raw ? JSON.parse(raw) : {}; } catch { body = { raw: raw.slice(0, SNAPSHOT_LIMIT) }; }

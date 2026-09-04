@@ -119,7 +119,7 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS];
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =

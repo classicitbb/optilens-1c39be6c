@@ -1697,7 +1697,9 @@
       const settings = data.settings || {};
       const patch = {};
       ['bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote'].forEach(k => {
-        if (settings[k] !== undefined && settings[k] !== null) patch[k] = settings[k];
+        // Only adopt non-empty values: unseeded company settings default to
+        // '' and would otherwise wipe bank/letterhead details already saved.
+        if (typeof settings[k] === 'string' && settings[k].trim() !== '') patch[k] = settings[k];
       });
       if (settings.blCurrency) patch.blCurrency = settings.blCurrency;
       if (settings.blVatRate) patch.blVatRate = settings.blVatRate;
