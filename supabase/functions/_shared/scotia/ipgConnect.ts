@@ -120,23 +120,43 @@ export async function validateResponseHash(
    *  own store id, so an empty echo must not fail authenticity. */
   expectedStorename?: string,
 ): Promise<{ valid: boolean; expected: string; received: string }> {
-  // The S2S notification posts `notification_hash`; the browser return leg
-  // posts `response_hash`. Same string-to-hash contract for both.
+  // The browser return leg posts `response_hash` (fixed five-field contract).
+  // The server-to-server notification posts `notification_hash`, which the
+  // gateway builds the *extended* way: every posted parameter except the hash
+  // itself, ascending by field name, joined with pipes. The notification also
+  // omits `storename`, so the five-field string can never match it.
+  const isNotification = !response.response_hash && !!response.notification_hash;
   const received = response.response_hash ?? response.notification_hash ?? "";
 
   const storenames = [response.storename ?? "", expectedStorename ?? ""]
     .filter((s, i, arr) => s !== "" && arr.indexOf(s) === i);
   if (storenames.length === 0) storenames.push("");
 
-  let expected = "";
+  const stringsToHash: string[] = [];
+  if (isNotification) {
+    const notified: Record<string, string> = {};
+    for (const [key, value] of Object.entries(response)) {
+      if (key === "notification_hash") continue;
+      notified[key] = value;
+    }
+    stringsToHash.push(buildExtendedHashString(notified));
+    // Some deployments include the configured store id in the notified set.
+    if (expectedStorename && !notified.storename) {
+      stringsToHash.push(buildExtendedHashString({ ...notified, storename: expectedStorename }));
+    }
+  }
   for (const storename of storenames) {
-    const stringToHash = [
+    stringsToHash.push([
       response.approval_code ?? "",
       response.chargetotal ?? "",
       response.currency ?? "",
       response.txndatetime ?? "",
       storename,
-    ].join("|");
+    ].join("|"));
+  }
+
+  let expected = "";
+  for (const stringToHash of stringsToHash) {
     const candidate = await hmacSha256Base64(stringToHash, sharedSecret);
     if (!expected) expected = candidate;
     if (timingSafeEqual(candidate, received)) {
@@ -144,6 +164,7 @@ export async function validateResponseHash(
     }
   }
   return { valid: false, expected, received };
+
 }
 
 /** Constant-time string comparison to avoid hash-timing leaks. */
