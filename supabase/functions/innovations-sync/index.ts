@@ -370,7 +370,7 @@ async function writeCustomerWithEmailFallback(
 }
 
 async function upsertCustomerRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null; emailConflict?: string }> {
   const { data: byInnovationsId, error: lookupErr } = await supabase
