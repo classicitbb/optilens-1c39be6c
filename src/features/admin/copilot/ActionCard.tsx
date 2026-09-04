@@ -33,9 +33,12 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
   const canAct = action.status === "pending_approval" || action.status === "failed";
 
   const isEmail = action.action_type === "send_portal_invite" || action.action_type === "send_docstudio_email";
-  const changed = isEmail
-    ? subject !== (action.payload.subject ?? "") || body !== (action.payload.body ?? "")
-    : taskContent !== (action.payload.taskContent ?? "");
+  const isEnrichment = action.action_type === "apply_contact_enrichment";
+  const changed = isEnrichment
+    ? false
+    : isEmail
+      ? subject !== (action.payload.subject ?? "") || body !== (action.payload.body ?? "")
+      : taskContent !== (action.payload.taskContent ?? "");
   const partialAccountCreated = action.result?.portalAccountCreated === true && action.result?.emailQueued === false;
 
   return (
@@ -65,7 +68,37 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
         ) : null}
       </CardHeader>
       <CardContent className="space-y-2">
-        {isEmail ? (
+        {isEnrichment ? (
+          <div className="space-y-2 border bg-muted/20 p-2 text-xs">
+            <div className="flex flex-wrap items-center gap-1">
+              {action.payload.contactLabel ? <Badge variant="outline" className="text-[10px]">{action.payload.contactLabel}</Badge> : null}
+              {action.payload.source ? <Badge variant="outline" className="text-[10px]">Source: {action.payload.source.replace("_", " ")}</Badge> : null}
+              {typeof action.payload.matchConfidence === "number" ? <Badge variant="outline" className="text-[10px]">Match: {Math.round(action.payload.matchConfidence * 100)}%</Badge> : null}
+            </div>
+            {action.payload.findings?.length ? (
+              <table className="w-full text-[11px]">
+                <thead className="text-muted-foreground">
+                  <tr><th className="py-0.5 text-left font-medium">Field</th><th className="py-0.5 text-left font-medium">Current</th><th className="py-0.5 text-left font-medium">Proposed</th><th className="py-0.5 text-right font-medium">Confidence</th></tr>
+                </thead>
+                <tbody>
+                  {action.payload.findings.map((finding) => (
+                    <tr key={finding.findingId} className="border-t">
+                      <td className="py-0.5 pr-2">{finding.field}</td>
+                      <td className="py-0.5 pr-2 text-muted-foreground">{finding.oldValue || "—"}</td>
+                      <td className="py-0.5 pr-2 font-medium">{finding.newValue}</td>
+                      <td className="py-0.5 text-right text-muted-foreground">{Math.round(finding.confidence * 100)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : <p className="text-muted-foreground">No findings attached to this proposal.</p>}
+            {action.payload.sourceUrl ? (
+              <a href={action.payload.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] underline">
+                <Globe className="h-3 w-3" /> View source
+              </a>
+            ) : null}
+          </div>
+        ) : isEmail ? (
           <div className="space-y-2 border bg-muted/20 p-2">
             {action.action_type === "send_docstudio_email" ? (
               <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipients</span><span>{(action.payload.recipients ?? []).join(", ")}</span></div>
@@ -125,7 +158,7 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
             ) : null}
             <Button size="sm" disabled={busy || changed} onClick={() => onDecide(action, "approve")} className="h-6 text-xs">
               {busy ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : action.status === "failed" ? <RotateCcw className="mr-1 h-3 w-3" /> : <Check className="mr-1 h-3 w-3" />}
-              {action.status === "failed" ? "Retry" : isEmail ? "Approve & send" : "Approve"}
+              {action.status === "failed" ? "Retry" : isEmail ? "Approve & send" : isEnrichment ? "Apply fields" : "Approve"}
             </Button>
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => onDecide(action, "reject")} className="h-6 text-xs">
               <X className="mr-1 h-3 w-3" /> Reject
