@@ -601,22 +601,9 @@ const StatementsSection = () => {
   const cardBypassPublic = useWebsiteFeature("card_payments_bypass_public", false);
   const cardApprovalBypassed = cardBypassPublic.enabled || (isAdmin && cardBypassAdmin.enabled);
 
-  // Statements are BBD; the Scotia gateway only ever charges USD. This reads
-  // the same admin-configured rate the create_pending_statement_payment RPC
-  // converts with (pricing_settings is staff-only, so a customer's browser
-  // can't select it directly — get_active_usd_fx_rate exposes just the rate).
-  // Preview only: the RPC recomputes and is the authority on the real charge.
-  const usdFxRateQuery = useQuery({
-    queryKey: ["active-usd-fx-rate"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_active_usd_fx_rate");
-      if (error) throw error;
-      return typeof data === "number" && data > 0 ? data : null;
-    },
-    staleTime: 5 * 60_000,
-  });
-  const usdFxRate = usdFxRateQuery.data ?? null;
-  const bbdToUsd = (bbdAmount: number) => (usdFxRate ? bbdAmount / usdFxRate : null);
+  // Statements and card payments are both in Barbados dollars — the Scotia
+  // store is provisioned in BBD, so no currency conversion happens anywhere.
+
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
