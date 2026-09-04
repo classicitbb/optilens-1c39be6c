@@ -370,7 +370,7 @@ async function writeCustomerWithEmailFallback(
 }
 
 async function upsertCustomerRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null; emailConflict?: string }> {
   const { data: byInnovationsId, error: lookupErr } = await supabase
@@ -421,7 +421,7 @@ async function upsertCustomerRow(
 }
 
 async function upsertContactRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null; emailConflict?: string }> {
   const { data: existing, error: lookupErr } = await supabase
@@ -452,7 +452,7 @@ async function upsertContactRow(
 // idea as upsertCustomerRow's fallback, just one direction: customers always
 // sync before statements/balances in a given run).
 async function resolveCustomerLink(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   innovationsCustomerId: unknown,
 ): Promise<{ customer_id: number | null; account_number: string | null }> {
   const { data } = await supabase
@@ -465,7 +465,7 @@ async function resolveCustomerLink(
 }
 
 async function upsertStatementRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null; isNew: boolean }> {
   const link = await resolveCustomerLink(supabase, row.innovations_customer_id);
@@ -490,7 +490,7 @@ async function upsertStatementRow(
 }
 
 async function enqueueStatementDocumentJob(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   statementRow: Record<string, unknown>,
   options: { suppress?: boolean } = {},
 ): Promise<void> {
@@ -510,7 +510,7 @@ async function enqueueStatementDocumentJob(
 }
 
 async function upsertBalanceRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null }> {
   const link = await resolveCustomerLink(supabase, row.innovations_customer_id);
@@ -525,7 +525,7 @@ async function upsertBalanceRow(
 // enqueues directly — that function requires a privileged user JWT, and this
 // receiver only ever has a service-role context (x-api-key auth).
 async function enqueueStatementReadyEmail(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   statementRow: Record<string, unknown>,
 ): Promise<void> {
   try {
