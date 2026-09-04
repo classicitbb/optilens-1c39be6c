@@ -2,6 +2,13 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-09-04 — Walk-in payment customer email and receipt printing
+
+### Release Notes
+- Walk-in card payments at **Settings → Walk-in Payments** now support capturing the customer's email address.
+- When payment is received, a receipt email is sent to the customer, and the staff member is prompted on screen with a print dialog to print a physical copy.
+- Staff can also resend the receipt email or reprint the physical receipt from the completed payment card.
+
 ## 2026-09-04 — Scotia payment confirmations and saved statement cards
 
 ### Release Notes

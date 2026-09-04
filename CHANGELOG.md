@@ -2,7 +2,17 @@
 
 > Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
 
-All notable major updates to this project are tracked in date-stamped, human-readable format.
+## 2026-09-04 — Walk-in payment customer email and receipt printing
+
+### Release Notes
+- Walk-in card payments at **Settings → Walk-in Payments** now support an optional customer email field.
+- Upon payment completion, a receipt is automatically emailed to the customer.
+- Staff members are immediately prompted with a confirmation modal asking if they would like to print a physical receipt, and can re-print or resend the receipt email at any time.
+
+### Technical Changelog
+- Added `customer_email` column to `public.walk_in_payments` table and updated `create_walk_in_payment` to store and validate customer email.
+- `sendWalkInPaymentReceipt` delivers transactional receipts to the customer email with fallback and copy to staff, and supports forced resending.
+- Added `send-walkin-receipt` authenticated staff action in `scotia-payment`.
 
 ## 2026-09-04 — Scotia payment confirmations and saved statement cards
 

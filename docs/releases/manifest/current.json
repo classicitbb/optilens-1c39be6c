@@ -3,14 +3,15 @@
   "releaseDateTimeUtc": "2026-09-04T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Administrators now have **Settings → Payment Activity**, a compact Scotia card-payment confirmation list showing only when a payment happened, its reference, type, amount, and result.",
-    "Statement amounts remain on one line, and customers can opt in to securely save a card before they continue to Scotiabank."
+    "Walk-in card payments at **Settings → Walk-in Payments** now support capturing the customer's email address.",
+    "When payment is received, a receipt email is sent to the customer, and the staff member is prompted on screen with a print dialog to print a physical copy.",
+    "Staff can also resend the receipt email or reprint the physical receipt from the completed payment card."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Scotia payment confirmations and saved statement cards."
+      "notes": "Updated as part of Walk-in payment customer email and receipt printing."
     }
   ],
   "migrationNotes": [

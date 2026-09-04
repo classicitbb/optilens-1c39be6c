@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-09-04 — Walk-in payment lacked customer email capture and print prompt
+- Area: staff walk-in card payments at `/admin/settings/walk-in-payments` and receipt email delivery.
+- Impact: staff could not record customer email for walk-in payments; receipt emails were only sent to the staff creator's profile, and staff were not prompted to print a receipt upon completion.
+- Resolution: added `customer_email` column to `walk_in_payments`, updated `create_walk_in_payment` and `WalkInPaymentsPage` to capture and validate email, updated `sendWalkInPaymentReceipt` to deliver receipts to customer email, and added a print prompt dialog upon payment settlement.
+- Regression prevention: `staffWalkInPayments.integration.test.ts` asserts customer email capture in migration, UI form, receipt display, email delivery, and print prompt modal.
+
 ## 2026-09-04 — Statement amount wrapping and missing safe payment confirmation
 - Area: customer statement table, Scotia return flow, and Settings administration.
 - Impact: BBD statement amounts could wrap onto two lines, and staff had no concise way to confirm a card-payment outcome without accessing gateway diagnostics.

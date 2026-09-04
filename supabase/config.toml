@@ -88,6 +88,10 @@ verify_jwt = false
   # operations remain server-side so Basic Auth can never reach the browser.
   [functions.dhl-express]
     verify_jwt = true
+  # Read-only Copilot facts/prompt display for Settings -> Integrations -> AI
+  # Agents. Admin-only via requirePrivilegedAccess; no writes, no side effects.
+  [functions.copilot-facts]
+    verify_jwt = true
   # Gatekeeper connects and sends explicitly released Rx orders. It does its
   # own admin-role check and keeps the one-time PIN/JWT/bearer token server-side.
   [functions.gatekeeper-orders]

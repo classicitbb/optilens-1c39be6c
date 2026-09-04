@@ -1,5 +1,12 @@
 # Frontend Help Docs
 
+## 2026-09-04 — Walk-in payment customer email and receipt printing
+
+- In **Settings → Walk-in Payments**, staff can enter a customer email address when taking a walk-in payment.
+- Once the payment is approved by Scotia, a receipt email is automatically sent to the customer.
+- A prompt appears asking whether you would like to print a physical receipt. Select **Print receipt** to open the print dialog, or **Not now** to dismiss.
+- The completed payment card displays the email address and provides buttons to print the receipt or resend the receipt email.
+
 ## 2026-09-04 — Payment activity and saved cards
 
 - Administrators can open **Settings → Payment Activity** to confirm whether a Scotia card payment was successful, declined, or had an error. The page intentionally does not show card or bank-response details.

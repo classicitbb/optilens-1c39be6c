@@ -44,6 +44,7 @@ import {
   logScotiaEvent,
   probeSnippet,
 } from "../_shared/scotia/events.ts";
+import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -96,7 +97,13 @@ const probeSchema = z.object({
   action: z.literal("probe"),
 });
 
-const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema]);
+const sendReceiptSchema = z.object({
+  action: z.literal("send-walkin-receipt"),
+  paymentId: z.string().uuid(),
+  force: z.boolean().optional(),
+});
+
+const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema, sendReceiptSchema]);
 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -326,6 +333,14 @@ async function requireAdmin(authContext: AuthContext): Promise<boolean> {
   return !error && !!isAdmin;
 }
 
+async function requireStaffRole(authContext: AuthContext): Promise<boolean> {
+  const { data: canEdit, error } = await (authContext.supabaseAdminClient as any).rpc(
+    "has_edit_role",
+    { _user_id: authContext.user.id },
+  );
+  return !error && !!canEdit;
+}
+
 
 // ── Handler ────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
@@ -353,6 +368,16 @@ Deno.serve(async (req) => {
   if (authContext instanceof Response) return authContext;
 
   try {
+    if (parsed.action === "send-walkin-receipt") {
+      if (!(await requireStaffRole(authContext))) {
+        return json({ error: "Staff edit role required to send walk-in payment receipt." }, 403, req);
+      }
+      await sendWalkInPaymentReceipt(supabaseAdmin as never, parsed.paymentId, {
+        force: parsed.force ?? true,
+      });
+      return json({ success: true }, 200, req);
+    }
+
     if (parsed.action === "validate") {
       const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret, cfg.storeId);
       return json({

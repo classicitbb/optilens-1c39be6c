@@ -44,4 +44,43 @@ describe("staff walk-in Scotia payments", () => {
     expect(routes).toContain('path="settings/walk-in-payments"');
     expect(registry).toContain('path: "/admin/settings/walk-in-payments"');
   });
+
+  it("supports customer email capture, email receipt delivery, and receipt print prompting", () => {
+    const migration = read("supabase/migrations/20260904190000_walk_in_payments_customer_email.sql");
+    const page = read("src/pages/admin/WalkInPaymentsPage.tsx");
+    const emailReceipt = read("supabase/functions/_shared/email/walk-in-payment-receipt.ts");
+    const scotiaPayment = read("supabase/functions/scotia-payment/index.ts");
+
+    expect(migration).toContain("ADD COLUMN IF NOT EXISTS customer_email text");
+    expect(migration).toContain("p_customer_email text DEFAULT NULL");
+    expect(migration).toContain("customer_email, order_reference, reason, amount, payment_reference");
+
+    expect(page).toContain("customerEmail");
+    expect(page).toContain("p_customer_email: customerEmail || null");
+    expect(page).toContain("Customer email");
+    expect(page).toContain("Would you like to print a physical receipt");
+    expect(page).toContain("send-walkin-receipt");
+
+    expect(emailReceipt).toContain("customer_email");
+    expect(emailReceipt).toContain("Payment receipt — ${amount}");
+    expect(emailReceipt).toContain("Customer email: ${escapeHtml(customerEmail)}");
+
+    expect(scotiaPayment).toContain('action: z.literal("send-walkin-receipt")');
+    expect(scotiaPayment).toContain("sendWalkInPaymentReceipt");
+  });
+
+  it("assigns a contextual help topic that resolves for the walk-in payments route", () => {
+    const wikiContent = read("src/data/wikiContent.ts");
+    const migration = read("supabase/migrations/20260904193000_seed_walk_in_payments_help_article.sql");
+
+    expect(wikiContent).toContain('id: "walk-in-payments-guide"');
+    expect(wikiContent).toContain('title: "Walk-in Card Payments"');
+    expect(wikiContent).toContain('context_slugs: ["settings/walk-in-payments"]');
+    expect(wikiContent).toContain("## Purpose and route");
+
+    expect(migration).toContain("Walk-in Card Payments");
+    expect(migration).toContain("'settings/walk-in-payments'");
+    expect(migration).toContain("INSERT INTO public.help_article_contexts");
+  });
 });
+

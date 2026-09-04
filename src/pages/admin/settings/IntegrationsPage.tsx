@@ -16,6 +16,7 @@ import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusC
 import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrationTab";
 import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderCard";
+import CopilotFactsCard from "./CopilotFactsCard";
 import { QboIntegrationCard } from "@/components/admin/QboIntegrationCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -664,6 +665,8 @@ export default function IntegrationsPage() {
               onRemoveDraft={() => setDraftProviders((prev) => prev.filter((p) => p !== slug))}
             />
           ))}
+
+          <CopilotFactsCard enabled={isAdmin} />
         </TabsContent>
       </Tabs>
     </div>

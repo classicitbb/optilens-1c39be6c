@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-04 — Walk-in payment customer email and receipt workflow
+
+- `WalkInPaymentsPage` collects optional `customerEmail`, passes it to `create_walk_in_payment`, and displays the customer email and email receipt delivery status on the confirmed receipt view.
+- When payment is settled, an `AlertDialog` automatically prompts the staff member with a choice to print a physical receipt immediately.
+- Staff can also trigger an on-demand receipt email resend through the `send-walkin-receipt` action in `scotia-payment`.
+
 ## 2026-09-04 — Scotia payment activity
 
 - `PaymentActivityPage` reads only the display-safe `scotia_payment_activity` projection and keeps the activity list bounded to the latest 100 rows. It never selects gateway parameter JSON, response codes, card metadata, expiry, or tokens.

@@ -10691,6 +10691,7 @@ export type Database = {
           created_at: string
           created_by: string
           currency: string
+          customer_email: string | null
           customer_name: string
           gateway_fail_rc: string | null
           gateway_oid: string | null
@@ -10712,6 +10713,7 @@ export type Database = {
           created_at?: string
           created_by: string
           currency?: string
+          customer_email?: string | null
           customer_name: string
           gateway_fail_rc?: string | null
           gateway_oid?: string | null
@@ -10733,6 +10735,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           currency?: string
+          customer_email?: string | null
           customer_name?: string
           gateway_fail_rc?: string | null
           gateway_oid?: string | null
@@ -11886,6 +11889,7 @@ export type Database = {
       create_walk_in_payment: {
         Args: {
           p_amount: number
+          p_customer_email?: string | null
           p_customer_name: string
           p_order_reference?: string
           p_reason?: string
