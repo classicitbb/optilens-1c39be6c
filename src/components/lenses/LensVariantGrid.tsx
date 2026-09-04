@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import type { ProductVariant } from "@/hooks/useProductVariants";
 
 interface LensVariantGridProps {
@@ -74,11 +75,11 @@ export const LensVariantGrid = ({
         <table className="border-collapse text-xs">
           <thead className="sticky top-0 z-10 bg-background">
             <tr>
-              <th className="sticky left-0 z-20 border-b border-r bg-background px-2 py-1 text-left text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+              <th className="sticky left-0 z-20 border-b border-r bg-muted/50 px-2 py-1.5 text-left text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
                 {rowLabel} \ {columnLabel}
               </th>
               {cylinders.map((cylinder) => (
-                <th key={cylinder} className="border-b border-r px-1 py-1 text-center text-[10px] font-semibold min-w-[44px]">
+                <th key={cylinder} className="border-b border-r bg-muted/30 px-1 py-1.5 text-center text-[10px] font-semibold text-foreground min-w-[44px]">
                   {cylinder.toFixed(2)}
                 </th>
               ))}
@@ -87,7 +88,7 @@ export const LensVariantGrid = ({
           <tbody>
             {spheres.map((sphere) => (
               <tr key={sphere}>
-                <th className="sticky left-0 z-10 border-r bg-background px-2 py-0.5 text-left text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+              <th className="sticky left-0 z-10 border-r bg-muted/30 px-2 py-0.5 text-left text-[10px] font-semibold text-foreground whitespace-nowrap">
                   {sphere.toFixed(2)}
                 </th>
                 {cylinders.map((cylinder) => {
@@ -105,7 +106,10 @@ export const LensVariantGrid = ({
                   }
 
                   return (
-                    <td key={`${sphere}:${cylinder}`} className="border-r border-t p-0.5 align-middle">
+                    <td key={`${sphere}:${cylinder}`} className={cn(
+                      "border-r border-t p-0.5 align-middle transition-colors",
+                      (quantities[variant.id] ?? 0) > 0 && "bg-secondary/10",
+                    )}>
                       {isOutOfStock ? (
                         <TooltipProvider>
                           <Tooltip>
@@ -156,16 +160,20 @@ export const LensVariantGrid = ({
         </table>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-muted-foreground">
-          Selected quantity: {selectedCount}
-          {isChiral ? " pairs (cart will split into Left + Right lines)" : ""}
+          <span className="font-semibold text-foreground">{selectedCount}</span>
+          {" "}{selectedCount === 1 ? "item" : "items"} selected
+          {isChiral ? " (cart will split into Left + Right lines)" : ""}
         </div>
         {!readOnly && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setQuantities({})}>Clear grid</Button>
-            <Button onClick={handleAdd} disabled={saving || selectedCount === 0}>
-              {saving ? "Adding..." : "Add selected to cart"}
+            <Button variant="outline" size="sm" onClick={() => setQuantities({})} disabled={selectedCount === 0}>
+              Clear grid
+            </Button>
+            <Button variant="hero" size="sm" onClick={handleAdd} disabled={saving || selectedCount === 0} className="gap-1.5">
+              <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
+              {saving ? "Adding…" : `Add ${selectedCount > 0 ? selectedCount : ""} to cart`}
             </Button>
           </div>
         )}

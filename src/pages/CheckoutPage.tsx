@@ -170,19 +170,28 @@ const OrderSummarySidebar = ({
   poNumber: string;
   checkoutMethod: PaymentMethod;
 }) => (
-  <aside className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 lg:sticky lg:top-28">
-    <h2 className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground">
+  <aside className="flex flex-col gap-4 rounded-lg border border-border/80 bg-card p-5 shadow-soft lg:sticky lg:top-28">
+    <h2 className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground font-semibold">
       Order summary
     </h2>
 
-    <div className="max-h-52 space-y-2.5 overflow-y-auto">
+    <div className="max-h-56 space-y-3 overflow-y-auto pr-1">
       {items.map((item) => (
-        <div key={item.id} className="flex items-start justify-between gap-2 text-sm">
-          <span className="text-foreground leading-snug">
-            {item.product_name}
-            <span className="ml-1 text-muted-foreground">× {item.quantity} {getCartItemUnit(item.product_type, item.variant_metadata)}</span>
-          </span>
-          <span className="shrink-0 tabular-nums text-sm font-semibold text-foreground">
+        <div key={item.id} className="flex items-start justify-between gap-3 text-xs">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-foreground leading-snug truncate">
+              {item.product_name}
+            </p>
+            {item.variant_label && (
+              <p className="font-mono text-[10.5px] text-muted-foreground truncate">
+                {item.variant_label}
+              </p>
+            )}
+            <p className="font-mono text-[10px] text-muted-foreground/70">
+              Qty: {item.quantity} · {getCartItemUnit(item.product_type, item.variant_metadata)}
+            </p>
+          </div>
+          <span className="shrink-0 tabular-nums font-mono font-semibold text-sm text-foreground">
             ${(item.product_price * item.quantity).toFixed(2)}
           </span>
         </div>
@@ -191,15 +200,15 @@ const OrderSummarySidebar = ({
 
     <Separator />
 
-    <div className="space-y-1.5 text-sm">
+    <div className="space-y-2 text-xs">
       <div className="flex justify-between text-muted-foreground">
         <span>Subtotal</span>
-        <span className="tabular-nums">${totalPrice.toFixed(2)}</span>
+        <span className="tabular-nums font-mono font-medium text-foreground">${totalPrice.toFixed(2)}</span>
       </div>
       <div className="flex justify-between text-muted-foreground">
         <span>Shipping</span>
-        <span className="tabular-nums">
-          {shippingCost === 0 ? "Free" : shippingCost ? `$${shippingCost.toFixed(2)}` : "TBD"}
+        <span className="tabular-nums font-mono">
+          {shippingCost === 0 ? "Free" : shippingCost ? `$${shippingCost.toFixed(2)}` : "Calculated at next step"}
         </span>
       </div>
     </div>
@@ -207,8 +216,8 @@ const OrderSummarySidebar = ({
     <Separator />
 
     <div className="flex items-baseline justify-between">
-      <span className="font-semibold text-foreground">Total</span>
-      <span className="tabular-nums text-base font-bold text-foreground">
+      <span className="font-semibold text-foreground text-sm">Total</span>
+      <span className="tabular-nums font-mono text-lg font-bold text-foreground">
         ${(totalPrice + (shippingCost ?? 0)).toFixed(2)}
         <span className="ml-1 font-mono text-[9px] font-normal uppercase tracking-wider text-muted-foreground">
           USD
@@ -227,6 +236,11 @@ const OrderSummarySidebar = ({
         )}
       </div>
     )}
+
+    <div className="mt-1 flex items-center justify-center gap-1.5 rounded bg-muted/30 py-2 text-[10.5px] font-mono text-muted-foreground">
+      <ShieldCheck className="h-3.5 w-3.5 text-secondary shrink-0" />
+      <span>256-bit SSL Encrypted Checkout</span>
+    </div>
   </aside>
 );
 
@@ -667,15 +681,15 @@ const CheckoutPage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 pb-16 pt-24">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-soft">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-secondary/10">
+        <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center px-4 pb-16 pt-24 animate-fade-in">
+          <div className="w-full max-w-lg rounded-xl border border-border/80 bg-card p-8 text-center shadow-medium">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-secondary/15 ring-8 ring-secondary/5">
               <CheckCircle className="h-9 w-9 text-secondary" aria-hidden="true" />
             </div>
-            <h1 className="mb-2 text-2xl text-foreground">
+            <h1 className="mb-2 text-2xl font-bold text-foreground">
               {formData.checkoutMethod === "on_account"
-                ? "Order placed on account"
-                : "Order received"}
+                ? "Order Placed on Account"
+                : "Order Received"}
             </h1>
             <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
               {formData.checkoutMethod === "on_account"
@@ -683,20 +697,57 @@ const CheckoutPage = () => {
                 : "Your order is reserved. Once our team confirms receipt of your payment, your order will be dispatched. You'll receive an email confirmation."}
             </p>
 
-            <div className="mb-6 rounded-lg bg-muted/60 px-4 py-3">
-              <p className="font-mono text-xs text-muted-foreground">Order reference</p>
-              <p className="mt-0.5 font-mono text-base font-semibold text-secondary">
-                {completedOrderNum}
-              </p>
+            <div className="mb-6 rounded-lg border border-border/80 bg-muted/30 p-4 text-left">
+              <div className="flex items-center justify-between font-mono text-xs">
+                <span className="text-muted-foreground">Order Reference</span>
+                <span className="font-bold text-secondary text-sm">{completedOrderNum}</span>
+              </div>
               {poNumber && (
-                <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                  PO: {poNumber}
-                </p>
+                <div className="mt-1 flex items-center justify-between font-mono text-xs">
+                  <span className="text-muted-foreground">PO Number</span>
+                  <span className="font-medium text-foreground">{poNumber}</span>
+                </div>
               )}
             </div>
 
-            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button variant="default" asChild>
+            {/* What happens next timeline */}
+            <div className="mb-6 rounded-lg border border-border/60 bg-background p-4 text-left">
+              <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                What happens next
+              </p>
+              <div className="space-y-3 text-xs">
+                <div className="flex items-start gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary/20 text-[10px] font-bold text-secondary">
+                    1
+                  </span>
+                  <div>
+                    <p className="font-medium text-foreground">Order Reserved &amp; Registered</p>
+                    <p className="text-muted-foreground text-[11px]">Item specs saved to lab system.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                    2
+                  </span>
+                  <div>
+                    <p className="font-medium text-foreground">Optical QC &amp; Preparation</p>
+                    <p className="text-muted-foreground text-[11px]">Technicians verify power parameters.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                    3
+                  </span>
+                  <div>
+                    <p className="font-medium text-foreground">Dispatch &amp; Tracking</p>
+                    <p className="text-muted-foreground text-[11px]">Tracking number sent via email upon courier handover.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
+              <Button variant="hero" asChild className="shadow-medium">
                 <Link to="/profile/orders">View my orders</Link>
               </Button>
               <Button variant="outline" asChild>
@@ -739,11 +790,11 @@ const CheckoutPage = () => {
       </div>
 
       {/* Stepper */}
-      <div className="border-b border-border bg-card">
+      <div className="border-b border-border/80 bg-card">
         <div className="container mx-auto overflow-x-auto px-4 sm:px-6">
           <nav
             aria-label="Checkout steps"
-            className="flex items-stretch gap-0 min-w-max"
+            className="flex items-center gap-0 min-w-max py-1"
           >
             {STEPS.map(({ n, label }, idx) => {
               const done = n < step;
@@ -754,7 +805,7 @@ const CheckoutPage = () => {
                     type="button"
                     onClick={() => done && setStep(n)}
                     className={cn(
-                      "flex cursor-default items-center gap-2 border-b-2 px-4 py-3.5 text-sm transition-colors",
+                      "flex cursor-default items-center gap-2.5 border-b-2 px-4 py-3 text-sm transition-all duration-200",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                       done && "cursor-pointer border-secondary text-secondary hover:text-secondary/80",
                       active && "border-primary text-foreground font-semibold",
@@ -764,18 +815,20 @@ const CheckoutPage = () => {
                   >
                     <span
                       className={cn(
-                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                        done && "bg-secondary text-secondary-foreground",
-                        active && "bg-primary text-primary-foreground",
-                        !done && !active && "border border-border text-muted-foreground",
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-200",
+                        done && "bg-secondary text-secondary-foreground shadow-sm scale-100",
+                        active && "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30 scale-105",
+                        !done && !active && "border border-border bg-muted/30 text-muted-foreground",
                       )}
                     >
                       {done ? "✓" : n}
                     </span>
-                    <span className="hidden sm:inline">{label}</span>
+                    <span className="hidden sm:inline font-medium">{label}</span>
                   </button>
                   {idx < STEPS.length - 1 && (
-                    <ChevronRight className="h-3 w-3 shrink-0 text-border mx-1" aria-hidden="true" />
+                    <div className="flex items-center px-1">
+                      <span className={cn("h-0.5 w-6 sm:w-10 rounded-full transition-colors", done ? "bg-secondary/60" : "bg-border/60")} />
+                    </div>
                   )}
                 </div>
               );
@@ -797,7 +850,7 @@ const CheckoutPage = () => {
 
               {/* ───── STEP 1: Contact ───── */}
               {step === 1 && (
-                <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+                <div className="rounded-xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft animate-fade-in">
                   <SectionHead>Contact information</SectionHead>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
@@ -875,7 +928,7 @@ const CheckoutPage = () => {
 
               {/* ───── STEP 2: Shipping ───── */}
               {step === 2 && (
-                <div className="space-y-4">
+                <div className="space-y-4 animate-fade-in">
                   {/* Saved addresses */}
                   {addresses.length > 0 && (
                     <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
@@ -1113,7 +1166,7 @@ const CheckoutPage = () => {
 
               {/* ───── STEP 3: Payment ───── */}
               {step === 3 && (
-                <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+                <div className="rounded-xl border border-border/80 bg-card p-5 sm:p-6 shadow-soft animate-fade-in">
                   <SectionHead>Payment method</SectionHead>
 
                   <div className="space-y-2">
@@ -1348,7 +1401,7 @@ const CheckoutPage = () => {
 
               {/* ───── STEP 4: Review ───── */}
               {step === 4 && (
-                <div className="space-y-4">
+                <div className="space-y-4 animate-fade-in">
                   {/* Scotia's hosted page cannot be embedded (frame-ancestors
                       'self'), so checkout redirects out to it instead of
                       rendering an iframe here. */}
@@ -1433,16 +1486,16 @@ const CheckoutPage = () => {
                     ].map(({ label, goTo, content }) => (
                       <div
                         key={label}
-                        className="mb-4 last:mb-0 rounded-lg border border-border bg-background px-4 py-3"
+                        className="mb-4 last:mb-0 rounded-lg border border-border/80 border-l-2 border-l-secondary bg-background px-4 py-3 shadow-soft transition-colors hover:border-secondary/40"
                       >
                         <div className="mb-1.5 flex items-center justify-between">
-                          <span className="font-mono text-[9.5px] uppercase tracking-wide text-muted-foreground">
+                          <span className="font-mono text-[9.5px] uppercase tracking-wide text-muted-foreground font-semibold">
                             {label}
                           </span>
                           <button
                             type="button"
                             onClick={() => setStep(goTo)}
-                            className="font-mono text-[10px] text-secondary underline underline-offset-2 hover:text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded"
+                            className="font-mono text-[10px] text-secondary font-medium underline underline-offset-2 hover:text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded"
                           >
                             Edit
                           </button>

@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, Eye, Expand, ArrowDownUp, LayoutGrid, List, Lock, Settings } from "lucide-react";
+import { ShoppingCart, Search, Eye, Expand, ArrowDownUp, LayoutGrid, List, Lock, Settings, Layers } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,7 +65,7 @@ const ProductCard = ({
 
   if (layout === "list") {
     return (
-      <Card variant="feature" className="opacity-0 animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
+      <Card variant="feature" className="opacity-0 animate-fade-in transition-all duration-200 hover:shadow-medium hover:border-secondary/30" style={{ animationDelay: `${index * 30}ms` }}>
         <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -85,7 +85,15 @@ const ProductCard = ({
                 </span>
               ))}
             </div>
-            <h3 className="text-lg font-semibold leading-snug text-foreground">{product.name}</h3>
+            <h3 className="text-lg font-semibold leading-snug text-foreground">
+              {product.name}
+              {product.has_variants && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 align-middle text-[10px] font-medium text-secondary">
+                  <Layers className="h-2.5 w-2.5" aria-hidden="true" />
+                  Variants
+                </span>
+              )}
+            </h3>
             <p className="text-sm text-muted-foreground">{product.description}</p>
           </div>
           {user ? (
@@ -150,7 +158,7 @@ const ProductCard = ({
   }
 
   return (
-    <Card variant="feature" className="opacity-0 animate-fade-in" style={{ animationDelay: `${index * 40}ms` }}>
+    <Card variant="feature" className="group opacity-0 animate-fade-in transition-all duration-200 hover:shadow-medium hover:border-secondary/30" style={{ animationDelay: `${index * 40}ms` }}>
       <CardHeader className="gap-4 pb-2">
         <div className="mb-2 flex items-center gap-2">
           <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium capitalize text-accent">
@@ -166,7 +174,15 @@ const ProductCard = ({
         </div>
         <div className="grid grid-cols-[1fr_92px] gap-3">
           <div className="min-w-0 space-y-1">
-            <CardTitle className="text-lg leading-snug break-words">{product.name}</CardTitle>
+            <CardTitle className="text-lg leading-snug break-words">
+              {product.name}
+              {product.has_variants && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-0.5 align-middle text-[10px] font-medium text-secondary">
+                  <Layers className="h-2.5 w-2.5" aria-hidden="true" />
+                  Variants
+                </span>
+              )}
+            </CardTitle>
             <CardDescription className="whitespace-normal break-words">{product.description}</CardDescription>
           </div>
           <div className="relative h-[92px] w-[92px] overflow-hidden rounded-md border border-border/50 bg-muted/30">
@@ -174,7 +190,7 @@ const ProductCard = ({
               <StorageImage
                 src={product.image_url}
                 alt={`${product.name} thumbnail`}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
               />
             ) : (
@@ -188,7 +204,7 @@ const ProductCard = ({
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="absolute bottom-1 right-1 h-6 w-6"
+                    className="absolute bottom-1 right-1 h-6 w-6 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                     aria-label={`Expand image for ${product.name}`}
                   >
                     <Expand className="h-3.5 w-3.5" />
@@ -221,7 +237,7 @@ const ProductCard = ({
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+      <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
         {user ? (
           <>
             <div>

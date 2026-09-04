@@ -1,4 +1,5 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { ViewTransition } from "react";
 import { ChevronLeft, Eye, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -107,7 +108,9 @@ const AccountLayout = () => {
         </aside>
 
         <main className="mx-auto min-w-0 w-full max-w-[1280px] flex-1">
-          <Outlet />
+          <ViewTransition default="none" enter="fade-in" exit="fade-out">
+            <Outlet />
+          </ViewTransition>
         </main>
       </div>
     </div>

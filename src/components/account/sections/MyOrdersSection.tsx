@@ -445,14 +445,14 @@ const MyOrdersSection = () => {
               </AlertDescription>
             </Alert>
           ) : innovationsOrdersQuery.isLoading ? (
-            <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : (innovationsOrdersQuery.data?.orders.length ?? 0) === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
 
           ) : filteredInnovationsOrders.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
           ) : (
-            <Card>
+            <Card className="overflow-hidden border-0 shadow-sm md:border">
               <CardContent className="overflow-x-auto p-0">
                 <Table>
                     <TableHeader>
@@ -563,9 +563,9 @@ const MyOrdersSection = () => {
               </AlertDescription>
             </Alert>
           ) : deliveriesQuery.isLoading ? (
-            <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : liveDeliveries.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">
               {deliveriesQuery.data?.source_status === "offline"
                 ? "The live shipment connection is offline, so deliveries can't be shown right now."
                 : "No open shipments or recently closed deliveries were found."}
@@ -590,9 +590,9 @@ const MyOrdersSection = () => {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       ) : orderRows.length === 0 ? (
-        <Card className="mx-auto max-w-md text-center">
+        <Card className="mx-auto max-w-md border-0 text-center shadow-sm md:border">
           <CardContent className="py-12">
-            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground transition-transform hover:scale-110" />
             <h3 className="mb-2 text-lg font-semibold text-foreground">No orders yet</h3>
             <p className="text-muted-foreground">When you complete a purchase, your orders will appear here.</p>
           </CardContent>
@@ -644,7 +644,7 @@ const MyOrdersSection = () => {
             </div>
           </div>
 
-          <Card>
+          <Card className="overflow-hidden border-0 shadow-sm md:border">
             <CardContent className="overflow-x-auto p-0">
               <Table>
                 <TableHeader>
@@ -670,8 +670,8 @@ const MyOrdersSection = () => {
                       const isExpanded = expandedOrderKey === row.key;
                       return (
                         <Fragment key={row.key}>
-                          <TableRow>
-                            <TableCell className="font-medium">Order {row.reference}</TableCell>
+                          <TableRow className="group transition-colors hover:bg-muted/50">
+                            <TableCell className="font-medium transition-colors group-hover:text-primary">Order {row.reference}</TableCell>
                             <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                               {format(new Date(row.date), "PPP 'at' p")}
                             </TableCell>
