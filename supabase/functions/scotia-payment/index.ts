@@ -18,7 +18,7 @@
 //   SCOTIA_SHARED_SECRET   HMAC key
 //   SCOTIA_ENV             "test" | "production"  (default "test")
 //   SCOTIA_TIMEZONE        IANA tz, e.g. "America/Barbados" (default)
-//   SCOTIA_CURRENCY        ISO numeric, e.g. "840" USD (default "840")
+//   SCOTIA_CURRENCY        ISO numeric, e.g. "052" BBD (default "052")
 // ============================================================
 
 import { z } from "npm:zod@^4.4.3";
@@ -199,9 +199,10 @@ function baseSaleParams(cfg: ScotiaConfig, opts: {
   return {
     chargetotal: opts.chargetotal,
     checkoutoption: DEFAULT_CHECKOUT_OPTION,
-    // Required by the Scotia hosted-page contract for this site. Keep this
-    // fixed even if an old credential-store row still has another value.
-    currency: "840",
+    // Required by the Scotia hosted-page contract for this site. The store is
+    // set up for Barbados dollars (052); keep this fixed even if an old
+    // credential-store row still has another value.
+    currency: "052",
     language: "en_GB",
     hash_algorithm: ALWAYS_HASH_ALGORITHM,
     responseFailURL: opts.responseFailURL,

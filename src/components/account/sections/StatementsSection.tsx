@@ -601,22 +601,9 @@ const StatementsSection = () => {
   const cardBypassPublic = useWebsiteFeature("card_payments_bypass_public", false);
   const cardApprovalBypassed = cardBypassPublic.enabled || (isAdmin && cardBypassAdmin.enabled);
 
-  // Statements are BBD; the Scotia gateway only ever charges USD. This reads
-  // the same admin-configured rate the create_pending_statement_payment RPC
-  // converts with (pricing_settings is staff-only, so a customer's browser
-  // can't select it directly — get_active_usd_fx_rate exposes just the rate).
-  // Preview only: the RPC recomputes and is the authority on the real charge.
-  const usdFxRateQuery = useQuery({
-    queryKey: ["active-usd-fx-rate"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_active_usd_fx_rate");
-      if (error) throw error;
-      return typeof data === "number" && data > 0 ? data : null;
-    },
-    staleTime: 5 * 60_000,
-  });
-  const usdFxRate = usdFxRateQuery.data ?? null;
-  const bbdToUsd = (bbdAmount: number) => (usdFxRate ? bbdAmount / usdFxRate : null);
+  // Statements and card payments are both in Barbados dollars — the Scotia
+  // store is provisioned in BBD, so no currency conversion happens anywhere.
+
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -696,10 +683,9 @@ const StatementsSection = () => {
     setScotiaError(null);
     setCardStep("paying");
     try {
-      // Statement balances are BBD; the RPC converts to the USD amount Scotia
-      // actually charges (using pricing_settings.fx_rates — the same rate the
-      // rest of the pricing engine uses) and returns both, plus the rate used,
-      // so we never send the raw BBD figure to the card gateway.
+      // Statement balances are BBD and the Scotia store is provisioned in BBD,
+      // so the gateway is charged the same Barbados-dollar figure the customer
+      // sees. The RPC persists the payable amount and is the authority on it.
       const { data, error } = await (supabase.rpc as any)("create_pending_statement_payment", {
         p_amount: parsedPayAmount,
         p_statement_id: activeStatementId,
@@ -710,7 +696,7 @@ const StatementsSection = () => {
       if (error || !row?.payment_id) throw new Error(error?.message || "Could not start payment.");
 
       const prepared = await prepareScotiaPayment({
-        chargetotal: Number(row.amount_usd),
+        chargetotal: Number(row.amount_bbd ?? row.amount_usd),
         responseSuccessURL: SCOTIA_RETURN_URL,
         responseFailURL: SCOTIA_RETURN_URL,
         orderId: `STMT-${row.payment_id}`,
@@ -851,7 +837,7 @@ const StatementsSection = () => {
             </div>
           )}
           <p className="text-xs text-muted-foreground dark:text-slate-400">
-            Statement and account balances are in Barbados Dollars (BBD). Card payments are charged in USD at the current exchange rate.
+            Statement and account balances are in Barbados Dollars (BBD). Card payments are charged in BBD.
           </p>
 
           <div className="flex flex-wrap gap-3 items-end justify-between">
@@ -1029,7 +1015,7 @@ const StatementsSection = () => {
             </DialogTitle>
             <DialogDescription className="dark:text-slate-400">
               {dialogMode === "result" && scotiaReturn === "success"
-                ? `Payment received${returnedAmountValid ? `: $${money(returnedAmount)} USD` : ""}`
+                ? `Payment received${returnedAmountValid ? `: ${bbd(returnedAmount)}` : ""}`
                 : `Current balance: ${bbd(currentBalance)}`}
             </DialogDescription>
           </DialogHeader>
@@ -1040,7 +1026,7 @@ const StatementsSection = () => {
                 <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
                   <AlertDescription className="text-emerald-900 dark:text-emerald-300">
-                    Thank you for your payment{returnedAmountValid ? ` of $${money(returnedAmount)} USD` : ""}. A receipt has
+                    Thank you for your payment{returnedAmountValid ? ` of ${bbd(returnedAmount)}` : ""}. A receipt has
                     been emailed to you. Your payment will appear on your account once it has been verified with the
                     bank, and we'll send a confirmation as soon as that happens.
                   </AlertDescription>
@@ -1118,10 +1104,7 @@ const StatementsSection = () => {
                 />
                 {payAmountValid && (
                   <p className="text-[11px] text-muted-foreground">
-                    {bbd(parsedPayAmount)}
-                    {usdFxRate
-                      ? ` ≈ $${money(bbdToUsd(parsedPayAmount))} USD if you pay by card (rate: 1 USD = ${usdFxRate.toFixed(2)} BBD)`
-                      : " — bank transfer is billed in BBD; card payment amounts are converted to USD"}
+                    {bbd(parsedPayAmount)} — charged in Barbados dollars, by card or bank transfer
                   </p>
                 )}
               </div>
@@ -1175,13 +1158,13 @@ const StatementsSection = () => {
                 )}
                 {cardStep === "paying"
                   ? "Redirecting to Scotiabank…"
-                  : payAmountValid && usdFxRate
-                    ? `Pay $${money(bbdToUsd(parsedPayAmount))} USD by card`
+                  : payAmountValid
+                    ? `Pay ${bbd(parsedPayAmount)} by card`
                     : "Pay by card"}
               </Button>
               {cardStep !== "paying" && payAmountValid && (
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Charged in USD · pays off {bbd(parsedPayAmount)} of your balance
+                  Charged in BBD · pays off {bbd(parsedPayAmount)} of your balance
                 </p>
               )}
               {cardStep !== "paying" && (
