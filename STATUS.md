@@ -4,11 +4,22 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 
 ---
 
 ## Active work
+
+- **Staff walk-in Scotia/Fiserv payments** — source now includes the
+  staff-only `/admin/settings/walk-in-payments` shortcut, server-held exact
+  amount intents, signed browser-return and server-notification settlement,
+  and a masked-card printable receipt. The
+  `20260902154434_staff_walk_in_payments.sql` migration plus changed
+  `scotia-payment`, `scotia-return`, and `scotia-notify` functions require
+  an approved non-production deployment and gateway verification before use.
+  External Edge verification passed for rendered staff access and real typing
+  into all payment fields; no card field is added to the website and no payment
+  was submitted. No production gateway credential has been used.
 
 - **Iris AI-first response and two-front identity** — the public assistant now
   withholds its deterministic high-confidence match while generation is in
