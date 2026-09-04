@@ -11889,7 +11889,7 @@ export type Database = {
       create_walk_in_payment: {
         Args: {
           p_amount: number
-          p_customer_email?: string | null
+          p_customer_email?: string
           p_customer_name: string
           p_order_reference?: string
           p_reason?: string
