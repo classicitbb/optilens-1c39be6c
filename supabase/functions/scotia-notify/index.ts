@@ -168,6 +168,9 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
           console.error("scotia-notify: settle_walk_in_payment failed", { paymentId, error });
           return ok({ received: true, settled: false, reason: "rpc_error" });
         }
+        if (result.approved) {
+          await sendWalkInPaymentReceipt(deps.admin as never, paymentId);
+        }
         return ok({ received: true, settled: true, flow: "walk_in", approved: result.approved });
       }
 
