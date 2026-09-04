@@ -19,7 +19,7 @@ Confirmed in the live database:
 
 1. Rewrite the payment-receipt helper so it no longer calls the removed queue. It will only record the receipt in the email log, and the receipt email itself will be sent by the current email system (the same one every other email now uses) instead of the old queue.
 2. Make receipt sending non-blocking: even if the email step fails, the payment settlement must still commit. Money taken must never be lost because an email failed.
-3. Re-settle the three approved-but-pending payments from today so the customer account reflects them (or void the two small test ones, your call — see question below).
+3. Re-settle the three approved-but-pending payments from today (2.00, 2.00 and 3.00 BBD) so they are applied to the account against statement 4372.
 4. Re-run a small live card payment end to end and confirm the statements page shows "payment received" and the record turns settled.
 
 ## Secondary items from your console log
