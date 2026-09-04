@@ -25,6 +25,7 @@ import { getScotiaConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/sc
 import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
+import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
 
 function ok(body: Record<string, unknown> = { received: true }): Response {
   return new Response(JSON.stringify(body), {
