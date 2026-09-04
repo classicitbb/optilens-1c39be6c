@@ -149,6 +149,9 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
           console.error("scotia-notify: settle_statement_payment failed", { paymentId, error });
           return ok({ received: true, settled: false, reason: "rpc_error" });
         }
+        if (result.approved) {
+          await sendStatementPaymentReceipt(deps.admin as never, paymentId);
+        }
         return ok({ received: true, settled: true, flow: "statement", approved: result.approved });
       }
 
