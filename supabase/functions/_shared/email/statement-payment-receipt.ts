@@ -45,7 +45,7 @@ export async function sendStatementPaymentReceipt(
     const { data: profile } = await admin
       .from("profiles")
       .select("email,full_name")
-      .eq("id", payment.user_id)
+      .eq("user_id", payment.user_id)
       .maybeSingle();
 
     const recipient = String(profile?.email ?? "").trim();
