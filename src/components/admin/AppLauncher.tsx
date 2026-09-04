@@ -1,27 +1,12 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
-import { CalendarCheck, Glasses, HelpCircle, Home, LayoutDashboard, Package, X } from "lucide-react";
+import { CalendarCheck, Glasses, HelpCircle, Home, LayoutDashboard, Package, Search, X, type LucideIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
+import { appColor } from "@/features/admin/core/config/appColors";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
-
-// Color map per app key for icon tinting
-const APP_COLORS: Record<string, string> = {
-  launchpad: "hsl(172 72% 40%)",
-  copilot: "hsl(188 78% 42%)",
-  pricing: "hsl(215 65% 50%)",
-  contacts: "hsl(168 76% 42%)",
-  leads: "hsl(38 92% 50%)",
-  crm: "hsl(280 60% 55%)",
-  helpdesk: "hsl(38 92% 50%)",
-  website: "hsl(200 60% 50%)",
-  docstudio: "hsl(250 55% 58%)",
-  knowledge: "hsl(140 50% 45%)",
-  settings: "hsl(215 15% 50%)",
-  activities: "hsl(280 60% 55%)",
-  "rx-order": "hsl(200 60% 50%)",
-};
+import { cn } from "@/lib/utils";
 
 const LAUNCH_PAD_APP = {
   key: "launchpad",
@@ -61,157 +46,203 @@ const HOME_PAGE_SHORTCUT = {
   defaultRoute: "/",
 } as const;
 
+interface LaunchItem {
+  key: string;
+  title: string;
+  icon: LucideIcon;
+  defaultRoute: string;
+}
+
 interface AppLauncherProps {
   open: boolean;
   onClose: () => void;
 }
 
-const AppLauncher = ({ open, onClose }: AppLauncherProps) => {
+const LauncherTile = ({ item, onSelect }: { item: LaunchItem; onSelect: (item: LaunchItem) => void }) => {
+  const color = appColor(item.key);
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item)}
+      style={{ "--tile-accent": color } as CSSProperties}
+      className="group flex h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-transparent px-1 text-center outline-none transition-all duration-150 hover:-translate-y-0.5 hover:border-border hover:bg-muted/60 focus-visible:border-[var(--tile-accent)] focus-visible:ring-2 focus-visible:ring-[var(--tile-accent)]/30"
+    >
+      <span
+        className="inline-flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-150 group-hover:scale-105"
+        style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
+      >
+        <item.icon className="h-[22px] w-[22px]" />
+      </span>
+      <span className="line-clamp-2 text-[11px] font-medium leading-tight text-foreground/90">{item.title}</span>
+    </button>
+  );
+};
+
+const AppLauncher = ({ open, onClose }: AppLauncherProps) => (open ? <LauncherPanel onClose={onClose} /> : null);
+
+const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { hasAppAccess } = useRolePermissions();
+  const [query, setQuery] = useState("");
 
-  const launchableApps = useMemo(
-    () =>
-      ACTIVE_NAVIGATION_REGISTRY
-        .filter((item) => item.group === "launcher")
-        .map((item) => {
-          if (item.shortcutKey) {
-            return LAUNCHER_SHORTCUTS[item.shortcutKey];
-          }
-          if (!item.appKey) {
-            return LAUNCH_PAD_APP;
-          }
-          return ADMIN_APPS[item.appKey];
-        })
-        .filter((app, index, arr) => arr.findIndex((candidate) => candidate.key === app.key) === index)
-        .filter((app) => ("featurePrefix" in app ? hasAppAccess(app.featurePrefix) : true)),
-    [hasAppAccess],
-  );
-  const launchPadItems = useMemo(() => {
-    const settingsIndex = launchableApps.findIndex((app) => app.key === "settings");
-    if (settingsIndex < 0) return [...launchableApps, HOME_PAGE_SHORTCUT];
-    return [...launchableApps.slice(0, settingsIndex + 1), HOME_PAGE_SHORTCUT, ...launchableApps.slice(settingsIndex + 1)];
-  }, [launchableApps]);
+  const { apps, shortcuts } = useMemo(() => {
+    const appsList: LaunchItem[] = [LAUNCH_PAD_APP];
+    const shortcutList: LaunchItem[] = [];
+    for (const item of ACTIVE_NAVIGATION_REGISTRY) {
+      if (item.group !== "launcher") continue;
+      if (item.shortcutKey) {
+        const shortcut = LAUNCHER_SHORTCUTS[item.shortcutKey];
+        if (hasAppAccess(shortcut.featurePrefix)) shortcutList.push(shortcut);
+        continue;
+      }
+      if (!item.appKey) continue;
+      const app = ADMIN_APPS[item.appKey];
+      if (hasAppAccess(app.featurePrefix)) appsList.push(app);
+    }
+    shortcutList.push(HOME_PAGE_SHORTCUT);
+    const dedupe = (list: LaunchItem[]) => list.filter((entry, index) => list.findIndex((other) => other.key === entry.key) === index);
+    return { apps: dedupe(appsList), shortcuts: dedupe(shortcutList) };
+  }, [hasAppAccess]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const matches = (item: LaunchItem) => !normalizedQuery || item.title.toLowerCase().includes(normalizedQuery);
+  const filteredApps = apps.filter(matches);
+  const filteredShortcuts = shortcuts.filter(matches);
+  const firstMatch = filteredApps[0] ?? filteredShortcuts[0] ?? null;
 
   useEffect(() => {
-    if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+  }, [onClose]);
 
   useEffect(() => {
-    if (!open || isMobile) return;
+    if (isMobile) return;
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('[data-apps-toggle]')) return;
-      if (panelRef.current && !panelRef.current.contains(target)) {
-        onClose();
-      }
+      if (target.closest("[data-apps-toggle]")) return;
+      if (panelRef.current && !panelRef.current.contains(target)) onClose();
     };
     const timer = setTimeout(() => document.addEventListener("mousedown", handleClick), 0);
-    return () => {clearTimeout(timer);document.removeEventListener("mousedown", handleClick);};
-  }, [open, isMobile, onClose]);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [isMobile, onClose]);
 
-  if (!open) return null;
-
-  const handleSelect = (app: { defaultRoute: string }) => {
-    navigate(app.defaultRoute);
+  const handleSelect = (item: LaunchItem) => {
+    navigate(item.defaultRoute);
     onClose();
   };
 
-  // Mobile: fullscreen overlay
+  const searchBox = (
+    <label className="flex items-center gap-2 rounded-full bg-muted/70 px-3 py-1.5 text-sm transition-colors focus-within:bg-muted hover:bg-muted">
+      <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <input
+        autoFocus
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && firstMatch) {
+            e.preventDefault();
+            handleSelect(firstMatch);
+          }
+        }}
+        placeholder="Jump to an app…"
+        aria-label="Filter applications"
+        className="w-full bg-transparent text-sm text-foreground outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground/80"
+      />
+      {query ? (
+        <button type="button" onClick={() => setQuery("")} aria-label="Clear filter" className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      ) : (
+        !isMobile && <kbd className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">Enter</kbd>
+      )}
+    </label>
+  );
+
+  const sections = (
+    <>
+      {filteredApps.length > 0 && (
+        <section>
+          <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Applications</h4>
+          <div className={cn("grid gap-1", isMobile ? "grid-cols-3" : "grid-cols-4")}>
+            {filteredApps.map((item) => (
+              <LauncherTile key={item.key} item={item} onSelect={handleSelect} />
+            ))}
+          </div>
+        </section>
+      )}
+      {filteredShortcuts.length > 0 && (
+        <section>
+          <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Shortcuts</h4>
+          <div className={cn("grid gap-1", isMobile ? "grid-cols-3" : "grid-cols-4")}>
+            {filteredShortcuts.map((item) => (
+              <LauncherTile key={item.key} item={item} onSelect={handleSelect} />
+            ))}
+          </div>
+        </section>
+      )}
+      {filteredApps.length === 0 && filteredShortcuts.length === 0 && (
+        <p className="px-1 py-6 text-center text-sm text-muted-foreground">No apps match “{query}”.</p>
+      )}
+    </>
+  );
+
+  const footer = (
+    <div className="flex items-center justify-between border-t border-border pt-2.5 text-[11px] text-muted-foreground">
+      <button
+        type="button"
+        onClick={() => {
+          navigate("/admin/knowledge/wiki");
+          onClose();
+        }}
+        className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-muted hover:text-foreground"
+      >
+        <HelpCircle className="h-3.5 w-3.5" />
+        Help &amp; wiki
+      </button>
+      {!isMobile && (
+        <span>
+          Search everything with <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">Ctrl K</kbd>
+        </span>
+      )}
+    </div>
+  );
+
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "hsl(215 15% 42% / 0.7)", backdropFilter: "blur(32px) saturate(1.5)", WebkitBackdropFilter: "blur(32px) saturate(1.5)" }}>
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid hsl(215 25% 22%)" }}>
-          <h3 className="text-sm font-semibold" style={{ color: "hsl(210 20% 85%)" }}>Applications</h3>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-white/10 transition-colors">
-            <X className="h-5 w-5" style={{ color: "hsl(210 20% 85%)" }} />
+      <div className="admin-surface fixed inset-0 z-50 flex flex-col bg-[hsl(var(--admin-card))] text-[hsl(var(--admin-content-fg))]">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <h3 className="text-sm font-semibold">Applications</h3>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1.5 hover:bg-muted">
+            <X className="h-5 w-5" />
           </button>
         </div>
-
-        <div className="flex-1 overflow-auto p-4">
-          <div className="grid grid-cols-3 gap-3">
-            {launchPadItems.map((app) =>
-            <button
-              key={app.key}
-              onClick={() => handleSelect(app)}
-              className="flex flex-col items-center justify-center gap-2 py-4 rounded-lg transition-colors"
-              style={{ background: "hsl(215 25% 18%)", border: "1px solid hsl(215 25% 22%)" }}>
-
-                <app.icon className="h-8 w-8" style={{ color: APP_COLORS[app.key] ?? "hsl(210 20% 85%)" }} />
-                <span className="text-[11px] font-medium" style={{ color: "hsl(210 20% 85%)" }}>{app.title}</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-      </div>);
-
+        <div className="px-4 pt-3">{searchBox}</div>
+        <div className="flex-1 space-y-5 overflow-auto p-4">{sections}</div>
+        <div className="px-4 pb-4">{footer}</div>
+      </div>
+    );
   }
 
-  // Desktop: flyout
   return (
     <div
       ref={panelRef}
-      className="fixed z-50 p-5 flex-col animate-in fade-in slide-in-from-top-2 duration-200 flex items-start justify-start rounded-xl"
-      style={{
-        top: "54px",
-        left: "10px",
-        background: "hsl(215 15% 42% / 0.7)",
-        backdropFilter: "blur(32px) saturate(1.5)",
-        WebkitBackdropFilter: "blur(32px) saturate(1.5)",
-        border: "1px solid hsl(215 25% 40% / 0.2)",
-        borderRadius: "12px",
-        boxShadow: "0 20px 50px -12px hsl(215 40% 5% / 0.7), inset 0 1px 0 0 hsl(0 0% 100% / 0.08)",
-        width: "460px"
-      }}>
-
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold" style={{ color: "hsl(210 20% 85%)" }}>Applications</h3>
-        <button
-          onClick={() => {navigate("/admin/knowledge/wiki");onClose();}}
-          className="p-1 rounded hover:bg-white/10 transition-colors"
-          title="Help / Wiki">
-          <HelpCircle className="h-4 w-4" style={{ color: "hsl(215 65% 50%)" }} />
-        </button>
-      </div>
-
-      <div className="grid grid-cols-4 gap-3">
-        {launchPadItems.map((app) =>
-        <button
-          key={app.key}
-          onClick={() => handleSelect(app)}
-          className="flex flex-col items-center justify-center gap-2 rounded-lg transition-all duration-150 hover:scale-105"
-          style={{
-            width: "100px",
-            height: "100px",
-            background: "hsl(215 25% 16% / 0.7)",
-            border: "1px solid hsl(215 25% 35% / 0.3)",
-            boxShadow: "0 2px 8px -2px hsl(215 40% 5% / 0.4), inset 0 1px 0 0 hsl(0 0% 100% / 0.05)"
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "hsl(168 76% 42% / 0.6)";
-            e.currentTarget.style.background = "hsl(215 25% 20% / 0.8)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "hsl(215 25% 35% / 0.3)";
-            e.currentTarget.style.background = "hsl(215 25% 16% / 0.7)";
-          }}>
-
-            <app.icon className="h-8 w-8" style={{ color: APP_COLORS[app.key] ?? "hsl(210 20% 85%)" }} />
-            <span className="text-[11px] font-medium" style={{ color: "hsl(210 20% 85%)" }}>{app.title}</span>
-          </button>
-        )}
-      </div>
-
-    </div>);
-
+      role="dialog"
+      aria-label="Applications"
+      className="admin-surface fixed left-2.5 top-[52px] z-50 flex w-[440px] flex-col gap-3 rounded-2xl border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-card))] p-3 text-[hsl(var(--admin-content-fg))] shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
+    >
+      {searchBox}
+      <div className="space-y-4">{sections}</div>
+      {footer}
+    </div>
+  );
 };
 
 export default AppLauncher;

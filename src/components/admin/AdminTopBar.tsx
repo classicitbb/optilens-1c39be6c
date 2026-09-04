@@ -104,14 +104,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   const location = useLocation();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [launcherOpen, setLauncherOpen] = useState(() => {
-    const shown = sessionStorage.getItem("admin-launcher-shown");
-    if (!shown) {
-      sessionStorage.setItem("admin-launcher-shown", "1");
-      return true;
-    }
-    return false;
-  });
+  const [launcherOpen, setLauncherOpen] = useState(false);
 
   // PWA install prompt
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
