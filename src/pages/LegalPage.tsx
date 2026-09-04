@@ -341,6 +341,52 @@ We aim to respond to accessibility feedback within 5 business days.
 ## Enforcement Procedure
 If you are not satisfied with our response, you may file a complaint with the relevant accessibility enforcement body in your jurisdiction.`,
   },
+  eula: {
+    title: "End User License Agreement",
+    content: `Last updated: September 2026
+
+This End User License Agreement ("EULA") governs your use of the QuickBooks Online integration feature ("Integration") offered by Classic Visions ("we", "us", or "our") within our website and services. The Integration connects your Classic Visions account to your QuickBooks Online ("QBO") account via the Intuit Developer platform. By connecting your QBO account, you agree to be bound by this EULA in addition to our [Terms of Use](/terms) and [Privacy Policy](/privacy-policy).
+
+## License Grant
+Subject to your compliance with this EULA, we grant you a limited, non-exclusive, non-transferable, revocable license to access and use the Integration solely for the purpose of connecting your Classic Visions account with your own QuickBooks Online account for legitimate business accounting purposes.
+
+## Authorization and Data Access
+- You must independently hold a valid QuickBooks Online account and the authority to connect it via Intuit's OAuth authorization flow.
+- By authorizing the connection, you permit us to access and exchange data with your QBO account through the Intuit API, limited to the scopes required for the Integration (such as customer records, invoices, and payment or statement data relevant to your Classic Visions account).
+- You may revoke this authorization at any time from your QuickBooks Online account settings or by contacting us at info@classicvisions.net. Revocation will disable the Integration but does not affect data already synced prior to revocation.
+
+## Third-Party Platform
+The Integration relies on the Intuit Developer platform and the QuickBooks Online API. We are not affiliated with, endorsed by, or sponsored by Intuit Inc. Your use of QuickBooks Online remains subject to Intuit's own terms of service and privacy policy. We are not responsible for outages, changes, or errors originating from the Intuit platform.
+
+## Your Responsibilities
+- You are responsible for the accuracy of the data in your QuickBooks Online account and for reviewing synced records for correctness.
+- You must not use the Integration to access, transmit, or sync data you are not authorized to access.
+- You must keep your QuickBooks Online and Classic Visions account credentials secure.
+
+## Restrictions
+You shall not:
+- Reverse engineer, decompile, or attempt to derive the source code of the Integration
+- Use the Integration to interfere with or gain unauthorized access to QuickBooks Online, Intuit's systems, or our systems
+- Sublicense, resell, or provide the Integration to any third party
+
+## Disclaimer of Warranties
+The Integration is provided "as is" and "as available" without warranties of any kind, express or implied, including warranties of accuracy, reliability, or fitness for a particular purpose. We do not warrant that data synchronization will be error-free or uninterrupted.
+
+## Limitation of Liability
+To the fullest extent permitted by law, Classic Visions shall not be liable for any indirect, incidental, special, or consequential damages, or for any loss of data, revenue, or business arising from your use of the Integration, including errors or discrepancies arising from data synced with QuickBooks Online.
+
+## Termination
+We may suspend or terminate your access to the Integration at any time, including for violation of this EULA, suspected misuse, or at Intuit's request. You may discontinue use of the Integration at any time by disconnecting your QuickBooks Online account.
+
+## Changes to This EULA
+We may update this EULA from time to time. Continued use of the Integration after changes are posted constitutes acceptance of the revised EULA.
+
+## Governing Law
+This EULA is governed by the laws of Barbados. Any disputes shall be resolved in the courts of Barbados, without regard to conflict of law principles.
+
+## Contact
+Questions about this EULA or the QuickBooks Online Integration can be directed to info@classicvisions.net.`,
+  },
   "return-policy": {
     title: "Return Policy",
     content: `Last updated: March 2026
@@ -418,6 +464,7 @@ const SLUG_MAP: Record<string, string> = {
   disclaimer: "disclaimer",
   "cookie-policy": "cookie-policy",
   accessibility: "accessibility",
+  eula: "eula",
 };
 
 interface LegalPageProps {

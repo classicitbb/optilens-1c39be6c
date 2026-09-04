@@ -33,6 +33,7 @@ const footerColumns = [
     links: [
       { label: "Privacy Policy", to: "/privacy-policy" },
       { label: "Terms of Use", to: "/terms" },
+      { label: "EULA", to: "/legal/eula" },
       { label: "Returns", to: "/professionals/returns-replacements" },
     ],
   },
