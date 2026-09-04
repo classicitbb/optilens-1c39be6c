@@ -198,6 +198,9 @@ Deno.serve(async (req) => {
         console.error("scotia-return: settle_walk_in_payment failed", { paymentId, error });
         return redirect(req, returnPath, { scotia: "error" });
       }
+      if (result.approved) {
+        await sendWalkInPaymentReceipt(supabaseAdmin as never, paymentId);
+      }
       return redirect(req, returnPath, { scotia: outcome, payment: paymentId });
     }
 
