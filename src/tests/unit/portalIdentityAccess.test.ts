@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAccessPortalFeature, type PortalIdentity } from "@/hooks/usePortalIdentity";
+import { canAccessPortalFeature, resolvePortalFeatureOverrides, type PortalIdentity } from "@/hooks/usePortalIdentity";
 
 const identity = (overrides: Partial<PortalIdentity> = {}): PortalIdentity => ({
   profileId: "profile-1",
@@ -58,5 +58,21 @@ describe("canAccessPortalFeature", () => {
   it("lets disabled overrides block access", () => {
     expect(canAccessPortalFeature(identity({ canAccessStatements: true, featureOverrides: { statements: false } }), "statements")).toBe(false);
     expect(canAccessPortalFeature(identity({ featureOverrides: { "private-orders": false } }), "private-orders")).toBe(false);
+  });
+});
+
+describe("resolvePortalFeatureOverrides", () => {
+  it("keeps per-user overrides that the active membership does not set", () => {
+    const merged = resolvePortalFeatureOverrides(
+      { "order-prices": true, pricelists: true },
+      { pricelists: false },
+    );
+
+    expect(merged).toEqual({ "order-prices": true, pricelists: false });
+    expect(canAccessPortalFeature(identity({ featureOverrides: merged }), "order-prices")).toBe(true);
+  });
+
+  it("returns per-user overrides unchanged when the membership has none", () => {
+    expect(resolvePortalFeatureOverrides({ "order-prices": true }, {})).toEqual({ "order-prices": true });
   });
 });
