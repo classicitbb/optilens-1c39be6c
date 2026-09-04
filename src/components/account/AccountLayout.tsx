@@ -1,5 +1,4 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { ViewTransition } from "react";
 import { ChevronLeft, Eye, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
