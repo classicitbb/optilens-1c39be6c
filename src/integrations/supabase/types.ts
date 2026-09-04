@@ -87,6 +87,7 @@ export type Database = {
           amount: number
           amount_bbd: number | null
           bank_reference: string | null
+          card_saved_at: string | null
           confirmed_at: string | null
           created_at: string
           crm_customer_id: number | null
@@ -97,6 +98,7 @@ export type Database = {
           gateway_response_code: string | null
           id: string
           provider: string
+          saved_payment_method_id: string | null
           statement_id: string | null
           status: string
           updated_at: string
@@ -107,6 +109,7 @@ export type Database = {
           amount: number
           amount_bbd?: number | null
           bank_reference?: string | null
+          card_saved_at?: string | null
           confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
@@ -117,6 +120,7 @@ export type Database = {
           gateway_response_code?: string | null
           id?: string
           provider?: string
+          saved_payment_method_id?: string | null
           statement_id?: string | null
           status?: string
           updated_at?: string
@@ -127,6 +131,7 @@ export type Database = {
           amount?: number
           amount_bbd?: number | null
           bank_reference?: string | null
+          card_saved_at?: string | null
           confirmed_at?: string | null
           created_at?: string
           crm_customer_id?: number | null
@@ -137,12 +142,21 @@ export type Database = {
           gateway_response_code?: string | null
           id?: string
           provider?: string
+          saved_payment_method_id?: string | null
           statement_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "account_payments_saved_payment_method_id_fkey"
+            columns: ["saved_payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       activities: {
         Row: {
@@ -9233,10 +9247,12 @@ export type Database = {
       }
       scotia_gateway_events: {
         Row: {
+          amount: number | null
           approval_code: string | null
           approved: boolean | null
           association_response_code: string | null
           created_at: string
+          currency: string | null
           endpoint_url: string | null
           env: string | null
           fail_rc: string | null
@@ -9253,10 +9269,12 @@ export type Database = {
           terminal_id: string | null
         }
         Insert: {
+          amount?: number | null
           approval_code?: string | null
           approved?: boolean | null
           association_response_code?: string | null
           created_at?: string
+          currency?: string | null
           endpoint_url?: string | null
           env?: string | null
           fail_rc?: string | null
@@ -9273,10 +9291,12 @@ export type Database = {
           terminal_id?: string | null
         }
         Update: {
+          amount?: number | null
           approval_code?: string | null
           approved?: boolean | null
           association_response_code?: string | null
           created_at?: string
+          currency?: string | null
           endpoint_url?: string | null
           env?: string | null
           fail_rc?: string | null
@@ -11474,6 +11494,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scotia_payment_activity: {
+        Row: {
+          amount: number | null
+          currency: string | null
+          occurred_at: string | null
+          payment_reference: string | null
+          status: string | null
+          transaction_type: string | null
+        }
+        Relationships: []
       }
       statement_lines_public: {
         Row: {

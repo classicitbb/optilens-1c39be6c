@@ -49,7 +49,7 @@ export async function sendWalkInPaymentReceipt(
     const { data: profile } = await admin
       .from("profiles")
       .select("email,full_name")
-      .eq("id", payment.created_by)
+      .eq("user_id", payment.created_by)
       .maybeSingle();
 
     const recipient = String(profile?.email ?? "").trim();
