@@ -141,6 +141,26 @@ async function assertPaymentOwnership(
     return null;
   }
 
+  if (orderId.startsWith("WALKIN-")) {
+    const paymentId = orderId.slice("WALKIN-".length);
+    const { data, error } = await (authContext.supabaseUserClient as any)
+      .from("walk_in_payments")
+      .select("id, amount, status, payment_reference")
+      .eq("id", paymentId)
+      .maybeSingle();
+    const isStaff = await requireAdmin(authContext) || await authContext.supabaseAdminClient
+      .rpc("has_edit_role", { _user_id: authContext.user.id })
+      .then(({ data, error: roleError }) => !roleError && !!data);
+
+    if (
+      !isStaff || error || !data || data.status !== "pending"
+      || data.payment_reference !== orderId || !amountsMatch(data.amount, chargetotal)
+    ) {
+      return "This walk-in payment is not available.";
+    }
+    return null;
+  }
+
   const { data: order, error: orderError } = await authContext.supabaseUserClient
     .from("orders")
     .select("id, total_amount, status, checkout_method")

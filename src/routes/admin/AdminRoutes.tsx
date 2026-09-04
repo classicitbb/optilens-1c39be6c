@@ -82,6 +82,7 @@ const ApiKeysPage = lazyWithRetry(() => import("@/pages/admin/settings/ApiKeysPa
 const BankPaymentPortalsPage = lazyWithRetry(() => import("@/pages/admin/settings/BankPaymentPortalsPage"),
 );
 const PaymentActivityPage = lazyWithRetry(() => import("@/pages/admin/settings/PaymentActivityPage"));
+const WalkInPaymentsPage = lazyWithRetry(() => import("@/pages/admin/WalkInPaymentsPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
 );
@@ -294,6 +295,7 @@ const AdminRoutes = () => (
           </AdminOnlyRoute>
         }
       />
+      <Route path="settings/walk-in-payments" element={<WalkInPaymentsPage />} />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
       <Route path="settings/email-previews" element={<EmailPreviewsPage />} />

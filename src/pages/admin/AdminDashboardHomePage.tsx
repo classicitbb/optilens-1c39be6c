@@ -134,6 +134,15 @@ const QUICK_ACTIONS = [
     featurePrefix: "helpdesk" as const,
     requiresEdit: true,
   },
+  {
+    key: "walk-in-payment",
+    title: "Walk-in Payment",
+    description: "Take an exact card payment through Scotia’s hosted page.",
+    icon: DollarSign,
+    href: "/admin/settings/walk-in-payments",
+    featurePrefix: "integrations" as const,
+    requiresEdit: true,
+  },
 ] as const;
 
 const AdminDashboardHomePage = () => {

@@ -109,6 +109,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/settings/integrations": "integrations",
   "/admin/settings/api-keys": "integrations",
   "/admin/settings/bank-payment-portals": "integrations",
+  "/admin/settings/walk-in-payments": "integrations",
   "/admin/settings/runtime-errors": "runtime-errors",
   "/admin/settings/releases": "runtime-errors",
   "/admin/settings/email-previews": "runtime-errors",

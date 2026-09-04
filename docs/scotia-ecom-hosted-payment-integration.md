@@ -233,3 +233,24 @@ payment methods, Supabase Edge Functions) are **well aligned** with the
 hosted-payment model. No architectural conflict was found. The integration is
 additive and the offline methods remain as the required fallback. Remaining work
 is credential provisioning and back-end settlement wiring (section 7).
+
+---
+
+## 9. Staff walk-in payments and future payment links
+
+`/admin/settings/walk-in-payments` is an admin/operator-only shortcut for a
+staff member to enter an exact USD amount, customer name, and optional
+order/reference or reason. The browser creates a server-held `walk_in_payments`
+intent first; `scotia-payment` refuses to sign a different amount or a payment
+reference that is not pending. Fiserv's signed browser return and server-to-
+server notification both settle the same intent idempotently. The printable
+receipt uses the saved result and contains no PAN, CVV, expiry, or token.
+
+The current Direct Sale integration is not a customer payment-link product:
+it signs a form for a staff-controlled browser session and its exact amount is
+bound to a pending row. An expiring QR/link mode should be added only after
+Scotia/Fiserv confirms a hosted pay-by-link or equivalent API for this merchant
+account. It should create a separate opaque, random, one-time link token with
+an expiry and maximum-attempt policy, bind it to the already-stored amount,
+and settle through the existing signed callback path. Do not expose the amount
+as an editable field or put payment data in the QR payload.

@@ -360,6 +360,9 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
     "slug": "settings/payment-activity",
     "label": "Payment Activity",
     "path": "/admin/settings/payment-activity",
+    "slug": "settings/walk-in-payments",
+    "label": "Walk-in Payments",
+    "path": "/admin/settings/walk-in-payments",
     "module": "Settings"
   },
   {

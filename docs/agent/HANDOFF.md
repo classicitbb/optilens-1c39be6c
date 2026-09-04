@@ -39,6 +39,24 @@ safe saved-card confirmation flag.
 
 ## Completed work
 
+The staff-only walk-in payment flow is staged at
+`/admin/settings/walk-in-payments`. A staff member creates a server-side,
+exact-amount `walk_in_payments` intent, then reaches the existing full-page
+Scotia/Fiserv hosted card flow. Both signed callback paths settle that same
+intent idempotently and the page shows/prints only the stored receipt fields
+and masked card information. The website has no card entry controls. The
+future QR/payment-link decision is documented in
+`docs/scotia-ecom-hosted-payment-integration.md`: do not turn a Direct Sale
+form post into a public link; first confirm that the merchant account supports
+a hosted pay-by-link API, then bind a one-time opaque expiry token to the
+server-stored amount.
+
+External Edge verification completed on 2026-09-02 with an existing staff
+session: the route rendered, amount/customer/order/reason controls accepted
+real sequential keyboard input, controls were enabled and not readonly, and no
+card-number/CVV/expiry fields were present. The Take payment button was not
+submitted, so no payment intent or gateway transaction was created.
+
 The public Companion Assistant now displays an in-progress state while its AI
 generation request runs. Its deterministic high-confidence match is displayed
 only when that request fails, making the grounded AI answer the visitor's first
@@ -81,6 +99,14 @@ Admin Copilot data path; the direct SQL gateway has not been implemented.
 - After deploying the changed `companion-assistant` function, run `npm run qa:edge-smoke`.
 
 ## Pending deployment
+
+- Do not deploy `20260902154434_staff_walk_in_payments.sql` or the changed
+  `scotia-payment`, `scotia-return`, and `scotia-notify` functions without
+  explicit approval. After a non-production deployment, sign in as an
+  admin/operator, type a test amount and customer name in an external Edge or
+  Chrome session, complete Scotia's approved test-card flow, and verify the
+  settled receipt plus masked card output. The existing gateway configuration
+  must be confirmed first; no production payment or credential was used here.
 
 - Do not deploy the financial capability migration or the updated
   `portal-copilot` function without explicit production approval.

@@ -173,6 +173,7 @@ export const ADMIN_APPS = {
       { label: 'API Keys', route: '/admin/settings/api-keys', icon: Key },
       { label: 'Bank Payment Portals', route: '/admin/settings/bank-payment-portals', icon: Landmark },
       { label: 'Payment Activity', route: '/admin/settings/payment-activity', icon: CreditCard },
+      { label: 'Walk-in Payments', route: '/admin/settings/walk-in-payments', icon: Landmark },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
       { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },

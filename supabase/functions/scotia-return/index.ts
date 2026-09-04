@@ -14,6 +14,8 @@
 // Routing (by the `oid` we sent at `prepare` time):
 //   • "STMT-<account_payments.id>" → statement/balance payment
 //                                      → settle_statement_payment (service role)
+//   • "WALKIN-<walk_in_payments.id>" → staff walk-in payment
+//                                      → settle_walk_in_payment (service role)
 //   • otherwise, an orders.id (uuid) → checkout order
 //                                      → settle_scotia_payment (service role)
 //
@@ -25,11 +27,13 @@ import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/config.ts";
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
 import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
+import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
 import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 
 const CHECKOUT_RETURN_PATH = "/order-complete";
 const STATEMENT_RETURN_PATH = "/profile/statements";
+const WALK_IN_RETURN_PATH = "/admin/settings/walk-in-payments";
 const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
 // The buyer may have started checkout on the apex site, the admin host, or a
@@ -86,7 +90,10 @@ Deno.serve(async (req) => {
 
   const oid = (response.oid ?? "").trim();
   const isStatementFlow = oid.startsWith("STMT-");
-  const returnPath = isStatementFlow ? STATEMENT_RETURN_PATH : CHECKOUT_RETURN_PATH;
+  const isWalkInFlow = oid.startsWith("WALKIN-");
+  const returnPath = isStatementFlow
+    ? STATEMENT_RETURN_PATH
+    : isWalkInFlow ? WALK_IN_RETURN_PATH : CHECKOUT_RETURN_PATH;
 
   if (!oid) {
     console.error("scotia-return: gateway response missing oid", response);
@@ -135,6 +142,7 @@ Deno.serve(async (req) => {
       save_token: !!result.hosteddataid,
       currency: result.currency,
       chargetotal: result.chargetotal,
+      gateway_transaction_id: response.ipgTransactionId ?? response.transaction_id ?? response.transactionId ?? null,
     };
 
     const outcome = result.approved ? "success" : "declined";
@@ -181,6 +189,22 @@ Deno.serve(async (req) => {
         ...(result.chargetotal ? { amt: String(result.chargetotal) } : {}),
         ...(settledPayment?.card_saved_at ? { card_saved: "true" } : {}),
       });
+    }
+
+    if (isWalkInFlow) {
+      const paymentId = oid.slice("WALKIN-".length);
+      const { error } = await supabaseAdmin.rpc("settle_walk_in_payment", {
+        p_payment_id: paymentId,
+        p_gateway: gatewayPayload,
+      });
+      if (error) {
+        console.error("scotia-return: settle_walk_in_payment failed", { paymentId, error });
+        return redirect(req, returnPath, { scotia: "error" });
+      }
+      if (result.approved) {
+        await sendWalkInPaymentReceipt(supabaseAdmin as never, paymentId);
+      }
+      return redirect(req, returnPath, { scotia: outcome, payment: paymentId });
     }
 
     // Checkout order flow — settle_scotia_payment's ownership check trusts

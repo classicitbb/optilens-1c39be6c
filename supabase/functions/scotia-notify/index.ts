@@ -26,6 +26,7 @@ import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
 import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
+import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
 
 function ok(body: Record<string, unknown> = { received: true }): Response {
   return new Response(JSON.stringify(body), {
@@ -139,6 +140,7 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
         save_token: !!result.hosteddataid,
         currency: result.currency,
         chargetotal: result.chargetotal,
+        gateway_transaction_id: response.ipgTransactionId ?? response.transaction_id ?? response.transactionId ?? null,
         source: "notification",
       };
 
@@ -156,6 +158,22 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
           await sendStatementPaymentReceipt(deps.admin as never, paymentId);
         }
         return ok({ received: true, settled: true, flow: "statement", approved: result.approved });
+      }
+
+      if (oid.startsWith("WALKIN-")) {
+        const paymentId = oid.slice("WALKIN-".length);
+        const { error } = await deps.admin.rpc("settle_walk_in_payment", {
+          p_payment_id: paymentId,
+          p_gateway: gatewayPayload,
+        });
+        if (error) {
+          console.error("scotia-notify: settle_walk_in_payment failed", { paymentId, error });
+          return ok({ received: true, settled: false, reason: "rpc_error" });
+        }
+        if (result.approved) {
+          await sendWalkInPaymentReceipt(deps.admin as never, paymentId);
+        }
+        return ok({ received: true, settled: true, flow: "walk_in", approved: result.approved });
       }
 
       const { data: order, error: orderError } = await deps.admin
