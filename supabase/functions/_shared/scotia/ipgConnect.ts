@@ -120,11 +120,14 @@ export async function validateResponseHash(
    *  own store id, so an empty echo must not fail authenticity. */
   expectedStorename?: string,
 ): Promise<{ valid: boolean; expected: string; received: string }> {
-  // The browser return leg posts `response_hash` (fixed five-field contract).
-  // The server-to-server notification posts `notification_hash`, which the
-  // gateway builds the *extended* way: every posted parameter except the hash
-  // itself, ascending by field name, joined with pipes. The notification also
-  // omits `storename`, so the five-field string can never match it.
+  // The browser return leg posts `response_hash`, built from the documented
+  // five-field string: approval_code|chargetotal|currency|txndatetime|storename.
+  //
+  // The server-to-server notification posts `notification_hash` instead, and
+  // the gateway builds that from the SAME fields in a different order —
+  // chargetotal|currency|txndatetime|storename|approval_code — with the store
+  // id the gateway holds (the notification never echoes `storename`).
+  // Confirmed against a live production notification for store 811812100987.
   const isNotification = !response.response_hash && !!response.notification_hash;
   const received = response.response_hash ?? response.notification_hash ?? "";
 
@@ -134,17 +137,17 @@ export async function validateResponseHash(
 
   const stringsToHash: string[] = [];
   if (isNotification) {
-    const notified: Record<string, string> = {};
-    for (const [key, value] of Object.entries(response)) {
-      if (key === "notification_hash") continue;
-      notified[key] = value;
-    }
-    stringsToHash.push(buildExtendedHashString(notified));
-    // Some deployments include the configured store id in the notified set.
-    if (expectedStorename && !notified.storename) {
-      stringsToHash.push(buildExtendedHashString({ ...notified, storename: expectedStorename }));
+    for (const storename of storenames) {
+      stringsToHash.push([
+        response.chargetotal ?? "",
+        response.currency ?? "",
+        response.txndatetime ?? "",
+        storename,
+        response.approval_code ?? "",
+      ].join("|"));
     }
   }
+
   for (const storename of storenames) {
     stringsToHash.push([
       response.approval_code ?? "",
