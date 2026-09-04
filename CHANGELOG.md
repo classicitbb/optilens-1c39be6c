@@ -4,6 +4,16 @@
 
 All notable major updates to this project are tracked in date-stamped, human-readable format.
 
+## 2026-09-04 — Scotia payment confirmations and saved statement cards
+
+### Release Notes
+- Administrators now have **Settings → Payment Activity**, a compact Scotia card-payment confirmation list showing only when a payment happened, its reference, type, amount, and result.
+- Statement amounts remain on one line, and customers can opt in to securely save a card before they continue to Scotiabank.
+
+### Technical Changelog
+- `scotia_payment_activity` is a security-invoker projection over staff-RLS gateway events; gateway request/response bags are cleared and no gateway payload, card details, expiry, token, or failure diagnostics enter the browser.
+- Statement settlement now saves a provider-issued token only after a signed approved callback and records only its saved-method relationship on the payment intent.
+
 ## 2026-08-27 — Continuous CRM contact enrichment
 
 ### Release Notes

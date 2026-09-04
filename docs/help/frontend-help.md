@@ -1,5 +1,10 @@
 # Frontend Help Docs
 
+## 2026-09-04 — Payment activity and saved cards
+
+- Administrators can open **Settings → Payment Activity** to confirm whether a Scotia card payment was successful, declined, or had an error. The page intentionally does not show card or bank-response details.
+- When paying a statement by card, select **Save this card securely for future payments** before continuing to Scotiabank. The card is saved only if the bank approves the payment; full card details and CVV are never stored by Classic Visions.
+
 ## 2026-08-27 — Keeping contact details up to date
 
 - Contacts are topped up automatically overnight. Blank website, phone and address fields are filled from the business's public listing; anything already filled in is left alone.

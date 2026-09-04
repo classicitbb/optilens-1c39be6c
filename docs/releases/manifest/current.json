@@ -1,27 +1,16 @@
 {
   "semanticVersion": "0.0.0",
-  "releaseDateTimeUtc": "2026-08-27T00:00:00.000Z",
+  "releaseDateTimeUtc": "2026-09-04T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "CRM contacts are enriched from public business listings automatically: a nightly sweep plus a 15-minute worker for newly created contacts fill in blank website, phone and address details.",
-    "Existing values are never overwritten silently. A listing that disagrees becomes an approval card in the Copilot with the current value, the proposed value, the source link, the retrieval date and a confidence score.",
-    "Enrichment can also be run on demand — from the Copilot, from **Leads → Enrich All**, or from a single contact's editor."
+    "Administrators now have **Settings → Payment Activity**, a compact Scotia card-payment confirmation list showing only when a payment happened, its reference, type, amount, and result.",
+    "Statement amounts remain on one line, and customers can opt in to securely save a card before they continue to Scotiabank."
   ],
   "moduleImpact": [
     {
-      "module": " edge function with scheduler-secret or administrator auth, a 40-contact batch, a 150/day attempt cap, a 30-day per-contact floor and a ",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Continuous CRM contact enrichment."
-    },
-    {
-      "module": "_shared/enrichment",
-      "impact": "medium",
-      "notes": "Updated as part of Continuous CRM contact enrichment."
-    },
-    {
-      "module": " record field-level before/after with source URL, retrieval date and confidence. ",
-      "impact": "medium",
-      "notes": "Updated as part of Continuous CRM contact enrichment."
+      "notes": "Updated as part of Scotia payment confirmations and saved statement cards."
     }
   ],
   "migrationNotes": [

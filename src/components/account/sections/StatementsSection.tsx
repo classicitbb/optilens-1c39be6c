@@ -7,6 +7,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { isScotiaEnabled, prepareScotiaPayment, redirectToScotiaPayment, SCOTIA_RETURN_URL } from "@/lib/payments/scotiaConnect";
 import {
@@ -362,6 +363,7 @@ const StatementsSection = () => {
   // Buyer choices inside the Pay dialog.
   const [payMethod, setPayMethod] = useState<"card" | "bank">("card");
   const [amountSource, setAmountSource] = useState<"current" | "statement" | "custom">("current");
+  const [saveCardForFuturePayments, setSaveCardForFuturePayments] = useState(false);
 
   const [scotiaError, setScotiaError] = useState<string | null>(null);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
@@ -668,6 +670,7 @@ const StatementsSection = () => {
     setDialogMode("pay");
     setPayMethod(cardPaymentsEnabled ? "card" : "bank");
     setAmountSource("current");
+    setSaveCardForFuturePayments(false);
     setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
     setPaymentModalOpen(true);
   };
@@ -700,6 +703,7 @@ const StatementsSection = () => {
         responseSuccessURL: SCOTIA_RETURN_URL,
         responseFailURL: SCOTIA_RETURN_URL,
         orderId: `STMT-${row.payment_id}`,
+        assignToken: saveCardForFuturePayments,
       });
       redirectToScotiaPayment(prepared);
       // No further code runs — the page is navigating away.
@@ -713,6 +717,7 @@ const StatementsSection = () => {
   const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
   const returnedAmount = Number(searchParams.get("amt") ?? "");
   const returnedAmountValid = Number.isFinite(returnedAmount) && returnedAmount > 0;
+  const cardSaved = searchParams.get("card_saved") === "true";
 
   useEffect(() => {
     if (!scotiaReturn) return;
@@ -942,7 +947,7 @@ const StatementsSection = () => {
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="patient" label="Patient" /></th>
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="payment_method" label="Payment Method" /></th>
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="reference" label="Reference" /></th>
-                  <th className="px-4 py-3 text-right text-foreground dark:text-slate-50"><SortHeader column="amount" label="Amount" /></th>
+                  <th className="min-w-32 whitespace-nowrap px-4 py-3 text-right text-foreground dark:text-slate-50"><SortHeader column="amount" label="Amount" /></th>
                   <th className="px-4 py-3 text-right text-foreground dark:text-slate-50">Actions</th>
                 </tr>
               </thead>
@@ -958,7 +963,7 @@ const StatementsSection = () => {
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.patient || "—"}</td>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.payment_method || "—"}</td>
                       <td className="px-4 py-3 font-medium text-foreground dark:text-slate-50">{lineDetail(line)}</td>
-                      <td className="px-4 py-3 text-right font-medium text-foreground dark:text-slate-50">{bbd(line.amount)}</td>
+                      <td className="min-w-32 whitespace-nowrap px-4 py-3 text-right font-medium text-foreground dark:text-slate-50">{bbd(line.amount)}</td>
                       <td className="px-4 py-3 text-right">
                         <InquireButton
                           label="Ask about this line"
@@ -1029,6 +1034,7 @@ const StatementsSection = () => {
                     Thank you for your payment{returnedAmountValid ? ` of ${bbd(returnedAmount)}` : ""}. A receipt has
                     been emailed to you. Your payment will appear on your account once it has been verified with the
                     bank, and we'll send a confirmation as soon as that happens.
+                    {cardSaved ? " Your card was saved securely for future payments." : ""}
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -1146,6 +1152,17 @@ const StatementsSection = () => {
           {/* ── Card payment (Scotia eCom+, redirect mode) ── */}
           {payMethod === "card" && cardPaymentsEnabled ? (
             <div className="space-y-3">
+              <label htmlFor="statement-save-card" className="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm">
+                <Checkbox
+                  id="statement-save-card"
+                  checked={saveCardForFuturePayments}
+                  onCheckedChange={(checked) => setSaveCardForFuturePayments(checked === true)}
+                />
+                <span>
+                  <span className="block font-medium">Save this card securely for future payments</span>
+                  <span className="block text-xs text-muted-foreground">Your card details stay with Scotiabank. We never store your full card number or CVV.</span>
+                </span>
+              </label>
               <Button
                 className="w-full h-10 gap-2"
                 disabled={!payAmountValid || cardStep === "paying"}

@@ -10,7 +10,7 @@ import {
   Ticket, MessageSquare,
   Layout, UserCircle, Store,
   BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -172,6 +172,7 @@ export const ADMIN_APPS = {
       { label: 'Integrations', route: '/admin/settings/integrations', icon: Plug },
       { label: 'API Keys', route: '/admin/settings/api-keys', icon: Key },
       { label: 'Bank Payment Portals', route: '/admin/settings/bank-payment-portals', icon: Landmark },
+      { label: 'Payment Activity', route: '/admin/settings/payment-activity', icon: CreditCard },
       { label: 'Walk-in Payments', route: '/admin/settings/walk-in-payments', icon: Landmark },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },

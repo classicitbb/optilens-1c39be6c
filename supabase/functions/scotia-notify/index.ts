@@ -104,12 +104,13 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
           storeId: cfg.storeId,
           env: cfg.env,
           failReason: "Response hash did not validate",
-          responseParams: response,
+          amount: result.chargetotal ? Number(result.chargetotal) : null,
+          currency: result.currency,
         });
         return ok({ received: true, settled: false, reason: "bad_hash" });
       }
 
-      // Diagnostics: exact parameters and failure code from the S2S callback.
+      // Keep only scalar reconciliation fields; never retain callback payloads.
       await logScotiaEvent(supabaseAdmin, {
         kind: "notify",
         outcome: result.approved ? "ok" : "declined",
@@ -120,7 +121,8 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
         associationResponseCode: result.associationResponseCode,
         failRc: result.failRc,
         failReason: response.fail_reason ?? null,
-        responseParams: response,
+        amount: result.chargetotal ? Number(result.chargetotal) : null,
+        currency: result.currency,
       });
 
 

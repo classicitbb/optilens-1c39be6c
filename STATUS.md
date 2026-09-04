@@ -4,22 +4,22 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-02
+Last updated: 2026-09-04
 
 ---
 
 ## Active work
 
-- **Staff walk-in Scotia/Fiserv payments** — source now includes the
-  staff-only `/admin/settings/walk-in-payments` shortcut, server-held exact
-  amount intents, signed browser-return and server-notification settlement,
-  and a masked-card printable receipt. The
-  `20260902154434_staff_walk_in_payments.sql` migration plus changed
-  `scotia-payment`, `scotia-return`, and `scotia-notify` functions require
-  an approved non-production deployment and gateway verification before use.
-  External Edge verification passed for rendered staff access and real typing
-  into all payment fields; no card field is added to the website and no payment
-  was submitted. No production gateway credential has been used.
+- **Scotia payment activity and statement card saving** — source now adds the
+  admin-only `/admin/settings/payment-activity` confirmation ledger, backed by
+  a security-invoker projection that exposes only time, reference, type,
+  amount/currency, and result. Statement payments now offer an explicit
+  pre-redirect save-card choice; the provider-issued token is stored only after
+  a signed approved callback. Migration
+  `20260904170609_card_payment_activity_and_statement_token_save.sql` and the
+  updated `scotia-return` function require deployment before shared-environment
+  verification. Never expose gateway parameter bags, CVV, PAN, expiry, or
+  token data in the activity UI.
 
 - **Iris AI-first response and two-front identity** — the public assistant now
   withholds its deterministic high-confidence match while generation is in

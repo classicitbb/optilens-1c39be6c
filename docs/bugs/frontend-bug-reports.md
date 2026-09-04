@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-09-04 — Statement amount wrapping and missing safe payment confirmation
+- Area: customer statement table, Scotia return flow, and Settings administration.
+- Impact: BBD statement amounts could wrap onto two lines, and staff had no concise way to confirm a card-payment outcome without accessing gateway diagnostics.
+- Resolution: keep Amount cells non-wrapping; add an admin-only, display-safe activity projection and page; request card saving before the provider-hosted checkout rather than after card entry.
+- Regression prevention: the activity page is limited to the safe projection fields, while the settlement function remains idempotent and saves a token only after a signed approved callback.
+
 ## 2026-08-27 — Enrichment writes were silently reverted, and Enrich All did nothing
 - Area: CRM contacts, the Innovations preserve trigger, and the Leads bulk-action bar.
 - Impact: `Enrich All` had no click handler at all. Worse, any enrichment that corrected an existing value on an Innovations-linked contact would have reported success and changed nothing.

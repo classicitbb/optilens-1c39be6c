@@ -1,8 +1,41 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Source complete — rendered staff-form verification complete; deployment pending
-- Last synchronized: 2026-09-02
+- Status: Source complete — deployment pending
+- Last synchronized: 2026-09-04
+
+## Current continuation
+
+The approved Scotia card-payment work is implemented in source: statement
+amounts no longer wrap; `/admin/settings/payment-activity` is an admin-only,
+minimal confirmation ledger; and the statement dialog requests saved-card
+tokenization before the hosted Scotia redirect. The new migration
+`20260904170609_card_payment_activity_and_statement_token_save.sql` creates a
+security-invoker activity projection, clears existing raw Scotia request and
+response parameter bags, and persists a provider token only after a signed
+approved statement callback. Scotia event logging now retains only scalar
+reconciliation fields. `supabase/functions/scotia-return/index.ts` adds the
+safe saved-card confirmation flag.
+
+- Passed: `npm run lint`; focused
+  `adminPaymentActivityRouteAccessibility.integration.test.ts` (4 tests);
+  `npm run build`; and `npm run qa:pr-checks`. A local browser visit to the
+  admin route redirected an unauthenticated user to sign-in, confirming the
+  route guard.
+- Known baseline test failure: `npm run test -- --runInBand` stops at three
+  existing admin-route tests that still assert the superseded `lazy(() =>
+  import(...))` loader rather than the repository-wide `lazyWithRetry` loader
+  now used in `AdminRoutes.tsx`. The new payment-route test uses the current
+  loader contract and passes.
+- Blocker: local Supabase Docker engine is unavailable, so generated types and
+  local database/RLS tests could not run; the Deno CLI is also absent, so the
+  Edge Function unit test cannot run locally. The local UI shows its expected
+  unavailable-data state until the migration is deployed.
+- Approval required: apply the migration and deploy `scotia-return` before any
+  shared-environment verification or safe test transaction.
+- Next action: after approval, deploy the migration and `scotia-return`, run
+  `npm run qa:edge-smoke`, then complete one approved non-production Scotia
+  statement payment with and without the save-card option.
 
 ## Completed work
 
