@@ -95,7 +95,11 @@
 .cv-rx-embed .card.section-collapsed .section-edit{display:grid}
 .cv-rx-embed .card.section-collapsed .section-summary{max-height:220px;opacity:1;margin:0 18px 15px;padding:8px 11px;border-color:hsl(140 45% 38% / .24)}
 
-@media(max-width:1080px){.cv-rx-embed .wrap{grid-template-columns:minmax(0,1fr)}.cv-rx-embed .quote{position:static}.cv-rx-embed .quote .qactions{display:none}.cv-rx-embed .mobar{display:flex}
+/* action buttons, moved out of the sidebar to the bottom of the form */
+.cv-rx-embed .qactions-bottom .qactions{flex-direction:row;justify-content:flex-end;flex-wrap:wrap}
+.cv-rx-embed .qactions-bottom .qactions .btn{width:auto;min-width:160px}
+.cv-rx-embed .qactions-bottom .gatenote{text-align:right;margin-top:9px}
+@media(max-width:1080px){.cv-rx-embed .wrap{grid-template-columns:minmax(0,1fr)}.cv-rx-embed .quote{position:static}.cv-rx-embed .qactions-bottom{display:none}.cv-rx-embed .mobar{display:flex}
 }
 @media(max-width:640px){.cv-rx-embed .topbar-in{padding:10px 14px;gap:8px}.cv-rx-embed .topbar .hidesm{display:none}.cv-rx-embed .wrap{padding:16px 14px 30px}.cv-rx-embed .g2,.cv-rx-embed .g3,.cv-rx-embed .g4,.cv-rx-embed .g5{grid-template-columns:1fr}.cv-rx-embed .card-b{padding:15px}.cv-rx-embed .pagehead h1{font-size:21px}.cv-rx-embed .annobar{left:12px;right:12px;transform:translateY(80px);width:auto;flex-wrap:wrap}.cv-rx-embed .annobar.on{transform:none}
 }
@@ -115,6 +119,9 @@
 /* shape/trace confirm — button instead of checkbox */
 .cv-rx-embed button.confirmrow{display:flex;width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 12px;background:var(--card);font:inherit;text-align:left;cursor:pointer;transition:all .18s}
 .cv-rx-embed button.confirmrow:hover{border-color:var(--teal)}
+/* keyboard flow lands Enter here from Popular choices — flashes until Space confirms it */
+.cv-rx-embed button.confirmrow.flashcue{animation:flashcue 1s var(--ease) infinite}
+@keyframes flashcue{0%,100%{border-color:var(--border);box-shadow:none}50%{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-soft)}}
 .cv-rx-embed button.confirmrow .cri{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border);font-size:11px;flex:none;margin-right:9px;color:transparent}
 .cv-rx-embed button.confirmrow[aria-pressed=true]{border-color:var(--success);background:var(--success-soft)}
 .cv-rx-embed button.confirmrow[aria-pressed=true] .cri{background:var(--success);border-color:var(--success);color:#fff}
@@ -261,6 +268,11 @@
 .dark .cv-rx-embed .callout.danger .cx:hover{background:var(--danger);color:hsl(213 40% 8%)}
 /* Inputs read as holes in the card rather than raised white chips. */
 .dark .cv-rx-embed input,.dark .cv-rx-embed select,.dark .cv-rx-embed textarea{background:hsl(213 30% 11%);color:var(--fg);border-color:var(--border)}
+/* A <select>'s open option list is native chrome the CSS above never reaches —
+   without this it stays OS-light (white options, black text) even though the
+   closed control right above it is dark, the clash in the screenshot report.
+   color-scheme tells the browser which palette to draw that native popup in. */
+.dark .cv-rx-embed select{color-scheme:dark}
 .dark .cv-rx-embed input::placeholder,.dark .cv-rx-embed textarea::placeholder{color:hsl(213 14% 48%)}
 .dark .cv-rx-embed .rxtable th{background:var(--muted);color:var(--muted-fg)}
 .dark .cv-rx-embed .rx-summary-grid{background:var(--card)}

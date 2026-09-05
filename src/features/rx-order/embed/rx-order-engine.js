@@ -183,6 +183,11 @@ const lensTriple=side=>side==='b'?{m:S.m2,d:S.d2,c:S.c2}:{m:S.m,d:S.d,c:S.c};
 const lensComplete=side=>{const t=lensTriple(side);return !!(t.m&&t.d&&t.c);};
 /* Sides that must be chosen before the lens section is complete. */
 const activeSides=()=>splitActive()?['a','b']:['a'];
+/* Splitting exists to give each eye a DIFFERENT lens — an identical pick on
+   both sides is either a mistake (meant to turn split off) or a duplicate
+   entry, so it blocks completion the same as a missing field would. */
+const splitLensesDuplicate=()=>splitActive()&&lensComplete('a')&&lensComplete('b')
+  &&S.m===S.m2&&S.d===S.d2&&S.c===S.c2;
 const namedLens=side=>{
   const t=lensTriple(side);
   const m=MATERIALS.find(x=>x.id===t.m), d=DESIGNS.find(x=>x.id===t.d), c=COLOURS.find(x=>x.id===t.c);
@@ -247,6 +252,17 @@ const COMBO_DEFS={
   c2:{inputId:'colour2', listId:'colourList2', all:COLOURS, poolKey:'cols',side:'b'}
 };
 const comboKeysFor=side=>Object.keys(COMBO_DEFS).filter(k=>COMBO_DEFS[k].side===side);
+/* Colour only chains on into the OS trio while a split Rx is actually active —
+   otherwise there's no OS side to land in and it should end the chain like
+   colour-without-split always has. */
+function comboNextKey(k){
+  if(k==='m') return 'd';
+  if(k==='d') return 'c';
+  if(k==='c') return splitActive()?'m2':null;
+  if(k==='m2') return 'd2';
+  if(k==='d2') return 'c2';
+  return null;
+}
 /* Each list keeps a direct element reference (and its original parent, to
    restore into) captured once here — once opened it moves to document.body
    (see openCombo), so it can no longer be found via $()/$$(), which only
@@ -345,7 +361,13 @@ function fillLensSelects(){
   const split=splitActive();
   const nmA=namedLens('a'), nmB=split?namedLens('b'):null;
   const tail='<br><span style="opacity:.8">Named material → design → option, the way it prints on your pricelist.</span>';
-  if(split){
+  const duplicate=splitLensesDuplicate();
+  const lensCallout=$('#lensName').closest('.callout');
+  if(lensCallout) lensCallout.classList.toggle('gold',duplicate);
+  const lensIcon=$('#lensNameIcon'); if(lensIcon) lensIcon.textContent=duplicate?'⚠':'ⓘ';
+  if(duplicate){
+    $('#lensName').innerHTML=`<b>OD and OS are the same lens</b> — ${nmA}. Choose a different material, design or colour for one eye, or turn off "Different lens for each eye" if that's intended.`;
+  } else if(split){
     $('#lensName').innerHTML=(nmA||nmB)
       ? `<b>OD (right)</b> ${nmA||'<span style="opacity:.7">not chosen yet</span>'}<br><b>OS (left)</b> ${nmB||'<span style="opacity:.7">not chosen yet</span>'}${tail}`
       : 'Pick a material, design and colour for each eye. The two sides choose independently.';
@@ -640,9 +662,19 @@ function buildPopular(){
 }
 function optKey(e,sel){
   const list=$$(sel), i=list.indexOf(e.currentTarget);
-  if(e.key===' '||e.key==='Enter'){ e.preventDefault(); e.currentTarget.click(); }
-  if(e.key==='ArrowRight'||e.key==='ArrowDown'){ e.preventDefault(); (list[i+1]||list[0]).focus(); }
-  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ e.preventDefault(); (list[i-1]||list[list.length-1]).focus(); }
+  if(e.key===' '){ e.preventDefault(); e.currentTarget.click(); }
+  /* Enter always moves on to the "Done" button, whether or not a popular
+     choice was picked — Space is the only key that toggles an option. */
+  else if(e.key==='Enter'){ e.preventDefault(); focusTreatDone(); }
+  else if(e.key==='ArrowRight'||e.key==='ArrowDown'){ e.preventDefault(); (list[i+1]||list[0]).focus(); }
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ e.preventDefault(); (list[i-1]||list[list.length-1]).focus(); }
+}
+/* Lands keyboard flow on the treatments "Done" toggle and flashes it until
+   the user actually confirms with Space — Enter alone must not confirm,
+   since Enter is also how you leave the field once it IS confirmed. */
+function focusTreatDone(){
+  const b=$('#treatConfirm'); if(!b) return;
+  b.focus(); b.classList.add('flashcue');
 }
 function buildTreatList(){
   const term=($('#treatSearch').value||'').toLowerCase();
@@ -1004,17 +1036,28 @@ function price(){
        equals the delta vs Clear (which is always up:0 and simply shows no line) —
        the label now says so explicitly, per feedback asking "how much extra is it". */
   });
+  /* Every coating and the oversize-blank surcharge is applied to each physical
+     lens, same as the lens itself and its colour upcharge above — one line per
+     eye, each at half the pair price, so the total is unchanged but the detail
+     matches what actually gets ground. Chemistrie is already priced per clip
+     via chemPriceLines() and stays a single line. */
+  const eyesForAddon=S.eyes==='pair'?['od','os']:[activeEyes()[0]];
+  const addonShare=eyesForAddon.length===2?0.5:1;
   Array.from(S.treat).forEach(id=>{const t=TREAT.find(x=>x.id===id); if(t){
     let detail=t.c;
     if(/^tn-/.test(id)){ detail=S.tintCfg.colour+(/grad/.test(id)?` · ${S.tintCfg.gradTop}→${S.tintCfg.gradBottom}%`:` · ${S.tintCfg.density}%`); }
-    lines.push({n:t.n,i:detail,v:t.p + (/^tn-/.test(id)&&S.tintCfg.match?9:0),rm:{type:'treat',id}});
+    const val=(t.p + (/^tn-/.test(id)&&S.tintCfg.match?9:0))*addonShare;
+    eyesForAddon.forEach(eye=>lines.push({n:`${eye==='od'?'OD':'OS'} ${t.n}`,i:detail,v:val,rm:{type:'treat',id},eye}));
   }});
   chemPriceLines().forEach(l=>lines.push(l));
   const eyes=activeEyes().map(readRow);
   const prism=Math.max(...eyes.map(r=>r.prism||0),0);
   if(prism>0) lines.push({n:'Prism',i:prism.toFixed(2)+'Δ ground in',v:16+prism*4});
   const dia=effDiam();
-  if(dia>=75) lines.push({n:'Oversize blank',i:dia+' mm',v:dia>=80?32:22});
+  if(dia>=75){
+    const blankVal=(dia>=80?32:22)*addonShare;
+    eyesForAddon.forEach(eye=>lines.push({n:`${eye==='od'?'OD':'OS'} Oversize blank`,i:dia+' mm',v:blankVal,eye}));
+  }
   const hi=Math.max(...eyes.map(r=>Math.abs(r.sph||0)),0);
   if(hi>6) lines.push({n:'High-power surfacing',i:'beyond ±6.00',v:18});
   if(S.scope!=='uncut'){
@@ -1038,7 +1081,7 @@ function secValid(){
     &&limitErrors().length===0
     &&(!S.shape||S.shapeOk||S.scope!=='remote')
     &&(S.scope!=='remote'||!!S.file);
-  const lens=activeSides().every(lensComplete);
+  const lens=activeSides().every(lensComplete)&&!splitLensesDuplicate();
   const rxOk=rows.every(x=>x.r.sph!==null&&Math.abs(x.r.sph)<=25)
     &&rows.every(x=>!x.r.cyl||x.r.cyl===0||(x.r.axis!==null&&x.r.axis>=1&&x.r.axis<=180))
     &&(!needsAdd()||rows.every(x=>x.r.add!==null&&x.r.add>=.25&&x.r.add<=4.5))
@@ -1088,13 +1131,27 @@ function sectionSummary(id){
   }
   if(id==='sec-frame'){
     const mountSel=$('#mount'), mount=mountSel.selectedIndex>0?mountSel.options[mountSel.selectedIndex].text:'';
+    const shapeBit=(()=>{
+      if(S.scope!=='remote') return selectLabel('fsource');
+      const sh=activeShape(); if(!sh) return '';
+      const src=S.shapeSrc==='standard'?((STD_SHAPES.find(s=>s.id===S.stdShape)||{}).n+' standard shape')
+        :(S.file?S.file.name:'Uploaded trace');
+      return src+(S.shapeOk?' · confirmed':' · not yet confirmed');
+    })();
     return [$('#fname').value.trim(),mount,
       `A ${$('#fa').value} · B ${$('#fb').value} · ED ${$('#fed').value} · DBL ${$('#fdbl').value}`,
-      S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
+      S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut',shapeBit].filter(Boolean).join(' · ');
   }
-  if(id==='sec-lens') return splitActive()
-    ? `OD ${namedLens('a')||'—'}  │  OS ${namedLens('b')||'—'}`
-    : (namedLens('a')||'');
+  if(id==='sec-lens'){
+    const visionLbl=S.vision==='mf'?'Multifocal/Progressive':'Single vision';
+    const eyesLbl=S.eyes==='pair'?(splitActive()?'Pair · different lens each eye':'Pair'):(S.eyes==='od'?'Right only':'Left only');
+    const purposeLbl=S.vision==='sv'?({dist:'Distance',read:'Reading',inter:'Intermediate'}[S.purpose]||''):'';
+    const head=[visionLbl,eyesLbl,purposeLbl].filter(Boolean).join(' · ');
+    const lensBit=splitActive()
+      ? `OD ${namedLens('a')||'—'}  │  OS ${namedLens('b')||'—'}`
+      : (namedLens('a')||'');
+    return [head,lensBit].filter(Boolean).join(' · ');
+  }
   if(id==='sec-rx'){
     const htLbl=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
     const columns=[['sph','Sphere'],['cyl','Cylinder'],['axis','Axis']];
@@ -1128,7 +1185,7 @@ function sectionSummary(id){
       return `<b>${t.n}</b> — ${detail}`;
     }).filter(Boolean);
     S.chemClips.forEach((clip,index)=>items.push(`<b>Chemistrie clip ${index+1}</b> — ${chemClipParts(clip).join(' · ')}`));
-    return items.join('<br>');
+    return items.length?items.join('<br>'):'No coatings, add-ons, or extras';
   }
   return [selectLabel('service'),selectLabel('delivery'),($('#notes').value.trim()||chemLabNotes())&&'Lab notes added'].filter(Boolean).join(' · ');
 }
@@ -1538,7 +1595,11 @@ Object.entries(COMBO_DEFS).forEach(([k,def])=>{
     else if(e.key==='Enter'){
       e.preventDefault();
       const pick=comboActive[k]>=0?items[comboActive[k]]:(items.length===1?items[0]:null);
-      if(pick) pickCombo(k,pick.id); else input.blur();
+      if(pick){
+        pickCombo(k,pick.id);
+        const nextKey=comboNextKey(k);
+        if(nextKey) focusAcross($('#'+COMBO_DEFS[nextKey].inputId)); else input.blur();
+      } else input.blur();
     } else if(e.key==='Escape'){
       e.preventDefault();
       const item=COMBO_DEFS[k].all.find(x=>x.id===S[k]); input.value=item?item.n:'';
@@ -1580,6 +1641,91 @@ docListen('click',e=>{
 winListen('scroll',e=>{ if(e.target&&e.target.closest&&e.target.closest('.cblist')) return; closeAllCombos(); },true);
 winListen('resize',closeAllCombos);
 
+/* ---------- restyled <select> dropdowns ----------
+   A plain <select>'s closed control already matches the theme (custom
+   chevron, dark background, rounded corners — see the `select{appearance:
+   none;...}` rule), but its OPEN option list is native OS chrome no CSS can
+   reach, so every select in the form popped up looking like a different app
+   from the material/design/colour combos right next to it. This intercepts
+   the native popup and draws the exact same .cblist/.cbopt panel those
+   combos use instead. The <select> itself stays the single source of truth —
+   it's never hidden or replaced, only driven through its own value/
+   selectedIndex and real 'input'/'change' events — so every existing
+   listener elsewhere in this file that reads a select or listens for its
+   change keeps working untouched. */
+const RESTYLED_SELECTS=new Map();
+function restyleSelect(select){
+  if(!select||RESTYLED_SELECTS.has(select)) return;
+  const list=document.createElement('div');
+  list.className='cblist'; list.setAttribute('role','listbox');
+  select.insertAdjacentElement('afterend',list);
+  const home=list.parentElement;
+  let active=-1;
+  const opts=()=>Array.from(select.options).filter(o=>!o.disabled);
+  function renderList(){
+    const vis=opts();
+    active=vis.findIndex(o=>o.index===select.selectedIndex);
+    list.innerHTML=vis.length
+      ? vis.map((o,i)=>`<div class="cbopt ${o.index===select.selectedIndex?'sel':''} ${i===active?'act':''}" data-idx="${o.index}">${o.text}</div>`).join('')
+      : `<div class="cbnone">No options</div>`;
+  }
+  function markActive(){ Array.from(list.children).forEach((el,i)=>el.classList.toggle('act',i===active)); const el=list.children[active]; if(el&&el.scrollIntoView) el.scrollIntoView({block:'nearest'}); }
+  function position(){ const r=select.getBoundingClientRect(); list.style.left=r.left+'px'; list.style.top=(r.bottom+4)+'px'; list.style.width=r.width+'px'; }
+  function isOpen(){ return list.classList.contains('on'); }
+  function open(){
+    RESTYLED_SELECTS.forEach((v,el)=>{ if(el!==select) v.close(); });
+    closeAllCombos();
+    if(list.parentElement!==comboPortalRoot()) comboPortalRoot().appendChild(list);
+    renderList(); position(); list.classList.add('on');
+  }
+  function close(){
+    list.classList.remove('on');
+    if(list.parentElement&&list.parentElement!==home) home.appendChild(list);
+  }
+  /* Commit only sets the value and fires the real events — advancing focus
+     afterward is the caller's choice, matching the combos (a mouse pick never
+     auto-advances; only Enter does). */
+  function commit(index){ select.selectedIndex=index; select.dispatchEvent(new Event('input',{bubbles:true})); select.dispatchEvent(new Event('change',{bubbles:true})); close(); }
+  select.addEventListener('mousedown',e=>{ e.preventDefault(); select.focus(); isOpen()?close():open(); });
+  select.addEventListener('keydown',e=>{
+    if(!isOpen()){
+      /* Enter is left alone here — closed, a select behaves like any other
+         field in the Enter chain (see advanceFocus) and just moves on. Only
+         the keys that natively open a select take over. */
+      if(e.key!==' '&&e.key!=='ArrowDown'&&e.key!=='ArrowUp') return;
+      e.preventDefault(); e.stopPropagation(); open(); return;
+    }
+    if(e.key==='ArrowDown'){ e.preventDefault(); e.stopPropagation(); active=Math.min(active+1,opts().length-1); markActive(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); e.stopPropagation(); active=Math.max(active-1,0); markActive(); }
+    else if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); const o=opts()[active]; if(o) commit(o.index); advanceFocus(select); }
+    else if(e.key===' '){ e.preventDefault(); e.stopPropagation(); const o=opts()[active]; if(o) commit(o.index); }
+    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
+  });
+  list.addEventListener('mousedown',e=>{ const opt=e.target.closest('.cbopt'); if(!opt) return; e.preventDefault(); commit(Number(opt.dataset.idx)); });
+  select.addEventListener('blur',()=>setTimeout(close,120));
+  RESTYLED_SELECTS.set(select,{close,reposition:()=>{ if(isOpen()) position(); }});
+}
+$$('select').forEach(restyleSelect);
+docListen('click',e=>{ if(e.target.closest('select')||e.target.closest('.cblist')) return; RESTYLED_SELECTS.forEach(v=>v.close()); });
+winListen('scroll',e=>{ if(e.target&&e.target.closest&&e.target.closest('.cblist')) return; RESTYLED_SELECTS.forEach(v=>v.close()); },true);
+winListen('resize',()=>RESTYLED_SELECTS.forEach(v=>v.close()));
+
+/* OS Base is the last Rx field worth stopping at on the way to Treatments —
+   Prism still flows into it normally (it's the very next cell in the row),
+   but from Base both Enter and Tab skip straight to the first popular
+   treatment instead of parking on the plus-cyl checkbox in between. Base is
+   optional unless a prism value was entered (validated separately), so this
+   fires whether or not a direction was actually chosen. */
+(()=>{
+  const osBase=cell('os','base'); if(!osBase) return;
+  osBase.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&!(e.key==='Tab'&&!e.shiftKey)) return;
+    e.preventDefault(); e.stopPropagation();
+    const first=$('#popOpts .opt');
+    if(first) focusAcross(first);
+  });
+})();
+
 /* ---------- Rx tools ---------- */
 $('#copyOD').addEventListener('click',()=>{
   const a=rowEls('od'), b=rowEls('os');
@@ -1596,8 +1742,30 @@ docListen('focus',e=>{ if(e.target.matches&&e.target.matches('input[inputmode]')
 docListen('mouseup',e=>{ if(armed===e.target){ e.preventDefault(); armed=null; } },true);
 
 /* ---------- keyboard flow ---------- */
+/* Enter/Tab chains jump straight to the next field regardless of section
+   boundaries. If that field lives in a section that's already collapsed
+   (edited earlier, then completed and folded shut), focusing it silently —
+   the field is still in the DOM, just clipped to zero height — would leave
+   the cursor somewhere invisible. Expand that section open first so keying
+   through actually shows where you land. */
+function focusAcross(el){
+  if(!el) return;
+  const section=el.closest&&el.closest('.card[data-step]');
+  if(section&&section.classList.contains('section-collapsed')){
+    S.collapsedSections.delete(section.id); S.editingSections.add(section.id); render();
+  }
+  el.focus();
+  if(el.select) try{ el.select(); }catch(err){}
+}
 function focusables(){
   return $$('input,select,textarea').filter(el=>!el.disabled&&el.tabIndex!==-1&&el.offsetParent!==null&&!el.closest('#annoUI')&&!el.closest('.sdraw')&&!el.closest('.scrim')&&el.type!=='file');
+}
+/* Shared by the generic Enter chain below and by the restyled-select Enter
+   handler (see "restyled selects" further up) — both just mean "go to
+   whatever's next", so they share one idea of what "next" is. */
+function advanceFocus(el){
+  const list=focusables(), n=list[list.indexOf(el)+1];
+  if(n) focusAcross(n);
 }
 docListen('keydown',e=>{
   if(e.key!=='Enter') return;
@@ -1606,8 +1774,7 @@ docListen('keydown',e=>{
   e.preventDefault();
   if(t.dataset.f) normalise(t);
   if(t.dataset.pf) normalisePlus(t);
-  const list=focusables(), n=list[list.indexOf(t)+1];
-  if(n){ n.focus(); if(n.select) try{n.select();}catch(err){} }
+  advanceFocus(t);
 });
 docListen('blur',e=>{
   if(e.target.dataset&&e.target.dataset.f) normalise(e.target);
@@ -3677,6 +3844,7 @@ const canSubmitDirect=()=>!!ADAPTER.canSubmitDirect&&!!ADAPTER.onSubmittedDirect
 function syncTreatConfirm(){
   const b=$('#treatConfirm'); if(!b) return;
   b.setAttribute('aria-pressed', S.treatConfirmed?'true':'false');
+  if(S.treatConfirmed) b.classList.remove('flashcue');
   const label=$('#treatConfirmLabel');
   if(label) label.textContent=S.treat.size||S.chemClips.length
     ? 'Done — these are all the coatings for this job'
@@ -3800,6 +3968,14 @@ $('#treatConfirm').addEventListener('click',()=>{
   render();
   if(S.treatConfirmed) toast('Coatings confirmed');
 });
+/* Enter here only advances once Space has confirmed the toggle — otherwise
+   it would let you tab through without ever actually confirming coatings. */
+$('#treatConfirm').addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  e.preventDefault();
+  if(S.treatConfirmed) focusAcross($('#service'));
+});
+$('#treatConfirm').addEventListener('blur',e=>{ e.currentTarget.classList.remove('flashcue'); });
 $('#notesConfirmed').addEventListener('change',e=>{
   S.notesConfirmed=e.target.checked; render();
 });

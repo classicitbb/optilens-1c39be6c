@@ -257,7 +257,7 @@
           </div>
         </div>
 
-        <div class="callout" style="margin-top:13px"><span class="ci">◎</span><span id="lensName">Pick a material, design and colour to name the lens.</span></div>
+        <div class="callout" style="margin-top:13px"><span class="ci" id="lensNameIcon">ⓘ</span><span id="lensName">Pick a material, design and colour to name the lens.</span></div>
       </div>
 
       <div class="card-b">
@@ -438,6 +438,18 @@
     </section>
 
     <div class="nextcue hide" id="nextCue"></div>
+
+    <div class="card qactions-bottom">
+      <div class="card-b">
+        <div class="qactions">
+          <button class="btn btn-primary" id="submitBtn" disabled>Submit to cart</button>
+          <button class="btn btn-ghost" id="saveDraft2">Save as draft</button>
+          <button class="btn btn-ghost" id="printBtn">🖨 Print order sheet</button>
+        </div>
+        <p class="gatenote directnote hide" id="directNote"></p>
+        <p class="gatenote">Incomplete orders can only be saved as drafts. Drafts are printable and resumable.</p>
+      </div>
+    </div>
   </div>
 
   <aside class="quote">
@@ -460,14 +472,6 @@
       <ul class="vlist" id="vList"></ul>
       <div class="vbar"><i id="vBar"></i></div>
       <div class="assistlist" id="assistList"><h4>⚑ Flagged for assistance</h4><div id="assistTags"></div></div>
-    </div>
-
-    <div class="qactions">
-      <button class="btn btn-primary" id="submitBtn" disabled>Submit to cart</button>
-      <button class="btn btn-ghost" id="saveDraft2">Save as draft</button>
-      <button class="btn btn-ghost" id="printBtn">🖨 Print order sheet</button>
-      <p class="gatenote directnote hide" id="directNote"></p>
-      <p class="gatenote">Incomplete orders can only be saved as drafts. Drafts are printable and resumable.</p>
     </div>
   </aside>
 </div>
