@@ -1018,9 +1018,9 @@ function price(){
   const hi=Math.max(...eyes.map(r=>Math.abs(r.sph||0)),0);
   if(hi>6) lines.push({n:'High-power surfacing',i:'beyond ±6.00',v:18});
   if(S.scope!=='uncut'){
-    const mt=$('#mount').value, base=mt==='rimless'?42:(mt==='supra'?31:17);
+    const mt=$('#mount').value, base=mt==='rimless'?42:(mt==='grooved'?31:17);
     lines.push({n:S.scope==='remote'?'Remote edge to trace':'Glazing & mounting',
-      i:mt==='rimless'?'Rimless drill mount':(mt==='supra'?'Supra / nylon':'Full rim'),
+      i:mt==='rimless'?'Rimless drill mount':(mt==='grooved'?'Grooved / nylon':(mt==='metal'?'Metal':'Plastic')),
       v:S.scope==='remote'?base+6:base});
   }
   let sub=lines.reduce((a,l)=>a+l.v,0);
@@ -1036,7 +1036,7 @@ function secValid(){
   const patient=!!$('#pfirst').value.trim()&&!!$('#plast').value.trim();
   const frame=!!$('#fname').value.trim()&&!!$('#mount').value&&num('fa')!==null&&num('fb')!==null&&num('fed')!==null&&num('fdbl')!==null
     &&limitErrors().length===0
-    &&(!S.shape||S.shapeOk)
+    &&(!S.shape||S.shapeOk||S.scope!=='remote')
     &&(S.scope!=='remote'||!!S.file);
   const lens=activeSides().every(lensComplete);
   const rxOk=rows.every(x=>x.r.sph!==null&&Math.abs(x.r.sph)<=25)
@@ -1086,7 +1086,12 @@ function sectionSummary(id){
     const ref=$('#ref').value.trim();
     return [$('#pfirst').value.trim()+' '+$('#plast').value.trim(),ref&&'Ref '+ref].filter(Boolean).join(' · ');
   }
-  if(id==='sec-frame') return [$('#fname').value.trim(),`${$('#fa').value} × ${$('#fb').value} mm`, `DBL ${$('#fdbl').value} mm`,S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
+  if(id==='sec-frame'){
+    const mountSel=$('#mount'), mount=mountSel.selectedIndex>0?mountSel.options[mountSel.selectedIndex].text:'';
+    return [$('#fname').value.trim(),mount,
+      `A ${$('#fa').value} · B ${$('#fb').value} · ED ${$('#fed').value} · DBL ${$('#fdbl').value}`,
+      S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
+  }
   if(id==='sec-lens') return splitActive()
     ? `OD ${namedLens('a')||'—'}  │  OS ${namedLens('b')||'—'}`
     : (namedLens('a')||'');
@@ -1170,7 +1175,11 @@ function openSection(id){
   S.collapsedSections.delete(id); S.editingSections.add(id); render();
   section.scrollIntoView?.({behavior:'smooth',block:'start'});
   setTimeout(()=>{
-    const field=section.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled])');
+    /* skip hidden fields (e.g. the file inputs behind drag-and-drop zones) —
+       focusing one silently fails and leaves activeElement on <body>, which
+       reads as "focus left the section" and immediately re-collapses it. */
+    const fields=[...section.querySelectorAll('input:not([disabled]),select:not([disabled]),textarea:not([disabled])')];
+    const field=fields.find(f=>f.offsetParent!==null);
     if(field) field.focus();
   },0);
 }
@@ -1673,7 +1682,7 @@ docListen('click',e=>{
 /* ---------- clear helpers ---------- */
 const SECFIELDS={
   patient:['pfirst','plast','ref'],
-  frame:['fname','fa','fb','fed','fdbl','ftemple'],
+  frame:['fname','fa','fb','fed','fdbl'],
   lens:[], rx:[], treat:[], notes:['notes']
 };
 function clearSection(k){
@@ -1690,6 +1699,7 @@ function clearSection(k){
 }
 $$('.clear-sec').forEach(b=>b.addEventListener('click',()=>clearSection(b.dataset.sec)));
 $$('[data-edit-section]').forEach(b=>b.addEventListener('click',()=>openSection(b.dataset.editSection)));
+$$('.section-summary').forEach(s=>s.addEventListener('click',()=>openSection(s.closest('.card[data-step]').id)));
 docListen('focusout',e=>{
   const section=e.target.closest?.('.card[data-step]');
   if(!section) return;
@@ -2932,8 +2942,8 @@ function shapeThumb(id, size){
   const lib = SHAPELIB[id];
   if (!lib) return `<svg width="${size}" height="${size*0.7}" viewBox="0 0 100 70"><rect x="6" y="10" width="88" height="50" rx="14" fill="none" stroke="hsl(213 20% 78%)" stroke-width="3" stroke-dasharray="5 5"/></svg>`;
   const pts = scaleOutline(radiiToXY(lib.points.R, lib.angles.R), 92, 62);
-  return `<svg width="${size}" height="${size*0.7}" viewBox="-50 -35 100 70">
-    <path d="${outlinePath(pts,false)}" fill="hsl(213 66% 13% / .06)" stroke="hsl(213 66% 13%)" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
+  return `<svg width="${size}" height="${size*0.7}" viewBox="-50 -35 100 70" style="color:var(--fg)">
+    <path d="${outlinePath(pts,false)}" fill="currentColor" fill-opacity=".06" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
 }
 function buildShapePick(){
   const box = $('#shapePick');
@@ -2989,6 +2999,10 @@ function liveMetrics(){
 function updatePreview(){
   const sh = activeShape();
   const pb = $('#previewBlock');
+  /* the trace/points verification is only meaningful when the lab is cutting to a
+     trace (remote edge) — for uncut and full glaze the shape tile plus the auto
+     ED above is all that's needed. */
+  if (S.scope !== 'remote') { pb.classList.add('hide'); $('#shapePreview').innerHTML=''; return; }
   if (!sh) {
     if (S.file) {  /* a file is attached but yielded no usable outline — say so rather than show nothing */
       pb.classList.remove('hide');
@@ -3033,7 +3047,7 @@ function updatePreview(){
         <span class="needbadge" style="margin-left:auto;background:var(--teal-soft);border-color:hsl(188 71% 36% / .3);color:var(--teal)">
           ${sh.points.R.length} points</span>
       </div>
-      <div class="pv-canvas ${g.ghost?'ghost':''}">${generateOMASVG(sh,{showDimensions:true})}</div>
+      ${S.shapeSrc==='standard'?'':`<div class="pv-canvas ${g.ghost?'ghost':''}">${generateOMASVG(sh,{showDimensions:true})}</div>`}
       <div class="pv-stats">
         <div class="pv-stat"><div class="k">A width</div><div class="v">${g.a.toFixed(2)} mm</div></div>
         <div class="pv-stat"><div class="k">B height</div><div class="v">${g.b.toFixed(2)} mm</div></div>
@@ -3075,7 +3089,7 @@ function collapseFrame(){
       <div style="min-width:0">
         <div class="st">✓ ${$('#fname').value || 'Frame'} — ${mount}</div>
         <div class="sd">A ${g.a.toFixed(2)} · B ${g.b.toFixed(2)} · ED ${m.ed.toFixed(2)} @ ${m.edAxis.toFixed(1)}°
-          · DBL ${g.dbl.toFixed(2)}${$('#ftemple').value?' · Temple '+$('#ftemple').value:''} mm</div>
+          · DBL ${g.dbl.toFixed(2)} mm</div>
       </div>
       <button class="btn btn-ghost btn-sm" id="frameEdit">Edit frame</button>
     </div>`;
@@ -3088,8 +3102,8 @@ function collapseFrame(){
 /** small outline chip used by the collapsed strip */
 function miniThumb(g){
   const pts = scaleOutline(g.ptsR, 92, 62);
-  return `<svg width="40" height="28" viewBox="-50 -35 100 70">
-    <path d="${outlinePath(pts,false)}" fill="hsl(213 66% 13% / .07)" stroke="hsl(213 66% 13%)" stroke-width="3" stroke-linejoin="round"/></svg>`;
+  return `<svg width="40" height="28" viewBox="-50 -35 100 70" style="color:var(--fg)">
+    <path d="${outlinePath(pts,false)}" fill="currentColor" fill-opacity=".07" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>`;
 }
 
 /* ---------- order payload — one bundle for draft, cart and reorder ---------- */
@@ -3110,7 +3124,7 @@ function buildPayload(){
     frame: {
       name:$('#fname').value, mount:$('#mount').value, source:$('#fsource').value,
       a:parseNum($('#fa').value), b:parseNum($('#fb').value), ed:parseNum($('#fed').value),
-      dbl:parseNum($('#fdbl').value), temple:parseNum($('#ftemple').value)
+      dbl:parseNum($('#fdbl').value)
     },
     shape: sh ? {
       source:S.shapeSrc, standardId:S.stdShape||null, file:S.file?S.file.name:null,
@@ -3171,9 +3185,9 @@ function restorePayload(p,{newOrderNumber=false}={}){
     $$('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed', b.dataset[key]===S[key]));
   });
   $('#ref').value=p.reference||''; $('#pfirst').value=p.patient.first||''; $('#plast').value=p.patient.last||'';
-  $('#fname').value=p.frame.name||''; $('#mount').value=p.frame.mount||'full';
-  ['a','b','ed','dbl','temple'].forEach((k,i)=>{
-    const el=$(['#fa','#fb','#fed','#fdbl','#ftemple'][i]);
+  $('#fname').value=p.frame.name||''; $('#mount').value=p.frame.mount||'plastic';
+  ['a','b','ed','dbl'].forEach((k,i)=>{
+    const el=$(['#fa','#fb','#fed','#fdbl'][i]);
     el.value = p.frame[k]!=null ? p.frame[k] : '';
   });
   if(p.shape){
@@ -3531,7 +3545,7 @@ function fillDemo(quiet){
   S.vision='mf'; $$('#visionSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vision==='mf'));
   applyLens('1.60','pg-enh','clear');
   $('#pfirst').value='Marcus'; $('#plast').value='Grant'; $('#ref').value='JOB-2291';
-  $('#fname').value='Ray-Ban RB5154'; $('#mount').value='full'; $('#fa').value='52'; $('#fb').value='38'; $('#fdbl').value='18'; $('#ftemple').value='140';
+  $('#fname').value='Ray-Ban RB5154'; $('#mount').value='plastic'; $('#fa').value='52'; $('#fb').value='38'; $('#fdbl').value='18';
   S.edTouched=false;
   const v={od:{sph:'-325',cyl:'1-',axis:'175',add:'2',prism:'',base:'',pd:'64',npd:'',ht:'22'},
            os:{sph:'-275',cyl:'-075',axis:'185',add:'2',prism:'',base:'',pd:'',npd:'',ht:'22'}};
@@ -3638,7 +3652,7 @@ $('#printBtn').addEventListener('click',()=>{
   <h2>Lens</h2><div class="kv"><span>Lens</span><div>${lensNm}</div>
   <span>Blank</span><div>${effDiam()} mm</div>
   <span>Treatments</span><div>${tr.length?tr.join(', '):'None'}</div>
-  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} Temple ${$('#ftemple').value||'—'} · ${$('#mount').options[$('#mount').selectedIndex].text}</div>
+  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} · ${$('#mount').options[$('#mount').selectedIndex].text}</div>
   <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${$('#delivery').value}</div>
   ${(function(){ const notes=notesWithChemistrie($('#notes').value); return notes?`<span>Notes</span><div>${notes.replace(/</g,'&lt;')}</div>`:''; })()}</div>
   ${S.pricesOn?`<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub*c.rate)}</span></div>`
@@ -3690,6 +3704,7 @@ function syncSubmitMode(){
 }
 
 let submitInFlight=false;
+let lastSubmittedPayload=null;
 async function submit(){
   if(submitInFlight) return;
   const V=secValid();
@@ -3727,6 +3742,7 @@ async function submit(){
   submitInFlight=true;
   try{
     const __p=stashOrder('submitted');
+    lastSubmittedPayload=__p;
     if(direct) await ADAPTER.onSubmittedDirect(__p);
     else if(ADAPTER.onSubmitted) await ADAPTER.onSubmitted(__p);
     $('#scrim').classList.add('on');
@@ -3739,7 +3755,7 @@ async function submit(){
 }
 $('#submitBtn').addEventListener('click',()=>{void submit();});
 $('#submitBtn2').addEventListener('click',()=>{void submit();});
-$$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
+$$('#scrim .choice').forEach(b=>b.addEventListener('click',async()=>{
   const n=b.dataset.next; $('#scrim').classList.remove('on');
   if(n==='another'){
     // A blank in-place reset (clearAll) keeps this quote's id, and the cart's
@@ -3749,11 +3765,16 @@ $$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
     if(ADAPTER.onAnother) ADAPTER.onAnother();
     else setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
   }
-  else if(n==='duplicate') toast('Prototype: cart now holds 2 copies of this Rx — edit either with the pencil');
+  else if(n==='duplicate'){
+    if(!ADAPTER.onDuplicate){ toast('Duplicate wiring not enabled on this surface'); return; }
+    try{ await ADAPTER.onDuplicate(lastSubmittedPayload); toast('Duplicated — a second copy is in your cart'); }
+    catch(err){ console.error('Rx order duplicate failed',err); toast('Could not duplicate this order'+(err&&err.message?': '+err.message:'')+'. Please try again.'); }
+  }
   else if(n==='checkout'){ if(ADAPTER.onCheckout) ADAPTER.onCheckout(); else toast('Checkout wiring not enabled on this surface'); }
   else { if(ADAPTER.onStore) ADAPTER.onStore(); else toast('Store return not enabled on this surface'); }
 }));
 $('#scrim').addEventListener('click',e=>{ if(e.target===$('#scrim')) $('#scrim').classList.remove('on'); });
+$('#scrimClose').addEventListener('click',()=>{ $('#scrim').classList.remove('on'); });
 docListen('keydown',e=>{ if(e.key!=='Escape') return;
   $('#scrim').classList.remove('on'); $('#treatDrawer').classList.remove('on'); $('#coachDrawer').classList.remove('on'); });
 

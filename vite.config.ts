@@ -9,6 +9,10 @@ export default defineConfig(() => ({
     host: "::",
     port: Number(process.env.PORT) || 8080,
   },
+  preview: {
+    host: "::",
+    port: Number(process.env.PORT) || 4173,
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

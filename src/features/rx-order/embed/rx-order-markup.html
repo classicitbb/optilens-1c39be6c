@@ -56,8 +56,8 @@
         <div class="idx">1</div>
         <div><h2>Patient &amp; order</h2><div class="sub">Who the job is for.</div></div>
         <div class="hx">
-          <button class="iconbtn sm clear-sec" data-sec="patient" title="Clear this section">✕</button>
-          <button class="iconbtn sm coach-open" data-coach="patient" title="Help">?</button>
+          <button class="iconbtn sm clear-sec" data-sec="patient" title="Clear this section" tabindex="-1">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="patient" title="Help" tabindex="-1">?</button>
           <button class="iconbtn sm section-edit" data-edit-section="sec-patient" title="Edit patient and order" aria-label="Edit patient and order">✎</button>
         </div>
       </div>
@@ -87,9 +87,9 @@
         <div class="idx">2</div>
         <div><h2>Frame &amp; measurements</h2><div class="sub">Job type and the frame the lenses have to fit.</div></div>
         <div class="hx">
-          <button class="iconbtn sm clear-sec" data-sec="frame" title="Clear this section">✕</button>
-          <button class="iconbtn sm coach-open" data-coach="frame" title="Help">?</button>
-          <a class="iconbtn sm" href="https://classicvisions.net/rx-lab-services" target="_blank" rel="noopener" title="Rx lab services">↗</a>
+          <button class="iconbtn sm clear-sec" data-sec="frame" title="Clear this section" tabindex="-1">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="frame" title="Help" tabindex="-1">?</button>
+          <a class="iconbtn sm" href="https://classicvisions.net/rx-lab-services" target="_blank" rel="noopener" title="Rx lab services" tabindex="-1">↗</a>
           <button class="iconbtn sm section-edit" data-edit-section="sec-frame" title="Edit frame and measurements" aria-label="Edit frame and measurements">✎</button>
         </div>
       </div>
@@ -128,8 +128,9 @@
             <label>Mount type <span class="req">*</span></label>
             <select id="mount">
               <option value="" disabled selected>Choose…</option>
-              <option value="full">Full rim</option>
-              <option value="supra">Supra / nylon</option>
+              <option value="plastic">Plastic</option>
+              <option value="metal">Metal</option>
+              <option value="grooved">Grooved / nylon</option>
               <option value="rimless">Rimless — drill mount</option>
             </select>
           </div>
@@ -141,7 +142,7 @@
             </select>
           </div>
         </div>
-        <div class="grid g5" style="margin-top:13px">
+        <div class="grid g4" style="margin-top:13px">
           <div class="field" data-key="fa"><label>A <span class="req">*</span></label><input type="text" inputmode="decimal" id="fa" placeholder="52.0"></div>
           <div class="field" data-key="fb"><label>B <span class="req">*</span></label><input type="text" inputmode="decimal" id="fb" placeholder="38.0"></div>
           <div class="field auto" data-key="fed">
@@ -150,7 +151,6 @@
             <div class="hint calc" id="edHint">Auto from A and B — editable</div>
           </div>
           <div class="field" data-key="fdbl"><label>DBL <span class="req">*</span></label><input type="text" inputmode="decimal" id="fdbl" placeholder="18.0"></div>
-          <div class="field" data-key="ftemple"><label>Temple <span class="opt-tag">optional</span></label><input type="text" inputmode="decimal" id="ftemple" placeholder="140"></div>
         </div>
       </div>
 
@@ -176,9 +176,9 @@
         <div class="idx">3</div>
         <div><h2>Lens selection</h2><div class="sub">Only combinations that exist on your pricelist are offered.</div></div>
         <div class="hx">
-          <button class="iconbtn sm clear-sec" data-sec="lens" title="Clear this section">✕</button>
-          <button class="iconbtn sm coach-open" data-coach="lens" title="Help">?</button>
-          <a class="iconbtn sm" href="https://classicvisions.net/lens-design-guide" target="_blank" rel="noopener" title="Lens design guide">↗</a>
+          <button class="iconbtn sm clear-sec" data-sec="lens" title="Clear this section" tabindex="-1">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="lens" title="Help" tabindex="-1">?</button>
+          <a class="iconbtn sm" href="https://classicvisions.net/lens-design-guide" target="_blank" rel="noopener" title="Lens design guide" tabindex="-1">↗</a>
           <button class="iconbtn sm section-edit" data-edit-section="sec-lens" title="Edit lens selection" aria-label="Edit lens selection">✎</button>
         </div>
       </div>
@@ -291,8 +291,8 @@
         <div class="idx">4</div>
         <div><h2>Prescription</h2><div class="sub">Type it any way — we normalise to minus cyl, 0.25 steps, signed.</div></div>
         <div class="hx">
-          <button class="iconbtn sm clear-sec" data-sec="rx" title="Clear this section">✕</button>
-          <button class="iconbtn sm coach-open" data-coach="rx" title="Help">?</button>
+          <button class="iconbtn sm clear-sec" data-sec="rx" title="Clear this section" tabindex="-1">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="rx" title="Help" tabindex="-1">?</button>
           <button class="iconbtn sm section-edit" data-edit-section="sec-rx" title="Edit prescription" aria-label="Edit prescription">✎</button>
         </div>
       </div>
@@ -373,9 +373,9 @@
         <div class="idx">5</div>
         <div><h2>Coatings &amp; treatments</h2><div class="sub">Combine freely — incompatible pairs grey out with the reason.</div></div>
         <div class="hx">
-          <button class="iconbtn sm clear-sec" data-sec="treat" title="Clear this section">✕</button>
-          <button class="iconbtn sm coach-open" data-coach="treat" title="Help">?</button>
-          <a class="iconbtn sm" href="https://classicvisions.net/coatings" target="_blank" rel="noopener" title="Coatings">↗</a>
+          <button class="iconbtn sm clear-sec" data-sec="treat" title="Clear this section" tabindex="-1">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="treat" title="Help" tabindex="-1">?</button>
+          <a class="iconbtn sm" href="https://classicvisions.net/coatings" target="_blank" rel="noopener" title="Coatings" tabindex="-1">↗</a>
           <button class="iconbtn sm section-edit" data-edit-section="sec-treat" title="Edit coatings and treatments" aria-label="Edit coatings and treatments">✎</button>
         </div>
       </div>
@@ -416,8 +416,8 @@
         <div class="idx">6</div>
         <div><h2>Delivery &amp; notes</h2><div class="sub">Anything the lab should know before it starts.</div></div>
         <div class="hx">
-          <button class="iconbtn sm clear-sec" data-sec="notes" title="Clear this section">✕</button>
-          <button class="iconbtn sm coach-open" data-coach="delivery" title="Help">?</button>
+          <button class="iconbtn sm clear-sec" data-sec="notes" title="Clear this section" tabindex="-1">✕</button>
+          <button class="iconbtn sm coach-open" data-coach="delivery" title="Help" tabindex="-1">?</button>
           <button class="iconbtn sm section-edit" data-edit-section="sec-notes" title="Edit delivery and notes" aria-label="Edit delivery and notes">✎</button>
         </div>
       </div>
@@ -492,6 +492,9 @@
 
 <div class="scrim" id="scrim">
   <div class="modal" role="dialog" aria-modal="true">
+    <button type="button" class="modal-close" id="scrimClose" title="Close" aria-label="Close">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
     <div class="mhead">
       <div class="tick">✓</div>
       <h2>Added to your cart</h2>

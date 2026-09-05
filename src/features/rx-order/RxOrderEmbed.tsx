@@ -225,12 +225,13 @@ export const RxOrderEmbed = ({
         label: `${alias.pricing_key.split("|")[0].trim()} ${alias.mf_type} ${alias.style_description} ${alias.color_description}`,
       };
     };
-    const persist = async (payload: any) => persistPayload(quoteId, payload, {
+    const persistTo = async (id: string, payload: any) => persistPayload(id, payload, {
       lensIndex: lensIndexRef.current,
       addons,
       lensPriceBBD,
       resolveAlias,
     });
+    const persist = (payload: any) => persistTo(quoteId, payload);
 
     hostRef.current.innerHTML = markup;
     const host = hostRef.current;
@@ -289,6 +290,38 @@ export const RxOrderEmbed = ({
         });
         if (error) throw new Error(error.message);
         if (!data) throw new Error("The order could not be placed.");
+      },
+      // "Duplicate this order" — a genuinely new quote carrying the same
+      // payload, always via the cart (never onSubmittedDirect) so the
+      // customer can still adjust the copy before it commits, matching the
+      // modal's own "adjust the copy in the cart" description.
+      onDuplicate: async (payload: any) => {
+        const { data: original, error: origErr } = await (supabase.from("quotes") as any)
+          .select("account_id, customer_name, contact_name, currency")
+          .eq("id", quoteId).single();
+        if (origErr) throw origErr;
+        const { data: newQuote, error: qErr } = await (supabase.from("quotes") as any)
+          .insert({
+            quote_type: "RX",
+            account_id: original?.account_id ?? null,
+            customer_name: original?.customer_name ?? null,
+            contact_name: original?.contact_name ?? null,
+            currency: original?.currency ?? currency,
+            status: "Accepted",
+          })
+          .select("id").single();
+        if (qErr) throw qErr;
+        const { totalBBD } = await persistTo(newQuote.id, payload);
+        const added = await addToCart({
+          id: syntheticCartProductId(newQuote.id),
+          name: `Rx Order (copy) — ${[payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || ""}`.trim(),
+          price: totalBBD,
+          productType: "lens",
+          priceUnit: "job",
+          variantMetadata: { rx_quote_id: newQuote.id, kind: "rx_order" },
+          quantity: 1,
+        });
+        if (!added) throw new Error("The duplicate could not be added to the cart.");
       },
       onCheckout: () => navigate(checkoutPath),
       onStore: () => navigate(storePath),
