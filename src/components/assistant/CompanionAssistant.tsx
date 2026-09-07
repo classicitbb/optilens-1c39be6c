@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import { cn } from "@/lib/utils";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import type { AssistantQuickAction } from "@/features/assistant/CompanionAssistantContext";
 import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
