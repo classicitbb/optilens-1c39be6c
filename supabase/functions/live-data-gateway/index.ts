@@ -657,7 +657,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
         website_customer_id: resolvedWebsiteCustomerId,
         innovations_customer_id: resolvedCustomer.innovations_customer_id ?? null,
         account_number: resolvedCustomer.account_number ?? null,
-        ...(operation === "innovations.customer_orders" && resolvedCustomer.portal_orders_use_bill_to_account ? { order_lookup: "bill_to" } : {}),
+        ...((operation === "innovations.customer_orders" || operation === "innovations.customer_invoice") && resolvedCustomer.portal_orders_use_bill_to_account ? { order_lookup: "bill_to" } : {}),
       },
       arguments: argumentsBody,
       expires_at: new Date(now + REQUEST_TTL_MS).toISOString(),

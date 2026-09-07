@@ -97,11 +97,13 @@ type LiveDelivery = {
 
 type LiveDeliveryItem = {
   order_id: string | number | null;
+  invoice_id?: string | number | null;
   rx_number?: string | null;
   patient?: string | null;
   description?: string | null;
   quantity?: number | null;
   status_name?: string | null;
+  amount?: number | null;
 };
 
 type LiveDeliveriesResponse = {
@@ -112,11 +114,18 @@ type LiveDeliveriesResponse = {
 };
 
 type LiveInnovationsOrder = {
+  invoice_id?: number | null;
+  amount?: number | null;
   rx_number: string | null;
   patient: string | null;
   received_at: string | null;
   promise_date?: string | null;
   status_name: string | null;
+};
+
+type LiveInvoiceResponse = {
+  invoice: { id: number; invoice_date?: string | null; patient?: string | null; total?: number | null } | null;
+  lines: Array<{ id?: number | string | null; description: string | null; quantity: number | null; unit_price: number | null; amount: number | null }>;
 };
 
 type LiveInnovationsOrdersResponse = {
@@ -151,6 +160,13 @@ const readItemPrice = (item: unknown): number | null => {
 const formatLivePrice = (value: number | null) => (value == null ? "—" : `$${value.toFixed(2)}`);
 const INNOVATIONS_ORDERS_PAGE_SIZE = 10;
 
+const InvoiceLines = ({ invoiceQuery }: { invoiceQuery: { isLoading: boolean; isError: boolean; error: unknown; data?: LiveInvoiceResponse } }) => {
+  if (invoiceQuery.isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+  if (invoiceQuery.isError) return <Alert variant="destructive"><AlertDescription>{invoiceQuery.error instanceof Error ? invoiceQuery.error.message : "Invoice details could not be loaded."}</AlertDescription></Alert>;
+  if (!invoiceQuery.data?.lines?.length) return <p className="text-sm text-muted-foreground">This invoice has no itemized lines available from the billing connector yet.</p>;
+  return <div className="overflow-x-auto rounded-md border"><Table><TableHeader><TableRow><TableHead>Description</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price (BBD)</TableHead><TableHead className="text-right">Amount (BBD)</TableHead></TableRow></TableHeader><TableBody>{invoiceQuery.data.lines.map((line, index) => <TableRow key={line.id ?? index}><TableCell>{line.description || "—"}</TableCell><TableCell className="text-right">{line.quantity ?? "—"}</TableCell><TableCell className="text-right">{line.unit_price == null ? "—" : formatLivePrice(line.unit_price)}</TableCell><TableCell className="text-right font-medium">{line.amount == null ? "—" : formatLivePrice(line.amount)}</TableCell></TableRow>)}</TableBody></Table></div>;
+};
+
 const liveDeliveryId = (delivery: LiveDelivery) => delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8);
 
 // Shipping method names are stored in the lab system as "<route #> <courier name>"
@@ -167,7 +183,7 @@ const isSafeTrackingUrl = (value?: string | null) => {
   }
 };
 
-const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; showPrices: boolean }) => {
+const LiveDeliveryCard = ({ delivery, showPrices, onSelectInvoice }: { delivery: LiveDelivery; showPrices: boolean; onSelectInvoice: (invoiceId: number, item: LiveDeliveryItem) => void }) => {
   const trackingUrl = isSafeTrackingUrl(delivery.tracking_url);
   const shipmentItems = delivery.orders ?? [];
   const shipmentRowCount = shipmentItems.length;
@@ -237,7 +253,10 @@ const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; sh
               </TableHeader>
               <TableBody>
                 {shipmentItems.map((item, index) => (
-                  <TableRow key={`${item.order_id ?? "item"}-${item.rx_number ?? index}`}>
+                  <TableRow key={`${item.order_id ?? "item"}-${item.rx_number ?? index}`} className={item.invoice_id ? "cursor-pointer hover:bg-muted/50" : undefined} onClick={() => {
+                    const invoiceId = Number(item.invoice_id);
+                    if (Number.isSafeInteger(invoiceId) && invoiceId > 0) onSelectInvoice(invoiceId, item);
+                  }}>
                     <TableCell className="font-medium">{item.order_id ?? "—"}</TableCell>
                     <TableCell>{item.rx_number ?? "—"}</TableCell>
                     <TableCell>{item.patient || item.description || "—"}</TableCell>
@@ -317,6 +336,14 @@ const MyOrdersSection = () => {
   const [orderSearch, setOrderSearch] = useState("");
   const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
   const [selectedLabOrder, setSelectedLabOrder] = useState<LiveInnovationsOrder | null>(null);
+  const [selectedDeliveryInvoice, setSelectedDeliveryInvoice] = useState<{ invoiceId: number; item: LiveDeliveryItem } | null>(null);
+  const selectedInvoiceId = selectedDeliveryInvoice?.invoiceId ?? selectedLabOrder?.invoice_id ?? null;
+  const invoiceQuery = useQuery({
+    queryKey: ["live-innovations-order-invoice", selectedInvoiceId, websiteCustomerId],
+    enabled: Number.isSafeInteger(selectedInvoiceId) && Number(selectedInvoiceId) > 0,
+    queryFn: ({ signal }) => requestLiveData<LiveInvoiceResponse>("innovations.customer_invoice", { invoice_id: selectedInvoiceId }, { signal, websiteCustomerId, localFallbackTarget }),
+    retry: 1,
+  });
 
   const orderRows = useMemo<OrderRow[]>(() => {
     const webRows: OrderRow[] = orders.map((order) => ({
@@ -537,7 +564,14 @@ const MyOrdersSection = () => {
             <div><dt className="text-muted-foreground">Received</dt><dd className="font-medium">{formatLiveDate(selectedLabOrder?.received_at ?? null)}</dd></div>
             <div><dt className="text-muted-foreground">Promise date</dt><dd className="font-medium">{formatLiveDate(selectedLabOrder?.promise_date ?? null)}</dd></div>
           </dl>
-          {showPrices ? <div className="rounded-lg border p-4"><div className="flex items-center justify-between"><span className="font-medium">Invoice total</span><span className="font-semibold">{formatLivePrice(readItemPrice(selectedLabOrder))} BBD</span></div><p className="mt-2 text-xs text-muted-foreground">Itemized invoice lines appear here when the billing connector provides them.</p></div> : null}
+          {selectedLabOrder?.invoice_id ? <InvoiceLines invoiceQuery={invoiceQuery} /> : <p className="text-sm text-muted-foreground">Invoice lines will be available after this job is posted to an invoice.</p>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedDeliveryInvoice} onOpenChange={(open) => !open && setSelectedDeliveryInvoice(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader><DialogTitle>Invoice #{selectedDeliveryInvoice?.invoiceId}</DialogTitle><DialogDescription>Posted invoice items for this delivery job.</DialogDescription></DialogHeader>
+          <InvoiceLines invoiceQuery={invoiceQuery} />
         </DialogContent>
       </Dialog>
 
@@ -574,7 +608,7 @@ const MyOrdersSection = () => {
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
-              {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} showPrices={showPrices} />)}
+              {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} showPrices={showPrices} onSelectInvoice={(invoiceId, item) => setSelectedDeliveryInvoice({ invoiceId, item })} />)}
             </div>
           )}
           {deliveriesQuery.data?.retrieved_at ? (

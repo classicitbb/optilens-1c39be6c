@@ -16,9 +16,10 @@ Last updated: 2026-09-07
   attachments for portal replies and assistant-created portal tickets. Migration
   `20260907162409_portal_helpdesk_attachments_and_invoice_details.sql` and the
   updated `live-data-gateway` function require deployment. The private
-  OptiLens connector must implement `innovations.customer_invoice` before live
-  invoice descriptions and prices can be returned; never infer them from the
-  statement total.
+  OptiLens connector now implements `innovations.customer_invoice`, including
+  customer-scoped posted-invoice lines. Live source verification is currently
+  blocked because the configured read-only reporting account has an expired
+  password; never infer item details from the statement total.
 
 - **Scotia payment activity and statement card saving** — source now adds the
   admin-only `/admin/settings/payment-activity` confirmation ledger, backed by
