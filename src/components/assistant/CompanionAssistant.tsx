@@ -249,9 +249,7 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
                 {message.kind === "text" ? (
                   <div className="space-y-2">
                     <div className="rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
-                      <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
-                        <ReactMarkdown>{message.text}</ReactMarkdown>
-                      </div>
+                      <RichMarkdown content={message.text} />
                       {index > 0 ? (
                         <AssistantFeedbackControls
                           messageId={message.id}
