@@ -19,8 +19,8 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
           <span className="font-medium">{senderLabel}</span>
           <span className="opacity-60">Internal note · {time}</span>
         </div>
-        <div className="prose prose-sm max-w-none text-foreground/80 [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-          <ReactMarkdown>{message.body}</ReactMarkdown>
+        <div className="text-foreground/80">
+          <RichMarkdown content={message.body} />
         </div>
       </div>
     );
