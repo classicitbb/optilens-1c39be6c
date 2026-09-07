@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { Mail } from "lucide-react";
 import { useNavigate } from "react-router";
-import ReactMarkdown from "react-markdown";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
 interface TicketOpeningMessageProps {
