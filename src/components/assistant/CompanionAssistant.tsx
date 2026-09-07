@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
 import { ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import { cn } from "@/lib/utils";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import type { AssistantQuickAction } from "@/features/assistant/CompanionAssistantContext";
 import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
@@ -120,14 +120,12 @@ const AssistantResultCard = ({
         )}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
-        <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
-          <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
-            <ReactMarkdown>{result.answer}</ReactMarkdown>
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
+          <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
+            <RichMarkdown content={result.answer} />
           </div>
         </div>
-      </div>
       {sources.length > 0 ? (
         <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 pt-1">
           {sources.map((link, i) => (
@@ -251,9 +249,7 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
                 {message.kind === "text" ? (
                   <div className="space-y-2">
                     <div className="rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
-                      <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
-                        <ReactMarkdown>{message.text}</ReactMarkdown>
-                      </div>
+                      <RichMarkdown content={message.text} />
                       {index > 0 ? (
                         <AssistantFeedbackControls
                           messageId={message.id}

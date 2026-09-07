@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { Mail } from "lucide-react";
 import { useNavigate } from "react-router";
-import ReactMarkdown from "react-markdown";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
 interface TicketOpeningMessageProps {
@@ -157,8 +157,8 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
       <div className="max-w-[80%] rounded-xl border border-border bg-muted px-4 py-3 text-foreground">
         <p className="text-sm font-semibold leading-6">{ticket.title}</p>
         {body && (
-          <div className="prose prose-sm mt-2 max-w-none leading-6 text-foreground [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-            <ReactMarkdown>{body}</ReactMarkdown>
+          <div className="mt-2">
+            <RichMarkdown content={body} />
           </div>
         )}
         {context && (
@@ -168,8 +168,8 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
           </div>
         )}
         {trailingDetails && (
-          <div className="prose prose-sm mt-3 max-w-none leading-6 text-foreground [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-            <ReactMarkdown>{trailingDetails}</ReactMarkdown>
+          <div className="mt-3">
+            <RichMarkdown content={trailingDetails} />
           </div>
         )}
       </div>

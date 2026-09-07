@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Lock, Mail, User } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 import type { HelpdeskTicketMessage } from "../hooks/useHelpdeskMessages";
 
 interface TicketMessageBubbleProps {
@@ -19,8 +19,8 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
           <span className="font-medium">{senderLabel}</span>
           <span className="opacity-60">Internal note · {time}</span>
         </div>
-        <div className="prose prose-sm max-w-none text-foreground/80 [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-          <ReactMarkdown>{message.body}</ReactMarkdown>
+        <div className="text-foreground/80">
+          <RichMarkdown content={message.body} />
         </div>
       </div>
     );
@@ -37,8 +37,8 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
             : "bg-muted text-foreground border border-border"
         }`}
       >
-        <div className="prose prose-sm max-w-none text-inherit [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-          <ReactMarkdown>{message.body}</ReactMarkdown>
+        <div className="text-inherit">
+          <RichMarkdown content={message.body} tone={isOutbound ? "user" : "assistant"} />
         </div>
       </div>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
