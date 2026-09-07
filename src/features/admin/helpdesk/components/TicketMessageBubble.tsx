@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Lock, Mail, User } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 import type { HelpdeskTicketMessage } from "../hooks/useHelpdeskMessages";
 
 interface TicketMessageBubbleProps {
