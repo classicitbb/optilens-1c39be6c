@@ -120,14 +120,12 @@ const AssistantResultCard = ({
         )}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
-        <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
-          <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
-            <ReactMarkdown>{result.answer}</ReactMarkdown>
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
+          <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
+            <RichMarkdown content={result.answer} />
           </div>
         </div>
-      </div>
       {sources.length > 0 ? (
         <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 pt-1">
           {sources.map((link, i) => (
