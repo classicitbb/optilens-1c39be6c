@@ -168,8 +168,8 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
           </div>
         )}
         {trailingDetails && (
-          <div className="prose prose-sm mt-3 max-w-none leading-6 text-foreground [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-            <ReactMarkdown>{trailingDetails}</ReactMarkdown>
+          <div className="mt-3">
+            <RichMarkdown content={trailingDetails} />
           </div>
         )}
       </div>
