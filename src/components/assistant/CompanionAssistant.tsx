@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
 import { ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
