@@ -1097,6 +1097,15 @@ const selectLabel=id=>{
   const el=$('#'+id);
   return el?.selectedOptions?.[0]?.textContent?.trim()||el?.value||'';
 };
+/* Mount values changed after drafts and assistant handoffs had already been
+   persisted. Normalize at replay so old payloads remain valid and new payloads
+   never leave the select at selectedIndex -1. */
+const normalizeMount=mount=>{
+  const value=String(mount||'').toLowerCase();
+  if(value==='supra') return 'grooved';
+  if(value==='full') return 'plastic';
+  return ['plastic','metal','grooved','rimless'].includes(value)?value:'plastic';
+};
 function sectionHasCapturedData(id){
   if(id==='sec-patient'||id==='sec-frame'||id==='sec-lens'||id==='sec-rx') return true;
   /* Deliberately NOT "has a treatment selected": a job with no coatings at all
@@ -3250,7 +3259,7 @@ function collapseFrame(){
   fs.classList.toggle('hide', !done);
   if (!done) { fs.innerHTML=''; return; }
   const g = shapeGeometry(activeShape()), m = g.metrics;
-  const mount = $('#mount').options[$('#mount').selectedIndex].text;
+  const mount = selectLabel('mount')||'Plastic';
   fs.innerHTML = `
     <div class="summary">
       <div style="min-width:0">
@@ -3352,7 +3361,7 @@ function restorePayload(p,{newOrderNumber=false}={}){
     $$('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed', b.dataset[key]===S[key]));
   });
   $('#ref').value=p.reference||''; $('#pfirst').value=p.patient.first||''; $('#plast').value=p.patient.last||'';
-  $('#fname').value=p.frame.name||''; $('#mount').value=p.frame.mount||'plastic';
+  $('#fname').value=p.frame.name||''; $('#mount').value=normalizeMount(p.frame.mount);
   ['a','b','ed','dbl'].forEach((k,i)=>{
     const el=$(['#fa','#fb','#fed','#fdbl'][i]);
     el.value = p.frame[k]!=null ? p.frame[k] : '';
@@ -3819,7 +3828,7 @@ $('#printBtn').addEventListener('click',()=>{
   <h2>Lens</h2><div class="kv"><span>Lens</span><div>${lensNm}</div>
   <span>Blank</span><div>${effDiam()} mm</div>
   <span>Treatments</span><div>${tr.length?tr.join(', '):'None'}</div>
-  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} · ${$('#mount').options[$('#mount').selectedIndex].text}</div>
+  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} · ${selectLabel('mount')||'Plastic'}</div>
   <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${$('#delivery').value}</div>
   ${(function(){ const notes=notesWithChemistrie($('#notes').value); return notes?`<span>Notes</span><div>${notes.replace(/</g,'&lt;')}</div>`:''; })()}</div>
   ${S.pricesOn?`<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub*c.rate)}</span></div>`

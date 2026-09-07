@@ -73,8 +73,8 @@ describe("rx order prefill", () => {
     expect(buildRxPrefillPayload(draft()).job.purpose).toBe("inter");
     expect(buildRxPrefillPayload(draft({ primaryUse: "reading" })).job.purpose).toBe("read");
     expect(buildRxPrefillPayload(draft({ primaryUse: "driving" })).job.purpose).toBe("dist");
-    expect(buildRxPrefillPayload(draft({ frameType: "semi-rimless" })).frame.mount).toBe("supra");
-    expect(buildRxPrefillPayload(draft({ frameType: "sports" })).frame.mount).toBe("full");
+    expect(buildRxPrefillPayload(draft({ frameType: "semi-rimless" })).frame.mount).toBe("grooved");
+    expect(buildRxPrefillPayload(draft({ frameType: "sports" })).frame.mount).toBe("plastic");
   });
 
   it("carries the frame box and the patient reference", () => {

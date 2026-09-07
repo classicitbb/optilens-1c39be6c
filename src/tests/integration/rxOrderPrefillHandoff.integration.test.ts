@@ -86,8 +86,22 @@ describe("lens assistant → rx order handoff", () => {
     expect(field("#fa")?.value).toBe("54");
     expect(field("#fb")?.value).toBe("38");
     expect(field("#fdbl")?.value).toBe("18");
-    expect(field("#mount")?.value).toBe("supra");
+    expect(field("#mount")?.value).toBe("grooved");
     expect(field("#ref")?.value).toBe("TEST-001");
+
+    engine.destroy();
+  });
+
+  it.each([
+    ["full", "plastic"],
+    ["supra", "grooved"],
+  ])("normalizes a saved legacy %s mount before rendering", (legacyMount, currentMount) => {
+    const payload = buildRxPrefillPayload(draft());
+    payload.frame.mount = legacyMount;
+    const { field, engine } = mount({ prefill: payload });
+
+    expect(field("#mount")?.value).toBe(currentMount);
+    expect(field("#mount")?.selectedIndex).toBeGreaterThan(0);
 
     engine.destroy();
   });

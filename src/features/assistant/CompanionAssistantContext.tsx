@@ -9,6 +9,7 @@ import { fetchCustomerCommandCenter } from "@/features/portal/customerCommandCen
 import { resolveUserFullName } from "@/lib/profileData";
 import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
+import { uploadHelpdeskImages } from "@/lib/helpdeskAttachments";
 import { generateAssistantAnswer } from "./assistantGeneration";
 import {
   buildAssistantCorpus,
@@ -1155,6 +1156,18 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           priority: 1,
           sourceChannel: "ai_assistant",
         });
+        // The assistant already holds local image previews while a customer is
+        // preparing a request. Persist them only after the ticket exists, so
+        // every image has the same ticket-scoped access control as replies.
+        const outgoingImages = messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []);
+        if (portalTicketId && outgoingImages.length) {
+          const files = await Promise.all(outgoingImages.map(async (image) => {
+            const response = await fetch(image.previewUrl);
+            const blob = await response.blob();
+            return new File([blob], image.name, { type: blob.type || "image/png" });
+          }));
+          await uploadHelpdeskImages(portalTicketId, files);
+        }
       } else {
         const message = [
           requestDetails,

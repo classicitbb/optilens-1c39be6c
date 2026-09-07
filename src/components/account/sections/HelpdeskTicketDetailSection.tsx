@@ -12,6 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useLiveHelpdeskTicketUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
 import NpsPrompt from "@/components/feedback/NpsPrompt";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import { uploadHelpdeskImages, type HelpdeskAttachment, validateHelpdeskImages } from "@/lib/helpdeskAttachments";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 
 const HelpdeskTicketDetailSection = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
@@ -20,6 +23,8 @@ const HelpdeskTicketDetailSection = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [replyBody, setReplyBody] = useState("");
+  const [replyImages, setReplyImages] = useState<File[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
   useLiveHelpdeskTicketUpdates(ticketId);
 
   const { data: ticket, isLoading: loadingTicket } = useQuery({
@@ -58,6 +63,11 @@ const HelpdeskTicketDetailSection = () => {
     },
   });
 
+  const { data: attachments = [] } = useQuery({
+    queryKey: ["portal-helpdesk-attachments", ticketId], enabled: !!ticketId && !!user,
+    queryFn: async () => { const { data, error } = await (supabase as any).from("helpdesk_ticket_attachments").select("*").eq("ticket_id", ticketId).order("created_at"); if (error) throw error; return (data ?? []) as HelpdeskAttachment[]; },
+  });
+
   const closeTicket = useMutation({
     mutationFn: async () => {
       const { data, error } = await (supabase as any)
@@ -74,7 +84,7 @@ const HelpdeskTicketDetailSection = () => {
   });
 
   const sendReply = useMutation({
-    mutationFn: async (body: string) => {
+    mutationFn: async ({ body, images }: { body: string; images: File[] }) => {
       const { data, error } = await (supabase.rpc as any)("send_helpdesk_ticket_message", {
         p_ticket_id: ticketId,
         p_body: body,
@@ -82,11 +92,15 @@ const HelpdeskTicketDetailSection = () => {
         p_internal_note: false,
       });
       if (error) throw error;
-      return Array.isArray(data) ? data[0] : data;
+      const message = Array.isArray(data) ? data[0] : data;
+      if (images.length) await uploadHelpdeskImages(ticketId!, images, message.id);
+      return message;
     },
     onSuccess: () => {
       setReplyBody("");
+      setReplyImages([]);
       qc.invalidateQueries({ queryKey: ["portal-helpdesk-messages", ticketId] });
+      qc.invalidateQueries({ queryKey: ["portal-helpdesk-attachments", ticketId] });
       toast({ title: "Reply sent" });
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
@@ -130,7 +144,7 @@ const HelpdeskTicketDetailSection = () => {
             </div>
             <CardTitle className="text-lg leading-tight">{ticket.title}</CardTitle>
             {ticket.description && (
-              <p className="text-sm text-muted-foreground mt-1">{ticket.description}</p>
+              <div className="text-sm text-muted-foreground mt-1"><RichMarkdown content={ticket.description.replace(/\n\nAssistant context:\n[\s\S]*$/u, "")} /></div>
             )}
           </div>
         </div>
@@ -160,6 +174,7 @@ const HelpdeskTicketDetailSection = () => {
                   >
                     {msg.body}
                   </div>
+                  {attachments.filter((attachment) => attachment.message_id === msg.id).length ? <HelpdeskImageAttachments ticketId={ticket.id} attachments={attachments.filter((attachment) => attachment.message_id === msg.id)} onFilesChange={() => undefined} disabled /> : null}
                   <span className="text-xs text-muted-foreground px-1">
                     {isCustomer ? "You" : "Support"} · {format(new Date(msg.sent_at), "MMM d, h:mm a")}
                   </span>
@@ -177,7 +192,24 @@ const HelpdeskTicketDetailSection = () => {
               className="min-h-[80px] resize-none text-sm"
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
+              onPaste={(event) => {
+                const images = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith("image/"));
+                if (!images.length) return;
+                const error = validateHelpdeskImages(images);
+                setImageError(error);
+                if (!error) { event.preventDefault(); setReplyImages(images); }
+              }}
+              onDrop={(event) => {
+                const images = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith("image/"));
+                if (!images.length) return;
+                event.preventDefault();
+                const error = validateHelpdeskImages(images);
+                setImageError(error);
+                if (!error) setReplyImages(images);
+              }}
             />
+            <HelpdeskImageAttachments ticketId={ticket.id} attachments={[]} onFilesChange={(files) => { setImageError(null); setReplyImages(files); }} disabled={sendReply.isPending} />
+            {imageError ? <p className="text-xs text-destructive">{imageError}</p> : null}
             <div className="flex items-center justify-between gap-3">
               <Button
                 variant="outline"
@@ -190,8 +222,8 @@ const HelpdeskTicketDetailSection = () => {
               </Button>
               <Button
                 size="sm"
-                onClick={() => sendReply.mutate(replyBody.trim())}
-                disabled={sendReply.isPending || !replyBody.trim()}
+                onClick={() => sendReply.mutate({ body: replyBody.trim() || "Image attached", images: replyImages })}
+                disabled={sendReply.isPending || (!replyBody.trim() && !replyImages.length)}
               >
                 <Send size={13} className="mr-1.5" />
                 Send reply

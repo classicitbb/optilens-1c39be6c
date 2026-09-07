@@ -39,6 +39,12 @@ safe saved-card confirmation flag.
 
 ## Completed work
 
+Iris's authorized internal operations prompt now recognizes the approved
+employee shorthand: Roy, Randall, Russell, Lily, Tia, Kevin, Greg, and
+Gregory are unique first-name references; Lisa must be specified as Lisa J or
+Lisa K. The roster rule is documented in `docs/ai-assistant-identity.md` and
+is intentionally excluded from the public assistant context.
+
 The staff-only walk-in payment flow is staged at
 `/admin/settings/walk-in-payments`. A staff member creates a server-side,
 exact-amount `walk_in_payments` intent, then reaches the existing full-page
@@ -88,6 +94,13 @@ the financial-marked typed resources. `admin_*` typed tools remain the only
 Admin Copilot data path; the direct SQL gateway has not been implemented.
 
 ## Verification
+
+- Rx mount compatibility repair (2026-09-07): assistant handoffs now emit
+  `plastic`/`grooved`, and restored drafts normalize historical `full`/`supra`
+  before validation, pricing, summaries, or printing. The focused mount
+  regression assertions pass. The broader prefill test file retains its known
+  unrelated `#ftemple` assertion failure because that control is absent from
+  the current markup.
 
 - Passed: `npx vitest run --coverage=false src/tests/unit/CompanionAssistant.test.tsx src/tests/unit/embeddedRxOrderDraft.unit.test.ts` (9 tests), including the public profile/disclosure and in-page launch regression.
 - Passed: `npm run build` after the public profile, persona, quote-launch, and saved-Rx changes.

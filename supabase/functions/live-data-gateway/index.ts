@@ -17,6 +17,7 @@ const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:writ
 const OPERATIONS = {
   "innovations.customer_account": { source: "innovations", feature: "statements" },
   "innovations.customer_statement": { source: "innovations", feature: "statements" },
+  "innovations.customer_invoice": { source: "innovations", feature: "statements" },
   "innovations.customer_orders": { source: "innovations", feature: "live-order-status" },
   "optilens.customer_deliveries": { source: "optilens", feature: "live-order-status" },
 } as const;
@@ -70,6 +71,11 @@ function sanitizeArguments(operation: Operation, raw: unknown): JsonObject {
     const statementId = integer(input.statement_id);
     if (!statementId) throw new Error("statement_id must be a positive integer.");
     return { statement_id: statementId };
+  }
+  if (operation === "innovations.customer_invoice") {
+    const invoiceId = integer(input.invoice_id);
+    if (!invoiceId) throw new Error("invoice_id must be a positive integer.");
+    return { invoice_id: invoiceId };
   }
 
   if (operation === "innovations.customer_orders") {
@@ -362,6 +368,9 @@ async function cachedLiveDataResponse(
       source_status: "cached",
     };
   }
+  // Exact invoice descriptions and prices are only available from the private
+  // Innovations connector. Do not synthesize them from a statement total.
+  if (operation === "innovations.customer_invoice") return null;
 
   if (operation === "innovations.customer_orders") {
     // The on-prem connector is the only source of *live* work-in-progress, but
@@ -427,6 +436,7 @@ function offlineLiveDataResponse(operation: Operation, customer: CustomerMapping
   if (operation === "innovations.customer_statement") {
     return { ...base, statement: null, lines: [] };
   }
+  if (operation === "innovations.customer_invoice") return { ...base, invoice: null, lines: [] };
 
   return null;
 }

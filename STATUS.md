@@ -4,11 +4,21 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-04
+Last updated: 2026-09-07
 
 ---
 
 ## Active work
+
+- **Portal invoice detail and Helpdesk images** — source now makes a posted
+  statement row open an invoice-line preview and includes that exact preview
+  when a customer asks about the invoice. It adds private, ticket-scoped image
+  attachments for portal replies and assistant-created portal tickets. Migration
+  `20260907162409_portal_helpdesk_attachments_and_invoice_details.sql` and the
+  updated `live-data-gateway` function require deployment. The private
+  OptiLens connector must implement `innovations.customer_invoice` before live
+  invoice descriptions and prices can be returned; never infer them from the
+  statement total.
 
 - **Scotia payment activity and statement card saving** — source now adds the
   admin-only `/admin/settings/payment-activity` confirmation ledger, backed by

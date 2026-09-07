@@ -104,6 +104,11 @@ interface LiveStatementResponse {
   retrieved_at: string;
 }
 
+interface LiveInvoiceResponse {
+  invoice: { id: number; invoice_date?: string | null; patient?: string | null; total?: number | null } | null;
+  lines: Array<{ id?: number | string | null; description: string | null; quantity: number | null; unit_price: number | null; amount: number | null }>;
+}
+
 interface BankPortal {
   bank_name: string;
   portal_url: string | null;
@@ -371,6 +376,7 @@ const StatementsSection = () => {
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [selectedInvoiceLine, setSelectedInvoiceLine] = useState<StatementLineRow | null>(null);
 
   const liveAccountQuery = useQuery({
     queryKey: ["live-innovations-customer-account", crmCustomerId],
@@ -503,6 +509,12 @@ const StatementsSection = () => {
   const linesLoading = usingFallback ? fallbackLinesQuery.isLoading : linesQuery.isLoading;
   const linesError = usingFallback ? fallbackLinesQuery.error : linesQuery.error;
   const linesIsError = usingFallback ? fallbackLinesQuery.isError : linesQuery.isError;
+  const invoiceQuery = useQuery({
+    queryKey: ["live-innovations-invoice", selectedInvoiceLine?.invoice_id, crmCustomerId],
+    enabled: !!selectedInvoiceLine?.invoice_id,
+    queryFn: ({ signal }) => requestLiveData<LiveInvoiceResponse>("innovations.customer_invoice", { invoice_id: selectedInvoiceLine!.invoice_id }, { signal, websiteCustomerId, localFallbackTarget }),
+    retry: 1,
+  });
 
   useEffect(() => {
     if (searchParams.get("download") !== "1" || !activeStatementId) return;
@@ -955,7 +967,7 @@ const StatementsSection = () => {
                 {sortedLines.map((line) => {
                   const patientLabel = line.patient?.trim() || "patient";
                   return (
-                    <tr key={line.id ?? lineDetail(line)} className="border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30">
+                    <tr key={line.id ?? lineDetail(line)} onClick={() => line.invoice_id && setSelectedInvoiceLine(line)} className={`border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30 ${line.invoice_id ? "cursor-pointer" : ""}`}>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.order_type_name || "—"}</td>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{fmtDate(line.post_date)}</td>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.invoice_id ?? "—"}</td>
@@ -997,6 +1009,14 @@ const StatementsSection = () => {
           </div>
         )}
       </Card>
+
+      <Dialog open={!!selectedInvoiceLine} onOpenChange={(open) => !open && setSelectedInvoiceLine(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Invoice #{selectedInvoiceLine?.invoice_id}</DialogTitle><DialogDescription>Item descriptions and prices from your posted invoice.</DialogDescription></DialogHeader>
+          {invoiceQuery.isLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div> : invoiceQuery.isError ? <Alert variant="destructive"><AlertDescription>{invoiceQuery.error instanceof Error ? invoiceQuery.error.message : "Invoice details could not be loaded."}</AlertDescription></Alert> : invoiceQuery.data?.lines?.length ? <div className="overflow-x-auto rounded-md border"><table className="w-full text-sm"><thead><tr className="bg-muted/50"><th className="px-3 py-2 text-left">Description</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Price</th><th className="px-3 py-2 text-right">Amount</th></tr></thead><tbody>{invoiceQuery.data.lines.map((item, index) => <tr className="border-t" key={item.id ?? index}><td className="px-3 py-2">{item.description || "—"}</td><td className="px-3 py-2 text-right">{item.quantity ?? "—"}</td><td className="px-3 py-2 text-right">{item.unit_price == null ? "—" : bbd(item.unit_price)}</td><td className="px-3 py-2 text-right font-medium">{item.amount == null ? "—" : bbd(item.amount)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">This invoice has no itemized lines available from the billing connector yet.</p>}
+          {selectedInvoiceLine ? <InquireButton label="Ask about this invoice" title={`Question about invoice ${selectedInvoiceLine.invoice_id}`} description={[`Invoice ID: ${selectedInvoiceLine.invoice_id}`, `Patient: ${selectedInvoiceLine.patient || "—"}`, "", "Invoice items:", ...(invoiceQuery.data?.lines ?? []).map((item) => `${item.description || "Item"} — ${bbd(item.amount)}`), "", "Question: "].join("\n")} className="self-end" /> : null}
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Modal */}
       <Dialog

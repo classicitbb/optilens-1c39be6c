@@ -2,7 +2,7 @@
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Default branch: `main`
-- Last verified: 2026-08-24
+- Last verified: 2026-09-07
 - Role: Active Classic Visions / OptiLens hosted web platform
 - Business owner and production approver: Russell Hunte
 - Current-work source: `STATUS.md`
@@ -74,3 +74,6 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 - Keep route declarations, metadata, navigation, authorization, and tests synchronized.
 - Maintain one shared wiki renderer.
 - Record environment-variable names only; values remain in approved secret stores.
+- Rx mount payloads use `plastic`, `metal`, `grooved`, or `rimless`. Restore
+  compatibility maps historical `full` to `plastic` and `supra` to `grooved`;
+  assistant handoffs must emit only the current values.
