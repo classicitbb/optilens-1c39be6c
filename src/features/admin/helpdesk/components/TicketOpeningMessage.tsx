@@ -157,8 +157,8 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
       <div className="max-w-[80%] rounded-xl border border-border bg-muted px-4 py-3 text-foreground">
         <p className="text-sm font-semibold leading-6">{ticket.title}</p>
         {body && (
-          <div className="prose prose-sm mt-2 max-w-none leading-6 text-foreground [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-            <ReactMarkdown>{body}</ReactMarkdown>
+          <div className="mt-2">
+            <RichMarkdown content={body} />
           </div>
         )}
         {context && (
