@@ -414,17 +414,24 @@ const GlobalSearch = () => {
                 {items.map((result) => {
                   const idx = flatResults.indexOf(result);
                   const isHighlighted = idx === highlighted;
+                  const isAction = result.id === "action-create-activity";
                   return (
-                    <button
+                    <a
                       key={result.id}
+                      href={isAction ? undefined : result.path}
                       className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors group"
+                        "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors group cursor-pointer"
                       )}
                       style={{
                         background: isHighlighted ? "hsl(215 65% 50% / 0.08)" : "transparent",
                       }}
                       onMouseEnter={() => setHighlighted(idx)}
-                      onClick={() => handleSelect(result)}
+                      onClick={(e) => {
+                        // let the browser handle new-tab/new-window modifiers
+                        if (!isAction && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;
+                        e.preventDefault();
+                        handleSelect(result);
+                      }}
                     >
                       <result.icon
                         className="h-3.5 w-3.5 shrink-0"
@@ -453,7 +460,7 @@ const GlobalSearch = () => {
                         )}
                         style={{ color: "hsl(215 65% 50%)" }}
                       />
-                    </button>
+                    </a>
                   );
                 })}
               </div>
