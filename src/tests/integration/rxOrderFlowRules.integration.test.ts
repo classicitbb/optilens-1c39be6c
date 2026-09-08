@@ -33,6 +33,9 @@ describe("Rx order flow rules", () => {
     // A standard shape is the cheapest way to get the preview panel rendered.
     const withShape = (frame: Record<string, string> = {}) => {
       const h = mountRxOrder().fillValidOrder({ frame: { a: "", b: "", dbl: "", ...frame } });
+      // The shape-verification panel only exists on remote edge: uncut and full
+      // glaze never cut to the trace, so there is nothing to verify against.
+      h.segment("scopeSeg", "scope", "remote");
       const pick = h.host.querySelector<HTMLElement>("#shapePick [data-sid]");
       expect(pick, "standard shape picker rendered no options").toBeTruthy();
       pick!.click();
