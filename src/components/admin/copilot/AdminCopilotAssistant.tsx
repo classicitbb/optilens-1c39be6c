@@ -38,7 +38,6 @@ import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { suggestFollowUps } from "@/features/admin/copilot/followUpSuggestions";
 import { ActionCard } from "@/features/admin/copilot/ActionCard";
 import { resolveActionRecordLink } from "@/features/admin/copilot/recordLinks";
-import { suggestFollowUps } from "@/features/admin/copilot/followUpSuggestions";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from "@/features/admin/copilot/attachments";
 import { formatVoiceTranscript } from "@/features/admin/copilot/transcriptFormatting";
