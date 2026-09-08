@@ -19,6 +19,7 @@ import { ADMIN_RESOURCE_TOOLS, ADMIN_RESOURCE_TOOL_NAMES, dispatchAdminResourceT
 import { DOC_STUDIO_TOOLS, DOC_STUDIO_TOOL_NAMES, dispatchDocStudioTool } from "../_shared/copilot/docStudioTools.ts";
 import { PLATFORM_TOOLS, PLATFORM_TOOL_NAMES, dispatchPlatformTool } from "../_shared/copilot/platformTools.ts";
 import { ENRICHMENT_TOOLS, ENRICHMENT_TOOL_NAMES, dispatchEnrichmentTool } from "../_shared/copilot/enrichmentTools.ts";
+import { HELPDESK_TOOLS, HELPDESK_TOOL_NAMES, dispatchHelpdeskTool } from "../_shared/copilot/helpdeskTools.ts";
 import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 import { identityPreamble } from "../_shared/aiIdentity.ts";
 import { ADMIN_COPILOT_SYSTEM_PROMPT } from "../_shared/copilot/prompts.ts";
@@ -118,7 +119,7 @@ const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportun
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS];
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS, ...HELPDESK_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =
@@ -171,7 +172,8 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
       || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as any)
       || DOC_STUDIO_TOOL_NAMES.has(use.name as any)
       || PLATFORM_TOOL_NAMES.has(use.name as any)
-      || ENRICHMENT_TOOL_NAMES.has(use.name as any));
+      || ENRICHMENT_TOOL_NAMES.has(use.name as any)
+      || HELPDESK_TOOL_NAMES.has(use.name as any));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
       return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?", runId: preparedRunId } };
@@ -182,6 +184,8 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
         const input = (use.input ?? {}) as Record<string, unknown>;
         const output = PLATFORM_TOOL_NAMES.has(use.name as any)
           ? dispatchPlatformTool(use.name as string, input)
+          : HELPDESK_TOOL_NAMES.has(use.name as any)
+          ? await dispatchHelpdeskTool(db, use.name as string, input, actorUserId)
           : ENRICHMENT_TOOL_NAMES.has(use.name as any)
           ? await dispatchEnrichmentTool(db, use.name as string, input, actorUserId)
           : DOC_STUDIO_TOOL_NAMES.has(use.name as any)
@@ -681,8 +685,8 @@ Deno.serve(async (req) => {
         // conversation yet. Attach it now, or loadState cannot see it.
         const queuedRunId = route?.kind === "reply" ? route.runId ?? null : null;
         if (queuedRunId) {
-          await db.from("copilot_runs").update({ conversation_id: chatConversation.id }).eq("id", queuedRunId);
-          await audit(db, actorUserId, "crm_enrichment_queued", { runId: queuedRunId });
+          const { data: queuedRun } = await db.from("copilot_runs").update({ conversation_id: chatConversation.id }).eq("id", queuedRunId).select("workflow").maybeSingle();
+          await audit(db, actorUserId, queuedRun?.workflow === "helpdesk_ticket" ? "helpdesk_ticket_created" : "crm_enrichment_queued", { runId: queuedRunId });
         }
         return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, queuedRunId));
       }

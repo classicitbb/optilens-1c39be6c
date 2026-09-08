@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AlertCircle, Check, Globe, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
+import { Link } from "react-router";
+import { AlertCircle, ArrowUpRight, Check, Globe, LifeBuoy, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { CopilotMarkdown } from "./CopilotMarkdown";
+import { resolveActionRecordLink } from "./recordLinks";
 import type { CopilotAction } from "./api";
 
 export const statusLabel = (status: string) => status.replaceAll("_", " ");
@@ -34,11 +36,13 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
 
   const isEmail = action.action_type === "send_portal_invite" || action.action_type === "send_docstudio_email";
   const isEnrichment = action.action_type === "apply_contact_enrichment";
+  const isTicket = action.action_type === "create_support_ticket";
   const changed = isEnrichment
     ? false
-    : isEmail
+    : isEmail || isTicket
       ? subject !== (action.payload.subject ?? "") || body !== (action.payload.body ?? "")
       : taskContent !== (action.payload.taskContent ?? "");
+  const recordLink = resolveActionRecordLink(action);
   const partialAccountCreated = action.result?.portalAccountCreated === true && action.result?.emailQueued === false;
 
   return (
@@ -46,8 +50,8 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
       <CardHeader className="space-y-2 pb-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 gap-2">
-            <div className={cn("mt-0.5 p-1", isEmail ? "bg-sky-100 text-sky-700" : "bg-amber-100 text-amber-700")}>
-              {isEmail ? <Mail className="h-3 w-3" /> : <UserRoundSearch className="h-3 w-3" />}
+            <div className={cn("mt-0.5 p-1", isEmail ? "bg-sky-100 text-sky-700" : isTicket ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700")}>
+              {isEmail ? <Mail className="h-3 w-3" /> : isTicket ? <LifeBuoy className="h-3 w-3" /> : <UserRoundSearch className="h-3 w-3" />}
             </div>
             <div className="min-w-0">
               <CardTitle className="text-xs font-semibold">{action.title}</CardTitle>
@@ -98,9 +102,11 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
               </a>
             ) : null}
           </div>
-        ) : isEmail ? (
+        ) : isEmail || isTicket ? (
           <div className="space-y-2 border bg-muted/20 p-2">
-            {action.action_type === "send_docstudio_email" ? (
+            {isTicket ? (
+              <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Queue</span><span>Helpdesk · internal, no customer email sent</span></div>
+            ) : action.action_type === "send_docstudio_email" ? (
               <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipients</span><span>{(action.payload.recipients ?? []).join(", ")}</span></div>
             ) : (
               <>
@@ -109,11 +115,11 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
               </>
             )}
             <div className="space-y-0.5">
-              <Label htmlFor={`subject-${action.id}`} className="text-[11px]">Subject</Label>
+              <Label htmlFor={`subject-${action.id}`} className="text-[11px]">{isTicket ? "Ticket title" : "Subject"}</Label>
               <Input id={`subject-${action.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} className="h-6 text-xs" />
             </div>
             <div className="space-y-0.5">
-              <Label htmlFor={`body-${action.id}`} className="text-[11px]">Email draft</Label>
+              <Label htmlFor={`body-${action.id}`} className="text-[11px]">{isTicket ? "Description" : "Email draft"}</Label>
               <Textarea id={`body-${action.id}`} value={body} onChange={(event) => setBody(event.target.value)} rows={4} className="text-xs" />
             </div>
           </div>
@@ -149,10 +155,19 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
           </div>
         )}
 
+        {recordLink ? (
+          <Button asChild size="sm" variant="outline" className="h-6 text-xs">
+            <Link to={recordLink.href}>
+              {recordLink.label}
+              <ArrowUpRight className="ml-1 h-3 w-3" />
+            </Link>
+          </Button>
+        ) : null}
+
         {canAct ? (
           <div className="flex flex-wrap items-center gap-1.5">
             {changed ? (
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => onSave(action, isEmail ? { subject, body } : { taskContent })} className="h-6 text-xs">
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => onSave(action, isEmail || isTicket ? { subject, body } : { taskContent })} className="h-6 text-xs">
                 <Save className="mr-1 h-3 w-3" /> Save edit
               </Button>
             ) : null}

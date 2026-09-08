@@ -443,7 +443,11 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
                 <div className="flex gap-2">
                   <div className="mt-0.5 h-6 w-6 shrink-0 bg-slate-900 p-1 text-white"><Bot className="h-3.5 w-3.5 text-cyan-300" /></div>
                   <div className="min-w-0 flex-1 space-y-2">
-                    {selectedRun.workflow === "crm_opportunity_scan" ? (
+                    {selectedRun.workflow === "helpdesk_ticket" ? (
+                      <p className="text-xs leading-5">
+                        I opened helpdesk ticket <strong>{selectedRun.summary.ticketNumber ?? ""}</strong> in the queue. No email was sent to anyone.
+                      </p>
+                    ) : selectedRun.workflow === "crm_opportunity_scan" ? (
                       <div className="space-y-1 text-xs leading-5">
                         <p>
                           I reviewed <strong>{selectedRun.summary.contactsReviewed ?? 0}</strong> pipeline contacts and <strong>{selectedRun.summary.orderSignalsReviewed ?? 0}</strong> order-health records.
