@@ -1,9 +1,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import {
-  Activity,
   ArrowRight,
   ArrowUpRight,
-  BarChart3,
   BookOpen,
   Bot,
   CalendarPlus,
@@ -22,10 +20,6 @@ import {
   Users,
 } from "lucide-react";
 import { Link } from "react-router";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useWebsiteAnalyticsOverview } from "@/features/admin/dashboard/hooks/useWebsiteAnalyticsOverview";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
@@ -115,14 +109,6 @@ const appTiles = [
     featurePrefix: "settings",
     appKey: "settings" as AppKey,
   },
-  {
-    title: "Function Status",
-    description: "Edge-function readiness, latest smoke result, and failures.",
-    route: "/admin/settings/edge-functions",
-    icon: Activity,
-    featurePrefix: "settings",
-    appKey: null,
-  },
 ] as const;
 
 const QUICK_ACTIONS = [
@@ -170,14 +156,13 @@ const QUICK_ACTIONS = [
   },
 ] as const;
 
-const MAX_INLINE_TOOLS = 4;
+const MAX_INLINE_TOOLS = 3;
 
 const openGlobalSearch = () => {
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
 };
 
 const AdminDashboardHomePage = () => {
-  const analyticsOverview = useWebsiteAnalyticsOverview();
   const { user } = useAuth();
   const { hasAppAccess, canEditFeature } = useRolePermissions();
   const recentPaths = useRecentModules();
@@ -227,8 +212,8 @@ const AdminDashboardHomePage = () => {
   }, [recentPaths]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-1 pb-6 pt-1">
-      <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-4 px-1 pb-4 pt-1">
+      <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-4 shadow-sm md:p-5">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-60 blur-3xl"
@@ -239,7 +224,7 @@ const AdminDashboardHomePage = () => {
           className="pointer-events-none absolute -bottom-28 left-1/3 h-64 w-64 rounded-full opacity-40 blur-3xl"
           style={{ background: "radial-gradient(closest-side, hsl(188 65% 45% / 0.3), transparent)" }}
         />
-        <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{dateLabel}</p>
             <h1 className="mt-1.5 text-2xl font-bold tracking-tight md:text-3xl">
@@ -261,7 +246,7 @@ const AdminDashboardHomePage = () => {
         </div>
 
         {recentItems.length > 0 && (
-          <div className="relative mt-5 border-t border-border/60 pt-4">
+          <div className="relative mt-4 border-t border-border/60 pt-3">
             <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               <History className="h-3.5 w-3.5" />
               Continue where you left off
@@ -293,13 +278,13 @@ const AdminDashboardHomePage = () => {
       </section>
 
       {quickActions.length > 0 && (
-        <section className="space-y-2.5">
+        <section className="space-y-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick actions</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
             {quickActions.map((action) => {
               const Icon = action.icon;
               const cardClassName =
-                "group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+                "group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
               const cardContent = (
                 <>
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -346,7 +331,7 @@ const AdminDashboardHomePage = () => {
                 className="group relative flex flex-col overflow-hidden rounded-xl border border-border/70 bg-card transition-all hover:-translate-y-0.5 hover:border-[var(--app-accent)] hover:shadow-md"
               >
                 <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity group-hover:opacity-100" style={{ background: color }} />
-                <Link to={tile.route} className="flex items-start gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                <Link to={tile.route} className="flex items-start gap-3 p-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                   <span
                     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
                     style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}
@@ -363,7 +348,7 @@ const AdminDashboardHomePage = () => {
                 </Link>
 
                 {inlineTools.length > 0 && (
-                  <div className="mt-auto flex flex-wrap gap-1.5 border-t border-border/60 px-4 py-3">
+                  <div className="mt-auto flex flex-wrap gap-1.5 border-t border-border/60 px-3.5 py-2">
                     {inlineTools.map((item) => {
                       const ItemIcon = item.icon;
                       return (
