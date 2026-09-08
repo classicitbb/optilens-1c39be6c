@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type CopilotRun = {
   id: string;
   conversation_id: string | null;
-  workflow: "erp_portal_rollout" | "crm_opportunity_scan";
+  workflow: "erp_portal_rollout" | "crm_opportunity_scan" | "crm_enrichment" | "helpdesk_ticket";
   command_text: string;
   input_mode: "text" | "voice";
   transcript: string | null;
@@ -24,6 +24,7 @@ export type CopilotRun = {
     suggestionsPrepared?: number;
     lapsedBuyers?: number;
     overdueNextActions?: number;
+    ticketNumber?: string;
     missingContactDetails?: number;
     noActiveOpportunity?: number;
   };
@@ -91,7 +92,7 @@ export type CopilotAction = {
   run_id: string;
   customer_id: number | null;
   contact_id: string | null;
-  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email" | "apply_contact_enrichment";
+  action_type: "send_portal_invite" | "create_followup_task" | "send_docstudio_email" | "apply_contact_enrichment" | "create_support_ticket";
   risk_level: number;
   status: "pending_approval" | "executing" | "completed" | "failed" | "rejected" | "blocked";
   title: string;

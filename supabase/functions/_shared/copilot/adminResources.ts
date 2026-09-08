@@ -605,7 +605,7 @@ const HELPDESK_PRIORITY_BY_LABEL: Record<string, number> = {
   critical: 5,
 };
 
-const normalizeHelpdeskPriority = (value: unknown): number => {
+export const normalizeHelpdeskPriority = (value: unknown): number => {
   const label = typeof value === "string" ? value.trim().toLowerCase() : "";
   const numeric = label in HELPDESK_PRIORITY_BY_LABEL ? HELPDESK_PRIORITY_BY_LABEL[label] : Number(value);
   if (!Number.isInteger(numeric) || numeric < 0 || numeric > 5) {
