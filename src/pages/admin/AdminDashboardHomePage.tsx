@@ -1,9 +1,7 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import {
-  Activity,
   ArrowRight,
   ArrowUpRight,
-  BarChart3,
   BookOpen,
   Bot,
   CalendarPlus,
@@ -22,10 +20,6 @@ import {
   Users,
 } from "lucide-react";
 import { Link } from "react-router";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useWebsiteAnalyticsOverview } from "@/features/admin/dashboard/hooks/useWebsiteAnalyticsOverview";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
 import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
@@ -114,14 +108,6 @@ const appTiles = [
     icon: Settings,
     featurePrefix: "settings",
     appKey: "settings" as AppKey,
-  },
-  {
-    title: "Function Status",
-    description: "Edge-function readiness, latest smoke result, and failures.",
-    route: "/admin/settings/edge-functions",
-    icon: Activity,
-    featurePrefix: "settings",
-    appKey: null,
   },
 ] as const;
 
@@ -227,8 +213,8 @@ const AdminDashboardHomePage = () => {
   }, [recentPaths]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-1 pb-6 pt-1">
-      <section className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-6">
+    <div className="w-full space-y-4 px-0 pb-3 pt-0">
+      <section className="relative overflow-hidden rounded-xl border border-border/70 bg-card p-4 shadow-sm">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-60 blur-3xl"
@@ -295,7 +281,7 @@ const AdminDashboardHomePage = () => {
       {quickActions.length > 0 && (
         <section className="space-y-2.5">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Quick actions</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
             {quickActions.map((action) => {
               const Icon = action.icon;
               const cardClassName =
@@ -333,7 +319,7 @@ const AdminDashboardHomePage = () => {
 
       <section className="space-y-2.5">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Applications</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {visibleAppTiles.map((tile) => {
             const Icon = tile.icon;
             const color = appColor(tile.appKey ?? "settings");
@@ -394,55 +380,6 @@ const AdminDashboardHomePage = () => {
         </div>
       </section>
 
-      <section>
-        <Accordion type="single" collapsible className="w-full rounded-xl border border-border/70 bg-card px-4">
-          <AccordionItem value="website-analytics" className="border-none">
-            <AccordionTrigger className="py-4 text-left hover:no-underline">
-              <span className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-primary" />
-                <span className="text-base font-semibold tracking-tight">Website Analytics</span>
-              </span>
-            </AccordionTrigger>
-            <AccordionContent className="pb-4">
-              {analyticsOverview.isLoading ? (
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <Card key={index} className="border-border/70">
-                      <CardHeader className="space-y-2 p-4 pb-1.5">
-                        <Skeleton className="h-3 w-24" />
-                        <Skeleton className="h-8 w-24" />
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <Skeleton className="h-3 w-28" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : analyticsOverview.error ? (
-                <Card className="border-border/70">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-destructive">{analyticsOverview.error.message}</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-6">
-                  {analyticsOverview.data?.metrics.map((metric) => (
-                    <Card key={metric.label} className="border-border/70">
-                      <CardHeader className="space-y-1 p-4 pb-1.5">
-                        <CardDescription className="text-xs">{metric.label}</CardDescription>
-                        <CardTitle className="text-2xl leading-none">{metric.value}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400">{metric.trend}</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </section>
     </div>
   );
 };
