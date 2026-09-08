@@ -631,10 +631,11 @@ export const PUBLIC_CONTENT_INDEX: PublicContentEntry[] = [
       "Terms of Use",
       "Cookie Policy",
       "Accessibility Statement",
+      "End User License Agreement",
       "Return Policy"
     ],
     "alts": [],
-    "text": "Privacy Policy · Terms of Use · Cookie Policy · Accessibility Statement · Return Policy · This page is not yet available."
+    "text": "Privacy Policy · Terms of Use · Cookie Policy · Accessibility Statement · End User License Agreement · Return Policy · This page is not yet available."
   },
   {
     "path": "/professionals",
@@ -845,10 +846,11 @@ export const PUBLIC_CONTENT_INDEX: PublicContentEntry[] = [
       "Terms of Use",
       "Cookie Policy",
       "Accessibility Statement",
+      "End User License Agreement",
       "Return Policy"
     ],
     "alts": [],
-    "text": "Privacy Policy · Terms of Use · Cookie Policy · Accessibility Statement · Return Policy · This page is not yet available."
+    "text": "Privacy Policy · Terms of Use · Cookie Policy · Accessibility Statement · End User License Agreement · Return Policy · This page is not yet available."
   },
   {
     "path": "/rx-job-status",
@@ -881,10 +883,11 @@ export const PUBLIC_CONTENT_INDEX: PublicContentEntry[] = [
       "Terms of Use",
       "Cookie Policy",
       "Accessibility Statement",
+      "End User License Agreement",
       "Return Policy"
     ],
     "alts": [],
-    "text": "Privacy Policy · Terms of Use · Cookie Policy · Accessibility Statement · Return Policy · This page is not yet available."
+    "text": "Privacy Policy · Terms of Use · Cookie Policy · Accessibility Statement · End User License Agreement · Return Policy · This page is not yet available."
   },
   {
     "path": "/vizionize-cleaner",
