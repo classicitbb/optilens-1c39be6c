@@ -61,11 +61,16 @@ interface AppLauncherProps {
 const LauncherTile = ({ item, onSelect }: { item: LaunchItem; onSelect: (item: LaunchItem) => void }) => {
   const color = appColor(item.key);
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(item)}
+    <a
+      href={item.defaultRoute}
+      onClick={(e) => {
+        // let the browser handle new-tab/new-window modifiers
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        onSelect(item);
+      }}
       style={{ "--tile-accent": color } as CSSProperties}
-      className="group flex h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-transparent px-1 text-center outline-none transition-all duration-150 hover:-translate-y-0.5 hover:border-border hover:bg-muted/60 focus-visible:border-[var(--tile-accent)] focus-visible:ring-2 focus-visible:ring-[var(--tile-accent)]/30"
+      className="group flex h-[92px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-transparent px-1 text-center outline-none transition-all duration-150 hover:-translate-y-0.5 hover:border-border hover:bg-muted/60 focus-visible:border-[var(--tile-accent)] focus-visible:ring-2 focus-visible:ring-[var(--tile-accent)]/30"
     >
       <span
         className="inline-flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-150 group-hover:scale-105"
@@ -74,7 +79,7 @@ const LauncherTile = ({ item, onSelect }: { item: LaunchItem; onSelect: (item: L
         <item.icon className="h-[22px] w-[22px]" />
       </span>
       <span className="line-clamp-2 text-[11px] font-medium leading-tight text-foreground/90">{item.title}</span>
-    </button>
+    </a>
   );
 };
 
