@@ -17,6 +17,7 @@ import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrati
 import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderCard";
 import CopilotFactsCard from "./CopilotFactsCard";
+import AssistantMemoryCard from "./AssistantMemoryCard";
 import { QboIntegrationCard } from "@/components/admin/QboIntegrationCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -666,6 +667,7 @@ export default function IntegrationsPage() {
             />
           ))}
 
+          <AssistantMemoryCard enabled={isAdmin} />
           <CopilotFactsCard enabled={isAdmin} />
         </TabsContent>
       </Tabs>
