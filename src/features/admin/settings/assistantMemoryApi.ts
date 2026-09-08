@@ -18,7 +18,7 @@ export interface AssistantMemory {
 
 // The table is owner-scoped by RLS, so every query here is implicitly "mine".
 // Casts are needed because the generated Supabase types predate this table.
-const table = () => (supabase.from("assistant_user_memory") as any);
+const table = () => (supabase as any).from("assistant_user_memory");
 
 export async function fetchAssistantMemory(surface = "admin"): Promise<AssistantMemory[]> {
   const { data, error } = await table()
