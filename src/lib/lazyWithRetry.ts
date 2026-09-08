@@ -33,7 +33,13 @@ export const lazyWithRetry = <T extends ComponentType<never>>(
 ) =>
   lazy(async () => {
     try {
-      return await factory();
+      const mod = await factory();
+      try {
+        sessionStorage.removeItem(RELOAD_KEY);
+      } catch {
+        /* ignore */
+      }
+      return mod;
     } catch (error) {
       if (!isChunkLoadError(error)) throw error;
       try {
