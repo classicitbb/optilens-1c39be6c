@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useLiveHelpdeskTicketUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
+import { useScrollToLatestMessage } from "@/features/admin/helpdesk/hooks/useScrollToLatestMessage";
 import NpsPrompt from "@/components/feedback/NpsPrompt";
 import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
 import { uploadHelpdeskImages, type HelpdeskAttachment, validateHelpdeskImages } from "@/lib/helpdeskAttachments";
@@ -62,6 +63,14 @@ const HelpdeskTicketDetailSection = () => {
       }>;
     },
   });
+
+  const latestMessage = messages[messages.length - 1];
+  // A support reply reads from its first line down; your own send just needs
+  // the thread to sit at the bottom, next to the reply box.
+  const latestMessageRef = useScrollToLatestMessage(
+    loadingMessages ? undefined : `${latestMessage?.id ?? "none"}-${messages.length}`,
+    latestMessage?.direction === "outbound" ? "start" : "end",
+  );
 
   const { data: attachments = [] } = useQuery({
     queryKey: ["portal-helpdesk-attachments", ticketId], enabled: !!ticketId && !!user,
@@ -164,7 +173,11 @@ const HelpdeskTicketDetailSection = () => {
             messages.map((msg) => {
               const isCustomer = msg.direction === "inbound";
               return (
-                <div key={msg.id} className={`flex w-full flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}>
+                <div
+                  key={msg.id}
+                  ref={msg.id === latestMessage?.id ? latestMessageRef : undefined}
+                  className={`flex w-full flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}
+                >
                   <div
                     className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                       isCustomer
