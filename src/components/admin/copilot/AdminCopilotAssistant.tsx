@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   AlertCircle,
   ArrowUp,
+  ArrowUpRight,
   CheckCircle2,
   ChevronDown,
   ExternalLink,
@@ -35,6 +36,8 @@ import { VoiceSettingsMenu } from "@/features/admin/copilot/VoiceSettingsMenu";
 import { readStoredHoldToRecord, storeHoldToRecord } from "@/features/admin/copilot/voicePreferences";
 import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
 import { ActionCard } from "@/features/admin/copilot/ActionCard";
+import { resolveActionRecordLink } from "@/features/admin/copilot/recordLinks";
+import { suggestFollowUps } from "@/features/admin/copilot/followUpSuggestions";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from "@/features/admin/copilot/attachments";
 import { formatVoiceTranscript } from "@/features/admin/copilot/transcriptFormatting";
@@ -241,6 +244,16 @@ const AdminCopilotAssistant = () => {
     [displayedState],
   );
 
+  const createdRecords = useMemo(
+    () => (displayedState?.actions ?? []).flatMap((action) => {
+      const link = resolveActionRecordLink(action);
+      return link ? [{ action, link }] : [];
+    }),
+    [displayedState],
+  );
+
+  const followUpSuggestions = useMemo(() => suggestFollowUps(displayedState), [displayedState]);
+
   const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
   const hasAttachments = attachments.length > 0;
   const canSend = !prepareMutation.isPending && !isAnalyzing
@@ -249,7 +262,7 @@ const AdminCopilotAssistant = () => {
   useEffect(() => {
     if (!isOpen) return;
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [isOpen, conversationMessages.length, localMessages.length, pendingActions.length, prepareMutation.isPending, isAnalyzing]);
+  }, [isOpen, conversationMessages.length, localMessages.length, pendingActions.length, createdRecords.length, followUpSuggestions.length, prepareMutation.isPending, isAnalyzing]);
 
   const resizeCommandInput = useCallback(() => {
     const el = commandInputRef.current;
@@ -365,18 +378,22 @@ ${transcript}` : transcript));
           size="icon"
           aria-label="Open Iris, Portal Copilot"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-50 h-12 w-12 overflow-hidden rounded-full border border-accent/70 bg-background/75 p-0 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
+          className="fixed bottom-4 right-4 z-[9100] h-12 w-12 overflow-hidden rounded-full border border-accent/70 bg-background/75 p-0 text-foreground shadow-[0_16px_42px_rgba(200,145,48,0.16),inset_0_1px_0_rgba(255,255,255,0.32)] backdrop-blur-xl hover:bg-background/90 sm:bottom-6 sm:right-6"
         >
           <img src="/images/iris/iris-ai-operations-partner.png" alt="Iris, Portal Copilot" className="h-full w-full object-cover" />
         </Button>
+      ) : null}
+
+      {isOpen && pendingActions.length ? (
+        <div aria-hidden className="fixed inset-0 z-[9099] bg-background/60 backdrop-blur-sm" />
       ) : null}
 
       {isOpen ? (
         <div
           className={
             panelPosition
-              ? "fixed z-50"
-              : "fixed inset-x-3 bottom-20 top-20 z-50 sm:inset-x-auto sm:right-4 sm:top-28 sm:bottom-8 sm:w-[28rem]"
+              ? "fixed z-[9100]"
+              : "fixed inset-x-3 bottom-20 top-20 z-[9100] sm:inset-x-auto sm:right-4 sm:top-28 sm:bottom-8 sm:w-[28rem]"
           }
           style={panelPosition ? { left: panelPosition.x, top: panelPosition.y, width: panelSize.width, height: panelSize.height } : undefined}
           onDragOver={(event) => {
@@ -499,7 +516,11 @@ ${transcript}` : transcript));
                         className="mt-0.5 h-7 w-7 shrink-0 rounded-full border border-border/50 object-cover shadow-soft"
                       />
                       <div className="min-w-0 flex-1 space-y-2">
-                        {selectedRun.workflow === "crm_opportunity_scan" ? (
+                        {selectedRun.workflow === "helpdesk_ticket" ? (
+                          <p className="text-sm leading-6 text-foreground">
+                            Opened helpdesk ticket <strong>{selectedRun.summary.ticketNumber ?? ""}</strong>. No email was sent to anyone.
+                          </p>
+                        ) : selectedRun.workflow === "crm_opportunity_scan" ? (
                           <p className="text-sm leading-6 text-foreground">
                             Reviewed <strong>{selectedRun.summary.contactsReviewed ?? 0}</strong> pipeline contacts and <strong>{selectedRun.summary.orderSignalsReviewed ?? 0}</strong> order-health records. <strong>{selectedRun.summary.suggestionsPrepared ?? 0}</strong> qualified follow-ups are ready for review.
                           </p>
@@ -570,6 +591,44 @@ ${transcript}` : transcript));
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <img src="/images/iris/iris-ai-operations-partner.png" alt="Iris" className="h-7 w-7 shrink-0 animate-pulse rounded-full border border-border/50 object-cover shadow-soft" />
                     <span className="flex items-center gap-1.5">Working on it <ThinkingDots /></span>
+                  </div>
+                ) : null}
+
+                {createdRecords.length ? (
+                  <div className="space-y-1.5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                    <p className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-900 dark:text-emerald-200">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Records I created
+                    </p>
+                    {createdRecords.map(({ action, link }) => (
+                      <div key={action.id} className="flex flex-wrap items-center justify-between gap-1.5">
+                        <span className="min-w-0 truncate text-xs text-foreground">{action.title}</span>
+                        <Button asChild size="sm" variant="outline" className="h-6 shrink-0 text-xs">
+                          <Link to={link.href}>
+                            {link.label}
+                            <ArrowUpRight className="ml-1 h-3 w-3" />
+                          </Link>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {followUpSuggestions.length > 0 && !prepareMutation.isPending && !isAnalyzing ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {followUpSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        className="rounded-full border border-border/50 bg-card/80 px-3 py-1.5 text-xs text-secondary shadow-soft hover:bg-muted"
+                        onClick={() => {
+                          setCommand(suggestion.prompt);
+                          setInputMode("text");
+                          commandInputRef.current?.focus();
+                        }}
+                      >
+                        {suggestion.label}
+                      </button>
+                    ))}
                   </div>
                 ) : null}
 
