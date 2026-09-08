@@ -4204,6 +4204,57 @@ export type Database = {
         }
         Relationships: []
       }
+      helpdesk_ticket_attachments: {
+        Row: {
+          byte_size: number
+          created_at: string
+          file_name: string
+          id: string
+          message_id: string | null
+          mime_type: string
+          storage_path: string
+          ticket_id: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          byte_size: number
+          created_at?: string
+          file_name: string
+          id?: string
+          message_id?: string | null
+          mime_type: string
+          storage_path: string
+          ticket_id: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          byte_size?: number
+          created_at?: string
+          file_name?: string
+          id?: string
+          message_id?: string | null
+          mime_type?: string
+          storage_path?: string
+          ticket_id?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_ticket_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_ticket_attachments_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_ticket_events: {
         Row: {
           actor_user_id: string | null
@@ -11817,6 +11868,10 @@ export type Database = {
       }
       can_access_financial_data: {
         Args: { p_user_id?: string }
+        Returns: boolean
+      }
+      can_access_helpdesk_ticket: {
+        Args: { p_ticket_id: string; p_user_id?: string }
         Returns: boolean
       }
       can_access_portal_account: {
