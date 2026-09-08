@@ -329,11 +329,10 @@ const AdminDashboardHomePage = () => {
         </section>
       )}
 
-      <CreateHelpdeskTicketDialog open={createTicketOpen} onOpenChange={setCreateTicketOpen} />
-
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Applications</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+
           {visibleAppTiles.map((tile) => {
             const Icon = tile.icon;
             const color = appColor(tile.appKey ?? "settings");
