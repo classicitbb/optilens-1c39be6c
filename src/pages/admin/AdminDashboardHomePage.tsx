@@ -163,7 +163,7 @@ const openGlobalSearch = () => {
 };
 
 const AdminDashboardHomePage = () => {
-  const analyticsOverview = useWebsiteAnalyticsOverview();
+  
   const { user } = useAuth();
   const { hasAppAccess, canEditFeature } = useRolePermissions();
   const recentPaths = useRecentModules();
