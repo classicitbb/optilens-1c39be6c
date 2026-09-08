@@ -42,6 +42,7 @@ import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { VoiceSettingsMenu } from "@/features/admin/copilot/VoiceSettingsMenu";
 import { readStoredHoldToRecord, storeHoldToRecord } from "@/features/admin/copilot/voicePreferences";
 import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
+import { suggestFollowUps } from "@/features/admin/copilot/followUpSuggestions";
 import { ActionCard, statusLabel } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from "@/features/admin/copilot/attachments";
@@ -241,6 +242,8 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
   const visibleActions = actionFilter === "pending" ? pendingActions : actionFilter === "resolved" ? resolvedActions : (displayedState?.actions ?? []);
   const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
   const hasAttachments = attachments.length > 0;
+  const followUpSuggestions = useMemo(() => suggestFollowUps(displayedState), [displayedState]);
+
   const canPrepare = !prepareMutation.isPending && !isAnalyzing
     && (hasAttachments || command.trim().length > 0)
     && (inputMode === "text" || transcriptConfirmed);
@@ -248,7 +251,7 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [selectedConversation?.id, selectedRun?.id, visibleActions.length, prepareMutation.isPending, conversationMessages.length, localMessages.length, isAnalyzing]);
+  }, [selectedConversation?.id, selectedRun?.id, visibleActions.length, followUpSuggestions.length, prepareMutation.isPending, conversationMessages.length, localMessages.length, isAnalyzing]);
 
   useEffect(() => {
     if (command) return;
@@ -577,6 +580,25 @@ const PortalCopilotPage = ({ standalone }: { standalone?: boolean }) => {
               </div>
             ) : null}
 
+
+            {followUpSuggestions.length > 0 && !prepareMutation.isPending && !isAnalyzing ? (
+              <div className="flex flex-wrap gap-1.5 pl-8">
+                {followUpSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.id}
+                    type="button"
+                    className="border px-3 py-1.5 text-xs transition-colors hover:bg-muted"
+                    onClick={() => {
+                      setCommand(suggestion.prompt);
+                      setInputMode("text");
+                      commandInputRef.current?.focus();
+                    }}
+                  >
+                    {suggestion.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <div ref={transcriptEndRef} />
           </div>

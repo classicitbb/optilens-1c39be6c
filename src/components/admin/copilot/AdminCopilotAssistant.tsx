@@ -34,6 +34,7 @@ import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { VoiceSettingsMenu } from "@/features/admin/copilot/VoiceSettingsMenu";
 import { readStoredHoldToRecord, storeHoldToRecord } from "@/features/admin/copilot/voicePreferences";
 import { CopilotMarkdown } from "@/features/admin/copilot/CopilotMarkdown";
+import { suggestFollowUps } from "@/features/admin/copilot/followUpSuggestions";
 import { ActionCard } from "@/features/admin/copilot/ActionCard";
 import { ThinkingDots } from "@/features/admin/copilot/ThinkingDots";
 import { MAX_ATTACHMENTS, MAX_ATTACHMENT_BYTES, buildAttachment, toBase64 } from "@/features/admin/copilot/attachments";
@@ -241,6 +242,8 @@ const AdminCopilotAssistant = () => {
     [displayedState],
   );
 
+  const followUpSuggestions = useMemo(() => suggestFollowUps(displayedState), [displayedState]);
+
   const lowConfidence = inputMode === "voice" && speechConfidence != null && speechConfidence < speech.settings.confidenceThreshold;
   const hasAttachments = attachments.length > 0;
   const canSend = !prepareMutation.isPending && !isAnalyzing
@@ -249,7 +252,7 @@ const AdminCopilotAssistant = () => {
   useEffect(() => {
     if (!isOpen) return;
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [isOpen, conversationMessages.length, localMessages.length, pendingActions.length, prepareMutation.isPending, isAnalyzing]);
+  }, [isOpen, conversationMessages.length, localMessages.length, pendingActions.length, followUpSuggestions.length, prepareMutation.isPending, isAnalyzing]);
 
   const resizeCommandInput = useCallback(() => {
     const el = commandInputRef.current;
@@ -570,6 +573,25 @@ ${transcript}` : transcript));
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <img src="/images/iris/iris-ai-operations-partner.png" alt="Iris" className="h-7 w-7 shrink-0 animate-pulse rounded-full border border-border/50 object-cover shadow-soft" />
                     <span className="flex items-center gap-1.5">Working on it <ThinkingDots /></span>
+                  </div>
+                ) : null}
+
+                {followUpSuggestions.length > 0 && !prepareMutation.isPending && !isAnalyzing ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {followUpSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        className="rounded-full border border-border/50 bg-card/80 px-3 py-1.5 text-xs text-secondary shadow-soft hover:bg-muted"
+                        onClick={() => {
+                          setCommand(suggestion.prompt);
+                          setInputMode("text");
+                          commandInputRef.current?.focus();
+                        }}
+                      >
+                        {suggestion.label}
+                      </button>
+                    ))}
                   </div>
                 ) : null}
 
