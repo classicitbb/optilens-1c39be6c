@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
-import { CalendarCheck, Glasses, HelpCircle, Home, LayoutDashboard, Package, Search, X, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CreditCard, Glasses, HelpCircle, Home, LayoutDashboard, Package, Search, X, type LucideIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { appColor } from "@/features/admin/core/config/appColors";
@@ -36,6 +36,13 @@ const LAUNCHER_SHORTCUTS = {
     icon: Package,
     defaultRoute: "/admin/website/stock-orders",
     featurePrefix: "website",
+  },
+  "walk-in-payments": {
+    key: "walk-in-payments",
+    title: "Walk-in Payments",
+    icon: CreditCard,
+    defaultRoute: "/admin/settings/walk-in-payments",
+    featurePrefix: "settings",
   },
 } as const;
 
