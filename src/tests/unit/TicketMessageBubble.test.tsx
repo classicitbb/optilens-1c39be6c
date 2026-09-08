@@ -14,8 +14,11 @@ const message = (direction: "inbound" | "outbound") => ({
   created_at: "2026-07-30T14:00:00.000Z",
 });
 
+// The alignment wrapper is the only ancestor that lays the row out full
+// width, so find it by that rather than by counting parents: the markdown
+// renderer's internal nesting is free to change without breaking this test.
 const bubbleContainer = (body: string) =>
-  screen.getByText(body).closest("p")?.parentElement?.parentElement?.parentElement;
+  screen.getByText(body).closest<HTMLElement>("div.w-full.flex-col");
 
 describe("TicketMessageBubble", () => {
   it("keeps customer messages left and operator messages right", () => {

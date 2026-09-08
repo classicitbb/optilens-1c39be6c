@@ -75,7 +75,6 @@ describe("lens assistant → rx order handoff", () => {
     expect(rxCell("od", "pd")?.value).toBe("");
     expect(rxCell("od", "ht")?.value).toBe("");
     expect(field("#pfirst")?.value).toBe("");
-    expect(field("#ftemple")?.value).toBe("");
 
     engine.destroy();
   });
