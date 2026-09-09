@@ -119,6 +119,20 @@ const ListCatalogTab = ({
   const [addonRows, setAddonRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [supplyRows, setSupplyRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
+
+  // Live mirrors of the working copy, so the "reload from database" effect
+  // below can merge fresh server prices in without clobbering in-flight edits.
+  const lensRowsRef = useRef(lensRows);
+  lensRowsRef.current = lensRows;
+  const addonRowsRef = useRef(addonRows);
+  addonRowsRef.current = addonRows;
+  const supplyRowsRef = useRef(supplyRows);
+  supplyRowsRef.current = supplyRows;
+  // Last snapshot of each row as the server had it, keyed by row_key. A local
+  // row that differs from its snapshot is a user edit and must survive a
+  // refetch triggered by another editor (e.g. the Stock Order SKUs tab).
+  const lastServerRowsRef = useRef<Map<string, CatalogRow>>(new Map());
+
   const [editingDesc, setEditingDesc] = useState<{key: string;value: string;} | null>(null);
   const [editingPrice, setEditingPrice] = useState<{key: string;value: string;} | null>(null);
   const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
