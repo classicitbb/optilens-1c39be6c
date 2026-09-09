@@ -35,12 +35,20 @@ export const useTradePricing = () => {
     queryKey: ["trade-store-pricing", customerId],
     enabled: customerId != null,
     queryFn: async () => {
-      const [{ data: matrixRows, error: matrixError }, { data: catalogRows, error: catalogError }] = await Promise.all([
+      const [
+        { data: matrixRows, error: matrixError },
+        { data: catalogRows, error: catalogError },
+        { data: stockRows, error: stockError },
+      ] = await Promise.all([
         (supabase.rpc as any)("portal_assigned_pricelist_matrix", { p_customer_id: customerId }),
         (supabase.rpc as any)("portal_assigned_pricelist_catalog", { p_catalog_type: "buysell", p_customer_id: customerId }),
+        // Stock prices for the same customer: their assigned pricelist first,
+        // Retail as the fallback for anything they aren't priced on.
+        (supabase.rpc as any)("portal_customer_stock_prices", { p_customer_id: customerId }),
       ]);
       if (matrixError) throw matrixError;
       if (catalogError) throw catalogError;
+      if (stockError) throw stockError;
 
       const lensPriceByLensId = new Map<string, number>();
       for (const row of (matrixRows ?? []) as Array<{ lens_id: string | null; allocated_price_bbd: number | null }>) {
@@ -56,8 +64,18 @@ export const useTradePricing = () => {
         }
       }
 
+      // Stock (WSPL) prices win for store buying: the store sells stock items,
+      // while the matrix above prices Rx jobs.
+      for (const row of (stockRows ?? []) as Array<{ item_type: string; item_id: string | null; bbd_price: number | null }>) {
+        if (!row.item_id || row.bbd_price == null) continue;
+        const price = Number(row.bbd_price);
+        if (row.item_type === "lens") lensPriceByLensId.set(row.item_id, price);
+        else itemPriceByItemId.set(row.item_id, price);
+      }
+
       return { lensPriceByLensId, itemPriceByItemId };
     },
+
     staleTime: 60_000,
   });
 
