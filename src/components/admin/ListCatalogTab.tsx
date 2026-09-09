@@ -829,7 +829,15 @@ const ListCatalogTab = ({
   const handleSave = async () => {
     if (!versionId) {toast({ title: "No version selected", variant: "destructive" });return;}
     const rows = buildPersistedRows();
-    saveRows.mutate(rows, {
+    // Baseline = what this tab last read from the database. Rows unchanged
+    // against it are skipped on save, so a stale tab can't undo an edit made
+    // on the Stock Order SKUs tab (or by another user) in the meantime.
+    const baseline = new Map<string, { bbd_price: number | null; display_description: string }>();
+    lastServerRowsRef.current.forEach((row, key) => {
+      baseline.set(key, { bbd_price: row.bbd ?? null, display_description: row.description });
+    });
+    saveRows.mutate({ rows, baseline }, {
+
       onSuccess: () => {
         setIsDirty(false);
         onSaved?.();
