@@ -1137,6 +1137,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
       let portalTicketId: string | null = null;
       let quoteNumber: string | null = null;
+      let imageAttachmentError: string | null = null;
       if (isQuoteRequest && user) {
         const { data, error } = await (supabase.rpc as any)("submit_customer_quote_request", {
           p_customer_name: formState.customerName.trim() || accountName || "Signed-in customer",
@@ -1161,12 +1162,19 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         // every image has the same ticket-scoped access control as replies.
         const outgoingImages = messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []);
         if (portalTicketId && outgoingImages.length) {
-          const files = await Promise.all(outgoingImages.map(async (image) => {
-            const response = await fetch(image.previewUrl);
-            const blob = await response.blob();
-            return new File([blob], image.name, { type: blob.type || "image/png" });
-          }));
-          await uploadHelpdeskImages(portalTicketId, files);
+          // The ticket already exists at this point, so an image failure must not
+          // discard the submission - report it and keep the success confirmation.
+          try {
+            const files = await Promise.all(outgoingImages.map(async (image) => {
+              const response = await fetch(image.previewUrl);
+              const blob = await response.blob();
+              return new File([blob], image.name, { type: blob.type || "image/png" });
+            }));
+            await uploadHelpdeskImages(portalTicketId, files);
+          } catch (imageError) {
+            console.error("Failed to attach assistant images to ticket", imageError);
+            imageAttachmentError = imageError instanceof Error ? imageError.message : "The images could not be uploaded.";
+          }
         }
       } else {
         const message = [
@@ -1205,7 +1213,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
             : isPricelistRequest
             ? "Your approved price-list request was sent to Russell and added to the CRM for follow-up."
             : formState.kind === "portal_support"
-            ? "Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here."
+            ? `Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here.${imageAttachmentError ? ` Your images could not be attached (${imageAttachmentError}) - you can add them again from the conversation.` : ""}`
             : "Your request was submitted with the current page and assistant context attached. You can keep chatting here, or open one of the source links above while the team follows up.",
           quickActions: pathname.startsWith("/profile")
             ? [
