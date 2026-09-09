@@ -66,6 +66,19 @@ describe("admin stock order builder route accessibility", () => {
     expect(migration).toContain("IF p_dispatch_provider <> 'innovations' THEN");
   });
 
+  it("keeps one persisted draft while lines change and records the stock-lens pricing repair", () => {
+    const read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
+    const page = read("src/pages/admin/StockOrderBuilderPage.tsx");
+    const migration = read("supabase/migrations/20260909203000_fix_ha_stock_order_catalog.sql");
+
+    expect(page.match(/setStaged\(null\)/g)).toHaveLength(2);
+    expect(migration).toContain("btrim(c.name)");
+    expect(migration).toContain("round(v_price / 2, 2)");
+    expect(migration).toContain("round(v_unit_price / 2, 2)");
+    expect(migration).toContain("0209536846");
+    expect(migration).toContain("0024408072");
+  });
+
   it("uses a protected non-zero price resolver and creates linked canonical quotations", () => {
     const read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
     const page = read("src/pages/admin/StockOrderBuilderPage.tsx");

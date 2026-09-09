@@ -6,6 +6,24 @@
 
 ## Current continuation
 
+HA Optical's production stock-order catalog is live and orderable. The live
+database repair corrected `get_stock_order_catalog`, converts stock-lens pair
+prices to per-lens order prices, fixes the three incorrect Innova family links,
+and adds the missing SKU variants. The corresponding source migration is
+`supabase/migrations/20260909203000_fix_ha_stock_order_catalog.sql`.
+
+Order `DC30B7E3` was released to Innovations on 2026-09-09 with reference
+`H A STOCK ORDER`, 17 lines, 36 pieces, and an authoritative $1,403.00 total.
+The local source also removes `setStaged(null)` from stock-order line edits so
+autosave updates one draft instead of creating a new draft for every edit.
+That frontend fix is tested but not deployed. Passed: `npm run build` and
+`npx vitest run --coverage=false src/tests/integration/adminStockOrdersRouteAccessibility.integration.test.ts`
+(7 tests). Next action: publish the normal website frontend release containing
+`src/pages/admin/StockOrderBuilderPage.tsx`, then verify that two consecutive
+SKU scans retain one draft id.
+
+The previously active Scotia continuation remains below.
+
 The approved Scotia card-payment work is implemented in source: statement
 amounts no longer wrap; `/admin/settings/payment-activity` is an admin-only,
 minimal confirmation ledger; and the statement dialog requests saved-card

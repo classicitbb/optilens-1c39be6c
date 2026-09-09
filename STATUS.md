@@ -4,11 +4,23 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-07
+Last updated: 2026-09-09
 
 ---
 
 ## Active work
+
+- **HA Optical stock-order availability** — production catalog data and SQL
+  functions were repaired on 2026-09-09. `get_stock_order_catalog` no longer
+  fails on its ambiguous customer-name reference, stock lens pair prices are
+  converted to per-lens order-line prices, three Innova families now map to
+  their correct website lenses, and the missing chiral SKU variants exist.
+  HA order `DC30B7E3` was released to Innovations with 17 lines, 36 pieces,
+  and a $1,403.00 total. Migration
+  `20260909203000_fix_ha_stock_order_catalog.sql` records the live repair.
+  `StockOrderBuilderPage.tsx` also stops clearing its persisted draft id on
+  every line edit; that frontend cleanup fix still requires the normal site
+  deployment.
 
 - **Portal invoice detail and Helpdesk images** — source now makes a posted
   statement row open an invoice-line preview and includes that exact preview

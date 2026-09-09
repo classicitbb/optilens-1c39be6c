@@ -366,7 +366,6 @@ const StockOrderBuilderPage = () => {
       });
       return;
     }
-    setStaged(null);
     const key = `${product.product_type}:${product.product_id}:${variant?.id ?? "base"}:${side}`;
     setLines((prev) => {
       const existing = prev.find((l) => l.key === key);
@@ -395,14 +394,12 @@ const StockOrderBuilderPage = () => {
     const lineIndex = lines.findIndex((line) => line.key === key);
     const removedLine = lines[lineIndex];
     if (!removedLine) return;
-    setStaged(null);
     setLines((prev) => prev.filter((l) => l.key !== key));
     toast({
       title: `${removedLine.description} removed`,
       description: "The order total has been updated.",
       action: (
         <ToastAction altText={`Restore ${removedLine.description}`} onClick={() => {
-          setStaged(null);
           setLines((current) => {
             if (current.some((line) => line.key === removedLine.key)) return current;
             const restored = [...current];
@@ -416,7 +413,6 @@ const StockOrderBuilderPage = () => {
     });
   };
   const updateLine = (key: string, patch: Partial<OrderLine>) => {
-    setStaged(null);
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   };
 
