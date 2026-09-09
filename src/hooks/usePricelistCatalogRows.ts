@@ -79,15 +79,17 @@ export const usePricelistCatalogRows = (
       const changed = nextRows.filter((row) => {
         const server = serverByKey.get(row.row_key);
         if (!server) return true;
+        const serverPrice = server.bbd_price == null ? null : Number(server.bbd_price);
+        const rowPrice = row.bbd_price == null ? null : Number(row.bbd_price);
         return (
-          Number(server.bbd_price ?? NaN) !== Number(row.bbd_price ?? NaN) ||
-          (server.bbd_price == null) !== (row.bbd_price == null) ||
+          serverPrice !== rowPrice ||
           server.display_description !== row.display_description ||
           server.section !== row.section ||
           server.row_type !== row.row_type ||
           (server.item_id ?? null) !== (row.item_id ?? null) ||
           Number(server.sort_order ?? 0) !== Number(row.sort_order ?? 0)
         );
+
       });
 
       if (changed.length > 0) {
