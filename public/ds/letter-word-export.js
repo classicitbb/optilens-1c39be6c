@@ -118,5 +118,7 @@
     return out;
   }
 
-  window.__dcLetterWordExport = { buildLetterWordFile, LOGO_URL: LOGO_FILE };
+  // Header markup is resolved from header.htm, so the image URL must be
+  // relative to that sub-document rather than relative to the archive root.
+  window.__dcLetterWordExport = { buildLetterWordFile, LOGO_URL: "image001.png" };
 })();
