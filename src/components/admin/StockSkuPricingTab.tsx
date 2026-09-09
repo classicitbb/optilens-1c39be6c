@@ -28,13 +28,16 @@ const buildRowKey = (lensId: string) => `lens-${lensId}`;
 export const familyDisplayName = (family: InnovationsStoreLens) => {
   const raw = (family.name ?? "").trim();
   if (raw && !/^family[\s:]/i.test(raw)) return raw;
+  // Innova sends most attributes as bare numeric codes; only keep the ones
+  // that read as words so we never invent a product name.
   const parts = [family.material ?? family.material_group, family.mf_type, family.lens_type, family.option_name, family.finish_type]
     .map((v) => (v ?? "").trim())
-    .filter((v, i, arr) => v.length > 0 && arr.indexOf(v) === i);
-  if (!parts.length) return raw || family.innovations_lens_id;
+    .filter((v, i, arr) => v.length > 0 && !/^\d+$/.test(v) && arr.indexOf(v) === i);
+  if (!parts.length) return `Innova family ${family.innovations_lens_id}`;
   const name = parts.join(" · ");
-  return family.manufacturer ? `${name} (${family.manufacturer})` : name;
+  return family.manufacturer && !/^\d+$/.test(family.manufacturer) ? `${name} (${family.manufacturer})` : name;
 };
+
 
 const StockSkuPricingTab = ({ versionId }: { versionId: number | null }) => {
   const { toast } = useToast();
