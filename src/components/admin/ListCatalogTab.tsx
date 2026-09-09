@@ -246,8 +246,51 @@ const ListCatalogTab = ({
       if (r.row_type === "addon") {const arr = newAddon.get(r.section) ?? [];arr.push(row);newAddon.set(r.section, arr);} else
       {const arr = newSupply.get(r.section) ?? [];arr.push(row);newSupply.set(r.section, arr);}
     }
-    setLensRows(newLens);setAddonRows(newAddon);setSupplyRows(newSupply);setIsDirty(false);
+
+    const prevServer = lastServerRowsRef.current;
+    const nextServer = new Map<string, CatalogRow>();
+    for (const map of [newLens, newAddon, newSupply]) {
+      map.forEach((rows) => rows.forEach((r) => nextServer.set(r.key, r)));
+    }
+
+    let keptLocalEdit = false;
+    const merge = (incoming: Map<string, CatalogRow[]>, local: Map<string, CatalogRow[]>) => {
+      const localByKey = new Map<string, CatalogRow>();
+      local.forEach((rows) => rows.forEach((r) => localByKey.set(r.key, r)));
+      const merged = new Map<string, CatalogRow[]>();
+      incoming.forEach((rows, section) => {
+        merged.set(
+          section,
+          rows.map((serverRow) => {
+            const localRow = localByKey.get(serverRow.key);
+            const snapshot = prevServer.get(serverRow.key);
+            const edited =
+              !!localRow && !!snapshot &&
+              (localRow.bbd !== snapshot.bbd || localRow.description !== snapshot.description);
+            if (!edited) return serverRow;
+            keptLocalEdit = true;
+            return { ...localRow!, section: serverRow.section };
+          }),
+        );
+      });
+      // Rows added locally and not yet saved must not disappear on a refetch.
+      local.forEach((rows, section) => {
+        for (const r of rows) {
+          if (nextServer.has(r.key) || prevServer.has(r.key)) continue;
+          keptLocalEdit = true;
+          merged.set(section, [...(merged.get(section) ?? []), r]);
+        }
+      });
+      return merged;
+    };
+
+    const mergedLens = merge(newLens, lensRowsRef.current);
+    const mergedAddon = merge(newAddon, addonRowsRef.current);
+    const mergedSupply = merge(newSupply, supplyRowsRef.current);
+    lastServerRowsRef.current = nextServer;
+    setLensRows(mergedLens);setAddonRows(mergedAddon);setSupplyRows(mergedSupply);setIsDirty(keptLocalEdit);
   }, [savedRows, versionId, allLenses, allAddons, allSupplies, fxRate, rxCategoryMap]);
+
 
   /* ── Default rows from catalog ── */
   const defaultLensRows = useMemo<Map<string, CatalogRow[]>>(() => {
