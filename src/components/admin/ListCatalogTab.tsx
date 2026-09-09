@@ -119,6 +119,20 @@ const ListCatalogTab = ({
   const [addonRows, setAddonRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [supplyRows, setSupplyRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
+
+  // Live mirrors of the working copy, so the "reload from database" effect
+  // below can merge fresh server prices in without clobbering in-flight edits.
+  const lensRowsRef = useRef(lensRows);
+  lensRowsRef.current = lensRows;
+  const addonRowsRef = useRef(addonRows);
+  addonRowsRef.current = addonRows;
+  const supplyRowsRef = useRef(supplyRows);
+  supplyRowsRef.current = supplyRows;
+  // Last snapshot of each row as the server had it, keyed by row_key. A local
+  // row that differs from its snapshot is a user edit and must survive a
+  // refetch triggered by another editor (e.g. the Stock Order SKUs tab).
+  const lastServerRowsRef = useRef<Map<string, CatalogRow>>(new Map());
+
   const [editingDesc, setEditingDesc] = useState<{key: string;value: string;} | null>(null);
   const [editingPrice, setEditingPrice] = useState<{key: string;value: string;} | null>(null);
   const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
@@ -180,11 +194,19 @@ const ListCatalogTab = ({
     setHasViewed(true);
   }, []);
 
-  // When savedRows changes, reset local state from DB
+  // When savedRows changes, refresh the working copy from the database —
+  // merging, not replacing: untouched rows pick up the newest saved price
+  // (including edits made on the Stock Order SKUs tab), while rows the user is
+  // mid-way through editing keep their typed value.
   useEffect(() => {
-    if (!versionId) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
+    const resetAll = () => {
+      lastServerRowsRef.current = new Map();
+      setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);
+    };
+    if (!versionId) {resetAll();return;}
     if (!savedRows) return;
-    if (savedRows.length === 0) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
+    if (savedRows.length === 0) {resetAll();return;}
+
     const newLens = new Map<string, CatalogRow[]>();
     const newAddon = new Map<string, CatalogRow[]>();
     const newSupply = new Map<string, CatalogRow[]>();
@@ -224,8 +246,51 @@ const ListCatalogTab = ({
       if (r.row_type === "addon") {const arr = newAddon.get(r.section) ?? [];arr.push(row);newAddon.set(r.section, arr);} else
       {const arr = newSupply.get(r.section) ?? [];arr.push(row);newSupply.set(r.section, arr);}
     }
-    setLensRows(newLens);setAddonRows(newAddon);setSupplyRows(newSupply);setIsDirty(false);
+
+    const prevServer = lastServerRowsRef.current;
+    const nextServer = new Map<string, CatalogRow>();
+    for (const map of [newLens, newAddon, newSupply]) {
+      map.forEach((rows) => rows.forEach((r) => nextServer.set(r.key, r)));
+    }
+
+    let keptLocalEdit = false;
+    const merge = (incoming: Map<string, CatalogRow[]>, local: Map<string, CatalogRow[]>) => {
+      const localByKey = new Map<string, CatalogRow>();
+      local.forEach((rows) => rows.forEach((r) => localByKey.set(r.key, r)));
+      const merged = new Map<string, CatalogRow[]>();
+      incoming.forEach((rows, section) => {
+        merged.set(
+          section,
+          rows.map((serverRow) => {
+            const localRow = localByKey.get(serverRow.key);
+            const snapshot = prevServer.get(serverRow.key);
+            const edited =
+              !!localRow && !!snapshot &&
+              (localRow.bbd !== snapshot.bbd || localRow.description !== snapshot.description);
+            if (!edited) return serverRow;
+            keptLocalEdit = true;
+            return { ...localRow!, section: serverRow.section };
+          }),
+        );
+      });
+      // Rows added locally and not yet saved must not disappear on a refetch.
+      local.forEach((rows, section) => {
+        for (const r of rows) {
+          if (nextServer.has(r.key) || prevServer.has(r.key)) continue;
+          keptLocalEdit = true;
+          merged.set(section, [...(merged.get(section) ?? []), r]);
+        }
+      });
+      return merged;
+    };
+
+    const mergedLens = merge(newLens, lensRowsRef.current);
+    const mergedAddon = merge(newAddon, addonRowsRef.current);
+    const mergedSupply = merge(newSupply, supplyRowsRef.current);
+    lastServerRowsRef.current = nextServer;
+    setLensRows(mergedLens);setAddonRows(mergedAddon);setSupplyRows(mergedSupply);setIsDirty(keptLocalEdit);
   }, [savedRows, versionId, allLenses, allAddons, allSupplies, fxRate, rxCategoryMap]);
+
 
   /* ── Default rows from catalog ── */
   const defaultLensRows = useMemo<Map<string, CatalogRow[]>>(() => {
@@ -764,7 +829,15 @@ const ListCatalogTab = ({
   const handleSave = async () => {
     if (!versionId) {toast({ title: "No version selected", variant: "destructive" });return;}
     const rows = buildPersistedRows();
-    saveRows.mutate(rows, {
+    // Baseline = what this tab last read from the database. Rows unchanged
+    // against it are skipped on save, so a stale tab can't undo an edit made
+    // on the Stock Order SKUs tab (or by another user) in the meantime.
+    const baseline = new Map<string, { bbd_price: number | null; display_description: string }>();
+    lastServerRowsRef.current.forEach((row, key) => {
+      baseline.set(key, { bbd_price: row.bbd ?? null, display_description: row.description });
+    });
+    saveRows.mutate({ rows, baseline }, {
+
       onSuccess: () => {
         setIsDirty(false);
         onSaved?.();
