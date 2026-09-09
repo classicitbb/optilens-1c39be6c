@@ -25,6 +25,7 @@ const HelpdeskTicketDetailSection = () => {
   const qc = useQueryClient();
   const [replyBody, setReplyBody] = useState("");
   const [replyImages, setReplyImages] = useState<File[]>([]);
+  const [composerKey, setComposerKey] = useState(0);
   const [imageError, setImageError] = useState<string | null>(null);
   useLiveHelpdeskTicketUpdates(ticketId);
 
@@ -108,6 +109,7 @@ const HelpdeskTicketDetailSection = () => {
     onSuccess: () => {
       setReplyBody("");
       setReplyImages([]);
+      setComposerKey((key) => key + 1);
       qc.invalidateQueries({ queryKey: ["portal-helpdesk-messages", ticketId] });
       qc.invalidateQueries({ queryKey: ["portal-helpdesk-attachments", ticketId] });
       toast({ title: "Reply sent" });
@@ -187,7 +189,7 @@ const HelpdeskTicketDetailSection = () => {
                   >
                     {msg.body}
                   </div>
-                  {attachments.filter((attachment) => attachment.message_id === msg.id).length ? <HelpdeskImageAttachments ticketId={ticket.id} attachments={attachments.filter((attachment) => attachment.message_id === msg.id)} onFilesChange={() => undefined} disabled /> : null}
+                  {attachments.filter((attachment) => attachment.message_id === msg.id).length ? <HelpdeskImageAttachments ticketId={ticket.id} attachments={attachments.filter((attachment) => attachment.message_id === msg.id)} onFilesChange={() => undefined} disabled readOnly /> : null}
                   <span className="text-xs text-muted-foreground px-1">
                     {isCustomer ? "You" : "Support"} · {format(new Date(msg.sent_at), "MMM d, h:mm a")}
                   </span>
@@ -221,7 +223,7 @@ const HelpdeskTicketDetailSection = () => {
                 if (!error) setReplyImages(images);
               }}
             />
-            <HelpdeskImageAttachments ticketId={ticket.id} attachments={[]} onFilesChange={(files) => { setImageError(null); setReplyImages(files); }} disabled={sendReply.isPending} />
+            <HelpdeskImageAttachments key={composerKey} ticketId={ticket.id} attachments={[]} onFilesChange={(files) => { setImageError(null); setReplyImages(files); }} disabled={sendReply.isPending} />
             {imageError ? <p className="text-xs text-destructive">{imageError}</p> : null}
             <div className="flex items-center justify-between gap-3">
               <Button

@@ -351,10 +351,21 @@ const ListCatalogTab = ({
 
     let sortOrder = 0;
     const rows: Omit<PricelistCatalogRow, "id">[] = [];
+    const seenRowKeys = new Set<string>();
+
+    // The database enforces uniqueness on (pricelist_version_id,
+    // catalog_type, row_key). Older imports can leave the editor with the
+    // same row key more than once, so do not send a conflicting insert batch.
+    // Keep the first occurrence so the existing list order remains stable.
+    const appendRow = (row: Omit<PricelistCatalogRow, "id">) => {
+      if (seenRowKeys.has(row.row_key)) return;
+      seenRowKeys.add(row.row_key);
+      rows.push(row);
+    };
 
     for (const [sec, secRows] of effectiveLensRows) {
       for (const r of secRows) {
-        rows.push({
+        appendRow({
           pricelist_version_id: versionId,
           catalog_type: catalogType,
           row_key: r.key,
@@ -370,7 +381,7 @@ const ListCatalogTab = ({
 
     for (const [sec, secRows] of effectiveAddonRows) {
       for (const r of secRows) {
-        rows.push({
+        appendRow({
           pricelist_version_id: versionId,
           catalog_type: catalogType,
           row_key: r.key,
@@ -386,7 +397,7 @@ const ListCatalogTab = ({
 
     for (const [sec, secRows] of effectiveSupplyRows) {
       for (const r of secRows) {
-        rows.push({
+        appendRow({
           pricelist_version_id: versionId,
           catalog_type: catalogType,
           row_key: r.key,
