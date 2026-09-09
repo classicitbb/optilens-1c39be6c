@@ -36,8 +36,20 @@ export const usePricelistCatalogRows = (
   });
 
   const saveRows = useMutation({
-    mutationFn: async (rows: Omit<PricelistCatalogRow, "id">[]) => {
+    mutationFn: async (
+      input:
+        | Omit<PricelistCatalogRow, "id">[]
+        | {
+            rows: Omit<PricelistCatalogRow, "id">[];
+            /** What this editor last read from the database, keyed by row_key.
+             *  Rows unchanged against this baseline are never written, so a tab
+             *  holding a stale copy can't undo an edit made elsewhere. */
+            baseline?: Map<string, { bbd_price: number | null; display_description: string }>;
+          }
+    ) => {
       if (!versionId) return;
+      const rows = Array.isArray(input) ? input : input.rows;
+      const baseline = Array.isArray(input) ? undefined : input.baseline;
 
       // Deduplicate defensively — the DB enforces uniqueness on
       // (pricelist_version_id, catalog_type, row_key).
@@ -45,6 +57,7 @@ export const usePricelistCatalogRows = (
       for (const row of rows) if (!byKey.has(row.row_key)) byKey.set(row.row_key, row);
       const nextRows = [...byKey.values()];
       const keepKeys = new Set(nextRows.map((r) => r.row_key));
+
 
       // Remove only the rows this editor manages (lens/addon/supply) that are
       // no longer present. catalog_type='stock' is a shared bucket — the Stock
