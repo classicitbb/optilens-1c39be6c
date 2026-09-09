@@ -374,16 +374,37 @@
   };
   exportLetterWord = () => {
     this.setState({ docxOpen: false });
-    // Word opens an HTML document and renders it with full CSS fidelity, so the
-    // file matches the preview and stays fully editable. Office namespaces tell
-    // Word to treat it as a Word document.
+    const esc = this.esc;
+    const title = esc(this.state.ltSubject || (this.brand().name + ' Letter'));
+    const name = this.slug(this.state.ltSubject || 'classic-visions-letter') + '.doc';
+    const exporter = window.__dcLetterWordExport;
+    if (exporter) {
+      // MHTML archive: the letterhead lockup and the contact strip become real
+      // Word header/footer sub-documents, so they repeat on every page and are
+      // edited in Word's header/footer area. Body text stays plain, editable text.
+      const logoPng = this.logoPng('navy');
+      const usesEmbeddedLogo = typeof logoPng === 'string' && logoPng.indexOf('data:image/png;base64,') === 0;
+      const doc = exporter.buildLetterWordFile({
+        title,
+        bodyHtml: this.letterBodyHtml({ word: true }),
+        headerFirst: this.letterHeaderHtml({ word: true, logoSrc: usesEmbeddedLogo ? exporter.LOGO_URL : undefined }),
+        headerCont: this.letterHeaderHtml({ word: true, variant: 'cont' }),
+        footer: this.letterFooterHtml({ word: true }),
+        logoPng: usesEmbeddedLogo ? logoPng : '',
+      });
+      this.downloadFile(name, doc, 'application/msword');
+      this.toast('Downloaded Word document');
+      return;
+    }
+    // Fallback: plain Word-readable HTML (no separate header/footer parts).
     const inner = this.letterDocHtml().replace(/^[\s\S]*?<html[^>]*>/i, '').replace(/<\/html>\s*$/i, '');
     const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" '
       + 'xmlns:w="urn:schemas-microsoft-com:office:word" '
       + 'xmlns="http://www.w3.org/TR/REC-html40">' + inner + '</html>';
-    this.downloadFile(this.slug(this.state.ltSubject || 'classic-visions-letter') + '.doc', doc, 'application/msword');
+    this.downloadFile(name, doc, 'application/msword');
     this.toast('Downloaded Word document');
   };
+
   openLetterGoogleDocs = async () => {
     this.setState({ docxOpen: false });
     await this.copyRich(this.buildLetter());
@@ -759,7 +780,7 @@
     const txt = scheme === 'dark' ? '#F4F2ED' : '#0B1E35';
     const sub = scheme === 'dark' ? '#C89130' : '#1A8A9C';
     const size = big ? 58 : 48; const word = big ? '21px' : '18px';
-    const src = this.logoPng(scheme === 'dark' ? 'linen' : 'navy');
+    const src = opts.src || this.logoPng(scheme === 'dark' ? 'linen' : 'navy');
     return `<table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-block;vertical-align:middle;border-collapse:collapse"><tr><td style="vertical-align:middle"><img src="${src}" width="${size}" height="${size}" alt="Classic Visions" style="display:block;width:${size}px;height:${size}px;border:0"></td><td style="vertical-align:middle;padding-left:13px;text-align:left"><div style="font:800 ${word}/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.04em;color:${txt}">CLASSIC VISIONS</div><div style="font:700 8.5px/1.4 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.3em;color:${sub};margin-top:6px">OPTICAL · BARBADOS</div></td></tr></table>`;
   };
 
@@ -815,47 +836,82 @@
   };
 
   // ---------- LETTER ----------
-  buildLetter = () => {
-    const d = this.state, b = this.brand(), esc = this.esc;
-    const head = `<div style="padding:46px 60px 0">
+  // Header / footer markup is shared by the on-screen preview and the Word
+  // export. In the export the same blocks are lifted into genuine Word header
+  // and footer parts, so page padding is dropped (Word page margins own it).
+  letterHeaderHtml = (opts) => {
+    opts = opts || {};
+    const b = this.brand(), esc = this.esc;
+    const pad = opts.word ? '0' : '46px 60px 0';
+    if (opts.variant === 'cont') {
+      return `<div style="padding:${opts.word ? '0' : '24px 60px 0'}">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+          <td style="font:800 11px/1.4 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;color:#0B1E35">CLASSIC VISIONS</td>
+          <td style="text-align:right;font:400 10.5px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${opts.word ? `Page <span style="mso-field-code:PAGE">2</span>` : 'Page 2'}</td>
+        </tr></table>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:8px 0 0"><tr><td style="border-top:1px solid #ece9e0;font-size:0;line-height:0">&nbsp;</td></tr></table>
+      </div>`;
+    }
+    return `<div style="padding:${pad}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
-        <td style="vertical-align:middle">${this.lockup('light', { big: true })}</td>
+        <td style="vertical-align:middle">${this.lockup('light', { big: true, src: opts.logoSrc })}</td>
         <td style="vertical-align:middle;text-align:right;font:400 11.5px/1.75 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c">${esc(b.phone)}<br>${esc(b.email)}<br>${esc(b.web)}</td>
       </tr></table>
-      <div style="height:2px;background:#C89130;margin:22px 0 0;font-size:0;line-height:0">&nbsp;</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:22px 0 0"><tr><td style="border-top:2px solid #C89130;font-size:0;line-height:0">&nbsp;</td></tr></table>
     </div>`;
+  };
+
+  letterFooterHtml = (opts) => {
+    opts = opts || {};
+    const b = this.brand(), esc = this.esc;
+    const pageLine = opts.word
+      ? `<div style="text-align:center;font:400 10px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#a2a9b3;margin-top:4px">Page <span style="mso-field-code:PAGE">1</span> of <span style="mso-field-code:NUMPAGES">1</span></div>`
+      : '';
+    const rule = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px"><tr><td style="border-top:1px solid #ece9e0;font-size:0;line-height:0">&nbsp;</td></tr></table>`;
+    return `<div style="padding:${opts.word ? '0' : '34px 60px 42px'}">${rule}<div style="text-align:center;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(b.name)} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)} &nbsp;·&nbsp; ${esc(b.web)}</div>${pageLine}</div>`;
+  };
+
+  letterBodyHtml = (opts) => {
+    opts = opts || {};
+    const d = this.state, esc = this.esc;
+    const px = opts.word ? '0' : '60px';
     let inner = '';
     if (d.docType === 'memo') {
       const row = (l, v) => `<tr><td style="font:700 11px/1.9 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#1A8A9C;padding-right:20px;vertical-align:top">${l}</td><td style="font:400 13.5px/1.8 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(v)}</td></tr>`;
-      inner = `<div style="padding:32px 60px 8px">
+      inner = `<div style="padding:32px ${px} 8px">
         <div style="font:800 23px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin-bottom:22px">MEMORANDUM</div>
         <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${row('To', d.ltTo)}${row('From', d.ltFrom)}${row('Date', d.ltDate)}${row('Re', d.ltRe)}</table>
-        <div style="height:1px;background:#ece9e0;margin:20px 0 4px"></div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:20px 0 4px"><tr><td style="border-top:1px solid #ece9e0;font-size:0;line-height:0">&nbsp;</td></tr></table>
       </div>`;
     } else if (d.docType === 'announcement') {
-      inner = `<div style="padding:36px 60px 0;text-align:center">
+      inner = `<div style="padding:36px ${px} 0;text-align:center">
         <div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#1A8A9C;margin-bottom:14px">${esc(d.ltEyebrow)}</div>
         <h1 style="font:800 28px/1.14 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin:0 0 8px">${esc(d.ltSubject)}</h1>
         <div style="font:400 12px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(d.ltDate)}</div>
-        <div style="width:44px;height:3px;background:#C89130;margin:20px auto 0;font-size:0;line-height:0">&nbsp;</div>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:44px;border-collapse:collapse;margin:20px auto 0"><tr><td style="border-top:3px solid #C89130;font-size:0;line-height:0">&nbsp;</td></tr></table>
       </div>`;
     } else {
-      inner = `<div style="padding:32px 60px 0">
+      inner = `<div style="padding:32px ${px} 0">
         <div style="font:400 13px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-bottom:20px">${esc(d.ltDate)}</div>
         <div style="font:400 13.5px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-bottom:18px">${(d.ltRecipient || '').split('\n').map(esc).join('<br>')}</div>
         ${d.ltSubject ? `<div style="font:700 13.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-bottom:6px">Re: ${esc(d.ltSubject)}</div>` : ''}
       </div>`;
     }
-    const amount = (d.docType === 'collection' && d.ltAmount) ? `<div style="margin:6px 60px 2px;border:1px solid #C89130;border-radius:8px;padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px">${esc(d.ltAmount)}</div></div>` : '';
-    const bodyHtml = `<div style="padding:16px 60px 0">${this.styleBody(d.ltBody)}</div>`;
-    const sign = d.docType === 'memo' ? '' : `<div style="padding:10px 60px 0">
+    const amountRadius = opts.word ? '' : 'border-radius:8px;';
+    const amount = (d.docType === 'collection' && d.ltAmount) ? `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6px ${px} 2px"><tr><td style="border:1px solid #C89130;${amountRadius}padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px;white-space:nowrap">${esc(d.ltAmount)}</div></td></tr></table>` : '';
+    const bodyHtml = `<div style="padding:16px ${px} 0">${this.styleBody(d.ltBody)}</div>`;
+    const sign = d.docType === 'memo' ? '' : `<div style="padding:10px ${px} 0">
       <p style="font:400 14px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#1c2b3a;margin:0 0 40px">Sincerely,</p>
       <div style="font:700 14px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(d.ltSignName)}</div>
       <div style="font:600 12.5px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#1A8A9C">${esc(d.ltSignTitle)}</div>
     </div>`;
-    const foot = `<div style="padding:34px 60px 42px"><div style="height:1px;background:#ece9e0;margin-bottom:14px"></div><div style="text-align:center;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(b.name)} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)} &nbsp;·&nbsp; ${esc(b.web)}</div></div>`;
-    return `<div style="width:680px;max-width:680px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">${head}${inner}${amount}${bodyHtml}${sign}${foot}</div>`;
+    return `${inner}${amount}${bodyHtml}${sign}`;
   };
+
+  buildLetter = () => {
+    return `<div style="width:680px;max-width:680px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">${this.letterHeaderHtml()}${this.letterBodyHtml()}${this.letterFooterHtml()}</div>`;
+  };
+
 
   // ---------- SIGNATURE ----------
   buildSignature = () => {

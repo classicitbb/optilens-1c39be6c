@@ -35,6 +35,7 @@ const SCRIPT_SOURCES = [
   `${DS_BASE}/react-dom.production.min.js`,
   `${DS_BASE}/vendor/tinymce/tinymce.min.js`,
   `${DS_BASE}/support.js`,
+  `${DS_BASE}/letter-word-export.js`,
   `${DS_BASE}/studio-logic.js`,
 ];
 
