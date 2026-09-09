@@ -898,7 +898,7 @@
       </div>`;
     }
     const amountRadius = opts.word ? '' : 'border-radius:8px;';
-    const amount = (d.docType === 'collection' && d.ltAmount) ? `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6px ${px} 2px"><tr><td style="border:1px solid #C89130;${amountRadius}padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px">${esc(d.ltAmount)}</div></td></tr></table>` : '';
+    const amount = (d.docType === 'collection' && d.ltAmount) ? `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6px ${px} 2px"><tr><td style="border:1px solid #C89130;${amountRadius}padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px;white-space:nowrap">${esc(d.ltAmount)}</div></td></tr></table>` : '';
     const bodyHtml = `<div style="padding:16px ${px} 0">${this.styleBody(d.ltBody)}</div>`;
     const sign = d.docType === 'memo' ? '' : `<div style="padding:10px ${px} 0">
       <p style="font:400 14px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#1c2b3a;margin:0 0 40px">Sincerely,</p>
