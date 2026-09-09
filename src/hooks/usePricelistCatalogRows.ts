@@ -69,13 +69,33 @@ export const usePricelistCatalogRows = (
         if (delErr) throw delErr;
       }
 
-      // Upsert so a pre-existing row with the same key (whatever its row_type)
-      // is updated instead of colliding with the unique constraint.
-      if (nextRows.length > 0) {
+      // Upsert only the rows that actually differ from what is currently in
+      // the database. Sending untouched rows would let a stale working copy
+      // push an older price over one just saved elsewhere (e.g. the Stock
+      // Order SKUs tab writing the same lens-<uuid> row).
+      const serverByKey = new Map(
+        ((existing ?? []) as any[]).map((r) => [r.row_key as string, r]),
+      );
+      const changed = nextRows.filter((row) => {
+        const server = serverByKey.get(row.row_key);
+        if (!server) return true;
+        return (
+          Number(server.bbd_price ?? NaN) !== Number(row.bbd_price ?? NaN) ||
+          (server.bbd_price == null) !== (row.bbd_price == null) ||
+          server.display_description !== row.display_description ||
+          server.section !== row.section ||
+          server.row_type !== row.row_type ||
+          (server.item_id ?? null) !== (row.item_id ?? null) ||
+          Number(server.sort_order ?? 0) !== Number(row.sort_order ?? 0)
+        );
+      });
+
+      if (changed.length > 0) {
         const { error: upErr } = await (supabase.from("pricelist_catalog_rows") as any)
-          .upsert(nextRows as any[], { onConflict: "pricelist_version_id,catalog_type,row_key" });
+          .upsert(changed as any[], { onConflict: "pricelist_version_id,catalog_type,row_key" });
         if (upErr) throw upErr;
       }
+
     },
 
     onSuccess: () => {
