@@ -4857,6 +4857,51 @@ export type Database = {
         }
         Relationships: []
       }
+      innovations_family_lens_map: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          innovations_lens_id: string
+          lens_id: string
+          match_source: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          innovations_lens_id: string
+          lens_id: string
+          match_source?: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          innovations_lens_id?: string
+          lens_id?: string
+          match_source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "innovations_family_lens_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "innovations_family_lens_map_lens_id_fkey"
+            columns: ["lens_id"]
+            isOneToOne: false
+            referencedRelation: "lenses_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       innovations_lens_aliases: {
         Row: {
           alias: string
@@ -12639,6 +12684,17 @@ export type Database = {
         Returns: undefined
       }
       resolve_contact_customer_links: { Args: never; Returns: number }
+      resolve_customer_price: {
+        Args: {
+          p_customer_id: number
+          p_product_id: string
+          p_product_type: string
+        }
+        Returns: {
+          price_source: string
+          unit_price: number
+        }[]
+      }
       resolve_non_erp_duplicate_account_link: {
         Args: { p_account_number: string }
         Returns: {
