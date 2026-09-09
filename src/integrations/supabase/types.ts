@@ -12549,6 +12549,15 @@ export type Database = {
         Args: { p_customer_id?: number }
         Returns: string
       }
+      portal_customer_stock_prices: {
+        Args: { p_customer_id: number }
+        Returns: {
+          bbd_price: number
+          item_id: string
+          item_type: string
+          price_source: string
+        }[]
+      }
       portal_membership_has_contact_tag: {
         Args: {
           p_customer_id: number
