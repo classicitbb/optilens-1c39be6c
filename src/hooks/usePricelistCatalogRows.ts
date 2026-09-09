@@ -92,6 +92,16 @@ export const usePricelistCatalogRows = (
       const changed = nextRows.filter((row) => {
         const server = serverByKey.get(row.row_key);
         if (!server) return true;
+        const base = baseline?.get(row.row_key);
+        if (base) {
+          const basePrice = base.bbd_price == null ? null : Number(base.bbd_price);
+          const localPrice = row.bbd_price == null ? null : Number(row.bbd_price);
+          // Untouched by this editor — leave whatever is in the database alone.
+          if (basePrice === localPrice && base.display_description === row.display_description) {
+            return false;
+          }
+        }
+
         const serverPrice = server.bbd_price == null ? null : Number(server.bbd_price);
         const rowPrice = row.bbd_price == null ? null : Number(row.bbd_price);
         return (
