@@ -194,11 +194,19 @@ const ListCatalogTab = ({
     setHasViewed(true);
   }, []);
 
-  // When savedRows changes, reset local state from DB
+  // When savedRows changes, refresh the working copy from the database —
+  // merging, not replacing: untouched rows pick up the newest saved price
+  // (including edits made on the Stock Order SKUs tab), while rows the user is
+  // mid-way through editing keep their typed value.
   useEffect(() => {
-    if (!versionId) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
+    const resetAll = () => {
+      lastServerRowsRef.current = new Map();
+      setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);
+    };
+    if (!versionId) {resetAll();return;}
     if (!savedRows) return;
-    if (savedRows.length === 0) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
+    if (savedRows.length === 0) {resetAll();return;}
+
     const newLens = new Map<string, CatalogRow[]>();
     const newAddon = new Map<string, CatalogRow[]>();
     const newSupply = new Map<string, CatalogRow[]>();
