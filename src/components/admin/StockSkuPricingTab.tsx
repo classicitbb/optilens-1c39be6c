@@ -186,7 +186,7 @@ const StockSkuPricingTab = ({ versionId }: { versionId: number | null }) => {
                 return (
                   <tr key={family.id} className="border-b last:border-b-0">
                     <td className="px-4 py-2">
-                      <div className="font-medium text-foreground">{familyDisplayName(family)}</div>
+                      <div className="font-medium text-foreground">{linkedLens?.name ?? familyDisplayName(family)}</div>
                       <div className="text-[11px] text-muted-foreground">
                         {family.lens_state === "finished" ? "Finished" : family.lens_state === "semi_finished" ? "Semi-finished" : family.lens_state}
                         {" · "}{family.innovations_lens_id}
