@@ -51,7 +51,7 @@ export const usePricelistCatalogRows = (
       // Order Builder writes row_type='stock_variant' rows into it, so a
       // blanket delete-by-catalog_type would silently wipe that pricing.
       const { data: existing, error: existingErr } = await (supabase.from("pricelist_catalog_rows") as any)
-        .select("row_key,row_type")
+        .select("row_key,row_type,section,display_description,bbd_price,item_id,sort_order")
         .eq("pricelist_version_id", versionId)
         .eq("catalog_type", catalogType);
       if (existingErr) throw existingErr;
