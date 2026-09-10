@@ -1,6 +1,8 @@
 project_id = "dzsalnvmlvjoatryhqfz"
 
 [functions]
+  [functions.shipment-binder]
+    verify_jwt = true
   [functions.admin-user-management]
     verify_jwt = false
   [functions.auth-email-hook]

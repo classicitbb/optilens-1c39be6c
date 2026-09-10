@@ -23,9 +23,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock, CircleAlert, CircleCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
+import ShipmentEvidencePanel from "./ShipmentEvidencePanel";
 
 const fmt = formatMoney;
 
@@ -36,12 +37,16 @@ const NumericInput = ({
   disabled,
   className,
   onAdvance,
+  suggestion,
+  onAcceptSuggestion,
 }: {
   value: number;
   onChange: (v: number) => void;
   disabled?: boolean;
   className?: string;
   onAdvance?: () => void;
+  suggestion?: number;
+  onAcceptSuggestion?: () => void;
 }) => {
   const [local, setLocal] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
@@ -62,6 +67,7 @@ const NumericInput = ({
   };
 
   return (
+    <div className="relative">
     <Input
       ref={ref}
       type="text"
@@ -78,6 +84,13 @@ const NumericInput = ({
         }
       }}
     />
+    {suggestion != null && Math.abs(suggestion - value) > 0.004 && (
+      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onAcceptSuggestion}
+        className="absolute right-1 top-1/2 -translate-y-1/2 rounded border border-primary/30 bg-background px-1 py-0.5 text-[9px] font-medium text-primary hover:bg-primary/10">
+        Use BBD${suggestion.toFixed(2)}
+      </button>
+    )}
+    </div>
   );
 };
 
@@ -213,6 +226,7 @@ const ShipmentDetailPage = () => {
     po_ref: "", date_received: new Date().toISOString().split("T")[0],
     invoice_number: "", invoice_date: new Date().toISOString().split("T")[0],
     currency: "USD", exchange_rate: 2, fob_foreign: 0, invoice_total_foreign: 0, freight_provider: "dhl",
+    settlement_method: "BBD Funded - Wire", fxf_applicability: "applicable", fxf_rate: 0.02,
     status: "draft", version: 1, parent_id: null, created_by: user?.id ?? "",
     created_at: "", updated_at: "",
   };
@@ -221,6 +235,7 @@ const ShipmentDetailPage = () => {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [invoiceTouched, setInvoiceTouched] = useState(false);
+  const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, { amount: number; vat: number; duty: number; count: number }>>({});
 
   const { data: suppliers } = useReferenceData("suppliers");
   const { settings } = usePricingEngine();
@@ -246,6 +261,24 @@ const ShipmentDetailPage = () => {
     })();
   }, [id]);
 
+  useEffect(() => {
+    if (!shipment?.supplier_id) { setChargeSuggestions({}); return; }
+    let active = true;
+    void (async () => {
+      const { data: supplierShipments } = await (supabase.from("shipments") as any).select("id").eq("supplier_id", shipment.supplier_id).order("created_at", { ascending: false }).limit(30);
+      const shipmentIds = (supplierShipments ?? []).map((row: { id: string }) => row.id);
+      if (!shipmentIds.length) return;
+      const { data } = await (supabase.from("shipment_charges") as any).select("charge_type, amount_bbd, vat_bbd, duty_bbd").in("shipment_id", shipmentIds);
+      if (!active) return;
+      const groups = (data ?? []).reduce((all: Record<string, { amount: number; vat: number; duty: number; count: number }>, charge: ShipmentCharge) => {
+        const key = charge.charge_type; const current = all[key] ?? { amount: 0, vat: 0, duty: 0, count: 0 };
+        current.amount += charge.amount_bbd || 0; current.vat += charge.vat_bbd || 0; current.duty += charge.duty_bbd || 0; current.count += 1; all[key] = current; return all;
+      }, {});
+      setChargeSuggestions(Object.fromEntries(Object.entries(groups).filter(([, group]) => group.count >= 2).map(([key, group]) => [key, { amount: Math.round(group.amount / group.count * 100) / 100, vat: Math.round(group.vat / group.count * 100) / 100, duty: Math.round(group.duty / group.count * 100) / 100, count: group.count }])));
+    })();
+    return () => { active = false; };
+  }, [shipment?.supplier_id]);
+
   const isLocked = shipment?.status === "locked";
   const editable = canEdit && !isLocked;
   const LENS_CODES = ["lens", "stklens", "osrxlens"];
@@ -265,6 +298,16 @@ const ShipmentDetailPage = () => {
     }
   };
 
+  const handleSupplierSelect = async (supplierId: string) => {
+    if (!shipment) return;
+    // Defaults are a convenience only: they always remain editable and only use
+    // the supplier's most recently created shipment.
+    const { data } = await (supabase.from("shipments") as any)
+      .select("type, commodity").eq("supplier_id", supplierId).order("created_at", { ascending: false }).limit(1);
+    const previous = data?.[0];
+    setShipment((current) => current ? { ...current, supplier_id: supplierId, type: previous?.type ?? "", commodity: previous?.commodity ?? "" } as Shipment : current);
+  };
+
   const handleSave = async () => {
     if (!shipment) return;
     if (!shipment.supplier_id) {
@@ -277,10 +320,20 @@ const ShipmentDetailPage = () => {
     }
     setSaving(true);
     try {
+      const computed = computeShipmentTotals(shipment, charges, settings);
+      const persistedFxf = {
+        settlement_method: shipment.settlement_method ?? "BBD Funded - Wire",
+        fxf_applicability: computed.fxfApplicable ? "applicable" : "exempt",
+        fxf_rate: computed.fxfRate,
+        fxf_basis_bbd: computed.fxfBasisBbd,
+        fxf_expected_bbd: computed.expectedFxfBbd,
+        fxf_actual_bbd: computed.actualFxfBbd,
+        fxf_variance_bbd: computed.fxfVarianceBbd,
+      };
       if (isNew) {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
         const { data, error } = await (supabase.from("shipments") as any)
-          .insert({ ...form, created_by: user?.id })
+          .insert({ ...form, ...persistedFxf, created_by: user?.id })
           .select()
           .single();
         if (error) throw error;
@@ -289,7 +342,7 @@ const ShipmentDetailPage = () => {
         navigate(`/admin/pricing/costings/${data.id}`, { replace: true });
       } else {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
-        const { error } = await (supabase.from("shipments") as any).update(form).eq("id", id);
+        const { error } = await (supabase.from("shipments") as any).update({ ...form, ...persistedFxf }).eq("id", id);
         if (error) throw error;
         logChange({ table_name: "shipments", record_id: id!, action: "update", new_data: form });
         toast({ title: "Saved" });
@@ -303,10 +356,24 @@ const ShipmentDetailPage = () => {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!shipment || !id || isNew) return;
+    if (newStatus === "locked") {
+      const lineTotal = lines.reduce((sum, line) => sum + (line.line_fob_foreign || 0), 0);
+      if (Math.abs(lineTotal - shipment.invoice_total_foreign) >= 0.005) {
+        toast({ title: "Cannot lock", description: "Reconcile invoice lines before locking.", variant: "destructive" });
+        return;
+      }
+    }
     const oldStatus = shipment.status;
     try {
       const { error } = await (supabase.from("shipments") as any).update({ status: newStatus }).eq("id", id);
       if (error) throw error;
+      if (newStatus === "locked") {
+        const { error: binderError } = await supabase.functions.invoke("shipment-binder", { body: { shipmentId: id } });
+        if (binderError) {
+          await (supabase.from("shipments") as any).update({ status: "reviewed" }).eq("id", id);
+          throw new Error("Binder generation failed; shipment remains reviewed.");
+        }
+      }
       setShipment({ ...shipment, status: newStatus as any });
       logChange({ table_name: "shipments", record_id: id, action: "update", change_summary: { status: { old: oldStatus, new: newStatus } } });
       toast({ title: `Status → ${newStatus}` });
@@ -325,6 +392,17 @@ const ShipmentDetailPage = () => {
     await upsertLine.mutateAsync({ shipment_id: id, product_type: isLensShipment ? "lens" : "free", description: "", quantity: 1, unit_fob_foreign: 0, line_fob_foreign: 0, markup_percent: 30, sort_order: lines.length });
   };
 
+  const addLineAndFocusProduct = async () => {
+    await addLine();
+    // The mutation invalidates the row query; wait one paint so the blank row's
+    // product selector exists before focusing it. This is keyboard-only and
+    // does not depend on browser clipboard behaviour.
+    window.setTimeout(() => {
+      const selectors = Array.from(document.querySelectorAll<HTMLButtonElement>("button[role='combobox']"));
+      selectors.at(-1)?.focus();
+    }, 0);
+  };
+
   const exportCSV = (data: Record<string, any>[], filename: string) => {
     if (data.length === 0) return;
     const headers = Object.keys(data[0]);
@@ -340,9 +418,9 @@ const ShipmentDetailPage = () => {
     const seen = new Set<string>();
     return items.filter(i => { if (seen.has(i.label)) return false; seen.add(i.label); return true; });
   };
-  const lensOptions = useMemo(() => dedup(lenses.filter(l => l.is_active).map(l => ({ id: l.id, label: l.name }))), [lenses]);
-  const supplyOptions = useMemo(() => dedup(supplies.filter(s => s.is_active).map(s => ({ id: s.id, label: s.name }))), [supplies]);
-  const addonOptions = useMemo(() => dedup(addons.filter(a => a.is_active).map(a => ({ id: a.id, label: a.name }))), [addons]);
+  const lensOptions = useMemo(() => dedup(lenses.filter(l => l.is_active && l.supplier_id === shipment?.supplier_id).map(l => ({ id: l.id, label: l.name }))), [lenses, shipment?.supplier_id]);
+  const supplyOptions = useMemo(() => dedup(supplies.filter(s => s.is_active && s.supplier_id === shipment?.supplier_id).map(s => ({ id: s.id, label: s.name }))), [supplies, shipment?.supplier_id]);
+  const addonOptions = useMemo(() => dedup(addons.filter(a => a.is_active && a.supplier_id === shipment?.supplier_id).map(a => ({ id: a.id, label: a.name }))), [addons, shipment?.supplier_id]);
 
   const getProductOptions = (type: string) => {
     switch (type) {
@@ -386,7 +464,14 @@ const ShipmentDetailPage = () => {
   if (loading || !shipment) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
 
   const xr = totals.exchangeRate || shipment.exchange_rate || 1;
+  const currencyMark = shipment.currency === "USD" ? "US$" : `${shipment.currency}$`;
   const insuranceFreightAmount = computeInsuranceFreightCharge(charges);
+  const cifBbd = totals.fobBbd + insuranceFreightAmount;
+  const expectedFxfBbd = Math.round(cifBbd * 0.02 * 100) / 100;
+  const otherLandedChargesBbd = Math.max(0, totals.chargeSubtotalExcludingVatBbd - insuranceFreightAmount);
+  const supplierLinesTotal = lines.reduce((sum, line) => sum + (line.line_fob_foreign || 0), 0);
+  const invoiceVariance = supplierLinesTotal - shipment.invoice_total_foreign;
+  const invoiceReconciled = Math.abs(invoiceVariance) < 0.005;
 
   return (
     <div className="p-4 space-y-4 w-fit min-w-full">
@@ -417,24 +502,26 @@ const ShipmentDetailPage = () => {
         )}
       </div>
 
+      <div className="grid gap-3 xl:grid-cols-[520px_minmax(360px,1fr)_360px] xl:items-start">
+
       {/* Shipment fields */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Field label="Type *">
-          <Select value={shipment.type} onValueChange={(v) => updateField("type", v)} disabled={!editable}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+      <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-1 xl:row-start-1">
+        <Field label="Supplier *">
+          <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select supplier…" /></SelectTrigger>
             <SelectContent>
-              {shipmentTypes.filter(t => t.is_active).map(t => (
-                <SelectItem key={t.id} value={t.code}>{t.name}</SelectItem>
+              {(suppliers ?? []).filter((s) => s.is_active).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Supplier *">
-          <Select value={shipment.supplier_id} onValueChange={(v) => updateField("supplier_id", v)} disabled={!editable}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select…" /></SelectTrigger>
+        <Field label="Type *">
+          <Select value={shipment.type} onValueChange={(v) => updateField("type", v)} disabled={!editable}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select…" /></SelectTrigger>
             <SelectContent>
-              {(suppliers ?? []).filter((s) => s.is_active).map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              {shipmentTypes.filter(t => t.is_active).map(t => (
+                <SelectItem key={t.id} value={t.code}>{t.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -477,10 +564,10 @@ const ShipmentDetailPage = () => {
             <span className="flex items-center gap-1 text-muted-foreground"><Lock className="h-3 w-3" /> Fixed</span>
           </div>
         </Field>
-        <Field label={`FOB (${shipment.currency}) *`}>
+        <Field label={`FOB (${currencyMark}) *`}>
           <NumericInput value={shipment.fob_foreign} onChange={(v) => updateField("fob_foreign", v)} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
-        <Field label={`Invoice Total (${shipment.currency}) *`}>
+        <Field label={`Invoice Total (${currencyMark}) *`}>
           <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => { setInvoiceTouched(true); updateField("invoice_total_foreign", v); }} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
         <Field label="Freight Provider">
@@ -494,40 +581,85 @@ const ShipmentDetailPage = () => {
             />
           </div>
         </Field>
+        <Field label="Settlement Method">
+          <Select value={shipment.settlement_method ?? "BBD Funded - Wire"} onValueChange={(value) => updateField("settlement_method", value)} disabled={!editable}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BBD Funded - Wire">BBD Funded - Wire</SelectItem>
+              <SelectItem value="BBD Funded - Card">BBD Funded - Card</SelectItem>
+              <SelectItem value="BBD Converted to Foreign Currency">BBD Converted to Foreign Currency</SelectItem>
+              <SelectItem value="FCA">Foreign Currency Account (FCA)</SelectItem>
+              <SelectItem value="Supplier Credit / Unsettled">Supplier Credit / Unsettled</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
       </div>
 
       {/* Computed summary */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Dials</h2>
-          <span className="text-xs text-muted-foreground">Rates use pricing settings for {shipment.currency} when available.</span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 rounded border border-border bg-muted p-3">
-          <ComputedField label="FOB (BBD)" value={fmt(totals.fobBbd)} />
-          <ComputedField label="Invoice (BBD)" value={fmt(totals.invoiceBbd)} />
-          <ComputedField label="10% of Ins. & Frt. to Charity">
-            <div className="space-y-0.5 text-center">
-              <div className="text-sm font-mono font-semibold text-foreground">{fmt(totals.charityAllocationBbd)}</div>
-              <div className="text-[10px] text-muted-foreground">{fmt(totals.charityAllocationBbd)} + {fmt(totals.chargeSubtotalExcludingVatBbd)} = {fmt(totals.totalShipmentCostBbd)}</div>
+      <details open className="space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-3 xl:row-start-1 xl:row-span-2 xl:self-stretch">
+        <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Landed cost story</h2>
+            <p className="text-xs text-muted-foreground">The calculation is visible before it becomes a final costing record.</p>
+          </div>
+          <Badge variant="outline" className="text-[10px]">FXF model preview</Badge>
+        </summary>
+        <div className="mt-2 grid gap-2">
+          <div className="divide-y rounded-md border bg-muted/20 px-3">
+            <CostStoryRow label="FOB / supplier invoice" value={fmt(totals.fobBbd)} suffix="BBD" />
+            <CostStoryRow label="Insurance & freight" value={fmt(insuranceFreightAmount)} suffix="BBD" />
+            <CostStoryRow label="CIF" value={fmt(cifBbd)} suffix="BBD" strong />
+            <CostStoryRow label="FXF @ 2.00% of CIF" value={fmt(expectedFxfBbd)} suffix="BBD" strong icon={<Lock className="h-3 w-3" />} />
+            <CostStoryRow label="Other landed charges excl. recoverable VAT" value={fmt(otherLandedChargesBbd)} suffix="BBD" />
+            <CostStoryRow label="Current total landed" value={fmt(totals.totalLandedBbd)} suffix="BBD" strong />
+            <CostStoryRow label="Current landed multiplier" value={totals.multiplier.toFixed(4)} suffix="×" strong />
+          </div>
+          <div className={`rounded-md border p-3 ${invoiceReconciled ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/40 bg-destructive/5"}`}>
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {invoiceReconciled ? <CircleCheck className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-destructive" />}
+              {invoiceReconciled ? "Invoice reconciled" : "Invoice mismatch"}
             </div>
-          </ComputedField>
-          <ComputedField label="Charges excl. VAT (BBD)" value={fmt(totals.chargeSubtotalExcludingVatBbd)} />
-          <ComputedField label="Total Landed (BBD)" value={fmt(totals.totalLandedBbd)} />
-          <ComputedField label="Multiplier" value={totals.multiplier.toFixed(4)} />
+            <div className="mt-3 space-y-1 text-xs">
+              <CostCheck label="Lines" value={`${shipment.currency} ${fmt(supplierLinesTotal)}`} />
+              <CostCheck label="Invoice" value={`${shipment.currency} ${fmt(shipment.invoice_total_foreign)}`} />
+              <CostCheck label="Variance" value={`${invoiceVariance < 0 ? "-" : ""}${shipment.currency} ${fmt(Math.abs(invoiceVariance))}`} emphasize />
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">FXF is separate from the supplier invoice and never resolves a line mismatch.</p>
+          </div>
         </div>
-      </section>
+        <p className="text-[11px] text-muted-foreground">FXF is persisted on save from CIF at the configured rate; FCA settlement is exempt. Overrides require a reviewed revision.</p>
+      </details>
 
-      {/* Tabs - only show for saved shipments */}
       {!isNew && (
-        <Tabs defaultValue="charges" className="w-full">
-          <TabsList className="h-8 p-0.5 gap-0.5" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
-            <TabsTrigger value="charges" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Charges ({charges.length})</TabsTrigger>
-            <TabsTrigger value="lines" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Line Items ({lines.length})</TabsTrigger>
-            <TabsTrigger value="exports" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Exports</TabsTrigger>
+        <section className="flex h-[410px] min-h-[410px] xl:col-start-2 xl:row-start-1">
+          <ShipmentEvidencePanel
+            shipmentId={id ?? null}
+            readOnly={isLocked}
+            targets={[
+              { key: "invoice_total_foreign", label: "Supplier invoice", value: `${currencyMark} ${fmt(shipment.invoice_total_foreign)}`, category: "invoice" },
+              { key: "invoice_number", label: "Invoice number", value: shipment.invoice_number || "Not entered", category: "invoice" },
+              { key: "insurance_freight", label: "Freight & insurance", value: `BBD$ ${fmt(insuranceFreightAmount)}`, category: "freight" },
+              { key: "po_ref", label: "PO / AWB reference", value: shipment.po_ref || "Not entered", category: "reference" },
+            ]}
+          />
+        </section>
+      )}
+
+      {/* Working area starts only after the header, document review and landed story. */}
+      {!isNew && (
+        <Tabs defaultValue="lines" className="border-t pt-3 xl:col-span-2 xl:col-start-1 xl:row-start-2">
+          <TabsList className="h-8">
+            <TabsTrigger value="lines" className="text-xs">Invoice items ({lines.length})</TabsTrigger>
+            <TabsTrigger value="charges" className="text-xs">Landed charges ({charges.length})</TabsTrigger>
+            <TabsTrigger value="exports" className="text-xs">Export bundle</TabsTrigger>
           </TabsList>
 
-          {/* Charges Tab */}
-          <TabsContent value="charges" className="space-y-2">
+          <TabsContent value="charges" className="space-y-2 pt-2">
+            <div className="flex items-center justify-between rounded-md border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-xs">
+              <div className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-violet-700" /><span className="font-medium">Foreign Exchange Fee</span><Badge variant="outline" className="text-[9px]">System · planned</Badge></div>
+              <span className="font-mono">CIF {fmt(cifBbd)} × 2.00% = {fmt(expectedFxfBbd)} BBD</span>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">All amounts in BBD</span>
               {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addCharge}><Plus className="h-3 w-3" /> Add Charge</Button>}
@@ -549,6 +681,7 @@ const ShipmentDetailPage = () => {
                 <TableBody>
                   {charges.map((c) => {
                     const rowTotal = computeChargeRowTotal(c);
+                    const suggestion = chargeSuggestions[c.charge_type];
                     return (
                       <TableRow key={c.id} className="text-xs">
                         <TableCell className="py-1">
@@ -558,8 +691,8 @@ const ShipmentDetailPage = () => {
                           </Select>
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
+                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-full pr-20"
+                            suggestion={suggestion?.amount} onAcceptSuggestion={() => suggestion && updateCharge(c, "amount_bbd", suggestion.amount)} onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
                         </TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
@@ -619,7 +752,7 @@ const ShipmentDetailPage = () => {
           </TabsContent>
 
           {/* Line Items Tab */}
-          <TabsContent value="lines" className="space-y-2">
+          <TabsContent value="lines" className="space-y-2 pt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">Multiplier: {totals.multiplier.toFixed(4)}</span>
               {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addLine}><Plus className="h-3 w-3" /> Add Line</Button>}
@@ -696,7 +829,7 @@ const ShipmentDetailPage = () => {
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateLine(l, { markup_percent: v })} />
+                            onChange={(v) => updateLine(l, { markup_percent: v })} onAdvance={() => { void addLineAndFocusProduct(); }} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.sellBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.sellUsd)}</TableCell>
@@ -724,7 +857,7 @@ const ShipmentDetailPage = () => {
           </TabsContent>
 
           {/* Exports Tab */}
-          <TabsContent value="exports" className="space-y-3">
+          <TabsContent value="exports" className="space-y-3 pt-3">
             <p className="text-xs text-muted-foreground">Export data for this shipment as CSV files.</p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => {
@@ -769,6 +902,7 @@ const ShipmentDetailPage = () => {
           Save the shipment first to add Charges and Line Items.
         </div>
       )}
+      </div>
     </div>
   );
 };
@@ -780,10 +914,17 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
-const ComputedField = ({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) => (
-  <div className="text-center">
-    <div className="text-[10px] text-muted-foreground">{label}</div>
-    {children ?? <div className="text-sm font-mono font-semibold text-foreground">{value}</div>}
+const CostStoryRow = ({ label, value, suffix, strong = false, icon }: { label: string; value: string; suffix: string; strong?: boolean; icon?: React.ReactNode }) => (
+  <div className={cn("flex items-center justify-between gap-4 py-2 text-xs", strong && "font-semibold")}>
+    <span className="flex items-center gap-1.5 text-muted-foreground">{icon}{label}</span>
+    <span className="font-mono tabular-nums text-foreground">{suffix === "×" ? `${suffix}${value}` : `${value} ${suffix}`}</span>
+  </div>
+);
+
+const CostCheck = ({ label, value, emphasize = false }: { label: string; value: string; emphasize?: boolean }) => (
+  <div className={cn("flex items-center justify-between gap-3", emphasize && "font-semibold")}>
+    <span className="text-muted-foreground">{label}</span>
+    <span className="font-mono tabular-nums">{value}</span>
   </div>
 );
 
