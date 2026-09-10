@@ -182,7 +182,6 @@ const CHEMISTRIE_CONTACT_PRELOAD_MSG =
 
 export default function ProfessionalsChemistriePage() {
   const [tab, setTab] = useState("sun-colors");
-  const [heroBgVideoError, setHeroBgVideoError] = useState(false);
   const { identity } = usePortalIdentity();
   const hasLinkedErpAccount = !!identity?.crmCustomerId;
 
@@ -204,30 +203,31 @@ export default function ProfessionalsChemistriePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header hideBreadcrumbs />
 
       {/* ══════════════ HERO ══════════════ */}
-      <section className="relative min-h-[92vh] overflow-hidden">
+      <section className="relative min-h-dvh overflow-hidden">
         {/* Background image fills the entire section */}
         <div className="absolute inset-0">
-          {!heroBgVideoError && (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="h-full w-full object-cover"
-              src="https://www.forecps.com/wp-content/uploads/2025/06/chem-sun-short.mp4"
-              onError={() => setHeroBgVideoError(true)}
-            />
-          )}
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="h-full w-full object-cover"
+            src="/media/chemistrie-sun-hero.webm"
+            onCanPlay={(event) => {
+              void event.currentTarget.play().catch(() => undefined);
+            }}
+          />
           {/* Gradient overlay: transparent on right → dark on left */}
           <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/70 to-background/10" />
         </div>
 
         {/* Content */}
-        <div className="relative container mx-auto flex min-h-[calc(92vh-4rem)] items-center px-4 lg:px-8">
-          <div className="max-w-xl py-16">
+        <div className="relative container mx-auto flex min-h-dvh items-center px-4 pt-16 lg:px-8">
+          <div className="max-w-xl py-12 sm:py-16">
             <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-primary">
               For Eyecare Professionals
             </p>
