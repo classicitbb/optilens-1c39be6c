@@ -24,6 +24,18 @@ export interface Shipment {
   created_by: string;
   created_at: string;
   updated_at: string;
+  settlement_method?: string | null;
+  fxf_applicability?: "applicable" | "exempt" | "manual_override" | null;
+  fxf_rate?: number | null;
+  fxf_basis_bbd?: number | null;
+  fxf_expected_bbd?: number | null;
+  fxf_actual_bbd?: number | null;
+  fxf_variance_bbd?: number | null;
+  fxf_override_reason?: string | null;
+  fxf_override_by?: string | null;
+  fxf_override_at?: string | null;
+  binder_storage_path?: string | null;
+  binder_created_at?: string | null;
   // joined
   supplier_name?: string;
 }
@@ -224,7 +236,7 @@ export const useShipmentLines = (shipmentId: string | null) => {
 
 /** Compute shipment derived values */
 export const computeShipmentTotals = (
-  shipment: Pick<Shipment, "currency" | "exchange_rate" | "fob_foreign" | "invoice_total_foreign" | "freight_provider">,
+  shipment: Pick<Shipment, "currency" | "exchange_rate" | "fob_foreign" | "invoice_total_foreign" | "freight_provider" | "settlement_method" | "fxf_applicability" | "fxf_rate" | "fxf_actual_bbd">,
   charges: ShipmentCharge[],
   settings?: { import_costing_fx_rates?: Record<string, number> | null } | null
 ) => computeShipmentDerivedTotals(shipment, charges, settings);

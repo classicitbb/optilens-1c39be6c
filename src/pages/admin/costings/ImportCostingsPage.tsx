@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { computeShipmentDerivedTotals, formatMoney } from "@/lib/importCostings";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const statusColor: Record<string, string> = {
   draft: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
@@ -44,6 +45,8 @@ const ShipmentsTab = () => {
   const { canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
   const canEdit = canEditFeature("costings");
+  const isMobile = useIsMobile();
+  const canManage = canEdit && !isMobile;
   const navigate = useNavigate();
   const { toast } = useToast();
   const { logChange } = useAuditLog();
@@ -183,7 +186,7 @@ const ShipmentsTab = () => {
               className="h-8 pl-8 text-xs w-56"
             />
           </div>
-          {canEdit && (
+          {canManage && (
             <Button size="sm" className="h-8 text-xs gap-1" onClick={handleCreate}>
               <Plus className="h-3.5 w-3.5" /> New Shipment
             </Button>
@@ -205,7 +208,7 @@ const ShipmentsTab = () => {
               <SortableHead label="Total Landed (BBD)" sortKey="total_landed_bbd" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} align="right" />
               <SortableHead label="Status" sortKey="status" activeKey={sortKey} direction={sortDirection} onToggle={toggleSort} />
               <TableHead className="sticky top-0 z-20 h-8 bg-background">V</TableHead>
-              {canEdit && <TableHead className="sticky top-0 z-20 h-8 w-20 bg-background" />}
+              {canManage && <TableHead className="sticky top-0 z-20 h-8 w-20 bg-background" />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -231,7 +234,7 @@ const ShipmentsTab = () => {
                     <Badge variant="outline" className={`text-[10px] ${statusColor[sh.status] || ""}`}>{sh.status}</Badge>
                   </TableCell>
                   <TableCell className="py-1.5">v{sh.version}</TableCell>
-                  {canEdit && (
+                  {canManage && (
                     <TableCell className="py-1.5">
                       <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                         {sh.status === "locked" && isAdmin && (
@@ -259,7 +262,7 @@ const ShipmentsTab = () => {
               </TableCell>
               <TableCell className="py-2 text-right font-mono">{fmt(totalsRow.fobForeign)}</TableCell>
               <TableCell className="py-2 text-right font-mono">{fmt(totalsRow.totalLandedBbd)}</TableCell>
-              <TableCell colSpan={canEdit ? 3 : 2} className="py-2" />
+              <TableCell colSpan={canManage ? 3 : 2} className="py-2" />
             </TableRow>
           </TableFooter>
           </Table>

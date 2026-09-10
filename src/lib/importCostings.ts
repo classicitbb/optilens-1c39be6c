@@ -11,6 +11,13 @@ export type ShipmentChargeLike = {
   duty_bbd?: number | null;
 };
 
+export type ForeignExchangeFeeSource = {
+  settlement_method?: string | null;
+  fxf_applicability?: "applicable" | "exempt" | "manual_override" | null;
+  fxf_rate?: number | null;
+  fxf_actual_bbd?: number | null;
+};
+
 export type PricingSettingsRateSource = {
   import_costing_fx_rates?: Record<string, number> | null;
 };
@@ -81,7 +88,7 @@ export const computeShipmentDerivedTotals = (
     fob_foreign?: number | null;
     invoice_total_foreign?: number | null;
     freight_provider?: "dhl" | "non-dhl" | null;
-  },
+  } & ForeignExchangeFeeSource,
   charges: ShipmentChargeLike[],
   settings?: PricingSettingsRateSource | null
 ) => {
@@ -98,9 +105,21 @@ export const computeShipmentDerivedTotals = (
     totalChargesIncludingVatBbd,
   } = computeChargeTotals(charges);
   const charityAllocationBbd = computeCharityAllocation(charges, shipment.freight_provider ?? "dhl");
+  const insuranceFreightBbd = computeInsuranceFreightCharge(charges);
+  // The approved FXF basis is CIF: supplier FOB converted to BBD plus insurance/freight.
+  // FCA and other explicitly exempt settlements do not create a system fee.
+  // Null is intentional for pre-workbench records. Do not backfill or alter
+  // historical finalized landed costs simply because the new model exists.
+  const hasFxfModel = shipment.settlement_method != null || shipment.fxf_applicability != null || shipment.fxf_rate != null || shipment.fxf_actual_bbd != null;
+  const fxfApplicable = hasFxfModel && shipment.fxf_applicability !== "exempt" && shipment.settlement_method !== "FCA";
+  const fxfBasisBbd = fxfApplicable ? fobBbd + insuranceFreightBbd : 0;
+  const fxfRate = shipment.fxf_rate ?? 0.02;
+  const expectedFxfBbd = Math.round(fxfBasisBbd * fxfRate * 100) / 100;
+  const actualFxfBbd = shipment.fxf_actual_bbd ?? expectedFxfBbd;
+  const fxfVarianceBbd = Math.round((actualFxfBbd - expectedFxfBbd) * 100) / 100;
   // VAT is reported separately and is not allocated into landed product cost.
   // The DHL charity contribution is a real landed cost and must be allocated.
-  const totalShipmentCostBbd = chargeSubtotalExcludingVatBbd + charityAllocationBbd;
+  const totalShipmentCostBbd = chargeSubtotalExcludingVatBbd + charityAllocationBbd + actualFxfBbd;
   const totalLandedBbd = invoiceBbd + totalShipmentCostBbd;
   const multiplier = fobForeign > 0 ? totalLandedBbd / fobForeign : 0;
   const totalLandedUsd = exchangeRate > 0 ? totalLandedBbd / exchangeRate : 0;
@@ -119,5 +138,12 @@ export const computeShipmentDerivedTotals = (
     charityAllocationBbd,
     totalShipmentCostBbd,
     multiplier,
+    insuranceFreightBbd,
+    fxfApplicable,
+    fxfBasisBbd,
+    fxfRate,
+    expectedFxfBbd,
+    actualFxfBbd,
+    fxfVarianceBbd,
   };
 };

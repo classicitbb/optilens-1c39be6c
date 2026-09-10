@@ -30,7 +30,7 @@ const SECTION_LABELS: Record<string, string> = {
 };
 
 const PricelistVersionsSection = () => {
-  const { data: versions, isLoading, createMutation, deleteMutation, updateMutation } =
+  const { data: versions, isLoading, createMutation, deleteMutation, materializeAdjustmentsMutation } =
     usePricelistVersions();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
@@ -102,8 +102,9 @@ const PricelistVersionsSection = () => {
       supplies: { markup: "0", discount: "0" },
     };
     for (const c of children ?? []) {
-      if (newChildState[c.section_type]) {
-        newChildState[c.section_type] = {
+      const sectionKey = SECTION_TYPES.find((key) => SECTION_LABELS[key] === c.section_type);
+      if (sectionKey) {
+        newChildState[sectionKey] = {
           markup: String(c.child_markup_percent ?? 0),
           discount: String(c.child_discount_percent ?? 0),
         };
@@ -118,13 +119,13 @@ const PricelistVersionsSection = () => {
 
     const childData: ChildSection[] = SECTION_TYPES.map((st) => ({
       pricelist_version_id: editMode?.id ?? 0,
-      section_type: st,
+      section_type: SECTION_LABELS[st],
       child_markup_percent: parseFloat(childSections[st].markup) || 0,
       child_discount_percent: parseFloat(childSections[st].discount) || 0,
     }));
 
     if (editMode) {
-      updateMutation.mutate(
+      materializeAdjustmentsMutation.mutate(
         {
           id: editMode.id,
           updates: {
@@ -582,10 +583,10 @@ const PricelistVersionsSection = () => {
               disabled={
                 !name.trim() ||
                 createMutation.isPending ||
-                updateMutation.isPending
+                materializeAdjustmentsMutation.isPending
               }
             >
-              {(createMutation.isPending || updateMutation.isPending) && (
+              {(createMutation.isPending || materializeAdjustmentsMutation.isPending) && (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
               )}
               {editMode ? "Save Changes" : "Create Pricelist"}

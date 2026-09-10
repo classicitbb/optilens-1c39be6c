@@ -33,7 +33,7 @@ const ContentManagerPage = lazyWithRetry(() => import("@/pages/admin/ContentMana
 );
 const ImportCostingsPage = lazyWithRetry(() => import("@/pages/admin/costings/ImportCostingsPage"),
 );
-const ShipmentDetailPage = lazyWithRetry(() => import("@/pages/admin/costings/ShipmentDetailPage"),
+const ShipmentDetailPage = lazyWithRetry(() => import("@/pages/admin/costings/DesktopShipmentEditor"),
 );
 const CostingsReportsPage = lazyWithRetry(() => import("@/pages/admin/costings/CostingsReportsPage"),
 );

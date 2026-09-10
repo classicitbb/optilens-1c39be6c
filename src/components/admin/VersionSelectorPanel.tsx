@@ -72,7 +72,7 @@ const VersionSelectorPanel = ({
   saveBar,
   children
 }: VersionSelectorPanelProps) => {
-  const { data: versions, isLoading, createMutation, updateMutation, deleteMutation } =
+  const { data: versions, isLoading, createMutation, materializeAdjustmentsMutation, deleteMutation } =
   usePricelistVersions();
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { canEdit, isAdmin } = useAdminRole();
@@ -251,7 +251,7 @@ const VersionSelectorPanel = ({
     }));
 
     if (editMode) {
-      updateMutation.mutate(
+      materializeAdjustmentsMutation.mutate(
         {
           id: editMode.id,
           updates: {
@@ -717,9 +717,9 @@ const VersionSelectorPanel = ({
               disabled={
               !name.trim() ||
               createMutation.isPending ||
-              updateMutation.isPending
+              materializeAdjustmentsMutation.isPending
               }>
-              {createMutation.isPending || updateMutation.isPending ?
+              {createMutation.isPending || materializeAdjustmentsMutation.isPending ?
               <Loader2 className="h-3 w-3 animate-spin mr-1" /> :
               null}
               {editMode ? "Update" : "Create"}

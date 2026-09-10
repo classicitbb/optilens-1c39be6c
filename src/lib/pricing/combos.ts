@@ -34,6 +34,11 @@ interface SupplierProvenance {
   sourceCost: number;
   sourceLensId: string;
   rowCount: number;
+  // Every catalog row that this supplier contributes to this combo.  The
+  // review UI needs these ids when an operator excludes the supplier: removing
+  // only the cheapest row lets the next row from the same supplier become the
+  // anchor immediately, making the action appear to do nothing.
+  lensIds: string[];
   allRows: Array<{ name: string; cost: number; lensId: string }>;
 }
 
@@ -91,8 +96,9 @@ export function combosFromRows(rows: LensRow[]): CombosResult {
     meta[key] = { treatment, tier, material, mftype: r.mftype };
     const cov = (coverage[key] ??= {});
     const pr = (prov[key] ??= {});
-    const p = (pr[r.supplier] ??= { sourceName: r.name, sourceCost: r2(cost), sourceLensId: r.id, rowCount: 0, allRows: [] });
+    const p = (pr[r.supplier] ??= { sourceName: r.name, sourceCost: r2(cost), sourceLensId: r.id, rowCount: 0, lensIds: [], allRows: [] });
     p.rowCount++;
+    p.lensIds.push(r.id);
     p.allRows.push({ name: r.name, cost: r2(cost), lensId: r.id });
     // Take the CHEAPEST row per supplier per combo as that supplier's quote —
     // a supplier can have several product-name sub-variants that all

@@ -23,6 +23,17 @@ export interface ChildSection {
   child_discount_percent: number;
 }
 
+export interface MaterializePricelistAdjustmentsInput {
+  id: number;
+  updates: Partial<Pick<PricelistVersion, "name" | "markup_percent" | "discount_percent" | "is_template" | "base_currency" | "format_type" | "master_markup_percent" | "master_discount_percent">>;
+  childSections: ChildSection[];
+}
+
+export interface MaterializePricelistAdjustmentsResult {
+  section_type: string;
+  applied_count: number;
+}
+
 export interface CreateVersionInput {
   name: string;
   base_currency: string;
@@ -300,6 +311,38 @@ export const usePricelistVersions = () => {
     },
   });
 
+  const materializeAdjustmentsMutation = useMutation({
+    mutationFn: async ({ id, updates, childSections }: MaterializePricelistAdjustmentsInput) => {
+      const childAdjustments = Object.fromEntries(
+        childSections.map((section) => [section.section_type, {
+          markup: section.child_markup_percent,
+          discount: section.child_discount_percent,
+        }]),
+      );
+      const { data, error } = await (supabase.rpc as any)("materialize_pricelist_adjustments", {
+        p_version_id: id,
+        p_name: updates.name ?? "",
+        p_base_currency: updates.base_currency ?? "BBD",
+        p_is_template: updates.is_template ?? false,
+        p_format_type: updates.format_type ?? "list",
+        p_markup_percent: updates.markup_percent ?? 0,
+        p_discount_percent: updates.discount_percent ?? 0,
+        p_master_markup_percent: updates.master_markup_percent ?? 0,
+        p_master_discount_percent: updates.master_discount_percent ?? 0,
+        p_child_adjustments: childAdjustments,
+      });
+      if (error) throw error;
+      return (data ?? []) as MaterializePricelistAdjustmentsResult[];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pricelist-versions"] });
+      queryClient.invalidateQueries({ queryKey: ["pricelist-child-sections"] });
+      queryClient.invalidateQueries({ queryKey: ["pricelist-line-overrides"] });
+      queryClient.invalidateQueries({ queryKey: ["matrix-allocations"] });
+      queryClient.invalidateQueries({ queryKey: ["pricelist-catalog-rows"] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       // Delete all dependent rows first (no cascade on FK)
@@ -336,7 +379,7 @@ export const usePricelistVersions = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pricelist-versions"] }),
   });
 
-  return { ...query, createMutation, updateMutation, deleteMutation };
+  return { ...query, createMutation, updateMutation, materializeAdjustmentsMutation, deleteMutation };
 };
 
 export const useBBDUSDRate = () => {

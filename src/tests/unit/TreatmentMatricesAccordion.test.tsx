@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import TreatmentMatricesAccordion from "@/components/admin/TreatmentMatricesAccordion";
@@ -19,6 +19,23 @@ const renderAccordion = (props: React.ComponentProps<typeof TreatmentMatricesAcc
 
 const mockUseAdminRole = vi.fn();
 const mockToast = vi.fn();
+const pricingMocks = vi.hoisted(() => ({
+  buildCombos: vi.fn(),
+  bulkSetAnchorExclusion: vi.fn(),
+  upsertPricingItems: vi.fn(),
+  pricedMatrix: vi.fn(),
+}));
+
+vi.mock("@/lib/pricing/combos", () => ({
+  buildCombos: pricingMocks.buildCombos,
+  bulkSetAnchorExclusion: pricingMocks.bulkSetAnchorExclusion,
+  lensIdFor: (combo: { provenance: Record<string, { sourceLensId?: string }> }, supplier: string) => combo.provenance[supplier]?.sourceLensId ?? null,
+  upsertPricingItems: pricingMocks.upsertPricingItems,
+}));
+
+vi.mock("@/lib/pricing/engine", () => ({
+  pricedMatrix: pricingMocks.pricedMatrix,
+}));
 
 vi.mock("@/contexts/AdminRoleContext", () => ({
   useAdminRole: () => mockUseAdminRole(),
@@ -73,13 +90,13 @@ vi.mock("@/hooks/useRxPricingStructure", () => ({
         id: 1,
         key: "clear",
         name: "Clear",
-        categories: [{ id: 10, key: "single", name: "Single Vision" }],
+        categories: [{ id: 10, key: "single_vision_regular", name: "Single Vision" }],
       },
       {
         id: 2,
         key: "photo",
         name: "Photochromic",
-        categories: [{ id: 11, key: "single", name: "Single Vision" }],
+        categories: [{ id: 11, key: "single_vision_regular", name: "Single Vision" }],
       },
     ],
     isLoading: false,
@@ -101,6 +118,12 @@ vi.mock("@/components/admin/LensFormDialog", () => ({
 describe("TreatmentMatricesAccordion", () => {
   beforeEach(() => {
     mockToast.mockReset();
+    pricingMocks.buildCombos.mockReset();
+    pricingMocks.bulkSetAnchorExclusion.mockReset();
+    pricingMocks.upsertPricingItems.mockReset();
+    pricingMocks.pricedMatrix.mockReset();
+    pricingMocks.upsertPricingItems.mockResolvedValue(undefined);
+    pricingMocks.bulkSetAnchorExclusion.mockResolvedValue(2);
   });
 
   it("keeps structure controls collapsed until an admin unlocks them", () => {
@@ -131,5 +154,46 @@ describe("TreatmentMatricesAccordion", () => {
     expect(screen.queryByRole("button", { name: /unlock structure editing/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /add group/i })).not.toBeInTheDocument();
     expect(screen.queryByTitle("Move grouping up")).not.toBeInTheDocument();
+  });
+
+  it("excludes every matching anchor-supplier row before recomputing", async () => {
+    mockUseAdminRole.mockReturnValue({ isAdmin: true });
+    const combo = {
+      key: "Clear||Single Vision - Regular||1.50",
+      provenance: {
+        SkyLab: {
+          sourceLensId: "sky-cheapest",
+          sourceName: "SkyLab clear",
+          lensIds: ["sky-cheapest", "sky-next"],
+        },
+        "TOG Rx Lab": { sourceLensId: "tog", sourceName: "TOG clear", lensIds: ["tog"] },
+      },
+    };
+    pricingMocks.buildCombos.mockResolvedValue({ combos: [combo] });
+    pricingMocks.pricedMatrix.mockReturnValue([{
+      available: true,
+      safe: true,
+      key: combo.key,
+      treatment: "Clear",
+      tier: "Single Vision - Regular",
+      material: "1.50",
+      preferredSupplier: "TOG Rx Lab",
+      anchorSupplier: "SkyLab",
+      anchorCost: 55,
+      priceUSD: 70,
+    }]);
+
+    renderAccordion({ versionId: 1, showUSD: false, fxRate: 1 });
+    fireEvent.click(screen.getByRole("button", { name: /auto price/i }));
+    await screen.findByRole("button", { name: "Exclude" });
+    fireEvent.click(screen.getByRole("button", { name: "Exclude" }));
+
+    await waitFor(() => {
+      expect(pricingMocks.bulkSetAnchorExclusion).toHaveBeenCalledWith(
+        ["sky-cheapest", "sky-next"],
+        true,
+        expect.stringContaining("SkyLab anchor")
+      );
+    });
   });
 });
