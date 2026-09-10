@@ -42,7 +42,7 @@ type WalkInPayment = {
 };
 
 const initialForm = { amount: "", customerName: "", customerEmail: "", orderReference: "", reason: "" };
-const money = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+const money = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "BBD" }).format(amount);
 const when = (value: string) => new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
 const WalkInPaymentsPage = () => {
@@ -201,7 +201,7 @@ const WalkInPaymentsPage = () => {
                 </AlertDialogTitle>
                 <AlertDialogDescription className="space-y-2 pt-1 text-sm text-foreground">
                   <p>
-                    Payment of <strong>{money(Number(displayedPayment.amount))} USD</strong> from{" "}
+                    Payment of <strong>{money(Number(displayedPayment.amount))} BBD</strong> from{" "}
                     <strong>{displayedPayment.customer_name}</strong> was approved.
                   </p>
                   {displayedPayment.customer_email ? (
@@ -251,7 +251,7 @@ const WalkInPaymentsPage = () => {
               </div>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-              <div><span className="text-muted-foreground">Amount</span><p className="text-xl font-semibold">{money(Number(displayedPayment.amount))} USD</p></div>
+              <div><span className="text-muted-foreground">Amount</span><p className="text-xl font-semibold">{money(Number(displayedPayment.amount))} BBD</p></div>
               <div><span className="text-muted-foreground">Date and time</span><p className="font-medium">{when(displayedPayment.paid_at || displayedPayment.created_at)}</p></div>
               <div><span className="text-muted-foreground">Payment reference</span><p className="font-mono text-xs">{displayReference}</p></div>
               <div><span className="text-muted-foreground">Customer</span><p className="font-medium">{displayedPayment.customer_name}</p></div>
@@ -279,7 +279,7 @@ const WalkInPaymentsPage = () => {
         <Card className="print:hidden">
           <CardHeader><CardTitle>Take a payment</CardTitle><CardDescription>Enter the exact amount agreed with the customer. After selecting Take payment, hand over the provider page or key the card there.</CardDescription></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-1.5 text-sm font-medium">Amount (USD)<Input inputMode="decimal" type="number" min="0.01" max="999999.99" step="0.01" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} placeholder="0.00" autoComplete="off" /></label>
+            <label className="grid gap-1.5 text-sm font-medium">Amount (BBD)<Input inputMode="decimal" type="number" min="0.01" max="999999.99" step="0.01" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} placeholder="0.00" autoComplete="off" /></label>
             <label className="grid gap-1.5 text-sm font-medium">Customer name<Input value={form.customerName} onChange={(event) => setForm((current) => ({ ...current, customerName: event.target.value }))} placeholder="Customer name" autoComplete="name" /></label>
             <label className="grid gap-1.5 text-sm font-medium">Customer email <span className="font-normal text-muted-foreground">(for receipt)</span><Input type="email" value={form.customerEmail} onChange={(event) => setForm((current) => ({ ...current, customerEmail: event.target.value }))} placeholder="customer@example.com" autoComplete="email" /></label>
             <label className="grid gap-1.5 text-sm font-medium">Order / reference <span className="font-normal text-muted-foreground">(optional)</span><Input value={form.orderReference} onChange={(event) => setForm((current) => ({ ...current, orderReference: event.target.value }))} placeholder="Order number or reference" autoComplete="off" /></label>
