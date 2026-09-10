@@ -216,7 +216,7 @@ export default function ProfessionalsChemistriePage() {
             playsInline
             preload="auto"
             className="h-full w-full object-cover"
-            src="/media/chemistrie-sun-hero.mp4"
+            src="/media/chemistrie-sun-hero.webm"
             onCanPlay={(event) => {
               void event.currentTarget.play().catch(() => undefined);
             }}
