@@ -494,7 +494,7 @@ const MobileNavigation = ({
   </>;
 };
 
-const Header = () => {
+const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
   const location = useLocation();
   const { openAssistant } = useCompanionAssistant();
   const { user, signOut } = useAuth();
@@ -788,7 +788,7 @@ const Header = () => {
 
       </header>
 
-      {showBreadcrumbs &&
+      {showBreadcrumbs && !hideBreadcrumbs &&
       <nav aria-label="Breadcrumb" className="mt-16">
           <div className="container mx-auto max-w-5xl px-4 pt-4 lg:px-8">
             <div className="text-sm text-muted-foreground">
