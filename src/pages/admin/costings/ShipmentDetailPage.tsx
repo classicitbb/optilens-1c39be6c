@@ -400,7 +400,7 @@ const ShipmentDetailPage = () => {
     // does not depend on browser clipboard behaviour.
     window.setTimeout(() => {
       const selectors = Array.from(document.querySelectorAll<HTMLButtonElement>("button[role='combobox']"));
-      selectors.at(-1)?.focus();
+      selectors[selectors.length - 1]?.focus();
     }, 0);
   };
 
