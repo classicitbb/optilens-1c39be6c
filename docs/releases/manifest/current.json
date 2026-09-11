@@ -1,18 +1,17 @@
 {
-  "semanticVersion": "0.1.0",
-  "sourceEntry": "2026-09-04 — Walk-in payment customer email and receipt printing",
-  "releaseDateTimeUtc": "2026-09-04T00:00:00.000Z",
+  "semanticVersion": "0.2.0",
+  "sourceEntry": "2026-09-11 — Safe pricelist saves and resilient operational workflows",
+  "releaseDateTimeUtc": "2026-09-11T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Walk-in card payments at **Settings → Walk-in Payments** now support capturing the customer's email address.",
-    "When payment is received, a receipt email is sent to the customer, and the staff member is prompted on screen with a print dialog to print a physical copy.",
-    "Staff can also resend the receipt email or reprint the physical receipt from the completed payment card."
+    "Renaming or re-saving a pricelist no longer rewrites line prices. Percentage changes preserve manually entered prices by default, while **Replace all line prices** is an explicit destructive choice.",
+    "Gatekeeper status polling now has production-only controls, bounded outage backoff, and a pre-send Rx fallback to Innovations. Shipment supplier selection preserves fields already entered, and Helpdesk attachment failures no longer obscure successful ticket creation."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Walk-in payment customer email and receipt printing."
+      "notes": "Updated as part of Safe pricelist saves and resilient operational workflows."
     }
   ],
   "migrationNotes": [

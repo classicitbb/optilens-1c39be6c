@@ -2,6 +2,16 @@
 
 > Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
 
+## 2026-09-11 — Safe pricelist saves and resilient operational workflows
+
+### Release Notes
+- Renaming or re-saving a pricelist no longer rewrites line prices. Percentage changes preserve manually entered prices by default, while **Replace all line prices** is an explicit destructive choice.
+- Gatekeeper status polling now has production-only controls, bounded outage backoff, and a pre-send Rx fallback to Innovations. Shipment supplier selection preserves fields already entered, and Helpdesk attachment failures no longer obscure successful ticket creation.
+
+### Technical Changelog
+- Added override provenance and safe materialization, Gatekeeper outage/fallback state and service-only RPCs, production-environment route guards, source-aware manual override writes, and focused unit/integration/SQL regressions.
+- Status pulls retain existing order state during 503 outages and emit one degraded-state notification. Only prescription submissions that fail before a Gatekeeper order POST can be requeued; stock and post-start failures remain unchanged.
+
 ## 2026-09-04 — Walk-in payment customer email and receipt printing
 
 ### Release Notes

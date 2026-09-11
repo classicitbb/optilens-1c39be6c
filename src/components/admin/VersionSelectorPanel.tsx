@@ -40,6 +40,8 @@ import {
   Eye } from
 "lucide-react";
 import { format } from "date-fns";
+import { PricelistAdjustmentSaveDialog } from "./PricelistAdjustmentSaveDialog";
+import { pricelistAdjustmentSignature } from "@/features/pricelists/pricelistAdjustmentSave";
 
 const VERSION_SELECTOR_AUTO_COLLAPSE_MS = 60_000;
 
@@ -72,7 +74,7 @@ const VersionSelectorPanel = ({
   saveBar,
   children
 }: VersionSelectorPanelProps) => {
-  const { data: versions, isLoading, createMutation, materializeAdjustmentsMutation, deleteMutation } =
+  const { data: versions, isLoading, createMutation, updateMutation, materializeAdjustmentsMutation, deleteMutation } =
   usePricelistVersions();
   const { data: fxRate = 0.5 } = useBBDUSDRate();
   const { canEdit, isAdmin } = useAdminRole();
@@ -82,6 +84,8 @@ const VersionSelectorPanel = ({
   const [selectorCollapsed, setSelectorCollapsed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState<PricelistVersion | null>(null);
+  const [originalAdjustmentSignature, setOriginalAdjustmentSignature] = useState<string | null>(null);
+  const [adjustmentSaveOpen, setAdjustmentSaveOpen] = useState(false);
   const [name, setName] = useState("");
   const [copyFrom, setCopyFrom] = useState<string>("matrix");
   const [currency, setCurrency] = useState<"BBD" | "USD">("BBD");
@@ -193,6 +197,8 @@ const VersionSelectorPanel = ({
       "Stock Lens Prices": { markup: "0", discount: "0" },
       "Supplies Prices": { markup: "0", discount: "0" }
     });
+    setOriginalAdjustmentSignature(null);
+    setAdjustmentSaveOpen(false);
   };
 
   const updateChild = (section: string, field: "markup" | "discount", value: string) => {
@@ -219,9 +225,14 @@ const VersionSelectorPanel = ({
     setMasterDiscountPct(String(v.master_discount_percent ?? 0));
 
     // Fetch child sections
-    const { data: children } = await (supabase.from("pricelist_child_sections") as any)
+    const { data: children, error } = await (supabase.from("pricelist_child_sections") as any)
       .select("*")
       .eq("pricelist_version_id", v.id);
+    if (error) {
+      toast({ title: "Could not load price adjustments", description: error.message, variant: "destructive" });
+      setEditMode(null);
+      return;
+    }
 
     const newChildState: Record<string, {markup: string;discount: string;}> = {
       "RX Lens Prices": { markup: "0", discount: "0" },
@@ -237,52 +248,80 @@ const VersionSelectorPanel = ({
       }
     }
     setChildSections(newChildState);
+    setOriginalAdjustmentSignature(pricelistAdjustmentSignature({
+      version: v,
+      childSections: SECTION_TYPES.map((section) => ({
+        section_type: section,
+        child_markup_percent: parseFloat(newChildState[section].markup) || 0,
+        child_discount_percent: parseFloat(newChildState[section].discount) || 0,
+      })),
+    }));
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (!name.trim()) return;
-
+  const editPayload = () => {
     const childData: import("@/hooks/usePricelistVersions").ChildSection[] = SECTION_TYPES.map((st) => ({
       pricelist_version_id: editMode?.id ?? 0,
       section_type: st,
       child_markup_percent: parseFloat(childSections[st].markup) || 0,
       child_discount_percent: parseFloat(childSections[st].discount) || 0
     }));
+    const updates = {
+      name: name.trim(),
+      base_currency: currency,
+      markup_percent: parseFloat(markupPct) || 0,
+      discount_percent: parseFloat(discountPct) || 0,
+      is_template: isTemplate,
+      format_type: formatType,
+      master_markup_percent: parseFloat(masterMarkupPct) || 0,
+      master_discount_percent: parseFloat(masterDiscountPct) || 0
+    };
+    return { childData, updates };
+  };
+
+  const finishEdit = () => {
+    if (!editMode) return;
+    const { updates } = editPayload();
+    logChange({
+      table_name: "pricelist_versions",
+      record_id: String(editMode.id),
+      action: "update",
+      old_data: { name: editMode.name, markup_percent: editMode.markup_percent, discount_percent: editMode.discount_percent, base_currency: editMode.base_currency, is_template: editMode.is_template },
+      new_data: updates,
+    });
+    setDialogOpen(false);
+    resetForm();
+    toast({ title: "Pricelist updated" });
+  };
+
+  const saveEditedPricelist = (materialize: boolean, replaceManual = false) => {
+    if (!editMode) return;
+    const { childData, updates } = editPayload();
+    setAdjustmentSaveOpen(false);
+    const callbacks = {
+      onSuccess: finishEdit,
+      onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" as const }),
+    };
+    if (materialize) {
+      materializeAdjustmentsMutation.mutate({
+        id: editMode.id,
+        updates,
+        childSections: childData,
+        replaceManual,
+      }, callbacks);
+    } else {
+      updateMutation.mutate({ id: editMode.id, updates, childSections: childData }, callbacks);
+    }
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) return;
 
     if (editMode) {
-      materializeAdjustmentsMutation.mutate(
-        {
-          id: editMode.id,
-          updates: {
-            name: name.trim(),
-            base_currency: currency,
-            markup_percent: parseFloat(markupPct) || 0,
-            discount_percent: parseFloat(discountPct) || 0,
-            is_template: isTemplate,
-            format_type: formatType,
-            master_markup_percent: parseFloat(masterMarkupPct) || 0,
-            master_discount_percent: parseFloat(masterDiscountPct) || 0
-          },
-          childSections: childData
-        },
-        {
-          onSuccess: () => {
-            logChange({
-              table_name: "pricelist_versions",
-              record_id: String(editMode.id),
-              action: "update",
-              old_data: { name: editMode.name, markup_percent: editMode.markup_percent, discount_percent: editMode.discount_percent, base_currency: editMode.base_currency, is_template: editMode.is_template },
-              new_data: { name: name.trim(), markup_percent: parseFloat(markupPct) || 0, discount_percent: parseFloat(discountPct) || 0, base_currency: currency, is_template: isTemplate, format_type: formatType, master_markup_percent: parseFloat(masterMarkupPct) || 0, master_discount_percent: parseFloat(masterDiscountPct) || 0 }
-            });
-            setDialogOpen(false);
-            resetForm();
-            toast({ title: "Pricelist updated" });
-          },
-          onError: (e: any) =>
-          toast({ title: "Error", description: e.message, variant: "destructive" })
-        }
-      );
+      const { childData, updates } = editPayload();
+      const nextSignature = pricelistAdjustmentSignature({ version: updates, childSections: childData });
+      if (nextSignature === originalAdjustmentSignature) saveEditedPricelist(false);
+      else setAdjustmentSaveOpen(true);
     } else {
       const input: CreateVersionInput = {
         name: name.trim(),
@@ -717,9 +756,10 @@ const VersionSelectorPanel = ({
               disabled={
               !name.trim() ||
               createMutation.isPending ||
+              updateMutation.isPending ||
               materializeAdjustmentsMutation.isPending
               }>
-              {createMutation.isPending || materializeAdjustmentsMutation.isPending ?
+              {createMutation.isPending || updateMutation.isPending || materializeAdjustmentsMutation.isPending ?
               <Loader2 className="h-3 w-3 animate-spin mr-1" /> :
               null}
               {editMode ? "Update" : "Create"}
@@ -727,6 +767,13 @@ const VersionSelectorPanel = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PricelistAdjustmentSaveDialog
+        open={adjustmentSaveOpen}
+        isPending={materializeAdjustmentsMutation.isPending}
+        onOpenChange={setAdjustmentSaveOpen}
+        onPreserveManual={() => saveEditedPricelist(true, false)}
+        onReplaceAll={() => saveEditedPricelist(true, true)}
+      />
     </div>);
 
 };

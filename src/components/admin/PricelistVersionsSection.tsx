@@ -18,6 +18,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil, Loader2, Copy } from "lucide-react";
 import { format } from "date-fns";
+import { PricelistAdjustmentSaveDialog } from "./PricelistAdjustmentSaveDialog";
+import { pricelistAdjustmentSignature } from "@/features/pricelists/pricelistAdjustmentSave";
 
 const BLUE = "hsl(215 65% 50%)";
 const LABEL_COLOR = "hsl(215 15% 40%)";
@@ -30,7 +32,7 @@ const SECTION_LABELS: Record<string, string> = {
 };
 
 const PricelistVersionsSection = () => {
-  const { data: versions, isLoading, createMutation, deleteMutation, materializeAdjustmentsMutation } =
+  const { data: versions, isLoading, createMutation, updateMutation, deleteMutation, materializeAdjustmentsMutation } =
     usePricelistVersions();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
@@ -38,6 +40,8 @@ const PricelistVersionsSection = () => {
   // Dialog state
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState<PricelistVersion | null>(null);
+  const [originalAdjustmentSignature, setOriginalAdjustmentSignature] = useState<string | null>(null);
+  const [adjustmentSaveOpen, setAdjustmentSaveOpen] = useState(false);
 
   // Form fields
   const [name, setName] = useState("");
@@ -73,6 +77,8 @@ const PricelistVersionsSection = () => {
       supplies: { markup: "0", discount: "0" },
     });
     setEditMode(null);
+    setOriginalAdjustmentSignature(null);
+    setAdjustmentSaveOpen(false);
   };
 
   const openCreate = () => {
@@ -92,9 +98,14 @@ const PricelistVersionsSection = () => {
     setMasterDiscountPct(String(v.master_discount_percent ?? 0));
 
     // Fetch child sections
-    const { data: children } = await (supabase.from("pricelist_child_sections") as any)
+    const { data: children, error } = await (supabase.from("pricelist_child_sections") as any)
       .select("*")
       .eq("pricelist_version_id", v.id);
+    if (error) {
+      toast({ title: "Could not load price adjustments", description: error.message, variant: "destructive" });
+      setEditMode(null);
+      return;
+    }
 
     const newChildState: Record<string, { markup: string; discount: string }> = {
       rx: { markup: "0", discount: "0" },
@@ -111,45 +122,72 @@ const PricelistVersionsSection = () => {
       }
     }
     setChildSections(newChildState);
+    setOriginalAdjustmentSignature(pricelistAdjustmentSignature({
+      version: v,
+      childSections: SECTION_TYPES.map((section) => ({
+        section_type: SECTION_LABELS[section],
+        child_markup_percent: parseFloat(newChildState[section].markup) || 0,
+        child_discount_percent: parseFloat(newChildState[section].discount) || 0,
+      })),
+    }));
     setOpen(true);
   };
 
-  const handleSave = () => {
-    if (!name.trim()) return;
-
+  const editPayload = () => {
     const childData: ChildSection[] = SECTION_TYPES.map((st) => ({
       pricelist_version_id: editMode?.id ?? 0,
       section_type: SECTION_LABELS[st],
       child_markup_percent: parseFloat(childSections[st].markup) || 0,
       child_discount_percent: parseFloat(childSections[st].discount) || 0,
     }));
+    const updates = {
+      name: name.trim(),
+      base_currency: currency,
+      markup_percent: parseFloat(markupPct) || 0,
+      discount_percent: parseFloat(discountPct) || 0,
+      is_template: isTemplate,
+      format_type: formatType,
+      master_markup_percent: parseFloat(masterMarkupPct) || 0,
+      master_discount_percent: parseFloat(masterDiscountPct) || 0,
+    };
+    return { childData, updates };
+  };
+
+  const finishEdit = () => {
+    setOpen(false);
+    resetForm();
+    toast({ title: "Pricelist updated" });
+  };
+
+  const saveEditedPricelist = (materialize: boolean, replaceManual = false) => {
+    if (!editMode) return;
+    const { childData, updates } = editPayload();
+    setAdjustmentSaveOpen(false);
+    const callbacks = {
+      onSuccess: finishEdit,
+      onError: (e: Error) =>
+        toast({ title: "Error", description: e.message, variant: "destructive" as const }),
+    };
+    if (materialize) {
+      materializeAdjustmentsMutation.mutate({
+        id: editMode.id,
+        updates,
+        childSections: childData,
+        replaceManual,
+      }, callbacks);
+    } else {
+      updateMutation.mutate({ id: editMode.id, updates, childSections: childData }, callbacks);
+    }
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) return;
 
     if (editMode) {
-      materializeAdjustmentsMutation.mutate(
-        {
-          id: editMode.id,
-          updates: {
-            name: name.trim(),
-            base_currency: currency,
-            markup_percent: parseFloat(markupPct) || 0,
-            discount_percent: parseFloat(discountPct) || 0,
-            is_template: isTemplate,
-            format_type: formatType,
-            master_markup_percent: parseFloat(masterMarkupPct) || 0,
-            master_discount_percent: parseFloat(masterDiscountPct) || 0,
-          },
-          childSections: childData,
-        },
-        {
-          onSuccess: () => {
-            setOpen(false);
-            resetForm();
-            toast({ title: "Pricelist updated" });
-          },
-          onError: (e: any) =>
-            toast({ title: "Error", description: e.message, variant: "destructive" }),
-        }
-      );
+      const { childData, updates } = editPayload();
+      const nextSignature = pricelistAdjustmentSignature({ version: updates, childSections: childData });
+      if (nextSignature === originalAdjustmentSignature) saveEditedPricelist(false);
+      else setAdjustmentSaveOpen(true);
     } else {
       const input: CreateVersionInput = {
         name: name.trim(),
@@ -583,10 +621,11 @@ const PricelistVersionsSection = () => {
               disabled={
                 !name.trim() ||
                 createMutation.isPending ||
+                updateMutation.isPending ||
                 materializeAdjustmentsMutation.isPending
               }
             >
-              {(createMutation.isPending || materializeAdjustmentsMutation.isPending) && (
+              {(createMutation.isPending || updateMutation.isPending || materializeAdjustmentsMutation.isPending) && (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
               )}
               {editMode ? "Save Changes" : "Create Pricelist"}
@@ -594,6 +633,13 @@ const PricelistVersionsSection = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PricelistAdjustmentSaveDialog
+        open={adjustmentSaveOpen}
+        isPending={materializeAdjustmentsMutation.isPending}
+        onOpenChange={setAdjustmentSaveOpen}
+        onPreserveManual={() => saveEditedPricelist(true, false)}
+        onReplaceAll={() => saveEditedPricelist(true, true)}
+      />
     </div>
   );
 };

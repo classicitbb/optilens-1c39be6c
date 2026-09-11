@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RxSubmissionRow } from "../types";
 import { toast } from "@/hooks/use-toast";
+import { gatekeeperStatusToast, type GatekeeperStatusOutcome } from "../gatekeeperOutcomes";
 
 
 // Outbox admin: list + approve/cancel (manual-release gate). Innovations is
@@ -29,15 +30,21 @@ export const useRxSubmissions = () => {
     });
     if (error) throw new Error(error.message);
     if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not confirm receipt of the order.");
+    return data as { delivery?: "fallback_queued"; provider?: "innovations"; message?: string };
   };
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, provider }: { id: string; provider: "innovations" | "gatekeeper" }) => {
       const { error } = await (supabase.rpc as any)("approve_rx_submission", { p_id: id, p_dispatch_provider: provider });
       if (error) throw error;
-      if (provider === "gatekeeper") await sendToGatekeeper(id);
+      return provider === "gatekeeper" ? await sendToGatekeeper(id) : null;
     },
     onError: (error: Error) => toast({ variant: "destructive", title: "Release failed", description: error.message }),
+    onSuccess: (result) => {
+      if (result?.delivery === "fallback_queued") {
+        toast({ title: "Queued for Innovations", description: "Gatekeeper was unavailable before sending. Delivery is pending until OptiLens Local reports file drop." });
+      }
+    },
     onSettled: () => qc.invalidateQueries({ queryKey: ["rx-order-submissions"] }),
   });
 
@@ -49,7 +56,9 @@ export const useRxSubmissions = () => {
       await sendToGatekeeper(id);
     },
     onError: (error: Error) => toast({ variant: "destructive", title: "Send failed", description: error.message }),
-    onSuccess: () => toast({ title: "Sent to Gatekeeper", description: "Gatekeeper accepted the order." }),
+    onSuccess: (result) => toast(result?.delivery === "fallback_queued"
+      ? { title: "Queued for Innovations", description: "Delivery is pending until OptiLens Local reports file drop." }
+      : { title: "Sent to Gatekeeper", description: "Gatekeeper accepted the order." }),
     onSettled: () => qc.invalidateQueries({ queryKey: ["rx-order-submissions"] }),
   });
 
@@ -59,14 +68,10 @@ export const useRxSubmissions = () => {
         body: { action: "pull-statuses" },
       });
       if (error) throw new Error(error.message);
-      return data as { pulled?: boolean; reason?: string; updated?: number };
+      return data as GatekeeperStatusOutcome;
     },
     onError: (error: Error) => toast({ variant: "destructive", title: "Status refresh failed", description: error.message }),
-    onSuccess: (data) => {
-      if (data?.pulled) toast({ title: "Lab statuses refreshed", description: `${data.updated ?? 0} order(s) updated.` });
-      else if (data?.reason === "throttled") toast({ title: "Already up to date", description: "Lab statuses refresh at most every 5 minutes." });
-      else toast({ title: "No statuses available", description: "The lab's status feed did not return any jobs." });
-    },
+    onSuccess: (data) => toast(gatekeeperStatusToast(data)),
     onSettled: () => qc.invalidateQueries({ queryKey: ["rx-order-submissions"] }),
   });
 

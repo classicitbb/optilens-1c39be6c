@@ -3254,6 +3254,7 @@ export type Database = {
           created_at: string
           enabled: boolean
           environment: string
+          fallback_to_innovations: boolean
           has_credentials: boolean
           id: string
           last_error: string | null
@@ -3814,9 +3815,14 @@ export type Database = {
           last_connected_at: string | null
           last_error: string | null
           last_receipt_at: string | null
+          last_status_success_at: string | null
           last_status_pull_at: string | null
           origin_lab_id: string
           status: string
+          status_poll_degraded_at: string | null
+          status_poll_enabled: boolean
+          status_pull_failure_count: number
+          status_pull_next_attempt_at: string | null
           status_pull_token: string | null
           tenant_key: string
           updated_at: string
@@ -3825,6 +3831,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           environment?: string
+          fallback_to_innovations?: boolean
           has_credentials?: boolean
           id?: string
           lab_name: string
@@ -3832,9 +3839,14 @@ export type Database = {
           last_connected_at?: string | null
           last_error?: string | null
           last_receipt_at?: string | null
+          last_status_success_at?: string | null
           last_status_pull_at?: string | null
           origin_lab_id: string
           status?: string
+          status_poll_degraded_at?: string | null
+          status_poll_enabled?: boolean
+          status_pull_failure_count?: number
+          status_pull_next_attempt_at?: string | null
           status_pull_token?: string | null
           tenant_key?: string
           updated_at?: string
@@ -3843,6 +3855,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           environment?: string
+          fallback_to_innovations?: boolean
           has_credentials?: boolean
           id?: string
           lab_name?: string
@@ -3850,9 +3863,14 @@ export type Database = {
           last_connected_at?: string | null
           last_error?: string | null
           last_receipt_at?: string | null
+          last_status_success_at?: string | null
           last_status_pull_at?: string | null
           origin_lab_id?: string
           status?: string
+          status_poll_degraded_at?: string | null
+          status_poll_enabled?: boolean
+          status_pull_failure_count?: number
+          status_pull_next_attempt_at?: string | null
           status_pull_token?: string | null
           tenant_key?: string
           updated_at?: string
@@ -7557,6 +7575,7 @@ export type Database = {
           child_section_id: number | null
           id: number
           overridden_price_bbd: number | null
+          override_source: string
           reason: string | null
           reference_id: string
           reference_type: string
@@ -7566,6 +7585,7 @@ export type Database = {
           child_section_id?: number | null
           id?: number
           overridden_price_bbd?: number | null
+          override_source?: string
           reason?: string | null
           reference_id: string
           reference_type: string
@@ -7575,6 +7595,7 @@ export type Database = {
           child_section_id?: number | null
           id?: number
           overridden_price_bbd?: number | null
+          override_source?: string
           reason?: string | null
           reference_id?: string
           reference_type?: string
@@ -9098,6 +9119,9 @@ export type Database = {
           claimed_at: string | null
           created_at: string
           dispatch_provider: string
+          dispatch_fallback_at: string | null
+          dispatch_fallback_from: string | null
+          dispatch_fallback_reason: string | null
           gatekeeper_order_id: number
           id: string
           lab_status: string | null
@@ -9124,6 +9148,9 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           dispatch_provider?: string
+          dispatch_fallback_at?: string | null
+          dispatch_fallback_from?: string | null
+          dispatch_fallback_reason?: string | null
           gatekeeper_order_id?: number
           id?: string
           lab_status?: string | null
@@ -9150,6 +9177,9 @@ export type Database = {
           claimed_at?: string | null
           created_at?: string
           dispatch_provider?: string
+          dispatch_fallback_at?: string | null
+          dispatch_fallback_from?: string | null
+          dispatch_fallback_reason?: string | null
           gatekeeper_order_id?: number
           id?: string
           lab_status?: string | null
@@ -12613,10 +12643,13 @@ export type Database = {
           p_master_discount_percent: number
           p_master_markup_percent: number
           p_name: string
+          p_replace_manual?: boolean
           p_version_id: number
         }
         Returns: {
           applied_count: number
+          preserved_manual_count: number
+          removed_count: number
           section_type: string
         }[]
       }
@@ -12976,8 +13009,22 @@ export type Database = {
           p_actor_user_id?: string
           p_contract_id: string
           p_enabled: boolean
+          p_fallback_to_innovations?: boolean
+          p_status_poll_enabled?: boolean
         }
         Returns: undefined
+      }
+      record_gatekeeper_status_pull_outcome: {
+        Args: { p_error_message?: string; p_success: boolean }
+        Returns: {
+          entered_degraded_state: boolean
+          failure_count: number
+          next_attempt_at: string | null
+        }[]
+      }
+      requeue_gatekeeper_rx_to_innovations: {
+        Args: { p_reason: string; p_submission_id: string }
+        Returns: boolean
       }
       set_master_price: {
         Args: { p_item_ref: string; p_price: number }

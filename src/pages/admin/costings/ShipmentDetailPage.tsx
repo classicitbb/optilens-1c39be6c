@@ -14,6 +14,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { mergeSupplierShipmentDefaults } from "@/features/shipments/supplierShipmentDefaults";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -236,6 +237,7 @@ const ShipmentDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [invoiceTouched, setInvoiceTouched] = useState(false);
   const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, { amount: number; vat: number; duty: number; count: number }>>({});
+  const supplierLookupRequestRef = useRef(0);
 
   const { data: suppliers } = useReferenceData("suppliers");
   const { settings } = usePricingEngine();
@@ -300,13 +302,16 @@ const ShipmentDetailPage = () => {
   };
 
   const handleSupplierSelect = async (supplierId: string) => {
-    if (!shipment) return;
+    const requestId = ++supplierLookupRequestRef.current;
+    setShipment((current) => current ? { ...current, supplier_id: supplierId } as Shipment : current);
+
     // Defaults are a convenience only: they always remain editable and only use
     // the supplier's most recently created shipment.
-    const { data } = await (supabase.from("shipments") as any)
+    const { data, error } = await (supabase.from("shipments") as any)
       .select("type, commodity").eq("supplier_id", supplierId).order("created_at", { ascending: false }).limit(1);
+    if (error || requestId !== supplierLookupRequestRef.current) return;
     const previous = data?.[0];
-    setShipment((current) => current ? { ...current, supplier_id: supplierId, type: previous?.type ?? "", commodity: previous?.commodity ?? "" } as Shipment : current);
+    setShipment((current) => current ? mergeSupplierShipmentDefaults(current, supplierId, previous) : current);
   };
 
   const handleSave = async () => {

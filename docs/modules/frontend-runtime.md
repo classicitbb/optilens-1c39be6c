@@ -1,5 +1,12 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-11 — Pricelist, Gatekeeper, shipment, and Helpdesk safety
+
+- `PricelistVersionsSection` and `VersionSelectorPanel` compare normalized adjustment signatures. Metadata-only saves use the row/child-section update path; percentage changes open `PricelistAdjustmentSaveDialog`, whose default preserves manual overrides and whose replace-all path is separately destructive.
+- All direct line-price editing writes `override_source = 'manual'`. The materialization RPC owns bulk rows and returns applied, removed, and preserved counts.
+- `GatekeeperIntegrationTab` keeps outbound delivery and status polling independently visible, requires a production connection before either can be enabled, and displays durable outage/backoff state. `useRxSubmissions` treats disabled, production-required, and temporary outage responses as operational states rather than destructive refresh errors.
+- `ShipmentDetailPage` applies historical supplier defaults through a request-id guard and merges each field only when its current value is still blank. `CompanionAssistantContext` retains its post-ticket attachment guard; regressions cover validation and upload failures after one successful ticket insert.
+
 ## 2026-09-04 — Walk-in payment customer email and receipt workflow
 
 - `WalkInPaymentsPage` collects optional `customerEmail`, passes it to `create_walk_in_payment`, and displays the customer email and email receipt delivery status on the confirmed receipt view.

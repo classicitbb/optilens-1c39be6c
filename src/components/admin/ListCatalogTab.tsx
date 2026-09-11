@@ -562,6 +562,7 @@ const ListCatalogTab = ({
       const { error: updateOverrideError } = await (supabase.from("pricelist_line_overrides") as any)
         .update({
           overridden_price_bbd: overridePrice,
+          override_source: "manual",
           updated_at: new Date().toISOString(),
         })
         .eq("id", (existingOverride as any).id);
@@ -574,6 +575,7 @@ const ListCatalogTab = ({
           reference_id: refId,
           overridden_price_bbd: overridePrice,
           reason: "Price list editor override",
+          override_source: "manual",
         });
       if (createOverrideError) throw createOverrideError;
     }

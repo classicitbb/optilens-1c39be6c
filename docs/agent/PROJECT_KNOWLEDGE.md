@@ -2,7 +2,7 @@
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Default branch: `main`
-- Last verified: 2026-09-07
+- Last verified: 2026-09-11
 - Role: Active Classic Visions / OptiLens hosted web platform
 - Business owner and production approver: Russell Hunte
 - Current-work source: `STATUS.md`
@@ -42,6 +42,7 @@ Evidence: `package.json`, `.nvmrc`, repository configuration, and project docume
 | End-to-end tests | `npm run test:e2e` |
 | Smoke checks | `npm run qa:smoke` |
 | Edge smoke | `npm run qa:edge-smoke` |
+| Create a migration | `supabase migration new <descriptive_name>` |
 
 Use the more specific validation matrix in `AGENTS.md`.
 
@@ -74,6 +75,8 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 - Keep route declarations, metadata, navigation, authorization, and tests synchronized.
 - Maintain one shared wiki renderer.
 - Record environment-variable names only; values remain in approved secret stores.
+- Price overrides declare their owner through `override_source`: operator edits are `manual`; only percentage materialization writes `bulk_adjustment`. Metadata-only pricelist saves must not call materialization.
+- Gatekeeper route/polling state is database-controlled and production-only. Only pre-POST Rx failures can return to the Innovations queue; stock or ambiguous post-start failures require review.
 - Rx mount payloads use `plastic`, `metal`, `grooved`, or `rimless`. Restore
   compatibility maps historical `full` to `plastic` and `supra` to `grooved`;
   assistant handoffs must emit only the current values.

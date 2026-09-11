@@ -1,13 +1,20 @@
 import { fireEvent, screen, waitFor } from "@testing-library/dom";
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import {
   CompanionAssistantProvider,
   useCompanionAssistant,
   useRetailerAssistantPrompt,
 } from "@/features/assistant/CompanionAssistantContext";
+
+const assistantMocks = vi.hoisted(() => ({
+  createTicket: vi.fn(),
+  uploadImages: vi.fn(),
+  user: null as null | { id: string; email: string; user_metadata: { full_name: string } },
+  identity: null as null | { crmContactId: string; crmCustomerId: string; organizationName: string; customerName: string; portalAccessStatus: string },
+}));
 
 vi.mock("@/hooks/useStoreProducts", () => ({
   getStoreProductRoute: (product: { product_type: string; id: string }) => `/store/product/${product.product_type}/${product.id}`,
@@ -58,20 +65,25 @@ vi.mock("@/hooks/useContentArticles", () => ({
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
-    user: null,
+    user: assistantMocks.user,
+    signUp: vi.fn(),
   }),
 }));
 
 vi.mock("@/hooks/usePortalIdentity", () => ({
   usePortalIdentity: () => ({
-    identity: null,
+    identity: assistantMocks.identity,
   }),
 }));
 
 vi.mock("@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket", () => ({
   useCreateHelpdeskTicket: () => ({
-    mutateAsync: vi.fn(),
+    mutateAsync: assistantMocks.createTicket,
   }),
+}));
+
+vi.mock("@/lib/helpdeskAttachments", () => ({
+  uploadHelpdeskImages: assistantMocks.uploadImages,
 }));
 
 vi.mock("@/features/assistant/assistantGeneration", () => ({
@@ -103,9 +115,41 @@ const InPageAssistantHarness = () => {
   return <button type="button" onClick={openDetachedWindow}>Open in page</button>;
 };
 
+const SupportSubmissionHarness = ({ attachmentCount }: { attachmentCount: number }) => {
+  const { messages, formState, submitQuery, openForm, submitForm } = useCompanionAssistant();
+  const location = useLocation();
+  const attachments = Array.from({ length: attachmentCount }, (_, index) => ({
+    name: `evidence-${index + 1}.png`,
+    previewUrl: `blob:evidence-${index + 1}`,
+  }));
+
+  return (
+    <div>
+      <button type="button" onClick={() => void submitQuery("Shipment arrived damaged", "portal_support", "dispenser", attachments)}>
+        Add evidence
+      </button>
+      <button type="button" onClick={() => openForm("portal_support", {
+        kind: "portal_support",
+        values: { issueType: "Damaged shipment", summary: "Please review the attached images." },
+      })}>
+        Prepare request
+      </button>
+      <button type="button" disabled={!formState} onClick={() => void submitForm()}>
+        Submit request
+      </button>
+      <span data-testid="support-path">{location.pathname}</span>
+      <div>{messages.map((message) => "text" in message ? message.text : "").join(" ")}</div>
+    </div>
+  );
+};
+
 describe("CompanionAssistant", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    assistantMocks.createTicket.mockReset();
+    assistantMocks.uploadImages.mockReset();
+    assistantMocks.user = null;
+    assistantMocks.identity = null;
     HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
@@ -237,5 +281,44 @@ describe("CompanionAssistant", () => {
     fireEvent.click(screen.getByRole("link", { name: "Contact our team" }));
 
     expect(await screen.findByText(/i need help with contact our team/i)).toBeInTheDocument();
+  });
+
+  it.each([
+    { label: "more than five images", attachmentCount: 6, error: "Add up to five images at a time." },
+    { label: "an oversized image", attachmentCount: 1, error: "evidence-1.png is larger than 10 MB." },
+    { label: "a storage failure", attachmentCount: 1, error: "Image storage is temporarily unavailable." },
+  ])("keeps the single created ticket successful when $label cannot be attached", async ({ attachmentCount, error }) => {
+    assistantMocks.user = { id: "user-1", email: "operator@example.test", user_metadata: { full_name: "Optical Operator" } };
+    assistantMocks.identity = {
+      crmContactId: "contact-1",
+      crmCustomerId: "customer-1",
+      organizationName: "Example Optical",
+      customerName: "Example Optical",
+      portalAccessStatus: "active",
+    };
+    assistantMocks.createTicket.mockResolvedValue("ticket-1");
+    assistantMocks.uploadImages.mockRejectedValue(new Error(error));
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      blob: async () => new Blob(["image"], { type: "image/png" }),
+    })));
+
+    render(
+      <MemoryRouter initialEntries={["/profile"]}>
+        <CompanionAssistantProvider>
+          <SupportSubmissionHarness attachmentCount={attachmentCount} />
+        </CompanionAssistantProvider>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add evidence" }));
+    await screen.findByText(/shipment arrived damaged/i);
+    fireEvent.click(screen.getByRole("button", { name: "Prepare request" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Submit request" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Submit request" }));
+
+    await waitFor(() => expect(screen.getByTestId("support-path")).toHaveTextContent("/profile/helpdesk/ticket-1"));
+    expect(assistantMocks.createTicket).toHaveBeenCalledTimes(1);
+    expect(assistantMocks.uploadImages).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(new RegExp(`Your images could not be attached.*${error.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i"))).toBeInTheDocument();
   });
 });

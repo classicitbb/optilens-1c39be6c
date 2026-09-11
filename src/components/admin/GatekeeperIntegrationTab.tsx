@@ -16,6 +16,11 @@ type Settings = {
   origin_lab_id: string;
   lab_name: string;
   enabled: boolean;
+  status_poll_enabled: boolean;
+  fallback_to_innovations: boolean;
+  status_pull_failure_count: number;
+  status_pull_next_attempt_at: string | null;
+  last_status_success_at: string | null;
   has_credentials: boolean;
   status: Status;
   last_connected_at: string | null;
@@ -49,7 +54,7 @@ export function GatekeeperIntegrationTab() {
     queryKey: ["gatekeeper-settings"],
     queryFn: async () => {
       const { data, error } = await (supabase.from("gatekeeper_settings") as any)
-        .select("environment,origin_lab_id,lab_name,enabled,has_credentials,status,last_connected_at,last_auth_refresh_at,last_receipt_at,last_error")
+        .select("environment,origin_lab_id,lab_name,enabled,status_poll_enabled,fallback_to_innovations,status_pull_failure_count,status_pull_next_attempt_at,last_status_success_at,has_credentials,status,last_connected_at,last_auth_refresh_at,last_receipt_at,last_error")
         .eq("tenant_key", "default").maybeSingle();
       if (error) throw error;
       return (data ?? null) as Settings | null;
@@ -73,10 +78,14 @@ export function GatekeeperIntegrationTab() {
   const [pinCode, setPinCode] = useState("");
   const [selectedContractId, setSelectedContractId] = useState("");
   const [enabledOverride, setEnabledOverride] = useState<boolean | null>(null);
+  const [statusPollEnabledOverride, setStatusPollEnabledOverride] = useState<boolean | null>(null);
+  const [fallbackOverride, setFallbackOverride] = useState<boolean | null>(null);
   const environment = environmentOverride ?? settings?.environment ?? "staging";
   const originLabId = originLabIdOverride ?? settings?.origin_lab_id ?? "1369";
   const labName = labNameOverride ?? settings?.lab_name ?? "classic-sending";
   const enabled = enabledOverride ?? settings?.enabled ?? false;
+  const statusPollEnabled = statusPollEnabledOverride ?? settings?.status_poll_enabled ?? false;
+  const fallbackToInnovations = fallbackOverride ?? settings?.fallback_to_innovations ?? true;
   const activeContractId = contracts.find((contract) => contract.is_active)?.id ?? contracts[0]?.id ?? "";
   const routeContractId = selectedContractId || activeContractId;
 
@@ -121,12 +130,19 @@ export function GatekeeperIntegrationTab() {
       const { error } = await (supabase.rpc as any)("set_gatekeeper_delivery_route", {
         p_contract_id: routeContractId,
         p_enabled: enabled,
+        p_status_poll_enabled: statusPollEnabled,
+        p_fallback_to_innovations: fallbackToInnovations,
       });
       if (error) throw error;
     },
     onSuccess: async () => {
       await invalidate();
-      toast({ title: enabled ? "Gatekeeper outbound delivery enabled" : "Gatekeeper outbound delivery disabled", description: "The selected contract is ready for the manual Gatekeeper release option." });
+      toast({
+        title: enabled ? "Gatekeeper settings saved" : "Gatekeeper outbound delivery disabled",
+        description: statusPollEnabled
+          ? "Production status polling is enabled with outage backoff."
+          : "Status polling remains disabled.",
+      });
     },
     onError: (error: Error) => toast({ title: "Could not save Gatekeeper route", description: error.message, variant: "destructive" }),
   });
@@ -183,7 +199,7 @@ export function GatekeeperIntegrationTab() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Outbound delivery contract</CardTitle>
-          <CardDescription>Select the Gatekeeper receiver for the manual Gatekeeper choice in Rx Submissions. No job-status polling is enabled.</CardDescription>
+          <CardDescription>Select the Gatekeeper receiver and explicitly control outbound delivery, status polling, and safe pre-send fallback.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
@@ -201,6 +217,26 @@ export function GatekeeperIntegrationTab() {
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={enabled} onChange={(event) => setEnabledOverride(event.target.checked)} disabled={!routeContractId} /> Enable outbound Gatekeeper delivery for staff-released Rx orders</label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={statusPollEnabled}
+              onChange={(event) => setStatusPollEnabledOverride(event.target.checked)}
+              disabled={!routeContractId || environment !== "production"}
+            />
+            Enable automatic lab-status polling (production connection only)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={fallbackToInnovations} onChange={(event) => setFallbackOverride(event.target.checked)} />
+            Queue Rx orders for Innovations file drop when Gatekeeper fails before the order POST begins
+          </label>
+          {environment !== "production" && <p className="text-xs text-amber-700">Reconnect with a fresh production PIN before status polling can be enabled. Stored staging credentials are not reused.</p>}
+          {(settings?.status_pull_failure_count ?? 0) > 0 && (
+            <p className="text-xs text-amber-700">
+              Status feed temporarily unavailable after {settings?.status_pull_failure_count} consecutive failure(s).
+              {settings?.status_pull_next_attempt_at ? ` Next attempt: ${formatDate(settings.status_pull_next_attempt_at)}.` : ""}
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={() => routeMutation.mutate()} disabled={routeMutation.isPending || !routeContractId}>
               {routeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save outbound route
@@ -217,6 +253,8 @@ export function GatekeeperIntegrationTab() {
           <div>JWT credentials stored: <strong>{settings?.has_credentials ? "Yes" : "No"}</strong></div>
           <div>Last connected: <strong>{formatDate(settings?.last_connected_at)}</strong></div>
           <div>Last token refresh: <strong>{formatDate(settings?.last_auth_refresh_at)}</strong></div>
+          <div>Last successful status pull: <strong>{formatDate(settings?.last_status_success_at)}</strong></div>
+          <div>Status polling: <strong>{settings?.status_poll_enabled ? "Enabled" : "Disabled"}</strong></div>
         </CardContent>
       </Card>
     </div>

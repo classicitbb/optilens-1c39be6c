@@ -27,11 +27,14 @@ export interface MaterializePricelistAdjustmentsInput {
   id: number;
   updates: Partial<Pick<PricelistVersion, "name" | "markup_percent" | "discount_percent" | "is_template" | "base_currency" | "format_type" | "master_markup_percent" | "master_discount_percent">>;
   childSections: ChildSection[];
+  replaceManual?: boolean;
 }
 
 export interface MaterializePricelistAdjustmentsResult {
   section_type: string;
   applied_count: number;
+  removed_count: number;
+  preserved_manual_count: number;
 }
 
 export interface CreateVersionInput {
@@ -312,7 +315,7 @@ export const usePricelistVersions = () => {
   });
 
   const materializeAdjustmentsMutation = useMutation({
-    mutationFn: async ({ id, updates, childSections }: MaterializePricelistAdjustmentsInput) => {
+    mutationFn: async ({ id, updates, childSections, replaceManual = false }: MaterializePricelistAdjustmentsInput) => {
       const childAdjustments = Object.fromEntries(
         childSections.map((section) => [section.section_type, {
           markup: section.child_markup_percent,
@@ -330,6 +333,7 @@ export const usePricelistVersions = () => {
         p_master_markup_percent: updates.master_markup_percent ?? 0,
         p_master_discount_percent: updates.master_discount_percent ?? 0,
         p_child_adjustments: childAdjustments,
+        p_replace_manual: replaceManual,
       });
       if (error) throw error;
       return (data ?? []) as MaterializePricelistAdjustmentsResult[];

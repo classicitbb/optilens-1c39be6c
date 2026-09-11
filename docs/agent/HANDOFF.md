@@ -1,10 +1,36 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Source complete — deployment pending
-- Last synchronized: 2026-09-04
+- Status: Source complete — reviewed deployment and production reconnection pending
+- Last synchronized: 2026-09-11
 
 ## Current continuation
+
+The 2026-09-11 repair is implemented locally across pricelist saves,
+Gatekeeper polling/dispatch, shipment supplier defaults, and assistant-created
+ticket attachments. Migrations
+`20260911201657_pricelist_override_provenance_and_safe_materialization.sql`
+and `20260911201702_gatekeeper_status_backoff_and_rx_fallback.sql` are staged,
+along with the changed `gatekeeper-orders` Edge Function and frontend.
+
+Before implementation, the live `pricelist_line_overrides` table had 481 rows
+and three duplicate logical-key groups. An exact off-repository snapshot was
+captured; the migration intentionally does not deduplicate those groups or
+attempt to recreate previously deleted prices. The live Gatekeeper connection
+was staging; outbound delivery, status polling, and cron job 233 were disabled
+without changing its credential.
+
+Focused validation passes: 22 Vitest tests across six files, focused ESLint
+with no errors, and the production build. The full Vitest sweep has two known
+unrelated CRLF-sensitive failures in
+`assistantUserMemory.integration.test.ts`. Local SQL execution remains blocked
+by the unavailable Docker engine. Required next action: push the reviewed
+source, apply both migrations exactly once and deploy `gatekeeper-orders`
+through the connected Lovable project, verify the deployed function bodies and
+columns, run `npm run qa:edge-smoke`, then publish the frontend. Keep polling
+disabled until an administrator supplies a fresh production Gatekeeper PIN and
+a read-only authentication/contract/status pull succeeds. A real fallback
+order requires separate approval and authoritative OptiLens Local proof.
 
 HA Optical's production stock-order catalog is live and orderable. The live
 database repair corrected `get_stock_order_catalog`, converts stock-lens pair

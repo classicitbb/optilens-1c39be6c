@@ -2,6 +2,25 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-09-11 — Pricelist saves erased manual line prices
+- Area: pricelist version dialogs and `materialize_pricelist_adjustments`.
+- Impact: a rename, re-save, or 0% adjustment could delete every hand-entered override in an affected section.
+- Root cause: the materialization function deleted overrides by child section without recording whether an operator or bulk operation created them.
+- Resolution: add `manual`/`bulk_adjustment` provenance, avoid materialization for metadata-only saves, preserve manual keys by default, and reserve replace-all behavior for a separately confirmed action.
+- Regression prevention: source and SQL tests cover unchanged metadata, 0%, generated replacement, manual preservation, and replace-all behavior without deduplicating existing keys.
+
+## 2026-09-11 — Gatekeeper outages repeatedly failed status refresh
+- Area: Gatekeeper connection, scheduled/manual status polling, and Rx dispatch.
+- Impact: a stored staging connection returned repeated 503 responses, produced recurring alerts, and left lab status pulls unusable.
+- Resolution: keep staging disabled, require a fresh production connection, add durable exponential backoff and one degraded-state warning, and allow service-only requeue to Innovations only before an Rx order POST starts.
+- Regression prevention: policy and outcome tests distinguish pre-send Rx failures from stock and post-start failures; database guards prevent environment changes from silently enabling a route.
+
+## 2026-09-11 — Supplier selection and attachment errors discarded successful work
+- Area: shipment costing supplier defaults and assistant-created Helpdesk tickets.
+- Impact: selecting a supplier could blank Type/Commodity; an attachment error could make a successfully created ticket look like a failed submission.
+- Resolution: merge supplier history only into fields that remain blank and ignore stale requests. Preserve the existing post-ticket attachment guard and verify that the one created ticket still opens with a warning.
+- Regression prevention: focused tests cover stale/default merges, five-file and size validation, storage failure, single ticket creation, navigation, and warning state.
+
 ## 2026-09-04 — Walk-in payment lacked customer email capture and print prompt
 - Area: staff walk-in card payments at `/admin/settings/walk-in-payments` and receipt email delivery.
 - Impact: staff could not record customer email for walk-in payments; receipt emails were only sent to the staff creator's profile, and staff were not prompted to print a receipt upon completion.

@@ -4,11 +4,23 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-10
+Last updated: 2026-09-11
 
 ---
 
 ## Active work
+
+- **Pricelist, Gatekeeper, shipment, and support workflow repair** — source now
+  distinguishes manual from bulk line-price overrides, bypasses materialization
+  for metadata-only saves, preserves manual prices by default, and exposes a
+  separately confirmed replace-all path. Gatekeeper has production-only route
+  and polling controls, durable 15/30/60/120/240/360-minute outage backoff,
+  one degraded-state notification, and service-only pre-POST Rx fallback to
+  Innovations. Supplier history can fill only still-blank shipment fields, and
+  the existing post-ticket attachment guard is covered for count, size, and
+  storage failures. The live staging Gatekeeper route and cron were disabled
+  before migration work; migrations, Edge deployment, source publish, and
+  production PIN reconnection remain pending.
 
 - **HA Optical stock-order availability** — production catalog data and SQL
   functions were repaired on 2026-09-09. `get_stock_order_catalog` no longer
@@ -93,6 +105,7 @@ Last updated: 2026-09-10
 | PDF export | List-page PDF ≠ editor preview output |
 | Fixed section preview | Shows placeholder text unless a matching `help_articles` record exists |
 | Drag-and-drop reorder | UI hints at drag handles but reorder does NOT persist |
+| Gatekeeper production connection | Staging is intentionally disabled; a fresh production PIN and a successful read-only status pull are required before polling can be enabled |
 
 ## Do not touch
 

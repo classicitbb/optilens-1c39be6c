@@ -2,6 +2,12 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-09-11 — Safe pricelist saves and resilient operational workflows
+
+### Release Notes
+- Renaming or re-saving a pricelist no longer rewrites line prices. Percentage changes preserve manually entered prices by default, while **Replace all line prices** is an explicit destructive choice.
+- Gatekeeper status polling now has production-only controls, bounded outage backoff, and a pre-send Rx fallback to Innovations. Shipment supplier selection preserves fields already entered, and Helpdesk attachment failures no longer obscure successful ticket creation.
+
 ## 2026-09-04 — Walk-in payment customer email and receipt printing
 
 ### Release Notes

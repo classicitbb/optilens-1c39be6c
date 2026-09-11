@@ -1,5 +1,12 @@
 # Frontend Help Docs
 
+## 2026-09-11 — Safer price, lab-status, shipment, and support actions
+
+- When editing a pricelist, changing only its name or selecting **Save** with unchanged adjustments does not touch line prices. If a percentage changed, **Preserve manual prices** is selected by default. Use **Replace all line prices** only when every price in the affected sections should be rebuilt.
+- Gatekeeper delivery and status refresh stay off until an administrator reconnects with a production PIN and enables them. During an outage the last known status remains visible and the next refresh is delayed automatically.
+- On a shipment, choose a supplier at any time. Existing Type and Commodity entries are retained; blank fields may be suggested from that supplier's most recent shipment.
+- A support request is created before image uploads begin. If an image is too large, unsupported, over the five-file limit, or fails to upload, open the created ticket and add the missing image there rather than submitting another request.
+
 ## 2026-09-04 — Walk-in payment customer email and receipt printing
 
 - In **Settings → Walk-in Payments**, staff can enter a customer email address when taking a walk-in payment.
