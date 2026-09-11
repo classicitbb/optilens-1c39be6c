@@ -61,7 +61,7 @@ ALTER TABLE public.rx_order_submissions
   ADD COLUMN IF NOT EXISTS dispatch_fallback_at timestamptz;
 
 DROP FUNCTION IF EXISTS public.set_gatekeeper_delivery_route(uuid, boolean, uuid);
-CREATE FUNCTION public.set_gatekeeper_delivery_route(
+CREATE OR REPLACE FUNCTION public.set_gatekeeper_delivery_route(
   p_contract_id uuid,
   p_enabled boolean,
   p_status_poll_enabled boolean DEFAULT false,

@@ -1,7 +1,7 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Source complete — reviewed deployment and production reconnection pending
+- Status: Database and Edge deployed — frontend publish and production reconnection pending
 - Last synchronized: 2026-09-11
 
 ## Current continuation
@@ -10,8 +10,9 @@ The 2026-09-11 repair is implemented locally across pricelist saves,
 Gatekeeper polling/dispatch, shipment supplier defaults, and assistant-created
 ticket attachments. Migrations
 `20260911201657_pricelist_override_provenance_and_safe_materialization.sql`
-and `20260911201702_gatekeeper_status_backoff_and_rx_fallback.sql` are staged,
-along with the changed `gatekeeper-orders` Edge Function and frontend.
+and `20260911201702_gatekeeper_status_backoff_and_rx_fallback.sql` are deployed,
+along with the changed `gatekeeper-orders` Edge Function. The frontend remains
+to be published.
 
 Before implementation, the live `pricelist_line_overrides` table had 481 rows
 and three duplicate logical-key groups. An exact off-repository snapshot was
@@ -20,17 +21,18 @@ attempt to recreate previously deleted prices. The live Gatekeeper connection
 was staging; outbound delivery, status polling, and cron job 233 were disabled
 without changing its credential.
 
-Focused validation passes: 22 Vitest tests across six files, focused ESLint
-with no errors, and the production build. The full Vitest sweep has two known
+Focused validation passes: 22 Vitest tests across six files, full quiet ESLint,
+PR checks, and the production build. The full Vitest sweep has two known
 unrelated CRLF-sensitive failures in
-`assistantUserMemory.integration.test.ts`. Local SQL execution remains blocked
-by the unavailable Docker engine. Required next action: push the reviewed
-source, apply both migrations exactly once and deploy `gatekeeper-orders`
-through the connected Lovable project, verify the deployed function bodies and
-columns, run `npm run qa:edge-smoke`, then publish the frontend. Keep polling
-disabled until an administrator supplies a fresh production Gatekeeper PIN and
-a read-only authentication/contract/status pull succeeds. A real fallback
-order requires separate approval and authoritative OptiLens Local proof.
+`assistantUserMemory.integration.test.ts`. Live catalog verification confirms
+271 manual plus 210 generated overrides and the production-only route guard.
+`npm run qa:edge-smoke` was attempted after deployment, but all 40 probes failed
+before HTTP because this workstation cannot complete certificate revocation
+checking; the separate Lovable deployment completed. Required next action:
+publish the frontend, then keep polling disabled until an administrator
+supplies a fresh production Gatekeeper PIN and a read-only
+authentication/contract/status pull succeeds. A real fallback order requires
+separate approval and authoritative OptiLens Local proof.
 
 HA Optical's production stock-order catalog is live and orderable. The live
 database repair corrected `get_stock_order_catalog`, converts stock-lens pair

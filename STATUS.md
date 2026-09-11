@@ -18,9 +18,12 @@ Last updated: 2026-09-11
   one degraded-state notification, and service-only pre-POST Rx fallback to
   Innovations. Supplier history can fill only still-blank shipment fields, and
   the existing post-ticket attachment guard is covered for count, size, and
-  storage failures. The live staging Gatekeeper route and cron were disabled
-  before migration work; migrations, Edge deployment, source publish, and
-  production PIN reconnection remain pending.
+  storage failures. Both reviewed migrations and `gatekeeper-orders` are live;
+  database definitions, grants, 481 override rows, and the three pre-existing
+  duplicate logical-key groups were verified after deployment. The staging
+  Gatekeeper route, status polling, and cron remain disabled. Frontend publish
+  and production PIN reconnection remain pending; the local Edge smoke run was
+  blocked before HTTP by the workstation certificate-revocation chain.
 
 - **HA Optical stock-order availability** — production catalog data and SQL
   functions were repaired on 2026-09-09. `get_stock_order_catalog` no longer
