@@ -10,6 +10,20 @@ Last updated: 2026-09-11
 
 ## Active work
 
+- **Pricelists navigation refactor** — source now replaces the three generic
+  pricing editor links with `/admin/pricing/pricelists`, a searchable,
+  sortable, 25-row-paginated version table and the version-scoped editor route
+  `/admin/pricing/pricelists/:versionId/:section`. RX, Stock, and Supplies reuse
+  their existing editors inside one lazy, draft-preserving shell; invalid IDs
+  never select another version, old section URLs redirect to the selection
+  table, and Product Catalog price links require an explicit version choice.
+  Dirty state is aggregated across the three mounted sections and warns only
+  when leaving the editor or unloading the page. No database, pricing formula,
+  persistence, materialization, export, preview, or customer-pricing contract
+  changed. Focused tests, affected-file lint, the production build, diff checks,
+  and authenticated external Edge route/search/navigation/draft-retention/exit
+  warning QA pass locally. The frontend change is not deployed.
+
 - **Pricelist, Gatekeeper, shipment, and support workflow repair** — source now
   distinguishes manual from bulk line-price overrides, bypasses materialization
   for metadata-only saves, preserves manual prices by default, and exposes a

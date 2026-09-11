@@ -53,6 +53,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/copilot": "copilot",
   // Pricing
   "/admin/pricing/catalog": "catalog",
+  "/admin/pricing/pricelists": "pricing",
   "/admin/pricing/reference": "reference",
   "/admin/pricing/rx-lenses": "rx-lens-prices",
   "/admin/pricing/stock-lenses": "stock-lens-prices",

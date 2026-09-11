@@ -30,8 +30,8 @@ export const getCatalogEditRoute = (productType: ProductType, productId: string)
  * send staff to a page that can never show the row.
  */
 export const getPricelistRoute = (productType: ProductType, productId: string): string | null => {
-  if (productType === "lens") return `/admin/pricing/stock-lenses?id=${encode(productId)}`;
-  if (productType === "supply") return `/admin/pricing/supplies?id=${encode(productId)}`;
+  if (productType === "lens") return buildPricelistSelectionPath("stock", productId);
+  if (productType === "supply") return buildPricelistSelectionPath("supplies", productId);
   return null;
 };
 
@@ -56,3 +56,4 @@ export const getStockOrderBuilderRoute = (productType?: ProductType, productId?:
   productType && productId
     ? `/admin/website/stock-orders?highlight=${productType}:${encode(productId)}`
     : `/admin/website/stock-orders`;
+import { buildPricelistSelectionPath } from "@/features/pricelists/routes";

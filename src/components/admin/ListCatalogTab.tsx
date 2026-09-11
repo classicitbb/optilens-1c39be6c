@@ -65,6 +65,8 @@ interface ListCatalogTabProps {
   renderSaveBar?: (saveBar: React.ReactNode) => void;
   /** Emits current in-editor rows so external previews can update without save */
   onRowsChange?: (rows: Omit<PricelistCatalogRow, "id">[]) => void;
+  /** Reports whether this editor has local work that has not been saved yet. */
+  onDirtyChange?: (isDirty: boolean) => void;
   /** A catalog item id to open-and-scroll-to on load (Product Tunnel deep link) */
   highlightItemId?: string | null;
 }
@@ -82,6 +84,7 @@ const ListCatalogTab = ({
   onSaved,
   renderSaveBar,
   onRowsChange,
+  onDirtyChange,
   highlightItemId
 }: ListCatalogTabProps) => {
   const navigate = useNavigate();
@@ -184,6 +187,10 @@ const ListCatalogTab = ({
 
   const isLoading = lLoading || aLoading || sLoading || rowsLoading;
   const hasPending = (pendingMatrixRowKeys?.size ?? 0) > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty || hasPending);
+  }, [hasPending, isDirty, onDirtyChange]);
   const activeVersion = useMemo(
     () => pricelistVersions.find((version) => version.id === versionId) ?? null,
     [pricelistVersions, versionId],
@@ -1207,25 +1214,27 @@ const ListCatalogTab = ({
               <span className="ml-auto text-xs font-normal opacity-60">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
             </div>
             <div className="border-t border-border">
-              <button className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors bg-muted/10" onClick={() => toggleSection(accKey)}>
-                <div className="flex items-center gap-2">
-                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                  <span className="text-sm font-semibold text-foreground">{category}</span>
-                </div>
-                <div className="flex items-center gap-2">
+              <div className="flex w-full items-center bg-muted/10 hover:bg-muted/30 transition-colors">
+                <button
+                  className="flex min-w-0 flex-1 items-center justify-between px-4 py-2.5 text-left"
+                  onClick={() => toggleSection(accKey)}
+                >
+                  <span className="flex items-center gap-2">
+                    {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    <span className="text-sm font-semibold text-foreground">{category}</span>
+                  </span>
                   <span className="text-xs text-muted-foreground">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
-                  <button
-                    className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border border-border hover:bg-muted/50 transition-colors no-print"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPickerTarget({ section: primarySectionKey, rowKey: "", mode: "add-lens" });
-                      setLensPickerOpen(true);
-                    }}
-                  >
-                    <Plus className="h-3 w-3" /> Add Line
-                  </button>
-                </div>
-              </button>
+                </button>
+                <button
+                  className="mr-4 flex shrink-0 items-center gap-1 rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted/50 transition-colors no-print"
+                  onClick={() => {
+                    setPickerTarget({ section: primarySectionKey, rowKey: "", mode: "add-lens" });
+                    setLensPickerOpen(true);
+                  }}
+                >
+                  <Plus className="h-3 w-3" /> Add Line
+                </button>
+              </div>
 
               {isOpen && (
                 <div className="border-t border-border">

@@ -1,7 +1,8 @@
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { lazy } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes, useLocation } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
+import { buildPricelistSelectionPath, type PricelistEditorSection } from "@/features/pricelists/routes";
 
 const AdminLayout = lazyWithRetry(() => import("@/components/admin/AdminLayout"));
 
@@ -14,10 +15,8 @@ const ReferenceDataPage = lazyWithRetry(() => import("@/pages/admin/ReferenceDat
 const AuditLogPage = lazyWithRetry(() => import("@/pages/admin/AuditLogPage"));
 const ProductCatalogPage = lazyWithRetry(() => import("@/pages/admin/ProductCatalogPage"),
 );
-const RxLensPricesPage = lazyWithRetry(() => import("@/pages/admin/RxLensPricesPage"));
-const StockLensPricesPage = lazyWithRetry(() => import("@/pages/admin/StockLensPricesPage"),
-);
-const BuySellPricesPage = lazyWithRetry(() => import("@/pages/admin/BuySellPricesPage"));
+const PricelistsPage = lazyWithRetry(() => import("@/pages/admin/PricelistsPage"));
+const PricelistEditorPage = lazyWithRetry(() => import("@/pages/admin/PricelistEditorPage"));
 const PricingComparePage = lazyWithRetry(() => import("@/pages/admin/PricingComparePage"),
 );
 const LensClassificationPage = lazyWithRetry(() => import("@/pages/admin/LensClassificationPage"),
@@ -110,6 +109,12 @@ const ProductHubPage = lazyWithRetry(() => import("@/pages/admin/ProductHubPage"
 const AssistantQualityPage = lazyWithRetry(() => import("@/pages/admin/assistant/AssistantQualityPage"),
 );
 
+const LegacyPricelistRedirect = ({ section }: { section: PricelistEditorSection }) => {
+  const location = useLocation();
+  const itemId = new URLSearchParams(location.search).get("id");
+  return <Navigate to={buildPricelistSelectionPath(section, itemId)} replace />;
+};
+
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
@@ -121,9 +126,11 @@ const AdminRoutes = () => (
         element={<Navigate to="pricing/catalog" replace />}
       />
       <Route path="pricing/catalog" element={<ProductCatalogPage />} />
-      <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
-      <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
-      <Route path="pricing/supplies" element={<BuySellPricesPage />} />
+      <Route path="pricing/pricelists" element={<PricelistsPage />} />
+      <Route path="pricing/pricelists/:versionId/:section?" element={<PricelistEditorPage />} />
+      <Route path="pricing/rx-lenses" element={<LegacyPricelistRedirect section="rx" />} />
+      <Route path="pricing/stock-lenses" element={<LegacyPricelistRedirect section="stock" />} />
+      <Route path="pricing/supplies" element={<LegacyPricelistRedirect section="supplies" />} />
       <Route path="pricing/compare" element={<PricingComparePage />} />
       <Route
         path="pricing/classification"
@@ -326,15 +333,15 @@ const AdminRoutes = () => (
       />
       <Route
         path="rx-lens-prices"
-        element={<Navigate to="/admin/pricing/rx-lenses" replace />}
+        element={<LegacyPricelistRedirect section="rx" />}
       />
       <Route
         path="stock-lens-prices"
-        element={<Navigate to="/admin/pricing/stock-lenses" replace />}
+        element={<LegacyPricelistRedirect section="stock" />}
       />
       <Route
         path="supplies-prices"
-        element={<Navigate to="/admin/pricing/supplies" replace />}
+        element={<LegacyPricelistRedirect section="supplies" />}
       />
       <Route
         path="imports"

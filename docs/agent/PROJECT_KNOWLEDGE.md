@@ -73,6 +73,11 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 - Website pricing source changes must be explicit.
 - AI cannot invent prices, approve commercial terms, promise delivery, or send unapproved customer messages.
 - Keep route declarations, metadata, navigation, authorization, and tests synchronized.
+- Pricing editors are version-scoped: select a version at
+  `/admin/pricing/pricelists`, then edit `rx`, `stock`, or `supplies` at
+  `/admin/pricing/pricelists/:versionId/:section`. Generic/legacy pricing URLs
+  are compatibility redirects to the selection table and must not silently
+  choose a version.
 - Maintain one shared wiki renderer.
 - Record environment-variable names only; values remain in approved secret stores.
 - Price overrides declare their owner through `override_source`: operator edits are `manual`; only percentage materialization writes `bulk_adjustment`. Metadata-only pricelist saves must not call materialization.

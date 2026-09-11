@@ -58,7 +58,9 @@ const AdminSidebar = () => {
 
   // Editor routes (publisher, quotation editor) → always force-collapsed, no flyout
   const isEditorRoute =
-    /\/publisher\/\d+/.test(currentPath) || /\/quotations\/[^/]+$/.test(currentPath);
+    /\/publisher\/\d+/.test(currentPath) ||
+    /\/quotations\/[^/]+$/.test(currentPath) ||
+    /\/pricing\/pricelists\/[^/]+\/(rx|stock|supplies)$/.test(currentPath);
 
   const isPinned = mode === "pinned";
   // Icon-rail state: editor route always collapses; user can collapse manually

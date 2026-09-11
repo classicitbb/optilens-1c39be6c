@@ -29,9 +29,7 @@ interface BeforeInstallPromptEvent extends Event {
 const ROUTE_LABELS: [string, string][] = [
 ["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
 ["/admin/pricing/catalog", "Pricing · Product Catalog"],
-["/admin/pricing/rx-lenses", "Pricing · RX Lens Prices"],
-["/admin/pricing/stock-lenses", "Pricing · Stock Lens Prices"],
-["/admin/pricing/supplies", "Pricing · Supplies Prices"],
+["/admin/pricing/pricelists", "Pricing · Pricelists"],
 ["/admin/pricing/imports", "Pricing · Imports"],
 ["/admin/pricing/reference", "Pricing · Reference Data"],
 ["/admin/pricing/costings", "Costings"],
@@ -153,7 +151,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   };
 
   const pageLabel = getRouteLabel(location.pathname);
-  const isEditorRoute = /\/publisher\/\d+/.test(location.pathname) || /\/quotations\/[^/]+$/.test(location.pathname);
+  const isEditorRoute = /\/publisher\/\d+/.test(location.pathname) || /\/quotations\/[^/]+$/.test(location.pathname) || /\/pricing\/pricelists\/[^/]+\/(rx|stock|supplies)$/.test(location.pathname);
   const canGoBack = !isEditorRoute && ((window.history.state?.idx ?? 0) > 0);
   const activeTheme = theme ?? "system";
   const cycleTheme = () => {
@@ -243,6 +241,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => navigate("/admin/website/content")}
+                  data-navigation-target="/admin/website/content"
                   aria-label="Edit website content"
                 >
                   <Pencil className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
@@ -267,6 +266,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => navigate("/admin/settings/company")}
+                  data-navigation-target="/admin/settings/company"
                   aria-label="Settings"
                 >
                   <Settings className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
@@ -310,10 +310,10 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
 
-                <DropdownMenuItem onClick={() => navigate("/admin/wiki")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
+                <DropdownMenuItem onClick={() => navigate("/admin/wiki")} data-navigation-target="/admin/wiki" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <BookOpen className="h-4 w-4" /> Helpdesk / Wiki
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
+                <DropdownMenuItem onClick={() => navigate("/profile")} data-navigation-target="/profile" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <User className="h-4 w-4" /> My Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleInstall} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
@@ -347,7 +347,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
 
                 <DropdownMenuSeparator className="mx-0 my-1.5 bg-border" />
 
-                <DropdownMenuItem onClick={handleSignOut} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
+                <DropdownMenuItem onClick={handleSignOut} data-navigation-target="/" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <LogOut className="h-4 w-4" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>

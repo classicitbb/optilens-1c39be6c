@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, Check, Link2, Link2Off } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -39,11 +39,22 @@ export const familyDisplayName = (family: InnovationsStoreLens) => {
 };
 
 
-const StockSkuPricingTab = ({ versionId }: { versionId: number | null }) => {
+interface StockSkuPricingTabProps {
+  versionId: number | null;
+  onDirtyChange?: (isDirty: boolean) => void;
+}
+
+const StockSkuPricingTab = ({ versionId, onDirtyChange }: StockSkuPricingTabProps) => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [pickerFamily, setPickerFamily] = useState<InnovationsStoreLens | null>(null);
+
+  const hasDrafts = Object.keys(drafts).length > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(hasDrafts);
+  }, [hasDrafts, onDirtyChange]);
 
   const { data: families = [], isLoading: familiesLoading } = useInnovationsStoreLensCatalog();
   const { linkByFamily, lensById, isLoading: linksLoading, setLink, clearLink } = useFamilyLensMap();

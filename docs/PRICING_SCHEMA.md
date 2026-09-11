@@ -3,7 +3,7 @@
 > ## ⚠️ REALITY CHECK — 2026-07-31 (read this first)
 >
 > **The master→customer-fork model this document designs was never adopted.** Live-verified against
-> `admin.classicvisions.net/admin/pricing/rx-lenses`: the pricing engine actually in daily use is
+> `admin.classicvisions.net/admin/pricing/pricelists`: choose a version and open its RX Lens Prices tab; the pricing engine actually in daily use is
 > `customers.assigned_pricelist_id → pricelist_versions → matrix_allocations/price_matrix`, the exact
 > mechanism this doc's §"Reconciliation" (below) says would be **phased out**. It was not phased out —
 > it's the only one that ever went live. `pricelists` / `pricelist_lines` / `effective_price()` (BS1-04,

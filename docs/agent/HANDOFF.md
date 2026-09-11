@@ -1,10 +1,36 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Repair deployed — production Gatekeeper reconnection pending
+- Status: Pricelists refactor source-complete — production Gatekeeper reconnection pending
 - Last synchronized: 2026-09-11
 
 ## Current continuation
+
+The Pricelists navigation refactor is complete in source and not deployed.
+Pricing navigation now enters through `/admin/pricing/pricelists`; users choose
+a version before opening the RX, Stock, or Supplies section at
+`/admin/pricing/pricelists/:versionId/:section`. The editor shell retains each
+visited section so local drafts survive tab changes, aggregates dirty state,
+and guards Back, other route exits, and browser unloads. Invalid version IDs
+show a returnable not-found state and never fall back to the first version.
+Legacy pricing URLs and Product Catalog price links tunnel through the version
+table. Existing hooks, price calculations, saves, previews, exports, and
+adjustment-materialization confirmation are unchanged; no migration or policy
+change is part of this work.
+
+Passed locally: focused Vitest coverage for navigation/save safety/materialized
+adjustments, affected-file ESLint with no errors, `npm run build`, and
+`git diff --check`. Authenticated external Edge QA on the local Vite build
+confirmed the one-link sidebar, table search through real sequential typing,
+name-to-RX default, all three version-scoped sections, legacy product intent
+redirect, invalid-ID state, collapsed editor shell, stock draft retention across
+section changes, and the unsaved-exit confirmation. The test draft was
+discarded and no price was saved. Browser-unload registration is covered by the
+focused source test; no production deployment or live price write occurred.
+
+Next action: publish the normal frontend release after explicit deployment
+approval, then repeat the route and dirty-state smoke checks on the hosted
+domain without saving a price.
 
 The 2026-09-11 repair is implemented locally across pricelist saves,
 Gatekeeper polling/dispatch, shipment supplier defaults, and assistant-created

@@ -2,14 +2,14 @@
 
 Quick reference, written 2026-07-31 after this exact confusion cost a full session. There are
 **four** pricing-related schemas in this codebase. Only one of them is real. Check the live admin
-UI (`admin.classicvisions.net/admin/pricing/rx-lenses`), not the docs, if this file is ever in
+UI (`admin.classicvisions.net/admin/pricing/pricelists`), not the docs, if this file is ever in
 doubt — the docs have been wrong before.
 
 ## The one that's real: `pricelist_versions`
 
 **Use this.** Live, actively maintained, drives the actual customer-facing prices today.
 
-- Admin UI: OpticAdmin → Pricing → RX Lens Prices (`/admin/pricing/rx-lenses`).
+- Admin UI: OpticAdmin → Pricing → Pricelists (`/admin/pricing/pricelists`), then open a version's RX Lens Prices tab.
 - A customer's price document: `customers.assigned_pricelist_id → pricelist_versions.id`.
 - Lens prices within a document: `matrix_allocations` (resolves a category × material × treatment
   cell to a concrete `lens_id` + BBD price) and `price_matrix` (the underlying flat grid).
@@ -70,5 +70,5 @@ public catalog publishing.
 2. Don't touch `effective_price()` / `pricelists` / `pricelist_lines` — not wired to anything.
 3. Don't touch `addon_pricing_sheets` / `customer_pricing_access` expecting it to affect a real
    price — it doesn't, yet.
-4. When in doubt, log into `admin.classicvisions.net/admin/pricing/rx-lenses` and look. The UI is
+4. When in doubt, log into `admin.classicvisions.net/admin/pricing/pricelists`, choose the version, and open RX Lens Prices. The UI is
    ground truth; the docs have drifted from it before.

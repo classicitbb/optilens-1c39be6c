@@ -1,6 +1,6 @@
 import {
   DollarSign, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
-  Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
+  Package, Eye, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
   ListChecks,
   FileEdit,
   Contact, Tags, Factory,
@@ -43,9 +43,7 @@ export const ADMIN_APPS = {
     featurePrefix: 'pricing',
     sidebarItems: [
       { label: 'Product Catalog', route: '/admin/pricing/catalog', icon: Package },
-      { label: 'RX Lens Prices', route: '/admin/pricing/rx-lenses', icon: Eye },
-      { label: 'Stock Lens Prices', route: '/admin/pricing/stock-lenses', icon: Layers },
-      { label: 'Supplies Prices', route: '/admin/pricing/supplies', icon: BoxSelect },
+      { label: 'Pricelists', route: '/admin/pricing/pricelists', icon: Tags },
       { label: 'Supplier Compare', route: '/admin/pricing/compare', icon: GitCompare },
       { label: 'Lens Classification', route: '/admin/pricing/classification', icon: ListChecks },
       { label: 'Lens Catalog Builder', route: '/admin/pricing/publisher', icon: FileText },

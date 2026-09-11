@@ -87,6 +87,8 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.copilot", path: "/admin/copilot", domain: "admin-console", audience: "admin", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active", redirectTo: "/copilot" },
   { id: "admin.copilot.workspace", path: "/copilot", domain: "admin-console", audience: "staff", authMode: "admin", layout: "customer-shell", navGroup: "admin", status: "active" },
   { id: "admin.assistant.quality", path: "/admin/assistant/quality", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.pricing.pricelists", path: "/admin/pricing/pricelists", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.pricing.pricelist-editor", path: "/admin/pricing/pricelists/:versionId/:section", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden" },
   { id: "admin.pricing.compare", path: "/admin/pricing/compare", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.pricing.classification", path: "/admin/pricing/classification", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.pricing.alias-mapping", path: "/admin/pricing/alias-mapping", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
