@@ -9613,6 +9613,110 @@ export type Database = {
           },
         ]
       }
+      shipment_documents: {
+        Row: {
+          byte_size: number
+          created_at: string
+          id: string
+          mime_type: string
+          original_file_name: string
+          shipment_id: string
+          source_kind: string
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          byte_size: number
+          created_at?: string
+          id?: string
+          mime_type: string
+          original_file_name: string
+          shipment_id: string
+          source_kind?: string
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          byte_size?: number
+          created_at?: string
+          id?: string
+          mime_type?: string
+          original_file_name?: string
+          shipment_id?: string
+          source_kind?: string
+          storage_path?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_documents_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_evidence_links: {
+        Row: {
+          approved_at: string
+          approved_by_user_id: string
+          bounds: Json
+          created_at: string
+          document_id: string
+          id: string
+          page_number: number
+          shipment_id: string
+          source_text: string | null
+          target_key: string
+          target_kind: string
+          target_record_id: string | null
+        }
+        Insert: {
+          approved_at?: string
+          approved_by_user_id: string
+          bounds?: Json
+          created_at?: string
+          document_id: string
+          id?: string
+          page_number?: number
+          shipment_id: string
+          source_text?: string | null
+          target_key: string
+          target_kind: string
+          target_record_id?: string | null
+        }
+        Update: {
+          approved_at?: string
+          approved_by_user_id?: string
+          bounds?: Json
+          created_at?: string
+          document_id?: string
+          id?: string
+          page_number?: number
+          shipment_id?: string
+          source_text?: string | null
+          target_key?: string
+          target_kind?: string
+          target_record_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_evidence_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_evidence_links_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_lines: {
         Row: {
           addon_id: string | null
@@ -9746,6 +9850,8 @@ export type Database = {
       }
       shipments: {
         Row: {
+          binder_created_at: string | null
+          binder_storage_path: string | null
           commodity: string
           created_at: string
           created_by: string
@@ -9755,12 +9861,22 @@ export type Database = {
           exchange_rate: number
           fob_foreign: number
           freight_provider: string
+          fxf_actual_bbd: number | null
+          fxf_applicability: string | null
+          fxf_basis_bbd: number | null
+          fxf_expected_bbd: number | null
+          fxf_override_at: string | null
+          fxf_override_by: string | null
+          fxf_override_reason: string | null
+          fxf_rate: number | null
+          fxf_variance_bbd: number | null
           id: string
           invoice_date: string
           invoice_number: string
           invoice_total_foreign: number
           parent_id: string | null
           po_ref: string | null
+          settlement_method: string | null
           status: Database["public"]["Enums"]["shipment_status"]
           supplier_id: string
           type: string
@@ -9768,6 +9884,8 @@ export type Database = {
           version: number
         }
         Insert: {
+          binder_created_at?: string | null
+          binder_storage_path?: string | null
           commodity?: string
           created_at?: string
           created_by: string
@@ -9777,12 +9895,22 @@ export type Database = {
           exchange_rate?: number
           fob_foreign?: number
           freight_provider?: string
+          fxf_actual_bbd?: number | null
+          fxf_applicability?: string | null
+          fxf_basis_bbd?: number | null
+          fxf_expected_bbd?: number | null
+          fxf_override_at?: string | null
+          fxf_override_by?: string | null
+          fxf_override_reason?: string | null
+          fxf_rate?: number | null
+          fxf_variance_bbd?: number | null
           id?: string
           invoice_date: string
           invoice_number: string
           invoice_total_foreign?: number
           parent_id?: string | null
           po_ref?: string | null
+          settlement_method?: string | null
           status?: Database["public"]["Enums"]["shipment_status"]
           supplier_id: string
           type: string
@@ -9790,6 +9918,8 @@ export type Database = {
           version?: number
         }
         Update: {
+          binder_created_at?: string | null
+          binder_storage_path?: string | null
           commodity?: string
           created_at?: string
           created_by?: string
@@ -9799,12 +9929,22 @@ export type Database = {
           exchange_rate?: number
           fob_foreign?: number
           freight_provider?: string
+          fxf_actual_bbd?: number | null
+          fxf_applicability?: string | null
+          fxf_basis_bbd?: number | null
+          fxf_expected_bbd?: number | null
+          fxf_override_at?: string | null
+          fxf_override_by?: string | null
+          fxf_override_reason?: string | null
+          fxf_rate?: number | null
+          fxf_variance_bbd?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string
           invoice_total_foreign?: number
           parent_id?: string | null
           po_ref?: string | null
+          settlement_method?: string | null
           status?: Database["public"]["Enums"]["shipment_status"]
           supplier_id?: string
           type?: string
@@ -12461,6 +12601,24 @@ export type Database = {
       manage_integration_sync_error: {
         Args: { p_action: string; p_error_id: string }
         Returns: undefined
+      }
+      materialize_pricelist_adjustments: {
+        Args: {
+          p_base_currency: string
+          p_child_adjustments: Json
+          p_discount_percent: number
+          p_format_type: string
+          p_is_template: boolean
+          p_markup_percent: number
+          p_master_discount_percent: number
+          p_master_markup_percent: number
+          p_name: string
+          p_version_id: number
+        }
+        Returns: {
+          applied_count: number
+          section_type: string
+        }[]
       }
       next_billing_number: {
         Args: { p_document_type: string }
