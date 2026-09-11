@@ -270,11 +270,12 @@ const ShipmentDetailPage = () => {
       if (!shipmentIds.length) return;
       const { data } = await (supabase.from("shipment_charges") as any).select("charge_type, amount_bbd, vat_bbd, duty_bbd").in("shipment_id", shipmentIds);
       if (!active) return;
-      const groups = (data ?? []).reduce((all: Record<string, { amount: number; vat: number; duty: number; count: number }>, charge: ShipmentCharge) => {
+      type ChargeGroup = { amount: number; vat: number; duty: number; count: number };
+      const groups = (data ?? []).reduce((all: Record<string, ChargeGroup>, charge: ShipmentCharge) => {
         const key = charge.charge_type; const current = all[key] ?? { amount: 0, vat: 0, duty: 0, count: 0 };
         current.amount += charge.amount_bbd || 0; current.vat += charge.vat_bbd || 0; current.duty += charge.duty_bbd || 0; current.count += 1; all[key] = current; return all;
-      }, {});
-      setChargeSuggestions(Object.fromEntries(Object.entries(groups).filter(([, group]) => group.count >= 2).map(([key, group]) => [key, { amount: Math.round(group.amount / group.count * 100) / 100, vat: Math.round(group.vat / group.count * 100) / 100, duty: Math.round(group.duty / group.count * 100) / 100, count: group.count }])));
+      }, {} as Record<string, ChargeGroup>);
+      setChargeSuggestions(Object.fromEntries((Object.entries(groups) as [string, ChargeGroup][]).filter(([, group]) => group.count >= 2).map(([key, group]) => [key, { amount: Math.round(group.amount / group.count * 100) / 100, vat: Math.round(group.vat / group.count * 100) / 100, duty: Math.round(group.duty / group.count * 100) / 100, count: group.count }])));
     })();
     return () => { active = false; };
   }, [shipment?.supplier_id]);
@@ -399,7 +400,7 @@ const ShipmentDetailPage = () => {
     // does not depend on browser clipboard behaviour.
     window.setTimeout(() => {
       const selectors = Array.from(document.querySelectorAll<HTMLButtonElement>("button[role='combobox']"));
-      selectors.at(-1)?.focus();
+      selectors[selectors.length - 1]?.focus();
     }, 0);
   };
 
