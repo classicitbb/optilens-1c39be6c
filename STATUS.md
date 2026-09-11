@@ -21,9 +21,13 @@ Last updated: 2026-09-11
   storage failures. Both reviewed migrations and `gatekeeper-orders` are live;
   database definitions, grants, 481 override rows, and the three pre-existing
   duplicate logical-key groups were verified after deployment. The staging
-  Gatekeeper route, status polling, and cron remain disabled. Frontend publish
-  and production PIN reconnection remain pending; the local Edge smoke run was
-  blocked before HTTP by the workstation certificate-revocation chain.
+  Gatekeeper route, status polling, and cron remain disabled. The frontend is
+  published and external Edge browser QA confirmed the safe pricelist choice,
+  the separate replace-all action, the disabled Gatekeeper controls, and that
+  selecting a supplier with no shipment history preserves typed Type and
+  Commodity values. Production PIN reconnection remains pending; the local
+  Edge smoke run was blocked before HTTP by the workstation
+  certificate-revocation chain.
 
 - **HA Optical stock-order availability** — production catalog data and SQL
   functions were repaired on 2026-09-09. `get_stock_order_catalog` no longer

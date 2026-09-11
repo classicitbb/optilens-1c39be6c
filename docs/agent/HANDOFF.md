@@ -1,7 +1,7 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Database and Edge deployed — frontend publish and production reconnection pending
+- Status: Repair deployed — production Gatekeeper reconnection pending
 - Last synchronized: 2026-09-11
 
 ## Current continuation
@@ -11,8 +11,7 @@ Gatekeeper polling/dispatch, shipment supplier defaults, and assistant-created
 ticket attachments. Migrations
 `20260911201657_pricelist_override_provenance_and_safe_materialization.sql`
 and `20260911201702_gatekeeper_status_backoff_and_rx_fallback.sql` are deployed,
-along with the changed `gatekeeper-orders` Edge Function. The frontend remains
-to be published.
+along with the changed `gatekeeper-orders` Edge Function and frontend.
 
 Before implementation, the live `pricelist_line_overrides` table had 481 rows
 and three duplicate logical-key groups. An exact off-repository snapshot was
@@ -28,11 +27,17 @@ unrelated CRLF-sensitive failures in
 271 manual plus 210 generated overrides and the production-only route guard.
 `npm run qa:edge-smoke` was attempted after deployment, but all 40 probes failed
 before HTTP because this workstation cannot complete certificate revocation
-checking; the separate Lovable deployment completed. Required next action:
-publish the frontend, then keep polling disabled until an administrator
-supplies a fresh production Gatekeeper PIN and a read-only
-authentication/contract/status pull succeeds. A real fallback order requires
-separate approval and authoritative OptiLens Local proof.
+checking; the Lovable deployment completed. External Edge browser QA on the
+published custom domain confirmed that a typed percentage change opens the
+default `Preserve manual prices` action beside the separately destructive
+`Replace all line prices` action, then exited without saving. It also confirmed
+that choosing supplier BPI, which has no earlier shipment, preserves the typed
+`Stock Lens` Type and `Browser QA commodity` Commodity values; no shipment was
+created. The Integration screen shows the staging connection and outbound and
+automatic polling controls disabled. Required next action: keep polling
+disabled until an administrator supplies a fresh production Gatekeeper PIN and
+a read-only authentication/contract/status pull succeeds. A real fallback order
+requires separate approval and authoritative OptiLens Local proof.
 
 HA Optical's production stock-order catalog is live and orderable. The live
 database repair corrected `get_stock_order_catalog`, converts stock-lens pair
