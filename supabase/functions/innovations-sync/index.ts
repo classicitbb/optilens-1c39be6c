@@ -19,6 +19,7 @@ import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts"
 import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 import { buildOrderHashref, canonicalOrderFor, type OrderKind } from "../_shared/orders/hashref.ts";
+import { deactivateLensAlias, isInactiveLensAliasTombstone, upsertActiveLensAliases } from "./lens-aliases.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -319,7 +320,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-08-12.1-unified-order-dispatch";
+const VERSION = "2026-09-11.1-lens-alias-tombstones";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
@@ -826,6 +827,38 @@ Deno.serve(async (req: Request) => {
   // Kept separate from `errors` so they never inflate the failure count.
   const warnings: string[] = [];
 
+  // Reconciliation deletions are minimal `{ alias, is_active: false,
+  // synced_at }` records. Updating an existing row preserves its mandatory
+  // catalogue fields; inserting an unknown tombstone would create invalid,
+  // invented catalogue data and is deliberately a non-failing no-op.
+  const lensAliasTombstones = entity === "lens_aliases"
+    ? mapped.filter(isInactiveLensAliasTombstone)
+    : [];
+  const genericMapped = entity === "lens_aliases"
+    ? mapped.filter((row) => !isInactiveLensAliasTombstone(row))
+    : mapped;
+  if (!dryRun && lensAliasTombstones.length) {
+    for (const row of lensAliasTombstones) {
+      const result = await deactivateLensAlias(supabase as any, row);
+      if (result.error) {
+        failed++;
+        if (errors.length < 5) errors.push(`${row[cfg.required]}: ${result.error.message || "tombstone update failed"}`);
+        await supabase.from("innovations_sync_dead_letters").insert({
+          entity,
+          external_id: String(row[cfg.required]),
+          api_key_id: key.id,
+          last_error: result.error.message || "tombstone update failed",
+          source_payload: row,
+          status: "pending",
+        });
+      } else if (result.missing) {
+        warnings.push(`${row[cfg.required]}: inactive tombstone ignored because the alias is not present in the receiver`);
+      } else {
+        upserted++;
+      }
+    }
+  }
+
   if (!dryRun && mapped.length && (entity === "customers" || entity === "contacts")) {
     // Customer and contact rows resolve individually. Customers may need to
     // adopt a pre-existing website row; both entities preserve populated CRM
@@ -895,18 +928,22 @@ Deno.serve(async (req: Request) => {
         upserted++;
       }
     }
-  } else if (!dryRun && mapped.length) {
+  } else if (!dryRun && genericMapped.length) {
     // Try a single batch upsert; on failure, isolate per-row and dead-letter.
-    const { error: batchErr } = await supabase
-      .from(cfg.table)
-      .upsert(mapped, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
+    const { error: batchErr } = entity === "lens_aliases"
+      ? await upsertActiveLensAliases(supabase as any, genericMapped)
+      : await supabase
+        .from(cfg.table)
+        .upsert(genericMapped, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
     if (!batchErr) {
-      upserted = mapped.length;
+      upserted += genericMapped.length;
     } else {
-      for (const row of mapped) {
-        let { error: rowErr } = await supabase
-          .from(cfg.table)
-          .upsert(row, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
+      for (const row of genericMapped) {
+        let { error: rowErr } = entity === "lens_aliases"
+          ? await upsertActiveLensAliases(supabase as any, [row])
+          : await supabase
+            .from(cfg.table)
+            .upsert(row, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
         // Contacts have a unique-name constraint (used by CRM name-upserts, so it
         // stays). ERP names legitimately repeat — on a name collision, retry once
         // with a unique suffix so the person still lands as a distinct row.
