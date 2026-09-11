@@ -53,7 +53,7 @@ export const useRxSubmissions = () => {
   // path refuses to claim it a second time.
   const resendMutation = useMutation({
     mutationFn: async (id: string) => {
-      await sendToGatekeeper(id);
+      return await sendToGatekeeper(id);
     },
     onError: (error: Error) => toast({ variant: "destructive", title: "Send failed", description: error.message }),
     onSuccess: (result) => toast(result?.delivery === "fallback_queued"
