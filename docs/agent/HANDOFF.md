@@ -1,10 +1,46 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Shipment costing workbench source-complete — frontend release pending
+- Status: Document AI source integration ready — Google IAM configuration blocked
 - Last synchronized: 2026-09-15
 
 ## Current continuation
+
+The next costing iteration is implemented locally but has not yet been
+deployed. Changed files include `src/components/pdf/PdfViewer.tsx`,
+`src/pages/admin/costings/ShipmentEvidencePanel.tsx`,
+`src/pages/admin/costings/ShipmentDetailPage.tsx`, new
+`src/pages/admin/costings/ShipmentCostingCoverSheet.tsx`,
+`src/pages/admin/settings/DocumentAiIntegrationCard.tsx`,
+`supabase/functions/document-ai/index.ts`, and migration
+`supabase/migrations/20260915141611_shipment_document_ai_intake.sql`.
+PDF previews use a fixed, single-page mode with Previous/Next controls instead
+of expanding to every page. The evidence panel defaults to the printable
+costing-sheet front page and the export tab exposes the existing
+`shipment-binder` function only while a shipment is reviewed.
+
+Google Cloud is signed in under the `classic-visions` project. The Document AI
+API is enabled and the US `Classic Visions Shipment OCR` processor exists.
+Google Console rejected service-account creation with tracking
+`c489999731242316`; no service-account key exists, so no credential has been
+saved and no source document has been sent to Google. The new database design
+stores an encrypted service-account credential, draft-only extractions, and
+human-approved document-layout templates. The Edge function validates the
+caller, verifies the configured processor, creates extraction drafts only, and
+has no shipment, charge, line, review, or lock write path. Iris has read-only
+resources for document metadata, extraction drafts, and templates, and must
+ask for approval before using any extracted values.
+
+Passed: `npx tsc --noEmit --pretty false`; focused evidence-panel Vitest
+(3/3); `npm run lint`; `npm run build`; and `git diff --check`. An authenticated
+local Codex-browser review confirmed the costing-sheet default surface, source
+list, unlink affordances, and unchanged shipment data. The direct migration
+application through Lovable was not available from the exposed browser
+controls; do not substitute an unverified database path. Next action: an
+administrator must grant the Google account permission to create the service
+account and key (or create it with Document AI API User), then apply the named
+migration through the approved Lovable integration, deploy `document-ai`,
+paste the JSON key in Settings > Integrations, and run its configuration test.
 
 Shipment costing workbench repair is complete in source and not deployed. The
 document review surface renders signed PDFs through the bundled `PdfViewer`,

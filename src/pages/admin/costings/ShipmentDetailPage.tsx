@@ -29,6 +29,7 @@ import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock, C
 import { cn } from "@/lib/utils";
 import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
 import ShipmentEvidencePanel from "./ShipmentEvidencePanel";
+import ShipmentCostingCoverSheet from "./ShipmentCostingCoverSheet";
 import { deriveChargeProfiles, type ChargeProfile } from "@/features/shipments/chargeProfiles";
 import { getChargeAdvance, type ChargeField } from "@/features/shipments/chargeKeyboard";
 
@@ -245,6 +246,7 @@ const ShipmentDetailPage = () => {
   const [shipment, setShipment] = useState<Shipment | null>(isNew ? defaultShipment : null);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [buildingBinder, setBuildingBinder] = useState(false);
   const [invoiceTouched, setInvoiceTouched] = useState(false);
   const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, ChargeProfile>>({});
   const supplierLookupRequestRef = useRef(0);
@@ -486,6 +488,23 @@ const ShipmentDetailPage = () => {
     }, 0);
   };
 
+  const exportBinder = async () => {
+    if (!id || shipment.status !== "reviewed") return;
+    setBuildingBinder(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("shipment-binder", { body: { shipmentId: id } });
+      if (error || !data?.path) throw error ?? new Error("Binder generation returned no file.");
+      const { data: signed, error: signedError } = await supabase.storage.from("shipment-costing-documents").createSignedUrl(data.path, 600);
+      if (signedError || !signed?.signedUrl) throw signedError ?? new Error("Could not prepare the binder download.");
+      window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+      toast({ title: "Binder generated", description: "The costing cover and uploaded documents are ready to archive." });
+    } catch (error: any) {
+      toast({ title: "Binder export failed", description: error.message, variant: "destructive" });
+    } finally {
+      setBuildingBinder(false);
+    }
+  };
+
   const advanceCharge = useCallback((chargeId: string, field: ChargeField) => {
     const next = getChargeAdvance(charges.map((charge) => charge.id), chargeId, field);
     if (next.kind === "create") {
@@ -681,6 +700,21 @@ const ShipmentDetailPage = () => {
               { key: "insurance_freight", label: "Freight & insurance", value: `BBD$ ${fmt(insuranceFreightAmount)}`, category: "freight" },
               { key: "po_ref", label: "PO / AWB reference", value: shipment.po_ref || "Not entered", category: "reference" },
             ]}
+            coverSheet={<ShipmentCostingCoverSheet
+              shipmentNumber={shipment.invoice_number}
+              supplier={suppliers?.find((supplier) => supplier.id === shipment.supplier_id)?.name ?? shipment.supplier_id}
+              reference={shipment.po_ref}
+              receivedOn={shipment.date_received}
+              currency={shipment.currency}
+              fobBbd={totals.fobBbd}
+              freightBbd={insuranceFreightAmount}
+              cifBbd={cifBbd}
+              fxfBbd={expectedFxfBbd}
+              otherChargesBbd={otherLandedChargesBbd}
+              totalLandedBbd={totals.totalLandedBbd}
+              multiplier={totals.multiplier}
+              status={shipment.status}
+            />}
           />
         </section>
       )}
@@ -897,8 +931,9 @@ const ShipmentDetailPage = () => {
 
           {/* Exports Tab */}
           <TabsContent value="exports" className="space-y-3 pt-3">
-            <p className="text-xs text-muted-foreground">Export data for this shipment as CSV files.</p>
+            <p className="text-xs text-muted-foreground">Export data as CSV, or generate the binder front page with all uploaded source documents.</p>
             <div className="flex flex-wrap gap-2">
+              {editable && shipment.status === "reviewed" && <Button size="sm" className="h-8 text-xs gap-1" onClick={() => void exportBinder()} disabled={buildingBinder}><Download className="h-3 w-3" /> {buildingBinder ? "Building binder…" : "Export binder PDF"}</Button>}
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => {
                 const { fobBbd, invoiceBbd, totalLandedBbd, multiplier } = totals;
                 exportCSV([{

@@ -22,6 +22,19 @@ Last updated: 2026-09-15
   data write, or deployment is part of this source change. Focused tests, build,
   and local authenticated browser review pass; frontend release remains pending.
 
+- **Shipment costing binder and Google Document AI intake** — source keeps a
+  selected PDF to one pageable workbench viewport and makes the generated
+  costing sheet the default document-review front page. Reviewed shipments can
+  export the existing binder before lock. The new Settings > Integrations
+  surface encrypts a Google service-account JSON, and the `document-ai` Edge
+  function can create draft-only extraction records; Iris can read these
+  records and templates but cannot write them. Google Document AI API and the
+  `Classic Visions Shipment OCR` processor are created in the existing
+  `classic-visions` project. Google Console rejected creation of the required
+  service account (tracking `c489999731242316`), so no credential was saved,
+  no document was transmitted, no migration or Edge function was deployed,
+  and production OCR remains disabled.
+
 - **Pricelists navigation refactor** — source now replaces the three generic
   pricing editor links with `/admin/pricing/pricelists`, a searchable,
   sortable, 25-row-paginated version table and the version-scoped editor route

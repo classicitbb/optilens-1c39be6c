@@ -60,6 +60,7 @@ describe("ShipmentEvidencePanel", () => {
   it("uses the bundled PDF reader for a signed document URL", async () => {
     render(<ShipmentEvidencePanel shipmentId="shipment-1" targets={targets} />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "INVOICE & AWB.pdf" }));
     expect(await screen.findByTestId("pdf-viewer")).toHaveTextContent("INVOICE & AWB.pdf https://files.example.test/document.pdf");
     expect(screen.getByText("PDF reader")).toBeInTheDocument();
   });
@@ -79,10 +80,12 @@ describe("ShipmentEvidencePanel", () => {
     mocks.signedUrl = "https://files.example.test/invoice.png";
     const { rerender } = render(<ShipmentEvidencePanel shipmentId="shipment-1" targets={targets} />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "invoice.png" }));
     expect(await screen.findByAltText("invoice.png")).toHaveAttribute("src", mocks.signedUrl);
 
     mocks.signedError = { message: "Storage denied" };
     rerender(<ShipmentEvidencePanel key="new-preview" shipmentId="shipment-2" targets={targets} />);
+    fireEvent.click(await screen.findByRole("button", { name: "invoice.png" }));
     expect(await screen.findByText("Storage denied")).toBeInTheDocument();
   });
 });

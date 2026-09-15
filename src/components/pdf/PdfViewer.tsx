@@ -24,6 +24,8 @@ type PdfViewerProps = {
   downloadName?: string;
   /** Let the surrounding page grow to show every rendered page instead of scrolling inside the viewer. */
   expandToContent?: boolean;
+  /** Keep a compact workbench preview to one full page at a time. */
+  pageMode?: "all" | "single";
 };
 
 type PdfDocumentProxy = {
@@ -155,7 +157,7 @@ const PdfPage = ({
   );
 };
 
-const PdfViewer = ({ url, title, className, downloadName, expandToContent = false }: PdfViewerProps) => {
+const PdfViewer = ({ url, title, className, downloadName, expandToContent = false, pageMode = "all" }: PdfViewerProps) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [doc, setDoc] = useState<PdfDocumentProxy | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,6 +165,7 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
   const [containerWidth, setContainerWidth] = useState(0);
   const [scale, setScale] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -180,6 +183,7 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
     setDoc(null);
     setError(null);
     setProgress(0);
+    setCurrentPage(1);
 
     (async () => {
       try {
@@ -213,6 +217,7 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
     () => (doc ? Array.from({ length: doc.numPages }, (_, index) => index + 1) : []),
     [doc],
   );
+  const visiblePages = pageMode === "single" ? pages.filter((page) => page === currentPage) : pages;
 
   const zoom = useCallback((delta: number) => {
     setScale((current) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number((current + delta).toFixed(2)))));
@@ -222,9 +227,19 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
     <div className={cn("flex flex-col border border-border bg-muted/20", expandToContent ? "h-auto" : "min-h-0", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
         <p className="text-xs text-muted-foreground">
-          {doc ? `${doc.numPages} page${doc.numPages === 1 ? "" : "s"}` : error ? "Preview unavailable" : "Loading…"}
+          {doc
+            ? pageMode === "single"
+              ? `Page ${currentPage} of ${doc.numPages}`
+              : `${doc.numPages} page${doc.numPages === 1 ? "" : "s"}`
+            : error ? "Preview unavailable" : "Loading…"}
         </p>
         <div className="flex items-center gap-1">
+          {pageMode === "single" && doc && doc.numPages > 1 && (
+            <>
+              <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage <= 1}>Previous</Button>
+              <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setCurrentPage((page) => Math.min(doc.numPages, page + 1))} disabled={currentPage >= doc.numPages}>Next</Button>
+            </>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -296,7 +311,7 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {pages.map((pageNumber) => (
+            {visiblePages.map((pageNumber) => (
               <PdfPage
                 key={pageNumber}
                 doc={doc}

@@ -18,6 +18,7 @@ import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput
 import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderCard";
 import CopilotFactsCard from "./CopilotFactsCard";
 import AssistantMemoryCard from "./AssistantMemoryCard";
+import DocumentAiIntegrationCard from "./DocumentAiIntegrationCard";
 import { QboIntegrationCard } from "@/components/admin/QboIntegrationCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -613,6 +614,7 @@ export default function IntegrationsPage() {
           <GatekeeperIntegrationTab />
         </TabsContent>
         <TabsContent value="ai-agents" className="space-y-4">
+          <DocumentAiIntegrationCard />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
