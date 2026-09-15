@@ -1,10 +1,38 @@
 # Work Handoff
 
 - Repository: `classicitbb/optilens-1c39be6c`
-- Status: Pricelists refactor source-complete — production Gatekeeper reconnection pending
-- Last synchronized: 2026-09-11
+- Status: Shipment costing workbench source-complete — frontend release pending
+- Last synchronized: 2026-09-15
 
 ## Current continuation
+
+Shipment costing workbench repair is complete in source and not deployed. The
+document review surface renders signed PDFs through the bundled `PdfViewer`,
+shows its existing retry/open/download fallback if a document cannot render,
+and uses a plain `PDF reader` label: automated OCR/extraction is deliberately
+not implemented. Operators can unlink an approved evidence mapping without
+deleting the source object or changing shipment/cost data. The landed-charge
+grid now applies the supplier's most common complete historical profile from
+the latest 30 shipments (minimum two uses; recency resolves a tie), including
+VAT reclaimability and notes; its chip explains that source. Enter advances
+through Type, Amount, VAT, Duty, VAT Reclaimable, and Notes, then focuses the
+next row or creates a new final row. The three-column panel no longer fixes
+document review to 410px; documents grow the page and the Landed Cost Story
+collapses vertically. No migration was created because the work reuses the
+existing evidence tables/storage bucket. `supabase migration list --linked`
+could not report remote state because the installed CLI times out while shutting
+down PostHog; do not apply an unknown migration through another route without
+first resolving that read-only verification.
+
+Passed: `npx tsc --noEmit --pretty false`; focused Vitest (16 tests across
+document evidence, charge profiles, charge keyboard flow, and import totals);
+`npm run build`; `git diff --check`; and authenticated local Codex-browser plus
+external Edge review of the PDF reader, evidence unlink affordance, FXF tooltip
+trigger, vertically expanded document layout, and enabled charge controls. No
+charge was typed, added, unlinked, or saved during browser QA, so no live data
+changed. Next action: publish the normal frontend release after explicit
+deployment approval, then repeat the document/keyboard checks on the hosted
+domain without changing a shipment.
 
 The Pricelists navigation refactor is complete in source and not deployed.
 Pricing navigation now enters through `/admin/pricing/pricelists`; users choose

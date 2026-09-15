@@ -22,6 +22,8 @@ type PdfViewerProps = {
   className?: string;
   /** Optional download filename for the fallback button. */
   downloadName?: string;
+  /** Let the surrounding page grow to show every rendered page instead of scrolling inside the viewer. */
+  expandToContent?: boolean;
 };
 
 type PdfDocumentProxy = {
@@ -153,7 +155,7 @@ const PdfPage = ({
   );
 };
 
-const PdfViewer = ({ url, title, className, downloadName }: PdfViewerProps) => {
+const PdfViewer = ({ url, title, className, downloadName, expandToContent = false }: PdfViewerProps) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [doc, setDoc] = useState<PdfDocumentProxy | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -217,7 +219,7 @@ const PdfViewer = ({ url, title, className, downloadName }: PdfViewerProps) => {
   }, []);
 
   return (
-    <div className={cn("flex min-h-0 flex-col border border-border bg-muted/20", className)}>
+    <div className={cn("flex flex-col border border-border bg-muted/20", expandToContent ? "h-auto" : "min-h-0", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
         <p className="text-xs text-muted-foreground">
           {doc ? `${doc.numPages} page${doc.numPages === 1 ? "" : "s"}` : error ? "Preview unavailable" : "Loading…"}
@@ -261,7 +263,7 @@ const PdfViewer = ({ url, title, className, downloadName }: PdfViewerProps) => {
         </div>
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto p-4" role="document" aria-label={title}>
+      <div ref={scrollRef} className={cn("flex-1 p-4", expandToContent ? "overflow-visible" : "min-h-0 overflow-auto")} role="document" aria-label={title}>
         {error ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <AlertTriangle className="h-6 w-6 text-muted-foreground" aria-hidden="true" />

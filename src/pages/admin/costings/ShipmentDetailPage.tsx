@@ -23,11 +23,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock, CircleAlert, CircleCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
 import ShipmentEvidencePanel from "./ShipmentEvidencePanel";
+import { deriveChargeProfiles, type ChargeProfile } from "@/features/shipments/chargeProfiles";
+import { getChargeAdvance, type ChargeField } from "@/features/shipments/chargeKeyboard";
 
 const fmt = formatMoney;
 
@@ -40,6 +43,8 @@ const NumericInput = ({
   onAdvance,
   suggestion,
   onAcceptSuggestion,
+  suggestionDescription,
+  focusTarget,
 }: {
   value: number;
   onChange: (v: number) => void;
@@ -48,6 +53,8 @@ const NumericInput = ({
   onAdvance?: () => void;
   suggestion?: number;
   onAcceptSuggestion?: () => void;
+  suggestionDescription?: string;
+  focusTarget?: string;
 }) => {
   const [local, setLocal] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
@@ -84,12 +91,18 @@ const NumericInput = ({
           onAdvance?.();
         }
       }}
+      data-charge-focus={focusTarget}
     />
     {suggestion != null && Math.abs(suggestion - value) > 0.004 && (
-      <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onAcceptSuggestion}
-        className="absolute right-1 top-1/2 -translate-y-1/2 rounded border border-primary/30 bg-background px-1 py-0.5 text-[9px] font-medium text-primary hover:bg-primary/10">
-        Use BBD${suggestion.toFixed(2)}
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onAcceptSuggestion}
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded border border-primary/30 bg-background px-1 py-0.5 text-[9px] font-medium text-primary hover:bg-primary/10">
+            Use BBD${suggestion.toFixed(2)}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-64 text-xs">{suggestionDescription}</TooltipContent>
+      </Tooltip>
     )}
     </div>
   );
@@ -102,12 +115,14 @@ const TextInput = ({
   disabled,
   className,
   onAdvance,
+  focusTarget,
 }: {
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
   className?: string;
   onAdvance?: () => void;
+  focusTarget?: string;
 }) => {
   const [local, setLocal] = useState(value);
   const ref = useRef<HTMLInputElement>(null);
@@ -137,6 +152,7 @@ const TextInput = ({
           onAdvance?.();
         }
       }}
+      data-charge-focus={focusTarget}
     />
   );
 };
@@ -198,16 +214,10 @@ const ProductCombobox = ({
   );
 };
 
-/** Focus next tabbable input in the table */
-const focusNextInput = (current: EventTarget) => {
-  const el = current as HTMLElement;
-  const table = el.closest("table");
-  if (!table) return;
-  const inputs = Array.from(table.querySelectorAll<HTMLInputElement>("input:not([disabled]), button:not([disabled])"));
-  const idx = inputs.indexOf(el as HTMLInputElement);
-  if (idx >= 0 && idx < inputs.length - 1) {
-    inputs[idx + 1].focus();
-  }
+const focusChargeField = (chargeId: string, field: "type" | "amount" | "vat" | "duty" | "reclaimable" | "notes") => {
+  window.setTimeout(() => {
+    document.querySelector<HTMLElement>(`[data-charge-focus="${chargeId}:${field}"]`)?.focus();
+  }, 0);
 };
 
 const ShipmentDetailPage = () => {
@@ -236,7 +246,7 @@ const ShipmentDetailPage = () => {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [invoiceTouched, setInvoiceTouched] = useState(false);
-  const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, { amount: number; vat: number; duty: number; count: number }>>({});
+  const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, ChargeProfile>>({});
   const supplierLookupRequestRef = useRef(0);
 
   const { data: suppliers } = useReferenceData("suppliers");
@@ -270,14 +280,9 @@ const ShipmentDetailPage = () => {
       const { data: supplierShipments } = await (supabase.from("shipments") as any).select("id").eq("supplier_id", shipment.supplier_id).order("created_at", { ascending: false }).limit(30);
       const shipmentIds = (supplierShipments ?? []).map((row: { id: string }) => row.id);
       if (!shipmentIds.length) return;
-      const { data } = await (supabase.from("shipment_charges") as any).select("charge_type, amount_bbd, vat_bbd, duty_bbd").in("shipment_id", shipmentIds);
+      const { data } = await (supabase.from("shipment_charges") as any).select("shipment_id, charge_type, amount_bbd, vat_bbd, duty_bbd, vat_reclaimable, notes").in("shipment_id", shipmentIds);
       if (!active) return;
-      type ChargeGroup = { amount: number; vat: number; duty: number; count: number };
-      const groups = (data ?? []).reduce((all: Record<string, ChargeGroup>, charge: ShipmentCharge) => {
-        const key = charge.charge_type; const current = all[key] ?? { amount: 0, vat: 0, duty: 0, count: 0 };
-        current.amount += charge.amount_bbd || 0; current.vat += charge.vat_bbd || 0; current.duty += charge.duty_bbd || 0; current.count += 1; all[key] = current; return all;
-      }, {} as Record<string, ChargeGroup>);
-      setChargeSuggestions(Object.fromEntries((Object.entries(groups) as [string, ChargeGroup][]).filter(([, group]) => group.count >= 2).map(([key, group]) => [key, { amount: Math.round(group.amount / group.count * 100) / 100, vat: Math.round(group.vat / group.count * 100) / 100, duty: Math.round(group.duty / group.count * 100) / 100, count: group.count }])));
+      setChargeSuggestions(deriveChargeProfiles(data ?? [], shipmentIds));
     })();
     return () => { active = false; };
   }, [shipment?.supplier_id]);
@@ -462,6 +467,34 @@ const ShipmentDetailPage = () => {
     upsertCharge.mutate({ id: charge.id, [field]: value } as Partial<ShipmentCharge>);
   }, [upsertCharge]);
 
+  const applyChargeProfile = useCallback((charge: ShipmentCharge, profile: ChargeProfile) => {
+    upsertCharge.mutate({
+      id: charge.id,
+      amount_bbd: profile.amount_bbd,
+      vat_bbd: profile.vat_bbd,
+      duty_bbd: profile.duty_bbd,
+      vat_reclaimable: profile.vat_reclaimable,
+      notes: profile.notes,
+    });
+  }, [upsertCharge]);
+
+  const addChargeAndFocusType = async () => {
+    await addCharge();
+    window.setTimeout(() => {
+      const targets = Array.from(document.querySelectorAll<HTMLElement>("[data-charge-focus$=':type']"));
+      targets[targets.length - 1]?.focus();
+    }, 0);
+  };
+
+  const advanceCharge = useCallback((chargeId: string, field: ChargeField) => {
+    const next = getChargeAdvance(charges.map((charge) => charge.id), chargeId, field);
+    if (next.kind === "create") {
+      void addChargeAndFocusType();
+      return;
+    }
+    focusChargeField(next.chargeId, next.field);
+  }, [charges]);
+
   // Line field updater (blur-based) — partial update by id only.
   const updateLine = useCallback((line: ShipmentLine, updates: Partial<ShipmentLine>) => {
     upsertLine.mutate({ id: line.id, ...updates });
@@ -603,7 +636,7 @@ const ShipmentDetailPage = () => {
       </div>
 
       {/* Computed summary */}
-      <details open className="space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-3 xl:row-start-1 xl:row-span-2 xl:self-stretch">
+        <details open className="space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-3 xl:row-start-1 xl:self-start">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Landed cost story</h2>
@@ -638,7 +671,7 @@ const ShipmentDetailPage = () => {
       </details>
 
       {!isNew && (
-        <section className="flex h-[410px] min-h-[410px] xl:col-start-2 xl:row-start-1">
+        <section className="flex min-h-[410px] xl:col-start-2 xl:row-start-1">
           <ShipmentEvidencePanel
             shipmentId={id ?? null}
             readOnly={isLocked}
@@ -664,7 +697,7 @@ const ShipmentDetailPage = () => {
           <TabsContent value="charges" className="space-y-2 pt-2">
             <div className="flex items-center justify-between rounded-md border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-xs">
               <div className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-violet-700" /><span className="font-medium">Foreign Exchange Fee</span><Badge variant="outline" className="text-[9px]">System · planned</Badge></div>
-              <span className="font-mono">CIF {fmt(cifBbd)} × 2.00% = {fmt(expectedFxfBbd)} BBD</span>
+              <Tooltip><TooltipTrigger asChild><span tabIndex={0} className="cursor-help font-mono underline decoration-dotted underline-offset-2">{fmt(expectedFxfBbd)} BBD</span></TooltipTrigger><TooltipContent className="text-xs">CIF {fmt(cifBbd)} × 2.00% = {fmt(expectedFxfBbd)} BBD</TooltipContent></Tooltip>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">All amounts in BBD</span>
@@ -691,30 +724,30 @@ const ShipmentDetailPage = () => {
                     return (
                       <TableRow key={c.id} className="text-xs">
                         <TableCell className="py-1">
-                          <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => updateCharge(c, "charge_type", v)}>
-                            <SelectTrigger className="h-7 text-xs border-0 shadow-none"><SelectValue /></SelectTrigger>
+                          <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => { updateCharge(c, "charge_type", v); focusChargeField(c.id, "amount"); }}>
+                            <SelectTrigger data-charge-focus={`${c.id}:type`} className="h-7 text-xs border-0 shadow-none"><SelectValue /></SelectTrigger>
                             <SelectContent>{activeChargeTypes.map((ct) => <SelectItem key={ct.id} value={ct.name}>{ct.name}</SelectItem>)}</SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-full pr-20"
-                            suggestion={suggestion?.amount} onAcceptSuggestion={() => suggestion && updateCharge(c, "amount_bbd", suggestion.amount)} onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
+                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-full pr-20" focusTarget={`${c.id}:amount`}
+                            suggestion={suggestion?.amount_bbd} suggestionDescription={suggestion ? `Most common ${c.charge_type} profile for this supplier: used ${suggestion.count} times in the latest 30 shipments. Applies amount, VAT, duty, reclaimable state, and notes.` : undefined} onAcceptSuggestion={() => suggestion && applyChargeProfile(c, suggestion)} onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => advanceCharge(c.id, "amount")} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => {}} />
+                          <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full" focusTarget={`${c.id}:vat`}
+                            onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => advanceCharge(c.id, "vat")} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} />
+                          <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full" focusTarget={`${c.id}:duty`}
+                            onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => advanceCharge(c.id, "duty")} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <Switch checked={c.vat_reclaimable} disabled={!editable}
-                            onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} />
+                          <Switch checked={c.vat_reclaimable} disabled={!editable} data-charge-focus={`${c.id}:reclaimable`}
+                            onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); updateCharge(c, "vat_reclaimable", !c.vat_reclaimable); advanceCharge(c.id, "reclaimable"); } }} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full"
-                            onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => {}} />
+                          <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full" focusTarget={`${c.id}:notes`}
+                            onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => advanceCharge(c.id, "notes")} />
                         </TableCell>
                         <TableCell className="py-1 text-right"><AlignedMoney value={rowTotal} /></TableCell>
                         {editable && (

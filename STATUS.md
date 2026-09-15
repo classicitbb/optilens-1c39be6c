@@ -4,11 +4,23 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-11
+Last updated: 2026-09-15
 
 ---
 
 ## Active work
+
+- **Shipment costing workbench repair** — source now uses the bundled PDF.js
+  reader with signed-URL failure handling instead of an iframe, labels the panel
+  accurately as a PDF reader, and preserves uploaded documents when an operator
+  unlinks reviewed evidence. Supplier-specific charge suggestions now choose a
+  complete most-common historical row profile (rather than averaging values),
+  applying amount, VAT, duty, reclaimability, and notes together. Enter advances
+  deterministically through the charge grid and adds a final row after Notes.
+  The three-column workbench lets document review expand vertically and the
+  landed-cost story collapses to its summary. No OCR provider, migration, live
+  data write, or deployment is part of this source change. Focused tests, build,
+  and local authenticated browser review pass; frontend release remains pending.
 
 - **Pricelists navigation refactor** — source now replaces the three generic
   pricing editor links with `/admin/pricing/pricelists`, a searchable,
