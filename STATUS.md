@@ -18,9 +18,14 @@ Last updated: 2026-09-15
   applying amount, VAT, duty, reclaimability, and notes together. Enter advances
   deterministically through the charge grid and adds a final row after Notes.
   The three-column workbench lets document review expand vertically and the
-  landed-cost story collapses to its summary. No OCR provider, migration, live
-  data write, or deployment is part of this source change. Focused tests, build,
-  and local authenticated browser review pass; frontend release remains pending.
+  landed-cost story collapses to its summary. Below the three-column breakpoint,
+  shipment fields stack in one column, and document review can minimize to a
+  reversible header that retains the selected source. DHL shipments visibly show
+  the existing 10% insurance-and-freight charity contribution in both landed-cost
+  summaries without changing their totals. No OCR provider, migration, live data
+  write, or deployment is part of this source change. Focused tests, build, and
+  local authenticated external-Edge browser review pass; frontend release remains
+  pending.
 
 - **Shipment costing binder and Google Document AI intake** — source keeps a
   selected PDF to one pageable workbench viewport and makes the generated

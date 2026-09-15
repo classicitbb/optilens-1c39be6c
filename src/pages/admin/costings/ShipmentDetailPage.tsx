@@ -524,6 +524,7 @@ const ShipmentDetailPage = () => {
   const xr = totals.exchangeRate || shipment.exchange_rate || 1;
   const currencyMark = shipment.currency === "USD" ? "US$" : `${shipment.currency}$`;
   const insuranceFreightAmount = computeInsuranceFreightCharge(charges);
+  const freightProvider = shipment.freight_provider ?? "dhl";
   const cifBbd = totals.fobBbd + insuranceFreightAmount;
   const expectedFxfBbd = Math.round(cifBbd * 0.02 * 100) / 100;
   const otherLandedChargesBbd = Math.max(0, totals.chargeSubtotalExcludingVatBbd - insuranceFreightAmount);
@@ -563,7 +564,7 @@ const ShipmentDetailPage = () => {
       <div className="grid gap-3 xl:grid-cols-[520px_minmax(360px,1fr)_360px] xl:items-start">
 
       {/* Shipment fields */}
-      <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-1 xl:row-start-1">
+      <div className="grid grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-1 xl:row-start-1 xl:grid-cols-2">
         <Field label="Supplier *">
           <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select supplier…" /></SelectTrigger>
@@ -667,6 +668,7 @@ const ShipmentDetailPage = () => {
           <div className="divide-y rounded-md border bg-muted/20 px-3">
             <CostStoryRow label="FOB / supplier invoice" value={fmt(totals.fobBbd)} suffix="BBD" />
             <CostStoryRow label="Insurance & freight" value={fmt(insuranceFreightAmount)} suffix="BBD" />
+            {freightProvider === "dhl" && <CostStoryRow label="DHL charity contribution (10% of insurance & freight)" value={fmt(totals.charityAllocationBbd)} suffix="BBD" />}
             <CostStoryRow label="CIF" value={fmt(cifBbd)} suffix="BBD" strong />
             <CostStoryRow label="FXF @ 2.00% of CIF" value={fmt(expectedFxfBbd)} suffix="BBD" strong icon={<Lock className="h-3 w-3" />} />
             <CostStoryRow label="Other landed charges excl. recoverable VAT" value={fmt(otherLandedChargesBbd)} suffix="BBD" />
@@ -708,6 +710,8 @@ const ShipmentDetailPage = () => {
               currency={shipment.currency}
               fobBbd={totals.fobBbd}
               freightBbd={insuranceFreightAmount}
+              charityAllocationBbd={totals.charityAllocationBbd}
+              freightProvider={freightProvider}
               cifBbd={cifBbd}
               fxfBbd={expectedFxfBbd}
               otherChargesBbd={otherLandedChargesBbd}

@@ -54,21 +54,28 @@ VAT reclaimability and notes; its chip explains that source. Enter advances
 through Type, Amount, VAT, Duty, VAT Reclaimable, and Notes, then focuses the
 next row or creates a new final row. The three-column panel no longer fixes
 document review to 410px; documents grow the page and the Landed Cost Story
-collapses vertically. No migration was created because the work reuses the
-existing evidence tables/storage bucket. `supabase migration list --linked`
-could not report remote state because the installed CLI times out while shutting
-down PostHog; do not apply an unknown migration through another route without
-first resolving that read-only verification.
+collapses vertically. At sub-`xl` desktop widths the shipment fields stack in
+one column; document review has an accessible minimize/expand control that
+retains its selected source; and DHL shipments visibly show the established 10%
+insurance-and-freight charity contribution in both the workbench story and
+printable costing sheet without changing total landed cost or multiplier. No
+migration was created because the work reuses the existing evidence
+tables/storage bucket. `supabase migration list --linked` could not report
+remote state because the installed CLI times out while shutting down PostHog; do
+not apply an unknown migration through another route without first resolving
+that read-only verification.
 
-Passed: `npx tsc --noEmit --pretty false`; focused Vitest (16 tests across
-document evidence, charge profiles, charge keyboard flow, and import totals);
-`npm run build`; `git diff --check`; and authenticated local Codex-browser plus
-external Edge review of the PDF reader, evidence unlink affordance, FXF tooltip
-trigger, vertically expanded document layout, and enabled charge controls. No
-charge was typed, added, unlinked, or saved during browser QA, so no live data
-changed. Next action: publish the normal frontend release after explicit
-deployment approval, then repeat the document/keyboard checks on the hosted
-domain without changing a shipment.
+Passed: `npx tsc --noEmit --pretty false`; focused Vitest (including 9 current
+assertions for document minimization, DHL/non-DHL cover-sheet rows, and import
+totals); affected-file ESLint with no errors; `npm run build`; `git diff --check`;
+and authenticated local external-Edge review at desktop and 900px desktop
+viewport widths. The review confirmed one-column compact header fields, the
+reversible minimized document-review header, and a DHL shipment's same charity
+amount and current total in both summary surfaces. No charge was typed, added,
+unlinked, or saved during browser QA, so no live data changed. Next action:
+publish the normal frontend release after explicit deployment approval, then
+repeat the document/keyboard checks on the hosted domain without changing a
+shipment.
 
 The Pricelists navigation refactor is complete in source and not deployed.
 Pricing navigation now enters through `/admin/pricing/pricelists`; users choose

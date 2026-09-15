@@ -65,6 +65,21 @@ describe("ShipmentEvidencePanel", () => {
     expect(screen.getByText("PDF reader")).toBeInTheDocument();
   });
 
+  it("minimizes document review without losing the selected source", async () => {
+    render(<ShipmentEvidencePanel shipmentId="shipment-1" targets={targets} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "INVOICE & AWB.pdf" }));
+    expect(await screen.findByTestId("pdf-viewer")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Minimize document review" }));
+    expect(screen.getByText("Selected: INVOICE & AWB.pdf")).toBeInTheDocument();
+    expect(screen.queryByTestId("pdf-viewer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Reviewed sources")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand document review" }));
+    expect(await screen.findByTestId("pdf-viewer")).toHaveTextContent("INVOICE & AWB.pdf");
+  });
+
   it("unlinks reviewed evidence without deleting its source document", async () => {
     render(<ShipmentEvidencePanel shipmentId="shipment-1" targets={targets} />);
 
