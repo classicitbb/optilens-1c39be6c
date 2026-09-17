@@ -29,6 +29,7 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 - Use idempotency, correlation IDs, bounded retries, dead-letter handling, and reconciliation.
 - Deploy additive provider compatibility before consumer use.
 - Access to one repository or connector does not grant access to another.
+- The customer-authorized `innovations.customer_orders` response may carry an order ID solely to let the portal locate the customer's matching shipment; it must remain scoped by the existing account authorization.
 
 ## Gatekeeper ↔ Innovations dispatch boundary
 

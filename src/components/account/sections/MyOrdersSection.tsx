@@ -1,5 +1,5 @@
 import { format, subDays } from "date-fns";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, ExternalLink, Loader2, Package, Printer, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
@@ -113,7 +113,10 @@ type LiveDeliveriesResponse = {
   fallback?: boolean;
 };
 
+const NO_LIVE_DELIVERIES: LiveDelivery[] = [];
+
 type LiveInnovationsOrder = {
+  order_id?: string | number | null;
   invoice_id?: number | null;
   amount?: number | null;
   rx_number: string | null;
@@ -173,6 +176,22 @@ const liveDeliveryId = (delivery: LiveDelivery) => delivery.source_shipment_id ?
 // (e.g. "1 Tia Lewis"); the route number isn't meaningful to the customer.
 const formatShippingMethodName = (name?: string | null) => (name ?? "").replace(/^\d+\s+/, "");
 
+const searchIncludes = (query: string, values: Array<string | number | null | undefined>) =>
+  values.some((value) => String(value ?? "").toLocaleLowerCase().includes(query));
+
+const deliveryMatchesSearch = (delivery: LiveDelivery, query: string) => {
+  if (!query) return true;
+  return searchIncludes(query, [
+    delivery.source_shipment_id,
+    ...((delivery.orders ?? []).flatMap((item) => [
+      item.order_id,
+      item.invoice_id,
+      item.rx_number,
+      item.patient,
+    ])),
+  ]);
+};
+
 const isSafeTrackingUrl = (value?: string | null) => {
   if (!value) return null;
   try {
@@ -183,7 +202,14 @@ const isSafeTrackingUrl = (value?: string | null) => {
   }
 };
 
-const LiveDeliveryCard = ({ delivery, showPrices, onSelectInvoice }: { delivery: LiveDelivery; showPrices: boolean; onSelectInvoice: (invoiceId: number, item: LiveDeliveryItem) => void }) => {
+const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpandedChange, onSelectInvoice }: {
+  delivery: LiveDelivery;
+  expanded: boolean;
+  highlighted: boolean;
+  showPrices: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+  onSelectInvoice: (invoiceId: number, item: LiveDeliveryItem) => void;
+}) => {
   const trackingUrl = isSafeTrackingUrl(delivery.tracking_url);
   const shipmentItems = delivery.orders ?? [];
   const shipmentRowCount = shipmentItems.length;
@@ -195,7 +221,16 @@ const LiveDeliveryCard = ({ delivery, showPrices, onSelectInvoice }: { delivery:
     : null;
 
   return (
-    <Accordion type="single" collapsible className="rounded-lg border bg-card px-3 sm:px-4">
+    <Accordion
+      type="single"
+      collapsible
+      value={expanded ? delivery.shipment_session_id : undefined}
+      onValueChange={(value) => onExpandedChange(value === delivery.shipment_session_id)}
+      className={cn(
+        "rounded-lg border bg-card px-3 transition-[border-color,box-shadow] sm:px-4",
+        highlighted && "animate-[pulse_1.2s_ease-in-out_1] border-primary/60 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]",
+      )}
+    >
       <AccordionItem value={delivery.shipment_session_id} className="border-none">
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1">
@@ -315,20 +350,29 @@ const MyOrdersSection = () => {
     staleTime: 30_000,
     retry: 1,
   });
-  const liveDeliveries = deliveriesQuery.data?.deliveries ?? [];
+  const liveDeliveries = deliveriesQuery.data?.deliveries ?? NO_LIVE_DELIVERIES;
+  const normalizedInnovationsSearch = innovationsSearch.trim().toLocaleLowerCase();
   const filteredInnovationsOrders = useMemo(() => {
-    const query = innovationsSearch.trim().toLocaleLowerCase();
+    const query = normalizedInnovationsSearch;
     if (!query) return innovationsOrdersQuery.data?.orders ?? [];
     return (innovationsOrdersQuery.data?.orders ?? []).filter((order) =>
-      [order.patient, order.rx_number].some((value) => value?.toLocaleLowerCase().includes(query)),
+      searchIncludes(query, [order.order_id, order.patient, order.rx_number]),
     );
-  }, [innovationsOrdersQuery.data?.orders, innovationsSearch]);
+  }, [innovationsOrdersQuery.data?.orders, normalizedInnovationsSearch]);
+  const filteredLiveDeliveries = useMemo(
+    () => liveDeliveries.filter((delivery) => deliveryMatchesSearch(delivery, normalizedInnovationsSearch)),
+    [liveDeliveries, normalizedInnovationsSearch],
+  );
+  const [expandedDeliveryId, setExpandedDeliveryId] = useState<string | null>(null);
+  const singleMatchedDeliveryId = normalizedInnovationsSearch && filteredLiveDeliveries.length === 1
+    ? filteredLiveDeliveries[0].shipment_session_id
+    : null;
   // Search always runs against the full fetched set above; only the on-screen
   // slice is paginated, and a new search starts back at the first page.
-  useEffect(() => {
-    setInnovationsVisibleCount(INNOVATIONS_ORDERS_PAGE_SIZE);
-  }, [innovationsSearch]);
-  const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
+  const visibleInnovationsOrders = filteredInnovationsOrders.slice(
+    0,
+    normalizedInnovationsSearch ? INNOVATIONS_ORDERS_PAGE_SIZE : innovationsVisibleCount,
+  );
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
 
   const paymentsQuery = useAccountPayments(emulation?.userId);
@@ -415,8 +459,8 @@ const MyOrdersSection = () => {
         <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
         <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
           {pendingCount ? <a href="#pending-orders"><Badge className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingCount}</Badge></a> : null}
-          {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</Badge></a> : null}
-          {canSeeLiveOrderStatus ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {liveDeliveries.length}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {filteredInnovationsOrders.length}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {filteredLiveDeliveries.length}</Badge></a> : null}
         </nav>
         {!canSeePrivateOrders ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
@@ -438,9 +482,12 @@ const MyOrdersSection = () => {
                 <Input
                   type="search"
                   value={innovationsSearch}
-                  onChange={(event) => setInnovationsSearch(event.target.value)}
-                  placeholder="Search patient or Rx #"
-                  aria-label="Search lab orders by patient name or Rx number"
+                  onChange={(event) => {
+                    setInnovationsSearch(event.target.value);
+                    setInnovationsVisibleCount(INNOVATIONS_ORDERS_PAGE_SIZE);
+                  }}
+                  placeholder="Search patient, Rx or order #"
+                  aria-label="Search lab orders and deliveries by patient name, Rx number or order number"
                   className="h-9 pl-9"
                 />
               </div>
@@ -605,10 +652,23 @@ const MyOrdersSection = () => {
                 : "No open shipments or recently closed deliveries were found."}
             </CardContent></Card>
 
+          ) : filteredLiveDeliveries.length === 0 ? (
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">
+              No deliveries match that patient name, Rx number or order number.
+            </CardContent></Card>
+
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
-              {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} showPrices={showPrices} onSelectInvoice={(invoiceId, item) => setSelectedDeliveryInvoice({ invoiceId, item })} />)}
+              {filteredLiveDeliveries.map((delivery) => <LiveDeliveryCard
+                key={`${delivery.shipment_session_id}-${singleMatchedDeliveryId === delivery.shipment_session_id ? normalizedInnovationsSearch : ""}`}
+                delivery={delivery}
+                expanded={singleMatchedDeliveryId === delivery.shipment_session_id || expandedDeliveryId === delivery.shipment_session_id}
+                highlighted={singleMatchedDeliveryId === delivery.shipment_session_id}
+                showPrices={showPrices}
+                onExpandedChange={(expanded) => setExpandedDeliveryId(expanded ? delivery.shipment_session_id : null)}
+                onSelectInvoice={(invoiceId, item) => setSelectedDeliveryInvoice({ invoiceId, item })}
+              />)}
             </div>
           )}
           {deliveriesQuery.data?.retrieved_at ? (

@@ -6,6 +6,26 @@
 
 ## Current continuation
 
+The portal order-history search refinement is complete locally and awaits the
+normal paired frontend/private-gateway release. The existing `Search patient,
+Rx or order #` control now filters both live lab-order and delivery results;
+a single matching delivery opens and flashes. The private
+`innovations.customer_orders` response now includes the already
+customer-authorized order ID so the status list can match it without a second
+read. Changed files are `src/components/account/sections/MyOrdersSection.tsx`,
+`src/tests/integration/portalMultiAccountAccess.integration.test.ts`, and the
+paired Local gateway files recorded in that repository's handoff. Focused
+Vitest (7/7), affected-file ESLint, TypeScript, the CV Web production build, and
+the Local full suite (189/189) pass. The CV Web full suite remains at five
+unrelated failures: two CRLF-sensitive assistant-memory assertions, a stale
+Copilot route whitelist assertion, and two generated schema entries pending
+the existing Document AI migration. No frontend deployment, Local service
+restart, or live customer-data read occurred. Next action: after explicit
+release approval, deploy the frontend and the paired Local gateway, then in an
+authenticated external Edge or Chrome session type a known patient, Rx, and
+order ID to confirm both lists filter and a single matching shipment opens and
+flashes.
+
 The next costing iteration is implemented locally but has not yet been
 deployed. Changed files include `src/components/pdf/PdfViewer.tsx`,
 `src/pages/admin/costings/ShipmentEvidencePanel.tsx`,
