@@ -39,11 +39,14 @@ export async function sendWalkInPaymentReceipt(
     if (error || !payment) return;
     if (!["settled", "confirmed"].includes(String(payment.status))) return;
 
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("email,full_name")
-      .eq("user_id", payment.created_by)
-      .maybeSingle();
+    // A self-serve payment has no staff actor, so there is no staff copy to send.
+    const { data: profile } = payment.created_by
+      ? await admin
+        .from("profiles")
+        .select("email,full_name")
+        .eq("user_id", payment.created_by)
+        .maybeSingle()
+      : { data: null };
 
     const customerEmail = String(payment.customer_email ?? "").trim();
     const staffEmail = String(profile?.email ?? "").trim();

@@ -264,3 +264,47 @@ export async function classifyScotiaResponse(
     },
   };
 }
+
+/**
+ * Formats `txndatetime` in the gateway's required `YYYY:MM:DD-hh:mm:ss` shape,
+ * in the store's own timezone.
+ */
+export function txnDateTime(timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return `${get("year")}:${get("month")}:${get("day")}-${get("hour")}:${get("minute")}:${get("second")}`;
+}
+
+/**
+ * The always-present sale fields. Shared by every caller that signs a form —
+ * staff checkout and probes in `scotia-payment`, and the customer-device walk-in
+ * flows in `walkin-pay` — so there is exactly one definition of what gets signed.
+ *
+ * Typed structurally rather than against ScotiaConfig to keep this module free
+ * of imports; it must stay safe to reason about in isolation.
+ */
+export function baseSaleParams(
+  cfg: { storeId: string; timezone: string },
+  opts: { chargetotal: string; responseSuccessURL: string; responseFailURL: string },
+): Record<string, string> {
+  return {
+    chargetotal: opts.chargetotal,
+    checkoutoption: DEFAULT_CHECKOUT_OPTION,
+    // Required by the Scotia hosted-page contract for this site. The store is
+    // set up for Barbados dollars (052); keep this fixed even if an old
+    // credential-store row still has another value.
+    currency: "052",
+    language: "en_GB",
+    hash_algorithm: ALWAYS_HASH_ALGORITHM,
+    responseFailURL: opts.responseFailURL,
+    responseSuccessURL: opts.responseSuccessURL,
+    storename: cfg.storeId,
+    timezone: cfg.timezone,
+    txndatetime: txnDateTime(cfg.timezone),
+    txntype: "sale",
+  };
+}

@@ -10,6 +10,31 @@ Last updated: 2026-09-17
 
 ## Active work
 
+- **Customer-device walk-in payments** — source now lets a walk-in pay on their
+  own phone instead of handing a card over the counter. Staff can still take the
+  card on the shop device, or **Publish link** (mints a one-time token plus a
+  six-character claim code the cashier reads out; the customer scans the static
+  counter QR at `/pay` and types it), or **Request by email** (token minted and
+  mailed entirely server-side, valid 72 hours). A customer can also self-serve at
+  `/pay` with no staff involvement, bounded to BBD $20–$500, behind Cloudflare
+  Turnstile, a durable per-IP rate limit and an admin kill switch; those land in a
+  "needs matching" queue on the admin page. Tokens and claim codes are stored only
+  as SHA-256 hashes and `anon` has no access to `walk_in_payments` — every public
+  read goes through the new `walkin-pay` Edge Function (`verify_jwt = false`, auth
+  by token in code) rather than through `scotia-payment`, which stays staff-gated.
+  `scotia-return` now routes customer-originated walk-ins to `/pay/result` instead
+  of the admin shell. The stored `currency` CHECK is corrected from `'840'` to the
+  `'052'` the gateway has always signed, and existing rows are backfilled. Card
+  entry still happens only on Scotia's hosted page; no PAN, CVV or expiry is
+  accepted anywhere. Migration `20260917101500_customer_device_walk_in_payments.sql`
+  was applied and exercised against a scratch PostgreSQL 16 instance (publish,
+  resolve, replay, expiry, bounds, kill switch, matching, anon lockout, rate-limit
+  trip). Lint, the full test suite and the production build pass. **Not yet
+  deployed, and `TURNSTILE_SECRET_KEY` / `VITE_TURNSTILE_SITE_KEY` are not set —
+  self-serve fails closed until they are.** Edge functions `walkin-pay`,
+  `scotia-payment` and `scotia-return` require deployment plus `npm run
+  qa:edge-smoke`; live gateway verification against the Scotia test environment is
+  still outstanding.
 - **Rx Snap — prescription capture and draft intake** — proposed, not started.
   Plan: `docs/RX_SNAP_BUILD_PLAN.md` (read it before touching anything under
   `src/features/rx-snap/`). Photo/PDF capture of inbound prescriptions, parsed

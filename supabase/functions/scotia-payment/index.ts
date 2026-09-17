@@ -30,9 +30,8 @@ import {
 } from "../_shared/http/cors.ts";
 import { requireAuthenticatedUser, type AuthContext } from "../_shared/http/auth.ts";
 import {
-  ALWAYS_HASH_ALGORITHM,
-  DEFAULT_CHECKOUT_OPTION,
   GATEWAY_URLS,
+  baseSaleParams,
   classifyScotiaResponse,
   computeExtendedHash,
 } from "../_shared/scotia/ipgConnect.ts";
@@ -45,6 +44,7 @@ import {
   probeSnippet,
 } from "../_shared/scotia/events.ts";
 import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
+import { sendWalkInPaymentRequest } from "../_shared/email/walk-in-payment-request.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -103,7 +103,22 @@ const sendReceiptSchema = z.object({
   force: z.boolean().optional(),
 });
 
-const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema, sendReceiptSchema]);
+// Publishes an email-request walk-in payment and mails the pay link in one
+// server-side step. The link token is deliberately NOT returned to the browser:
+// for this flow the customer's inbox is the only place it needs to exist.
+const sendRequestSchema = z.object({
+  action: z.literal("send-walkin-request"),
+  amount: z.union([z.string(), z.number()]),
+  customerName: z.string().min(1).max(200),
+  customerEmail: z.string().email().max(200),
+  orderReference: z.string().max(200).optional(),
+  reason: z.string().max(500).optional(),
+  contactId: z.string().uuid().optional(),
+  /** Set when re-sending an existing request; the old link stops working. */
+  replacesPaymentId: z.string().uuid().optional(),
+});
+
+const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema, sendReceiptSchema, sendRequestSchema]);
 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -200,45 +215,11 @@ async function assertPaymentOwnership(
 }
 
 /** Current time in `YYYY:MM:DD-hh:mm:ss` for the configured timezone. */
-function txnDateTime(timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
-  }).formatToParts(new Date());
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
-  return `${get("year")}:${get("month")}:${get("day")}-${get("hour")}:${get("minute")}:${get("second")}`;
-}
-
 function json(body: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json", ...getCorsHeaders(req, corsPolicy) },
   });
-}
-
-/** The always-present sale fields, shared by checkout prepares and the probe. */
-function baseSaleParams(cfg: ScotiaConfig, opts: {
-  chargetotal: string;
-  responseSuccessURL: string;
-  responseFailURL: string;
-}): Record<string, string> {
-  return {
-    chargetotal: opts.chargetotal,
-    checkoutoption: DEFAULT_CHECKOUT_OPTION,
-    // Required by the Scotia hosted-page contract for this site. The store is
-    // set up for Barbados dollars (052); keep this fixed even if an old
-    // credential-store row still has another value.
-    currency: "052",
-    language: "en_GB",
-    hash_algorithm: ALWAYS_HASH_ALGORITHM,
-    responseFailURL: opts.responseFailURL,
-    responseSuccessURL: opts.responseSuccessURL,
-    storename: cfg.storeId,
-    timezone: cfg.timezone,
-    txndatetime: txnDateTime(cfg.timezone),
-    txntype: "sale",
-  };
 }
 
 /**
@@ -376,6 +357,58 @@ Deno.serve(async (req) => {
         force: parsed.force ?? true,
       });
       return json({ success: true }, 200, req);
+    }
+
+    if (parsed.action === "send-walkin-request") {
+      if (!(await requireStaffRole(authContext))) {
+        return json({ error: "Staff edit role required to send a payment request." }, 403, req);
+      }
+
+      // Published through the caller's own client so the RPC's auth.uid() and
+      // has_edit_role checks apply to the real staff member, not the service role.
+      const { data: published, error: publishError } = await authContext.supabaseUserClient
+        .rpc("publish_walk_in_payment", {
+          p_amount: Number(parsed.amount),
+          p_customer_name: parsed.customerName,
+          p_origin: "email_request",
+          p_customer_email: parsed.customerEmail,
+          p_order_reference: parsed.orderReference ?? null,
+          p_reason: parsed.reason ?? null,
+          p_contact_id: parsed.contactId ?? null,
+        });
+      if (publishError || !published) {
+        return json({ error: publishError?.message ?? "Could not create the payment request." }, 400, req);
+      }
+
+      const record = published as { id: string; token: string };
+      const origin = req.headers.get("origin") ?? Deno.env.get("SCOTIA_SITE_ORIGIN")
+        ?? "https://classicvisions.net";
+      const outcome = await sendWalkInPaymentRequest(supabaseAdmin as never, {
+        paymentId: record.id,
+        token: record.token,
+        siteOrigin: origin,
+        tokenVersion: Date.now(),
+      });
+
+      if (!outcome.sent) {
+        // The intent exists but nobody can reach it, so retire it rather than
+        // leaving a payment the customer was never told about.
+        await supabaseAdmin.from("walk_in_payments").update({ status: "failed" }).eq("id", record.id);
+        return json({ error: outcome.reason ?? "Could not send the payment request." }, 502, req);
+      }
+
+      // Supersedes an earlier request for the same debt. Expiring it is what
+      // stops the old link resolving; the token hash stays because the
+      // link-token-required constraint holds for every customer-device origin.
+      if (parsed.replacesPaymentId && parsed.replacesPaymentId !== record.id) {
+        await supabaseAdmin
+          .from("walk_in_payments")
+          .update({ status: "failed", link_expires_at: new Date().toISOString() })
+          .eq("id", parsed.replacesPaymentId)
+          .eq("status", "pending");
+      }
+
+      return json({ success: true, paymentId: record.id }, 200, req);
     }
 
     if (parsed.action === "validate") {

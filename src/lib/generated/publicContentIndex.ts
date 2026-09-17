@@ -612,6 +612,20 @@ export const PUBLIC_CONTENT_INDEX: PublicContentEntry[] = [
     "text": "UV protection matters even when light feels comfortable · Glare is different from brightness · One outdoor strategy does not fit every routine · UV every day · Glare control improves comfort · Choose for your routine · Sunlight and Protection · How UV protection, glare control, and outdoor lens choices support comfortable vision. · Outdoor Vision Guide · Bright environments can challenge both comfort and long-term eye protection. The right combination of UV blocking, glare management, and outdoor-ready lens design makes time outside easier on your eyes. · Ultraviolet exposure is not only a comfort issue. Good outdoor eyewear should help block harmful UV while still matching your prescription, frame style, and day-to-day use. · Harsh reflections from roads, water, sand, and windshields can reduce contrast even when you can technically still see. Polarized options and premium sun solutions are often chosen to improve visual comfort in those conditions. · Someone mostly walking between indoors and outdoors may prefer photochromic convenience, while someone spending long hours near water or driving may benefit more from dedicated polarized sunwear. Your environment should shape the recommendation. · Protection matters in tropical climates, during overcast weather, and around reflective surfaces. · Reducing reflected light often makes outdoor vision feel calmer and more stable. · Driving, beach time, boating, and quick errands may each call for a different outdoor solution. · Are darker lenses always safer? · Not necessarily. Darkness alone does not guarantee UV protection, which is why lens quality and specification matter more than tint depth by itself. · Do photochromic lenses replace sunglasses? · For some routines they can, but dedicated polarized sunwear may still perform better for strong glare and extended outdoor exposure. · Can children benefit from UV-protective eyewear too? · Yes. Outdoor protection is relevant across ages, especially for children who spend significant time in bright sun. · Why does glare feel exhausting? · Reflected light can lower contrast and force your eyes to work harder, which makes outdoor vision feel more stressful even when the prescription is correct. · Explore Polarized Lenses · Compare Photochromic Options · What to know · Quick takeaways · Common questions · Want help applying this to your routine? · Bring your screen time, driving, reading, and outdoor habits to your next appointment so your optician can recommend the best combination. · Find a Retailer"
   },
   {
+    "path": "/pay",
+    "source": "src/pages/PayPage.tsx",
+    "headings": [],
+    "alts": [],
+    "text": "Pay Classic Visions · Pay Classic Visions securely from your own device. · Your card details are entered on Scotiabank&rsquo;s secure page, never on ours. · How would you like to pay? · If a member of staff has already set up your payment, they will have given you a short code. · I have a code · Pay without a code · To pay without a code, please see a member of staff. · Enter your code · The six-character code shown by the cashier. · Find my payment · Confirm your payment · Check these details before you continue. · Email for your receipt · you@example.com · If this is not your payment, stop and speak to a member of staff. · Your name · Full name · Amount (BBD) · What is this for? · For example: deposit on frames · Continue to payment · Card details are never collected or stored by Classic Visions."
+  },
+  {
+    "path": "/pay/result",
+    "source": "src/pages/PayResultPage.tsx",
+    "headings": [],
+    "alts": [],
+    "text": "Payment result | Classic Visions · Your Classic Visions payment result. · Payment received · Thank you. A member of staff has been notified and your receipt is on its way by email if you gave us an address. · Payment not completed · No payment was taken. Please speak to a member of staff, who can set up a new payment for you, or try again with a different card. · Try again · Visit Classic Visions · Payments are reflected on your account once they are reconciled with the bank, which takes 3&ndash;5 business days."
+  },
+  {
     "path": "/photochromic",
     "source": "src/pages/photochromic/PhotochromicGuidePage.tsx",
     "headings": [
@@ -981,4 +995,4 @@ export const PUBLIC_CONTENT_INDEX: PublicContentEntry[] = [
   }
 ];
 
-export const PUBLIC_CONTENT_PAGE_COUNT = 62;
+export const PUBLIC_CONTENT_PAGE_COUNT = 64;

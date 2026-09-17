@@ -280,3 +280,18 @@ Track frontend regressions and customer-facing issues.
 - Surface: `/lenses/led-pro`
 - Symptom: an interrupted merge left conflict markers in `src/pages/lenses/LedProPage.tsx`, which broke both lint and production build.
 - Resolution: resolved the page to a single embedded-demo implementation and restored the page to valid TSX so validation can complete.
+
+### Walk-in payments stored the wrong currency code
+- Surface: `Settings → Walk-in Payments`, walk-in receipt emails
+- Symptom: `walk_in_payments.currency` was CHECK-constrained to `'840'` (USD) while the Edge Function signed `'052'` (BBD) and the UI printed BBD, so the receipt email rendered the literal string `840 $482.00`.
+- Resolution: corrected the constraint and default to `'052'` and backfilled existing rows in `20260917101500_customer_device_walk_in_payments.sql`. The gateway behaviour is unchanged; only the stored and displayed code was wrong.
+
+### Card had to be handed across the counter to be charged
+- Surface: `Settings → Walk-in Payments`
+- Symptom: the only way to take a walk-in card payment was on the shop's own device, so customers who did not want to hand over their card, and customers who were not present at all, could not pay.
+- Resolution: added assisted claim-code, emailed-link and self-service paths through a new `walkin-pay` Edge Function, leaving the existing on-device flow in place as a fallback.
+
+### Self-serve payment could not have reached the gateway safely
+- Surface: public `/pay`
+- Symptom: `scotia-payment` requires a JWT and a staff role, and the shared rate limiter is per-isolate memory that resets on every cold start — so exposing form signing to anonymous callers through it would have risked a card-testing oracle across order, statement and walk-in flows alike.
+- Resolution: anonymous signing lives in a separate `walkin-pay` function authenticated by hashed one-time token, with a database-backed per-IP limiter, database-enforced amount bounds, a fail-closed Turnstile check and an admin kill switch. `scotia-payment` is unchanged for existing flows.

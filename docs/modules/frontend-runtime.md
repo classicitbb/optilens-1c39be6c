@@ -222,3 +222,14 @@ Operational notes and change context for code in `src/**`.
 - `src/pages/lenses/LedProPage.tsx` now uses an embedded live demo in the hero watch panel, avoiding dependence on a locally merged MP4 during page rendering.
 - `src/pages/admin/helpdesk/HelpdeskSlaPoliciesPage.tsx` now sanitizes stored rich-text HTML before rendering policy descriptions, preserving the shared rich-text rendering path while reducing unsafe markup risk.
 - `src/components/admin/PdfPreviewShell.tsx` now initializes `manualZoom` to `1`, which keeps preview behavior aligned with an explicit baseline zoom state instead of a nullable first render.
+
+## 2026-09-17 — Customer-device walk-in payments
+
+- New public routes: `/pay` and `/pay/result`, declared in `src/routes/public/PublicRoutes.tsx` and registered as `public.pay` / `public.pay-result` in `src/config/routeRegistry.ts` with `authMode: "public"`.
+- `src/pages/PayPage.tsx` is one page with steps (choose → code or self-service form → confirm → gateway) rather than several routes, because the customer completes a single task on a phone and never navigates. An emailed link arrives as `/pay?token=…` and skips to confirm.
+- The public pages never query Supabase directly. `src/lib/payments/walkInPay.ts` is the only data path and talks solely to the `walkin-pay` Edge Function; `anon` has no access to `walk_in_payments`.
+- `src/components/seo/Seo.tsx` gained a `noindex` prop so transactional pages stay out of search results; it defaults to `false`, leaving every existing caller unchanged.
+- `src/pages/admin/WalkInPaymentsPage.tsx` keeps its existing "take the card here" flow and adds **Publish link** and **Request by email** alongside it. It watches the payment it published through `src/features/admin/walk-in-payments/useLiveWalkInPayment.ts`, which pairs a Supabase realtime subscription with an 8-second poll — a missed event here would mean a cashier hands over glasses that were not paid for.
+- `src/features/admin/walk-in-payments/PublishedLinkPanel.tsx` renders the counter QR with the existing `qrcode.react` dependency. The QR encodes only the static `/pay` URL; no payment data is ever put in a QR payload.
+- `src/features/admin/walk-in-payments/UnmatchedPaymentsQueue.tsx` reuses `src/components/admin/ContactPickerSelect.tsx` for attaching a self-service payment to a contact.
+- `src/components/payments/TurnstileWidget.tsx` renders nothing without `VITE_TURNSTILE_SITE_KEY`; the server refuses self-service payments without its own secret regardless, so a missing key surfaces as "unavailable" rather than as an unprotected form.

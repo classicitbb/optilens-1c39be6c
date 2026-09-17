@@ -2,6 +2,15 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-09-17 — Customer-device walk-in payments
+
+### Release Notes
+- **Settings → Walk-in Payments** now offers three ways to take a payment: **Take card now** (unchanged, uses the shop device), **Publish link** (the customer scans the counter QR code and types a short code the cashier reads out) and **Request by email** (the customer gets a one-time pay link, valid 72 hours, and can pay from anywhere).
+- The staff screen updates by itself the moment the customer's payment goes through, so the cashier knows when to hand over the glasses.
+- A walk-in can also pay with no staff involvement by scanning the counter QR code and entering their own amount, between BBD $20 and BBD $500. These appear in a **needs matching** list on the same page so they can be attached to an order.
+- Walk-in payment amounts are now recorded in Barbados dollars, which is what the bank has always charged; receipts previously showed the raw code `840`.
+- The self-service option is available only once Cloudflare Turnstile keys are configured. Until then it is hidden and refuses to start payments; the assisted and email options do not depend on it.
+
 ## 2026-09-11 — Safe pricelist saves and resilient operational workflows
 
 ### Release Notes

@@ -34,6 +34,10 @@ import { logScotiaEvent } from "../_shared/scotia/events.ts";
 const CHECKOUT_RETURN_PATH = "/order-complete";
 const STATEMENT_RETURN_PATH = "/profile/statements";
 const WALK_IN_RETURN_PATH = "/admin/settings/walk-in-payments";
+// A walk-in paid on the customer's own phone must not be sent to the admin
+// shell — an anonymous browser cannot load it. Those land on the public result
+// page instead. Which one applies is decided by the row's `origin`.
+const WALK_IN_PUBLIC_RETURN_PATH = "/pay/result";
 const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
 // The buyer may have started checkout on the apex site, the admin host, or a
@@ -66,6 +70,27 @@ function resolveOrigin(req: Request): string {
   return siteOrigin();
 }
 
+/**
+ * Staff-terminal walk-ins return to the admin page they were started from;
+ * every customer-device origin returns to the public result page. Defaults to
+ * the admin path so an unreadable row can never strand a staff member.
+ */
+async function walkInReturnPath(oid: string): Promise<string> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("walk_in_payments")
+      .select("origin")
+      .eq("payment_reference", oid)
+      .maybeSingle();
+    return data?.origin && data.origin !== "staff_terminal"
+      ? WALK_IN_PUBLIC_RETURN_PATH
+      : WALK_IN_RETURN_PATH;
+  } catch (err) {
+    console.error("scotia-return: could not resolve walk-in origin", err);
+    return WALK_IN_RETURN_PATH;
+  }
+}
+
 function redirect(req: Request, path: string, params: Record<string, string>): Response {
   const url = new URL(path, resolveOrigin(req));
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -91,9 +116,10 @@ Deno.serve(async (req) => {
   const oid = (response.oid ?? "").trim();
   const isStatementFlow = oid.startsWith("STMT-");
   const isWalkInFlow = oid.startsWith("WALKIN-");
+  const walkInPath = isWalkInFlow ? await walkInReturnPath(oid) : WALK_IN_RETURN_PATH;
   const returnPath = isStatementFlow
     ? STATEMENT_RETURN_PATH
-    : isWalkInFlow ? WALK_IN_RETURN_PATH : CHECKOUT_RETURN_PATH;
+    : isWalkInFlow ? walkInPath : CHECKOUT_RETURN_PATH;
 
   if (!oid) {
     console.error("scotia-return: gateway response missing oid", response);
