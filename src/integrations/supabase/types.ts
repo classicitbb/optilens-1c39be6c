@@ -12294,6 +12294,15 @@ export type Database = {
           payment_id: string
         }[]
       }
+      create_self_serve_walk_in_payment: {
+        Args: {
+          p_amount: number
+          p_customer_email?: string
+          p_customer_name: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       create_walk_in_payment: {
         Args: {
           p_amount: number
@@ -12731,6 +12740,14 @@ export type Database = {
         Args: { p_action: string; p_error_id: string }
         Returns: undefined
       }
+      match_walk_in_payment: {
+        Args: {
+          p_contact_id?: string
+          p_order_reference?: string
+          p_payment_id: string
+        }
+        Returns: undefined
+      }
       materialize_pricelist_adjustments: {
         Args: {
           p_base_currency: string
@@ -13051,6 +13068,19 @@ export type Database = {
           source_trail: Json
           unit_cost: number
           unit_price: number
+        }[]
+      }
+      resolve_walk_in_payment_link: {
+        Args: { p_claim_code?: string; p_redeem?: boolean; p_token?: string }
+        Returns: {
+          amount: number
+          currency: string
+          customer_email: string
+          customer_name: string
+          id: string
+          origin: string
+          payment_reference: string
+          reason: string
         }[]
       }
       revert_account_to_master: {
