@@ -35,6 +35,15 @@ Last updated: 2026-09-17
   `scotia-payment` and `scotia-return` require deployment plus `npm run
   qa:edge-smoke`; live gateway verification against the Scotia test environment is
   still outstanding.
+- **Rx Snap — prescription capture and draft intake** — proposed, not started.
+  Plan: `docs/RX_SNAP_BUILD_PLAN.md` (read it before touching anything under
+  `src/features/rx-snap/`). Photo/PDF capture of inbound prescriptions, parsed
+  into partial `cv.rxorder/1` payloads that replay through the existing Rx Order
+  Form via `restorePayload()`. It is a second producer of the prefill contract
+  in `src/features/rx-order/prefill/rxOrderPrefill.ts` — not a new form. Phase 1
+  is capture, storage and the job queue only, with no extraction. Open decisions
+  (model provider/tier, corrections-per-draft threshold, image retention) are
+  listed at the end of the plan and are Russell's call, not the agent's.
 
 - **Shipment costing workbench repair** — source now uses the bundled PDF.js
   reader with signed-URL failure handling instead of an iframe, labels the panel

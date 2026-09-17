@@ -53,4 +53,13 @@ describe("portal multi-account access", () => {
       expect(read(path)).toContain('const websiteCustomerId = typeof');
     }
   });
+
+  it("filters delivery cards with the same patient, Rx, and order-number search used for lab status", () => {
+    const orders = read("src/components/account/sections/MyOrdersSection.tsx");
+    expect(orders).toContain("const deliveryMatchesSearch");
+    expect(orders).toContain("item.order_id");
+    expect(orders).toContain("filteredLiveDeliveries");
+    expect(orders).toContain("const singleMatchedDeliveryId");
+    expect(orders).toContain("animate-[pulse_1.2s_ease-in-out_1]");
+  });
 });
