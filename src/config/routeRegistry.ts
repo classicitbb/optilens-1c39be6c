@@ -115,6 +115,8 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.settings.walk-in-payments", path: "/admin/settings/walk-in-payments", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "public.photochromic", path: "/photochromic", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-product", status: "active" },
   { id: "public.staff-card", path: "/connect/:slug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-site", status: "active" },
+  { id: "public.pay", path: "/pay", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-site", status: "active" },
+  { id: "public.pay-result", path: "/pay/result", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-site", status: "active" },
   { id: "public.zenvue.home", path: "/zenvue", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.zenvue.brilliance", path: "/zenvue/brilliance", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },
   { id: "public.zenvue.single-vision", path: "/zenvue/single-vision", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-zenvue", status: "active" },

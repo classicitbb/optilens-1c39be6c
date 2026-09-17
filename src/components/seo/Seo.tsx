@@ -8,6 +8,8 @@ type SeoProps = {
   canonicalPath: string;
   image?: string;
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
+  /** Keeps transactional pages (e.g. a payment link) out of search results. */
+  noindex?: boolean;
 };
 
 const ensureMetaTag = (selector: string, attributes: Record<string, string>) => {
@@ -34,7 +36,7 @@ const ensureLinkTag = (selector: string, attributes: Record<string, string>) => 
   return link;
 };
 
-const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jsonLd }: SeoProps) => {
+const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jsonLd, noindex = false }: SeoProps) => {
   useEffect(() => {
     const canonicalUrl = new URL(canonicalPath, BASE_URL).toString();
     const imageUrl = image.startsWith("http") ? image : new URL(image, BASE_URL).toString();
@@ -50,7 +52,9 @@ const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jso
     ensureMetaTag('meta[name="twitter:card"]', { name: "twitter:card" }).content = "summary_large_image";
     ensureMetaTag('meta[name="twitter:title"]', { name: "twitter:title" }).content = title;
     ensureMetaTag('meta[name="twitter:description"]', { name: "twitter:description" }).content = description;
-    ensureMetaTag('meta[name="robots"]', { name: "robots" }).content = "index,follow";
+    ensureMetaTag('meta[name="robots"]', { name: "robots" }).content = noindex
+      ? "noindex,nofollow"
+      : "index,follow";
     ensureLinkTag('link[rel="canonical"]', { rel: "canonical" }).href = canonicalUrl;
 
     const scriptId = "page-jsonld";
@@ -64,7 +68,7 @@ const Seo = ({ title, description, canonicalPath, image = "/og-default.jpg", jso
       script.text = JSON.stringify(jsonLd);
       document.head.appendChild(script);
     }
-  }, [canonicalPath, description, image, jsonLd, title]);
+  }, [canonicalPath, description, image, jsonLd, noindex, title]);
 
   return null;
 };

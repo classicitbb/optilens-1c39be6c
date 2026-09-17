@@ -48,6 +48,12 @@ verify_jwt = false
 # Innovations -> CV outbound sync receiver. Auth is x-api-key in code
 # (verify_api_key + per-resource write scope), so the platform JWT gate is off.
 # MUST stay false: the office optilens-local caller sends no Authorization header.
+[functions.walkin-pay]
+verify_jwt = false
+# Customer-device walk-in payments. The caller is an anonymous phone, so there
+# is no JWT to verify; authorization is the one-time link token / claim code,
+# checked in code against a stored SHA-256 hash. Self-serve additionally
+# requires Cloudflare Turnstile and fails closed without TURNSTILE_SECRET_KEY.
 [functions.statement-document-worker]
 verify_jwt = false
 # Internal worker authentication is performed with STATEMENT_DOCUMENT_WORKER_SECRET.

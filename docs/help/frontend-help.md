@@ -211,3 +211,13 @@ Support-facing notes for the frontend runtime.
 - If the LED PRO watch section appears blank, check the embedded demo URL in `src/pages/lenses/LedProPage.tsx` before investigating local media assets.
 - SLA policy descriptions in admin now pass through the shared rich-text sanitizer before display; if formatting disappears, inspect the stored HTML rather than bypassing sanitization.
 - PDF preview should now open from a defined 100% manual zoom baseline; if operators report unexpected scale on first load, start investigation in `src/components/admin/PdfPreviewShell.tsx`.
+
+## 2026-09-17 — Customer-device walk-in payments
+
+- Staff take a walk-in payment at **Settings → Walk-in Payments** and now choose between **Take card now** (this device), **Publish link** (customer scans the counter QR and types a six-character code) and **Request by email** (customer pays from a link, valid 72 hours).
+- The counter QR code should point at `https://classicvisions.net/pay`. It is the same sticker for every payment and carries no payment data, so it never needs reprinting.
+- Claim codes expire after 30 minutes and work once. If a customer's card is declined, publish a new link rather than re-reading the old code — the customer-facing page tells them to ask staff.
+- If a customer says the code or link does not work, that single message covers wrong, expired and already-used links on purpose; it does not tell an attacker which codes exist. Publish a fresh link instead of investigating the customer's wording.
+- If **Pay without a code** is missing from the public page, Cloudflare Turnstile is not configured (`VITE_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`) or the kill switch is off. This is deliberate: self-service refuses to run unprotected.
+- Self-service payments appear under **needs matching** on the same admin page. Attach each one to an order reference or a contact so it can be reconciled; nothing is posted against a customer automatically.
+- Amounts now display and store as Barbados dollars. If an older receipt shows `840`, that is a pre-correction record, not a USD charge — the bank has always charged BBD.

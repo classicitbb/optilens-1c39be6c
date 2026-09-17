@@ -2,6 +2,20 @@
 
 > Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
 
+## 2026-09-17 — Customer-device walk-in payments
+
+### Release Notes
+- **Settings → Walk-in Payments** now offers three ways to take a payment: **Take card now** (unchanged, uses the shop device), **Publish link** (the customer scans the counter QR code and types a short code the cashier reads out) and **Request by email** (the customer gets a one-time pay link, valid 72 hours, and can pay from anywhere).
+- The staff screen updates by itself the moment the customer's payment goes through, so the cashier knows when to hand over the glasses.
+- A walk-in can also pay with no staff involvement by scanning the counter QR code and entering their own amount, between BBD $20 and BBD $500. These appear in a **needs matching** list on the same page so they can be attached to an order.
+- Walk-in payment amounts are now recorded in Barbados dollars, which is what the bank has always charged; receipts previously showed the raw code `840`.
+- The self-service option is available only once Cloudflare Turnstile keys are configured. Until then it is hidden and refuses to start payments; the assisted and email options do not depend on it.
+
+### Technical Changelog
+- Added the `walkin-pay` Edge Function (`verify_jwt = false`, authenticated by hashed one-time token in code) as the only anonymous path to a walk-in payment, plus public `/pay` and `/pay/result` routes, `src/lib/payments/walkInPay.ts`, a fail-closed Turnstile widget, and the staff publish panel, live-payment hook and unmatched-payment queue.
+- Migration `20260917101500_customer_device_walk_in_payments.sql` adds `origin`, hashed link/claim-code columns, expiry, single-use and matching state to `walk_in_payments`; adds `walk_in_payment_settings` and a durable `public_payment_attempts` rate-limit table; adds the publish, resolve, self-serve, match and attempt-recording RPCs; corrects the `currency` CHECK from `'840'` to `'052'` with a backfill; and publishes the table for realtime.
+- Link tokens and claim codes are stored only as SHA-256 hashes and returned in plaintext once. `anon` has no access to `walk_in_payments` or the public RPCs; wrong, expired, spent and non-existent links all return one identical message. `scotia-payment` stays JWT-verified and staff-gated, so order, statement and staff walk-in signing are unchanged, and `scotia-return` now routes customer-originated walk-ins to `/pay/result`. No PAN, CVV, expiry or card token is accepted anywhere.
+
 ## 2026-09-11 — Safe pricelist saves and resilient operational workflows
 
 ### Release Notes

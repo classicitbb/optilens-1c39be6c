@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
-import { CreditCard, Loader2, Mail, Printer, ReceiptText, RotateCcw, ShieldCheck } from "lucide-react";
+import { CreditCard, Link2, Loader2, Mail, Printer, ReceiptText, RotateCcw, Send, ShieldCheck } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -21,6 +22,9 @@ import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { prepareScotiaPayment, redirectToScotiaPayment, SCOTIA_RETURN_URL } from "@/lib/payments/scotiaConnect";
+import PublishedLinkPanel from "@/features/admin/walk-in-payments/PublishedLinkPanel";
+import UnmatchedPaymentsQueue from "@/features/admin/walk-in-payments/UnmatchedPaymentsQueue";
+import { useLiveWalkInPayment } from "@/features/admin/walk-in-payments/useLiveWalkInPayment";
 
 type WalkInPayment = {
   id: string;
@@ -41,7 +45,10 @@ type WalkInPayment = {
   created_at: string;
 };
 
-const initialForm = { amount: "", customerName: "", customerEmail: "", orderReference: "", reason: "" };
+const initialForm = { amount: "", customerName: "", customerEmail: "", orderReference: "", reason: "", contactId: "" };
+
+/** What staff get back from publish_walk_in_payment, shown once and never re-readable. */
+type PublishedLink = { paymentId: string; claimCode: string; expiresAt: string; amount: number };
 const money = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "BBD" }).format(amount);
 const when = (value: string) => new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
@@ -56,39 +63,48 @@ const WalkInPaymentsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
+  const [publishedLink, setPublishedLink] = useState<PublishedLink | null>(null);
 
   const paymentId = searchParams.get("payment");
   const isStaff = realRole === "admin" || realRole === "operator";
+  // Either the payment we came back from the gateway with, or the one a
+  // customer is paying on their own device right now.
+  const watchedPaymentId = paymentId ?? publishedLink?.paymentId;
+
+  const loadPayment = useCallback(async () => {
+    if (!watchedPaymentId || !isStaff) return;
+    const { data, error: fetchError } = await (supabase as any)
+      .from("walk_in_payments")
+      .select("id,customer_name,customer_email,order_reference,reason,amount,currency,status,payment_reference,gateway_transaction_id,gateway_response_code,gateway_fail_rc,card_brand,card_last4,paid_at,created_at")
+      .eq("id", watchedPaymentId)
+      .maybeSingle();
+    const fetchedPayment = fetchError ? null : (data as WalkInPayment | null);
+    setPayment(fetchedPayment);
+    if (fetchError) setError(fetchError.message);
+    if (fetchedPayment?.status === "settled") {
+      setShowPrintModal(true);
+      // The receipt replaces the waiting panel.
+      setPublishedLink(null);
+    }
+  }, [isStaff, watchedPaymentId]);
 
   useEffect(() => {
-    if (!paymentId || !isStaff) {
-      return;
-    }
+    if (!watchedPaymentId || !isStaff) return;
     let alive = true;
     setLoadingResult(true);
-    (async () => {
-      const { data, error: fetchError } = await (supabase as any)
-        .from("walk_in_payments")
-        .select("id,customer_name,customer_email,order_reference,reason,amount,currency,status,payment_reference,gateway_transaction_id,gateway_response_code,gateway_fail_rc,card_brand,card_last4,paid_at,created_at")
-        .eq("id", paymentId)
-        .maybeSingle();
-      if (!alive) return;
-      const fetchedPayment = fetchError ? null : (data as WalkInPayment | null);
-      setPayment(fetchedPayment);
-      if (fetchError) setError(fetchError.message);
-      if (fetchedPayment?.status === "settled") {
-        setShowPrintModal(true);
-      }
-      setLoadingResult(false);
-    })();
+    void loadPayment().finally(() => { if (alive) setLoadingResult(false); });
     return () => { alive = false; };
-  }, [isStaff, paymentId]);
+  }, [isStaff, loadPayment, watchedPaymentId]);
+
+  // Flips this screen to the receipt the moment the customer's payment settles.
+  useLiveWalkInPayment(publishedLink?.paymentId, Boolean(publishedLink), loadPayment);
 
   const newPayment = () => {
     setForm(initialForm);
     setPayment(null);
     setError(null);
     setShowPrintModal(false);
+    setPublishedLink(null);
     setSearchParams({});
   };
 
@@ -121,23 +137,111 @@ const WalkInPaymentsPage = () => {
     }
   };
 
-  const takePayment = async () => {
+  /**
+   * Shared validation for all three ways of taking a payment. Returns the
+   * parsed amount, or null after setting the error message.
+   */
+  const validatedAmount = (options?: { requireEmail?: boolean }): number | null => {
     const amount = Number(form.amount);
     if (!Number.isFinite(amount) || amount <= 0 || amount > 999999.99) {
       setError("Enter a payment amount greater than zero.");
-      return;
+      return null;
     }
     if (!form.customerName.trim()) {
       setError("Customer name is required.");
-      return;
+      return null;
     }
     const customerEmail = form.customerEmail.trim();
     if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
       setError("Please enter a valid customer email address, or leave it blank.");
-      return;
+      return null;
     }
-
+    if (options?.requireEmail && !customerEmail) {
+      setError("Enter the customer's email address to send them a payment request.");
+      return null;
+    }
     setError(null);
+    return amount;
+  };
+
+  /**
+   * Flow A. Mints a one-time link and a short claim code, and shows the code
+   * for the cashier to read out. The customer scans the counter QR and types it.
+   */
+  const publishLink = async () => {
+    const amount = validatedAmount();
+    if (amount === null) return;
+
+    setSubmitting(true);
+    try {
+      const { data, error: publishError } = await (supabase.rpc as any)("publish_walk_in_payment", {
+        p_amount: amount,
+        p_customer_name: form.customerName,
+        p_origin: "assisted_link",
+        p_customer_email: form.customerEmail.trim() || null,
+        p_order_reference: form.orderReference || null,
+        p_reason: form.reason || null,
+        p_contact_id: form.contactId || null,
+      });
+      if (publishError || !data) {
+        throw new Error(publishError?.message || "Could not publish the payment link.");
+      }
+      const published = data as { id: string; claim_code: string; expires_at: string };
+      setPublishedLink({
+        paymentId: published.id,
+        claimCode: published.claim_code,
+        expiresAt: published.expires_at,
+        amount,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not publish the payment link.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * Flow B. The link token is minted and emailed entirely server-side, so it
+   * never reaches this browser — the customer's inbox is the only copy.
+   */
+  const requestByEmail = async () => {
+    const amount = validatedAmount({ requireEmail: true });
+    if (amount === null) return;
+
+    setSubmitting(true);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke("scotia-payment", {
+        body: {
+          action: "send-walkin-request",
+          amount,
+          customerName: form.customerName.trim(),
+          customerEmail: form.customerEmail.trim(),
+          orderReference: form.orderReference || undefined,
+          reason: form.reason || undefined,
+          contactId: form.contactId || undefined,
+        },
+      });
+      const detail = (data as { error?: string } | null)?.error;
+      if (invokeError || detail) {
+        throw new Error(detail || invokeError?.message || "Could not send the payment request.");
+      }
+      toast({
+        title: "Payment request sent",
+        description: `${form.customerName.trim()} can pay from the link emailed to ${form.customerEmail.trim()}.`,
+      });
+      setForm(initialForm);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send the payment request.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const takePayment = async () => {
+    const amount = validatedAmount();
+    if (amount === null) return;
+    const customerEmail = form.customerEmail.trim();
+
     setSubmitting(true);
     try {
       // The intent is created first. The signed provider form can only use the
@@ -168,7 +272,9 @@ const WalkInPaymentsPage = () => {
   if (!isStaff) return <Navigate to="/admin/dashboard" replace />;
 
   const returnedOutcome = searchParams.get("scotia");
-  const displayedPayment = paymentId ? payment : null;
+  // A customer-device payment settles with no `?payment=` in the URL, so the
+  // receipt keys off whichever payment this screen is watching.
+  const displayedPayment = watchedPaymentId ? payment : null;
   const receiptReady = displayedPayment?.status === "settled";
   const displayReference = displayedPayment?.gateway_transaction_id || displayedPayment?.payment_reference;
 
@@ -275,18 +381,49 @@ const WalkInPaymentsPage = () => {
         </>
       ) : null}
 
-      {!receiptReady ? (
+      {!receiptReady ? <UnmatchedPaymentsQueue /> : null}
+
+      {publishedLink && !receiptReady ? (
+        <PublishedLinkPanel
+          claimCode={publishedLink.claimCode}
+          expiresAt={publishedLink.expiresAt}
+          amountLabel={money(publishedLink.amount)}
+          customerName={form.customerName.trim() || "the customer"}
+          onCancel={newPayment}
+        />
+      ) : null}
+
+      {!receiptReady && !publishedLink ? (
         <Card className="print:hidden">
-          <CardHeader><CardTitle>Take a payment</CardTitle><CardDescription>Enter the exact amount agreed with the customer. After selecting Take payment, hand over the provider page or key the card there.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Take a payment</CardTitle><CardDescription>Enter the exact amount agreed with the customer, then choose how they pay. Card details always stay on Scotia&rsquo;s hosted page.</CardDescription></CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-1.5 text-sm font-medium">Amount (BBD)<Input inputMode="decimal" type="number" min="0.01" max="999999.99" step="0.01" value={form.amount} onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))} placeholder="0.00" autoComplete="off" /></label>
             <label className="grid gap-1.5 text-sm font-medium">Customer name<Input value={form.customerName} onChange={(event) => setForm((current) => ({ ...current, customerName: event.target.value }))} placeholder="Customer name" autoComplete="name" /></label>
             <label className="grid gap-1.5 text-sm font-medium">Customer email <span className="font-normal text-muted-foreground">(for receipt)</span><Input type="email" value={form.customerEmail} onChange={(event) => setForm((current) => ({ ...current, customerEmail: event.target.value }))} placeholder="customer@example.com" autoComplete="email" /></label>
             <label className="grid gap-1.5 text-sm font-medium">Order / reference <span className="font-normal text-muted-foreground">(optional)</span><Input value={form.orderReference} onChange={(event) => setForm((current) => ({ ...current, orderReference: event.target.value }))} placeholder="Order number or reference" autoComplete="off" /></label>
             <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Reason <span className="font-normal text-muted-foreground">(optional)</span><Textarea value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} placeholder="What is this payment for?" className="min-h-20" /></label>
-            <div className="sm:col-span-2 flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Link to a contact <span className="font-normal text-muted-foreground">(optional)</span><ContactPickerSelect value={form.contactId} onValueChange={(contactId) => setForm((current) => ({ ...current, contactId }))} placeholder="Search contacts" /></label>
+            <div className="sm:col-span-2 grid gap-3 border-t pt-4">
               <p className="text-xs text-muted-foreground">This page never collects or displays raw card details.</p>
-              <Button onClick={takePayment} disabled={submitting}>{submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}Take payment</Button>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Button onClick={takePayment} disabled={submitting}>
+                  {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                  Take card now
+                </Button>
+                <Button variant="outline" onClick={publishLink} disabled={submitting}>
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Publish link
+                </Button>
+                <Button variant="outline" onClick={requestByEmail} disabled={submitting}>
+                  <Send className="mr-2 h-4 w-4" />
+                  Request by email
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <strong>Take card now</strong> uses this device. <strong>Publish link</strong> gives the
+                customer a code to pay on their own phone. <strong>Request by email</strong> sends them a
+                link they can use from anywhere.
+              </p>
             </div>
           </CardContent>
         </Card>
