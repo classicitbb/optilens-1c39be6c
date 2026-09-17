@@ -8326,6 +8326,27 @@ export type Database = {
         }
         Relationships: []
       }
+      public_payment_attempts: {
+        Row: {
+          attempted_at: string
+          id: number
+          ip_hash: string
+          kind: string
+        }
+        Insert: {
+          attempted_at?: string
+          id?: number
+          ip_hash: string
+          kind: string
+        }
+        Update: {
+          attempted_at?: string
+          id?: number
+          ip_hash?: string
+          kind?: string
+        }
+        Relationships: []
+      }
       qbo_gateway_rate_limits: {
         Row: {
           bucket_key: string
@@ -10988,13 +11009,46 @@ export type Database = {
         }
         Relationships: []
       }
+      walk_in_payment_settings: {
+        Row: {
+          claim_code_ttl_minutes: number
+          email_link_ttl_hours: number
+          id: boolean
+          self_serve_enabled: boolean
+          self_serve_max_amount: number
+          self_serve_min_amount: number
+          updated_at: string
+        }
+        Insert: {
+          claim_code_ttl_minutes?: number
+          email_link_ttl_hours?: number
+          id?: boolean
+          self_serve_enabled?: boolean
+          self_serve_max_amount?: number
+          self_serve_min_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          claim_code_ttl_minutes?: number
+          email_link_ttl_hours?: number
+          id?: boolean
+          self_serve_enabled?: boolean
+          self_serve_max_amount?: number
+          self_serve_min_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       walk_in_payments: {
         Row: {
           amount: number
           card_brand: string | null
           card_last4: string | null
+          claim_attempts: number
+          claim_code_hash: string | null
+          contact_id: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           currency: string
           customer_email: string | null
           customer_name: string
@@ -11003,20 +11057,31 @@ export type Database = {
           gateway_response_code: string | null
           gateway_transaction_id: string | null
           id: string
+          link_expires_at: string | null
+          link_token_hash: string | null
+          matched_at: string | null
+          matched_by: string | null
+          needs_matching: boolean
           order_reference: string | null
+          origin: string
           paid_at: string | null
           payment_reference: string
           provider: string
+          published_at: string | null
           reason: string | null
           status: string
+          token_used_at: string | null
           updated_at: string
         }
         Insert: {
           amount: number
           card_brand?: string | null
           card_last4?: string | null
+          claim_attempts?: number
+          claim_code_hash?: string | null
+          contact_id?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
           currency?: string
           customer_email?: string | null
           customer_name: string
@@ -11025,20 +11090,31 @@ export type Database = {
           gateway_response_code?: string | null
           gateway_transaction_id?: string | null
           id?: string
+          link_expires_at?: string | null
+          link_token_hash?: string | null
+          matched_at?: string | null
+          matched_by?: string | null
+          needs_matching?: boolean
           order_reference?: string | null
+          origin?: string
           paid_at?: string | null
           payment_reference: string
           provider?: string
+          published_at?: string | null
           reason?: string | null
           status?: string
+          token_used_at?: string | null
           updated_at?: string
         }
         Update: {
           amount?: number
           card_brand?: string | null
           card_last4?: string | null
+          claim_attempts?: number
+          claim_code_hash?: string | null
+          contact_id?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           currency?: string
           customer_email?: string | null
           customer_name?: string
@@ -11047,15 +11123,38 @@ export type Database = {
           gateway_response_code?: string | null
           gateway_transaction_id?: string | null
           id?: string
+          link_expires_at?: string | null
+          link_token_hash?: string | null
+          matched_at?: string | null
+          matched_by?: string | null
+          needs_matching?: boolean
           order_reference?: string | null
+          origin?: string
           paid_at?: string | null
           payment_reference?: string
           provider?: string
+          published_at?: string | null
           reason?: string | null
           status?: string
+          token_used_at?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "walk_in_payments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "walk_in_payments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
       }
       website_analytics_pageviews: {
         Row: {
@@ -12784,6 +12883,18 @@ export type Database = {
         Args: { p_rule_set_id: string }
         Returns: undefined
       }
+      publish_walk_in_payment: {
+        Args: {
+          p_amount: number
+          p_contact_id?: string
+          p_customer_email?: string
+          p_customer_name: string
+          p_order_reference?: string
+          p_origin: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       qbo_consume_rate_limit: {
         Args: {
           p_bucket_key: string
@@ -12880,6 +12991,15 @@ export type Database = {
       record_payment_gateway_test: {
         Args: { p_actor_user_id?: string; p_success: boolean }
         Returns: undefined
+      }
+      record_public_payment_attempt: {
+        Args: {
+          p_ip_hash: string
+          p_kind: string
+          p_max_attempts: number
+          p_window_minutes: number
+        }
+        Returns: boolean
       }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       redact_security_payload: { Args: { p_payload: Json }; Returns: Json }
