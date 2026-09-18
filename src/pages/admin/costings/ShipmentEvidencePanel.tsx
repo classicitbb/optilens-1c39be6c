@@ -13,7 +13,21 @@ type EvidenceLink = { id: string; document_id: string; target_key: string };
 const colour: Record<EvidenceTarget["category"], string> = { invoice: "border-sky-400 bg-sky-400/15", freight: "border-amber-400 bg-amber-400/15", reference: "border-violet-400 bg-violet-400/15" };
 
 /** Each mapping is explicitly approved by an operator; this component has no OCR write path. */
-const ShipmentEvidencePanel = ({ shipmentId, targets, readOnly = false, coverSheet }: { shipmentId: string | null; targets: EvidenceTarget[]; readOnly?: boolean; coverSheet?: ReactNode }) => {
+const ShipmentEvidencePanel = ({
+  shipmentId,
+  targets,
+  readOnly = false,
+  coverSheet,
+  expanded: controlledExpanded,
+  onExpandedChange,
+}: {
+  shipmentId: string | null;
+  targets: EvidenceTarget[];
+  readOnly?: boolean;
+  coverSheet?: ReactNode;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+}) => {
   const { user } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -22,7 +36,13 @@ const ShipmentEvidencePanel = ({ shipmentId, targets, readOnly = false, coverShe
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [expanded, setExpanded] = useState(true);
+  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(true);
+  const expanded = controlledExpanded ?? uncontrolledExpanded;
+  const toggleExpanded = () => {
+    const nextExpanded = !expanded;
+    if (onExpandedChange) onExpandedChange(nextExpanded);
+    else setUncontrolledExpanded(nextExpanded);
+  };
   const refresh = async () => {
     if (!shipmentId) return;
     const [{ data: docs }, { data: evidence }] = await Promise.all([(supabase.from("shipment_documents") as any).select("*").eq("shipment_id", shipmentId).order("created_at"), (supabase.from("shipment_evidence_links") as any).select("*").eq("shipment_id", shipmentId)]);
@@ -66,7 +86,7 @@ const ShipmentEvidencePanel = ({ shipmentId, targets, readOnly = false, coverShe
   const linked = (target: EvidenceTarget) => links.find((link) => link.target_key === target.key);
   const isImage = selected?.mime_type.startsWith("image/");
   return <section className={`flex flex-1 flex-col rounded-lg border border-border bg-card shadow-sm ${expanded ? "min-h-[410px]" : "min-h-0"}`}>
-    <div className="flex items-center justify-between gap-2 border-b px-3 py-2"><div className="min-w-0"><h2 className="text-xs font-semibold">Document review</h2>{expanded ? <p className="text-[10px] text-muted-foreground">Manual evidence links only; documents never overwrite costing values.</p> : <p className="truncate text-[10px] text-muted-foreground">{selected ? `Selected: ${selected.original_file_name}` : "Costing sheet selected"}</p>}</div><div className="flex shrink-0 items-center gap-1"><Badge variant="outline" className="text-[9px]">PDF reader</Badge><Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded((current) => !current)} aria-label={expanded ? "Minimize document review" : "Expand document review"}>{expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}</Button></div></div>
+    <div className="flex items-center justify-between gap-2 border-b px-3 py-2"><div className="min-w-0"><h2 className="text-xs font-semibold">Document review</h2>{expanded ? <p className="text-[10px] text-muted-foreground">Manual evidence links only; documents never overwrite costing values.</p> : <p className="truncate text-[10px] text-muted-foreground">{selected ? `Selected: ${selected.original_file_name}` : "Costing sheet selected"}</p>}</div><div className="flex shrink-0 items-center gap-1"><Badge variant="outline" className="text-[9px]">PDF reader</Badge><Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={toggleExpanded} aria-label={expanded ? "Minimize document review" : "Expand document review"}>{expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}</Button></div></div>
     {expanded && <div className="grid min-h-0 flex-1 grid-rows-[minmax(260px,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_190px] lg:grid-rows-1"><div className="min-h-0 p-2">
       {!shipmentId ? <div className="flex h-full min-h-[260px] items-center justify-center rounded border border-dashed p-4 text-center text-xs text-muted-foreground">Create the shipment to attach evidence.</div> : !selected ? <div onDragOver={(e) => e.preventDefault()} onDrop={onDrop} className="relative min-h-[260px] rounded border border-dashed p-2">{coverSheet ?? <div className="flex h-full min-h-[260px] flex-col items-center justify-center p-4 text-center"><Upload className="mb-2 h-5 w-5 text-muted-foreground"/><p className="text-xs font-medium">Drop PDF, PNG, or JPEG</p></div>}<div className="absolute bottom-4 left-1/2 -translate-x-1/2"><Button size="sm" variant="outline" className="h-7 bg-background text-xs" disabled={readOnly || uploading} onClick={() => inputRef.current?.click()}><Upload className="mr-1 h-3 w-3" /> Choose document</Button></div></div> : <div className="flex min-h-[260px] flex-col gap-1"><div className="flex items-center gap-1 text-[10px] font-medium">{isImage ? <ImageIcon className="h-3 w-3"/> : <FileText className="h-3 w-3"/>}<span className="truncate">{selected.original_file_name}</span></div><div className="relative h-[min(68vh,760px)] min-h-[420px] overflow-hidden rounded border bg-muted/20">{previewError ? <div className="flex min-h-[260px] items-center justify-center p-4 text-center text-xs text-destructive">{previewError}</div> : !previewUrl ? <div className="flex min-h-[260px] items-center justify-center p-4 text-xs text-muted-foreground">Preparing secure preview…</div> : isImage ? <img src={previewUrl} className="mx-auto block h-full max-w-full object-contain" alt={selected.original_file_name} onError={() => setPreviewError("The image preview could not be displayed.")}/> : <PdfViewer url={previewUrl} title={selected.original_file_name} downloadName={selected.original_file_name} pageMode="single" className="h-full" />}{links.some((link) => link.document_id === selected.id) && <div className="pointer-events-none absolute left-[5%] top-[5%] h-[10%] w-[90%] border-2 border-sky-400 bg-sky-400/10"/>}</div></div>}
       <input ref={inputRef} type="file" className="hidden" accept="application/pdf,image/png,image/jpeg" multiple onChange={onSelect}/></div>

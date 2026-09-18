@@ -2,7 +2,7 @@
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Status: Document AI source integration ready — Google IAM configuration blocked
-- Last synchronized: 2026-09-15
+- Last synchronized: 2026-09-18
 
 ## Current continuation
 
@@ -16,10 +16,9 @@ read. Changed files are `src/components/account/sections/MyOrdersSection.tsx`,
 `src/tests/integration/portalMultiAccountAccess.integration.test.ts`, and the
 paired Local gateway files recorded in that repository's handoff. Focused
 Vitest (7/7), affected-file ESLint, TypeScript, the CV Web production build, and
-the Local full suite (189/189) pass. The CV Web full suite remains at five
-unrelated failures: two CRLF-sensitive assistant-memory assertions, a stale
-Copilot route whitelist assertion, and two generated schema entries pending
-the existing Document AI migration. No frontend deployment, Local service
+the Local full suite (189/189) pass. The CV Web full suite currently has three
+unrelated CRLF-sensitive source-string assertions: two assistant-memory checks
+and one customer-device walk-in-payment grant check. No frontend deployment, Local service
 restart, or live customer-data read occurred. Next action: after explicit
 release approval, deploy the frontend and the paired Local gateway, then in an
 authenticated external Edge or Chrome session type a known patient, Rx, and
@@ -96,6 +95,23 @@ unlinked, or saved during browser QA, so no live data changed. Next action:
 publish the normal frontend release after explicit deployment approval, then
 repeat the document/keyboard checks on the hosted domain without changing a
 shipment.
+
+The responsive workbench follow-up is also complete in source and not deployed.
+`ShipmentDetailPage.tsx` uses a sticky, wrapping shipment action bar and moves
+the three-column layout to the wide-desktop (`2xl`) breakpoint. At narrower
+desktop widths, the shipment header and landed-cost story form the context area,
+while Document Review and the invoice-items, landed-charges, and export tabs
+share one full-width work column. `ShipmentEvidencePanel.tsx` now exposes its
+expanded state to that parent, so collapsing it removes the former 410px blank
+space without losing the selected source. Passed: focused costing Vitest (7/7),
+affected-file ESLint with existing warnings only, `npx tsc --noEmit --pretty
+false`, `npm run build`, `git diff --check`, and authenticated local external
+Edge review at 1024px, 1280px, 1440px, and 1600px. The 1024px page had no
+horizontal overflow; the sticky toolbar stayed visible; and the collapsed
+review measured 49px with tabs directly below. No shipment field, document,
+charge, line, status, or export was changed. Next action: after explicit
+frontend-release approval, publish normally and repeat the same no-write
+hosted-domain check.
 
 The Pricelists navigation refactor is complete in source and not deployed.
 Pricing navigation now enters through `/admin/pricing/pricelists`; users choose

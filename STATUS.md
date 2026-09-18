@@ -67,9 +67,13 @@ Last updated: 2026-09-18
   applying amount, VAT, duty, reclaimability, and notes together. Enter advances
   deterministically through the charge grid and adds a final row after Notes.
   The three-column workbench lets document review expand vertically and the
-  landed-cost story collapses to its summary. Below the three-column breakpoint,
-  shipment fields stack in one column, and document review can minimize to a
-  reversible header that retains the selected source. DHL shipments visibly show
+  landed-cost story collapses to its summary. The shipment action bar is sticky
+  and wraps its actions instead of clipping them. Three columns now begin only
+  at the wide-desktop breakpoint; below it, shipment header and landed-cost
+  story use a comfortable context layout above a full-width document work area.
+  Document review can minimize to a reversible header that retains the selected
+  source and immediately lifts its invoice-items, landed-charges, and export
+  tabs. DHL shipments visibly show
   the existing 10% insurance-and-freight charity contribution in both landed-cost
   summaries without changing their totals. No OCR provider, migration, live data
   write, or deployment is part of this source change. Focused tests, build, and

@@ -80,6 +80,15 @@ describe("ShipmentEvidencePanel", () => {
     expect(await screen.findByTestId("pdf-viewer")).toHaveTextContent("INVOICE & AWB.pdf");
   });
 
+  it("reports collapse to a parent workbench that owns vertical layout", async () => {
+    const onExpandedChange = vi.fn();
+    render(<ShipmentEvidencePanel shipmentId="shipment-1" targets={targets} expanded onExpandedChange={onExpandedChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Minimize document review" }));
+
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
+  });
+
   it("unlinks reviewed evidence without deleting its source document", async () => {
     render(<ShipmentEvidencePanel shipmentId="shipment-1" targets={targets} />);
 

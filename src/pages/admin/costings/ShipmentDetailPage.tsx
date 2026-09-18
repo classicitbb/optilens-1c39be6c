@@ -249,6 +249,7 @@ const ShipmentDetailPage = () => {
   const [buildingBinder, setBuildingBinder] = useState(false);
   const [invoiceTouched, setInvoiceTouched] = useState(false);
   const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, ChargeProfile>>({});
+  const [documentReviewExpanded, setDocumentReviewExpanded] = useState(true);
   const supplierLookupRequestRef = useRef(0);
 
   const { data: suppliers } = useReferenceData("suppliers");
@@ -533,38 +534,44 @@ const ShipmentDetailPage = () => {
   const invoiceReconciled = Math.abs(invoiceVariance) < 0.005;
 
   return (
-    <div className="p-4 space-y-4 w-fit min-w-full">
+    <div className="min-w-0 space-y-4 p-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-lg font-semibold text-foreground">
-          {isNew ? "New Shipment" : `Shipment: ${shipment.invoice_number || "Untitled"}`}
-        </h1>
-        {!isNew && <Badge variant="outline" className="capitalize">{shipment.status}</Badge>}
-        {!isNew && <span className="text-xs text-muted-foreground">v{shipment.version}</span>}
-        <div className="flex-1" />
-        {!isNew && editable && shipment.status === "draft" && (
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("reviewed")}>Mark Reviewed</Button>
-        )}
-        {!isNew && editable && shipment.status === "reviewed" && (
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("locked")}>Lock</Button>
-        )}
-        {!isNew && isAdmin && shipment.status === "reviewed" && (
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("draft")}>Back to Draft</Button>
-        )}
-        {editable && (
-          <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
-            <Save className="h-3 w-3" /> {isNew ? "Create" : "Save"}
+      <div className="sticky top-0 z-20 -mx-4 border-b border-border bg-background/95 px-4 py-2 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)} aria-label="Back to shipment list">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-        )}
+          <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
+            <h1 className="truncate text-lg font-semibold text-foreground">
+              {isNew ? "New Shipment" : `Shipment: ${shipment.invoice_number || "Untitled"}`}
+            </h1>
+            {!isNew && <Badge variant="outline" className="shrink-0 capitalize">{shipment.status}</Badge>}
+            {!isNew && <span className="shrink-0 text-xs text-muted-foreground">v{shipment.version}</span>}
+          </div>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {!isNew && editable && shipment.status === "draft" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("reviewed")}>Mark Reviewed</Button>
+          )}
+          {!isNew && editable && shipment.status === "reviewed" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("locked")}>Lock</Button>
+          )}
+          {!isNew && isAdmin && shipment.status === "reviewed" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("draft")}>Back to Draft</Button>
+          )}
+          {editable && (
+            <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
+              <Save className="h-3 w-3" /> {isNew ? "Create" : "Save"}
+            </Button>
+          )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[520px_minmax(360px,1fr)_360px] xl:items-start">
+      <div className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(320px,520px)_minmax(460px,1fr)_minmax(280px,360px)] 2xl:items-start">
+        <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] 2xl:contents">
 
       {/* Shipment fields */}
-      <div className="grid grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-1 xl:row-start-1 xl:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:grid-cols-2 2xl:col-start-1 2xl:row-start-1">
         <Field label="Supplier *">
           <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select supplier…" /></SelectTrigger>
@@ -656,7 +663,7 @@ const ShipmentDetailPage = () => {
       </div>
 
       {/* Computed summary */}
-        <details open className="space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-3 xl:row-start-1 xl:self-start">
+        <details open className="min-w-0 space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:self-start 2xl:col-start-3 2xl:row-start-1">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Landed cost story</h2>
@@ -690,12 +697,16 @@ const ShipmentDetailPage = () => {
         </div>
         <p className="text-[11px] text-muted-foreground">FXF is persisted on save from CIF at the configured rate; FCA settlement is exempt. Overrides require a reviewed revision.</p>
       </details>
+      </div>
 
       {!isNew && (
-        <section className="flex min-h-[410px] xl:col-start-2 xl:row-start-1">
+        <div className="min-w-0 space-y-3 2xl:col-start-2 2xl:row-start-1">
+        <section className={cn("flex min-w-0", documentReviewExpanded && "min-h-[410px]")}>
           <ShipmentEvidencePanel
             shipmentId={id ?? null}
             readOnly={isLocked}
+            expanded={documentReviewExpanded}
+            onExpandedChange={setDocumentReviewExpanded}
             targets={[
               { key: "invoice_total_foreign", label: "Supplier invoice", value: `${currencyMark} ${fmt(shipment.invoice_total_foreign)}`, category: "invoice" },
               { key: "invoice_number", label: "Invoice number", value: shipment.invoice_number || "Not entered", category: "invoice" },
@@ -721,11 +732,9 @@ const ShipmentDetailPage = () => {
             />}
           />
         </section>
-      )}
 
-      {/* Working area starts only after the header, document review and landed story. */}
-      {!isNew && (
-        <Tabs defaultValue="lines" className="border-t pt-3 xl:col-span-2 xl:col-start-1 xl:row-start-2">
+      {/* Working tabs share the document-review column so collapse removes no blank row. */}
+        <Tabs defaultValue="lines" className="min-w-0 border-t pt-3">
           <TabsList className="h-8">
             <TabsTrigger value="lines" className="text-xs">Invoice items ({lines.length})</TabsTrigger>
             <TabsTrigger value="charges" className="text-xs">Landed charges ({charges.length})</TabsTrigger>
@@ -973,10 +982,11 @@ const ShipmentDetailPage = () => {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
       )}
 
       {isNew && (
-        <div className="text-center py-8 text-xs text-muted-foreground border border-border rounded bg-muted">
+        <div className="text-center py-8 text-xs text-muted-foreground border border-border rounded bg-muted 2xl:col-span-3">
           Save the shipment first to add Charges and Line Items.
         </div>
       )}
