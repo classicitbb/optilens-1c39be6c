@@ -561,7 +561,7 @@ const ShipmentDetailPage = () => {
         )}
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[520px_minmax(360px,1fr)_360px] xl:items-start">
+      <div className="grid gap-3 xl:grid-cols-[minmax(320px,520px)_minmax(460px,1fr)_minmax(280px,360px)] xl:items-start">
 
       {/* Shipment fields */}
       <div className="grid grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-1 xl:row-start-1 xl:grid-cols-2">
