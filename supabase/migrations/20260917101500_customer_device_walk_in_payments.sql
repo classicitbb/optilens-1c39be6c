@@ -103,16 +103,21 @@ CREATE TABLE IF NOT EXISTS public.walk_in_payment_settings (
 
 INSERT INTO public.walk_in_payment_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 
+DROP TRIGGER IF EXISTS update_walk_in_payment_settings_updated_at
+  ON public.walk_in_payment_settings;
+
 CREATE TRIGGER update_walk_in_payment_settings_updated_at
   BEFORE UPDATE ON public.walk_in_payment_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 ALTER TABLE public.walk_in_payment_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can read walk-in payment settings" ON public.walk_in_payment_settings;
 CREATE POLICY "Staff can read walk-in payment settings"
   ON public.walk_in_payment_settings FOR SELECT TO authenticated
   USING (public.has_edit_role(auth.uid()));
 
+DROP POLICY IF EXISTS "Admins can update walk-in payment settings" ON public.walk_in_payment_settings;
 CREATE POLICY "Admins can update walk-in payment settings"
   ON public.walk_in_payment_settings FOR UPDATE TO authenticated
   USING (public.has_role(auth.uid(), 'admin'))
@@ -484,3 +489,11 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- ── PostgREST schema cache ─────────────────────────────────────────────────
+-- Five new RPCs are added above. Without this, the Data API keeps serving its
+-- cached schema and every one of them answers
+--   "Could not find the function public.<name>(...) in the schema cache"
+-- for up to ~10 minutes after the DDL has already committed. 97 migrations in
+-- this repository end with this line for exactly that reason.
+NOTIFY pgrst, 'reload schema';

@@ -4,7 +4,7 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 ---
 
@@ -27,12 +27,26 @@ Last updated: 2026-09-17
   `'052'` the gateway has always signed, and existing rows are backfilled. Card
   entry still happens only on Scotia's hosted page; no PAN, CVV or expiry is
   accepted anywhere. Migration `20260917101500_customer_device_walk_in_payments.sql`
-  was applied and exercised against a scratch PostgreSQL 16 instance (publish,
-  resolve, replay, expiry, bounds, kill switch, matching, anon lockout, rate-limit
-  trip). Lint, the full test suite and the production build pass. **Not yet
-  deployed, and `TURNSTILE_SECRET_KEY` / `VITE_TURNSTILE_SITE_KEY` are not set —
-  self-serve fails closed until they are.** Edge functions `walkin-pay`,
-  `scotia-payment` and `scotia-return` require deployment plus `npm run
+  **is applied to the live project `xstmeirxhfbiyayrrsob`** (5 RPCs, 2 new tables,
+  the `origin` column, realtime publication, and all 8 pre-existing payment rows
+  backfilled from `'840'` to `'052'`). `walkin-pay` is deployed and answering. Both
+  the assisted-link and email-request flows have created correct rows in
+  production. The migration is idempotent and re-runnable, and now ends with
+  `NOTIFY pgrst, 'reload schema';` like the repo's other 97 migrations — without it
+  the new RPCs 404 from the Data API for ~10 minutes after the DDL commits, which
+  is the "could not find the function ... in the schema cache" failure this entry
+  was originally reported against. Also exercised against a scratch PostgreSQL 16
+  instance (publish, resolve, replay, expiry, bounds, kill switch, matching, anon
+  lockout, rate-limit trip), applied twice to prove idempotency. Lint, the full
+  test suite and the production build pass. **`TURNSTILE_SECRET_KEY` /
+  `VITE_TURNSTILE_SITE_KEY` are still unset, so self-serve reports itself disabled
+  and refuses to sign — by design; the assisted and email flows are unaffected.**
+  No end-to-end payment has yet been taken through the Scotia test gateway.
+  `supabase/config.toml` carried the wrong `project_id` (`dzsalnvmlvjoatryhqfz`,
+  the unfinished Datamation destination), which is what
+  `.github/workflows/edge-function-release.yml` parses to choose a deploy target;
+  it now points at the live project. `scotia-payment` and
+  `scotia-return` still require deployment plus `npm run
   qa:edge-smoke`; live gateway verification against the Scotia test environment is
   still outstanding.
 - **Rx Snap — prescription capture and draft intake** — proposed, not started.
