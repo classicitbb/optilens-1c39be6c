@@ -1,4 +1,12 @@
-project_id = "dzsalnvmlvjoatryhqfz"
+# The live Lovable Cloud project that serves the app. It must match
+# VITE_SUPABASE_URL, the index.html preconnect, .lovable/mcp/manifest.json and
+# the projectRef in supabase/functions/mcp/index.ts — the deploy-all job in
+# .github/workflows/edge-function-release.yml parses this value to decide where
+# every edge function goes. It previously read "dzsalnvmlvjoatryhqfz", the
+# unfinished Datamation destination from
+# docs/lovable-cloud-to-supabase-migration-runbook.md, which sent deploys to a
+# project that does not serve the app.
+project_id = "xstmeirxhfbiyayrrsob"
 
 [functions]
   [functions.shipment-binder]
