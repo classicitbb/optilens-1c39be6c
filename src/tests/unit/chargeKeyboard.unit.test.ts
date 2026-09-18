@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { getChargeAdvance } from "@/features/shipments/chargeKeyboard";
 
@@ -18,5 +20,13 @@ describe("getChargeAdvance", () => {
 
   it("creates a row after Notes in the final row", () => {
     expect(getChargeAdvance(["one"], "one", "notes")).toEqual({ kind: "create" });
+  });
+
+  it("moves past the VAT reclaimable switch on Enter without toggling it", () => {
+    const page = readFileSync(resolve(process.cwd(), "src/pages/admin/costings/ShipmentDetailPage.tsx"), "utf8");
+    const switchLine = page.split("\n").find((line) => line.includes('if (event.key === "Enter")') && line.includes('advanceCharge(c.id, "reclaimable")'));
+    expect(switchLine).toBeDefined();
+    const enterHandler = switchLine!.slice(switchLine!.indexOf("onKeyDown"));
+    expect(enterHandler).not.toContain("vat_reclaimable");
   });
 });

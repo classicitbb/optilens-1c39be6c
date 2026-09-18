@@ -62,4 +62,10 @@ describe("portal multi-account access", () => {
     expect(orders).toContain("const singleMatchedDeliveryId");
     expect(orders).toContain("animate-[pulse_1.2s_ease-in-out_1]");
   });
+
+  it("lets Load more page through search results instead of pinning them to the first page", () => {
+    const orders = read("src/components/account/sections/MyOrdersSection.tsx");
+    expect(orders).toContain("filteredInnovationsOrders.slice(0, innovationsVisibleCount)");
+    expect(orders).not.toMatch(/normalizedInnovationsSearch \? INNOVATIONS_ORDERS_PAGE_SIZE/);
+  });
 });

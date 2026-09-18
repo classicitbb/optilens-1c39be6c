@@ -369,10 +369,7 @@ const MyOrdersSection = () => {
     : null;
   // Search always runs against the full fetched set above; only the on-screen
   // slice is paginated, and a new search starts back at the first page.
-  const visibleInnovationsOrders = filteredInnovationsOrders.slice(
-    0,
-    normalizedInnovationsSearch ? INNOVATIONS_ORDERS_PAGE_SIZE : innovationsVisibleCount,
-  );
+  const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
 
   const paymentsQuery = useAccountPayments(emulation?.userId);

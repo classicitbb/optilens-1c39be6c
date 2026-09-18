@@ -790,7 +790,7 @@ const ShipmentDetailPage = () => {
                         </TableCell>
                         <TableCell className="py-1">
                           <Switch checked={c.vat_reclaimable} disabled={!editable} data-charge-focus={`${c.id}:reclaimable`}
-                            onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); updateCharge(c, "vat_reclaimable", !c.vat_reclaimable); advanceCharge(c.id, "reclaimable"); } }} />
+                            onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); advanceCharge(c.id, "reclaimable"); } }} />
                         </TableCell>
                         <TableCell className="py-1">
                           <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full" focusTarget={`${c.id}:notes`}
