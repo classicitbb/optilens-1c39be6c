@@ -38,3 +38,6 @@ bun.lockb
 !.env.example
 supabase/functions/mcp/index.ts
 supabase/functions/mcp/index.ts
+
+# Trigger.dev build output
+.trigger
