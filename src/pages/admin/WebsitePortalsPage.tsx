@@ -76,7 +76,11 @@ interface PortalCustomerListItem {
   // Admin-recorded manual invitation, kept separate from the Supabase invite
   // email above: staff often invite a customer from their own mailbox.
   manualInviteEmailSentAt: string | null;
+  // Staff logins (admin/operator/viewer) appear here when they are also linked
+  // to a customer, but the backend refuses to emulate them.
+  isStaffRole?: boolean;
 }
+
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
@@ -435,6 +439,8 @@ const WebsitePortalsPage = () => {
             emailConfirmedAt: entry.email_confirmed_at,
             inviteSentAt: entry.invited_at,
             manualInviteEmailSentAt: typeof profile?.portal_invite_email_sent_at === "string" ? profile.portal_invite_email_sent_at : null,
+            isStaffRole: entry.role === "admin" || entry.role === "operator" || entry.role === "viewer",
+
           } satisfies PortalCustomerListItem;
           return {
             id: `user:${entry.user_id}`,
@@ -1143,6 +1149,15 @@ const WebsitePortalsPage = () => {
 
   const emulatePortalAccount = useCallback(async (account: PortalAccountRecord) => {
     if (!account.portalUser) return;
+    if (account.portalUser.isStaffRole) {
+      toast({
+        title: "Staff logins cannot be emulated",
+        description: "This login has a staff role (admin, operator or viewer). Only customer portal logins can be previewed from here.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const label = account.fullName || account.email || "customer";
     try {
       const { data: { session: adminSession }, error: sessionError } = await supabase.auth.getSession();
@@ -1477,8 +1492,9 @@ const WebsitePortalsPage = () => {
                                 size="sm"
                                 variant="ghost"
                                 className="h-6 px-2 text-[11px]"
-                                title="Sign in as this customer portal account"
-                                disabled={emulatePortalUser.isPending}
+                                title={user.isStaffRole ? "Staff logins cannot be emulated" : "Sign in as this customer portal account"}
+                                disabled={emulatePortalUser.isPending || user.isStaffRole}
+
                                 onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
                               >
                                 <Eye className="mr-1 h-3 w-3" /> {emulatePortalUser.isPending ? "Signing in…" : "Emulate"}
@@ -1514,7 +1530,7 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => account.crmContactId && openPortalContactEditor(account, "details")} disabled={!account.crmContactId}>Edit contact</ContextMenuItem>
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
-                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || account.portalUser.isStaffRole || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
                         <ContextMenuItem onSelect={() => toggleManualInviteEmail(account)} disabled={!account.portalUser || setManualInviteEmailSent.isPending}>
                           {account.portalUser?.manualInviteEmailSentAt ? "Clear invitation mark" : "Mark invitation email sent"}
                         </ContextMenuItem>
