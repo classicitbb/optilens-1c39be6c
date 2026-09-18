@@ -1492,8 +1492,9 @@ const WebsitePortalsPage = () => {
                                 size="sm"
                                 variant="ghost"
                                 className="h-6 px-2 text-[11px]"
-                                title="Sign in as this customer portal account"
-                                disabled={emulatePortalUser.isPending}
+                                title={user.isStaffRole ? "Staff logins cannot be emulated" : "Sign in as this customer portal account"}
+                                disabled={emulatePortalUser.isPending || user.isStaffRole}
+
                                 onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
                               >
                                 <Eye className="mr-1 h-3 w-3" /> {emulatePortalUser.isPending ? "Signing in…" : "Emulate"}
