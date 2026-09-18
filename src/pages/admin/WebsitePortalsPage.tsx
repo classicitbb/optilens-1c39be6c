@@ -76,7 +76,11 @@ interface PortalCustomerListItem {
   // Admin-recorded manual invitation, kept separate from the Supabase invite
   // email above: staff often invite a customer from their own mailbox.
   manualInviteEmailSentAt: string | null;
+  // Staff logins (admin/operator/viewer) appear here when they are also linked
+  // to a customer, but the backend refuses to emulate them.
+  isStaffRole?: boolean;
 }
+
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
