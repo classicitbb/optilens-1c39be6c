@@ -439,6 +439,8 @@ const WebsitePortalsPage = () => {
             emailConfirmedAt: entry.email_confirmed_at,
             inviteSentAt: entry.invited_at,
             manualInviteEmailSentAt: typeof profile?.portal_invite_email_sent_at === "string" ? profile.portal_invite_email_sent_at : null,
+            isStaffRole: entry.role === "admin" || entry.role === "operator" || entry.role === "viewer",
+
           } satisfies PortalCustomerListItem;
           return {
             id: `user:${entry.user_id}`,
