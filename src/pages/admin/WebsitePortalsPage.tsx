@@ -1149,6 +1149,15 @@ const WebsitePortalsPage = () => {
 
   const emulatePortalAccount = useCallback(async (account: PortalAccountRecord) => {
     if (!account.portalUser) return;
+    if (account.portalUser.isStaffRole) {
+      toast({
+        title: "Staff logins cannot be emulated",
+        description: "This login has a staff role (admin, operator or viewer). Only customer portal logins can be previewed from here.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const label = account.fullName || account.email || "customer";
     try {
       const { data: { session: adminSession }, error: sessionError } = await supabase.auth.getSession();
