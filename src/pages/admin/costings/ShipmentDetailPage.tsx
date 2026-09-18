@@ -561,10 +561,10 @@ const ShipmentDetailPage = () => {
         )}
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[520px_minmax(360px,1fr)_360px] xl:items-start">
+      <div className="@container grid gap-3 @[1280px]:grid-cols-[520px_minmax(380px,1fr)_360px] @[1280px]:items-start">
 
       {/* Shipment fields */}
-      <div className="grid grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-1 xl:row-start-1 xl:grid-cols-2">
+      <div className="@container grid grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm @[1280px]:col-start-1 @[1280px]:row-start-1 @[640px]:grid-cols-2">
         <Field label="Supplier *">
           <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select supplier…" /></SelectTrigger>
@@ -656,7 +656,7 @@ const ShipmentDetailPage = () => {
       </div>
 
       {/* Computed summary */}
-        <details open className="space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:col-start-3 xl:row-start-1 xl:self-start">
+        <details open className="space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm @[1280px]:col-start-3 @[1280px]:row-start-1 @[1280px]:self-start">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Landed cost story</h2>
@@ -692,7 +692,7 @@ const ShipmentDetailPage = () => {
       </details>
 
       {!isNew && (
-        <section className="flex min-h-[410px] xl:col-start-2 xl:row-start-1">
+        <section className="flex min-h-[410px] @[1280px]:col-start-2 @[1280px]:row-start-1">
           <ShipmentEvidencePanel
             shipmentId={id ?? null}
             readOnly={isLocked}
@@ -725,7 +725,7 @@ const ShipmentDetailPage = () => {
 
       {/* Working area starts only after the header, document review and landed story. */}
       {!isNew && (
-        <Tabs defaultValue="lines" className="border-t pt-3 xl:col-span-2 xl:col-start-1 xl:row-start-2">
+        <Tabs defaultValue="lines" className="border-t pt-3 @[1280px]:col-span-2 @[1280px]:col-start-1 @[1280px]:row-start-2">
           <TabsList className="h-8">
             <TabsTrigger value="lines" className="text-xs">Invoice items ({lines.length})</TabsTrigger>
             <TabsTrigger value="charges" className="text-xs">Landed charges ({charges.length})</TabsTrigger>
