@@ -6329,6 +6329,8 @@
         "npm:@tiptap/pm@^3.28.0",
         "npm:@tiptap/react@^3.28.0",
         "npm:@tiptap/starter-kit@^3.28.0",
+        "npm:@trigger.dev/build@^4.6.3",
+        "npm:@trigger.dev/sdk@^4.6.3",
         "npm:@types/node@^26.1.1",
         "npm:@types/react-dom@^19.2.3",
         "npm:@types/react@^19.2.17",
