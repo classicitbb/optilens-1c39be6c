@@ -1530,7 +1530,7 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => account.crmContactId && openPortalContactEditor(account, "details")} disabled={!account.crmContactId}>Edit contact</ContextMenuItem>
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
-                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || account.portalUser.isStaffRole || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
                         <ContextMenuItem onSelect={() => toggleManualInviteEmail(account)} disabled={!account.portalUser || setManualInviteEmailSent.isPending}>
                           {account.portalUser?.manualInviteEmailSentAt ? "Clear invitation mark" : "Mark invitation email sent"}
                         </ContextMenuItem>
