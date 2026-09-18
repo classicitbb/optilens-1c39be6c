@@ -3446,6 +3446,77 @@ export type Database = {
         }
         Relationships: []
       }
+      document_ai_secrets: {
+        Row: {
+          encrypted_service_account: string
+          settings_id: string
+          updated_at: string
+        }
+        Insert: {
+          encrypted_service_account: string
+          settings_id: string
+          updated_at?: string
+        }
+        Update: {
+          encrypted_service_account?: string
+          settings_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_ai_secrets_settings_id_fkey"
+            columns: ["settings_id"]
+            isOneToOne: true
+            referencedRelation: "document_ai_settings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_ai_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          has_service_account: boolean
+          id: string
+          last_error: string | null
+          last_tested_at: string | null
+          location: string
+          processor_id: string | null
+          project_id: string | null
+          status: string
+          tenant_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          has_service_account?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          location?: string
+          processor_id?: string | null
+          project_id?: string | null
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          has_service_account?: boolean
+          id?: string
+          last_error?: string | null
+          last_tested_at?: string | null
+          location?: string
+          processor_id?: string | null
+          project_id?: string | null
+          status?: string
+          tenant_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       edge_function_health: {
         Row: {
           checked_at: string
@@ -9664,6 +9735,122 @@ export type Database = {
           },
         ]
       }
+      shipment_document_extractions: {
+        Row: {
+          approved_at: string | null
+          approved_by_user_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          document_id: string
+          document_kind: string
+          extracted_fields: Json
+          extracted_text: string | null
+          id: string
+          processor_id: string
+          provider: string
+          shipment_id: string
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          document_id: string
+          document_kind?: string
+          extracted_fields?: Json
+          extracted_text?: string | null
+          id?: string
+          processor_id: string
+          provider?: string
+          shipment_id: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_user_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          document_id?: string
+          document_kind?: string
+          extracted_fields?: Json
+          extracted_text?: string | null
+          id?: string
+          processor_id?: string
+          provider?: string
+          shipment_id?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_document_extractions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_document_extractions_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_document_templates: {
+        Row: {
+          approved_field_mapping: Json
+          created_at: string
+          created_by_user_id: string
+          document_kind: string
+          fingerprint: Json
+          id: string
+          last_used_at: string | null
+          supplier_id: string | null
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          approved_field_mapping?: Json
+          created_at?: string
+          created_by_user_id: string
+          document_kind: string
+          fingerprint?: Json
+          id?: string
+          last_used_at?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          approved_field_mapping?: Json
+          created_at?: string
+          created_by_user_id?: string
+          document_kind?: string
+          fingerprint?: Json
+          id?: string
+          last_used_at?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_document_templates_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_documents: {
         Row: {
           byte_size: number
@@ -12450,6 +12637,16 @@ export type Database = {
           environment: string
         }[]
       }
+      get_document_ai_credentials: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          location: string
+          processor_id: string
+          project_id: string
+          service_account_json: string
+        }[]
+      }
       get_gatekeeper_connection_credentials: {
         Args: never
         Returns: {
@@ -12962,6 +13159,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_document_ai_test: {
+        Args: {
+          p_actor_user_id?: string
+          p_error_message?: string
+          p_success: boolean
+        }
+        Returns: undefined
+      }
       record_edge_function_health: {
         Args: { p_checks: Json; p_release_sha: string; p_source: string }
         Returns: string
@@ -13307,6 +13512,17 @@ export type Database = {
           p_api_username?: string
           p_enabled?: boolean
           p_environment?: string
+        }
+        Returns: string
+      }
+      upsert_document_ai_settings: {
+        Args: {
+          p_actor_user_id?: string
+          p_enabled?: boolean
+          p_location?: string
+          p_processor_id?: string
+          p_project_id: string
+          p_service_account_json?: string
         }
         Returns: string
       }
