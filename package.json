@@ -47,6 +47,7 @@
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
     "@fontsource/plus-jakarta-sans": "^5.2.8",
+    "@higgsfield/client": "^0.2.6",
     "@hookform/resolvers": "^5.4.0",
     "@lovable.dev/cloud-auth-js": "^1.1.2",
     "@lovable.dev/mcp-js": "^0.26.1",
