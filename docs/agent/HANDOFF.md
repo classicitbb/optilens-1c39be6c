@@ -2,7 +2,26 @@
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Status: Document AI source integration ready — Google IAM configuration blocked
-- Last synchronized: 2026-09-18
+- Last synchronized: 2026-09-19
+
+## Higgsfield Seedance 2.5 example
+
+Status: Source setup complete; live generation verification blocked by local TLS
+certificate validation.
+
+`examples/higgsfield/index.ts` uses the official server-only TypeScript SDK's
+`subscribe` call for `bytedance/seedance-2.5/text-to-video`, with the requested
+sunset prompt, 5-second duration, 720p resolution, and 16:9 aspect ratio. It
+loads the ignored `.env.local` runtime variable `HF_CREDENTIALS`, handles
+failed, canceled, and moderated outcomes as failures, and prints only a
+completed video's URL. `npm run higgsfield:seedance` is the billable command.
+
+The 2026-09-19 execution reached the local TLS handshake but failed with
+`UNABLE_TO_VERIFY_LEAF_SIGNATURE` before a video URL was returned. Do not use
+an insecure TLS bypass. Repair the workstation certificate chain or configure
+Node with the organization-approved CA certificate, rotate the credential used
+for the failed attempt, then run `npm run higgsfield:seedance` once and record
+the returned URL/status.
 
 ## Current continuation
 
@@ -98,17 +117,22 @@ shipment.
 
 The responsive workbench follow-up is also complete in source and not deployed.
 `ShipmentDetailPage.tsx` uses a sticky, wrapping shipment action bar and moves
-the three-column layout to the wide-desktop (`2xl`) breakpoint. At narrower
-desktop widths, the shipment header and landed-cost story form the context area,
-while Document Review and the invoice-items, landed-charges, and export tabs
-share one full-width work column. `ShipmentEvidencePanel.tsx` now exposes its
+the three-column layout to the wide-desktop (`2xl`) breakpoint. At that width,
+the invoice-items, landed-charges, and export tabs span the shipment-header and
+Document-Review columns, while the landed-cost story remains independently
+readable on the right. At narrower desktop widths, the shipment header and
+landed-cost story form the context area, followed by the full-width Document
+Review and work tabs. `ShipmentEvidencePanel.tsx` now exposes its
 expanded state to that parent, so collapsing it removes the former 410px blank
-space without losing the selected source. Passed: focused costing Vitest (7/7),
+space without losing the selected source. The header and story span the wide
+desktop workbench rows, so their tall content cannot hold the tabs beneath the
+collapsed review's former fixed-height footprint. Passed: focused costing Vitest (7/7),
 affected-file ESLint with existing warnings only, `npx tsc --noEmit --pretty
 false`, `npm run build`, `git diff --check`, and authenticated local external
 Edge review at 1024px, 1280px, 1440px, and 1600px. The 1024px page had no
-horizontal overflow; the sticky toolbar stayed visible; and the collapsed
-review measured 49px with tabs directly below. No shipment field, document,
+horizontal overflow; the sticky toolbar stayed visible; and at 1600px the tabs
+spanned the 1,124px Shipment Header plus Document Review work surface with no
+horizontal overflow. No shipment field, document,
 charge, line, status, or export was changed. Next action: after explicit
 frontend-release approval, publish normally and repeat the same no-write
 hosted-domain check.

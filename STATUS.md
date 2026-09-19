@@ -4,7 +4,7 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
 ---
 
@@ -71,9 +71,11 @@ Last updated: 2026-09-18
   and wraps its actions instead of clipping them. Three columns now begin only
   at the wide-desktop breakpoint; below it, shipment header and landed-cost
   story use a comfortable context layout above a full-width document work area.
-  Document review can minimize to a reversible header that retains the selected
-  source and immediately lifts its invoice-items, landed-charges, and export
-  tabs. DHL shipments visibly show
+  At wide desktop, the invoice-items, landed-charges, and export tabs span the
+  Shipment Header and Document Review columns while the landed-cost story
+  remains readable beside them. Document review can minimize to a reversible
+  header that retains the selected source and immediately releases its work
+  surface upward without leaving the former fixed-height blank area. DHL shipments visibly show
   the existing 10% insurance-and-freight charity contribution in both landed-cost
   summaries without changing their totals. No OCR provider, migration, live data
   write, or deployment is part of this source change. Focused tests, build, and

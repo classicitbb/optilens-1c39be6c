@@ -12,6 +12,7 @@
     "qa:copilot-facts": "node scripts/generate_copilot_platform_facts.mjs --check",
     "search:index": "node scripts/generate_public_content_index.mjs",
     "qa:search-index": "node scripts/generate_public_content_index.mjs --check",
+    "higgsfield:seedance": "tsx examples/higgsfield/index.ts",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",

@@ -42,6 +42,7 @@ Evidence: `package.json`, `.nvmrc`, repository configuration, and project docume
 | End-to-end tests | `npm run test:e2e` |
 | Smoke checks | `npm run qa:smoke` |
 | Edge smoke | `npm run qa:edge-smoke` |
+| Seedance 2.5 example | `npm run higgsfield:seedance` |
 | Create a migration | `supabase migration new <descriptive_name>` |
 
 Use the more specific validation matrix in `AGENTS.md`.
@@ -80,6 +81,9 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
   choose a version.
 - Maintain one shared wiki renderer.
 - Record environment-variable names only; values remain in approved secret stores.
+- The server-only Higgsfield Seedance example loads `HF_CREDENTIALS` from the
+  ignored `.env.local` file. Its execution creates a billable generation and
+  must never be moved into browser-delivered code.
 - Price overrides declare their owner through `override_source`: operator edits are `manual`; only percentage materialization writes `bulk_adjustment`. Metadata-only pricelist saves must not call materialization.
 - Gatekeeper route/polling state is database-controlled and production-only. Only pre-POST Rx failures can return to the Innovations queue; stock or ambiguous post-start failures require review.
 - Rx mount payloads use `plastic`, `metal`, `grooved`, or `rimless`. Restore

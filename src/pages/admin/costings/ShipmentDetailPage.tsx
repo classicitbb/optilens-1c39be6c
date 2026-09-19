@@ -571,7 +571,7 @@ const ShipmentDetailPage = () => {
         <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] 2xl:contents">
 
       {/* Shipment fields */}
-      <div className="grid min-w-0 grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:grid-cols-2 2xl:col-start-1 2xl:row-start-1">
+      <div className="grid min-w-0 grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:grid-cols-2 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1">
         <Field label="Supplier *">
           <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select supplier…" /></SelectTrigger>
@@ -663,7 +663,7 @@ const ShipmentDetailPage = () => {
       </div>
 
       {/* Computed summary */}
-        <details open className="min-w-0 space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:self-start 2xl:col-start-3 2xl:row-start-1">
+        <details open className="min-w-0 space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:self-start 2xl:col-start-3 2xl:row-span-2 2xl:row-start-1">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Landed cost story</h2>
@@ -700,8 +700,13 @@ const ShipmentDetailPage = () => {
       </div>
 
       {!isNew && (
-        <div className="min-w-0 space-y-3 2xl:col-start-2 2xl:row-start-1">
-        <section className={cn("flex min-w-0", documentReviewExpanded && "min-h-[410px]")}>
+        <div className="min-w-0 space-y-3 2xl:contents">
+        <section
+          className={cn(
+            "flex min-w-0 2xl:col-start-2 2xl:row-start-1",
+            documentReviewExpanded && "min-h-[410px]",
+          )}
+        >
           <ShipmentEvidencePanel
             shipmentId={id ?? null}
             readOnly={isLocked}
@@ -733,8 +738,11 @@ const ShipmentDetailPage = () => {
           />
         </section>
 
-      {/* Working tabs share the document-review column so collapse removes no blank row. */}
-        <Tabs defaultValue="lines" className="min-w-0 border-t pt-3">
+      {/* On wide desktops, working tabs span the header and document-review columns. */}
+        <Tabs
+          defaultValue="lines"
+          className="min-w-0 border-t pt-3 2xl:col-span-2 2xl:col-start-1 2xl:row-start-2"
+        >
           <TabsList className="h-8">
             <TabsTrigger value="lines" className="text-xs">Invoice items ({lines.length})</TabsTrigger>
             <TabsTrigger value="charges" className="text-xs">Landed charges ({charges.length})</TabsTrigger>

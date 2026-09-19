@@ -1,7 +1,7 @@
 import { config as loadEnv } from "dotenv";
 import { config, higgsfield } from "@higgsfield/client/v2";
 
-loadEnv({ path: ".env.local" });
+loadEnv({ path: ".env.local", quiet: true });
 
 const credentials = process.env.HF_CREDENTIALS;
 
@@ -22,22 +22,38 @@ async function main() {
     withPolling: true,
   });
 
-  // subscribe() resolves on failed/nsfw as well as completed, so the status
-  // must be checked before treating the response as a success.
+  // subscribe() resolves after polling reaches a terminal state. A failure,
+  // cancellation, or moderation outcome is not a successful generation.
   if (result.status !== "completed") {
-    throw new Error(`Generation did not complete: status "${result.status}" (request ${result.request_id})`);
+    const knownNonSuccessStates = new Set([
+      "failed",
+      "canceled",
+      "cancelled",
+      "moderated",
+      "nsfw",
+    ]);
+    const outcome = knownNonSuccessStates.has(result.status)
+      ? result.status
+      : `non-completed status ${JSON.stringify(result.status)}`;
+
+    console.error(`Video generation was not successful: ${outcome}.`);
+    process.exitCode = 1;
+    return;
   }
 
   const videoUrl = result.video?.url;
 
   if (!videoUrl) {
-    throw new Error(`Completed without a video URL (request ${result.request_id})`);
+    console.error("Video generation completed without a video URL.");
+    process.exitCode = 1;
+    return;
   }
 
   console.log("Video URL:", videoUrl);
 }
 
 main().catch((error: unknown) => {
-  console.error(error);
+  const message = error instanceof Error ? error.message : "Unknown error";
+  console.error(`Higgsfield request failed: ${message}`);
   process.exitCode = 1;
 });

@@ -8,6 +8,7 @@
 | Lovable | Project editing, generation, preview, and publishing workflow | Connected project and repository history |
 | Vercel | Hosted application and server-side routes | Connected project and `vercel.json` |
 | Supabase | Database, authentication, storage, and functions | `supabase/**` and generated client |
+| Higgsfield | Server-side asynchronous video generation | `examples/higgsfield/index.ts` and `@higgsfield/client` |
 | OptiLens Local | Private operational integration boundary | `classicitbb/optilens-local` and integration code |
 
 Exact account IDs, URLs not intended for customers, credentials, internal hosts, and private access instructions must not be stored here.
@@ -20,6 +21,9 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 - Use preview environments before production.
 - Preserve function-specific authentication designs; do not apply blanket auth changes.
 - Production deployments, migrations, secrets, domains, and authorization changes require the applicable approval.
+- Higgsfield's `HF_CREDENTIALS` is loaded only by the local server-side example
+  from ignored `.env.local`; it must not be bundled into the Vite client or
+  logged. Each run of `npm run higgsfield:seedance` submits a billable request.
 
 ## Hosted ↔ Local boundary
 
