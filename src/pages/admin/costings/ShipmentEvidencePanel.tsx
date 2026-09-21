@@ -12,6 +12,13 @@ type EvidenceLink = { id: string; document_id: string; target_key: string };
 
 const colour: Record<EvidenceTarget["category"], string> = { invoice: "border-sky-400 bg-sky-400/15", freight: "border-amber-400 bg-amber-400/15", reference: "border-violet-400 bg-violet-400/15" };
 
+export const acceptedShipmentDocuments = (files: FileList | File[]) =>
+  Array.from(files).filter((file) => ["application/pdf", "image/png", "image/jpeg"].includes(file.type) && file.size <= 25 * 1024 * 1024);
+
+export const uploadShipmentDocuments = async (shipmentId: string, userId: string, files: File[]) => {
+  for (const file of files) { const name = `${shipmentId}/${userId}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`; const { error: storageError } = await supabase.storage.from("shipment-costing-documents").upload(name, file, { contentType: file.type, upsert: false }); if (storageError) throw storageError; const { error } = await (supabase.from("shipment_documents") as any).insert({ shipment_id: shipmentId, source_kind: "upload", original_file_name: file.name, mime_type: file.type, byte_size: file.size, storage_path: name, uploaded_by_user_id: userId }); if (error) throw error; }
+};
+
 /** Each mapping is explicitly approved by an operator; this component has no OCR write path. */
 const ShipmentEvidencePanel = ({
   shipmentId,
@@ -70,10 +77,10 @@ const ShipmentEvidencePanel = ({
   }, [selected]);
   const addFiles = async (files: FileList | File[]) => {
     if (!shipmentId || !user || readOnly) return;
-    const accepted = Array.from(files).filter((file) => ["application/pdf", "image/png", "image/jpeg"].includes(file.type) && file.size <= 25 * 1024 * 1024);
+    const accepted = acceptedShipmentDocuments(files);
     if (!accepted.length) return;
     setUploading(true);
-    try { for (const file of accepted) { const name = `${shipmentId}/${user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`; const { error: storageError } = await supabase.storage.from("shipment-costing-documents").upload(name, file, { contentType: file.type, upsert: false }); if (storageError) throw storageError; const { error } = await (supabase.from("shipment_documents") as any).insert({ shipment_id: shipmentId, source_kind: "upload", original_file_name: file.name, mime_type: file.type, byte_size: file.size, storage_path: name, uploaded_by_user_id: user.id }); if (error) throw error; } await refresh(); } finally { setUploading(false); }
+    try { await uploadShipmentDocuments(shipmentId, user.id, accepted); await refresh(); } finally { setUploading(false); }
   };
   const onDrop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); void addFiles(event.dataTransfer.files); };
   const onSelect = (event: ChangeEvent<HTMLInputElement>) => { if (event.target.files) void addFiles(event.target.files); event.target.value = ""; };

@@ -25,10 +25,10 @@ import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock, CircleAlert, CircleCheck } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock, CircleAlert, CircleCheck, FileText, PenLine, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
-import ShipmentEvidencePanel from "./ShipmentEvidencePanel";
+import ShipmentEvidencePanel, { acceptedShipmentDocuments, uploadShipmentDocuments } from "./ShipmentEvidencePanel";
 import ShipmentCostingCoverSheet from "./ShipmentCostingCoverSheet";
 import { deriveChargeProfiles, type ChargeProfile } from "@/features/shipments/chargeProfiles";
 import { getChargeAdvance, type ChargeField } from "@/features/shipments/chargeKeyboard";
@@ -250,6 +250,10 @@ const ShipmentDetailPage = () => {
   const [invoiceTouched, setInvoiceTouched] = useState(false);
   const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, ChargeProfile>>({});
   const [documentReviewExpanded, setDocumentReviewExpanded] = useState(true);
+  // New shipments start with a choice: manual entry (the original form) or
+  // documents first, where source files are queued and uploaded on Create.
+  const [entryMode, setEntryMode] = useState<"manual" | "documents" | null>(isNew ? null : "manual");
+  const [queuedDocuments, setQueuedDocuments] = useState<File[]>([]);
   const supplierLookupRequestRef = useRef(0);
 
   const { data: suppliers } = useReferenceData("suppliers");
@@ -353,6 +357,13 @@ const ShipmentDetailPage = () => {
         if (error) throw error;
         logChange({ table_name: "shipments", record_id: data.id, action: "create", new_data: data });
         toast({ title: "Shipment created" });
+        if (queuedDocuments.length && user) {
+          try {
+            await uploadShipmentDocuments(data.id, user.id, queuedDocuments);
+          } catch (uploadError: any) {
+            toast({ title: "Some documents did not upload", description: `${uploadError.message} Add them again from Document review.`, variant: "destructive" });
+          }
+        }
         navigate(`/admin/pricing/costings/${data.id}`, { replace: true });
       } else {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
@@ -533,6 +544,37 @@ const ShipmentDetailPage = () => {
   const invoiceVariance = supplierLinesTotal - shipment.invoice_total_foreign;
   const invoiceReconciled = Math.abs(invoiceVariance) < 0.005;
 
+  if (isNew && !entryMode) {
+    return (
+      <div className="min-w-0 space-y-4 p-4">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)} aria-label="Back to shipment list">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-lg font-semibold text-foreground">New Shipment</h1>
+        </div>
+        <div className="mx-auto grid max-w-3xl gap-3 pt-6 md:grid-cols-2">
+          <button type="button" onClick={() => setEntryMode("documents")} className="rounded-lg border border-border bg-card p-5 text-left shadow-sm transition-colors hover:border-primary">
+            <Upload className="mb-3 h-5 w-5 text-primary" />
+            <div className="text-sm font-semibold text-foreground">Start from documents</div>
+            <p className="mt-1 text-xs text-muted-foreground">Drop the supplier invoice, customs entry, freight bill and other supporting documents first, then complete the costing.</p>
+          </button>
+          <button type="button" onClick={() => setEntryMode("manual")} className="rounded-lg border border-border bg-card p-5 text-left shadow-sm transition-colors hover:border-primary">
+            <PenLine className="mb-3 h-5 w-5 text-muted-foreground" />
+            <div className="text-sm font-semibold text-foreground">Enter manually</div>
+            <p className="mt-1 text-xs text-muted-foreground">Type every field by hand, exactly as before. Documents can still be attached after saving.</p>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const queueDocuments = (files: FileList) => {
+    const accepted = acceptedShipmentDocuments(files);
+    if (accepted.length < files.length) toast({ title: "Some files skipped", description: "Only PDF, PNG or JPEG files up to 25MB are accepted." });
+    setQueuedDocuments((current) => [...current, ...accepted]);
+  };
+
   return (
     <div className="min-w-0 space-y-4 p-4">
       {/* Header */}
@@ -567,11 +609,46 @@ const ShipmentDetailPage = () => {
         </div>
       </div>
 
+      {isNew && entryMode === "documents" && (
+        <section
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); queueDocuments(e.dataTransfer.files); }}
+          className="rounded-lg border border-dashed border-border bg-card p-4 shadow-sm"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Source documents</h2>
+              <p className="text-xs text-muted-foreground">Drop the supplier invoice, customs entry and any other landing-cost documents. They are attached when you click Create.</p>
+            </div>
+            <label className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent">
+              <Upload className="h-3 w-3" /> Choose documents
+              <input type="file" className="hidden" accept="application/pdf,image/png,image/jpeg" multiple onChange={(e) => { if (e.target.files) queueDocuments(e.target.files); e.target.value = ""; }} />
+            </label>
+          </div>
+          {queuedDocuments.length > 0 ? (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {queuedDocuments.map((file, index) => (
+                <li key={`${file.name}-${index}`} className="flex items-center gap-1 rounded border border-border bg-muted/40 py-0.5 pl-2 pr-0.5 text-xs">
+                  <FileText className="h-3 w-3 text-muted-foreground" />
+                  <span className="max-w-[220px] truncate">{file.name}</span>
+                  <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={() => setQueuedDocuments((current) => current.filter((_, i) => i !== index))} aria-label={`Remove ${file.name}`}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-3 flex min-h-[80px] items-center justify-center rounded border border-dashed text-xs text-muted-foreground">Drop PDF, PNG or JPEG files here</div>
+          )}
+        </section>
+      )}
+
       <div className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(320px,520px)_minmax(460px,1fr)_minmax(280px,360px)] 2xl:items-start">
         <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] 2xl:contents">
 
       {/* Shipment fields */}
       <div className="grid min-w-0 grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:grid-cols-2 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1">
+        <h2 className="col-span-full text-sm font-semibold text-foreground">Shipment details</h2>
         <Field label="Supplier *">
           <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
             <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select supplier…" /></SelectTrigger>
