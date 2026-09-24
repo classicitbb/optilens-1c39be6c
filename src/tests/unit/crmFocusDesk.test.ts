@@ -5,7 +5,7 @@ import type { CrmActivity } from "@/features/admin/crm/hooks/useActivities";
 const NOW = new Date("2026-08-06T12:00:00-04:00");
 const task = (overrides: Partial<CrmActivity> = {}): CrmActivity => ({
   id: "task-1", activity_type: "Call customer", type: "call", task_channel: "todo", content: null,
-  status: "planned", priority: "normal", due_at: null, opportunity_id: null, contact_id: null,
+  status: "planned", priority: "normal", call_outcome: null, due_at: null, opportunity_id: null, contact_id: null,
   owner_id: "owner-1", created_by: "owner-1", created_at: NOW.toISOString(), updated_at: NOW.toISOString(),
   participants: [], automations: [], automation_runs: [], ...overrides,
 });

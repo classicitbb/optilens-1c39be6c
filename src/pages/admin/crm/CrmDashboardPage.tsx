@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useCrmDashboardKpis, type CrmDashboardPeriod } from "@/features/admin/crm/hooks/useCrmDashboardKpis";
-import { useActivities, useCompleteActivity } from "@/features/admin/crm/hooks/useActivities";
+import { useActivities, useCompleteActivity, useStaffNames } from "@/features/admin/crm/hooks/useActivities";
+import { useCrmCallKpis } from "@/features/admin/crm/hooks/useCrmCallKpis";
 import { useCustomerHealth } from "@/features/admin/crm/hooks/useCustomerHealth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -123,7 +124,66 @@ const CrmDashboardPage = () => {
           <CardContent>{kpis.isLoading ? <Skeleton className="h-7 w-24" /> : <p className="text-2xl font-semibold">{currencyFormatter.format(kpis.data?.landed_costing_total ?? 0)}</p>}</CardContent>
         </Card>
       </section>
+
+      <CallKpis period={period} startDate={startDate} endDate={endDate} />
     </div>
+  );
+};
+
+/** Outgoing-call KPIs per employee: completed "call" activities in the selected period. */
+const CallKpis = ({ period, startDate, endDate }: { period: CrmDashboardPeriod; startDate: string; endDate: string }) => {
+  const navigate = useNavigate();
+  const calls = useCrmCallKpis({ period, startDate, endDate });
+  const { data: staffNames } = useStaffNames();
+  const rows = calls.data ?? [];
+  const totalCalls = rows.reduce((sum, row) => sum + row.calls, 0);
+  const totalReached = rows.reduce((sum, row) => sum + row.reached, 0);
+
+  return (
+    <Card>
+      <CardHeader className="py-3">
+        <CardTitle className="flex items-center justify-between text-sm">
+          <span className="inline-flex items-center gap-1"><PhoneCall className="h-4 w-4" /> Calls by Employee</span>
+          <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => navigate({ search: "?logCall=1" })}>Log call</Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {calls.error ? (
+          <Alert variant="destructive"><AlertTitle>Unable to load call KPIs</AlertTitle><AlertDescription>{calls.error.message}</AlertDescription></Alert>
+        ) : calls.isLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : rows.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No calls logged in this period. Use "Log call" after each outgoing customer call.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-left text-muted-foreground">
+                <tr><th className="py-1 pr-3 font-medium">Employee</th><th className="py-1 pr-3 text-right font-medium">Calls</th><th className="py-1 pr-3 text-right font-medium">Calls / day</th><th className="py-1 pr-3 text-right font-medium">Reached</th><th className="py-1 text-right font-medium">Reached %</th></tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.owner_id ?? "unassigned"} className="border-t">
+                    <td className="py-1 pr-3">{(row.owner_id && staffNames[row.owner_id]) || "Unassigned"}</td>
+                    <td className="py-1 pr-3 text-right tabular-nums">{row.calls}</td>
+                    <td className="py-1 pr-3 text-right tabular-nums">{row.calls_per_day.toFixed(1)}</td>
+                    <td className="py-1 pr-3 text-right tabular-nums">{row.reached}</td>
+                    <td className="py-1 text-right tabular-nums">{percentFormatter(row.calls ? row.reached / row.calls : 0, 0)}</td>
+                  </tr>
+                ))}
+                <tr className="border-t font-medium">
+                  <td className="py-1 pr-3">Total</td>
+                  <td className="py-1 pr-3 text-right tabular-nums">{totalCalls}</td>
+                  <td className="py-1 pr-3 text-right tabular-nums">{(totalCalls / (rows[0]?.working_days || 1)).toFixed(1)}</td>
+                  <td className="py-1 pr-3 text-right tabular-nums">{totalReached}</td>
+                  <td className="py-1 text-right tabular-nums">{percentFormatter(totalCalls ? totalReached / totalCalls : 0, 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-2 text-[11px] text-muted-foreground">Calls / day = calls ÷ {rows[0]?.working_days} working days (Mon–Fri) in the period.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

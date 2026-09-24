@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { CalendarPlus, UserPlus, X } from "lucide-react";
+import { CalendarPlus, PhoneCall, UserPlus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ACTIVITY_PRIORITIES, ACTIVITY_STATES, ACTIVITY_TYPES,
-  type ActivityChannelType, type ActivityPriority, type ActivityState,
+  ACTIVITY_PRIORITIES, ACTIVITY_STATES, ACTIVITY_TYPES, CALL_OUTCOMES,
+  type ActivityChannelType, type ActivityPriority, type ActivityState, type CallOutcome,
   useActivities, useCreateActivity, useCrmContactOptions, useStaffDirectory, useUpdateActivity,
 } from "@/features/admin/crm/hooks/useActivities";
 import { PRIORITY_LABELS, STATE_LABELS } from "@/features/admin/crm/focusDesk";
@@ -22,11 +22,12 @@ import InlineDictationButton from "@/components/admin/InlineDictationButton";
 type ActivityForm = {
   activityType: string; dueAt: string; type: ActivityChannelType; taskChannel: ActivityTaskChannel;
   content: string; status: ActivityState; priority: ActivityPriority; ownerId: string;
-  contactId: string; helperIds: string[];
+  contactId: string; helperIds: string[]; callOutcome: CallOutcome | "";
 };
+const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = { reached: "Reached", voicemail: "Left voicemail", no_answer: "No answer" };
 const EMPTY_FORM: ActivityForm = {
   activityType: "", dueAt: "", type: "note", taskChannel: "todo", content: "",
-  status: "inbox", priority: "normal", ownerId: "", contactId: "", helperIds: [],
+  status: "inbox", priority: "normal", ownerId: "", contactId: "", helperIds: [], callOutcome: "",
 };
 const toDateTimeLocal = (value: string | null | undefined) => {
   if (!value) return "";
@@ -44,7 +45,8 @@ const CrmActivityDialog = () => {
   const createActivity = useCreateActivity();
   const updateActivity = useUpdateActivity();
   const editId = searchParams.get("editActivity");
-  const isOpen = searchParams.get("createActivity") === "1" || !!editId;
+  const isLogCall = searchParams.get("logCall") === "1";
+  const isOpen = searchParams.get("createActivity") === "1" || isLogCall || !!editId;
   const editing = useMemo(() => activities.find((activity) => activity.id === editId) ?? null, [activities, editId]);
   const [form, setForm] = useState<ActivityForm>(EMPTY_FORM);
   const [mention, setMention] = useState("");
@@ -64,12 +66,15 @@ const CrmActivityDialog = () => {
       taskChannel: editing.task_channel, content: editing.content ?? "", status: editing.status,
       priority: editing.priority, ownerId: editing.owner_id ?? user?.id ?? "", contactId: editing.contact_id ?? "",
       helperIds: editing.participants.filter((person) => person.role === "helper").map((person) => person.user_id),
-    } : { ...EMPTY_FORM, ownerId: user?.id ?? "" });
-  }, [editing, isOpen, user?.id]);
+      callOutcome: editing.call_outcome ?? "",
+    } : isLogCall
+      ? { ...EMPTY_FORM, activityType: "Call", type: "call", status: "completed", ownerId: user?.id ?? "" }
+      : { ...EMPTY_FORM, ownerId: user?.id ?? "" });
+  }, [editing, isLogCall, isOpen, user?.id]);
 
   const close = () => {
     const next = new URLSearchParams(searchParams);
-    next.delete("createActivity"); next.delete("editActivity");
+    next.delete("createActivity"); next.delete("editActivity"); next.delete("logCall");
     setSearchParams(next, { replace: true });
   };
   const mentionMatches = useMemo(() => {
@@ -85,16 +90,18 @@ const CrmActivityDialog = () => {
   const submit = async () => {
     if (!form.activityType.trim()) return void toast({ title: "Task title required", variant: "destructive" });
     if (!form.ownerId) return void toast({ title: "Task owner required", variant: "destructive" });
+    if (form.type === "call" && form.status === "completed" && !form.callOutcome) return void toast({ title: "Call outcome required", variant: "destructive" });
     const input = {
       activityType: form.activityType.trim(), dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : undefined,
       type: form.type, taskChannel: form.taskChannel, content: form.content.trim() || undefined,
       status: form.status, priority: form.priority, ownerId: form.ownerId,
       contactId: form.contactId || undefined, helperIds: form.helperIds,
+      callOutcome: form.type === "call" && form.callOutcome ? form.callOutcome : null,
     };
     try {
       if (editing) await updateActivity.mutateAsync({ id: editing.id, ...input });
       else await createActivity.mutateAsync({ ...input, createdBy: user?.id });
-      toast({ title: editing ? "Task updated" : "Task created" });
+      toast({ title: editing ? "Task updated" : isLogCall ? "Call logged" : "Task created" });
       close();
     } catch (error) {
       toast({ title: editing ? "Unable to update task" : "Unable to create task", description: error instanceof Error ? error.message : undefined, variant: "destructive" });
@@ -106,8 +113,8 @@ const CrmActivityDialog = () => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
       <DialogContent className="admin-tool admin-overlay-surface max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-center gap-2 text-sm font-medium"><CalendarPlus className="h-4 w-4" />{editing ? "Edit task" : "Create task"}</DialogTitle>
-          <DialogDescription className="text-center text-xs">Capture the next action, who owns it, and who can help.</DialogDescription>
+          <DialogTitle className="flex items-center justify-center gap-2 text-sm font-medium">{isLogCall && !editing ? <><PhoneCall className="h-4 w-4" />Log call</> : <><CalendarPlus className="h-4 w-4" />{editing ? "Edit task" : "Create task"}</>}</DialogTitle>
+          <DialogDescription className="text-center text-xs">{isLogCall && !editing ? "Record a customer call you just made. It counts toward your call KPIs." : "Capture the next action, who owns it, and who can help."}</DialogDescription>
         </DialogHeader>
         <div className="grid min-w-0 gap-3 py-2 sm:grid-cols-2">
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs text-muted-foreground" htmlFor="crm-activity-title">Task title *</Label><div className="relative"><Input id="crm-activity-title" value={form.activityType} onChange={(event) => setForm({ ...form, activityType: event.target.value })} placeholder="Task title" className="h-8 pr-11 text-xs focus:ring-2 focus:ring-inset focus:ring-primary" autoFocus /><InlineDictationButton ariaLabel="Dictate task title" onValueChange={applyTitleDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
@@ -120,12 +127,13 @@ const CrmActivityDialog = () => {
           </div>
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs text-muted-foreground" htmlFor="crm-activity-notes">Description</Label><div className="relative"><Textarea id="crm-activity-notes" value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="Brief description" className="min-h-[96px] pr-11 text-xs focus:ring-2 focus:ring-inset focus:ring-primary" rows={4} /><InlineDictationButton ariaLabel="Dictate task notes" onValueChange={applyNotesDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Activity type</Label><Select value={form.type} onValueChange={(type) => setForm({ ...form, type: type as ActivityChannelType })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue /></SelectTrigger><SelectContent>{ACTIVITY_TYPES.map((type) => <SelectItem key={type} value={type} className="text-xs capitalize">{type}</SelectItem>)}</SelectContent></Select></div>
+          {form.type === "call" ? <div className="space-y-1"><Label className="text-xs text-muted-foreground">Call outcome{form.status === "completed" ? " *" : ""}</Label><Select value={form.callOutcome || undefined} onValueChange={(callOutcome) => setForm({ ...form, callOutcome: callOutcome as CallOutcome })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Choose outcome" /></SelectTrigger><SelectContent>{CALL_OUTCOMES.map((outcome) => <SelectItem key={outcome} value={outcome} className="text-xs">{CALL_OUTCOME_LABELS[outcome]}</SelectItem>)}</SelectContent></Select></div> : null}
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Task channel</Label><Select value={form.taskChannel} onValueChange={(taskChannel) => setForm({ ...form, taskChannel: taskChannel as ActivityTaskChannel })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue /></SelectTrigger><SelectContent>{TASK_CHANNELS.map((channel) => <SelectItem key={channel} value={channel} className="text-xs">{TASK_CHANNEL_LABELS[channel]}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Priority</Label><Select value={form.priority} onValueChange={(priority) => setForm({ ...form, priority: priority as ActivityPriority })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue /></SelectTrigger><SelectContent>{ACTIVITY_PRIORITIES.map((priority) => <SelectItem key={priority} value={priority} className="text-xs">{PRIORITY_LABELS[priority]}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Initial state</Label><Select value={form.status} onValueChange={(status) => setForm({ ...form, status: status as ActivityState })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue /></SelectTrigger><SelectContent>{ACTIVITY_STATES.map((state) => <SelectItem key={state} value={state} className="text-xs">{STATE_LABELS[state]}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground" htmlFor="crm-activity-due">Due date</Label><Input id="crm-activity-due" type="datetime-local" value={form.dueAt} onChange={(event) => setForm({ ...form, dueAt: event.target.value })} className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary" /></div>
         </div>
-        <DialogFooter className="gap-2 sm:flex-row-reverse"><Button className="h-9 text-xs" onClick={() => void submit()} disabled={isPending}>{isPending ? "Saving…" : editing ? "Save changes" : "Create task"}</Button><Button variant="outline" className="h-9 text-xs" onClick={close}>Cancel</Button></DialogFooter>
+        <DialogFooter className="gap-2 sm:flex-row-reverse"><Button className="h-9 text-xs" onClick={() => void submit()} disabled={isPending}>{isPending ? "Saving…" : editing ? "Save changes" : isLogCall ? "Log call" : "Create task"}</Button><Button variant="outline" className="h-9 text-xs" onClick={close}>Cancel</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

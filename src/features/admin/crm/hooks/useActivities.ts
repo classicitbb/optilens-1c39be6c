@@ -8,6 +8,8 @@ export const ACTIVITY_PRIORITIES = ["urgent", "high", "normal", "low"] as const;
 export type ActivityPriority = (typeof ACTIVITY_PRIORITIES)[number];
 export const ACTIVITY_STATES = ["inbox", "planned", "in_progress", "waiting", "completed", "cancelled"] as const;
 export type ActivityState = (typeof ACTIVITY_STATES)[number];
+export const CALL_OUTCOMES = ["reached", "voicemail", "no_answer"] as const;
+export type CallOutcome = (typeof CALL_OUTCOMES)[number];
 export type ActivityParticipantRole = "helper" | "follower";
 export type AutomationRecipe = "draft_customer_email" | "add_participant" | "create_follow_up" | "prepare_activity";
 export type AutomationRunStatus = "approval_needed" | "running" | "completed" | "needs_attention";
@@ -40,6 +42,7 @@ export interface CrmActivity {
   content: string | null;
   status: ActivityState;
   priority: ActivityPriority;
+  call_outcome: CallOutcome | null;
   due_at: string | null;
   opportunity_id: string | null;
   contact_id: string | null;
@@ -65,6 +68,7 @@ export interface ActivityMutationInput {
   type?: ActivityChannelType;
   taskChannel?: ActivityTaskChannel;
   content?: string;
+  callOutcome?: CallOutcome | null;
   createdBy?: string;
   helperIds?: string[];
 }
@@ -79,7 +83,7 @@ export const useActivities = () => useQuery({
   queryKey: ["crm-activities"],
   queryFn: async () => {
     const { data: rows, error } = await (supabase.from("activities") as any)
-      .select("id,activity_type,type,task_channel,content,status,priority,due_at,opportunity_id,contact_id,owner_id,created_by,created_at,updated_at,contact:contacts!activities_contact_id_fkey(id,name,business_name),opportunity:opportunities!activities_opportunity_id_fkey(id,title)")
+      .select("id,activity_type,type,task_channel,content,status,priority,call_outcome,due_at,opportunity_id,contact_id,owner_id,created_by,created_at,updated_at,contact:contacts!activities_contact_id_fkey(id,name,business_name),opportunity:opportunities!activities_opportunity_id_fkey(id,title)")
       .order("created_at", { ascending: false }).limit(500);
     if (error) throw error;
     const ids = (rows ?? []).map((row: { id: string }) => row.id);
@@ -149,7 +153,7 @@ export const useCreateActivity = () => {
       owner_id: input.ownerId || input.createdBy || null, priority: input.priority || "normal",
       status: input.status || "inbox", type: input.type || "note",
       task_channel: input.taskChannel || "todo", content: input.content || null,
-      created_by: input.createdBy || null,
+      call_outcome: input.callOutcome || null, created_by: input.createdBy || null,
     }).select("id").single();
     if (error) throw error;
     await syncHelpers(data.id, input.helperIds ?? []);
@@ -165,7 +169,8 @@ export const useUpdateActivity = () => {
       opportunity_id: input.opportunityId || null, contact_id: input.contactId || null,
       owner_id: input.ownerId || null, priority: input.priority || "normal",
       type: input.type || "note", task_channel: input.taskChannel || "todo",
-      content: input.content || null, status: input.status || "inbox", updated_at: new Date().toISOString(),
+      content: input.content || null, call_outcome: input.callOutcome || null,
+      status: input.status || "inbox", updated_at: new Date().toISOString(),
     }).eq("id", id);
     if (error) throw error;
     if (helperIds) await syncHelpers(id, helperIds);
