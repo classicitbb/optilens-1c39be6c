@@ -4,11 +4,11 @@ import { CalendarCheck, CreditCard, Glasses, HelpCircle, Home, LayoutDashboard, 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { appColor } from "@/features/admin/core/config/appColors";
+import { PANEL_TOP, launcherColumns, launcherPanelWidth } from "@/features/admin/core/config/launcherLayout";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useLauncherPins } from "@/features/admin/core/hooks/useLauncherPins";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
-import { cn } from "@/lib/utils";
 
 const LAUNCH_PAD_APP = {
   key: "launchpad",
@@ -62,7 +62,19 @@ interface LaunchItem {
   defaultRoute: string;
   /** Accent colour key when it differs from `key` (pinned pages use their app's colour). */
   colorKey?: string;
+  /** Set for user-pinned sidebar pages; enables the right-click unpin menu. */
+  pinnedRoute?: string;
 }
+
+const useViewport = () => {
+  const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }));
+  useEffect(() => {
+    const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return viewport;
+};
 
 interface AppLauncherProps {
   open: boolean;
@@ -118,7 +130,7 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
       const { appKey, app, item } = match;
       const clashesWithOtherApp = Object.values(ADMIN_APPS).some((other) => other !== app && other.title === item.label);
       const title = labelCount(item.label) > 1 || clashesWithOtherApp ? `${app.title} · ${item.label}` : item.label;
-      return [{ key: `pin:${route}`, title, icon: item.icon, defaultRoute: route, colorKey: appKey }];
+      return [{ key: `pin:${route}`, title, icon: item.icon, defaultRoute: route, colorKey: appKey, pinnedRoute: route }];
     });
   }, [pinnedRoutes, hasAppAccess]);
 
@@ -136,17 +148,21 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
       const app = ADMIN_APPS[item.appKey];
       if (hasAppAccess(app.featurePrefix)) appsList.push(app);
     }
-    shortcutList.push(HOME_PAGE_SHORTCUT);
+    shortcutList.push(...pinned, HOME_PAGE_SHORTCUT);
     const dedupe = (list: LaunchItem[]) => list.filter((entry, index) => list.findIndex((other) => other.key === entry.key) === index);
     return { apps: dedupe(appsList), shortcuts: dedupe(shortcutList) };
-  }, [hasAppAccess]);
+  }, [hasAppAccess, pinned]);
+
+  const viewport = useViewport();
+  // Sized from the unfiltered lists so the panel doesn't resize while typing.
+  const columns = isMobile ? 3 : launcherColumns([apps.length, shortcuts.length], viewport);
+  const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } as CSSProperties;
 
   const normalizedQuery = query.trim().toLowerCase();
   const matches = (item: LaunchItem) => !normalizedQuery || item.title.toLowerCase().includes(normalizedQuery);
-  const filteredPinned = pinned.filter(matches);
   const filteredApps = apps.filter(matches);
   const filteredShortcuts = shortcuts.filter(matches);
-  const firstMatch = filteredPinned[0] ?? filteredApps[0] ?? filteredShortcuts[0] ?? null;
+  const firstMatch = filteredApps[0] ?? filteredShortcuts[0] ?? null;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -206,32 +222,10 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
 
   const sections = (
     <>
-      {filteredPinned.length > 0 && (
-        <section>
-          <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Pinned</h4>
-          <div className={cn("grid gap-1", isMobile ? "grid-cols-3" : "grid-cols-4")}>
-            {filteredPinned.map((item) => (
-              <ContextMenu key={item.key}>
-                <ContextMenuTrigger asChild>
-                  <div>
-                    <LauncherTile item={item} onSelect={handleSelect} />
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem className="gap-2 text-xs" onSelect={() => toggleLauncherPin(item.defaultRoute)}>
-                    <PinOff className="h-3.5 w-3.5" />
-                    Unpin from launcher
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            ))}
-          </div>
-        </section>
-      )}
       {filteredApps.length > 0 && (
         <section>
           <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Applications</h4>
-          <div className={cn("grid gap-1", isMobile ? "grid-cols-3" : "grid-cols-4")}>
+          <div className="grid gap-1" style={gridStyle}>
             {filteredApps.map((item) => (
               <LauncherTile key={item.key} item={item} onSelect={handleSelect} />
             ))}
@@ -241,14 +235,30 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
       {filteredShortcuts.length > 0 && (
         <section>
           <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Shortcuts</h4>
-          <div className={cn("grid gap-1", isMobile ? "grid-cols-3" : "grid-cols-4")}>
-            {filteredShortcuts.map((item) => (
-              <LauncherTile key={item.key} item={item} onSelect={handleSelect} />
-            ))}
+          <div className="grid gap-1" style={gridStyle}>
+            {filteredShortcuts.map((item) =>
+              item.pinnedRoute ? (
+                <ContextMenu key={item.key}>
+                  <ContextMenuTrigger asChild>
+                    <div>
+                      <LauncherTile item={item} onSelect={handleSelect} />
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem className="gap-2 text-xs" onSelect={() => toggleLauncherPin(item.pinnedRoute!)}>
+                      <PinOff className="h-3.5 w-3.5" />
+                      Unpin from launcher
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              ) : (
+                <LauncherTile key={item.key} item={item} onSelect={handleSelect} />
+              ),
+            )}
           </div>
         </section>
       )}
-      {filteredPinned.length === 0 && filteredApps.length === 0 && filteredShortcuts.length === 0 && (
+      {filteredApps.length === 0 && filteredShortcuts.length === 0 && (
         <p className="px-1 py-6 text-center text-sm text-muted-foreground">No apps match “{query}”.</p>
       )}
     </>
@@ -296,10 +306,11 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
       ref={panelRef}
       role="dialog"
       aria-label="Applications"
-      className="admin-surface fixed left-2.5 top-[52px] z-50 flex w-[440px] flex-col gap-3 rounded-2xl border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-card))] p-3 text-[hsl(var(--admin-content-fg))] shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
+      style={{ width: launcherPanelWidth(columns), maxHeight: `calc(100vh - ${PANEL_TOP + 10}px)` }}
+      className="admin-surface fixed left-2.5 top-[52px] z-50 flex max-w-[calc(100vw-20px)] flex-col gap-3 rounded-2xl border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-card))] p-3 text-[hsl(var(--admin-content-fg))] shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
     >
       {searchBox}
-      <div className="space-y-4">{sections}</div>
+      <div className="min-h-0 space-y-4 overflow-y-auto">{sections}</div>
       {footer}
     </div>
   );
