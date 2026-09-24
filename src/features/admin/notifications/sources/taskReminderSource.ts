@@ -60,7 +60,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: "A campaign packet exists and may still need activation or performance logging.",
       createdAt: latestCampaignProfile.created_at,
       severity: "warning",
-      href: "/admin/leads/campaigns",
+      href: "/admin/crm/leads/campaigns",
     });
   }
 

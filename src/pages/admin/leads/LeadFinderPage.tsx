@@ -38,7 +38,7 @@ const scoreBand = (score: number) => {
 
 const EMPTY_REASON_GUIDANCE: Record<string, string> = {
   no_providers_configured:
-    "No lead data providers are configured. Add a Google Places or Firecrawl credential in /admin/leads/settings, then search again.",
+    "No lead data providers are configured. Add a Google Places or Firecrawl credential in CRM → Settings → Lead Providers, then search again.",
   provider_failures:
     "Every configured provider failed. Check the provider trace below for the error, then verify credentials and quotas.",
   no_matches:

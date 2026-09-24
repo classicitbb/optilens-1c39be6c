@@ -30,7 +30,7 @@ const IndustriesConfigPage = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link to="/admin/erp/contacts"><Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button></Link>
+          <Link to="/admin/crm/contacts"><Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button></Link>
           <AdminPageHeader icon={Settings} title="Industries" />
         </div>
         <Button size="sm" className="h-8 text-xs gap-1" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={() => setEditItem({ name: "", full_name: "" })}>

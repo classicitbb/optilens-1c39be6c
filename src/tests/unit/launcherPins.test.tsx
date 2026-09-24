@@ -9,7 +9,7 @@ import { launcherColumns } from "@/features/admin/core/config/launcherLayout";
 
 const mocks = vi.hoisted(() => ({
   toggle: vi.fn(),
-  pinnedRoutes: ["/admin/orders/quotations", "/admin/leads/settings", "/admin/no-longer-exists"],
+  pinnedRoutes: ["/admin/orders/quotations", "/admin/crm/settings", "/admin/no-longer-exists"],
 }));
 
 vi.mock("@/features/admin/core/hooks/useLauncherPins", () => ({
@@ -34,14 +34,14 @@ const renderAt = (path: string, ui: ReactElement) =>
   );
 
 describe("launcher pins", () => {
-  it("lists pinned pages in Shortcuts before Home Page, disambiguates generic labels, and skips stale pins", () => {
+  it("lists pinned pages in Shortcuts before Home Page and skips stale pins", () => {
     renderAt("/admin/dashboard", <AppLauncher open onClose={() => {}} />);
 
     const shortcutsSection = screen.getByText("Shortcuts").closest("section")!;
     const hrefs = within(shortcutsSection).getAllByRole("link").map((tile) => tile.getAttribute("href"));
-    expect(hrefs.slice(-3)).toEqual(["/admin/orders/quotations", "/admin/leads/settings", "/"]);
+    expect(hrefs.slice(-3)).toEqual(["/admin/orders/quotations", "/admin/crm/settings", "/"]);
     expect(hrefs).not.toContain("/admin/no-longer-exists");
-    expect(within(shortcutsSection).getByText("Leads · Settings")).toBeInTheDocument();
+    expect(within(shortcutsSection).getByText("CRM Settings")).toBeInTheDocument();
     expect(screen.queryByText("Pinned")).not.toBeInTheDocument();
   });
 

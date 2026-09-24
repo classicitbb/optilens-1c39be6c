@@ -53,10 +53,6 @@ const CatalogPublisherV2Page = lazyWithRetry(() => import("@/pages/admin/Catalog
 );
 const CatalogEditorPage = lazyWithRetry(() => import("@/pages/admin/CatalogEditorPage"));
 const ContactsPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactsPage"));
-const ContactTagsConfigPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactTagsConfigPage"),
-);
-const IndustriesConfigPage = lazyWithRetry(() => import("@/pages/admin/erp/IndustriesConfigPage"),
-);
 const PricingSettingsPage = lazyWithRetry(() => import("@/pages/admin/PricingSettingsPage"),
 );
 const LeadFinderPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadFinderPage"));
@@ -67,8 +63,7 @@ const LeadAuditReportsPage = lazyWithRetry(() => import("@/pages/admin/leads/Lea
 );
 const LeadsAiAssistantPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadsAiAssistantPage"),
 );
-const LeadSettingsPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadSettingsPage"),
-);
+const CrmSettingsPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmSettingsPage"));
 const CrmPipelinePage = lazyWithRetry(() => import("@/pages/admin/crm/CrmPipelinePage"));
 const CrmActivitiesPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmActivitiesPage"),
 );
@@ -136,6 +131,31 @@ const LegacyFinanceRedirect = () => {
   return <Navigate to={`${to}${search}`} replace />;
 };
 
+// Contacts and Leads merged into CRM under /admin/crm/*. Keeps old links working,
+// including /admin/erp/contacts?contact=… deep links, which used to lose their query.
+const LegacyCrmRedirect = () => {
+  const { pathname, search } = useLocation();
+  const contactId = pathname.match(/^\/admin\/contacts\/([^/]+)$/)?.[1];
+  if (contactId && contactId !== "config") {
+    return <Navigate to={`/admin/crm/contacts?contact=${encodeURIComponent(contactId)}`} replace />;
+  }
+  const settingsSection: Record<string, string> = {
+    "/admin/contacts/config": "tags",
+    "/admin/contacts/config/tags": "tags",
+    "/admin/erp/config/contact-tags": "tags",
+    "/admin/contacts/config/industries": "industries",
+    "/admin/erp/config/industries": "industries",
+    "/admin/leads/settings": "leads",
+  };
+  if (settingsSection[pathname]) {
+    return <Navigate to={`/admin/crm/settings?section=${settingsSection[pathname]}`} replace />;
+  }
+  const to = pathname
+    .replace(/^\/admin\/(erp\/)?contacts/, "/admin/crm/contacts")
+    .replace(/^\/admin\/leads/, "/admin/crm/leads");
+  return <Navigate to={`${to}${search}`} replace />;
+};
+
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
@@ -171,20 +191,14 @@ const AdminRoutes = () => (
       <Route path="pricing/alias-mapping" element={<AliasMappingPage />} />
       <Route path="pricing/imports" element={<ImportsPage />} />
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
-      <Route path="contacts" element={<ContactsPage />} />
-      <Route path="contacts/config/tags" element={<ContactTagsConfigPage />} />
-      <Route
-        path="contacts/config/industries"
-        element={<IndustriesConfigPage />}
-      />
-
-      <Route path="leads" element={<MyLeadsPage />} />
-      <Route path="leads/finder" element={<LeadFinderPage />} />
-      <Route path="leads/campaigns" element={<LeadCampaignsPage />} />
-      <Route path="leads/reports" element={<LeadAuditReportsPage />} />
+      <Route path="contacts/*" element={<LegacyCrmRedirect />} />
+      <Route path="leads" element={<LegacyCrmRedirect />} />
+      <Route path="leads/finder" element={<LegacyCrmRedirect />} />
+      <Route path="leads/campaigns" element={<LegacyCrmRedirect />} />
+      <Route path="leads/reports" element={<LegacyCrmRedirect />} />
+      <Route path="leads/settings" element={<LegacyCrmRedirect />} />
       <Route path="leads/ai" element={<Navigate to="/admin/copilot/leads-assistant" replace />} />
       <Route path="copilot/leads-assistant" element={<LeadsAiAssistantPage />} />
-      <Route path="leads/settings" element={<LeadSettingsPage />} />
 
       <Route
         path="crm"
@@ -195,6 +209,12 @@ const AdminRoutes = () => (
       <Route path="crm/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="crm/outbox" element={<CrmOutboxPage />} />
       <Route path="crm/activities" element={<CrmActivitiesPage />} />
+      <Route path="crm/contacts" element={<ContactsPage />} />
+      <Route path="crm/leads" element={<MyLeadsPage />} />
+      <Route path="crm/leads/finder" element={<LeadFinderPage />} />
+      <Route path="crm/leads/campaigns" element={<LeadCampaignsPage />} />
+      <Route path="crm/leads/reports" element={<LeadAuditReportsPage />} />
+      <Route path="crm/settings" element={<CrmSettingsPage />} />
       <Route
         path="helpdesk"
         element={<Navigate to="/admin/helpdesk/overview" replace />}
@@ -430,15 +450,15 @@ const AdminRoutes = () => (
       />
       <Route
         path="erp/contacts"
-        element={<Navigate to="/admin/contacts" replace />}
+        element={<LegacyCrmRedirect />}
       />
       <Route
         path="erp/config/contact-tags"
-        element={<Navigate to="/admin/contacts/config/tags" replace />}
+        element={<LegacyCrmRedirect />}
       />
       <Route
         path="erp/config/industries"
-        element={<Navigate to="/admin/contacts/config/industries" replace />}
+        element={<LegacyCrmRedirect />}
       />
       <Route
         path="erp/crm"

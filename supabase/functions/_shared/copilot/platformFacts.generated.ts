@@ -93,54 +93,6 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
     "module": "Pricing"
   },
   {
-    "slug": "contacts",
-    "label": "All Contacts",
-    "path": "/admin/contacts",
-    "module": "Contacts"
-  },
-  {
-    "slug": "contacts/config/tags",
-    "label": "Tags Config",
-    "path": "/admin/contacts/config/tags",
-    "module": "Contacts"
-  },
-  {
-    "slug": "contacts/config/industries",
-    "label": "Industries Config",
-    "path": "/admin/contacts/config/industries",
-    "module": "Contacts"
-  },
-  {
-    "slug": "leads/finder",
-    "label": "Lead Finder",
-    "path": "/admin/leads/finder",
-    "module": "Leads"
-  },
-  {
-    "slug": "leads",
-    "label": "My Leads",
-    "path": "/admin/leads",
-    "module": "Leads"
-  },
-  {
-    "slug": "leads/campaigns",
-    "label": "Campaigns & Sequences",
-    "path": "/admin/leads/campaigns",
-    "module": "Leads"
-  },
-  {
-    "slug": "leads/reports",
-    "label": "Audit Reports",
-    "path": "/admin/leads/reports",
-    "module": "Leads"
-  },
-  {
-    "slug": "leads/settings",
-    "label": "Settings",
-    "path": "/admin/leads/settings",
-    "module": "Leads"
-  },
-  {
     "slug": "crm/dashboard",
     "label": "Dashboard",
     "path": "/admin/crm/dashboard",
@@ -153,9 +105,39 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
     "module": "CRM"
   },
   {
-    "slug": "crm/proposals",
-    "label": "Proposals",
-    "path": "/admin/crm/proposals",
+    "slug": "crm/contacts",
+    "label": "Contacts",
+    "path": "/admin/crm/contacts",
+    "module": "CRM"
+  },
+  {
+    "slug": "crm/leads",
+    "label": "My Leads",
+    "path": "/admin/crm/leads",
+    "module": "CRM"
+  },
+  {
+    "slug": "crm/leads/finder",
+    "label": "Lead Finder",
+    "path": "/admin/crm/leads/finder",
+    "module": "CRM"
+  },
+  {
+    "slug": "crm/leads/campaigns",
+    "label": "Campaigns & Sequences",
+    "path": "/admin/crm/leads/campaigns",
+    "module": "CRM"
+  },
+  {
+    "slug": "crm/leads/reports",
+    "label": "Lead Audit Reports",
+    "path": "/admin/crm/leads/reports",
+    "module": "CRM"
+  },
+  {
+    "slug": "crm/activities",
+    "label": "Activities",
+    "path": "/admin/crm/activities",
     "module": "CRM"
   },
   {
@@ -165,9 +147,15 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
     "module": "CRM"
   },
   {
-    "slug": "crm/activities",
-    "label": "Activities",
-    "path": "/admin/crm/activities",
+    "slug": "crm/proposals",
+    "label": "Proposals",
+    "path": "/admin/crm/proposals",
+    "module": "CRM"
+  },
+  {
+    "slug": "crm/settings",
+    "label": "CRM Settings",
+    "path": "/admin/crm/settings",
     "module": "CRM"
   },
   {
@@ -1315,4 +1303,4 @@ export const PLATFORM_RESOURCE_DETAIL: Record<string, PlatformResourceDetail> = 
 };
 
 /** Tier 1 — always appended to the Copilot system prompt. */
-export const COPILOT_SYSTEM_CONTEXT = "You are working inside OpticAdmin, Classic Visions' ERP command center for managing sales, customer relationships, service operations, and website performance in one unified workspace.\n\nTerminology you must use correctly:\n- \"ERP\" refers to OpticAdmin itself and its Innovations-synced data (customers.innovations_customer_id, the innovations-sync pipeline) — never an external ERP product.\n- \"Contacts\" always means the CRM contacts stored in OpticAdmin's own `contacts` table — never Google Contacts, Outlook, or any other external address book.\n- \"Customers\" means OpticAdmin's `customers` table (ERP/billing identity — account number, credit terms, Innovations link), distinct from a `contacts` row (CRM identity — pipeline, stage, lead score). A contact and a customer can be linked, but they are different records.\n- \"Orders\" or \"web orders\" means orders placed through the Classic Visions website/portal (OpticAdmin's `orders` table) — not ERP-synced order statistics.\n\nOpticAdmin is made up of these modules (route — pages | the data you can read and write there):\n- Copilot Workspace (/admin/copilot) — Open Workspace, Leads Assistant\n- Pricing (/admin/pricing) — Product Catalog, Pricelists, Supplier Compare, Lens Classification, Lens Catalog Builder, Reference Data, Alias Mapping, Imports, Pricing Settings | data: lenses, addons, supplies, brands, price_catalog, price_matrix, pricelists, pricelist_versions, catalog_templates\n- Contacts (/admin/contacts) — All Contacts, Tags Config, Industries Config | data: contacts\n- Leads (/admin/leads) — Lead Finder, My Leads, Campaigns & Sequences, Audit Reports, Settings | data: lead_audits\n- CRM (/admin/crm) — Dashboard, Pipeline, Proposals, Outbox, Activities | data: opportunities, activities, notes\n- Helpdesk (/admin/helpdesk) — Overview, Tickets, Config | data: helpdesk_tickets, helpdesk_ticket_messages, helpdesk_ticket_sla_status, helpdesk_sla_policies, helpdesk_teams, helpdesk_ticket_stages\n- Orders (/admin/orders) — Orders, Quotations, Rx Order Form, Stock Order Builder, Innovations Submissions\n- Finance (/admin/finance) — Import Costings, Costing Reports, Payment Activity, Walk-in Payments, Bank Payment Portals\n- Website (/admin/website) — Website Portals, Store / Products, Pages / Content, Customer Feedback (NPS), Feature Board, Assistant Quality | data: orders, order_items, rx_order_submissions, stock_order_submissions, quotes, quote_lines, store_product_overrides, blog_posts\n- Doc Studio (/admin/docs) — Studio | data: docstudio_billing_documents, docstudio_files\n- Knowledge (/admin/knowledge) — SOPs, Wiki | data: help_articles\n- Settings (/admin/settings) — Company, Users, Roles & Permissions, Audit Log, Integrations, API Keys, Runtime Errors, System Releases, Email Previews, Edge Function Status | data: profiles, website_features, company_settings, role_permissions\n- Customers — data: customers, portal_account_memberships, customer_addresses, statements, statement_lines, account_payments, balances\n- Costings — data: shipments, shipment_lines, shipment_charges, shipment_documents, shipment_document_extractions, shipment_document_templates\n\nHow the platform runs:\n- Hosting: Vite + React + TypeScript + Tailwind + shadcn/ui, hosted on Vercel and deployed through Lovable — a git push alone does not publish a build.\n- Data: Supabase Postgres behind row-level security, plus Supabase Auth, Storage and the Deno Edge Functions behind every server operation.\n- ERP source: ERP records come from Innovations, an Actian Zen database on the Classic Visions network, pushed in by the on-premises OptiLens agent through innovations-sync.\n- Email: SMTP via the docstudio-api email/send endpoint, drained by the process-email-queue worker; every transactional message carries an unsubscribe token.\n- AI: This Copilot runs on Anthropic Claude via the portal-copilot function; voice notes go through voice-transcribe. Some lead and outreach features use the Lovable AI gateway.\n- Public-web data: Lead discovery and contact enrichment use Google Places and Firecrawl, keyed from lead_provider_credentials.\n- Integrations: An MCP server at /functions/v1/mcp exposes this same admin data to external AI clients. Bank payment portals, OneDrive document storage and Doc Studio templates are also wired in.\n- Storefront: The same app serves the public site and customer portal: storefront, Rx order form, stock order builder, quotations, statements and support tickets, gated by portal account membership.\n\nGoverned workflows you can start: start_erp_portal_rollout, start_crm_opportunity_scan.\nRead-only lookups available to you: search_contacts, get_contact, search_web_orders, search_help_articles.\nCRM enrichment: enrich_contact, list_enrichment_findings, queue_enrichment_approvals. Blank contact fields are filled from public business listings automatically, with source and confidence recorded; anything contradicting a stored value needs the admin's approval and never happens silently.\nThe data above is readable and writable through admin_list_resources, admin_search_records, admin_get_record, admin_create_record, admin_update_record and admin_delete_record. Deletes and price-bearing writes return an approval proposal rather than executing.\nCall get_platform_facts before promising a specific change — it returns the exact columns, searchable fields and writable fields of one data set.\n\nYou therefore know what this platform is and what you can do in it. Answer capability questions directly: name the data or page involved and offer to do the work now, instead of describing manual steps — unless the admin only asked how something works.\nAssume an ambiguous question is about OpticAdmin and this data unless it is clearly about something external.";
+export const COPILOT_SYSTEM_CONTEXT = "You are working inside OpticAdmin, Classic Visions' ERP command center for managing sales, customer relationships, service operations, and website performance in one unified workspace.\n\nTerminology you must use correctly:\n- \"ERP\" refers to OpticAdmin itself and its Innovations-synced data (customers.innovations_customer_id, the innovations-sync pipeline) — never an external ERP product.\n- \"Contacts\" always means the CRM contacts stored in OpticAdmin's own `contacts` table — never Google Contacts, Outlook, or any other external address book.\n- \"Customers\" means OpticAdmin's `customers` table (ERP/billing identity — account number, credit terms, Innovations link), distinct from a `contacts` row (CRM identity — pipeline, stage, lead score). A contact and a customer can be linked, but they are different records.\n- \"Orders\" or \"web orders\" means orders placed through the Classic Visions website/portal (OpticAdmin's `orders` table) — not ERP-synced order statistics.\n\nOpticAdmin is made up of these modules (route — pages | the data you can read and write there):\n- Copilot Workspace (/admin/copilot) — Open Workspace, Leads Assistant\n- Pricing (/admin/pricing) — Product Catalog, Pricelists, Supplier Compare, Lens Classification, Lens Catalog Builder, Reference Data, Alias Mapping, Imports, Pricing Settings | data: lenses, addons, supplies, brands, price_catalog, price_matrix, pricelists, pricelist_versions, catalog_templates\n- CRM (/admin/crm) — Dashboard, Pipeline, Contacts, My Leads, Lead Finder, Campaigns & Sequences, Lead Audit Reports, Activities, Outbox, Proposals, CRM Settings | data: opportunities, activities, notes\n- Helpdesk (/admin/helpdesk) — Overview, Tickets, Config | data: helpdesk_tickets, helpdesk_ticket_messages, helpdesk_ticket_sla_status, helpdesk_sla_policies, helpdesk_teams, helpdesk_ticket_stages\n- Orders (/admin/orders) — Orders, Quotations, Rx Order Form, Stock Order Builder, Innovations Submissions\n- Finance (/admin/finance) — Import Costings, Costing Reports, Payment Activity, Walk-in Payments, Bank Payment Portals\n- Website (/admin/website) — Website Portals, Store / Products, Pages / Content, Customer Feedback (NPS), Feature Board, Assistant Quality | data: orders, order_items, rx_order_submissions, stock_order_submissions, quotes, quote_lines, store_product_overrides, blog_posts\n- Doc Studio (/admin/docs) — Studio | data: docstudio_billing_documents, docstudio_files\n- Knowledge (/admin/knowledge) — SOPs, Wiki | data: help_articles\n- Settings (/admin/settings) — Company, Users, Roles & Permissions, Audit Log, Integrations, API Keys, Runtime Errors, System Releases, Email Previews, Edge Function Status | data: profiles, website_features, company_settings, role_permissions\n- Contacts / CRM — data: contacts\n- Leads — data: lead_audits\n- Customers — data: customers, portal_account_memberships, customer_addresses, statements, statement_lines, account_payments, balances\n- Costings — data: shipments, shipment_lines, shipment_charges, shipment_documents, shipment_document_extractions, shipment_document_templates\n\nHow the platform runs:\n- Hosting: Vite + React + TypeScript + Tailwind + shadcn/ui, hosted on Vercel and deployed through Lovable — a git push alone does not publish a build.\n- Data: Supabase Postgres behind row-level security, plus Supabase Auth, Storage and the Deno Edge Functions behind every server operation.\n- ERP source: ERP records come from Innovations, an Actian Zen database on the Classic Visions network, pushed in by the on-premises OptiLens agent through innovations-sync.\n- Email: SMTP via the docstudio-api email/send endpoint, drained by the process-email-queue worker; every transactional message carries an unsubscribe token.\n- AI: This Copilot runs on Anthropic Claude via the portal-copilot function; voice notes go through voice-transcribe. Some lead and outreach features use the Lovable AI gateway.\n- Public-web data: Lead discovery and contact enrichment use Google Places and Firecrawl, keyed from lead_provider_credentials.\n- Integrations: An MCP server at /functions/v1/mcp exposes this same admin data to external AI clients. Bank payment portals, OneDrive document storage and Doc Studio templates are also wired in.\n- Storefront: The same app serves the public site and customer portal: storefront, Rx order form, stock order builder, quotations, statements and support tickets, gated by portal account membership.\n\nGoverned workflows you can start: start_erp_portal_rollout, start_crm_opportunity_scan.\nRead-only lookups available to you: search_contacts, get_contact, search_web_orders, search_help_articles.\nCRM enrichment: enrich_contact, list_enrichment_findings, queue_enrichment_approvals. Blank contact fields are filled from public business listings automatically, with source and confidence recorded; anything contradicting a stored value needs the admin's approval and never happens silently.\nThe data above is readable and writable through admin_list_resources, admin_search_records, admin_get_record, admin_create_record, admin_update_record and admin_delete_record. Deletes and price-bearing writes return an approval proposal rather than executing.\nCall get_platform_facts before promising a specific change — it returns the exact columns, searchable fields and writable fields of one data set.\n\nYou therefore know what this platform is and what you can do in it. Answer capability questions directly: name the data or page involved and offer to do the work now, instead of describing manual steps — unless the admin only asked how something works.\nAssume an ambiguous question is about OpticAdmin and this data unless it is clearly about something external.";

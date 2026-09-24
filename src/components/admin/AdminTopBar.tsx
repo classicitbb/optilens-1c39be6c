@@ -41,7 +41,9 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/settings/company", "Settings · Company"],
 ["/admin/knowledge/wiki", "Knowledge · Wiki"],
 ["/admin/website/content", "Website · Content"],
-["/admin/contacts", "Contacts"],
+["/admin/crm/contacts", "CRM · Contacts"],
+["/admin/crm/leads", "CRM · Leads"],
+["/admin/crm/settings", "CRM · Settings"],
 ["/admin/dashboard", "Launch Pad"],
 ["/admin/crm", "CRM"],
 ["/admin/helpdesk", "Helpdesk"],
@@ -62,7 +64,6 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/parameters", "Settings · Company"],
 ["/admin/wiki", "Knowledge · Wiki"],
 ["/admin/content", "Website · Content"],
-["/admin/erp/contacts", "Contacts"],
 ["/admin/erp/crm", "CRM"],
 ["/admin/erp/helpdesk", "Helpdesk"],
 ["/admin/audit-log", "Settings · Audit Log"]];

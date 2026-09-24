@@ -179,7 +179,7 @@ const UsersPage = () => {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <AdminPageHeader icon={Shield} title="User Management">
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Open Contacts" onClick={() => navigate("/admin/erp/contacts")}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Open Contacts" onClick={() => navigate("/admin/crm/contacts")}>
             <ContactRound className="h-3.5 w-3.5" />
           </Button>
         </AdminPageHeader>
@@ -335,7 +335,7 @@ const UsersPage = () => {
                           </>
                         )}
                         {user.contact_id && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Open linked contact" onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Open linked contact" onClick={() => navigate(`/admin/crm/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}>
                             <ContactRound className="h-3.5 w-3.5" />
                           </Button>
                         )}

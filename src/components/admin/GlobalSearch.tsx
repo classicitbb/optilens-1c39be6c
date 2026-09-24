@@ -124,7 +124,7 @@ const GlobalSearch = () => {
 
   const actionResults = useMemo<SearchResult[]>(() => {
     const results: SearchResult[] = [];
-    if (hasAppAccess("crm")) results.push({
+    if (hasAppAccess(ADMIN_APPS.crm.featurePrefix)) results.push({
       id: "action-create-activity",
       label: "Create Activity",
       sublabel: "CRM",
@@ -161,7 +161,7 @@ const GlobalSearch = () => {
       const q = `%${query}%`;
       const results: SearchResult[] = [];
 
-      if (hasAppAccess("crm")) {
+      if (hasAppAccess(ADMIN_APPS.crm.featurePrefix)) {
         const { data: contacts } = await (supabase.from("contacts") as any)
           .select("id, name, business_name, email")
           .or(`name.ilike.${q},business_name.ilike.${q},email.ilike.${q}`)
@@ -171,7 +171,7 @@ const GlobalSearch = () => {
             id: `contact-${c.id}`,
             label: [c.name, c.business_name].filter(Boolean).join(" ") || "Unknown Contact",
             sublabel: c.email || "Contact / Lead",
-            path: `/admin/contacts/${c.id}`,
+            path: `/admin/crm/contacts?contact=${c.id}`,
             icon: User,
             group: "Contacts & Leads",
           })));

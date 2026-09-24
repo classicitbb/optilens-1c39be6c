@@ -65,18 +65,15 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/finance/costings": "costings",
   "/admin/finance/costings/reports": "costings",
   "/admin/pricing/publisher": "catalog-publisher",
-  // Contacts
-  "/admin/contacts": "contacts",
-  "/admin/contacts/config/tags": "contacts",
-  "/admin/contacts/config/industries": "contacts",
-  // Leads
-  "/admin/leads": "leads",
-  "/admin/leads/finder": "leads",
-  "/admin/leads/campaigns": "leads",
-  "/admin/leads/reports": "leads",
+  // Copilot tools
   "/admin/copilot/leads-assistant": "leads",
-  "/admin/leads/settings": "leads",
-  // CRM
+  // CRM (Contacts and Leads keep their own feature keys)
+  "/admin/crm/contacts": "contacts",
+  "/admin/crm/settings": "contacts",
+  "/admin/crm/leads": "leads",
+  "/admin/crm/leads/finder": "leads",
+  "/admin/crm/leads/campaigns": "leads",
+  "/admin/crm/leads/reports": "leads",
   "/admin/crm": "crm",
   "/admin/crm/dashboard": "crm",
   "/admin/crm/pipeline": "crm",

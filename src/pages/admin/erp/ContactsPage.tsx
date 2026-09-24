@@ -1633,7 +1633,7 @@ const ContactsPage = ({
         description: e.message,
         variant: "destructive",
         action: isConflict ? (
-          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/erp/contacts?erpCustomer=${e.result.conflict_customer_id}`)}>
+          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/crm/contacts?erpCustomer=${e.result.conflict_customer_id}`)}>
             Open contacts
           </ToastAction>
         ) : undefined,

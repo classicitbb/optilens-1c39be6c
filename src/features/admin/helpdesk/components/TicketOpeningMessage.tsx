@@ -179,7 +179,7 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
           <button
             type="button"
             className="underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(ticket.partner_contact!.id)}`)}
+            onClick={() => navigate(`/admin/crm/contacts?contact=${encodeURIComponent(ticket.partner_contact!.id)}`)}
             title="Open contact"
           >
             {senderLabel}

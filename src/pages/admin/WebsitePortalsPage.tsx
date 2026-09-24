@@ -826,7 +826,7 @@ const WebsitePortalsPage = () => {
         description: error.message || "Failed to update account number.",
         variant: "destructive",
         action: isConflict ? (
-          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/contacts?erpCustomer=${error.result.conflict_customer_id}`)}>
+          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/crm/contacts?erpCustomer=${error.result.conflict_customer_id}`)}>
             Open contacts
           </ToastAction>
         ) : undefined,
@@ -1866,7 +1866,7 @@ const WebsitePortalsPage = () => {
                               {!detailQuery.data.crmContactId ? (
                                 <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground">
                                   <span>No CRM contact is linked yet. Link or create one to keep the person record complete.</span>
-                                  <Button type="button" size="sm" variant="link" className="h-auto p-0" onClick={() => navigate("/admin/contacts")}>Open Contacts</Button>
+                                  <Button type="button" size="sm" variant="link" className="h-auto p-0" onClick={() => navigate("/admin/crm/contacts")}>Open Contacts</Button>
                                 </div>
                               ) : null}
                               {renderSensitiveAccessLine("pricelists")}

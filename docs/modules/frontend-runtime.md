@@ -1,5 +1,13 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-24 — Contacts and Leads merged into CRM; Leads Assistant → Copilot
+
+- The Contacts and Leads apps are gone; everything lives in the `crm` app under `/admin/crm/*`: Dashboard, Pipeline, Contacts (`/contacts`, deep link `?contact=<id>` / `?erpCustomer=<id>`), My Leads (`/leads`), Lead Finder, Campaigns & Sequences, Lead Audit Reports, Activities, Outbox, Proposals, CRM Settings.
+- `CrmSettingsPage` (`/admin/crm/settings?section=tags|industries|leads`) hosts the former Contact Tags, Industries and Leads Settings pages as tabs.
+- `LegacyCrmRedirect` forwards `/admin/contacts/**`, `/admin/erp/contacts`, `/admin/leads/**`, and the old tag/industry/lead-settings paths, preserving query. `/admin/contacts/<id>` (GlobalSearch used to emit it with no matching route) goes to `?contact=<id>`. Links that used `/admin/erp/contacts?contact=…` lost the query through the old redirect; they now link to `/admin/crm/contacts` directly.
+- No `crm` rows exist in `role_permissions`, so the app's launcher key is `contacts`, and GlobalSearch's contact results / Create Activity now use `ADMIN_APPS.crm.featurePrefix` (operators and viewers see them; before, only admins did). Page feature keys stay `contacts` / `leads` in `PATH_FEATURE_MAP`.
+- The Leads AI Assistant moved to `/admin/copilot/leads-assistant` ("Leads Assistant"); `copilot.baseRoute` is now `/admin/copilot` so admin-shell AI tools show the Copilot sidebar. The full-screen workspace stays at `/copilot`.
+
 ## 2026-09-24 — Launcher pins
 
 - Right-click (long-press on touch) any admin sidebar item → "Pin to launcher". Pinned pages appear first in the launcher's **Pinned** section with the page's sidebar icon and its app's accent colour; right-click a pinned tile to unpin.

@@ -79,7 +79,7 @@ export const useLeadFinder = () => {
           leads: [],
           diagnostics: null,
           warning:
-            "Live lead search is temporarily unavailable. Confirm the lead-intelligence function is deployed and provider credentials are set in /admin/leads/settings.",
+            "Live lead search is temporarily unavailable. Confirm the lead-intelligence function is deployed and provider credentials are set in CRM → Settings → Lead Providers.",
         };
       }
 
