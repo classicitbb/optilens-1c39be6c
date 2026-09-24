@@ -74,7 +74,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/leads/finder": "leads",
   "/admin/leads/campaigns": "leads",
   "/admin/leads/reports": "leads",
-  "/admin/leads/ai": "leads",
+  "/admin/copilot/leads-assistant": "leads",
   "/admin/leads/settings": "leads",
   // CRM
   "/admin/crm": "crm",

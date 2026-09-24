@@ -26,7 +26,7 @@ const LeadsAiAssistantPage = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader title="AI Assistant" icon={Bot}>
+      <AdminPageHeader title="Leads Assistant" icon={Bot}>
         <BuildCustomPackageButton source="leads_ai" className="h-8 text-xs" />
       </AdminPageHeader>
 

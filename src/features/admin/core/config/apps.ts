@@ -27,11 +27,14 @@ export const ADMIN_APPS = {
     key: 'copilot' as const,
     title: 'Copilot Workspace',
     icon: Bot,
-    baseRoute: '/copilot',
+    // The workspace itself is full-screen at /copilot; AI tools that use the
+    // admin shell live under /admin/copilot so this sidebar shows for them.
+    baseRoute: '/admin/copilot',
     defaultRoute: '/copilot',
     featurePrefix: 'copilot',
     sidebarItems: [
       { label: 'Open Workspace', route: '/copilot', icon: Bot },
+      { label: 'Leads Assistant', route: '/admin/copilot/leads-assistant', icon: Target },
     ] satisfies SidebarItem[],
   },
   pricing: {
@@ -78,7 +81,6 @@ export const ADMIN_APPS = {
       { label: 'My Leads', route: '/admin/leads', icon: UserCheck },
       { label: 'Campaigns & Sequences', route: '/admin/leads/campaigns', icon: Megaphone },
       { label: 'Audit Reports', route: '/admin/leads/reports', icon: PieChart },
-      { label: 'AI Assistant', route: '/admin/leads/ai', icon: Bot },
       { label: 'Settings', route: '/admin/leads/settings', icon: Wrench },
     ] satisfies SidebarItem[],
   },

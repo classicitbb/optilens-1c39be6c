@@ -182,7 +182,8 @@ const AdminRoutes = () => (
       <Route path="leads/finder" element={<LeadFinderPage />} />
       <Route path="leads/campaigns" element={<LeadCampaignsPage />} />
       <Route path="leads/reports" element={<LeadAuditReportsPage />} />
-      <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
+      <Route path="leads/ai" element={<Navigate to="/admin/copilot/leads-assistant" replace />} />
+      <Route path="copilot/leads-assistant" element={<LeadsAiAssistantPage />} />
       <Route path="leads/settings" element={<LeadSettingsPage />} />
 
       <Route
