@@ -32,14 +32,18 @@ import {
 } from "@/components/ui/popover";
 import {
   Plus, Pencil, Trash2, Save, X, Search, Eye, EyeOff,
-  BookOpen, HelpCircle, FileText, Scale, Globe, LayoutList,
+  BookOpen, HelpCircle, Scale, Globe, LayoutList,
   Newspaper,
 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
+import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
 
-type ContentManagerTab = ContentType | "all" | "blog";
+// Internal wiki articles live in Knowledge → Wiki (/admin/knowledge/wiki), which owns
+// their canonical body, versions and the `wiki` permission. This page is public content only.
+type PublicContentType = Exclude<ContentType, "wiki">;
+type ContentManagerTab = PublicContentType | "all" | "blog";
 
 const TAB_CONFIG: { value: ContentManagerTab; label: string; icon: React.ElementType; description: string }[] = [
   { value: "all", label: "All Articles", icon: LayoutList, description: "All content articles across every type" },
@@ -47,8 +51,9 @@ const TAB_CONFIG: { value: ContentManagerTab; label: string; icon: React.Element
   { value: "blog", label: "Blog Posts", icon: Newspaper, description: "Editorial blog posts and newsletters for /blog and Knowledge Base discovery" },
   { value: "faq", label: "FAQ", icon: HelpCircle, description: "Frequently asked questions shown on the knowledge base page" },
   { value: "legal", label: "Legal Pages", icon: Scale, description: "Privacy policy, terms & conditions, copyright text, and other legal content" },
-  { value: "wiki", label: "Internal Wiki", icon: FileText, description: "Internal help articles for admin panel contextual help" },
 ];
+
+const PUBLIC_CONTENT_TYPE_OPTIONS = CONTENT_TYPE_OPTIONS.filter((o) => o.value !== "wiki");
 
 const LEGAL_SLUGS = [
   { value: "copyright", label: "Copyright / Footer Text" },
@@ -80,7 +85,9 @@ const ContentManagerPage = () => {
   const requestedArticleId = searchParams.get("articleId");
 
   const contentTypeFilter = activeTab === "all" || activeTab === "blog" ? undefined : activeTab;
-  const { articles, upsertArticle, deleteArticle, isSaving } = useContentArticles(contentTypeFilter);
+  const { articles: allArticles, upsertArticle, deleteArticle, isSaving } = useContentArticles(contentTypeFilter);
+  const articles = useMemo(() => allArticles.filter((a) => a.content_type !== "wiki"), [allArticles]);
+  const navigate = useNavigate();
 
   const filtered = useMemo(() => {
     if (!searchTerm) return articles;
@@ -104,15 +111,15 @@ const ContentManagerPage = () => {
   }, [filtered]);
 
   const handleNew = () => {
-    const effectiveType = (activeTab === "all" || activeTab === "blog") ? "wiki" : activeTab;
+    const effectiveType = (activeTab === "all" || activeTab === "blog") ? "knowledge" : activeTab;
     setEditing({
       title: "",
       content: "",
       description: "",
-      page_slug: effectiveType === "legal" ? "copyright" : effectiveType === "wiki" ? "all" : "knowledge",
+      page_slug: effectiveType === "legal" ? "copyright" : "knowledge",
       category: effectiveType === "knowledge" ? "General" : effectiveType === "faq" ? "FAQ" : "",
       content_type: effectiveType,
-      visibility: effectiveType === "wiki" ? "internal" : "public",
+      visibility: "public",
       sort_order: 0,
       is_active: true,
       context_slugs: [],
@@ -129,8 +136,8 @@ const ContentManagerPage = () => {
         description: editing.description || "",
         page_slug: editing.page_slug || "all",
         category: editing.category || "",
-        content_type: editing.content_type || "wiki",
-        visibility: editing.visibility || "internal",
+        content_type: editing.content_type || "knowledge",
+        visibility: editing.visibility || "public",
         sort_order: editing.sort_order ?? 0,
         is_active: editing.is_active ?? true,
         context_slugs: editing.context_slugs ?? [],
@@ -176,6 +183,17 @@ const ContentManagerPage = () => {
 
   const editingContextSlugs = editing?.context_slugs ?? [];
 
+  // Legacy deep links to the removed Internal Wiki tab / wiki articles go to Knowledge → Wiki.
+  useEffect(() => {
+    if (requestedTab === ("wiki" as string)) {
+      navigate("/admin/knowledge/wiki", { replace: true });
+      return;
+    }
+    if (!requestedArticleId) return;
+    const wikiMatch = allArticles.find((a) => a.id === requestedArticleId && a.content_type === "wiki");
+    if (wikiMatch) navigate(toAdminWikiArticlePath(wikiMatch), { replace: true });
+  }, [allArticles, navigate, requestedArticleId, requestedTab]);
+
   useEffect(() => {
     if (!requestedTab) return;
     if (TAB_CONFIG.some((tab) => tab.value === requestedTab) && requestedTab !== activeTab) {
@@ -220,7 +238,7 @@ const ContentManagerPage = () => {
 
   // Editor form
   if (editing) {
-    const editContentType = editing.content_type || "wiki";
+    const editContentType = editing.content_type || "knowledge";
     return (
       <div className="flex flex-col h-full">
         <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
@@ -283,7 +301,7 @@ const ContentManagerPage = () => {
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Visibility</label>
                 <Select
-                  value={editing.visibility || "internal"}
+                  value={editing.visibility || "public"}
                   onValueChange={(v) => setEditing({ ...editing, visibility: v as ContentVisibility })}
                 >
                   <SelectTrigger className="h-8 text-xs">
@@ -324,7 +342,7 @@ const ContentManagerPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CONTENT_TYPE_OPTIONS.map((o) => (
+                      {PUBLIC_CONTENT_TYPE_OPTIONS.map((o) => (
                         <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                       ))}
                     </SelectContent>

@@ -12,7 +12,7 @@ type AdminContentEditLinkProps =
   | {
       mode: "article";
       articleId: string;
-      contentType?: "knowledge" | "faq" | "legal" | "wiki";
+      contentType?: "knowledge" | "faq" | "legal";
       className?: string;
     };
 
