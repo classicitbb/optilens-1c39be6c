@@ -161,6 +161,7 @@ export type Database = {
       activities: {
         Row: {
           activity_type: string | null
+          call_outcome: string | null
           completed_at: string | null
           contact_id: string | null
           content: string | null
@@ -178,6 +179,7 @@ export type Database = {
         }
         Insert: {
           activity_type?: string | null
+          call_outcome?: string | null
           completed_at?: string | null
           contact_id?: string | null
           content?: string | null
@@ -195,6 +197,7 @@ export type Database = {
         }
         Update: {
           activity_type?: string | null
+          call_outcome?: string | null
           completed_at?: string | null
           contact_id?: string | null
           content?: string | null
@@ -11118,6 +11121,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_launcher_pins: {
+        Row: {
+          created_at: string
+          route: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          route: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          route?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_presence: {
         Row: {
           availability_mode: string
@@ -12499,6 +12520,18 @@ export type Database = {
           p_reason?: string
         }
         Returns: string
+      }
+      crm_call_kpis: {
+        Args: { p_end_date?: string; p_period?: string; p_start_date?: string }
+        Returns: {
+          calls: number
+          calls_per_day: number
+          owner_id: string
+          period_end: string
+          period_start: string
+          reached: number
+          working_days: number
+        }[]
       }
       crm_dashboard_kpis: {
         Args: { p_end_date?: string; p_period?: string; p_start_date?: string }
