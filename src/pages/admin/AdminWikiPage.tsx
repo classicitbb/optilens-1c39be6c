@@ -361,7 +361,7 @@ const AdminWikiPage = () => {
             <div>
               <p className="text-sm font-semibold tracking-tight">Knowledge CMS</p>
               <p className="text-xs text-muted-foreground">
-                Shape the public help hierarchy, article content, and linked-topic coverage.
+                Write and publish internal articles and SOPs. Published articles appear in Knowledge → SOPs.
               </p>
             </div>
           </div>
@@ -420,11 +420,11 @@ const AdminWikiPage = () => {
                       </div>
                       <div className="space-y-3">
                         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                          Build the help center from one place
+                          Write your team's SOPs in one place
                         </h1>
                         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                          Organize sections, connect related articles, publish polished help content,
-                          and surface linked pages as first-class entries in the public knowledge base.
+                          Organize sections, connect related articles, and publish procedures for staff.
+                          Published articles show up in Knowledge → SOPs for everyone with wiki access.
                         </p>
                       </div>
                       <div className="grid gap-3 md:grid-cols-3">
@@ -433,7 +433,7 @@ const AdminWikiPage = () => {
                             Editorial IA
                           </p>
                           <p className="mt-2 text-sm text-foreground">
-                            Section and parent-child relationships now drive the public docs structure.
+                            Sections group articles in the SOPs sidebar and overview.
                           </p>
                         </div>
                         <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
@@ -446,10 +446,10 @@ const AdminWikiPage = () => {
                         </div>
                         <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Public ready
+                            Staff ready
                           </p>
                           <p className="mt-2 text-sm text-foreground">
-                            Linked pages and rich articles appear together in search, navigation, and browse flows.
+                            Linked pages and rich articles appear together in SOP search and navigation.
                           </p>
                         </div>
                       </div>
@@ -721,7 +721,7 @@ const AdminWikiPage = () => {
                 <div className="space-y-2">
                   <p className="text-sm font-semibold tracking-tight text-foreground">Inspector</p>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Control the article type, hierarchy, summary, visibility, and public destination from here.
+                    Control the article type, section, summary, status, and help contexts from here.
                   </p>
                 </div>
 
@@ -935,7 +935,7 @@ const AdminWikiPage = () => {
                         Article content is validated through the canonical wiki renderer before publish.
                       </div>
                       <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
-                        Public knowledge entries use the same normalized hierarchy as the docs sidebar.
+                        Only published articles appear in SOPs. Drafts and archived articles stay in this editor.
                       </div>
                       <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
                         {canPublish
