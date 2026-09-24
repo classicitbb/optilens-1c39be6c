@@ -107,6 +107,8 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.website.orders", path: "/admin/website/orders", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.knowledge.wiki", path: "/admin/knowledge/wiki", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.knowledge.wiki.article", path: "/admin/knowledge/wiki/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.knowledge.sops", path: "/admin/knowledge/sops", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.knowledge.sops.article", path: "/admin/knowledge/sops/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.settings.releases", path: "/admin/settings/releases", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.settings.email-previews", path: "/admin/settings/email-previews", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.website.nps", path: "/admin/website/nps", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },

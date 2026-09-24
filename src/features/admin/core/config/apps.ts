@@ -9,7 +9,7 @@ import {
   LayoutDashboard,
   Ticket, MessageSquare,
   Layout, UserCircle, Store,
-  BookMarked, HelpCircle,
+  BookMarked, ClipboardList, HelpCircle,
   Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard,
   type LucideIcon,
 } from 'lucide-react';
@@ -149,9 +149,10 @@ export const ADMIN_APPS = {
     title: 'Knowledge',
     icon: BookOpen,
     baseRoute: '/admin/knowledge',
-    defaultRoute: '/admin/knowledge/wiki',
+    defaultRoute: '/admin/knowledge/sops',
     featurePrefix: 'knowledge',
     sidebarItems: [
+      { label: 'SOPs', route: '/admin/knowledge/sops', icon: ClipboardList },
       { label: 'Wiki', route: '/admin/knowledge/wiki', icon: BookMarked },
     ] satisfies SidebarItem[],
   },

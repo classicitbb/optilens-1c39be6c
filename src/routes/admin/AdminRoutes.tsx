@@ -28,6 +28,7 @@ const CompanySettingsPage = lazyWithRetry(() => import("@/pages/admin/CompanySet
 const RolesPermissionsPage = lazyWithRetry(() => import("@/pages/admin/RolesPermissionsPage"),
 );
 const AdminWikiPage = lazyWithRetry(() => import("@/pages/admin/AdminWikiPage"));
+const AdminSopsPage = lazyWithRetry(() => import("@/pages/admin/AdminSopsPage"));
 const ContentManagerPage = lazyWithRetry(() => import("@/pages/admin/ContentManagerPage"),
 );
 const ImportCostingsPage = lazyWithRetry(() => import("@/pages/admin/costings/ImportCostingsPage"),
@@ -257,10 +258,12 @@ const AdminRoutes = () => (
 
       <Route
         path="knowledge"
-        element={<Navigate to="/admin/knowledge/wiki" replace />}
+        element={<Navigate to="/admin/knowledge/sops" replace />}
       />
       <Route path="knowledge/wiki" element={<AdminWikiPage />} />
       <Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />
+      <Route path="knowledge/sops" element={<AdminSopsPage />} />
+      <Route path="knowledge/sops/:articleSlug" element={<AdminSopsPage />} />
 
       <Route
         path="settings"

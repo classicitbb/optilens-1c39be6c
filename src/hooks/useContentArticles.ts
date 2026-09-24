@@ -168,6 +168,25 @@ export const usePublicKnowledge = () => {
   });
 };
 
+/** Fetch published internal wiki articles for the staff SOP reader */
+export const useSopArticles = (enabled: boolean) => {
+  return useQuery({
+    queryKey: ["sop_articles"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("help_articles") as any)
+        .select("*")
+        .eq("content_type", "wiki")
+        .eq("visibility", "internal")
+        .eq("status", "published")
+        .eq("is_active", true)
+        .order("sort_order");
+
+      if (error) throw error;
+      return (data || []) as ContentArticle[];
+    },
+    enabled,
+  });
+};
 
 export const useKnowledgeDocumentEntities = () => {
   return useQuery({

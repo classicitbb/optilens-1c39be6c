@@ -310,6 +310,90 @@ export const buildPublicHelpCenterTree = (articles: ContentArticle[]): HelpCente
   return { sections, nodes, nodeById, nodeBySlug };
 };
 
+export const SOP_BASE_PATH = "/admin/knowledge/sops";
+
+export const toSopArticlePath = (slug: string) => `${SOP_BASE_PATH}/${slug}`;
+
+const SOP_FALLBACK_SECTION = "General";
+
+/** Wiki categories are a mix of slugs ("pricing-app") and free text ("Optical Production"). */
+const toSopSectionTitle = (category?: string | null) => {
+  const raw = (category ?? "").trim();
+  if (!raw) return SOP_FALLBACK_SECTION;
+  if (!/^[a-z0-9-]+$/.test(raw)) return raw;
+  return raw
+    .replace(/-app$/, "")
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+/**
+ * Staff SOP reader tree: published internal wiki articles only, grouped by
+ * wiki heading when assigned, otherwise by category.
+ */
+export const buildSopTree = (headings: WikiHeading[], articles: ContentArticle[]): HelpCenterTree => {
+  const headingById = new Map(headings.map((heading) => [heading.id, heading]));
+  const sectionsByTitle = new Map<string, HelpCenterNode>();
+
+  const visible = articles.filter(
+    (article) =>
+      article.content_type === "wiki" &&
+      article.visibility === "internal" &&
+      (article.status ?? "published") === "published" &&
+      article.is_active !== false,
+  );
+
+  for (const article of visible) {
+    const heading = article.section_id ? headingById.get(article.section_id) : undefined;
+    const sectionTitle = heading?.title ?? toSopSectionTitle(article.category);
+    let section = sectionsByTitle.get(sectionTitle);
+    if (!section) {
+      const slug = slugifyHelpValue(sectionTitle) || "general";
+      section = {
+        id: `sop-section:${slug}`,
+        title: sectionTitle,
+        slug,
+        summary: "",
+        kind: "section",
+        categoryId: "start-here",
+        parentId: null,
+        keywords: [sectionTitle.toLowerCase()],
+        status: "published",
+        visibility: "internal",
+        // Wiki headings keep their editor order; category groups follow alphabetically; "General" last.
+        sortOrder: heading ? heading.sort_order ?? 0 : sectionTitle === SOP_FALLBACK_SECTION ? 2_000_000 : 1_000_000,
+        children: [],
+        source: "heading",
+        legacyAnchors: [slug],
+      };
+      sectionsByTitle.set(sectionTitle, section);
+    }
+
+    const node = toPublicArticleNode(article);
+    section.children.push({ ...node, visibility: "internal", keywords: [...node.keywords, sectionTitle.toLowerCase()] });
+  }
+
+  const sections = [...sectionsByTitle.values()].sort(
+    (left, right) => left.sortOrder - right.sortOrder || left.title.localeCompare(right.title),
+  );
+  const nodes: HelpCenterNode[] = [];
+  const nodeById = new Map<string, HelpCenterNode>();
+  const nodeBySlug = new Map<string, HelpCenterNode>();
+
+  for (const section of sections) {
+    section.children.sort((left, right) => left.sortOrder - right.sortOrder || left.title.localeCompare(right.title));
+    nodes.push(section, ...section.children);
+  }
+  for (const node of nodes) {
+    nodeById.set(node.id, node);
+    if (node.kind !== "section") nodeBySlug.set(node.slug, node);
+  }
+
+  return { sections, nodes, nodeById, nodeBySlug };
+};
+
 const toAdminManagedNode = (article: HelpArticle): HelpCenterNode => {
   const meta = parseHelpEntrySummary(article.summary);
   return {

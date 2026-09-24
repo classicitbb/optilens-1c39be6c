@@ -19,5 +19,7 @@ describe("admin wiki route accessibility", () => {
 
     expect(source).toContain('<Route path="knowledge/wiki" element={<AdminWikiPage />} />');
     expect(source).toContain('<Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />');
+    expect(source).toContain('<Route path="knowledge/sops" element={<AdminSopsPage />} />');
+    expect(source).toContain('<Route path="knowledge/sops/:articleSlug" element={<AdminSopsPage />} />');
   });
 });

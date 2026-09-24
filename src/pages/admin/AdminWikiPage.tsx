@@ -37,6 +37,7 @@ import {
   parseHelpEntrySummary,
   slugifyHelpValue,
   toKnowledgeArticlePath,
+  toSopArticlePath,
   type HelpCenterNode,
 } from "@/lib/helpCenter";
 import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
@@ -333,11 +334,18 @@ const AdminWikiPage = () => {
     );
   };
 
-  const publicArticleHref = draft.slug.trim()
-    ? toKnowledgeArticlePath(draft.slug.trim())
-    : draft.title.trim()
-      ? toKnowledgeArticlePath(slugifyHelpValue(draft.title))
-      : "/knowledge";
+  // Internal wiki articles (the DB default for new entries) are read in SOPs, not on /knowledge.
+  const isInternalArticle = !selectedArticle || selectedArticle.visibility === "internal";
+  const readerSlug = selectedNode?.slug ?? (draft.slug.trim() || slugifyHelpValue(draft.title));
+  const publicArticleHref = isInternalArticle
+    ? readerSlug
+      ? toSopArticlePath(readerSlug)
+      : "/admin/knowledge/sops"
+    : draft.slug.trim()
+      ? toKnowledgeArticlePath(draft.slug.trim())
+      : draft.title.trim()
+        ? toKnowledgeArticlePath(slugifyHelpValue(draft.title))
+        : "/knowledge";
 
   const selectedSection = headings.find((heading) => heading.id === draft.sectionId) ?? null;
   const assignmentArticles = allArticles.length > 0 ? allArticles : articles;
@@ -513,7 +521,7 @@ const AdminWikiPage = () => {
                         <Button variant="outline" asChild>
                           <a href={publicArticleHref} target="_blank" rel="noreferrer">
                             <ArrowUpRight data-icon="inline-start" />
-                            Open public
+                            {isInternalArticle ? "Open in SOPs" : "Open public"}
                           </a>
                         </Button>
                       </div>

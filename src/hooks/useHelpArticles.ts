@@ -17,6 +17,8 @@ export interface HelpArticle {
   sort_order: number;
   is_active: boolean;
   status: "draft" | "published" | "archived";
+  content_type?: string;
+  visibility?: string;
   slug?: string | null;
   summary?: string;
   parent_id?: string | null;

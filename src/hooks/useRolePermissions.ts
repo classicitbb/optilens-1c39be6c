@@ -102,6 +102,7 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   "/admin/website/features": "website",
   // Knowledge
   "/admin/knowledge/wiki": "wiki",
+  "/admin/knowledge/sops": "wiki",
   // Settings
   "/admin/settings/company": "parameters",
   "/admin/settings/users": "users",
