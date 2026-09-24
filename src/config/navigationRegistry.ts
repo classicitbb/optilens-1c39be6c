@@ -21,6 +21,8 @@ export const NAVIGATION_REGISTRY: NavigationDefinition[] = [
   { id: "admin.crm", routeId: "admin.crm", label: "CRM", context: "admin-console", group: "launcher", appKey: "crm", order: 4, status: "active" },
   { id: "admin.crm.activities", routeId: "admin.crm.activities", label: "Activities", context: "admin-console", group: "launcher", appKey: "crm", shortcutKey: "activities", order: 5, status: "active" },
   { id: "admin.helpdesk", routeId: "admin.helpdesk", label: "Helpdesk", context: "admin-console", group: "launcher", appKey: "helpdesk", order: 6, status: "active" },
+  { id: "admin.orders", routeId: "admin.orders", label: "Orders", context: "admin-console", group: "launcher", appKey: "orders", order: 6.2, status: "active" },
+  { id: "admin.finance", routeId: "admin.finance", label: "Finance", context: "admin-console", group: "launcher", appKey: "finance", order: 6.4, status: "active" },
   { id: "admin.website", routeId: "admin.website", label: "Website", context: "admin-console", group: "launcher", appKey: "website", order: 7, status: "active" },
   { id: "admin.orders.quotations.new-rx", routeId: "admin.orders.quotations.new-rx", label: "Rx Order Form", context: "admin-console", group: "launcher", appKey: "orders", shortcutKey: "rx-order", order: 8, status: "active" },
   { id: "admin.orders.stock-orders", routeId: "admin.orders.stock-orders", label: "Stock Order Builder", context: "admin-console", group: "launcher", appKey: "orders", shortcutKey: "stock-order", order: 9, status: "active" },

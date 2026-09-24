@@ -8,6 +8,8 @@ export const APP_COLORS: Record<string, string> = {
   crm: "hsl(280 60% 55%)",
   helpdesk: "hsl(14 85% 55%)",
   website: "hsl(200 60% 50%)",
+  orders: "hsl(340 70% 52%)",
+  finance: "hsl(96 45% 40%)",
   docstudio: "hsl(250 55% 58%)",
   knowledge: "hsl(140 50% 45%)",
   settings: "hsl(215 15% 50%)",
