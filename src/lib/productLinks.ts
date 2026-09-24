@@ -54,6 +54,6 @@ export const getStorefrontRoute = (productType: ProductType, productId: string) 
 /** Stock Order Builder, flagging one catalog line for staff attention. */
 export const getStockOrderBuilderRoute = (productType?: ProductType, productId?: string) =>
   productType && productId
-    ? `/admin/website/stock-orders?highlight=${productType}:${encode(productId)}`
-    : `/admin/website/stock-orders`;
+    ? `/admin/orders/stock-orders?highlight=${productType}:${encode(productId)}`
+    : `/admin/orders/stock-orders`;
 import { buildPricelistSelectionPath } from "@/features/pricelists/routes";

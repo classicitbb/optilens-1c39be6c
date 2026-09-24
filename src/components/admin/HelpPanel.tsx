@@ -27,7 +27,7 @@ const CATEGORY_DEFAULT_CONTEXT: Record<string, string> = {
   "release-ledger": "knowledge/wiki",
   "getting-started": "knowledge/wiki",
   "pricing-app": "pricing/catalog",
-  "website-commerce": "website/quotations",
+  "website-commerce": "orders/quotations",
   "contacts-app": "contacts",
   "leads-app": "leads/finder",
   "crm-app": "crm/dashboard",

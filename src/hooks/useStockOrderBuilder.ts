@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// Data layer for the Stock Order Builder (/admin/website/stock-orders).
+// Data layer for the Stock Order Builder (/admin/orders/stock-orders).
 //
 // The form sells what the website sells: the published store items and their
 // variants, nothing else. The catalog comes from get_stock_order_catalog

@@ -21,7 +21,7 @@ import {
 } from "@/hooks/useStockOrderBuilder";
 import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
 
-// Stock Order Builder (/admin/website/stock-orders) — staff tool for
+// Stock Order Builder (/admin/orders/stock-orders) — staff tool for
 // building SKU-identified stock orders and releasing them to Innova.
 //
 // It sells what the website sells: the published store items and their
@@ -193,7 +193,7 @@ const StockOrderBuilderPage = () => {
     );
   }, [combinedCatalog, searchQuery]);
 
-  // Product Tunnel: /admin/website/stock-orders?highlight=type:id opens the
+  // Product Tunnel: /admin/orders/stock-orders?highlight=type:id opens the
   // matching add-item panel once an account is selected (the catalog is
   // account-scoped, so there's nothing meaningful to highlight before then).
   const highlightParam = searchParams.get("highlight");
@@ -586,7 +586,7 @@ const StockOrderBuilderPage = () => {
     return (
       <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
         <p>This historical stock quotation has no linked Stock Order Builder draft, so it is read-only.</p>
-        <Link className="linkbtn" to="/admin/website/quotations">Back to quotations</Link>
+        <Link className="linkbtn" to="/admin/orders/quotations">Back to quotations</Link>
       </div>
     );
   }
@@ -598,7 +598,7 @@ const StockOrderBuilderPage = () => {
            <div className="stock-order-heading">
              <div className="stock-order-toolbar" data-annotation-ui>
                <Button variant="ghost" size="sm" className="stock-order-back" asChild>
-                 <Link to="/admin/website/quotations"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back</Link>
+                 <Link to="/admin/orders/quotations"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back</Link>
                </Button>
                <h1>Stock order form</h1>
                <div className="stock-order-toolbar-actions">
@@ -753,7 +753,7 @@ const StockOrderBuilderPage = () => {
           </div>
           <div className="stock-order-action-buttons">
             {staged && (
-              <Link className="linkbtn" to="/admin/website/quotations">View quotations</Link>
+              <Link className="linkbtn" to="/admin/orders/quotations">View quotations</Link>
             )}
             <button className="btn btn-ghost" type="button" disabled={!staged || !stageItems.length} onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
             <button className="btn btn-ghost" type="button" disabled={!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error" || saveAsQuoteMutation.isPending} onClick={handleSaveAsQuotation}>

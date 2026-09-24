@@ -6,9 +6,9 @@ import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
 describe("admin Rx order route accessibility", () => {
   const routeIds = [
     "admin.pricing.alias-mapping",
-    "admin.website.quotations.new-rx",
-    "admin.website.quotations.rx",
-    "admin.website.rx-submissions",
+    "admin.orders.quotations.new-rx",
+    "admin.orders.quotations.rx",
+    "admin.orders.rx-submissions",
   ];
 
   it("registers each canonical Rx route as an admin route", () => {
@@ -24,9 +24,9 @@ describe("admin Rx order route accessibility", () => {
     const source = fs.readFileSync(adminRoutesPath, "utf8");
 
     expect(source).toContain('path="pricing/alias-mapping"');
-    expect(source).toContain('path="website/quotations/new-rx"');
-    expect(source).toContain('path="website/quotations/rx/:id"');
-    expect(source).toContain('path="website/rx-submissions"');
+    expect(source).toContain('path="orders/quotations/new-rx"');
+    expect(source).toContain('path="orders/quotations/rx/:id"');
+    expect(source).toContain('path="orders/rx-submissions"');
   });
 
   it("exposes Activities and the Rx order form as direct header launcher shortcuts", () => {
@@ -41,6 +41,6 @@ describe("admin Rx order route accessibility", () => {
     expect(navigation).toContain('shortcutKey: "activities"');
     expect(navigation).toContain('shortcutKey: "rx-order"');
     expect(launcher).toContain('defaultRoute: "/admin/crm/activities"');
-    expect(launcher).toContain('defaultRoute: "/admin/website/quotations/new-rx"');
+    expect(launcher).toContain('defaultRoute: "/admin/orders/quotations/new-rx"');
   });
 });

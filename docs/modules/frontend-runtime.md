@@ -1,5 +1,13 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-24 — Orders app (reverses the 2026-07-24 Website placement)
+
+- Admin modules are organised so each context has one app with its own URL prefix and sidebar; the sidebar resolves the active app by `baseRoute` prefix, so a page's URL decides which module you are in.
+- Order handling moved out of Website into the `orders` app: `/admin/orders` (web orders), `/admin/orders/quotations` (+ `/new-rx`, `/rx/:id`, `/:id`, `/:id/print-preview`), `/admin/orders/stock-orders`, `/admin/orders/rx-submissions`. Launcher permission key is `orders`.
+- `LegacyWebsiteOrdersRedirect` in `AdminRoutes.tsx` maps every old `/admin/website/{orders,quotations/*,stock-orders,rx-submissions}` URL to the new path, preserving sub-path and query (`?quote=`, `?highlight=`, `?draft=`), so stored `admin_notifications.href` values and bookmarks keep working.
+- `adminSalesClosure.integration.test.ts` still forbids a standalone Sales app / `/admin/sales/**`; it now asserts the Orders app routes instead of forbidding them.
+- Website is now Portals, Store, Content (public only), NPS, Feature Board, Assistant Quality. The Content CMS no longer edits internal wiki articles; those belong to Knowledge → Wiki.
+
 ## 2026-09-11 — Pricelist, Gatekeeper, shipment, and Helpdesk safety
 
 - `PricelistVersionsSection` is the single pricelist-properties editor and compares normalized adjustment signatures. Metadata-only saves use the row/child-section update path; percentage changes open `PricelistAdjustmentSaveDialog`, whose default preserves manual overrides and whose replace-all path is separately destructive.

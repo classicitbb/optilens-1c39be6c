@@ -146,7 +146,7 @@ const GlobalSearch = () => {
       id: "action-new-rx-order",
       label: "New Rx Order",
       sublabel: "Quotations",
-      path: "/admin/website/quotations/new-rx",
+      path: "/admin/orders/quotations/new-rx",
       icon: PlusCircle,
       group: "Actions",
       keywords: [...NEW_RX_ORDER_SEARCH_KEYWORDS],

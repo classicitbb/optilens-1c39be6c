@@ -45,12 +45,12 @@ const QuotationsListPage = () => {
   // RX quotes open in the in-house Rx order form; STOCK has one canonical
   // editor in the Stock Order Builder.
   const quoteEditPath = (q: Pick<Quote, "id" | "quote_type">) =>
-    q.quote_type === "RX" ? `/admin/website/quotations/rx/${q.id}` : `/admin/website/stock-orders?quote=${encodeURIComponent(q.id)}`;
+    q.quote_type === "RX" ? `/admin/orders/quotations/rx/${q.id}` : `/admin/orders/stock-orders?quote=${encodeURIComponent(q.id)}`;
 
   const handleCreate = (quoteType: "STOCK" | "RX") => {
     if (quoteType === "STOCK") {
       setNewQuoteOpen(false);
-      navigate("/admin/website/stock-orders");
+      navigate("/admin/orders/stock-orders");
       return;
     }
     createMutation.mutate(
@@ -275,7 +275,7 @@ const QuotationsListPage = () => {
                 </div>
               </button>
               <Link
-                to="/admin/website/stock-orders"
+                to="/admin/orders/stock-orders"
                 onClick={() => setNewQuoteOpen(false)}
                 className="mt-2 text-[11px] text-blue-600 hover:underline"
               >
@@ -307,7 +307,7 @@ const QuotationsListPage = () => {
               <h2 className="text-sm font-semibold">Stock order drafts</h2>
               <p className="text-[11px] text-muted-foreground">Saved from the stock order form and waiting for release.</p>
             </div>
-            <Link className="text-xs text-blue-600 hover:underline" to="/admin/website/stock-orders">New stock order</Link>
+            <Link className="text-xs text-blue-600 hover:underline" to="/admin/orders/stock-orders">New stock order</Link>
           </div>
           <div className="divide-y">
             {stockDrafts.map((draft) => (
@@ -321,7 +321,7 @@ const QuotationsListPage = () => {
                     {draft.payload.items?.length ?? 0} item{(draft.payload.items?.length ?? 0) === 1 ? "" : "s"} · {format(new Date(draft.updated_at), "dd MMM yyyy")}
                   </div>
                 </div>
-                <Link className="text-xs text-blue-600 hover:underline" to={`/admin/website/stock-orders?draft=${draft.id}`}>Open draft</Link>
+                <Link className="text-xs text-blue-600 hover:underline" to={`/admin/orders/stock-orders?draft=${draft.id}`}>Open draft</Link>
               </div>
             ))}
           </div>

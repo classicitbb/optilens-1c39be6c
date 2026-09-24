@@ -116,6 +116,16 @@ const LegacyPricelistRedirect = ({ section }: { section: PricelistEditorSection 
   return <Navigate to={buildPricelistSelectionPath(section, itemId)} replace />;
 };
 
+// Order handling moved from /admin/website/* to /admin/orders/*; keep old links
+// (bookmarks, stored notification hrefs) working, including sub-paths and query.
+const LegacyWebsiteOrdersRedirect = () => {
+  const { pathname, search } = useLocation();
+  const to = pathname
+    .replace(/^\/admin\/website\/orders/, "/admin/orders")
+    .replace(/^\/admin\/website\//, "/admin/orders/");
+  return <Navigate to={`${to}${search}`} replace />;
+};
+
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
@@ -222,17 +232,21 @@ const AdminRoutes = () => (
         element={<Navigate to="/admin/docs/studio" replace />}
       />
       <Route path="website/features" element={<FeatureBoardPage />} />
-      <Route path="website/quotations" element={<QuotationsListPage />} />
-      <Route path="website/stock-orders" element={<StockOrderBuilderPage />} />
-      <Route path="website/quotations/new-rx" element={<RxOrderFormPage />} />
-      <Route path="website/quotations/rx/:id" element={<RxOrderFormPage />} />
-      <Route path="website/quotations/:id" element={<QuoteEditorPage />} />
+      <Route path="orders" element={<OrdersPage />} />
+      <Route path="orders/quotations" element={<QuotationsListPage />} />
+      <Route path="orders/stock-orders" element={<StockOrderBuilderPage />} />
+      <Route path="orders/quotations/new-rx" element={<RxOrderFormPage />} />
+      <Route path="orders/quotations/rx/:id" element={<RxOrderFormPage />} />
+      <Route path="orders/quotations/:id" element={<QuoteEditorPage />} />
       <Route
-        path="website/quotations/:id/print-preview"
+        path="orders/quotations/:id/print-preview"
         element={<QuotePrintPreviewPage />}
       />
-      <Route path="website/rx-submissions" element={<RxSubmissionsPage />} />
-      <Route path="website/orders" element={<OrdersPage />} />
+      <Route path="orders/rx-submissions" element={<RxSubmissionsPage />} />
+      <Route path="website/orders" element={<LegacyWebsiteOrdersRedirect />} />
+      <Route path="website/quotations/*" element={<LegacyWebsiteOrdersRedirect />} />
+      <Route path="website/stock-orders" element={<LegacyWebsiteOrdersRedirect />} />
+      <Route path="website/rx-submissions" element={<LegacyWebsiteOrdersRedirect />} />
       <Route
         path="docs"
         element={<Navigate to="/admin/docs/studio" replace />}
@@ -364,7 +378,7 @@ const AdminRoutes = () => (
       />
       <Route
         path="quotations"
-        element={<Navigate to="/admin/website/quotations" replace />}
+        element={<Navigate to="/admin/orders/quotations" replace />}
       />
       <Route
         path="costings/shipments"

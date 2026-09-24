@@ -10,8 +10,8 @@ import { ArrowLeft } from "lucide-react";
 import "./rx-order-form-page.css";
 
 // Admin surface for the ported prototype Rx order form. Fast-path entry
-// (/admin/website/quotations/new-rx) creates a blank RX quote and drops
-// straight into the form; /admin/website/quotations/rx/:id re-opens one.
+// (/admin/orders/quotations/new-rx) creates a blank RX quote and drops
+// straight into the form; /admin/orders/quotations/rx/:id re-opens one.
 // The form itself is the verbatim prototype (see features/rx-order/embed).
 const RxOrderFormPage = () => {
   const { id: routeQuoteId } = useParams<{ id?: string }>();
@@ -49,11 +49,11 @@ const RxOrderFormPage = () => {
       {
         onSuccess: (q) => {
           setQuoteId(q.id);
-          navigate(`/admin/website/quotations/rx/${q.id}`, { replace: true });
+          navigate(`/admin/orders/quotations/rx/${q.id}`, { replace: true });
         },
         onError: (e: any) => {
           toast({ title: "Could not start an Rx order", description: e.message, variant: "destructive" });
-          navigate("/admin/website/quotations");
+          navigate("/admin/orders/quotations");
         },
       },
     );
@@ -62,7 +62,7 @@ const RxOrderFormPage = () => {
   return (
     <div className="min-h-0 rx-order-admin-shell">
       <div className="flex items-center gap-2 px-4 pt-3">
-        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/website/quotations")}>
+        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/orders/quotations")}>
           <ArrowLeft className="h-3.5 w-3.5" /> Quotations
         </Button>
         {quote?.quote_number && (
@@ -76,7 +76,7 @@ const RxOrderFormPage = () => {
           surface="admin"
           checkoutPath="/checkout"
           storePath="/store"
-          onStartAnother={() => navigate("/admin/website/quotations/new-rx")}
+          onStartAnother={() => navigate("/admin/orders/quotations/new-rx")}
         />
       ) : (
         <div className="text-xs text-muted-foreground p-6">Creating order…</div>
