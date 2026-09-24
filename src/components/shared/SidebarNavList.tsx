@@ -1,4 +1,4 @@
-import type { ComponentType, KeyboardEvent, ReactNode } from "react";
+import { Fragment, type ComponentType, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,8 @@ interface SidebarNavListProps {
   disabledItemClassName?: string;
   iconClassName?: string;
   labelClassName?: string;
+  /** Optional wrapper per rendered item, e.g. a right-click context menu. */
+  wrapItem?: (item: SidebarNavItem, node: ReactElement) => ReactNode;
 }
 
 const activateOnSpace = (event: KeyboardEvent<HTMLAnchorElement>) => {
@@ -42,6 +44,7 @@ const SidebarNavList = ({
   disabledItemClassName,
   iconClassName,
   labelClassName,
+  wrapItem,
 }: SidebarNavListProps) => {
   const collapsedItemBaseClassName =
     "flex h-8 w-8 items-center justify-center p-0 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
@@ -50,7 +53,14 @@ const SidebarNavList = ({
 
   return (
     <nav className={cn("space-y-1", className)}>
-      {items.map(({ label, to, icon: Icon, disabled, exact, badge }) => {
+      {items.map((item) => {
+        const node = renderItem(item);
+        return wrapItem ? <Fragment key={item.to}>{wrapItem(item, node)}</Fragment> : node;
+      })}
+    </nav>
+  );
+
+  function renderItem({ label, to, icon: Icon, disabled, exact, badge }: SidebarNavItem): ReactElement {
         const active = exact ? pathname === to : pathname === to || pathname.startsWith(`${to}/`);
         const itemStateClassName = disabled
           ? cn("text-muted-foreground opacity-60", disabledItemClassName)
@@ -129,9 +139,7 @@ const SidebarNavList = ({
             </span>
           </div>
         );
-      })}
-    </nav>
-  );
+  }
 };
 
 export default SidebarNavList;

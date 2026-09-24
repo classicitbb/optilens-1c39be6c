@@ -1,5 +1,13 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-24 — Launcher pins
+
+- Right-click (long-press on touch) any admin sidebar item → "Pin to launcher". Pinned pages appear first in the launcher's **Pinned** section with the page's sidebar icon and its app's accent colour; right-click a pinned tile to unpin.
+- Pins are per account in `user_launcher_pins` (RLS: own rows only; select/insert/delete). Applied to the live DB via MCP on 2026-09-24 — migration `20260924150000_user_launcher_pins.sql` is the record.
+- The launcher resolves pins against `ADMIN_APPS` sidebar items at render time, so pins to removed pages or apps the user can't open are skipped. Labels that repeat across apps (e.g. Leads "Settings") show as `App · Label`.
+- `SidebarNavList` takes an optional `wrapItem`; only `AdminSidebar` uses it. The launcher's outside-click close ignores `[data-radix-menu-content]` so the portalled menu can be clicked.
+- Launcher app tiles come from `navigationRegistry.ts` (not `ADMIN_APPS`); new apps need an entry there — Orders and Finance were added.
+
 ## 2026-09-24 — Finance app
 
 - New `finance` app at `/admin/finance/*`: Import Costings (`/costings`, `/costings/new`, `/costings/:id`), Costing Reports (`/costings/reports`), Payment Activity, Walk-in Payments, Bank Payment Portals. Pricing keeps catalog/pricelist work only; Settings keeps company/users/roles/integrations/system pages.

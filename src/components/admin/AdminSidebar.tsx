@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { PanelLeftClose, PanelLeft, Pin, PinOff } from "lucide-react";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { useLauncherPins } from "@/features/admin/core/hooks/useLauncherPins";
 import { cn } from "@/lib/utils";
 
 // "pinned"   — always open, no flyout (user locked it)
@@ -23,6 +25,7 @@ const AdminSidebar = () => {
   const [mode, setMode] = useState<SidebarMode>("open");
   const [isHovering, setIsHovering] = useState(false);
   const userInteractedRef = useRef(false);
+  const { isPinned: isPinnedToLauncher, toggle: toggleLauncherPin } = useLauncherPins();
 
   // Auto-collapse 5s after page load (unless user pins/toggles or hovers first)
   useEffect(() => {
@@ -197,6 +200,17 @@ const AdminSidebar = () => {
             activeItemClassName="font-medium bg-[hsl(var(--admin-sidebar-active))]/20 text-[hsl(var(--admin-sidebar-active-fg))]"
             inactiveItemClassName="text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]"
             labelClassName="text-[hsl(var(--admin-sidebar-fg))]"
+            wrapItem={(item, node) => (
+              <ContextMenu>
+                <ContextMenuTrigger asChild>{node}</ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem className="gap-2 text-xs" onSelect={() => toggleLauncherPin(item.to)}>
+                    {isPinnedToLauncher(item.to) ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                    {isPinnedToLauncher(item.to) ? "Unpin from launcher" : "Pin to launcher"}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            )}
           />
         </div>
       </div>

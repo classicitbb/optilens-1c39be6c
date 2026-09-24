@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
-import { CalendarCheck, CreditCard, Glasses, HelpCircle, Home, LayoutDashboard, Package, Search, X, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CreditCard, Glasses, HelpCircle, Home, LayoutDashboard, Package, PinOff, Search, X, type LucideIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { appColor } from "@/features/admin/core/config/appColors";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
+import { useLauncherPins } from "@/features/admin/core/hooks/useLauncherPins";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +60,8 @@ interface LaunchItem {
   title: string;
   icon: LucideIcon;
   defaultRoute: string;
+  /** Accent colour key when it differs from `key` (pinned pages use their app's colour). */
+  colorKey?: string;
 }
 
 interface AppLauncherProps {
@@ -66,9 +70,10 @@ interface AppLauncherProps {
 }
 
 const LauncherTile = ({ item, onSelect }: { item: LaunchItem; onSelect: (item: LaunchItem) => void }) => {
-  const color = appColor(item.key);
+  const color = appColor(item.colorKey ?? item.key);
   return (
     <a
+      title={item.title}
       href={item.defaultRoute}
       onClick={(e) => {
         // let the browser handle new-tab/new-window modifiers
@@ -97,7 +102,25 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { hasAppAccess } = useRolePermissions();
+  const { pinnedRoutes, toggle: toggleLauncherPin } = useLauncherPins();
   const [query, setQuery] = useState("");
+
+  // Pinned sidebar pages, resolved against the current app config. Pins to pages that
+  // were removed, or to apps the user can't open, are skipped.
+  const pinned = useMemo(() => {
+    const allItems = Object.entries(ADMIN_APPS).flatMap(([appKey, app]) =>
+      app.sidebarItems.map((item) => ({ appKey, app, item })),
+    );
+    const labelCount = (label: string) => allItems.filter(({ item }) => item.label === label).length;
+    return pinnedRoutes.flatMap((route): LaunchItem[] => {
+      const match = allItems.find(({ item }) => item.route === route);
+      if (!match || !hasAppAccess(match.app.featurePrefix)) return [];
+      const { appKey, app, item } = match;
+      const clashesWithOtherApp = Object.values(ADMIN_APPS).some((other) => other !== app && other.title === item.label);
+      const title = labelCount(item.label) > 1 || clashesWithOtherApp ? `${app.title} · ${item.label}` : item.label;
+      return [{ key: `pin:${route}`, title, icon: item.icon, defaultRoute: route, colorKey: appKey }];
+    });
+  }, [pinnedRoutes, hasAppAccess]);
 
   const { apps, shortcuts } = useMemo(() => {
     const appsList: LaunchItem[] = [LAUNCH_PAD_APP];
@@ -120,9 +143,10 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
 
   const normalizedQuery = query.trim().toLowerCase();
   const matches = (item: LaunchItem) => !normalizedQuery || item.title.toLowerCase().includes(normalizedQuery);
+  const filteredPinned = pinned.filter(matches);
   const filteredApps = apps.filter(matches);
   const filteredShortcuts = shortcuts.filter(matches);
-  const firstMatch = filteredApps[0] ?? filteredShortcuts[0] ?? null;
+  const firstMatch = filteredPinned[0] ?? filteredApps[0] ?? filteredShortcuts[0] ?? null;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -137,6 +161,8 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest("[data-apps-toggle]")) return;
+      // The tile right-click menu renders in a portal outside the panel.
+      if (target.closest("[data-radix-menu-content]")) return;
       if (panelRef.current && !panelRef.current.contains(target)) onClose();
     };
     const timer = setTimeout(() => document.addEventListener("mousedown", handleClick), 0);
@@ -180,6 +206,28 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
 
   const sections = (
     <>
+      {filteredPinned.length > 0 && (
+        <section>
+          <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Pinned</h4>
+          <div className={cn("grid gap-1", isMobile ? "grid-cols-3" : "grid-cols-4")}>
+            {filteredPinned.map((item) => (
+              <ContextMenu key={item.key}>
+                <ContextMenuTrigger asChild>
+                  <div>
+                    <LauncherTile item={item} onSelect={handleSelect} />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem className="gap-2 text-xs" onSelect={() => toggleLauncherPin(item.defaultRoute)}>
+                    <PinOff className="h-3.5 w-3.5" />
+                    Unpin from launcher
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            ))}
+          </div>
+        </section>
+      )}
       {filteredApps.length > 0 && (
         <section>
           <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Applications</h4>
@@ -200,7 +248,7 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
           </div>
         </section>
       )}
-      {filteredApps.length === 0 && filteredShortcuts.length === 0 && (
+      {filteredPinned.length === 0 && filteredApps.length === 0 && filteredShortcuts.length === 0 && (
         <p className="px-1 py-6 text-center text-sm text-muted-foreground">No apps match “{query}”.</p>
       )}
     </>
