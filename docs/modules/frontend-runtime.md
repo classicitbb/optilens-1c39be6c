@@ -1,5 +1,12 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-24 — Finance app
+
+- New `finance` app at `/admin/finance/*`: Import Costings (`/costings`, `/costings/new`, `/costings/:id`), Costing Reports (`/costings/reports`), Payment Activity, Walk-in Payments, Bank Payment Portals. Pricing keeps catalog/pricelist work only; Settings keeps company/users/roles/integrations/system pages.
+- Launcher `featurePrefix` is `costings` (no `finance` permission exists yet), matching who could reach costings from Pricing. Page-level gates are unchanged: Payment Activity and Bank Payment Portals stay `AdminOnlyRoute`; walk-in keeps the `integrations` feature and its admin-only launcher shortcut.
+- `LegacyFinanceRedirect` maps `/admin/pricing/costings/**` and `/admin/settings/{payment-activity,walk-in-payments,bank-payment-portals}` to the new paths with query preserved. `scotia-return` intentionally still returns to `/admin/settings/walk-in-payments` (avoids an edge-function redeploy) and is forwarded by that redirect.
+- Live `help_articles` "Walk-in Card Payments" page_slug/context moved to `finance/walk-in-payments`; the 2026 migration that seeded it is left as history.
+
 ## 2026-09-24 — Orders app (reverses the 2026-07-24 Website placement)
 
 - Admin modules are organised so each context has one app with its own URL prefix and sidebar; the sidebar resolves the active app by `baseRoute` prefix, so a page's URL decides which module you are in.

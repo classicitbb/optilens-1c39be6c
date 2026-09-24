@@ -41,8 +41,8 @@ describe("staff walk-in Scotia payments", () => {
     expect(page).toContain('displayedPayment?.status === "settled"');
     expect(page).toContain("Print receipt");
     expect(page).not.toMatch(/cardnumber|cvv|expiry input/i);
-    expect(routes).toContain('path="settings/walk-in-payments"');
-    expect(registry).toContain('path: "/admin/settings/walk-in-payments"');
+    expect(routes).toContain('path="finance/walk-in-payments"');
+    expect(registry).toContain('path: "/admin/finance/walk-in-payments"');
   });
 
   it("supports customer email capture, email receipt delivery, and receipt print prompting", () => {
@@ -75,7 +75,7 @@ describe("staff walk-in Scotia payments", () => {
 
     expect(wikiContent).toContain('id: "walk-in-payments-guide"');
     expect(wikiContent).toContain('title: "Walk-in Card Payments"');
-    expect(wikiContent).toContain('context_slugs: ["settings/walk-in-payments"]');
+    expect(wikiContent).toContain('context_slugs: ["finance/walk-in-payments"]');
     expect(wikiContent).toContain("## Purpose and route");
 
     expect(migration).toContain("Walk-in Card Payments");

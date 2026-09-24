@@ -1644,15 +1644,15 @@ Escalate runtime errors when:
       {
         id: "walk-in-payments-guide",
         title: "Walk-in Card Payments",
-        context_slugs: ["settings/walk-in-payments"],
+        context_slugs: ["finance/walk-in-payments"],
         content: `## Metadata
-- **Route segment:** /admin/settings/walk-in-payments
+- **Route segment:** /admin/finance/walk-in-payments
 - **Article type:** Standard operating procedure
 - **Build version:** {{release.semanticVersion}}
 
 ## Purpose and route
 
-The **Walk-in Payments** terminal (\`/admin/settings/walk-in-payments\`) enables authorised staff (administrators and operators) to process in-person card payments via Scotiabank's secure hosted payment gateway. Raw card numbers, CVVs, and expiration dates are never collected or stored on Classic Visions servers.
+The **Walk-in Payments** terminal (\`/admin/finance/walk-in-payments\`) enables authorised staff (administrators and operators) to process in-person card payments via Scotiabank's secure hosted payment gateway. Raw card numbers, CVVs, and expiration dates are never collected or stored on Classic Visions servers.
 
 ## Step-by-step workflow
 

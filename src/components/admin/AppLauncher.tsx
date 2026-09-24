@@ -41,7 +41,7 @@ const LAUNCHER_SHORTCUTS = {
     key: "walk-in-payments",
     title: "Walk-in Payments",
     icon: CreditCard,
-    defaultRoute: "/admin/settings/walk-in-payments",
+    defaultRoute: "/admin/finance/walk-in-payments",
     featurePrefix: "settings",
   },
 } as const;

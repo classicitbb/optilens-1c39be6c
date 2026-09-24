@@ -10,7 +10,7 @@ import {
   Ticket, MessageSquare,
   Layout, UserCircle, Store, ShoppingCart,
   BookMarked, ClipboardList, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard, Wallet,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -47,8 +47,6 @@ export const ADMIN_APPS = {
       { label: 'Supplier Compare', route: '/admin/pricing/compare', icon: GitCompare },
       { label: 'Lens Classification', route: '/admin/pricing/classification', icon: ListChecks },
       { label: 'Lens Catalog Builder', route: '/admin/pricing/publisher', icon: FileText },
-      { label: 'Import Costings', route: '/admin/pricing/costings', icon: Ship },
-      { label: 'Costing Reports', route: '/admin/pricing/costings/reports', icon: BarChart3 },
       { label: 'Reference Data', route: '/admin/pricing/reference', icon: Database },
       { label: 'Alias Mapping', route: '/admin/pricing/alias-mapping', icon: GitCompare },
       { label: 'Imports', route: '/admin/pricing/imports', icon: Upload },
@@ -127,6 +125,23 @@ export const ADMIN_APPS = {
       { label: 'Innovations Submissions', route: '/admin/orders/rx-submissions', icon: Upload },
     ] satisfies SidebarItem[],
   },
+  finance: {
+    key: 'finance' as const,
+    title: 'Finance',
+    icon: Wallet,
+    baseRoute: '/admin/finance',
+    defaultRoute: '/admin/finance/costings',
+    // No `finance` permission exists yet; `costings` is the finance feature every
+    // staff role already holds, so launcher visibility matches the old Pricing entry.
+    featurePrefix: 'costings',
+    sidebarItems: [
+      { label: 'Import Costings', route: '/admin/finance/costings', icon: Ship },
+      { label: 'Costing Reports', route: '/admin/finance/costings/reports', icon: BarChart3 },
+      { label: 'Payment Activity', route: '/admin/finance/payment-activity', icon: CreditCard },
+      { label: 'Walk-in Payments', route: '/admin/finance/walk-in-payments', icon: Landmark },
+      { label: 'Bank Payment Portals', route: '/admin/finance/bank-payment-portals', icon: Landmark },
+    ] satisfies SidebarItem[],
+  },
   website: {
     key: 'website' as const,
     title: 'Website',
@@ -180,9 +195,6 @@ export const ADMIN_APPS = {
       { label: 'Audit Log', route: '/admin/settings/audit', icon: ScrollText },
       { label: 'Integrations', route: '/admin/settings/integrations', icon: Plug },
       { label: 'API Keys', route: '/admin/settings/api-keys', icon: Key },
-      { label: 'Bank Payment Portals', route: '/admin/settings/bank-payment-portals', icon: Landmark },
-      { label: 'Payment Activity', route: '/admin/settings/payment-activity', icon: CreditCard },
-      { label: 'Walk-in Payments', route: '/admin/settings/walk-in-payments', icon: Landmark },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
       { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },

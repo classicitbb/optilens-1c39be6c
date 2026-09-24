@@ -19,6 +19,7 @@ import {
   Target,
   Ticket,
   Users,
+  Wallet,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,7 +33,7 @@ import { capitalizeDisplayName, resolveUserFullName } from "@/lib/profileData";
 const appTiles = [
   {
     title: "Pricing",
-    description: "Product pricing, lens catalogs, imports, and costing.",
+    description: "Product pricing, lens catalogs, and imports.",
     route: "/admin/pricing/catalog",
     icon: DollarSign,
     featurePrefix: "pricing",
@@ -77,6 +78,14 @@ const appTiles = [
     icon: ShoppingCart,
     featurePrefix: "orders",
     appKey: "orders" as AppKey,
+  },
+  {
+    title: "Finance",
+    description: "Landed-cost shipments, costing reports, and card payments.",
+    route: "/admin/finance/costings",
+    icon: Wallet,
+    featurePrefix: "costings",
+    appKey: "finance" as AppKey,
   },
   {
     title: "Website",
@@ -159,7 +168,7 @@ const QUICK_ACTIONS = [
     title: "Walk-in Payment",
     description: "Take a card payment via Scotia.",
     icon: DollarSign,
-    href: "/admin/settings/walk-in-payments",
+    href: "/admin/finance/walk-in-payments",
     featurePrefix: "integrations" as const,
     requiresEdit: true,
   },

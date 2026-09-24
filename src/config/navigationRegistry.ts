@@ -27,7 +27,7 @@ export const NAVIGATION_REGISTRY: NavigationDefinition[] = [
   { id: "admin.docstudio", routeId: "admin.docstudio", label: "Doc Studio", context: "admin-console", group: "launcher", appKey: "docstudio", order: 9, status: "active" },
   { id: "admin.knowledge", routeId: "admin.knowledge", label: "Knowledge", context: "admin-console", group: "launcher", appKey: "knowledge", order: 10, status: "active" },
   { id: "admin.settings", routeId: "admin.settings", label: "Settings", context: "admin-console", group: "launcher", appKey: "settings", order: 11, status: "active" },
-  { id: "admin.settings.walk-in-payments", routeId: "admin.settings.walk-in-payments", label: "Walk-in Payments", context: "admin-console", group: "launcher", appKey: "settings", shortcutKey: "walk-in-payments", order: 12, status: "active" },
+  { id: "admin.finance.walk-in-payments", routeId: "admin.finance.walk-in-payments", label: "Walk-in Payments", context: "admin-console", group: "launcher", appKey: "finance", shortcutKey: "walk-in-payments", order: 12, status: "active" },
 ];
 
 export const ACTIVE_NAVIGATION_REGISTRY = NAVIGATION_REGISTRY.filter((item) => item.status === "active");

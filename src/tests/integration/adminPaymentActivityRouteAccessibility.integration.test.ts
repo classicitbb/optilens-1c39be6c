@@ -9,8 +9,8 @@ describe("admin payment activity route", () => {
   it("registers the canonical, admin-only route", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => (
-        route.id === "admin.settings.payment-activity"
-        && route.path === "/admin/settings/payment-activity"
+        route.id === "admin.finance.payment-activity"
+        && route.path === "/admin/finance/payment-activity"
         && route.authMode === "admin"
         && route.status === "active"
       )),
@@ -22,9 +22,9 @@ describe("admin payment activity route", () => {
     const settingsApp = read("src/features/admin/core/config/apps.ts");
 
     expect(routes).toContain('const PaymentActivityPage = lazyWithRetry(() => import("@/pages/admin/settings/PaymentActivityPage"));');
-    expect(routes).toContain('path="settings/payment-activity"');
+    expect(routes).toContain('path="finance/payment-activity"');
     expect(routes).toMatch(/<AdminOnlyRoute>\s*<PaymentActivityPage\s*\/?>\s*<\/AdminOnlyRoute>/);
-    expect(settingsApp).toContain("{ label: 'Payment Activity', route: '/admin/settings/payment-activity'");
+    expect(settingsApp).toContain("{ label: 'Payment Activity', route: '/admin/finance/payment-activity'");
   });
 
   it("uses only the approved activity projection fields", () => {

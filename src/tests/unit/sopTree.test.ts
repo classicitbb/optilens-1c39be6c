@@ -9,7 +9,7 @@ const createWikiArticle = (overrides: Partial<ContentArticle> = {}): ContentArti
   content: "<h2>Steps</h2><p>Take the card.</p>",
   description: "",
   summary: "",
-  page_slug: "settings/walk-in-payments",
+  page_slug: "finance/walk-in-payments",
   category: "",
   content_type: "wiki",
   visibility: "internal",

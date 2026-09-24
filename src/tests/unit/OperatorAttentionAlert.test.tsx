@@ -19,7 +19,7 @@ vi.mock("@/features/admin/notifications/useOperatorAttentionAlerts", () => ({
 const LocationProbe = () => <output data-testid="location">{useLocation().pathname}</output>;
 
 const renderAlert = () => render(
-  <MemoryRouter initialEntries={["/admin/settings/walk-in-payments"]}>
+  <MemoryRouter initialEntries={["/admin/finance/walk-in-payments"]}>
     <OperatorAttentionAlert />
     <LocationProbe />
   </MemoryRouter>,

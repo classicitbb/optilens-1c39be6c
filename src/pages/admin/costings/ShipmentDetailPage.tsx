@@ -364,7 +364,7 @@ const ShipmentDetailPage = () => {
             toast({ title: "Some documents did not upload", description: `${uploadError.message} Add them again from Document review.`, variant: "destructive" });
           }
         }
-        navigate(`/admin/pricing/costings/${data.id}`, { replace: true });
+        navigate(`/admin/finance/costings/${data.id}`, { replace: true });
       } else {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
         const { error } = await (supabase.from("shipments") as any).update({ ...form, ...persistedFxf }).eq("id", id);

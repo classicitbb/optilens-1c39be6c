@@ -126,6 +126,16 @@ const LegacyWebsiteOrdersRedirect = () => {
   return <Navigate to={`${to}${search}`} replace />;
 };
 
+// Costings (from Pricing) and payment pages (from Settings) moved to /admin/finance/*.
+// scotia-return still sends staff to /admin/settings/walk-in-payments; keep the query.
+const LegacyFinanceRedirect = () => {
+  const { pathname, search } = useLocation();
+  const to = pathname
+    .replace(/^\/admin\/pricing\/costings/, "/admin/finance/costings")
+    .replace(/^\/admin\/settings\//, "/admin/finance/");
+  return <Navigate to={`${to}${search}`} replace />;
+};
+
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
@@ -156,13 +166,7 @@ const AdminRoutes = () => (
         }
       />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
-      <Route path="pricing/costings" element={<ImportCostingsPage />} />
-      <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
-      <Route path="pricing/costings/:id" element={<ShipmentDetailPage />} />
-      <Route
-        path="pricing/costings/reports"
-        element={<CostingsReportsPage />}
-      />
+      <Route path="pricing/costings/*" element={<LegacyFinanceRedirect />} />
       <Route path="pricing/reference" element={<ReferenceDataPage />} />
       <Route path="pricing/alias-mapping" element={<AliasMappingPage />} />
       <Route path="pricing/imports" element={<ImportsPage />} />
@@ -303,23 +307,38 @@ const AdminRoutes = () => (
           </AdminOnlyRoute>
         }
       />
+      <Route path="settings/bank-payment-portals" element={<LegacyFinanceRedirect />} />
+      <Route path="settings/payment-activity" element={<LegacyFinanceRedirect />} />
+      <Route path="settings/walk-in-payments" element={<LegacyFinanceRedirect />} />
+
       <Route
-        path="settings/bank-payment-portals"
-        element={
-          <AdminOnlyRoute>
-            <BankPaymentPortalsPage />
-          </AdminOnlyRoute>
-        }
+        path="finance"
+        element={<Navigate to="/admin/finance/costings" replace />}
+      />
+      <Route path="finance/costings" element={<ImportCostingsPage />} />
+      <Route path="finance/costings/new" element={<ShipmentDetailPage />} />
+      <Route path="finance/costings/:id" element={<ShipmentDetailPage />} />
+      <Route
+        path="finance/costings/reports"
+        element={<CostingsReportsPage />}
       />
       <Route
-        path="settings/payment-activity"
+        path="finance/payment-activity"
         element={
           <AdminOnlyRoute>
             <PaymentActivityPage />
           </AdminOnlyRoute>
         }
       />
-      <Route path="settings/walk-in-payments" element={<WalkInPaymentsPage />} />
+      <Route path="finance/walk-in-payments" element={<WalkInPaymentsPage />} />
+      <Route
+        path="finance/bank-payment-portals"
+        element={
+          <AdminOnlyRoute>
+            <BankPaymentPortalsPage />
+          </AdminOnlyRoute>
+        }
+      />
       <Route path="settings/runtime-errors" element={<RuntimeErrorsPage />} />
       <Route path="settings/releases" element={<ReleasesPage />} />
       <Route path="settings/email-previews" element={<EmailPreviewsPage />} />
@@ -382,11 +401,11 @@ const AdminRoutes = () => (
       />
       <Route
         path="costings/shipments"
-        element={<Navigate to="/admin/pricing/costings" replace />}
+        element={<Navigate to="/admin/finance/costings" replace />}
       />
       <Route
         path="costings/reports"
-        element={<Navigate to="/admin/pricing/costings/reports" replace />}
+        element={<Navigate to="/admin/finance/costings/reports" replace />}
       />
       <Route
         path="parameters"
