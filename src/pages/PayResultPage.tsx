@@ -16,6 +16,7 @@ const PayResultPage = () => {
   const [searchParams] = useSearchParams();
   const outcome = searchParams.get("scotia");
   const approved = outcome === "success";
+  const cancelled = outcome === "cancelled";
 
   return (
     <div className="min-h-screen bg-muted/30 px-4 py-10">
@@ -40,7 +41,7 @@ const PayResultPage = () => {
             ) : (
               <>
                 <CircleAlert className="mx-auto h-10 w-10 text-destructive" />
-                <CardTitle className="mt-2">Payment not completed</CardTitle>
+                <CardTitle className="mt-2">{cancelled ? "Payment cancelled" : "Payment not completed"}</CardTitle>
                 <CardDescription>
                   No payment was taken. Please speak to a member of staff, who can set up a new
                   payment for you, or try again with a different card.

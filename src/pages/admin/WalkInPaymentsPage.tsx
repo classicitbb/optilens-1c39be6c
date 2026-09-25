@@ -295,6 +295,9 @@ const WalkInPaymentsPage = () => {
       {returnedOutcome === "declined" && payment?.status === "failed" ? (
         <Alert variant="destructive" className="print:hidden"><AlertTitle>Payment declined</AlertTitle><AlertDescription>No payment was recorded. You can start a new payment if the customer wants to try another card.</AlertDescription></Alert>
       ) : null}
+      {returnedOutcome === "cancelled" && payment?.status === "failed" ? (
+        <Alert className="print:hidden"><AlertTitle>Payment cancelled</AlertTitle><AlertDescription>The payment was cancelled on the payment page. No payment was recorded. You can start a new payment when the customer is ready.</AlertDescription></Alert>
+      ) : null}
       {error ? <Alert variant="destructive" className="print:hidden"><AlertTitle>Payment could not be started</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
 
       {receiptReady && displayedPayment ? (

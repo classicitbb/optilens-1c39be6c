@@ -171,7 +171,9 @@ Deno.serve(async (req) => {
       gateway_transaction_id: response.ipgTransactionId ?? response.transaction_id ?? response.transactionId ?? null,
     };
 
-    const outcome = result.approved ? "success" : "declined";
+    // A buyer pressing Cancel on the hosted page is not a card decline —
+    // report it separately so the SPA doesn't tell them their card failed.
+    const outcome = result.approved ? "success" : result.cancelled ? "cancelled" : "declined";
 
     // Keep only scalar reconciliation fields; never retain callback payloads.
     await logScotiaEvent(supabaseAdmin, {

@@ -726,7 +726,7 @@ const StatementsSection = () => {
   };
 
   // ── Returning from Scotia (full-page redirect back via scotia-return) ──
-  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
+  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "cancelled" | "error" | null;
   const returnedAmount = Number(searchParams.get("amt") ?? "");
   const returnedAmountValid = Number.isFinite(returnedAmount) && returnedAmount > 0;
   const cardSaved = searchParams.get("card_saved") === "true";
@@ -812,13 +812,15 @@ const StatementsSection = () => {
           </AlertDescription>
         </Alert>
       )}
-      {(scotiaReturn === "declined" || scotiaReturn === "error") && (
+      {(scotiaReturn === "declined" || scotiaReturn === "cancelled" || scotiaReturn === "error") && (
         <Alert variant="destructive" role="alert">
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             <span>
               {scotiaReturn === "declined"
                 ? "Your card was declined. No payment was made."
+                : scotiaReturn === "cancelled"
+                ? "Payment cancelled. No payment was made."
                 : "We couldn't confirm your payment. No payment was made."}
             </span>
             <Button variant="outline" size="sm" onClick={openPaymentModal}>
@@ -1063,6 +1065,8 @@ const StatementsSection = () => {
                   <AlertDescription>
                     {scotiaReturn === "declined"
                       ? "Your card was declined. No payment was taken."
+                      : scotiaReturn === "cancelled"
+                      ? "You cancelled the payment. No payment was taken."
                       : "We couldn't confirm your payment. No payment was taken."}
                   </AlertDescription>
                 </Alert>

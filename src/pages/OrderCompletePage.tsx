@@ -148,6 +148,13 @@ const OrderCompletePage = () => {
         description: "Your payment is confirmed and your order is now being processed.",
       };
     }
+    if (state === "declined" && returnedOutcome === "cancelled") {
+      return {
+        icon: <AlertCircle className="h-9 w-9 text-muted-foreground" aria-hidden="true" />,
+        title: "Payment cancelled",
+        description: "You cancelled the payment, so nothing was charged. Your order is reserved and you can pay whenever you're ready.",
+      };
+    }
     if (state === "declined") {
       return {
         icon: <AlertCircle className="h-9 w-9 text-destructive" aria-hidden="true" />,

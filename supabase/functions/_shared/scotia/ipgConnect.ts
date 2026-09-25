@@ -189,6 +189,17 @@ export function isSoftDecline(associationResponseCode: string): boolean {
   return SOFT_RESPONSE_CODES.has((associationResponseCode ?? "").trim());
 }
 
+/**
+ * True when the buyer pressed Cancel on the hosted payment page rather than
+ * being declined. Fiserv reports this as fail_rc 5993 ("Cancelled by user"),
+ * also echoed in approval_code as "N:-5993:...".
+ */
+export function isUserCancelled(response: Record<string, string>): boolean {
+  if ((response.fail_rc ?? "").trim() === "5993") return true;
+  if (/^N:-?5993\b/.test(response.approval_code ?? "")) return true;
+  return /cancel+ed by (the )?user/i.test(response.fail_reason ?? "");
+}
+
 /** Approved transactions return association code "00". */
 export function isApproved(associationResponseCode: string): boolean {
   return (associationResponseCode ?? "").trim() === "00";
@@ -199,6 +210,8 @@ export interface ScotiaResponseClassification {
   hashValid: boolean;
   approved: boolean;
   softDecline: boolean;
+  /** Buyer cancelled on the hosted page — not an issuer decline. */
+  cancelled: boolean;
   associationResponseCode: string;
   failRc: string | null;
   oid: string | null;
@@ -242,6 +255,7 @@ export async function classifyScotiaResponse(
     hashValid: valid,
     approved,
     softDecline: !approved && isSoftDecline(associationCode),
+    cancelled: !approved && isUserCancelled(response),
     associationResponseCode: associationCode,
     failRc: response.fail_rc ?? null,
     oid: response.oid ?? null,

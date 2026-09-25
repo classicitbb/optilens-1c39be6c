@@ -337,7 +337,7 @@ const CheckoutPage = () => {
   };
 
   // ── Returning from Scotia (full-page redirect back via scotia-return) ──
-  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
+  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "cancelled" | "error" | null;
   const scotiaReturnOrderId = searchParams.get("order");
 
   const retryScotiaOrder = async () => {
@@ -600,7 +600,7 @@ const CheckoutPage = () => {
     );
   }
 
-  if (scotiaReturn === "declined" || scotiaReturn === "error") {
+  if (scotiaReturn === "declined" || scotiaReturn === "cancelled" || scotiaReturn === "error") {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -610,11 +610,13 @@ const CheckoutPage = () => {
               <AlertCircle className="h-9 w-9 text-destructive" aria-hidden="true" />
             </div>
             <h1 className="mb-2 text-2xl text-foreground">
-              {scotiaReturn === "declined" ? "Payment declined" : "Something went wrong"}
+              {scotiaReturn === "declined" ? "Payment declined" : scotiaReturn === "cancelled" ? "Payment cancelled" : "Something went wrong"}
             </h1>
             <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
               {scotiaReturn === "declined"
                 ? "Your bank declined the card. Your order is still reserved — you can retry the payment or contact us for help."
+                : scotiaReturn === "cancelled"
+                ? "You cancelled the payment, so nothing was charged. Your order is still reserved — you can pay whenever you're ready."
                 : "We couldn't confirm your payment. Your order is still reserved — please retry or contact us."}
             </p>
             {scotiaError && (
