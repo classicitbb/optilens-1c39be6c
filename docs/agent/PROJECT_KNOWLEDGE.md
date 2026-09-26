@@ -80,6 +80,10 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 - Viewer/customer paths must not expose product cost.
 - Website pricing source changes must be explicit.
 - AI cannot invent prices, approve commercial terms, promise delivery, or send unapproved customer messages.
+- AI spend source uses an admin-only ledger and manual billing snapshots; it
+  has no historical request-cost data before migration and Edge deployment.
+  Keep Lovable editor credits distinct from Lovable AI gateway charges. See
+  `docs/ai-spend-monitoring-plan.md` before adding a balance or forecast.
 - Keep route declarations, metadata, navigation, authorization, and tests synchronized.
 - Pricing editors are version-scoped: select a version at
   `/admin/pricing/pricelists`, then edit `rx`, `stock`, or `supplies` at

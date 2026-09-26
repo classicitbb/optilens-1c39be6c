@@ -10,11 +10,25 @@ Last updated: 2026-09-26
 
 ## Active work
 
+- **AI spend and credit monitoring** — the source now has an admin-only usage
+  ledger migration, content-free metering for Anthropic, Lovable gateway, and
+  Document AI calls, and an AI spend accordion under Settings > Integrations.
+  Manually reconciled balances and 30-day usage power fill and top-up estimates;
+  unknown figures stay unknown. The connected Lovable workspace read provided
+  no balance. Local authenticated browser rendering and provider-config
+  navigation, TypeScript, lint, and build pass. The full suite has three known
+  CRLF-sensitive failures; PR checks reach the unrelated pending release-ledger
+  gate. Docker is unavailable for local RLS testing. Migration, functions, and
+  frontend are not deployed; provider billing feeds and credentials are not
+  connected. See `docs/ai-spend-monitoring-plan.md`.
+
 - **Rx order browser feedback** — source changes complete locally. Completed
   sections fold when focus moves into another panel; Enter passes through the
   optional order reference. Frame and lens summaries show labelled fields,
   selected shapes get a thumbnail, and prescription blockers now explain prism
-  and fitting-height limits. The frame panel and order rail are more compact.
+  and fitting-height limits. The collapsed frame summary places `Supplied by`
+  beside the shape, separates field labels from values with fine rules, and
+  removes hidden body spacing. The frame panel and order rail are more compact.
   Chemistrie Sun includes the manufacturer's eight gradient choices; Blue and
   Readers use listed powers, Drive is fixed, and Black is no longer a magnet
   choice. Focused Rx tests (71/71), TypeScript, lint, build, and local keyboard

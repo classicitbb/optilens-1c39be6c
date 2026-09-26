@@ -19,6 +19,16 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 - Verify each connector in the current session with a harmless read.
 - Lovable intent does not replace repository tests or `STATUS.md`.
 - Review Lovable-generated changes before acceptance.
+- The connected Lovable workspace read exposes plan and project metadata but
+  did not provide a credit balance. Show Build and Run usage categories
+  separately; some workspaces share one wallet, so never add two balances.
+- AI billing data sources and request paths are inventoried in
+  `docs/ai-spend-monitoring-plan.md`. Anthropic is called directly by
+  `portal-copilot`; several site functions use the Lovable AI gateway.
+- AI request telemetry uses the existing server-side `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` to insert content-free usage events. Provider
+  balances and charges are manual snapshots until approved read-only billing
+  feeds exist; no provider billing credential is stored in the dashboard.
 - Use preview environments before production.
 - Preserve function-specific authentication designs; do not apply blanket auth changes.
 - Production deployments, migrations, secrets, domains, and authorization changes require the applicable approval.

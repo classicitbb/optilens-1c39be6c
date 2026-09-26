@@ -1,5 +1,6 @@
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { recordAiSpend } from "../_shared/aiSpend.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -76,6 +77,7 @@ Deno.serve(async (req) => {
       headers: { Authorization: `Bearer ${apiKey}` },
       body: form,
     });
+    await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "voice-transcribe", model: "openai/gpt-4o-mini-transcribe", httpStatus: speech.status });
 
     if (speech.status === 429) return json(req, 429, { error: "Transcription rate limit reached. Try again shortly." });
     if (speech.status === 402) return json(req, 402, { error: "AI credits are exhausted for this workspace." });
@@ -110,6 +112,8 @@ Deno.serve(async (req) => {
         ],
       }),
     });
+    const metering = response.ok ? await response.clone().json().catch(() => null) : null;
+    await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "voice-transcribe", model: "google/gemini-2.5-flash", httpStatus: response.status, usage: metering?.usage });
 
     if (response.status === 429) return json(req, 429, { error: "Transcription rate limit reached. Try again shortly." });
     if (response.status === 402) return json(req, 402, { error: "AI credits are exhausted for this workspace." });

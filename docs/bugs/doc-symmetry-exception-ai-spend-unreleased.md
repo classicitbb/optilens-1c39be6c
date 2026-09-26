@@ -1,0 +1,2 @@
+Doc-Symmetry-Override: true
+Rationale: The AI spend dashboard, usage telemetry, and migration are source-only and await separate database and frontend release approval. The release-ledger generator would mark this as a production release before deployment. The implementation contract and current verification boundary are recorded in docs/ai-spend-monitoring-plan.md, STATUS.md, and docs/agent/HANDOFF.md. Existing unreleased Rx changes remain under their own exception.

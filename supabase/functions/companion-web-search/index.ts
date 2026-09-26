@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
+import { recordAiSpend } from "../_shared/aiSpend.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -100,6 +101,8 @@ serve(async (req) => {
       }),
     });
 
+    const metering = response.ok ? await response.clone().json().catch(() => null) : null;
+    await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "companion-web-search", model, httpStatus: response.status, usage: metering?.usage });
     if (!response.ok) {
       const text = await response.text();
       if (response.status === 429) {

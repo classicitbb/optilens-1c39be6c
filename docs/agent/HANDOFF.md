@@ -4,6 +4,36 @@
 - Status: Document AI source integration ready — Google IAM configuration blocked
 - Last synchronized: 2026-09-26
 
+## AI spend monitoring
+
+Status: Source implementation complete; migration and release pending.
+
+Affected files: `src/pages/admin/settings/{AiSpendCard,IntegrationsPage}.tsx`,
+`supabase/functions/_shared/aiSpend.ts`, the Anthropic/Lovable/Document AI call
+sites, `supabase/migrations/20260926193102_ai_spend_monitoring.sql`,
+`docs/ai-spend-monitoring-plan.md`, and continuity docs. The dashboard shows an
+accordion for each provider, links to existing configuration or provider
+billing, 30-day request averages, manually reconciled balance/spend, fill level,
+and a freshness-limited top-up forecast. It does not invent provider charges.
+The connected Lovable workspace read returned no credit balance.
+
+Verification: TypeScript, full lint (warnings only), build, and authenticated
+local browser review pass; the provider configuration button opens AI Agents.
+The full test run is 933/936 with the three previously recorded CRLF-sensitive
+failures in assistant memory and walk-in payments. `npm run qa:pr-checks`
+passes lockfile, documentation exception, Copilot facts, and public search
+checks, then stops on the pre-existing unreleased release-ledger drift. Local
+Supabase status cannot reach Docker Desktop's Linux engine, so the new
+migration/RLS is unverified in a database. No production write or deployment
+was made. Concurrent Rx edits are untouched.
+
+Approval required: production migration, Edge Function and frontend release;
+separately, any provider billing credential or permission change. Next action:
+after release approval, apply `20260926193102_ai_spend_monitoring.sql`, verify
+admin/non-admin RLS, deploy the changed functions and frontend, run
+`npm run qa:edge-smoke`, and inspect one real usage event without sending a
+billable test request.
+
 ## Rx order browser feedback
 
 Status: Complete — no active handoff
@@ -22,6 +52,13 @@ three existing CRLF-sensitive failures in assistant memory and walk-in-payment
 source-string tests. No production deployment or production order write was
 performed. The account-header branding comment remains a design suggestion.
 A normal frontend release requires explicit deployment approval.
+
+The later frame-summary feedback is complete locally in `rx-order-engine.js`
+and `rx-order.css`: `Supplied by` sits beside the frame outline, thin rules
+separate labels from values, and collapsed frame bodies take zero height.
+The focused Rx integration file (23/23), lint (warnings only), and production
+build pass; local browser review confirmed desktop and narrow layouts. No
+hosted release was made.
 
 ## Higgsfield Seedance 2.5 example
 

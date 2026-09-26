@@ -4,6 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { recordAiSpend } from "../_shared/aiSpend.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -99,6 +100,8 @@ Return ONLY a JSON object: {"subject": string, "body": string}. For WhatsApp use
       }),
     });
 
+    const metering = aiRes.ok ? await aiRes.clone().json().catch(() => null) : null;
+    await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "crm-draft-outreach", model: "google/gemini-3-flash-preview", httpStatus: aiRes.status, usage: metering?.usage });
     if (!aiRes.ok) {
       const status = aiRes.status === 429 ? 429 : aiRes.status === 402 ? 402 : 502;
       return json({ error: `AI gateway error (${aiRes.status})` }, status);

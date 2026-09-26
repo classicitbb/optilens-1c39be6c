@@ -19,6 +19,7 @@ import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderC
 import CopilotFactsCard from "./CopilotFactsCard";
 import AssistantMemoryCard from "./AssistantMemoryCard";
 import DocumentAiIntegrationCard from "./DocumentAiIntegrationCard";
+import AiSpendCard from "./AiSpendCard";
 import { QboIntegrationCard } from "@/components/admin/QboIntegrationCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ const statusMeta: Record<GatewayStatus, { label: string; className: string }> = 
 const fmt = (value: string | null | undefined) => (value ? new Date(value).toLocaleString() : "—");
 
 export default function IntegrationsPage() {
+  const [activeTab, setActiveTab] = useState("services");
   const { realRole, isLoading: roleLoading } = useAdminRole();
   const isAdmin = realRole === "admin";
   const qc = useQueryClient();
@@ -355,11 +357,12 @@ export default function IntegrationsPage() {
         </Badge>
       </div>
 
-      <Tabs defaultValue="services" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="services">Service integrations</TabsTrigger>
           <TabsTrigger value="gatekeeper">Gatekeeper</TabsTrigger>
           <TabsTrigger value="ai-agents">AI Agents</TabsTrigger>
+          <TabsTrigger value="ai-spend">AI spend</TabsTrigger>
         </TabsList>
         <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
@@ -672,6 +675,7 @@ export default function IntegrationsPage() {
           <AssistantMemoryCard enabled={isAdmin} />
           <CopilotFactsCard enabled={isAdmin} />
         </TabsContent>
+        <TabsContent value="ai-spend"><AiSpendCard enabled={isAdmin} onOpenConfig={() => setActiveTab("ai-agents")} /></TabsContent>
       </Tabs>
     </div>
   );

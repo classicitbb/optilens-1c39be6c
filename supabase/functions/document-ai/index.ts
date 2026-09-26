@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { recordAiSpend } from "../_shared/aiSpend.ts";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -76,6 +77,7 @@ Deno.serve(async (request) => {
     const endpoint = `https://${settings.location}-documentai.googleapis.com/v1/projects/${settings.project_id}/locations/${settings.location}/processors/${settings.processor_id}:process`;
     const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ rawDocument: { mimeType: document.mime_type, content: base64(bytes) }, processOptions: { ocrConfig: { enableNativePdfParsing: true } } }) });
     const result = await response.json();
+    await recordAiSpend({ provider: "google-document-ai", product: "ocr", functionName: "document-ai", httpStatus: response.status, units: result.document?.pages?.length ?? null });
     if (!response.ok) throw new Error(result.error?.message ?? "Document AI could not process the document.");
     const extractedFields = { page_count: result.document?.pages?.length ?? 0, confidence: result.document?.entities?.[0]?.confidence ?? null };
     const { data: extraction, error: extractionError } = await db.from("shipment_document_extractions").insert({ shipment_id: input.shipmentId, document_id: document.id, processor_id: settings.processor_id, document_kind: guessDocumentKind(document.original_file_name), status: "draft", extracted_text: result.document?.text ?? "", extracted_fields: extractedFields, created_by_user_id: user.id }).select("id, document_kind, extracted_text, extracted_fields, status").single();

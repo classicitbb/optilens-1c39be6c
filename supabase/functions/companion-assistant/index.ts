@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { checkRateLimit, getClientIp } from "../_shared/http/rateLimit.ts";
 import { PUBLIC_ASSISTANT_SYSTEM_PROMPT } from "../_shared/copilot/prompts.ts";
+import { recordAiSpend } from "../_shared/aiSpend.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -184,8 +185,8 @@ const buildUserPrompt = (payload: CompanionRequest) => {
 
 const gatewayModel = () => Deno.env.get("COMPANION_ASSISTANT_GATEWAY_MODEL") ?? "google/gemini-3-flash-preview";
 
-const callGateway = (payload: CompanionRequest, apiKey: string, stream: boolean) =>
-  fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+const callGateway = async (payload: CompanionRequest, apiKey: string, stream: boolean) => {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -200,6 +201,10 @@ const callGateway = (payload: CompanionRequest, apiKey: string, stream: boolean)
       ],
     }),
   });
+  const metering = response.ok && !stream ? await response.clone().json().catch(() => null) : null;
+  await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "companion-assistant", model: gatewayModel(), httpStatus: response.status, usage: metering?.usage });
+  return response;
+};
 
 async function generateWithGateway(payload: CompanionRequest, apiKey: string) {
   const response = await callGateway(payload, apiKey, false);

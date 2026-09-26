@@ -1162,11 +1162,11 @@ function sectionSummary(id){
     const geometry=shape?shapeGeometry(shape):null;
     const shapeName=S.shapeSrc==='standard'?STD_SHAPES.find(s=>s.id===S.stdShape)?.n:(S.file?.name||'Uploaded trace');
     const preview=geometry?`<div class="summary-shape" aria-label="${summaryEscape(shapeName||'Frame shape')} preview">${S.shapeSrc==='standard'?shapeThumb(S.stdShape,54):miniThumb(geometry)}</div>`:'';
-    return `<div class="summary-fields">${preview}
+    return `<div class="summary-fields frame-summary-fields"><div class="summary-frame-source">${preview}
+      ${summaryField(S.scope==='remote'?'Shape / trace':'Supplied by',S.scope==='remote'?(shapeName||'—'):selectLabel('fsource'))}</div>
       ${summaryField('Frame', $('#fname').value.trim())}${summaryField('Mount',mount)}
       ${summaryField('A', $('#fa').value)}${summaryField('B', $('#fb').value)}${summaryField('ED', $('#fed').value)}${summaryField('DBL', $('#fdbl').value)}
       ${summaryField('Job type',S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut')}
-      ${summaryField(S.scope==='remote'?'Shape / trace':'Supplied by',S.scope==='remote'?(shapeName||'—'):selectLabel('fsource'))}
     </div>`;
   }
   if(id==='sec-lens'){

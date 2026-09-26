@@ -22,6 +22,7 @@ import { ENRICHMENT_TOOLS, ENRICHMENT_TOOL_NAMES, dispatchEnrichmentTool } from 
 import { HELPDESK_TOOLS, HELPDESK_TOOL_NAMES, dispatchHelpdeskTool } from "../_shared/copilot/helpdeskTools.ts";
 import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 import { identityPreamble } from "../_shared/aiIdentity.ts";
+import { recordAiSpend } from "../_shared/aiSpend.ts";
 import { ADMIN_COPILOT_SYSTEM_PROMPT } from "../_shared/copilot/prompts.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -74,8 +75,8 @@ const audit = async (
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 
-const callClaude = (apiKey: string, model: string, body: JsonRecord) =>
-  fetch(ANTHROPIC_API_URL, {
+const callClaude = async (apiKey: string, model: string, body: JsonRecord) => {
+  const response = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
@@ -84,6 +85,10 @@ const callClaude = (apiKey: string, model: string, body: JsonRecord) =>
     },
     body: JSON.stringify({ model, ...body }),
   });
+  const payload = response.ok ? await response.clone().json().catch(() => null) : null;
+  await recordAiSpend({ provider: "anthropic", product: "api", functionName: "portal-copilot", model, httpStatus: response.status, usage: payload?.usage });
+  return response;
+};
 
 const claudeErrorMessage = async (response: Response) => {
   if (response.status === 429) return "AI rate limit reached. Try again shortly.";
