@@ -1,3 +1,6 @@
+// Deno runtime global; declared locally because this file is typechecked by the app's tsconfig.
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 /** Best-effort, content-free usage telemetry. Never change the caller's result. */
 export async function recordAiSpend(event: {
   provider: "anthropic" | "lovable-ai" | "google-document-ai";
