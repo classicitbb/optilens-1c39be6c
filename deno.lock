@@ -6284,6 +6284,7 @@
         "npm:@eslint/js@^10.0.1",
         "npm:@fontsource/dm-sans@^5.2.8",
         "npm:@fontsource/plus-jakarta-sans@^5.2.8",
+        "npm:@higgsfield/client@~0.2.6",
         "npm:@hookform/resolvers@^5.4.0",
         "npm:@lovable.dev/cloud-auth-js@^1.1.2",
         "npm:@lovable.dev/mcp-js@~0.26.1",

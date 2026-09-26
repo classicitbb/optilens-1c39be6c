@@ -1,6 +1,6 @@
-import { recordAiSpend } from "../../_shared/aiSpend.ts";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+import { recordAiSpend } from "../../_shared/aiSpend.ts";
 // Thin wrapper over the Lovable AI gateway for forced-tool-call requests.
 //
 // Every AI step in lead-intelligence wants the same thing: a structured object

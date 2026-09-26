@@ -690,6 +690,90 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_spend_events: {
+        Row: {
+          charge_source: string | null
+          charge_usd: number | null
+          function_name: string
+          http_status: number | null
+          id: string
+          input_tokens: number | null
+          model: string | null
+          occurred_at: string
+          output_tokens: number | null
+          product: string
+          provider: string
+          units: number | null
+        }
+        Insert: {
+          charge_source?: string | null
+          charge_usd?: number | null
+          function_name: string
+          http_status?: number | null
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          occurred_at?: string
+          output_tokens?: number | null
+          product: string
+          provider: string
+          units?: number | null
+        }
+        Update: {
+          charge_source?: string | null
+          charge_usd?: number | null
+          function_name?: string
+          http_status?: number | null
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          occurred_at?: string
+          output_tokens?: number | null
+          product?: string
+          provider?: string
+          units?: number | null
+        }
+        Relationships: []
+      }
+      ai_spend_snapshots: {
+        Row: {
+          as_of: string
+          balance_amount: number | null
+          credit_capacity_amount: number | null
+          product: string
+          provider: string
+          source: string
+          spend_30d_usd: number | null
+          unit: string
+          updated_at: string
+          used_30d_amount: number | null
+        }
+        Insert: {
+          as_of?: string
+          balance_amount?: number | null
+          credit_capacity_amount?: number | null
+          product: string
+          provider: string
+          source?: string
+          spend_30d_usd?: number | null
+          unit?: string
+          updated_at?: string
+          used_30d_amount?: number | null
+        }
+        Update: {
+          as_of?: string
+          balance_amount?: number | null
+          credit_capacity_amount?: number | null
+          product?: string
+          provider?: string
+          source?: string
+          spend_30d_usd?: number | null
+          unit?: string
+          updated_at?: string
+          used_30d_amount?: number | null
+        }
+        Relationships: []
+      }
       api_audit_log: {
         Row: {
           api_key_id: string | null
@@ -11665,6 +11749,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_spend_daily: {
+        Row: {
+          charge_usd: number | null
+          day: string | null
+          function_name: string | null
+          input_tokens: number | null
+          output_tokens: number | null
+          product: string | null
+          provider: string | null
+          requests: number | null
+          successful_requests: number | null
+          units: number | null
+        }
+        Relationships: []
       }
       balances_public: {
         Row: {
