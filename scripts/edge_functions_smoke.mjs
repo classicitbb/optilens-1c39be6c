@@ -56,7 +56,7 @@ const ORIGIN = "https://classicvisions.lovable.app";
  * in both deploy and health gates. `_shared` is source-only and not deployable.
  */
 const FUNCTIONS = readdirSync(resolve(process.cwd(), "supabase/functions"), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_"))
+  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_") && entry.name !== "node_modules")
   .map((entry) => entry.name)
   .sort();
 
