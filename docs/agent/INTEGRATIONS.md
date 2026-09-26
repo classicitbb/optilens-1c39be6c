@@ -45,6 +45,7 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 - Deploy additive provider compatibility before consumer use.
 - Access to one repository or connector does not grant access to another.
 - The customer-authorized `innovations.customer_orders` response may carry an order ID solely to let the portal locate the customer's matching shipment; it must remain scoped by the existing account authorization.
+- Rx Chemistrie selections currently travel as lab instructions through quote notes into the outbound order's `instructions`. Do not turn them into quote lines, SKUs, or provisional charges before the catalogue and fulfillment contract are approved.
 
 ## Gatekeeper ↔ Innovations dispatch boundary
 

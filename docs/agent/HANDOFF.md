@@ -60,6 +60,16 @@ The focused Rx integration file (23/23), lint (warnings only), and production
 build pass; local browser review confirmed desktop and narrow layouts. No
 hosted release was made.
 
+The subsequent Rx browser feedback is complete locally. Frame and lens summary
+headings align at the top, and the all-treatments drawer closes when the user
+moves outside the popular choices area and drawer. Chemistrie clip choices remain
+in the payload and lab instructions, while the provisional quote charges are
+removed; no Chemistrie SKU or quote item is created. The focused Rx integration
+file (25/25), outbound order mapping tests (28/28), full lint (warnings only),
+and production build pass. The full test sweep passes 935/938; its three
+failures are the previously recorded CRLF-sensitive assistant-memory and
+walk-in-payment assertions. No hosted release or production order was made.
+
 ## Higgsfield Seedance 2.5 example
 
 Status: Source setup complete; live generation verification blocked by local TLS

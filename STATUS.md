@@ -28,7 +28,11 @@ Last updated: 2026-09-26
   selected shapes get a thumbnail, and prescription blockers now explain prism
   and fitting-height limits. The collapsed frame summary places `Supplied by`
   beside the shape, separates field labels from values with fine rules, and
-  removes hidden body spacing. The frame panel and order rail are more compact.
+  removes hidden body spacing. Frame and lens summary headings now align at the
+  top. The all-treatments drawer closes when focus or a pointer moves outside
+  the popular choices area and drawer. Chemistrie selections are lab instructions only: their
+  full specifications enter the order notes, without a SKU, quote item, or
+  provisional charge. The frame panel and order rail are more compact.
   Chemistrie Sun includes the manufacturer's eight gradient choices; Blue and
   Readers use listed powers, Drive is fixed, and Black is no longer a magnet
   choice. Focused Rx tests (71/71), TypeScript, lint, build, and local keyboard

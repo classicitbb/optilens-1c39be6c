@@ -747,39 +747,39 @@ function renderTintCfg(){
 }
 
 /* ---------- Chemistrie configurator ----------
-   Option list and prices are a first pass — confirm against the Chemistrie page.
-   Up to 3 clips per order, each with its own type/colour/magnet/bridge/crystal. */
+   Lab instructions only until a priced catalogue item and fulfillment contract
+   exist. Up to 3 clips per order, each with its own configuration. */
 const CHEM_TYPES=[
-  {id:'sun',    n:'Chemistrie Sun',    d:'Magnetic sunlens overlay',            p:96},
-  {id:'blue',   n:'Chemistrie Blue',   d:'Blue-light filtering overlay',        p:78},
-  {id:'readers',n:'Chemistrie Readers',d:'Magnetic near-add overlay',           p:84},
-  {id:'drive',  n:'Chemistrie Drive',  d:'Contrast-boosting driving overlay',   p:104}
+  {id:'sun',    n:'Chemistrie Sun',    d:'Magnetic sunlens overlay'},
+  {id:'blue',   n:'Chemistrie Blue',   d:'Blue-light filtering overlay'},
+  {id:'readers',n:'Chemistrie Readers',d:'Magnetic near-add overlay'},
+  {id:'drive',  n:'Chemistrie Drive',  d:'Contrast-boosting driving overlay'}
 ];
 const CHEM_COLOURS=[{id:'Grey',n:'Grey',hex:'#6B7280'},{id:'Brown',n:'Brown',hex:'#92400E'},
   {id:'G-15',n:'G-15',hex:'#4B5320'},{id:'Blue',n:'Blue',hex:'#1E40AF'},
   {id:'Copper',n:'Copper',hex:'#B45309'},{id:'Amber',n:'Amber',hex:'#D97706'},
   {id:'Pink',n:'Pink',hex:'#DB2777'},{id:'Purple',n:'Purple',hex:'#7C3AED'}];
-const CHEM_MIRRORS=[{id:'silver',n:'Silver Mirror',p:26,hex:'#C0C0C0'},
-  {id:'gold',n:'Gold Mirror',p:26,hex:'#D4AF37'},{id:'blue',n:'Blue Mirror',p:26,hex:'#3B82F6'},
-  {id:'green',n:'Green Mirror',p:26,hex:'#16A34A'},{id:'rosegold',n:'Rose Gold Mirror',p:30,hex:'#C7849C'},
-  {id:'red',n:'Red Mirror',p:30,hex:'#DC2626'},{id:'orange',n:'Orange Mirror',p:30,hex:'#EA580C'},
-  {id:'purple',n:'Purple Mirror',p:30,hex:'#9333EA'}];
+const CHEM_MIRRORS=[{id:'silver',n:'Silver Mirror',hex:'#C0C0C0'},
+  {id:'gold',n:'Gold Mirror',hex:'#D4AF37'},{id:'blue',n:'Blue Mirror',hex:'#3B82F6'},
+  {id:'green',n:'Green Mirror',hex:'#16A34A'},{id:'rosegold',n:'Rose Gold Mirror',hex:'#C7849C'},
+  {id:'red',n:'Red Mirror',hex:'#DC2626'},{id:'orange',n:'Orange Mirror',hex:'#EA580C'},
+  {id:'purple',n:'Purple Mirror',hex:'#9333EA'}];
 const CHEM_MAGNETS=[{id:'Silver',n:'Silver',hex:'#A8A9AD'},
   {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'}];
 const CHEM_BRIDGES=[{id:'Bronze',n:'Bronze',hex:'#CD7F32'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'},
   {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Silver',n:'Silver',hex:'#A8A9AD'},{id:'Black',n:'Black',hex:'#1A1A1A'}];
-const CHEM_CRYSTALS=[{id:'hematite',n:'Hematite Crystals',p:22,hex:'#55565A'},
-  {id:'hyacinth',n:'Hyacinth Crystals',p:22,hex:'#D22630'},
-  {id:'crystal-gold',n:'Crystal Gold Crystals',p:22,hex:'#D4AF37'},
-  {id:'cobalt',n:'Cobalt Crystals',p:22,hex:'#2453B3'},
-  {id:'aquamarine',n:'Aquamarine Crystals',p:22,hex:'#35B7E7'},
-  {id:'emerald',n:'Emerald Crystals',p:22,hex:'#009B77'},
-  {id:'olivine',n:'Olivine Crystals',p:22,hex:'#6B8E23'},
-  {id:'amethyst',n:'Amethyst Crystals',p:22,hex:'#8E55B7'},
-  {id:'fireopal',n:'Fireopal Crystals',p:26,hex:'#F36C21'},
-  {id:'rose',n:'Rose Crystals',p:22,hex:'#EFA0B5'},
-  {id:'topaz',n:'Topaz Crystals',p:22,hex:'#D99A27'},
-  {id:'diamond',n:'Diamond Crystals',p:26,hex:'#F5F7FA'}];
+const CHEM_CRYSTALS=[{id:'hematite',n:'Hematite Crystals',hex:'#55565A'},
+  {id:'hyacinth',n:'Hyacinth Crystals',hex:'#D22630'},
+  {id:'crystal-gold',n:'Crystal Gold Crystals',hex:'#D4AF37'},
+  {id:'cobalt',n:'Cobalt Crystals',hex:'#2453B3'},
+  {id:'aquamarine',n:'Aquamarine Crystals',hex:'#35B7E7'},
+  {id:'emerald',n:'Emerald Crystals',hex:'#009B77'},
+  {id:'olivine',n:'Olivine Crystals',hex:'#6B8E23'},
+  {id:'amethyst',n:'Amethyst Crystals',hex:'#8E55B7'},
+  {id:'fireopal',n:'Fireopal Crystals',hex:'#F36C21'},
+  {id:'rose',n:'Rose Crystals',hex:'#EFA0B5'},
+  {id:'topaz',n:'Topaz Crystals',hex:'#D99A27'},
+  {id:'diamond',n:'Diamond Crystals',hex:'#F5F7FA'}];
 const CHEM_MAX_CLIPS=3;
 const CHEM_READER_POWERS=Array.from({length:9},(_,i)=>(.5+i*.25).toFixed(2));
 const CHEM_BLUE_POWERS=Array.from({length:9},(_,i)=>(i*.25).toFixed(2));
@@ -948,26 +948,6 @@ function stripChemNotes(value){
 function notesWithChemistrie(manualNotes){
   return [stripChemNotes(manualNotes),chemLabNotes()].filter(Boolean).join('\n\n');
 }
-function chemPriceLines(){
-  return S.chemClips.map((c,i)=>{
-    const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
-    let v=t.p, bits=[t.n];
-    if(t.id==='sun'){
-      const mir=CHEM_MIRRORS.find(x=>x.id===c.mirror);
-      if(mir&&mir.p){ v+=mir.p; bits.push(mir.n); }
-      if(c.colour) bits.push(CHEM_COLOURS.find(x=>x.id===c.colour)?.n||c.colour);
-      if(c.gradient) bits.push(CHEM_GRADIENTS.find(x=>x.id===c.gradient)?.n||c.gradient);
-    }
-    if(t.id==='sun'&&c.polarised){ v+=34; bits.push('polarised'); }
-    if(t.id==='blue'||t.id==='readers') bits.push(c.add==='0.00'?'Plano':'+'+c.add);
-    if(c.magnet) bits.push(c.magnet+' magnet');
-    if(c.bridge&&c.bridge!=='Black') bits.push(c.bridge+' bridge');
-    const cr=CHEM_CRYSTALS.find(x=>x.id===c.crystal);
-    if(cr&&cr.id!=='none'){ v+=cr.p||0; bits.push(cr.n); }
-    return {n:'Chemistrie layer'+(S.chemClips.length>1?' '+(i+1):''), i:bits.join(' · '), v, rm:{type:'chem',id:c.id}};
-  });
-}
-
 /* ---------- suggestions ---------- */
 function suggestions(){
   if(S.suggOff) return [];
@@ -1056,8 +1036,8 @@ function price(){
   /* Every coating and the oversize-blank surcharge is applied to each physical
      lens, same as the lens itself and its colour upcharge above — one line per
      eye, each at half the pair price, so the total is unchanged but the detail
-     matches what actually gets ground. Chemistrie is already priced per clip
-     via chemPriceLines() and stays a single line. */
+     matches what actually gets ground. Chemistrie remains lab instructions in
+     the payload and must not create a priced quote line. */
   const eyesForAddon=S.eyes==='pair'?['od','os']:[activeEyes()[0]];
   const addonShare=eyesForAddon.length===2?0.5:1;
   Array.from(S.treat).forEach(id=>{const t=TREAT.find(x=>x.id===id); if(t){
@@ -1066,7 +1046,6 @@ function price(){
     const val=(t.p + (/^tn-/.test(id)&&S.tintCfg.match?9:0))*addonShare;
     eyesForAddon.forEach(eye=>lines.push({n:`${eye==='od'?'OD':'OS'} ${t.n}`,i:detail,v:val,rm:{type:'treat',id},eye}));
   }});
-  chemPriceLines().forEach(l=>lines.push(l));
   const eyes=activeEyes().map(readRow);
   const prism=Math.max(...eyes.map(r=>r.prism||0),0);
   if(prism>0) lines.push({n:'Prism',i:prism.toFixed(2)+'Δ ground in',v:16+prism*4});
@@ -1838,10 +1817,20 @@ $('#plusCylOn').addEventListener('change',e=>{
 });
 
 /* ---------- treatments drawer ---------- */
+function closeTreatDrawer(){ $('#treatDrawer').classList.remove('on'); }
+function outsideTreatments(target){
+  return !$('#treatDrawer').contains(target)&&!$('#openTreat').closest('.card-b').contains(target);
+}
 $('#openTreat').addEventListener('click',()=>{ buildTreatList(); $('#treatDrawer').classList.add('on'); });
-$('#treatClose').addEventListener('click',()=>$('#treatDrawer').classList.remove('on'));
-$('#treatDone').addEventListener('click',()=>$('#treatDrawer').classList.remove('on'));
+$('#treatClose').addEventListener('click',closeTreatDrawer);
+$('#treatDone').addEventListener('click',closeTreatDrawer);
 $('#treatSearch').addEventListener('input',buildTreatList);
+docListen('pointerdown',e=>{
+  if($('#treatDrawer').classList.contains('on')&&outsideTreatments(e.target)) closeTreatDrawer();
+},true);
+docListen('focusin',e=>{
+  if($('#treatDrawer').classList.contains('on')&&outsideTreatments(e.target)) closeTreatDrawer();
+});
 
 /* ---------- coach ---------- */
 const COACH={
@@ -4048,13 +4037,11 @@ $('#chemOn').addEventListener('change',e=>{
   toast(e.target.checked?'Chemistrie layer added — configure it below':'Chemistrie layer removed');
 });
 
-/* remove a treatment or Chemistrie clip straight from the live quote — the base
-   lens line (material · design · colour) has no rm data, so it can't be removed here. */
+/* Remove a treatment from the live quote. The base lens has no rm data. */
 $('#qLines').addEventListener('click',e=>{
   const b=e.target.closest('.qline-rm'); if(!b) return;
   const {rmtype,rmid}=b.dataset;
   if(rmtype==='treat'){ toggleTreat(rmid); toast('Removed from the order'); }
-  else if(rmtype==='chem'){ S.chemClips=S.chemClips.filter(c=>c.id!==rmid); render(); toast('Clip removed'); }
 });
 
 /* ---------- settings gear ---------- */

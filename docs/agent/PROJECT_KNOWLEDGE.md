@@ -74,7 +74,10 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
   outer width. The dev-only `/dev/rx-order` route mounts the same engine with
   fixture catalog data for read-only local UI review. Persisted `cv.rxorder/1`
   Chemistrie clips must be normalized when options change so drafts remain
-  editable.
+  editable. Until a priced catalogue and fulfillment contract exist, selected
+  Chemistrie clips travel as lab instructions in `delivery.notes` and the
+  quote's `notes_customer`; they do not create SKU or quote lines or change the
+  live quote total.
 
 - Privileged routes require the correct guard.
 - Viewer/customer paths must not expose product cost.
