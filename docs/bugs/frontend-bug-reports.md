@@ -2,6 +2,12 @@
 
 Track frontend regressions and customer-facing issues.
 
+## 2026-09-26 — Rx progression hid blockers and compressed summaries
+- Area: portal Rx order form, section progression and Chemistrie configuration.
+- Impact: Enter could leave the patient panel before the optional reference; completed headers folded unexpectedly; unlabelled summaries required reopening sections; Rx gates could stay locked without explaining the invalid value. Chemistrie offered unsupported options and a free-text reader power.
+- Resolution: tie section folding to focus moving into another panel, render labelled frame/lens summaries and a selected shape preview, show missing/out-of-range Rx values, cap prism at 10Δ, and check fitting height against frame B. Replace Chemistrie controls with type-specific manufacturer choices.
+- Regression prevention: focused integration tests cover collapse timing, summary content, Chemistrie choices, prism and fitting-height limits, and missing second-eye fields; a local browser check verified the Enter chain and frame layout.
+
 ## 2026-09-11 — Pricelist saves erased manual line prices
 - Area: pricelist version dialogs and `materialize_pricelist_adjustments`.
 - Impact: a rename, re-save, or 0% adjustment could delete every hand-entered override in an affected section.

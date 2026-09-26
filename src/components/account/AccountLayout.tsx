@@ -106,7 +106,7 @@ const AccountLayout = () => {
           </Tooltip>
         </aside>
 
-        <main className="mx-auto min-w-0 w-full max-w-[1280px] flex-1">
+        <main className={`mx-auto min-w-0 w-full flex-1 ${location.pathname === "/profile/rx-order" ? "max-w-[1200px]" : "max-w-[1280px]"}`}>
           <Outlet />
         </main>
       </div>

@@ -69,6 +69,13 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 
 ## Durable constraints
 
+- The portal Rx form is owned by `src/features/rx-order/embed/` (markup, CSS,
+  engine); `src/components/account/AccountLayout.tsx` owns the portal page's
+  outer width. The dev-only `/dev/rx-order` route mounts the same engine with
+  fixture catalog data for read-only local UI review. Persisted `cv.rxorder/1`
+  Chemistrie clips must be normalized when options change so drafts remain
+  editable.
+
 - Privileged routes require the correct guard.
 - Viewer/customer paths must not expose product cost.
 - Website pricing source changes must be explicit.

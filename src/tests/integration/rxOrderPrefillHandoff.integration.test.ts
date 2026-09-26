@@ -171,7 +171,7 @@ describe("lens assistant → rx order handoff", () => {
     engine.destroy();
   });
 
-  it("collapses completed patient details into an editable summary", () => {
+  it("collapses completed patient details when the frame panel takes focus", () => {
     const { host, field, engine } = mount();
     const first = field("#pfirst") as HTMLInputElement;
     const last = field("#plast") as HTMLInputElement;
@@ -180,6 +180,9 @@ describe("lens assistant → rx order handoff", () => {
     first.dispatchEvent(new Event("input", { bubbles: true }));
     last.value = "Grant";
     last.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(host.querySelector("#sec-patient")?.classList.contains("section-collapsed")).toBe(false);
+    field("#fname")?.focus();
+    engine.refreshData();
 
     const section = host.querySelector<HTMLElement>("#sec-patient");
     expect(section?.classList.contains("section-collapsed")).toBe(true);
@@ -224,6 +227,8 @@ describe("lens assistant → rx order handoff", () => {
     prefill.lens.design = "pg-std";
 
     const { host, engine } = mount({ prefill });
+    host.querySelector<HTMLElement>("#treatConfirm")?.focus();
+    engine.refreshData();
     const summary = host.querySelector("#sec-rx .section-summary");
 
     expect(host.querySelector("#sec-rx")?.classList.contains("section-collapsed")).toBe(true);
@@ -293,17 +298,16 @@ describe("lens assistant → rx order handoff", () => {
     engine.destroy();
   });
 
-  it("keeps Chemistrie open until every clip has one complete solid or mirror choice", () => {
+  it("keeps Chemistrie open until every Sun clip has a solid, mirror, or gradient choice", () => {
     const { host, engine } = mount();
     const chemOn = host.querySelector<HTMLInputElement>("#chemOn")!;
     chemOn.click();
 
-    const polarised = host.querySelector<HTMLSelectElement>('[data-field="polarised"]');
     const solidOptions = host.querySelectorAll<HTMLButtonElement>('[data-swatch-field="colour"]');
     expect(host.querySelector("#sec-treat")?.classList.contains("section-collapsed")).toBe(false);
     expect(host.querySelector("#chemBlock")?.classList.contains("chem-incomplete")).toBe(true);
-    expect(polarised?.value).toBe("yes");
-    expect(polarised?.disabled).toBe(true);
+    expect(host.querySelector('[data-field="polarised"]')).toBeNull();
+    expect(host.querySelectorAll('[data-swatch-field="gradient"]')).toHaveLength(9);
     expect(Array.from(solidOptions).map((option) => option.textContent)).toEqual([
       "Select a colour", "Grey", "Brown", "G-15", "Blue", "Copper", "Amber", "Pink", "Purple",
     ]);
@@ -336,7 +340,8 @@ describe("lens assistant → rx order handoff", () => {
     expect(engine.state.chemClips[0].colour).toBe("");
     expect(host.querySelector('[data-chem-field="colour"]')?.classList.contains("disabled")).toBe(true);
 
-    expect(host.querySelectorAll('[data-swatch-field="magnet"] .chem-swatch-dot')).toHaveLength(4);
+    expect(host.querySelectorAll('[data-swatch-field="magnet"] .chem-swatch-dot')).toHaveLength(3);
+    expect(host.querySelector('[data-swatch-field="magnet"][data-swatch-value="Black"]')).toBeNull();
     expect(Array.from(host.querySelectorAll('[data-swatch-field="bridge"]')).map((node) => node.textContent)).toEqual([
       "Select a bridge colour", "Bronze", "Gunmetal", "Gold", "Silver", "Black",
     ]);
@@ -351,18 +356,47 @@ describe("lens assistant → rx order handoff", () => {
     engine.destroy();
   });
 
+  it("offers named Sun gradients and fixed Blue, Reader, and Drive choices", () => {
+    const { host, engine } = mount();
+    host.querySelector<HTMLInputElement>("#chemOn")?.click();
+    const gradients = Array.from(host.querySelectorAll<HTMLButtonElement>('[data-swatch-field="gradient"]')).map(b => b.textContent);
+    expect(gradients).toContain("Violet Grey");
+    expect(gradients).toContain("Medium Brown");
+    host.querySelector<HTMLButtonElement>('[data-swatch-field="gradient"][data-swatch-value="Amber"]')?.click();
+    expect(engine.state.chemClips[0].gradient).toBe("Amber");
+
+    host.querySelector<HTMLElement>('[data-chem="blue"]')?.click();
+    expect(host.querySelector('[data-swatch-field="colour"]')).toBeNull();
+    const power = host.querySelector<HTMLSelectElement>('[data-field="add"]')!;
+    expect(Array.from(power.options).map(o => o.value)).toContain("2.00");
+    power.value = "1.50";
+    power.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(engine.state.chemClips[0].add).toBe("1.50");
+
+    host.querySelector<HTMLElement>('[data-chem="readers"]')?.click();
+    expect(host.querySelector<HTMLSelectElement>('[data-field="add"]')?.options).toHaveLength(10);
+    host.querySelector<HTMLElement>('[data-chem="drive"]')?.click();
+    expect(host.querySelector('[data-field="add"]')).toBeNull();
+    expect(host.querySelector('[data-swatch-field="colour"]')).toBeNull();
+    expect(host.querySelector('[data-field="polarised"]')).toBeNull();
+    expect(host.querySelector("#chemCfg")?.textContent).toContain("fixed, non-polarised rose tint");
+    engine.destroy();
+  });
+
   it("summarizes every Chemistrie clip part and adds it to the lab notes once", () => {
     const { host, engine } = mount();
     host.querySelector<HTMLInputElement>("#chemOn")?.click();
     host.querySelector<HTMLButtonElement>('[data-swatch-field="colour"][data-swatch-value="Grey"]')?.click();
     host.querySelector<HTMLButtonElement>("#treatConfirm")?.click();
+    host.querySelector<HTMLElement>("#notes")?.focus();
+    engine.refreshData();
 
     const summary = host.querySelector("#sec-treat .section-summary")?.textContent || "";
     expect(summary).toContain("Chemistrie clip 1");
     expect(summary).toContain("Chemistrie Sun");
     expect(summary).toContain("Solid polarised: Grey");
     expect(summary).toContain("Polarised: Yes");
-    expect(summary).toContain("Magnet: Black");
+    expect(summary).toContain("Magnet: Silver");
     expect(summary).toContain("Bridge: Black");
     expect(summary).toContain("Crystal: None");
 

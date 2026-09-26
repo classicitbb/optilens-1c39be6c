@@ -764,7 +764,7 @@ const CHEM_MIRRORS=[{id:'silver',n:'Silver Mirror',p:26,hex:'#C0C0C0'},
   {id:'green',n:'Green Mirror',p:26,hex:'#16A34A'},{id:'rosegold',n:'Rose Gold Mirror',p:30,hex:'#C7849C'},
   {id:'red',n:'Red Mirror',p:30,hex:'#DC2626'},{id:'orange',n:'Orange Mirror',p:30,hex:'#EA580C'},
   {id:'purple',n:'Purple Mirror',p:30,hex:'#9333EA'}];
-const CHEM_MAGNETS=[{id:'Black',n:'Black',hex:'#1A1A1A'},{id:'Silver',n:'Silver',hex:'#A8A9AD'},
+const CHEM_MAGNETS=[{id:'Silver',n:'Silver',hex:'#A8A9AD'},
   {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'}];
 const CHEM_BRIDGES=[{id:'Bronze',n:'Bronze',hex:'#CD7F32'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'},
   {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Silver',n:'Silver',hex:'#A8A9AD'},{id:'Black',n:'Black',hex:'#1A1A1A'}];
@@ -781,24 +781,35 @@ const CHEM_CRYSTALS=[{id:'hematite',n:'Hematite Crystals',p:22,hex:'#55565A'},
   {id:'topaz',n:'Topaz Crystals',p:22,hex:'#D99A27'},
   {id:'diamond',n:'Diamond Crystals',p:26,hex:'#F5F7FA'}];
 const CHEM_MAX_CLIPS=3;
+const CHEM_READER_POWERS=Array.from({length:9},(_,i)=>(.5+i*.25).toFixed(2));
+const CHEM_BLUE_POWERS=Array.from({length:9},(_,i)=>(i*.25).toFixed(2));
+const CHEM_GRADIENTS=[
+  {id:'Amber',n:'Amber',hex:'#D97706'},
+  {id:'Violet Rose',n:'Violet Rose',hex:'#A855A2'},
+  {id:'Dark Brown',n:'Dark Brown',hex:'#5C3426'},
+  {id:'Rouge',n:'Rouge',hex:'#A33349'},
+  {id:'Dark Grey',n:'Dark Grey',hex:'#4B5563'},
+  {id:'Violet Grey',n:'Violet Grey',hex:'#77718B'},
+  {id:'Crimson Grey',n:'Crimson Grey',hex:'#805768'},
+  {id:'Medium Brown',n:'Medium Brown',hex:'#8B5E3C'}
+];
 let chemClipSeq=0;
 function newChemClip(){
   const used=new Set(S.chemClips.map(c=>c.type));
   const free=CHEM_TYPES.find(t=>!used.has(t.id));
   const type=(free||CHEM_TYPES[0]).id;
-  return {id:'clip'+(++chemClipSeq),type,colour:'',mirror:'',
-    polarised:type==='sun',add:'',magnet:'Black',bridge:'Black',crystal:'none'};
+  return {id:'clip'+(++chemClipSeq),type,colour:'',mirror:'',gradient:'',
+    polarised:type==='sun',add:'',magnet:'Silver',bridge:'Black',crystal:'none'};
 }
 function chemClipComplete(c){
   if(!c||!c.type) return false;
-  if(c.type==='readers'){
-    const add=parseNum(c.add,true);
-    return add!==null&&add>=.25&&add<=4.5;
-  }
+  if(c.type==='readers') return CHEM_READER_POWERS.includes(c.add);
+  if(c.type==='blue') return CHEM_BLUE_POWERS.includes(c.add);
+  if(c.type==='drive') return true;
   const hasSolid=!!c.colour, hasMirror=!!c.mirror;
-  return hasSolid!==hasMirror && (c.type!=='sun'||c.polarised===true);
+  return Number(hasSolid)+Number(hasMirror)+Number(!!c.gradient)===1;
 }
-function chemClipKey(c){ return [c.type,c.colour,c.mirror,c.polarised,c.add,c.magnet,c.bridge,c.crystal].join('|'); }
+function chemClipKey(c){ return [c.type,c.colour,c.mirror,c.gradient,c.polarised,c.add,c.magnet,c.bridge,c.crystal].join('|'); }
 function chemDuplicateIds(){
   const seen=new Map(), dupes=new Set();
   S.chemClips.forEach(c=>{ const k=chemClipKey(c); if(seen.has(k)){ dupes.add(c.id); dupes.add(seen.get(k)); } else seen.set(k,c.id); });
@@ -809,7 +820,7 @@ function chemSwatchHTML(c,field,label,items,placeholder,disabled){
   const dot=x=>x?`<span class="chem-swatch-dot" style="--swatch:${x.hex}" aria-hidden="true"></span>`:'';
   return `<div class="field"><label>${label}</label>
     <details class="chem-swatch-select ${disabled?'disabled':''}" data-chem-field="${field}">
-      <summary aria-disabled="${disabled?'true':'false'}"><span>${current?.n||placeholder}</span>${dot(current)}<span class="chem-swatch-chevron" aria-hidden="true">⌄</span></summary>
+      <summary aria-disabled="${disabled?'true':'false'}"><span>${current?.n||placeholder}</span>${dot(current)}<span class="chem-swatch-chevron" aria-hidden="true"></span></summary>
       <div class="chem-swatch-menu" role="listbox" aria-label="${label.replace(/<[^>]*>/g,'')}">
         <button type="button" role="option" aria-selected="${!c[field]}" data-clip="${c.id}" data-swatch-field="${field}" data-swatch-value=""><span>${placeholder}</span></button>
         ${items.map(x=>`<button type="button" role="option" aria-selected="${c[field]===x.id}" data-clip="${c.id}" data-swatch-field="${field}" data-swatch-value="${x.id}"><span>${x.n}</span>${dot(x)}</button>`).join('')}
@@ -829,15 +840,15 @@ function chemClipCardHTML(c,i){
         <div class="opt ${c.type===x.id?'sel':''}" data-clip="${c.id}" data-chem="${x.id}" tabindex="0">
           <div class="on">${x.n}</div><div class="od">${x.d}</div></div>`).join('')}</div>
       <div class="grid g3" style="margin-top:13px">
-        ${t.id!=='readers'?`
-        ${chemSwatchHTML(c,'colour',`${t.id==='sun'?'Solid polarised':'Solid lens colour'} <span class="req">*</span>`,CHEM_COLOURS,'Select a colour',!!c.mirror)}
-        ${chemSwatchHTML(c,'mirror',`${t.id==='sun'?'Mirror polarised':'Mirror finish'} <span class="req">*</span>`,CHEM_MIRRORS,'Select a mirror finish',!!c.colour)}`:''}
-        ${t.id==='sun'||t.id==='drive'?`
-        <div class="field"><label>Polarised</label>
-          <select data-clip="${c.id}" data-field="polarised" ${t.id==='sun'?'disabled aria-disabled="true"':''}><option value="no" ${!c.polarised?'selected':''}>No</option><option value="yes" ${c.polarised?'selected':''}>Yes</option></select></div>`:''}
-        ${t.id==='readers'?`
-        <div class="field"><label>Near add <span class="req">*</span></label>
-          <input type="text" inputmode="decimal" data-clip="${c.id}" data-field="add" value="${c.add||''}" placeholder="+2.00"></div>`:''}
+        ${t.id==='sun'?`
+        ${chemSwatchHTML(c,'colour','Solid polarised <span class="req">*</span>',CHEM_COLOURS,'Select a colour',!!c.mirror||!!c.gradient)}
+        ${chemSwatchHTML(c,'mirror','Mirror polarised <span class="req">*</span>',CHEM_MIRRORS,'Select a mirror finish',!!c.colour||!!c.gradient)}
+        ${chemSwatchHTML(c,'gradient','Gradient sunlens <span class="req">*</span>',CHEM_GRADIENTS,'Select a gradient',!!c.colour||!!c.mirror)}`:''}
+        ${t.id==='readers'||t.id==='blue'?`
+        <div class="field"><label>${t.id==='blue'?'Blue light power':'Reader power'} <span class="req">*</span></label>
+          <select data-clip="${c.id}" data-field="add"><option value="">Choose power…</option>
+          ${(t.id==='blue'?CHEM_BLUE_POWERS:CHEM_READER_POWERS).map(p=>`<option value="${p}" ${c.add===p?'selected':''}>${p==='0.00'?'Plano':'+'+p}</option>`).join('')}</select></div>`:''}
+        ${t.id==='drive'?'<div class="hint chem-fixed-option">Night Drive is supplied in its fixed, non-polarised rose tint.</div>':''}
       </div>
       <div class="blk" style="margin:13px 0 8px">Clip hardware</div>
       <div class="grid g3">
@@ -866,7 +877,7 @@ function renderChemCfg(){
       </div>`;
   $$('#chemCfg [data-chem]').forEach(el=>el.addEventListener('click',()=>{
     const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(clip&&clip.type!==el.dataset.chem){
-      clip.type=el.dataset.chem; clip.colour=''; clip.mirror=''; clip.add=''; clip.polarised=clip.type==='sun'; render();
+      clip.type=el.dataset.chem; clip.colour=''; clip.mirror=''; clip.gradient=''; clip.add=''; clip.polarised=clip.type==='sun'; render();
     }
   }));
   $$('#chemCfg [data-field]').forEach(el=>{
@@ -874,8 +885,9 @@ function renderChemCfg(){
       const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(!clip) return;
       const f=el.dataset.field;
       clip[f]=f==='polarised'?(e.target.value==='yes'):e.target.value;
-      if(f==='colour'&&clip.colour) clip.mirror='';
-      if(f==='mirror'&&clip.mirror) clip.colour='';
+      if(f==='colour'&&clip.colour){ clip.mirror=''; clip.gradient=''; }
+      if(f==='mirror'&&clip.mirror){ clip.colour=''; clip.gradient=''; }
+      if(f==='gradient'&&clip.gradient){ clip.colour=''; clip.mirror=''; }
       if(clip.type==='sun') clip.polarised=true;
       render();
     });
@@ -884,8 +896,9 @@ function renderChemCfg(){
     const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(!clip) return;
     const f=el.dataset.swatchField;
     clip[f]=el.dataset.swatchValue;
-    if(f==='colour'&&clip.colour) clip.mirror='';
-    if(f==='mirror'&&clip.mirror) clip.colour='';
+    if(f==='colour'&&clip.colour){ clip.mirror=''; clip.gradient=''; }
+    if(f==='mirror'&&clip.mirror){ clip.colour=''; clip.gradient=''; }
+    if(f==='gradient'&&clip.gradient){ clip.colour=''; clip.mirror=''; }
     render();
   }));
   $$('#chemCfg [data-rmclip]').forEach(b=>b.addEventListener('click',()=>{
@@ -907,15 +920,17 @@ function chemChoiceName(items,id,fallback){
 function chemClipParts(c){
   const type=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
   const parts=[type.n];
-  if(type.id==='readers'){
+  if(type.id==='readers'||type.id==='blue'){
     const nearAdd=parseNum(c.add,true);
-    parts.push('Near add: '+(nearAdd===null?'—':sgn(nearAdd)));
-  } else {
+    parts.push((type.id==='blue'?'Blue light power: ':'Reader power: ')+(nearAdd===null?'—':nearAdd===0?'Plano':sgn(nearAdd)));
+  } else if(type.id==='sun') {
     if(c.colour) parts.push('Solid polarised: '+chemChoiceName(CHEM_COLOURS,c.colour,c.colour));
     if(c.mirror) parts.push('Mirror polarised: '+chemChoiceName(CHEM_MIRRORS,c.mirror,c.mirror));
+    if(c.gradient) parts.push('Gradient polarised: '+chemChoiceName(CHEM_GRADIENTS,c.gradient,c.gradient));
   }
-  if(type.id==='sun'||type.id==='drive') parts.push('Polarised: '+(c.polarised?'Yes':'No'));
-  parts.push('Magnet: '+chemChoiceName(CHEM_MAGNETS,c.magnet,'Black'));
+  if(type.id==='drive') parts.push('Fixed rose tint · non-polarised');
+  if(type.id==='sun') parts.push('Polarised: Yes');
+  parts.push('Magnet: '+chemChoiceName(CHEM_MAGNETS,c.magnet,'Silver'));
   parts.push('Bridge: '+chemChoiceName(CHEM_BRIDGES,c.bridge,'Black'));
   parts.push('Crystal: '+chemChoiceName(CHEM_CRYSTALS,c.crystal,'None'));
   return parts;
@@ -937,13 +952,15 @@ function chemPriceLines(){
   return S.chemClips.map((c,i)=>{
     const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
     let v=t.p, bits=[t.n];
-    if(t.id!=='readers'){
+    if(t.id==='sun'){
       const mir=CHEM_MIRRORS.find(x=>x.id===c.mirror);
       if(mir&&mir.p){ v+=mir.p; bits.push(mir.n); }
       if(c.colour) bits.push(CHEM_COLOURS.find(x=>x.id===c.colour)?.n||c.colour);
+      if(c.gradient) bits.push(CHEM_GRADIENTS.find(x=>x.id===c.gradient)?.n||c.gradient);
     }
-    if((t.id==='sun'||t.id==='drive')&&c.polarised){ v+=34; bits.push('polarised'); }
-    if(c.magnet&&c.magnet!=='Black') bits.push(c.magnet+' magnet');
+    if(t.id==='sun'&&c.polarised){ v+=34; bits.push('polarised'); }
+    if(t.id==='blue'||t.id==='readers') bits.push(c.add==='0.00'?'Plano':'+'+c.add);
+    if(c.magnet) bits.push(c.magnet+' magnet');
     if(c.bridge&&c.bridge!=='Black') bits.push(c.bridge+' bridge');
     const cr=CHEM_CRYSTALS.find(x=>x.id===c.crystal);
     if(cr&&cr.id!=='none'){ v+=cr.p||0; bits.push(cr.n); }
@@ -1082,12 +1099,13 @@ function secValid(){
     &&(!S.shape||S.shapeOk||S.scope!=='remote')
     &&(S.scope!=='remote'||!!S.file);
   const lens=activeSides().every(lensComplete)&&!splitLensesDuplicate();
-  const rxOk=rows.every(x=>x.r.sph!==null&&Math.abs(x.r.sph)<=25)
+  const rxOk=rows.every(x=>x.r.sph!==null&&x.r.sph>=-25&&x.r.sph<=18)
     &&rows.every(x=>!x.r.cyl||x.r.cyl===0||(x.r.axis!==null&&x.r.axis>=1&&x.r.axis<=180))
     &&(!needsAdd()||rows.every(x=>x.r.add!==null&&x.r.add>=.25&&x.r.add<=4.5))
     &&rows.every(x=>x.r.pd!==null&&x.r.pd>=20&&x.r.pd<=45)
     &&(!needsNearPD()||rows.every(x=>x.r.npd!==null&&x.r.npd>=18&&x.r.npd<=45))
-    &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35))
+    &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35&&x.r.ht<=(parseNum($('#fb').value)??Infinity)))
+    &&rows.every(x=>x.r.prism===null||x.r.prism<=10)
     &&errors().length===0;
   const chemOk=S.chemClips.every(chemClipComplete)&&chemDuplicateIds().size===0&&addonIssues().length===0;
   return {'sec-patient':patient,'sec-frame':frame,'sec-lens':lens,'sec-rx':rxOk,'sec-treat':chemOk,'sec-notes':true};
@@ -1097,6 +1115,8 @@ const selectLabel=id=>{
   const el=$('#'+id);
   return el?.selectedOptions?.[0]?.textContent?.trim()||el?.value||'';
 };
+const summaryEscape=value=>String(value??'').replace(/[&<>"']/g,ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
+const summaryField=(label,value)=>`<div class="summary-field"><span class="summary-label">${summaryEscape(label)}</span><span class="summary-value">${summaryEscape(value||'—')}</span></div>`;
 /* Mount values changed after drafts and assistant handoffs had already been
    persisted. Normalize at replay so old payloads remain valid and new payloads
    never leave the select at selectedIndex -1. */
@@ -1130,9 +1150,7 @@ function orderIsEmpty(){
   return patientBlank&&frameBlank&&lensBlank&&rxBlank&&treatBlank&&notesBlank;
 }
 function shouldOfferGoToDrafts(){ return !!ADAPTER.hasSavedDrafts&&orderIsEmpty(); }
-/* sec-rx and sec-treat need real line breaks (values crammed onto one line
-   were unreadable) — those two return HTML and are rendered via innerHTML;
-   everything else stays plain text since patient/frame names are free-typed. */
+/* Structured summaries are escaped before insertion; patient remains plain text. */
 function sectionSummary(id){
   if(id==='sec-patient'){
     const ref=$('#ref').value.trim();
@@ -1140,26 +1158,31 @@ function sectionSummary(id){
   }
   if(id==='sec-frame'){
     const mountSel=$('#mount'), mount=mountSel.selectedIndex>0?mountSel.options[mountSel.selectedIndex].text:'';
-    const shapeBit=(()=>{
-      if(S.scope!=='remote') return selectLabel('fsource');
-      const sh=activeShape(); if(!sh) return '';
-      const src=S.shapeSrc==='standard'?((STD_SHAPES.find(s=>s.id===S.stdShape)||{}).n+' standard shape')
-        :(S.file?S.file.name:'Uploaded trace');
-      return src+(S.shapeOk?' · confirmed':' · not yet confirmed');
-    })();
-    return [$('#fname').value.trim(),mount,
-      `A ${$('#fa').value} · B ${$('#fb').value} · ED ${$('#fed').value} · DBL ${$('#fdbl').value}`,
-      S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut',shapeBit].filter(Boolean).join(' · ');
+    const shape=activeShape();
+    const geometry=shape?shapeGeometry(shape):null;
+    const shapeName=S.shapeSrc==='standard'?STD_SHAPES.find(s=>s.id===S.stdShape)?.n:(S.file?.name||'Uploaded trace');
+    const preview=geometry?`<div class="summary-shape" aria-label="${summaryEscape(shapeName||'Frame shape')} preview">${S.shapeSrc==='standard'?shapeThumb(S.stdShape,54):miniThumb(geometry)}</div>`:'';
+    return `<div class="summary-fields">${preview}
+      ${summaryField('Frame', $('#fname').value.trim())}${summaryField('Mount',mount)}
+      ${summaryField('A', $('#fa').value)}${summaryField('B', $('#fb').value)}${summaryField('ED', $('#fed').value)}${summaryField('DBL', $('#fdbl').value)}
+      ${summaryField('Job type',S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut')}
+      ${summaryField(S.scope==='remote'?'Shape / trace':'Supplied by',S.scope==='remote'?(shapeName||'—'):selectLabel('fsource'))}
+    </div>`;
   }
   if(id==='sec-lens'){
     const visionLbl=S.vision==='mf'?'Multifocal/Progressive':'Single vision';
     const eyesLbl=S.eyes==='pair'?(splitActive()?'Pair · different lens each eye':'Pair'):(S.eyes==='od'?'Right only':'Left only');
     const purposeLbl=S.vision==='sv'?({dist:'Distance',read:'Reading',inter:'Intermediate'}[S.purpose]||''):'';
-    const head=[visionLbl,eyesLbl,purposeLbl].filter(Boolean).join(' · ');
-    const lensBit=splitActive()
-      ? `OD ${namedLens('a')||'—'}  │  OS ${namedLens('b')||'—'}`
-      : (namedLens('a')||'');
-    return [head,lensBit].filter(Boolean).join(' · ');
+    const lensFields=side=>{
+      const t=lensTriple(side), m=MATERIALS.find(x=>x.id===t.m), d=DESIGNS.find(x=>x.id===t.d), c=COLOURS.find(x=>x.id===t.c);
+      return `${summaryField('Material',m?.n)}${summaryField('Style',d?.v==='mf'?(d?.prog?'Progressive':'Bifocal'):'Single vision')}${summaryField('Design',d?.n)}${summaryField('Option',c?.n)}`;
+    };
+    return `<div class="summary-fields">${summaryField('Vision type',visionLbl)}${summaryField('Eyes to supply',eyesLbl)}${purposeLbl?summaryField('Rx purpose',purposeLbl):''}
+      ${splitActive()?`${summaryField('Right eye','OD')}${lensFields('a')}${summaryField('Left eye','OS')}${lensFields('b')}`:lensFields('a')}
+      ${summaryField('Blank diameter',$('#diam').value?$('#diam').value+' mm':'—')}
+      ${isProg()?summaryField('Corridor length',$('#corridor').value+' mm'):''}
+      ${summaryField('Base curve',$('#basecurve').value==='auto'?"Lab's choice":$('#basecurve').value)}
+    </div>`;
   }
   if(id==='sec-rx'){
     const htLbl=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
@@ -1198,9 +1221,10 @@ function sectionSummary(id){
   }
   return [selectLabel('service'),selectLabel('delivery'),($('#notes').value.trim()||chemLabNotes())&&'Lab notes added'].filter(Boolean).join(' · ');
 }
-const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-rx','sec-treat']);
+const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-frame','sec-lens','sec-rx','sec-treat']);
 function syncSectionCollapse(V){
   const justCollapsed=[];
+  const focusedSection=document.activeElement?.closest?.('.card[data-step]');
   SECTION_IDS.forEach(id=>{
     const section=$('#'+id); if(!section) return;
     /* A section only folds once it is actually complete. In particular, a
@@ -1210,7 +1234,7 @@ function syncSectionCollapse(V){
     const complete=!!V[id]&&sectionHasCapturedData(id);
     const wasCollapsed=S.collapsedSections.has(id);
     if(!complete){ S.collapsedSections.delete(id); S.editingSections.delete(id); }
-    else if(!S.editingSections.has(id)&&!section.contains(document.activeElement)) S.collapsedSections.add(id);
+    else if(!S.editingSections.has(id)&&focusedSection&&focusedSection!==section) S.collapsedSections.add(id);
     const collapsed=S.collapsedSections.has(id);
     if(collapsed&&!wasCollapsed) justCollapsed.push(section);
     section.classList.toggle('section-collapsed',collapsed);
@@ -1251,19 +1275,36 @@ function openSection(id){
 }
 function errors(){
   const out=[];
+  const frameB=parseNum($('#fb').value);
+  const anyStarted=activeEyes().some(eye=>Object.entries(readRow(eye)).some(([key,value])=>key!=='base'&&value!==null));
   activeEyes().forEach(e=>{
     const r=readRow(e), E=e.toUpperCase();
+    if(!anyStarted) return;
+    if(r.sph===null) out.push({t:`${E} sphere is required.`,e,f:'sph'});
     if(r.sph!==null&&(r.sph>18||r.sph<-25)) out.push({t:`${E} sphere is outside the producible range (+18.00 to -25.00).`,e,f:'sph'});
     if(r.cyl!==null&&Math.abs(r.cyl)>8) out.push({t:`${E} cylinder beyond -8.00 needs a lab consult.`,e,f:'cyl'});
+    if(r.cyl&&r.axis===null) out.push({t:`${E} axis is required when cylinder is entered.`,e,f:'axis'});
+    if(r.axis!==null&&(r.axis<1||r.axis>180)) out.push({t:`${E} axis must be from 1 to 180.`,e,f:'axis'});
+    if(needsAdd()&&(r.add===null||r.add<.25)) out.push({t:`${E} add must be at least +0.25.`,e,f:'add'});
     if(r.add!==null&&r.add>4.5) out.push({t:`${E} add above +4.50 is not producible.`,e,f:'add'});
+    if(r.pd===null||r.pd<20||r.pd>45) out.push({t:`${E} distance PD must be 20–45 mm.`,e,f:'pd'});
+    if(needsNearPD()&&(r.npd===null||r.npd<18||r.npd>45)) out.push({t:`${E} near PD must be 18–45 mm.`,e,f:'npd'});
+    if(needsHt()&&(r.ht===null||r.ht<(isProg()?14:12)||r.ht>35)) out.push({t:`${E} ${isProg()?'fitting':'segment'} height must be ${isProg()?14:12}–35 mm.`,e,f:'ht'});
+    if(needsHt()&&frameB!==null&&r.ht!==null&&r.ht>frameB) out.push({t:`${E} fitting height ${r.ht.toFixed(1)} mm exceeds the frame B measurement of ${frameB.toFixed(1)} mm.`,e,f:'ht'});
+    if(r.prism!==null&&r.prism>10) out.push({t:`${E} prism cannot exceed 10.00Δ in any base direction.`,e,f:'prism'});
     if(r.prism&&r.prism>0&&!r.base) out.push({t:`${E} prism needs a base direction.`,e,f:'base'});
-    if(needsHt()&&isProg()&&r.ht!==null&&r.ht<14) out.push({t:`${E} fitting height ${r.ht.toFixed(1)} mm — progressives cannot be cut below 14 mm.`,e,f:'ht'});
     if(needsNearPD()&&r.npd!==null&&r.pd!==null&&r.npd>r.pd) out.push({t:`${E} near PD is wider than distance PD — check the measurement.`,e,f:'npd'});
   });
   return out;
 }
 function warnings(){
   const out=[];
+  const frameB=parseNum($('#fb').value);
+  if(needsHt()&&frameB!==null) activeEyes().forEach(e=>{
+    const ht=readRow(e).ht;
+    if(ht!==null&&ht<=frameB&&ht>=frameB-3&&!S.warnOff.has('ht-'+e))
+      out.push({id:'ht-'+e,t:`${e.toUpperCase()} fitting height is within 3 mm of frame B (${frameB.toFixed(1)} mm). Check the measurement; this is allowed if intentional.`});
+  });
   if(S.eyes==='pair'){
     const a=readRow('od').sph, b=readRow('os').sph;
     if(a!==null&&b!==null&&a*b<0&&!S.warnOff.has('sign'))
@@ -1882,7 +1923,7 @@ docListen('focusout',e=>{
   setTimeout(()=>{
     if(!section.contains(document.activeElement)){
       S.editingSections.delete(section.id);
-      render();
+      if(document.activeElement?.closest?.('.card[data-step]')) render();
     }
   },0);
 });
@@ -3381,9 +3422,12 @@ function restorePayload(p,{newOrderNumber=false}={}){
   S.chemClips=Array.isArray(p.chemistrie) ? p.chemistrie.map(c=>({
     ...c,
     id:c.id||'clip'+(++chemClipSeq),
-    colour:c.colour||'',
-    mirror:c.mirror==='none'?'':(c.mirror||''),
-    polarised:c.type==='sun'?true:!!c.polarised,
+    colour:c.type==='sun'?(c.colour||''):'',
+    mirror:c.type==='sun'&&c.mirror!=='none'?(c.mirror||''):'',
+    gradient:c.type==='sun'?(c.gradient||''):'',
+    add:(c.type==='blue'||c.type==='readers')&&c.add!==''&&c.add!=null?Number(c.add).toFixed(2):'',
+    magnet:c.magnet==='Black'?'Silver':(c.magnet||'Silver'),
+    polarised:c.type==='sun',
   })) : [];
   Object.entries(p.rx||{}).forEach(([e,r])=>{
     rowEls(e).forEach(i=>{ const v=r[i.dataset.f]; i.value=(v===null||v===undefined)?'':v; });

@@ -2,7 +2,26 @@
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Status: Document AI source integration ready — Google IAM configuration blocked
-- Last synchronized: 2026-09-19
+- Last synchronized: 2026-09-26
+
+## Rx order browser feedback
+
+Status: Complete — no active handoff
+
+The 2026-09-26 Rx form changes were implemented in
+`src/features/rx-order/embed/{rx-order-engine.js,rx-order-markup.html,rx-order.css}`
+and the Rx route width in `src/components/account/AccountLayout.tsx`.
+The related Rx integration tests were updated and extended. Local browser
+review confirmed the Enter chain and panel handoff, and found and resolved a
+cramped frame grid. Focused Rx tests passed 71/71; TypeScript, lint (warnings
+only), build, PR checks, and `git diff --check` passed. The PR gate uses
+`docs/bugs/doc-symmetry-exception-rx-order-unreleased.md` to avoid generating
+a production release/version for a source-only change. Search index generation
+also repaired a pre-existing two-line public-content drift. The full suite still reports the
+three existing CRLF-sensitive failures in assistant memory and walk-in-payment
+source-string tests. No production deployment or production order write was
+performed. The account-header branding comment remains a design suggestion.
+A normal frontend release requires explicit deployment approval.
 
 ## Higgsfield Seedance 2.5 example
 

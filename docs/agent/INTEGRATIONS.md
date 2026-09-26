@@ -10,6 +10,7 @@
 | Supabase | Database, authentication, storage, and functions | `supabase/**` and generated client |
 | Higgsfield | Server-side asynchronous video generation | `examples/higgsfield/index.ts` and `@higgsfield/client` |
 | OptiLens Local | Private operational integration boundary | `classicitbb/optilens-local` and integration code |
+| Chemistrie manufacturer catalog | Public source for Rx clip types, powers, hardware colors and Sun gradients; confirm account availability before commercial ordering | `https://chemistrie.com/pages/order-flow` and `https://chemistrie.com/wp-content/uploads/2021/10/Chemistrie-Retailer-Brochure.pdf` |
 
 Exact account IDs, URLs not intended for customers, credentials, internal hosts, and private access instructions must not be stored here.
 

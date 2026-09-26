@@ -1,5 +1,12 @@
 # Frontend Help Docs
 
+## 2026-09-26 — Completing an Rx order
+
+- Press Enter through first name, last name, then the optional order reference. The patient panel stays open until you move into Frame & measurements.
+- Click a completed panel's labelled summary to reopen it. Frame and lens summaries show the field names above each value; a selected standard or traced shape has a small preview.
+- In Prescription, correct the listed issue if the next panel stays locked. Prism cannot exceed 10Δ. A fitting height above the frame's B measurement blocks the order; a height within 3 mm of B is allowed with a warning to check it.
+- For Chemistrie, choose one Sun lens category (solid, mirror or gradient), a listed power for Blue or Reader clips, or the fixed Night Drive lens. Magnet colors are Silver, Gold and Gunmetal.
+
 ## 2026-09-11 — Safer price, lab-status, shipment, and support actions
 
 - When editing a pricelist, changing only its name or selecting **Save** with unchanged adjustments does not touch line prices. If a percentage changed, **Preserve manual prices** is selected by default. Use **Replace all line prices** only when every price in the affected sections should be rebuilt.

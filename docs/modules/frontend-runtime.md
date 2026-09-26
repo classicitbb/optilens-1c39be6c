@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-26 — Portal Rx order form
+
+- `/profile/rx-order` keeps the account layout at a route-scoped 1200px maximum. The embed `.wrap` owns a 2px desktop inset and retains a 14px mobile inset at 640px and below.
+- `src/features/rx-order/embed/rx-order-engine.js` controls section focus/collapse, labelled summaries, shape thumbnails, Rx gate diagnostics and Chemistrie configuration. A finished panel folds when focus enters another panel. `cv.rxorder/1` draft restore normalizes older clip fields.
+- Chemistrie choices follow the manufacturer order flow and retailer brochure: eight named Sun gradients, quarter-step Reader (+0.50 to +2.50) and Blue (plano to +2.00) powers, and fixed non-polarised Night Drive. Account-specific availability and prices remain the live catalog's responsibility.
+
 ## 2026-09-24 — Contacts and Leads merged into CRM; Leads Assistant → Copilot
 
 - The Contacts and Leads apps are gone; everything lives in the `crm` app under `/admin/crm/*`: Dashboard, Pipeline, Contacts (`/contacts`, deep link `?contact=<id>` / `?erpCustomer=<id>`), My Leads (`/leads`), Lead Finder, Campaigns & Sequences, Lead Audit Reports, Activities, Outbox, Proposals, CRM Settings.

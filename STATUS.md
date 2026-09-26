@@ -4,11 +4,24 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-19
+Last updated: 2026-09-26
 
 ---
 
 ## Active work
+
+- **Rx order browser feedback** — source changes complete locally. Completed
+  sections fold when focus moves into another panel; Enter passes through the
+  optional order reference. Frame and lens summaries show labelled fields,
+  selected shapes get a thumbnail, and prescription blockers now explain prism
+  and fitting-height limits. The frame panel and order rail are more compact.
+  Chemistrie Sun includes the manufacturer's eight gradient choices; Blue and
+  Readers use listed powers, Drive is fixed, and Black is no longer a magnet
+  choice. Focused Rx tests (71/71), TypeScript, lint, build, and local keyboard
+  browser checks and PR checks pass; the PR gate uses an explicit documentation
+  symmetry exception because its release generator would mark this source-only
+  work as a production release. The full suite has three pre-existing
+  CRLF-sensitive failures outside Rx. No hosted release or production order was made.
 
 - **Customer-device walk-in payments** — source now lets a walk-in pay on their
   own phone instead of handing a card over the counter. Staff can still take the
