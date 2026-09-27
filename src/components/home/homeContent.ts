@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Boxes,
   Building2,
   ClipboardCheck,
@@ -15,6 +16,7 @@ import {
   ScanEye,
   ShieldCheck,
   Sparkles,
+  Stethoscope,
   Sun,
   Truck,
   Wrench,
@@ -105,13 +107,37 @@ export const heroPaths = {
   },
 } as const;
 
+/** Headline + lede per audience. Professional copy is the crawled default. */
+export const heroCopy = {
+  professional: {
+    eyebrow: "Professional Optical laboratory",
+    headline: "Wholesale prescription lenses,",
+    headlineAccent: "produced in the Caribbean.",
+    lede: DEFINITION_SENTENCE,
+  },
+  visitor: {
+    eyebrow: "Lenses made in Barbados",
+    headline: "Clear, comfortable lenses,",
+    headlineAccent: "made here in the Caribbean.",
+    lede: "Classic Visions makes prescription lenses in Barbados for opticians across the Caribbean. We don't sell glasses directly — your optician orders your lenses from our lab and fits them to your frames.",
+  },
+} as const;
+
 /** Published, defensible claims only — no unverified numbers. */
-export const heroProofPoints = [
-  { label: "Lab location", value: "Barbados", icon: MapPin },
-  { label: "Order processing", value: "Same day before 2 PM", icon: Gauge },
-  { label: "Delivery", value: "Caribbean-wide freight", icon: Truck },
-  { label: "Material range", value: "Index 1.50 – 1.74", icon: Layers },
-] as const;
+export const heroProofPoints = {
+  professional: [
+    { label: "Lab location", value: "Barbados", icon: MapPin },
+    { label: "Order processing", value: "Same day before 2 PM", icon: Gauge },
+    { label: "Delivery", value: "Caribbean-wide freight", icon: Truck },
+    { label: "Material range", value: "Index 1.50 – 1.74", icon: Layers },
+  ],
+  visitor: [
+    { label: "Made in", value: "Saint George, Barbados", icon: MapPin },
+    { label: "Available through", value: "Your local optician", icon: Glasses },
+    { label: "Lens designs", value: "Single vision to progressive", icon: Eye },
+    { label: "Protection options", value: "UV, anti-glare & blue-violet", icon: ShieldCheck },
+  ],
+} as const;
 
 /* -------------------------------------------------------------------------- */
 /*  What we supply — internal linking to money pages                           */
@@ -328,7 +354,7 @@ export const supportPromises = [
 /* -------------------------------------------------------------------------- */
 /*  FAQ — the AEO surface. Answers are self-contained and quotable.            */
 /* -------------------------------------------------------------------------- */
-export const faqs = [
+export const professionalFaqs = [
   {
     question: "Does Classic Visions sell glasses directly to the public?",
     answer:
@@ -401,13 +427,114 @@ export const faqs = [
 ] as const;
 
 /* -------------------------------------------------------------------------- */
-/*  Patient lane                                                               */
+/*  Patient view — only what someone buying glasses needs                      */
 /* -------------------------------------------------------------------------- */
-export const patientLinks = [
-  { label: "What's the difference between lens types?", href: "/patients/lens-differences" },
-  { label: "Why choose progressive lenses?", href: "/patients/progressive-lenses" },
-  { label: "Eye strain & anti-fatigue lenses", href: "/patients/anti-fatigue-lenses" },
-  { label: "Caring for your glasses", href: "/patients/caring-for-glasses" },
-  { label: "Sunlight & UV protection", href: "/patients/sunlight-protection" },
-  { label: "Night driving aids", href: "/patients/night-driving-aids" },
+
+/** How a member of the public actually ends up wearing our lenses. */
+export const patientJourney = [
+  {
+    number: "01",
+    title: "Get an up-to-date eye exam",
+    text: "Your prescription is the starting point. If it's been a while, book an exam — vision can change without you noticing.",
+    href: "/patients/regular-eye-exams",
+    linkLabel: "Why regular exams matter",
+    icon: Stethoscope,
+  },
+  {
+    number: "02",
+    title: "Know your lens options",
+    text: "Single vision, bifocal, or progressive — plus coatings for glare, screens, and sun. A few minutes' reading makes the choice easy.",
+    href: "/patients/lens-differences",
+    linkLabel: "Compare lens types",
+    icon: BookOpen,
+  },
+  {
+    number: "03",
+    title: "Visit a participating optician",
+    text: "They help you choose frames and lenses, order them from our Barbados lab, and fit your finished glasses.",
+    href: "/find-a-retailer",
+    linkLabel: "Find an optician near you",
+    icon: MapPin,
+  },
+] as const;
+
+/** Plain-English guides, one line each so the grid scans quickly. */
+export const patientGuides = [
+  {
+    label: "Which lens type is right for me?",
+    text: "Single vision, bifocal, and progressive, explained simply.",
+    href: "/patients/lens-differences",
+  },
+  {
+    label: "Why choose progressive lenses?",
+    text: "Near, middle, and far in one lens — with no visible line.",
+    href: "/patients/progressive-lenses",
+  },
+  {
+    label: "Eye strain & anti-fatigue lenses",
+    text: "Relief for long days of close-up and screen work.",
+    href: "/patients/anti-fatigue-lenses",
+  },
+  {
+    label: "Computers & mobile phones",
+    text: "Lens options for the distances screens actually sit at.",
+    href: "/patients/computer-mobile-use",
+  },
+  {
+    label: "Sunlight & UV protection",
+    text: "Photochromic, polarized, and UV options for island sun.",
+    href: "/patients/sunlight-protection",
+  },
+  {
+    label: "Night driving aids",
+    text: "Cutting headlight glare and improving comfort after dark.",
+    href: "/patients/night-driving-aids",
+  },
+  {
+    label: "Caring for your glasses",
+    text: "Cleaning, storage, and habits that keep lenses clear.",
+    href: "/patients/caring-for-glasses",
+  },
+  {
+    label: "Regular eye exams",
+    text: "How often to go, and what an exam can pick up.",
+    href: "/patients/regular-eye-exams",
+  },
+] as const;
+
+/** Lens pages worth reading before a patient's optician visit. */
+export const patientLensExplorer = lensExplorer.slice(0, 2);
+
+export const patientFaqs = [
+  professionalFaqs[0],
+  {
+    question: "How do I get glasses made with Classic Visions lenses?",
+    answer:
+      "Visit a participating optician or eye clinic. They check your prescription, help you choose frames and lens options, and order the lenses from our Barbados laboratory, then fit the finished glasses for you. Use the retailer finder to locate a practice near you.",
+    links: [{ label: "Find an optical retailer", href: "/find-a-retailer" }],
+  },
+  {
+    question: "Which lens type is right for me?",
+    answer:
+      "It depends on your prescription and how you use your eyes day to day. Single vision lenses correct one distance, bifocals have two distinct zones, and progressives change gradually from distance to near with no visible line. Your optician will recommend a design that suits your routine.",
+    links: [
+      { label: "Compare lens types", href: "/patients/lens-differences" },
+      { label: "Why choose progressives?", href: "/patients/progressive-lenses" },
+    ],
+  },
+  {
+    question: "Can my lenses help with sun, glare, and screens?",
+    answer:
+      "Yes. Options include UV filtering, anti-reflective coatings that cut glare and reflections, blue-violet light management for screen use, photochromic lenses that darken outdoors, and polarized sun lenses. Ask your optician which combination suits your day.",
+    links: [
+      { label: "Sunlight & UV protection", href: "/patients/sunlight-protection" },
+      { label: "Eye strain & screens", href: "/patients/anti-fatigue-lenses" },
+    ],
+  },
+  {
+    question: "How should I clean and care for my glasses?",
+    answer:
+      "Rinse off dust and grit first, clean the lenses with a proper lens cleaner and a microfibre cloth rather than clothing or tissue, and keep your glasses in their case when you're not wearing them. Our care guide covers the details.",
+    links: [{ label: "Caring for your glasses", href: "/patients/caring-for-glasses" }],
+  },
 ] as const;

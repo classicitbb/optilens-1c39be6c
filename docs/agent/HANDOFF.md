@@ -2,7 +2,30 @@
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Status: Document AI source integration ready — Google IAM configuration blocked
-- Last synchronized: 2026-09-26
+- Last synchronized: 2026-09-27
+
+## Homepage hero browser feedback
+
+Status: Complete — no active handoff.
+
+The promoted homepage now uses `src/assets/classic-visions-caribbean-team-v2.webp`,
+a generated conceptual portrait of Caribbean optical professionals with frames
+and a lens, without machinery. The original hero image remains in the asset
+folder for comparison. The hero eyebrow reads "Professional Optical laboratory"
+and the image caption reads "Made in Barbados". `HomePage.tsx` keeps its
+existing 16:9 responsive frame; the generated search index was refreshed.
+The portrait is illustrative and should not be represented as a photograph of
+actual Classic Visions staff.
+
+Verification: local in-app browser desktop review, focused ESLint, public
+search-index check, production build, and `git diff --check` pass. The full test
+suite remains at 935/938 because of the three existing CRLF-sensitive tests in
+assistant memory and walk-in payments. Full lint has one unrelated existing
+`@ts-nocheck` error in the transactional-email template. No hosted release was
+made; a production deployment still requires approval. `qa:pr-checks` passes
+lockfile policy and the documented source-only symmetry exception, then stops
+at pre-existing Copilot platform-facts drift; that generated file was left
+untouched because this hero change has no Copilot dependency.
 
 ## AI spend monitoring
 

@@ -252,7 +252,7 @@ const extractFromFile = (file, phrases, alts, headings) => {
 };
 
 /**
- * Many pages are thin dispatchers or wrappers (Index renders HomeVersionA;
+ * Many pages are thin dispatchers or wrappers (Index renders HomePage;
  * PatientTopicPage receives its copy as props). Walk the page plus its local
  * content imports, bounded by depth and the chrome denylist, so the prose that
  * actually renders on the route ends up in the index.
