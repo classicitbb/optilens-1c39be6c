@@ -24,7 +24,6 @@ import { createAuthHref } from "@/lib/authFlow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
-import HomeVersionSwitch from "@/components/home-prototypes/HomeVersionSwitch";
 
 type MegaMenuLink = {
   label: string;
@@ -746,8 +745,6 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
                           </ToggleGroup>
                         </div>
                       </div>
-
-                      {hasAccess ? <HomeVersionSwitch /> : null}
 
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                         <LogOut className="h-4.5 w-4.5 text-foreground/80" />

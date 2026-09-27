@@ -1,0 +1,2 @@
+Doc-Symmetry-Override: true
+Rationale: The homepage promotion and browser-feedback edits are local source work awaiting review and release approval. The release ledger treats new changelog entries as production releases and increments the app version, so release artifacts must wait for an authorized publish. The promoted page is described in docs/homepage-version-b-audit.md, and the current hero variant and verification are recorded in docs/agent/HANDOFF.md.

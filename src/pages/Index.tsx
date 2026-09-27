@@ -1,19 +1,12 @@
-import HomeVersionA from "@/components/home-prototypes/HomeVersionA";
-import HomeVersionB from "@/components/home-prototypes/HomeVersionB";
-import { useHomeVersion } from "@/components/home-prototypes/homeVersionStore";
+import HomePage from "@/components/home/HomePage";
 
 /**
  * Homepage entry point.
  *
- * Defaults to Version A (the live homepage) for every visitor.
- * Admins can preview Version B from the account dropdown; the choice is
- * stored per-browser and never affects other users.
+ * One page, two audiences: optical professionals see the full trade story by
+ * default; patients and visitors switch to a focused view from the hero
+ * (or arrive via `/?for=patients`). See `src/components/home/useHomeAudience.ts`.
  */
-const Index = () => {
-  const version = useHomeVersion();
-
-
-  return version === "b" ? <HomeVersionB /> : <HomeVersionA />;
-};
+const Index = () => <HomePage />;
 
 export default Index;

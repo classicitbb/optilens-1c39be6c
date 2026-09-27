@@ -1,15 +1,18 @@
 # Homepage Version B — audit, rationale, and fill-in list
 
 **Date:** 2026-08-08
-**Status:** Admin-preview prototype. Version A (the live homepage) is unchanged and remains the default for every visitor.
+**Status:** Promoted. Version B is now the only homepage (`src/components/home/HomePage.tsx`); Version A and the admin A/B toggle were removed on 2026-09-26.
 
 ---
 
-## 1. How to view it
+## 1. Audience views
 
-Sign in as an admin → account dropdown (top right) → **Homepage version** → **B**.
+The hero switch ("I'm here as…") changes the whole page, not just the hero card:
 
-The choice is stored per-browser in `localStorage` under `cv:home-version`, defaults to `a`, and is only rendered for users where `hasAccess` is true (the same condition that shows the Admin link). No public visitor can reach Version B.
+- **Optical professional** (default, and what crawlers index): capabilities, lens & coating index, onboarding, after-sale support, trade FAQs, trade-account CTA.
+- **Patient or visitor**: patient headline and proof points, 3-step "how to get our lenses", patient guides, patient-relevant lens pages, patient FAQs, find-an-optician CTA. No trade content.
+
+The choice is remembered per browser (`cv:home-audience`) and can be linked directly with `/?for=patients`. A switch strip at the foot of the page offers the other view.
 
 ---
 

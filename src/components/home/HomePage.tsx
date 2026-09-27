@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { ArrowRight, ArrowUpRight, CircleUserRound, Glasses, MapPin, Phone } from "lucide-react";
 
-import caribbeanHero from "@/assets/classic-visions-caribbean-journey.webp";
+import caribbeanHero from "@/assets/classic-visions-caribbean-team-v2.webp";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import PublicSearchPanel from "@/components/PublicSearchPanel";
@@ -15,15 +15,20 @@ import {
   DEFINITION_SENTENCE,
   PLACEHOLDERS,
   capabilityPillars,
-  faqs,
+  heroCopy,
   heroPaths,
   heroProofPoints,
   lensExplorer,
   onboardingSteps,
-  patientLinks,
+  patientFaqs,
+  patientGuides,
+  patientJourney,
+  patientLensExplorer,
+  professionalFaqs,
   supportPromises,
   type Audience,
-} from "@/components/home-prototypes/homeVersionBContent";
+} from "@/components/home/homeContent";
+import { useHomeAudience } from "@/components/home/useHomeAudience";
 
 /* -------------------------------------------------------------------------- */
 /*  Shared Meridian Precision primitives                                       */
@@ -86,9 +91,18 @@ const SectionHeading = ({
 /*  Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
-const HomeVersionB = () => {
-  const [audience, setAudience] = useState<Audience>("professional");
+const HomePage = () => {
+  const [audience, setAudience] = useHomeAudience();
+  const isProfessional = audience === "professional";
   const path = heroPaths[audience];
+  const copy = heroCopy[audience];
+  const faqs = isProfessional ? professionalFaqs : patientFaqs;
+
+  /** Used by the switch at the foot of the page: change view, then return to the hero. */
+  const switchAudienceFromFooter = (next: Audience) => {
+    setAudience(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const { openAssistant } = useCompanionAssistant();
 
   const jsonLd = useMemo(() => {
@@ -188,7 +202,7 @@ const HomeVersionB = () => {
     };
 
     return [organization, website, services, faqPage];
-  }, []);
+  }, [faqs]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -211,28 +225,29 @@ const HomeVersionB = () => {
           />
           <OpticalRings className="-left-48 top-1/2 -translate-y-1/2 opacity-70" />
 
-          <div className="container relative mx-auto grid max-w-[1500px] gap-0 px-5 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:px-0">
-            <div className="flex min-w-0 flex-col justify-center pt-24 pb-14 sm:pt-28 sm:pb-20 lg:py-24 lg:pl-12 lg:pr-14 xl:pl-16">
-              <Eyebrow >
-                Barbados optical laboratory{PLACEHOLDERS.foundingYear ? ` · Est. ${PLACEHOLDERS.foundingYear}` : ""}
+          <div className="container relative mx-auto grid max-w-[1500px] gap-0 px-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:px-0">
+            <div className="flex min-w-0 flex-col justify-center pt-24 pb-10 sm:pt-28 sm:pb-14 lg:pb-16 lg:pl-12 lg:pr-10 lg:pt-28 xl:pl-16">
+              <Eyebrow>
+                {copy.eyebrow}
+                {PLACEHOLDERS.foundingYear ? ` · Est. ${PLACEHOLDERS.foundingYear}` : ""}
               </Eyebrow>
 
               <h1
                 id="hero-heading"
-                className="mt-5 max-w-[15ch] hyphens-none break-normal font-serif text-[2rem] font-semibold leading-[1.06] tracking-[-0.02em] min-[400px]:text-[2.4rem] sm:text-6xl sm:leading-[1.04] xl:text-[4.25rem]"
+                className="mt-5 max-w-[15ch] hyphens-none break-normal font-serif text-[2rem] font-semibold leading-[1.06] tracking-[-0.02em] min-[400px]:text-[2.4rem] sm:text-6xl sm:leading-[1.04] lg:max-w-[18ch] lg:text-[3.25rem] xl:text-[3.75rem]"
               >
-                Wholesale prescription lenses, <span className="text-accent">produced in the Caribbean.</span>
+                {copy.headline} <span className="text-accent">{copy.headlineAccent}</span>
               </h1>
 
               {/* Answer-first definition sentence — the quotable line for AI answer engines. */}
-              <p className="mt-6 max-w-2xl border-l-2 border-accent/70 pl-5 text-base leading-7 text-surface-deep-foreground/85 sm:text-lg">
-                {DEFINITION_SENTENCE}
+              <p className="mt-5 max-w-2xl border-l-2 border-accent/70 pl-5 text-base leading-7 text-surface-deep-foreground/85 sm:text-lg">
+                {copy.lede}
               </p>
 
               {/* Audience switch */}
-              <div className="mt-9 max-w-2xl rounded-2xl border border-surface-deep-foreground/15 bg-surface-deep-foreground/[0.06] p-2 backdrop-blur-sm sm:p-2.5">
+              <div className="mt-8 max-w-2xl rounded-2xl border border-surface-deep-foreground/15 bg-surface-deep-foreground/[0.06] p-2 backdrop-blur-sm sm:p-2.5">
                 <p className="px-3 pb-2 pt-1 font-mono text-[10px] uppercase tracking-[0.3em] text-surface-deep-foreground/60">
-                  I am an…
+                  I'm here as…
                 </p>
                 <div className="grid grid-cols-2 gap-2" role="group" aria-label="Choose your path">
                   {(
@@ -259,7 +274,7 @@ const HomeVersionB = () => {
                   ))}
                 </div>
 
-                <div className="mt-2 rounded-xl bg-card p-5 text-card-foreground sm:p-6">
+                <div key={audience} className="mt-2 animate-fade-in rounded-xl bg-card p-5 text-card-foreground sm:p-6">
                   <Eyebrow>{path.eyebrow}</Eyebrow>
                   <h2 className="mt-3 font-serif text-2xl font-semibold tracking-[-0.015em] sm:text-[1.75rem]">
                     {path.title}
@@ -302,20 +317,34 @@ const HomeVersionB = () => {
               </div>
             </div>
 
-            <div className="relative min-h-[340px] lg:min-h-full">
-              <img
-                src={caribbeanHero}
-                alt="Classic Visions optical technician finishing a prescription lens in the Barbados laboratory while a customer wears her new glasses"
-                className="absolute inset-0 h-full w-full object-cover object-[58%_center]"
-                loading="eager"
-                fetchPriority="high"
-                width={1680}
-                height={945}
-              />
-              <div
-                className="absolute inset-0 bg-gradient-to-b from-surface-deep/25 via-transparent to-surface-deep/80 lg:bg-gradient-to-r lg:from-surface-deep lg:via-surface-deep/15 lg:to-surface-deep/35"
-                aria-hidden="true"
-              />
+            {/* The team portrait keeps its native 16:9 frame at every width —
+                edge to edge on phones and a framed print on desktop. */}
+            <div className="relative -mx-5 sm:-mx-8 lg:mx-0 lg:flex lg:items-center lg:pb-16 lg:pr-12 lg:pt-28 xl:pr-16">
+              <figure className="relative w-full">
+                <div
+                  className="absolute -inset-3 hidden rounded-[1.4rem] border border-accent/25 lg:block"
+                  aria-hidden="true"
+                />
+                <div className="relative aspect-[16/9] w-full overflow-hidden lg:rounded-2xl lg:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.65)] lg:ring-1 lg:ring-surface-deep-foreground/15">
+                  <img
+                    src={caribbeanHero}
+                    alt="Caribbean optical professionals presenting eyeglass frames and a lens in a bright consultation space"
+                    className="h-full w-full object-cover"
+                    loading="eager"
+                    fetchPriority="high"
+                    width={1672}
+                    height={941}
+                  />
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-surface-deep/70 via-transparent to-transparent lg:from-surface-deep/55"
+                    aria-hidden="true"
+                  />
+                  <figcaption className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full border border-surface-deep-foreground/20 bg-surface-deep/70 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-surface-deep-foreground backdrop-blur-md sm:bottom-4 sm:left-4">
+                    <MapPin className="h-3 w-3 text-accent" aria-hidden="true" />
+                    Made in Barbados
+                  </figcaption>
+                </div>
+              </figure>
             </div>
           </div>
 
@@ -323,7 +352,7 @@ const HomeVersionB = () => {
           <div className="relative border-t border-surface-deep-foreground/10 bg-surface-deep/60 backdrop-blur-sm">
             <div className="container mx-auto max-w-[1500px] px-5 sm:px-8">
               <dl className="grid divide-y divide-surface-deep-foreground/10 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x lg:divide-surface-deep-foreground/10">
-                {heroProofPoints.map(({ label, value, icon: Icon }) => (
+                {heroProofPoints[audience].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="flex items-center gap-3.5 py-5 lg:px-7 lg:first:pl-0">
                     <Icon className="h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
                     <div>
@@ -338,6 +367,9 @@ const HomeVersionB = () => {
             </div>
           </div>
         </section>
+
+        {isProfessional ? (
+          <div key="professional" className="animate-fade-in">
 
         {/* ---------------------------------------------------------------- */}
         {/* Partner logo strip — hidden until real assets are supplied         */}
@@ -529,10 +561,125 @@ const HomeVersionB = () => {
             </div>
           </div>
         </section>
+          </div>
+        ) : (
+          <div key="visitor" className="animate-fade-in">
+        {/* ---------------------------------------------------------------- */}
+        {/* Patient view — how to get our lenses                              */}
+        {/* ---------------------------------------------------------------- */}
+        <section className="bg-background py-20 sm:py-24" aria-labelledby="journey-heading">
+          <div className="container mx-auto px-5 sm:px-8">
+            <SectionHeading
+              id="journey-heading"
+              eyebrow="How it works"
+              title="Three steps to your new glasses."
+              lede="We make the lenses; your optician is the person you'll deal with. Here's how that fits together."
+            />
+
+            <ol className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+              {patientJourney.map(({ number, title, text, href, linkLabel, icon: Icon }) => (
+                <li key={number} className="flex flex-col bg-card p-7">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.24em] text-accent">Step {number}</span>
+                    <Icon className="h-5 w-5 text-secondary" aria-hidden="true" />
+                  </div>
+                  <div className="mt-5 h-px w-full bg-border" aria-hidden="true" />
+                  <h3 className="mt-5 font-serif text-lg font-semibold tracking-[-0.01em] text-foreground">{title}</h3>
+                  <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">{text}</p>
+                  <Link
+                    to={href}
+                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary underline-offset-4 hover:underline"
+                  >
+                    {linkLabel}
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Patient view — plain-English guides                               */}
+        {/* ---------------------------------------------------------------- */}
+        <section className="border-y border-border bg-muted/40 py-20 sm:py-24" aria-labelledby="guides-heading">
+          <div className="container mx-auto px-5 sm:px-8">
+            <SectionHeading
+              id="guides-heading"
+              eyebrow="Patient guides"
+              title="Walk into your optician already knowing what to ask."
+              lede="Short, jargon-free guides to the choices you'll be offered at the counter."
+            />
+
+            <ul className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+              {patientGuides.map((guide) => (
+                <li key={guide.href}>
+                  <Link
+                    to={guide.href}
+                    className="group flex h-full flex-col bg-card p-6 transition-colors hover:bg-muted/50"
+                  >
+                    <span className="flex items-start justify-between gap-3 text-base font-semibold leading-6 text-foreground group-hover:text-secondary">
+                      {guide.label}
+                      <ArrowUpRight
+                        className="mt-1 h-4 w-4 shrink-0 text-secondary transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <span className="mt-2 text-sm leading-6 text-muted-foreground">{guide.text}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Patient view — lens options to ask about                          */}
+        {/* ---------------------------------------------------------------- */}
+        <section className="bg-background py-20 sm:py-24" aria-labelledby="patient-lenses-heading">
+          <div className="container mx-auto px-5 sm:px-8">
+            <SectionHeading
+              id="patient-lenses-heading"
+              eyebrow="Lens options"
+              title="Lenses worth asking your optician about."
+            />
+
+            <div className="mt-12 grid gap-8 sm:grid-cols-2">
+              {patientLensExplorer.map(({ title, icon: Icon, items }) => (
+                <div key={title}>
+                  <div className="flex items-center gap-2.5 border-b border-border pb-3">
+                    <Icon className="h-4 w-4 text-secondary" aria-hidden="true" />
+                    <h3 className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground">{title}</h3>
+                  </div>
+                  <ul className="mt-4 grid gap-0.5 sm:grid-cols-2">
+                    {items.map((item) => (
+                      <li key={item.href}>
+                        <Link
+                          to={item.href}
+                          className="group flex min-h-10 items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                        >
+                          {item.label}
+                          <ArrowUpRight
+                            className="h-3.5 w-3.5 shrink-0 text-secondary opacity-0 transition group-hover:opacity-100"
+                            aria-hidden="true"
+                          />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+          </div>
+        )}
+
 
         {/* ---------------------------------------------------------------- */}
         {/* Trade partner voices — rendered only when real quotes exist        */}
         {/* ---------------------------------------------------------------- */}
+        {isProfessional && PLACEHOLDERS.testimonials.length > 0 ? (
         <section className="bg-background py-20 sm:py-24" aria-labelledby="voices-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
@@ -542,7 +689,6 @@ const HomeVersionB = () => {
               align="center"
             />
 
-            {PLACEHOLDERS.testimonials.length > 0 ? (
               <div className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-3">
                 {PLACEHOLDERS.testimonials.map((item) => (
                   <figure key={item.name} className="rounded-2xl border border-border bg-card p-7 shadow-soft">
@@ -557,20 +703,10 @@ const HomeVersionB = () => {
                   </figure>
                 ))}
               </div>
-            ) : (
-              <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-dashed border-accent/50 bg-muted/40 p-8 text-center">
-                <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-accent">Content slot — not live</p>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  Add three approved trade partner quotes (name, role, practice) to{" "}
-                  <code className="rounded bg-card px-1.5 py-0.5 font-mono text-[12px] text-foreground">
-                    PLACEHOLDERS.testimonials
-                  </code>{" "}
-                  and this section renders. Until then it is hidden from consideration — no invented quotes ship.
-                </p>
-              </div>
-            )}
           </div>
         </section>
+        ) : null}
+
 
         {/* ---------------------------------------------------------------- */}
         {/* FAQ — the AEO surface                                             */}
@@ -587,8 +723,9 @@ const HomeVersionB = () => {
                   Straight answers, first time.
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground">
-                  The questions practices and patients actually ask us — answered here in full, and marked up so search
-                  engines and AI assistants can quote them accurately.
+                  {isProfessional
+                    ? "The questions practices actually ask us — answered here in full, and marked up so search engines and AI assistants can quote them accurately."
+                    : "What people usually want to know before they visit their optician — answered in plain English."}
                 </p>
                 <div className="mt-8 rounded-2xl border border-border bg-card p-5">
                   <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent">Still stuck?</p>
@@ -641,58 +778,7 @@ const HomeVersionB = () => {
         </section>
 
         {/* ---------------------------------------------------------------- */}
-        {/* Patient lane                                                       */}
-        {/* ---------------------------------------------------------------- */}
-        <section className="bg-background py-20 sm:py-24" aria-labelledby="patients-heading">
-          <div className="container mx-auto px-5 sm:px-8">
-            <div className="grid gap-10 rounded-2xl border border-border bg-card p-8 shadow-soft lg:grid-cols-[.9fr_1.1fr] lg:gap-14 lg:p-12">
-              <div>
-                <Eyebrow>Not an optical business?</Eyebrow>
-                <h2
-                  id="patients-heading"
-                  className="mt-4 font-serif text-2xl font-semibold leading-[1.15] tracking-[-0.015em] text-foreground sm:text-3xl"
-                >
-                  We make the lenses. Your optician fits them.
-                </h2>
-                <p className="mt-4 text-base leading-7 text-muted-foreground">
-                  Classic Visions supplies optical practices rather than the public. Find a participating retailer near
-                  you, and read up on your options first so the conversation at the counter is a short one.
-                </p>
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <Button asChild size="lg">
-                    <Link to="/find-a-retailer">
-                      <MapPin className="h-5 w-5" aria-hidden="true" />
-                      Find an optical retailer
-                    </Link>
-                  </Button>
-                  <Button asChild size="lg" variant="outline">
-                    <Link to="/patients">Patient guides</Link>
-                  </Button>
-                </div>
-              </div>
-
-              <ul className="grid gap-px self-start overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
-                {patientLinks.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      to={link.href}
-                      className="group flex h-full min-h-16 items-center justify-between gap-3 bg-card px-5 py-4 text-sm font-medium text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
-                    >
-                      {link.label}
-                      <ArrowUpRight
-                        className="h-4 w-4 shrink-0 text-secondary opacity-0 transition group-hover:opacity-100"
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Closing CTA                                                        */}
+        {/* Closing CTA — one per audience                                     */}
         {/* ---------------------------------------------------------------- */}
         <section className="relative isolate overflow-hidden bg-surface-deep py-20 text-surface-deep-foreground sm:py-24" aria-labelledby="cta-heading">
           <OpticalRings className="-right-40 top-1/2 -translate-y-1/2 opacity-60" />
@@ -702,39 +788,88 @@ const HomeVersionB = () => {
               id="cta-heading"
               className="mt-8 font-serif text-3xl font-semibold leading-[1.1] tracking-[-0.015em] sm:text-4xl md:text-5xl"
             >
-              Let's get your account open.
+              {isProfessional ? "Let's get your account open." : "Ready when you are."}
             </h2>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-surface-deep-foreground/80 sm:text-lg">
-              Apply in a few minutes, get pricing built around what you dispense, and start ordering with a Caribbean
-              lab that picks up the phone.
+              {isProfessional
+                ? "Apply in a few minutes, get pricing built around what you dispense, and start ordering with a Caribbean lab that picks up the phone."
+                : "Find a participating optician near you, or ask us a question first — we're happy to point you in the right direction."}
             </p>
 
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-              <Button asChild variant="hero" size="lg">
-                <Link to="/professionals/trade-account" className="group">
-                  Apply for a trade account
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="ghost"
-                className="border-2 border-surface-deep-foreground/25 text-surface-deep-foreground hover:bg-surface-deep-foreground/10"
-              >
-                <Link to="/professionals/price-list-request">Request a price list</Link>
-              </Button>
+              {isProfessional ? (
+                <>
+                  <Button asChild variant="hero" size="lg">
+                    <Link to="/professionals/trade-account" className="group">
+                      Apply for a trade account
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="ghost"
+                    className="border-2 border-surface-deep-foreground/25 text-surface-deep-foreground hover:bg-surface-deep-foreground/10"
+                  >
+                    <Link to="/professionals/price-list-request">Request a price list</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild variant="hero" size="lg">
+                    <Link to="/find-a-retailer" className="group">
+                      <MapPin className="h-5 w-5" aria-hidden="true" />
+                      Find an optician near you
+                    </Link>
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    className="border-2 border-surface-deep-foreground/25 text-surface-deep-foreground hover:bg-surface-deep-foreground/10"
+                    onClick={() => openAssistant()}
+                  >
+                    Ask us a question
+                  </Button>
+                </>
+              )}
             </div>
 
-            <a
-              href={BUSINESS.phoneHref}
-              className="mt-7 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-surface-deep-foreground/70 underline-offset-4 transition hover:text-surface-deep-foreground hover:underline"
-            >
-              <Phone className="h-3.5 w-3.5" aria-hidden="true" />
-              Or call {BUSINESS.phoneDisplay}
-            </a>
+            {isProfessional ? (
+              <a
+                href={BUSINESS.phoneHref}
+                className="mt-7 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-surface-deep-foreground/70 underline-offset-4 transition hover:text-surface-deep-foreground hover:underline"
+              >
+                <Phone className="h-3.5 w-3.5" aria-hidden="true" />
+                Or call {BUSINESS.phoneDisplay}
+              </a>
+            ) : null}
           </div>
         </section>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Audience switch — a way back for anyone who scrolled past the hero */}
+        {/* ---------------------------------------------------------------- */}
+        <aside className="border-t border-border bg-muted/40" aria-label="Switch homepage view">
+          <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-5 py-6 text-center sm:flex-row sm:px-8 sm:text-left">
+            <p className="text-sm text-muted-foreground">
+              {isProfessional
+                ? "Looking for glasses, not a supplier? We've made a simpler page for you."
+                : "Run an optical practice, clinic, or retail store?"}
+            </p>
+            <button
+              type="button"
+              onClick={() => switchAudienceFromFooter(isProfessional ? "visitor" : "professional")}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground transition hover:border-secondary/50 hover:text-secondary"
+            >
+              {isProfessional ? (
+                <CircleUserRound className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Glasses className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isProfessional ? "Switch to the patient view" : "See the trade view"}
+            </button>
+          </div>
+        </aside>
       </main>
 
       <Footer />
@@ -742,4 +877,4 @@ const HomeVersionB = () => {
   );
 };
 
-export default HomeVersionB;
+export default HomePage;
