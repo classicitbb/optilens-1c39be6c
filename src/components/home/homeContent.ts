@@ -116,7 +116,7 @@ export const heroCopy = {
     lede: DEFINITION_SENTENCE,
   },
   visitor: {
-    eyebrow: "Lenses made in Barbados",
+    eyebrow: "Locally made Lenses",
     headline: "Clear, comfortable lenses,",
     headlineAccent: "made here in the Caribbean.",
     lede: "Classic Visions makes prescription lenses in Barbados for opticians across the Caribbean. We don't sell glasses directly — your optician orders your lenses from our lab and fits them to your frames.",
