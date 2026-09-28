@@ -4,11 +4,21 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-26
+Last updated: 2026-09-27
 
 ---
 
 ## Active work
+
+- **Native website ordering plan** — `docs/lablink-to-native-ordering-plan.md`
+  maps custom prescription lenses to the profile Rx Order Form and all other
+  catalogued products, including stock lenses, to the Store. It inventories
+  active LabLink copy, links, legacy tracking, assistant responses, saved drafts,
+  and generated search content. Planning only: no copy, route, authorization,
+  order, or deployment has changed. The current Rx route defaults to approved
+  customers and the form requires a linked customer account; broadening access
+  to every signed-up customer with a server-authorized membership requires
+  explicit authorization-change approval and server-path verification.
 
 - **AI spend and credit monitoring** — the source now has an admin-only usage
   ledger migration, content-free metering for Anthropic, Lovable gateway, and

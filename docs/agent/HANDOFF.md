@@ -4,6 +4,7 @@
 - Status: Document AI source integration ready — Google IAM configuration blocked
 - Last synchronized: 2026-09-27
 
+<<<<<<< Updated upstream
 ## Homepage hero browser feedback
 
 Status: Complete — no active handoff.
@@ -26,6 +27,22 @@ made; a production deployment still requires approval. `qa:pr-checks` passes
 lockfile policy and the documented source-only symmetry exception, then stops
 at pre-existing Copilot platform-facts drift; that generated file was left
 untouched because this hero change has no Copilot dependency.
+=======
+## Native website ordering plan
+
+Status: Planning complete; implementation not started.
+
+Affected file: `docs/lablink-to-native-ordering-plan.md`, plus continuity docs.
+The plan maps custom lenses to the profile Rx Order Form and other products to
+the Store. It records the existing `approved_customer` route gate and the
+server-authorized customer-account requirement, so copy and navigation updates
+alone cannot fulfill the requested access. No tests were run for this
+documentation-only change. No production data, code path, or deployment changed.
+Approval required before an authentication/authorization change or production
+release. Exact next action: inspect the plan, approve the customer-access
+contract, then implement its first work package by updating the ordering CTA
+map and the corresponding route/navigation tests.
+>>>>>>> Stashed changes
 
 ## AI spend monitoring
 

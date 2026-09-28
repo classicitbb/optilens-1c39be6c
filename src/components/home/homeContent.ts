@@ -132,7 +132,7 @@ export const heroProofPoints = {
     { label: "Material range", value: "Index 1.50 – 1.74", icon: Layers },
   ],
   visitor: [
-    { label: "Made in", value: "Saint George, Barbados", icon: MapPin },
+    { label: "Made in", value: "Barbados", icon: MapPin },
     { label: "Available through", value: "Your local optician", icon: Glasses },
     { label: "Lens designs", value: "Single vision to progressive", icon: Eye },
     { label: "Protection options", value: "UV, anti-glare & blue-violet", icon: ShieldCheck },

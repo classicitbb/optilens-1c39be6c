@@ -69,6 +69,13 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 
 ## Durable constraints
 
+- Native ordering direction (plan only): custom prescription lenses enter at
+  `/profile/rx-order`; stock lenses and all other catalogued products enter at
+  `/store`. The access and customer-ownership work required to make the Rx form
+  available to every signed-up customer with an authorized membership is in
+  `docs/lablink-to-native-ordering-plan.md`. The current approved-customer gate
+  and linked-account requirement remain in force until approved implementation.
+
 - The portal Rx form is owned by `src/features/rx-order/embed/` (markup, CSS,
   engine); `src/components/account/AccountLayout.tsx` owns the portal page's
   outer width. The dev-only `/dev/rx-order` route mounts the same engine with
