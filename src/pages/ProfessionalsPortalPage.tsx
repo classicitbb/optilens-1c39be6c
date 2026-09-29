@@ -336,7 +336,7 @@ const ProfessionalsPortalPage = () => {
         canonicalPath={`/professionals/${slug}`}
       />
       <Header />
-      <main className="container mx-auto max-w-3xl px-4 pb-16 pt-24 lg:px-8">
+      <main className="container mx-auto max-w-6xl px-4 pb-16 pt-24 lg:px-8">
         <div className="rounded-2xl border border-border bg-card p-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">Professionals Portal</p>
           <h1 className="mt-2 text-3xl font-bold text-foreground">{page.title}</h1>

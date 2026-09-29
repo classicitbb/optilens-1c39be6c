@@ -115,7 +115,7 @@ const BlueFilterPage = () => {
 
       <main className="pb-20 pt-24">
         {/* Hero */}
-        <section className="container mx-auto max-w-5xl px-4 lg:px-8">
+        <section className="container mx-auto max-w-6xl px-4 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-accent">Lifestyle Lenses</p>
           <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
             Blue Filter Lenses — Clear Terms, Honest Guidance
@@ -152,7 +152,7 @@ const BlueFilterPage = () => {
         </section>
 
         {/* Jump nav */}
-        <nav className="container mx-auto mt-8 max-w-5xl px-4 lg:px-8" aria-label="Page sections">
+        <nav className="container mx-auto mt-8 max-w-6xl px-4 lg:px-8" aria-label="Page sections">
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Jump to section
@@ -172,7 +172,7 @@ const BlueFilterPage = () => {
           </div>
         </nav>
 
-        <div className="container mx-auto max-w-5xl space-y-20 px-4 pt-12 lg:px-8">
+        <div className="container mx-auto max-w-6xl space-y-20 px-4 pt-12 lg:px-8">
 
           {/* ── 1. What Is Blue Light? ── */}
           <section id="what-is-blue-light" className="scroll-mt-32">

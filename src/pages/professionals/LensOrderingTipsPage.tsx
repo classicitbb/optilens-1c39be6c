@@ -394,7 +394,7 @@ const LensOrderingTipsPage = () => {
       <Header />
 
       <main id="main-content" className="pb-20 pt-24">
-        <div className="container mx-auto max-w-5xl px-4 lg:px-8">
+        <div className="container mx-auto max-w-6xl px-4 lg:px-8">
           {/* Hero */}
           <div className="rounded-2xl border border-border bg-card p-8 md:p-10">
             <Badge variant="secondary" className="mb-3">
