@@ -20,7 +20,7 @@
         "worker-src": ["'self'", "blob:"],
         "manifest-src": ["'self'"],
         "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
-        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
+        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
         "upgrade-insecure-requests": []
       },
       "reportUri": "https://security-report.example.com/csp"
@@ -39,7 +39,7 @@
         "worker-src": ["'self'", "blob:"],
         "manifest-src": ["'self'"],
         "form-action": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
-        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com"],
+        "frame-src": ["'self'", "https://test.ipg-online.com", "https://www.ipg-online.com", "https://www2.ipg-online.com", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
         "upgrade-insecure-requests": []
       }
     }
