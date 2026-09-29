@@ -13355,6 +13355,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_walk_in_cash_payment: {
+        Args: {
+          p_amount: number
+          p_contact_id?: string
+          p_customer_email?: string
+          p_customer_name: string
+          p_order_reference?: string
+          p_reason?: string
+        }
+        Returns: string
+      }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       redact_security_payload: { Args: { p_payload: Json }; Returns: Json }
       release_stock_order_submission: {
