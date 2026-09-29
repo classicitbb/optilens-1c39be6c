@@ -46,6 +46,9 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.helpdesk-followup]
     verify_jwt = false
+  [functions.helpdesk-notify-worker]
+    verify_jwt = false
+    # Scheduled by migration 20260929160000_helpdesk_account_audience (*/15)
     # Schedule separately with Supabase Cron / pg_cron: */15 * * * *
   [functions.customer-onboarding]
     verify_jwt = true

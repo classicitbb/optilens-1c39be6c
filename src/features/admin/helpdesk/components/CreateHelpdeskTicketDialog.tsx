@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +59,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
     contactId: "",
     ticketTypeId: "",
     dueDate: "",
+    notifyContacts: false,
   });
 
   const { data: teams = EMPTY_TEAMS } = useQuery({
@@ -96,6 +98,25 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
     },
   });
 
+  // Who a ticket reaches: a company contact means the whole account, a person
+  // contact means that person only (see helpdesk_contact_recipients).
+  const { data: audience } = useQuery({
+    queryKey: ["helpdesk", "ticket-audience", form.contactId],
+    enabled: open && !!form.contactId,
+    queryFn: async () => {
+      const [{ data: contact, error: contactError }, { data: recipients, error: recipientsError }] = await Promise.all([
+        (supabase as any).from("contacts").select("is_company").eq("id", form.contactId).maybeSingle(),
+        (supabase.rpc as any)("helpdesk_contact_recipients", { p_contact_id: form.contactId }),
+      ]);
+      if (contactError) throw contactError;
+      if (recipientsError) throw recipientsError;
+      return {
+        isCompany: !!contact?.is_company,
+        recipients: (recipients ?? []) as Array<{ email: string; name: string | null }>,
+      };
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
 
@@ -108,6 +129,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
       contactId: "",
       ticketTypeId: "",
       dueDate: "",
+      notifyContacts: false,
     });
     const focusTimer = window.setTimeout(() => titleRef.current?.focus(), 80);
     return () => window.clearTimeout(focusTimer);
@@ -132,6 +154,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
         ticketTypeId: form.ticketTypeId || null,
         deadline: form.dueDate ? new Date(`${form.dueDate}T00:00:00`).toISOString() : null,
         sourceChannel: "manual",
+        notifyContacts: !!form.contactId && form.notifyContacts,
       });
       toast({ title: "Ticket created" });
       onOpenChange(false);
@@ -178,6 +201,32 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Contact</Label>
             <ContactPickerSelect value={form.contactId} onValueChange={(contactId) => setForm((current) => ({ ...current, contactId }))} placeholder="Contact" />
+            {form.contactId && audience ? (
+              <p className="text-[11px] text-muted-foreground">
+                {audience.isCompany
+                  ? "Whole account: every contact and portal user of this company can see it."
+                  : "Only this person can see it; colleagues at their company cannot."}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="helpdesk-notify-contacts"
+                checked={form.notifyContacts}
+                disabled={!form.contactId}
+                onCheckedChange={(checked) => setForm((current) => ({ ...current, notifyContacts: checked === true }))}
+              />
+              <Label htmlFor="helpdesk-notify-contacts" className="text-xs">Notify contact{audience?.isCompany ? "s" : ""} by email</Label>
+            </div>
+            {form.contactId && form.notifyContacts && audience ? (
+              <p className="text-[11px] text-muted-foreground">
+                {audience.recipients.length
+                  ? `Emails ${audience.recipients.map((recipient) => recipient.name || recipient.email).join(", ")}. The title goes in the subject; details stay behind sign-in.`
+                  : "No email address on file for this contact, so no email will be sent."}
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-1">

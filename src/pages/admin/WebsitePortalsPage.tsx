@@ -620,8 +620,12 @@ const WebsitePortalsPage = () => {
       const syncedPortalAccessNote = typeof syncedRow?.portal_access_note === "string" ? syncedRow.portal_access_note : selectedCustomer.portalAccessNote;
 
       // Tickets can be linked to the edited contact, the portal user's synced
-      // contact, or only carry the requester's email (inbound email tickets).
-      const ticketContactIds = [...new Set([syncedContactId, selectedAccount?.crmContactId, contactEditor?.contactId].filter((id): id is string => !!id))];
+      // contact, an account they belong to, or only carry the requester's email.
+      const { data: visibleContactRows, error: visibleContactsError } = await (supabase.rpc as any)("helpdesk_visible_contact_ids", { p_user_id: selectedCustomer.userId });
+      if (visibleContactsError) throw visibleContactsError;
+      const accountContactIds = ((visibleContactRows ?? []) as Array<string | { helpdesk_visible_contact_ids: string }>)
+        .map((row) => (typeof row === "string" ? row : row.helpdesk_visible_contact_ids));
+      const ticketContactIds = [...new Set([syncedContactId, selectedAccount?.crmContactId, contactEditor?.contactId, ...accountContactIds].filter((id): id is string => !!id))];
       const ticketFilters = ticketContactIds.length ? [`partner_contact_id.in.(${ticketContactIds.join(",")})`] : [];
       if (selectedCustomer.email) {
         ticketFilters.push(`customer_email.ilike."${selectedCustomer.email.replace(/[\\%_"]/g, "\\$&")}"`);

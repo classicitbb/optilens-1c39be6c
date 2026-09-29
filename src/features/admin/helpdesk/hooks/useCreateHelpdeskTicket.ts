@@ -14,6 +14,8 @@ export interface CreateHelpdeskTicketInput {
   priority?: number;
   deadline?: string | null;
   sourceChannel?: "manual" | "email" | "phone" | "chat" | "portal" | "api" | "ai_assistant";
+  /** Email the ticket's audience (the person, or every contact of a company). */
+  notifyContacts?: boolean;
 }
 
 const generateTicketNumber = () => `TCK-${Date.now().toString().slice(-8)}`;
@@ -66,7 +68,7 @@ export const useCreateHelpdeskTicket = () => {
 
       if (eventErr) throw eventErr;
 
-      if (payload.partner_contact_id) {
+      if (payload.partner_contact_id && input.notifyContacts) {
         // Best effort: the ticket exists even if the notification fails.
         const { error: emailErr } = await supabase.functions.invoke("helpdesk-email", {
           body: { type: "ticket_created", ticketId },

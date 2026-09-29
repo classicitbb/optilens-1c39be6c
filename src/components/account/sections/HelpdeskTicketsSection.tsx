@@ -47,11 +47,17 @@ const HelpdeskTicketsSection = () => {
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (identity?.crmContactId) {
-        query = query.eq("partner_contact_id", identity.crmContactId);
-      } else {
-        query = query.eq("owner_user_id", effectiveUserId ?? user.id);
-      }
+      // Own contact tickets plus account-wide tickets of the companies this
+      // login belongs to (also covers staff viewing as the customer).
+      const viewerId = effectiveUserId ?? user.id;
+      const { data: contactIds, error: contactIdsError } = await (supabase.rpc as any)("helpdesk_visible_contact_ids", { p_user_id: viewerId });
+      if (contactIdsError) throw contactIdsError;
+      const visibleContactIds = ((contactIds ?? []) as Array<string | { helpdesk_visible_contact_ids: string }>)
+        .map((row) => (typeof row === "string" ? row : row.helpdesk_visible_contact_ids))
+        .filter(Boolean);
+      query = visibleContactIds.length
+        ? query.or(`owner_user_id.eq.${viewerId},partner_contact_id.in.(${visibleContactIds.join(",")})`)
+        : query.eq("owner_user_id", viewerId);
 
       const { data, error } = await query;
       if (error) throw error;

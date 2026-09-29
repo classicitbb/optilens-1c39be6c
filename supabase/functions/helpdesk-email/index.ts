@@ -1,13 +1,14 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight } from '../_shared/http/cors.ts'
-import { getSmtpConfig, sendViaSMTP } from '../_shared/email/smtp.ts'
+import { getSmtpConfig, isAutoNotificationsDisabled, sendViaSMTP } from '../_shared/email/smtp.ts'
+import { HELPDESK_SITE_NAME, ticketCreatedEmail, ticketMessageEmail } from '../_shared/email/helpdeskTemplates.ts'
 
 /**
  * helpdesk-email edge function
  *
  * Handles transactional emails for the helpdesk system:
- * - ticket_created: sends acknowledgment to customer with View/Close buttons
- * - staff_reply: sends reply notification to customer
+ * - ticket_created: notifies the ticket's audience (see helpdesk_ticket_recipients)
+ * - staff_reply: tells the audience there is a new message (no reply text)
  * - followup_breach: sends SLA breach nudge to assignee and/or customer
  *
  * Called with:
@@ -24,7 +25,7 @@ const corsPolicy = createCorsPolicy({
 
 const SENDER_DOMAIN = Deno.env.get('HELPDESK_SENDER_DOMAIN') ?? Deno.env.get('HELPDESK_FROM_ADDRESS') ?? 'support@classicvisions.net'
 const APP_BASE_URL = Deno.env.get('APP_BASE_URL') ?? 'https://classicvisions.net'
-const SITE_NAME = 'Classic Visions'
+const SITE_NAME = HELPDESK_SITE_NAME
 
 function jsonResponse(body: unknown, status = 200, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -51,68 +52,6 @@ async function sendEmail(opts: {
 
   // No SMTP configured — log so the issue is visible in edge function logs
   console.warn(`[helpdesk-email] SMTP not configured — would send to ${opts.to}: ${opts.subject}`)
-}
-
-function ticketCreatedHtml(opts: {
-  ticketNumber: string
-  subject: string
-  customerName: string
-  viewUrl: string
-  closeUrl: string
-}): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="font-family:sans-serif;background:#f9fafb;margin:0;padding:32px 16px">
-  <div style="max-width:540px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e5e7eb;padding:32px">
-    <h2 style="color:#111827;margin-top:0">${SITE_NAME} Support</h2>
-    <p style="color:#374151">Hi ${opts.customerName},</p>
-    <p style="color:#374151">We've received your support ticket <strong>${opts.ticketNumber}</strong>: <em>${opts.subject}</em>.</p>
-    <p style="color:#374151">Our team will respond within <strong>1 business day</strong>. You can track progress or close the ticket using the links below.</p>
-    <div style="margin:28px 0;display:flex;gap:12px;flex-wrap:wrap">
-      <a href="${opts.viewUrl}" style="display:inline-block;padding:10px 20px;background:#111827;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">View Ticket</a>
-      <a href="${opts.closeUrl}" style="display:inline-block;padding:10px 20px;background:#f3f4f6;color:#374151;text-decoration:none;border-radius:6px;font-size:14px;border:1px solid #d1d5db">Close Ticket (resolved)</a>
-    </div>
-    <p style="color:#6b7280;font-size:13px">If you did not submit a support ticket, you can safely ignore this email.</p>
-    <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-    <p style="color:#9ca3af;font-size:12px;margin:0">${SITE_NAME} · This is an automated message, please do not reply directly to this email.</p>
-  </div>
-</body>
-</html>`
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-function staffReplyHtml(opts: {
-  ticketNumber: string
-  subject: string
-  replyBody: string
-  viewUrl: string
-}): string {
-  const bodyHtml = escapeHtml(opts.replyBody).replace(/\n/g, '<br>')
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="font-family:sans-serif;background:#f9fafb;margin:0;padding:32px 16px">
-  <div style="max-width:540px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e5e7eb;padding:32px">
-    <h2 style="color:#111827;margin-top:0">${SITE_NAME} Support</h2>
-    <p style="color:#374151">New reply on your ticket <strong>${opts.ticketNumber}</strong>: <em>${opts.subject}</em></p>
-    <div style="background:#f9fafb;border-left:3px solid #111827;padding:16px;margin:20px 0;border-radius:4px;color:#374151;font-size:14px;line-height:1.6">${bodyHtml}</div>
-    <a href="${opts.viewUrl}" style="display:inline-block;padding:10px 20px;background:#111827;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">View Full Thread</a>
-    <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-    <p style="color:#9ca3af;font-size:12px;margin:0">${SITE_NAME} · Reply to this email to respond to the ticket.</p>
-  </div>
-</body>
-</html>`
 }
 
 function followupBreachHtml(opts: {
@@ -154,8 +93,10 @@ Deno.serve(async (req) => {
   const providedSecret = req.headers.get('x-scheduler-secret')
 
   const isSchedulerCall = schedulerSecret && providedSecret === schedulerSecret
+  // helpdesk-inbound-email calls with the service-role key as its bearer.
+  const isServiceCall = authHeader === `Bearer ${serviceKey}`
 
-  if (!isSchedulerCall) {
+  if (!isSchedulerCall && !isServiceCall) {
     // Verify it's an authenticated admin user
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await db.auth.getUser(token)
@@ -189,7 +130,7 @@ Deno.serve(async (req) => {
   // Fetch ticket data
   const { data: ticket, error: ticketError } = await db
     .from('helpdesk_tickets')
-    .select('id,ticket_number,title,customer_email,partner_contact_id,contact_token,owner_user_id,first_response_at')
+    .select('id,ticket_number,title,customer_email,owner_user_id,first_response_at')
     .eq('id', ticketId)
     .single()
 
@@ -197,71 +138,60 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Ticket not found' }, 404, corsHeaders)
   }
 
-  // Staff-created tickets carry only a linked contact; email that contact.
-  if (!ticket.customer_email && ticket.partner_contact_id) {
-    const { data: linked } = await db
-      .from('contacts')
-      .select('email')
-      .eq('id', ticket.partner_contact_id)
-      .maybeSingle()
-    ticket.customer_email = linked?.email?.trim() || null
+  // Audience: a person contact gets it alone; a company contact means every
+  // contact and portal user of that account. Inbound-email senders are kept.
+  const { data: audienceRows, error: audienceError } = await db.rpc('helpdesk_ticket_recipients', { p_ticket_id: ticketId })
+  if (audienceError) {
+    return jsonResponse({ error: audienceError.message }, 500, corsHeaders)
+  }
+  const recipients = new Map<string, { email: string; name: string | null; accountName: string | null }>()
+  for (const row of (audienceRows ?? []) as Array<{ email: string; name: string | null; account_name: string | null }>) {
+    recipients.set(row.email.toLowerCase(), { email: row.email, name: row.name, accountName: row.account_name })
+  }
+  const accountName = [...recipients.values()][0]?.accountName ?? null
+  if (ticket.customer_email && !recipients.has(ticket.customer_email.toLowerCase())) {
+    recipients.set(ticket.customer_email.toLowerCase(), { email: ticket.customer_email, name: null, accountName })
   }
 
-  const viewUrl = `${APP_BASE_URL}/account/support?ticket=${ticket.contact_token}`
-  const closeUrl = `${APP_BASE_URL}/api/helpdesk/close?token=${ticket.contact_token}`
+  const viewUrl = `${APP_BASE_URL}/profile/helpdesk/${ticket.id}`
+
+  const sendToAudience = async (build: (r: { name: string | null; accountName: string | null }) => { subject: string; html: string }, eventType: string) => {
+    const sent: string[] = []
+    for (const recipient of recipients.values()) {
+      if (await isAutoNotificationsDisabled(db, recipient.email)) continue
+      const email = build(recipient)
+      await sendEmail({ to: recipient.email, subject: email.subject, html: email.html })
+      sent.push(recipient.email)
+    }
+    if (sent.length) {
+      await db.from('helpdesk_ticket_events').insert({ ticket_id: ticketId, event_type: eventType, payload: { to: sent } })
+    }
+    return sent
+  }
 
   try {
     if (type === 'ticket_created') {
-      if (!ticket.customer_email) {
-        return jsonResponse({ ok: true, skipped: 'no_customer_email' }, 200, corsHeaders)
-      }
-
-      // Fetch contact name if available
-      const { data: contact } = await db
-        .from('contacts')
-        .select('first_name,last_name,email')
-        .eq('email', ticket.customer_email)
-        .maybeSingle()
-
-      const customerName =
-        contact
-          ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') || 'there'
-          : 'there'
-
-      await sendEmail({
-        to: ticket.customer_email,
-        subject: `[${ticket.ticket_number}] We received your support request`,
-        html: ticketCreatedHtml({
-          ticketNumber: ticket.ticket_number,
-          subject: ticket.title,
-          customerName,
-          viewUrl,
-          closeUrl,
-        }),
-      })
-
-      // Log outbound event
-      await db.from('helpdesk_ticket_events').insert({
-        ticket_id: ticketId,
-        event_type: 'acknowledgment_sent',
-        payload: { to: ticket.customer_email },
-      })
+      const sent = await sendToAudience((r) => ticketCreatedEmail({
+        ticketNumber: ticket.ticket_number,
+        title: ticket.title,
+        recipientName: r.name,
+        accountName: r.accountName,
+        viewUrl,
+      }), 'acknowledgment_sent')
+      if (!sent.length) return jsonResponse({ ok: true, skipped: 'no_recipients' }, 200, corsHeaders)
 
     } else if (type === 'staff_reply') {
-      if (!ticket.customer_email || !messageBody) {
-        return jsonResponse({ error: 'Missing customer_email or messageBody' }, 400, corsHeaders)
+      // The reply text stays in the portal; the email only says there is one.
+      if (!messageBody) {
+        return jsonResponse({ error: 'Missing messageBody' }, 400, corsHeaders)
       }
-
-      await sendEmail({
-        to: ticket.customer_email,
-        subject: `Re: [${ticket.ticket_number}] ${ticket.title}`,
-        html: staffReplyHtml({
-          ticketNumber: ticket.ticket_number,
-          subject: ticket.title,
-          replyBody: messageBody,
-          viewUrl,
-        }),
-      })
+      await sendToAudience((r) => ticketMessageEmail({
+        ticketNumber: ticket.ticket_number,
+        title: ticket.title,
+        recipientName: r.name,
+        accountName: r.accountName,
+        viewUrl,
+      }), 'reply_notification_sent')
 
       // Set first_response_at if not yet set
       if (!ticket.first_response_at) {
@@ -292,19 +222,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Also notify customer
-      if (ticket.customer_email) {
-        await sendEmail({
-          to: ticket.customer_email,
-          subject: `Update on your ticket [${ticket.ticket_number}]`,
-          html: staffReplyHtml({
-            ticketNumber: ticket.ticket_number,
-            subject: ticket.title,
-            replyBody: "We apologize for the delay in responding to your ticket. Our team is reviewing your request and will get back to you shortly.",
-            viewUrl,
-          }),
-        })
-      }
+      // Also notify the ticket's audience (no detail in the body)
+      await sendToAudience((r) => ticketMessageEmail({
+        ticketNumber: ticket.ticket_number,
+        title: ticket.title,
+        recipientName: r.name,
+        accountName: r.accountName,
+        viewUrl,
+      }), 'followup_notification_sent')
 
     } else {
       return jsonResponse({ error: `Unknown type: ${type}` }, 400, corsHeaders)
