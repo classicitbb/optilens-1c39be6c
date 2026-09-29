@@ -320,9 +320,21 @@ const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpan
   );
 };
 
-const MyOrdersSection = () => {
-  const { canAccessFeature, identity, emulation } = usePortalIdentity();
-  const { orders, loading } = useOrders(emulation?.userId);
+// Set when staff view a customer's orders from the admin (no emulation): data
+// is fetched for this customer and every section is shown with prices.
+export type StaffOrdersTarget = {
+  userId: string;
+  crmCustomerId: number | null;
+  accountNumber: string | null;
+  ordersUseBillToAccount: boolean;
+};
+
+const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = {}) => {
+  const portal = usePortalIdentity();
+  const identity = staffTarget ?? portal.identity;
+  const targetUserId = staffTarget?.userId ?? portal.emulation?.userId;
+  const canAccessFeature = (feature: Parameters<typeof portal.canAccessFeature>[0]) => !!staffTarget || portal.canAccessFeature(feature);
+  const { orders, loading } = useOrders(targetUserId);
   const canSeePrivateOrders = canAccessFeature("private-orders");
   const canSeeLiveOrderStatus = canAccessFeature("live-order-status");
   const showPrices = canAccessFeature("order-prices");
@@ -372,7 +384,7 @@ const MyOrdersSection = () => {
   const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
 
-  const paymentsQuery = useAccountPayments(emulation?.userId);
+  const paymentsQuery = useAccountPayments(targetUserId);
   const [orderFilter, setOrderFilter] = useState<OrderBucket | "all">("pending");
   const [orderSearch, setOrderSearch] = useState("");
   const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
@@ -452,8 +464,10 @@ const MyOrdersSection = () => {
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
-        <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        {staffTarget ? null : <>
+          <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
+          <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        </>}
         <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
           {pendingCount ? <a href="#pending-orders"><Badge className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingCount}</Badge></a> : null}
           {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {filteredInnovationsOrders.length}</Badge></a> : null}
@@ -819,6 +833,20 @@ const MyOrdersSection = () => {
                                 ) : (
                                   <span className="text-sm text-muted-foreground">Applied to account</span>
                                 )}
+                                {staffTarget ? (
+                                  <InquireButton
+                                    label="Raise a ticket about this order"
+                                    title={`Inquiry about ${row.typeLabel} ${row.reference}`}
+                                    description={[
+                                      `${row.typeLabel} ${row.reference}`,
+                                      `Date: ${format(new Date(row.date), "PPP")}`,
+                                      `Status: ${row.statusLabel}`,
+                                      `Total: $${row.total.toFixed(2)} USD`,
+                                      "",
+                                      "Question: ",
+                                    ].join("\n")}
+                                  />
+                                ) : null}
                               </div>
                             </TableCell>
                           </TableRow>

@@ -35,6 +35,7 @@ import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
 import ContactsPage from "@/pages/admin/erp/ContactsPage";
 import { PortalApprovalsQueue } from "@/components/admin/PortalApprovalsQueue";
+import CustomerOrdersPanel from "@/components/admin/CustomerOrdersPanel";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
@@ -88,6 +89,7 @@ interface PortalCustomerDetail extends PortalCustomerListItem {
   // Company contact linked to this customer account — where an account-wide
   // access tag should live so every person at the account inherits it.
   companyContactId: string | null;
+  ordersUseBillToAccount: boolean;
   canAccessStatements: boolean;
   canAccessPricing: boolean;
   cartItems: Array<{
@@ -665,7 +667,7 @@ const WebsitePortalsPage = () => {
         syncedCustomerId
           ? (supabase as any)
               .from("customers")
-              .select("assigned_pricelist_id,account_number,contact_id")
+              .select("assigned_pricelist_id,account_number,contact_id,portal_orders_use_bill_to_account")
               .eq("id", syncedCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
@@ -700,6 +702,7 @@ const WebsitePortalsPage = () => {
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
         accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : selectedAccount?.accountNumber ?? null,
         companyContactId: typeof (customerRow as any)?.contact_id === "string" ? (customerRow as any).contact_id : null,
+        ordersUseBillToAccount: (customerRow as any)?.portal_orders_use_bill_to_account === true,
         cartItems: (cartRows ?? []) as PortalCustomerDetail["cartItems"],
         abandonedAlerts: (alerts ?? []) as PortalCustomerDetail["abandonedAlerts"],
         inquiries: (inquiries ?? []) as PortalCustomerDetail["inquiries"],
@@ -1397,7 +1400,12 @@ const WebsitePortalsPage = () => {
         </div>
       </TabsContent>
 
-      <TabsContent value="orders"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Orders and payments</CardTitle></CardHeader><CardContent className="space-y-2">{ordersLoading ? <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" /> : orders.length ? orders.map((order) => <div key={order.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm"><span>#{order.id.slice(0, 8).toUpperCase()} · {order.status}</span><Badge variant="outline">{formatMoney(order.totalAmount)}</Badge></div>) : <p className="text-sm text-muted-foreground">No orders on file.</p>}</CardContent></Card></TabsContent>
+      <TabsContent value="orders">
+        <CustomerOrdersPanel
+          target={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, ordersUseBillToAccount: detailQuery.data.ordersUseBillToAccount }}
+          contactId={contactEditor?.contactId ?? detailQuery.data.crmContactId}
+        />
+      </TabsContent>
       <TabsContent value="addresses"><AddressBookSection targetUserId={selectedCustomer.userId} title="Customer addresses" description="Update saved checkout addresses." /></TabsContent>
       <TabsContent value="payments"><PaymentMethodsSection targetUserId={selectedCustomer.userId} title="Saved payment methods" description="Manage saved payment methods for this customer." /></TabsContent>
       <TabsContent value="support"><div className="grid gap-4 xl:grid-cols-3"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Helpdesk tickets</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => <div key={ticket.id} className="rounded border p-2 text-sm"><p className="font-medium">{ticket.ticket_number}</p><p className="text-muted-foreground">{ticket.title}</p></div>) : <p className="text-sm text-muted-foreground">No linked tickets.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Submitted forms</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.inquiries.length ? detailQuery.data.inquiries.map((inquiry) => <div key={inquiry.id} className="rounded border p-2 text-sm"><p className="font-medium">{inquiry.inquiry_type}</p><p className="line-clamp-2 text-muted-foreground">{inquiry.message || "No message"}</p></div>) : <p className="text-sm text-muted-foreground">No form submissions.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Quote requests</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.quotes.length ? detailQuery.data.quotes.map((quote) => <div key={quote.id} className="rounded border p-2 text-sm"><p className="font-medium">{quote.quote_number}</p><p className="text-muted-foreground">{formatMoney(quote.grand_total)} · {quote.status}</p></div>) : <p className="text-sm text-muted-foreground">No quote requests.</p>}</CardContent></Card></div></TabsContent>
@@ -2065,29 +2073,10 @@ const WebsitePortalsPage = () => {
                 </TabsContent>
 
                 <TabsContent value="orders" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
-                  <Card className="shadow-none hover:shadow-none">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Package className="h-5 w-5" />
-                        Orders & payments
-                      </CardTitle>
-                      <CardDescription>Review customer-initiated and staff-assisted orders, including payment summaries.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {ordersLoading ? <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /> : orders.length ? orders.map((order) => (
-                        <div key={order.id} className="rounded-xl border p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-semibold text-foreground">Order #{order.id.slice(0, 8).toUpperCase()}</p>
-                              <p className="text-xs text-muted-foreground">{formatDateTime(order.createdAt)} • {order.status}</p>
-                              <p className="mt-2 text-sm text-muted-foreground">{order.payments[0] ? `${order.payments[0].provider.toUpperCase()} • ${order.payments[0].cardBrand ?? "Card"} •••• ${order.payments[0].cardLast4 ?? "0000"}` : "No payment recorded"}</p>
-                            </div>
-                            <Badge variant="outline">{formatMoney(order.totalAmount)}</Badge>
-                          </div>
-                        </div>
-                      )) : <p className="text-sm text-muted-foreground">No orders on file yet.</p>}
-                    </CardContent>
-                  </Card>
+                  <CustomerOrdersPanel
+                    target={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, ordersUseBillToAccount: detailQuery.data.ordersUseBillToAccount }}
+                    contactId={detailQuery.data.crmContactId}
+                  />
                 </TabsContent>
 
                 <TabsContent value="addresses" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
