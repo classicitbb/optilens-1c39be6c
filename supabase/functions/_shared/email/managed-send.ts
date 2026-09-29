@@ -40,6 +40,27 @@ export type ManagedSendResult =
 // deno-lint-ignore no-explicit-any
 type AdminClient = { from: (table: string) => any }
 
+/** Plain-text fallback for emails that only supply HTML. */
+export function htmlToText(html: string): string {
+  const text = html
+    .replace(/<(style|script)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, '$2 ($1)')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|tr|table)>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s*\n\s*/g, '\n\n')
+    .trim()
+  return text || ' '
+}
+
 async function logSend(
   admin: AdminClient,
   row: Record<string, unknown>,
@@ -87,7 +108,8 @@ export async function sendManagedEmail(
         sender_domain: SENDER_DOMAIN,
         subject: input.subject,
         html: input.html,
-        text: input.text ?? '',
+        // The API rejects an empty `text` part — derive one from the HTML.
+        text: input.text?.trim() ? input.text : htmlToText(input.html),
         purpose: 'transactional',
         label: input.label,
         idempotency_key: input.idempotencyKey ?? input.messageId,
