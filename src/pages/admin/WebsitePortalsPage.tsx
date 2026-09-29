@@ -604,7 +604,7 @@ const WebsitePortalsPage = () => {
   }, [contactEditor, selectedAccount, selectedAccountId, searchParams]);
 
   const detailQuery = useQuery({
-    queryKey: ["website-portals-customer-detail", selectedCustomer?.userId, selectedAccount?.crmCustomerId, selectedAccount?.accountNumber],
+    queryKey: ["website-portals-customer-detail", selectedCustomer?.userId, selectedAccount?.crmCustomerId, selectedAccount?.accountNumber, contactEditor?.contactId],
     enabled: !!selectedCustomer,
     queryFn: async () => {
       if (!selectedCustomer) return null;
@@ -618,6 +618,14 @@ const WebsitePortalsPage = () => {
       const syncedContactId = typeof syncedRow?.crm_contact_id === "string" ? syncedRow.crm_contact_id : selectedCustomer.crmContactId;
       const syncedPortalAccessStatus = typeof syncedRow?.portal_access_status === "string" ? syncedRow.portal_access_status : selectedCustomer.portalAccessStatus;
       const syncedPortalAccessNote = typeof syncedRow?.portal_access_note === "string" ? syncedRow.portal_access_note : selectedCustomer.portalAccessNote;
+
+      // Tickets can be linked to the edited contact, the portal user's synced
+      // contact, or only carry the requester's email (inbound email tickets).
+      const ticketContactIds = [...new Set([syncedContactId, selectedAccount?.crmContactId, contactEditor?.contactId].filter((id): id is string => !!id))];
+      const ticketFilters = ticketContactIds.length ? [`partner_contact_id.in.(${ticketContactIds.join(",")})`] : [];
+      if (selectedCustomer.email) {
+        ticketFilters.push(`customer_email.ilike."${selectedCustomer.email.replace(/[\\%_"]/g, "\\$&")}"`);
+      }
 
       const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }, { data: canAccessPricing, error: pricingAccessError }, { data: canAccessStatements, error: statementsAccessError }] = await Promise.all([
         (supabase as any)
@@ -646,11 +654,11 @@ const WebsitePortalsPage = () => {
           .eq("contact_email", selectedCustomer.email)
           .order("created_at", { ascending: false })
           .limit(20),
-        syncedContactId
+        ticketFilters.length
           ? (supabase as any)
               .from("helpdesk_tickets")
               .select("id,ticket_number,title,source_channel,created_at")
-              .eq("partner_contact_id", syncedContactId)
+              .or(ticketFilters.join(","))
               .order("created_at", { ascending: false })
               .limit(20)
           : Promise.resolve({ data: [], error: null }),
