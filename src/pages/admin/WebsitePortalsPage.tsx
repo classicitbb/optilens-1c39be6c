@@ -52,6 +52,7 @@ import { describePortalFeatureOverrideError } from "@/lib/portalFeatureOverrideE
 import { detectFeatureOverrideConflicts } from "@/lib/portalFeatureConflicts";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import { paginate } from "@/lib/pagination";
+import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
 
 interface PortalCustomerListItem {
   userId: string;
@@ -1408,7 +1409,7 @@ const WebsitePortalsPage = () => {
       </TabsContent>
       <TabsContent value="addresses"><AddressBookSection targetUserId={selectedCustomer.userId} title="Customer addresses" description="Update saved checkout addresses." /></TabsContent>
       <TabsContent value="payments"><PaymentMethodsSection targetUserId={selectedCustomer.userId} title="Saved payment methods" description="Manage saved payment methods for this customer." /></TabsContent>
-      <TabsContent value="support"><div className="grid gap-4 xl:grid-cols-3"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Helpdesk tickets</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => <Link key={ticket.id} to={`/admin/helpdesk/tickets/${ticket.id}`} className="block rounded border p-2 text-sm hover:bg-muted/50"><p className="font-medium text-primary">{ticket.ticket_number}</p><p className="text-muted-foreground">{ticket.title}</p></Link>) : <p className="text-sm text-muted-foreground">No linked tickets.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Submitted forms</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.inquiries.length ? detailQuery.data.inquiries.map((inquiry) => <div key={inquiry.id} className="rounded border p-2 text-sm"><p className="font-medium">{inquiry.inquiry_type}</p><p className="line-clamp-2 text-muted-foreground">{inquiry.message || "No message"}</p></div>) : <p className="text-sm text-muted-foreground">No form submissions.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Quote requests</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.quotes.length ? detailQuery.data.quotes.map((quote) => <div key={quote.id} className="rounded border p-2 text-sm"><p className="font-medium">{quote.quote_number}</p><p className="text-muted-foreground">{formatMoney(quote.grand_total)} · {quote.status}</p></div>) : <p className="text-sm text-muted-foreground">No quote requests.</p>}</CardContent></Card></div></TabsContent>
+      <TabsContent value="support"><div className="grid gap-4 xl:grid-cols-3"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Helpdesk tickets</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => <Link key={ticket.id} to={ticketHref(ticket.id)} className="block rounded border p-2 text-sm hover:bg-muted/50"><p className="font-medium text-primary">{ticket.ticket_number}</p><p className="text-muted-foreground">{ticket.title}</p></Link>) : <p className="text-sm text-muted-foreground">No linked tickets.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Submitted forms</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.inquiries.length ? detailQuery.data.inquiries.map((inquiry) => <div key={inquiry.id} className="rounded border p-2 text-sm"><p className="font-medium">{inquiry.inquiry_type}</p><p className="line-clamp-2 text-muted-foreground">{inquiry.message || "No message"}</p></div>) : <p className="text-sm text-muted-foreground">No form submissions.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Quote requests</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.quotes.length ? detailQuery.data.quotes.map((quote) => <div key={quote.id} className="rounded border p-2 text-sm"><p className="font-medium">{quote.quote_number}</p><p className="text-muted-foreground">{formatMoney(quote.grand_total)} · {quote.status}</p></div>) : <p className="text-sm text-muted-foreground">No quote requests.</p>}</CardContent></Card></div></TabsContent>
     </Tabs>
   );
 
@@ -1995,7 +1996,7 @@ const WebsitePortalsPage = () => {
                                   <div>
                                     <p className="font-medium text-foreground">{alert.total_items} item(s) • {formatMoney(alert.total_amount)}</p>
                                     <p className="text-xs text-muted-foreground">Detected {formatDateTime(alert.first_detected_at)} • last seen {formatDateTime(alert.last_detected_at)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Email outbox: {alert.email_outbox_id ? "queued" : "not queued"} • Ticket: {alert.helpdesk_ticket_id ? <Link to={`/admin/helpdesk/tickets/${alert.helpdesk_ticket_id}`} className="text-primary underline-offset-2 hover:underline">open</Link> : "missing"}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">Email outbox: {alert.email_outbox_id ? "queued" : "not queued"} • Ticket: {alert.helpdesk_ticket_id ? <Link to={ticketHref(alert.helpdesk_ticket_id)} className="text-primary underline-offset-2 hover:underline">open</Link> : "missing"}</p>
                                   </div>
                                   {alert.status === "open" ? (
                                     <Button variant="outline" size="sm" onClick={() => resolveAlert.mutate(alert.id)} disabled={resolveAlert.isPending}>Resolve</Button>
@@ -2107,7 +2108,7 @@ const WebsitePortalsPage = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => (
-                          <Link key={ticket.id} to={`/admin/helpdesk/tickets/${ticket.id}`} className="block rounded-lg border p-3 text-sm hover:bg-muted/50">
+                          <Link key={ticket.id} to={ticketHref(ticket.id)} className="block rounded-lg border p-3 text-sm hover:bg-muted/50">
                             <p className="font-medium text-primary">{ticket.ticket_number}</p>
                             <p className="text-muted-foreground">{ticket.title}</p>
                             <p className="mt-1 text-xs text-muted-foreground">{ticket.source_channel} • {formatDateTime(ticket.created_at)}</p>

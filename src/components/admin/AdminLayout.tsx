@@ -7,6 +7,7 @@ import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import CrmActivityDialog from "./CrmActivityDialog";
+import HelpdeskTicketDialog from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
 import OperatorAttentionAlert from "./OperatorAttentionAlert";
 import AdminCopilotAssistant from "./copilot/AdminCopilotAssistant";
 import { useLiveHelpdeskInboxUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
@@ -40,6 +41,7 @@ const AdminLayout = () => {
             </main>
             <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug={contextSlug} />
             <CrmActivityDialog />
+            <HelpdeskTicketDialog />
           </div>
         </div>
         <AdminCopilotAssistant />

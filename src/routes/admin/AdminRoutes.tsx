@@ -1,6 +1,7 @@
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { lazy } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router";
+import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 import { buildPricelistSelectionPath, type PricelistEditorSection } from "@/features/pricelists/routes";
 
@@ -89,8 +90,6 @@ const HelpdeskConfigPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/He
 );
 const HelpdeskOverviewPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"),
 );
-const HelpdeskTicketDetailPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"),
-);
 const WebsitePortalsPage = lazyWithRetry(() => import("@/pages/admin/WebsitePortalsPage"),
 );
 const NpsDashboardPage = lazyWithRetry(() => import("@/pages/admin/NpsDashboardPage"));
@@ -109,6 +108,13 @@ const LegacyPricelistRedirect = ({ section }: { section: PricelistEditorSection 
   const location = useLocation();
   const itemId = new URLSearchParams(location.search).get("id");
   return <Navigate to={buildPricelistSelectionPath(section, itemId)} replace />;
+};
+
+// The ticket editor is a modal opened by ?ticket=<id>; keep old /tickets/:id links
+// (emails, copilot results, bookmarks) working.
+const HelpdeskTicketRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/admin/helpdesk/tickets${ticketHref(id ?? "")}`} replace />;
 };
 
 // Order handling moved from /admin/website/* to /admin/orders/*; keep old links
@@ -223,7 +229,7 @@ const AdminRoutes = () => (
       <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
       <Route
         path="helpdesk/tickets/:id"
-        element={<HelpdeskTicketDetailPage />}
+        element={<HelpdeskTicketRedirect />}
       />
       <Route
         path="helpdesk/teams"

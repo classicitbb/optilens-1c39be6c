@@ -1,4 +1,5 @@
 import type { CopilotAction } from "./api";
+import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
 
 export type CopilotRecordLink = { href: string; label: string };
 
@@ -16,6 +17,6 @@ export const resolveActionRecordLink = (action: CopilotAction): CopilotRecordLin
   const activityId = idOf(action.result, "activityId");
   if (activityId) return { href: `/admin/crm/activities?task=${activityId}`, label: "Open the activity" };
   const ticketId = idOf(action.result, "ticketId");
-  if (ticketId) return { href: `/admin/helpdesk/tickets/${ticketId}`, label: "Open the ticket" };
+  if (ticketId) return { href: ticketHref(ticketId), label: "Open the ticket" };
   return null;
 };

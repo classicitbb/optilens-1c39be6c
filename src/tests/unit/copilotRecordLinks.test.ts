@@ -33,7 +33,7 @@ describe("resolveActionRecordLink", () => {
   });
 
   it("deep links a created ticket to the helpdesk", () => {
-    expect(resolveActionRecordLink(action({ result: { ticketId: "t-9" } }))?.href).toBe("/admin/helpdesk/tickets/t-9");
+    expect(resolveActionRecordLink(action({ result: { ticketId: "t-9" } }))?.href).toBe("?ticket=t-9");
   });
 
   it("returns no link until the action has executed", () => {

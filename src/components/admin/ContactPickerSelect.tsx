@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +25,15 @@ interface ContactPickerSelectProps {
   companyId?: string | null;
 }
 
+const COLUMNS = "id,name,is_company,parent_id,business_name,email,phone";
+
+const contactLabel = (c: ContactOption) =>
+  c.is_company ? `🏢 ${c.name}` : `${c.name}${c.business_name ? ` — ${c.business_name}` : ""}`;
+
 /**
- * Contact picker with company constraint.
- * Shows companies first, then individuals grouped under their company.
+ * Searchable contact picker (popover combobox). Searches the whole contacts table
+ * server-side, so any company or individual can be found, not just the first page.
+ * Shows companies first, then individuals.
  */
 const ContactPickerSelect = ({
   value,
@@ -35,22 +42,34 @@ const ContactPickerSelect = ({
   placeholder = "Contact",
   companyId,
 }: ContactPickerSelectProps) => {
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [debounced, setDebounced] = useState("");
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ["helpdesk-contact-picker", companyId],
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const { data: contacts = [], isFetching } = useQuery({
+    queryKey: ["helpdesk-contact-picker", companyId, debounced],
+    enabled: open,
     queryFn: async () => {
       let query = (supabase as any)
         .from("contacts")
-        .select("id,name,is_company,parent_id,business_name,email,phone")
+        .select(COLUMNS)
         .eq("is_archived", false)
         .order("is_company", { ascending: false })
         .order("name")
-        .limit(500);
+        .limit(50);
 
       if (companyId) {
         // Show the company itself + all contacts under it
         query = query.or(`id.eq.${companyId},parent_id.eq.${companyId}`);
+      }
+      if (debounced) {
+        const term = `%${debounced.replace(/[%_,()]/g, " ")}%`;
+        query = query.or(`name.ilike.${term},business_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`);
       }
 
       const { data, error } = await query;
@@ -59,64 +78,94 @@ const ContactPickerSelect = ({
     },
   });
 
-  const filtered = useMemo(() => {
-    if (!search) return contacts;
-    const s = search.toLowerCase();
-    return contacts.filter(
-      (c) =>
-        c.name.toLowerCase().includes(s) ||
-        (c.business_name && c.business_name.toLowerCase().includes(s)) ||
-        (c.email && c.email.toLowerCase().includes(s)) ||
-        (c.phone && c.phone.toLowerCase().includes(s))
-    );
-  }, [contacts, search]);
+  // The selected contact may not be in the current result page; load it for the trigger label.
+  const { data: selected } = useQuery({
+    queryKey: ["helpdesk-contact-picker-selected", value],
+    enabled: !!value,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("contacts").select(COLUMNS).eq("id", value).maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as ContactOption | null;
+    },
+  });
 
-  // Group: companies first, then individuals
-  const companies = filtered.filter((c) => c.is_company);
-  const individuals = filtered.filter((c) => !c.is_company);
+  const pick = (id: string) => {
+    onValueChange(id);
+    setOpen(false);
+    setSearch("");
+  };
+
+  const companies = contacts.filter((c) => c.is_company);
+  const individuals = contacts.filter((c) => !c.is_company);
+
+  const renderItem = (c: ContactOption) => (
+    <button
+      key={c.id}
+      type="button"
+      onClick={() => pick(c.id)}
+      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
+    >
+      <Check className={cn("h-3 w-3 shrink-0", value === c.id ? "opacity-100" : "opacity-0")} />
+      <span className="truncate">{contactLabel(c)}</span>
+    </button>
+  );
 
   return (
-    <Select value={value || "__none"} onValueChange={(v) => onValueChange(v === "__none" ? "" : v)}>
-      <SelectTrigger className={cn("h-8 text-xs", className)}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <div className="px-2 pb-1">
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring",
+            className,
+          )}
+        >
+          <span className={cn("truncate", !(value && selected) && "text-muted-foreground")}>
+            {value && selected ? contactLabel(selected) : placeholder}
+          </span>
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[240px] p-1" align="start">
+        <div className="relative px-1 pb-1">
           <Input
+            autoFocus
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search contacts…"
             className="h-7 text-xs"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
           />
+          {isFetching && <Loader2 className="absolute right-3 top-1.5 h-4 w-4 animate-spin text-muted-foreground" />}
         </div>
-        <SelectItem value="__none" className="text-xs">No contact</SelectItem>
-        {companies.length > 0 && (
-          <>
-            <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Companies</div>
-            {companies.map((c) => (
-              <SelectItem key={c.id} value={c.id} className="text-xs">
-                🏢 {c.name}
-              </SelectItem>
-            ))}
-          </>
-        )}
-        {individuals.length > 0 && (
-          <>
-            <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Individuals</div>
-            {individuals.map((c) => (
-              <SelectItem key={c.id} value={c.id} className="text-xs">
-                {c.name}{c.business_name ? ` — ${c.business_name}` : ""}
-              </SelectItem>
-            ))}
-          </>
-        )}
-        {filtered.length === 0 && (
-          <div className="px-2 py-2 text-xs text-muted-foreground text-center">No contacts found</div>
-        )}
-      </SelectContent>
-    </Select>
+        <div className="max-h-72 overflow-y-auto">
+          <button
+            type="button"
+            onClick={() => pick("")}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+          >
+            <Check className={cn("h-3 w-3 shrink-0", !value ? "opacity-100" : "opacity-0")} />
+            No contact
+          </button>
+          {companies.length > 0 && (
+            <>
+              <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Companies</div>
+              {companies.map(renderItem)}
+            </>
+          )}
+          {individuals.length > 0 && (
+            <>
+              <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Individuals</div>
+              {individuals.map(renderItem)}
+            </>
+          )}
+          {!isFetching && contacts.length === 0 && (
+            <div className="px-2 py-2 text-xs text-muted-foreground text-center">No contacts found</div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
