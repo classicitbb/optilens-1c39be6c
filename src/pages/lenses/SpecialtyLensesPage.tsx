@@ -74,7 +74,7 @@ const SpecialtyLensesPage = () => (
   <div className="min-h-screen bg-background">
     <Header />
     <main id="main-content" className="pb-16 pt-24 sm:pb-24">
-      <div className="container mx-auto max-w-5xl px-4 lg:px-8">
+      <div className="container mx-auto max-w-6xl px-4 lg:px-8">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-wider text-accent">Lifestyle Lenses</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">Specialty Lenses</h1>

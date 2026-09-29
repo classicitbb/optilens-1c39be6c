@@ -288,7 +288,7 @@ const MaterialsPage = () => {
       <section className="relative overflow-hidden bg-gradient-hero pb-16 pt-28">
         <div className="absolute -right-32 -top-32 h-72 w-72 rounded-full bg-accent/8 blur-3xl" />
         <div className="absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-secondary/8 blur-3xl" />
-        <div className="container relative mx-auto max-w-5xl px-4 text-center lg:px-8">
+        <div className="container relative mx-auto max-w-6xl px-4 text-center lg:px-8">
           <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Technical Specs</p>
           <h1 className="text-4xl font-bold leading-tight text-foreground md:text-5xl">
             Lens Materials
@@ -314,7 +314,7 @@ const MaterialsPage = () => {
       </section>
 
       {/* Material detail sections */}
-      <main className="container mx-auto max-w-5xl space-y-20 px-4 py-16 lg:px-8">
+      <main className="container mx-auto max-w-6xl space-y-20 px-4 py-16 lg:px-8">
         {MATERIALS.map((m, i) => (
           <div key={m.index} id={`material-${m.index}`} className="scroll-mt-24">
             <MaterialCard m={m} reversed={i % 2 !== 0} />

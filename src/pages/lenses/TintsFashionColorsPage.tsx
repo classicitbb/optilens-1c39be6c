@@ -212,7 +212,7 @@ const TintsFashionColorsPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-24 pb-16">
-        <div className="container mx-auto max-w-4xl px-4 lg:px-8">
+        <div className="container mx-auto max-w-6xl px-4 lg:px-8">
           <h1 className="text-4xl font-bold text-foreground">Tints & Fashion Colors Guide</h1>
           <p className="mt-4 text-lg text-muted-foreground">
             Tint programs combine optical performance with personal style, helping patients choose lens color, transmission,
