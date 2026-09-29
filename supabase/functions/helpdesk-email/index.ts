@@ -189,12 +189,22 @@ Deno.serve(async (req) => {
   // Fetch ticket data
   const { data: ticket, error: ticketError } = await db
     .from('helpdesk_tickets')
-    .select('id,ticket_number,title,customer_email,contact_token,owner_user_id,first_response_at')
+    .select('id,ticket_number,title,customer_email,partner_contact_id,contact_token,owner_user_id,first_response_at')
     .eq('id', ticketId)
     .single()
 
   if (ticketError || !ticket) {
     return jsonResponse({ error: 'Ticket not found' }, 404, corsHeaders)
+  }
+
+  // Staff-created tickets carry only a linked contact; email that contact.
+  if (!ticket.customer_email && ticket.partner_contact_id) {
+    const { data: linked } = await db
+      .from('contacts')
+      .select('email')
+      .eq('id', ticket.partner_contact_id)
+      .maybeSingle()
+    ticket.customer_email = linked?.email?.trim() || null
   }
 
   const viewUrl = `${APP_BASE_URL}/account/support?ticket=${ticket.contact_token}`
