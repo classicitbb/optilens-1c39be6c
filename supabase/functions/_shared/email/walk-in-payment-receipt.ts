@@ -32,7 +32,7 @@ export async function sendWalkInPaymentReceipt(
     const { data: payment, error } = await admin
       .from("walk_in_payments")
       .select(
-        "id,created_by,customer_name,customer_email,order_reference,reason,amount,currency,status,gateway_oid,payment_reference,card_brand,card_last4",
+        "id,created_by,provider,customer_name,customer_email,order_reference,reason,amount,currency,status,gateway_oid,payment_reference,card_brand,card_last4",
       )
       .eq("id", paymentId)
       .maybeSingle();
@@ -61,6 +61,13 @@ export async function sendWalkInPaymentReceipt(
     const card = [payment.card_brand, payment.card_last4 ? `•••• ${payment.card_last4}` : ""]
       .filter(Boolean)
       .join(" ");
+
+    const isCash = String(payment.provider ?? "") === "cash";
+    const methodLine = isCash ? "A cash payment" : "A card payment";
+    const outcome = isCash ? "was received" : "was approved";
+    const note = isCash
+      ? "This receipt confirms the cash we received. It will appear on your account once posted by our accounts team."
+      : RECONCILIATION_NOTE;
 
     const recipientTasks: Array<{ to: string; messageId: string; subject: string; isCustomer: boolean }> = [];
 
@@ -113,16 +120,17 @@ export async function sendWalkInPaymentReceipt(
         : `<h1>Walk-in payment received</h1>`;
 
       const html = `${greeting}
-<p>A card payment of <strong>${escapeHtml(amount)}</strong> was approved.</p>
+<p>${methodLine} of <strong>${escapeHtml(amount)}</strong> ${outcome}.</p>
 <ul>
   ${customer ? `<li>Customer: ${escapeHtml(customer)}</li>` : ""}
   ${customerEmail ? `<li>Customer email: ${escapeHtml(customerEmail)}</li>` : ""}
   ${orderReference ? `<li>Order reference: ${escapeHtml(orderReference)}</li>` : ""}
   ${reason ? `<li>Reason: ${escapeHtml(reason)}</li>` : ""}
+  ${isCash ? `<li>Method: Cash</li>` : ""}
   ${card ? `<li>Card: ${escapeHtml(card)}</li>` : ""}
   <li>Reference: ${escapeHtml(reference)}</li>
 </ul>
-<p>${escapeHtml(RECONCILIATION_NOTE)}</p>
+<p>${escapeHtml(note)}</p>
 <p>Classic Visions</p>`;
 
       const textGreeting = task.isCustomer
@@ -131,10 +139,10 @@ export async function sendWalkInPaymentReceipt(
 
       const text = `${textGreeting}
 
-A card payment of ${amount} was approved.
-${customer ? `Customer: ${customer}\n` : ""}${customerEmail ? `Customer email: ${customerEmail}\n` : ""}${orderReference ? `Order reference: ${orderReference}\n` : ""}${reason ? `Reason: ${reason}\n` : ""}${card ? `Card: ${card}\n` : ""}Reference: ${reference}
+${methodLine} of ${amount} ${outcome}.
+${customer ? `Customer: ${customer}\n` : ""}${customerEmail ? `Customer email: ${customerEmail}\n` : ""}${orderReference ? `Order reference: ${orderReference}\n` : ""}${reason ? `Reason: ${reason}\n` : ""}${isCash ? "Method: Cash\n" : ""}${card ? `Card: ${card}\n` : ""}Reference: ${reference}
 
-${RECONCILIATION_NOTE}
+${note}
 
 Classic Visions`;
 
