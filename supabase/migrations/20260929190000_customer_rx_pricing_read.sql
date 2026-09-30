@@ -19,8 +19,8 @@
 --                            (they already download it as "Assigned Pricelist").
 --   innovations_lens_aliases NOT opened. The table has a `suppliers` column
 --                            (which labs supply a lens) and RLS cannot hide one
---                            column. A view exposes only the fields the form
---                            needs, and the form reads the view.
+--                            column. A function exposes only the fields the form
+--                            needs, and the form calls the function.
 --   pricelist_versions       NOT opened. It holds markup_percent / discount_
 --                            percent. The form only wants `name`, and a blocked
 --                            read returns null rather than an error, so it
@@ -28,7 +28,7 @@
 --
 -- NOTE FOR DEPLOY: migration files pushed to git are NOT executed against the
 -- live database. Apply through the Lovable MCP query_database tool. The form
--- also needs the one-line change in useInnovationsCatalog.ts (query the view)
+-- also needs the one-line change in useInnovationsCatalog.ts (call get_rx_catalog_aliases)
 -- to be published.
 
 -- ── 1. Which pricelist versions belong to this user ─────────────────────────
@@ -79,24 +79,44 @@ USING (
 );
 
 -- ── 3. Alias catalogue without the supplier list ────────────────────────────
--- Runs with the owner's rights (the default for a view) so it can read the
--- staff-only table; the WHERE clause is the access rule. `suppliers` and
--- `synced_at` are intentionally absent.
-CREATE OR REPLACE VIEW public.rx_catalog_aliases AS
-SELECT
-  alias, material_code, material_description,
-  style_code, style_description,
-  color_code, color_description,
-  mf_type, category, pricing_key, is_active
-FROM public.innovations_lens_aliases
-WHERE is_active
-  AND public.has_any_role(auth.uid());
+-- A SECURITY DEFINER function, not a view: the repo's customer-data audit
+-- (scripts/audit_customer_data_access.mjs) requires every public view to be
+-- security_invoker, and an invoker view would run as the customer and read the
+-- staff-only table as zero rows. The function runs with the owner's rights; its
+-- WHERE clause is the access rule, and the result carries only the fields the
+-- form needs — `suppliers` and `synced_at` are intentionally absent.
+--
+-- (An earlier revision of this migration created a view, rx_catalog_aliases,
+-- and was applied that way on 2026-09-29; it was replaced by this function on
+-- 2026-09-30 and the view dropped.)
+DROP VIEW IF EXISTS public.rx_catalog_aliases;
 
-REVOKE ALL ON public.rx_catalog_aliases FROM PUBLIC, anon;
-GRANT SELECT ON public.rx_catalog_aliases TO authenticated;
+CREATE OR REPLACE FUNCTION public.get_rx_catalog_aliases()
+RETURNS TABLE (
+  alias text, material_code text, material_description text,
+  style_code text, style_description text,
+  color_code text, color_description text,
+  mf_type text, category text, pricing_key text, is_active boolean
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT a.alias, a.material_code, a.material_description,
+         a.style_code, a.style_description,
+         a.color_code, a.color_description,
+         a.mf_type, a.category, a.pricing_key, a.is_active
+  FROM public.innovations_lens_aliases a
+  WHERE a.is_active
+    AND public.has_any_role(auth.uid());
+$$;
+
+REVOKE ALL ON FUNCTION public.get_rx_catalog_aliases() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_rx_catalog_aliases() TO authenticated;
 
 -- ── Rollback ────────────────────────────────────────────────────────────────
--- DROP VIEW IF EXISTS public.rx_catalog_aliases;
+-- DROP FUNCTION IF EXISTS public.get_rx_catalog_aliases();
 -- DROP POLICY IF EXISTS "Customers can select assigned pricelist_catalog_rows" ON public.pricelist_catalog_rows;
 -- DROP POLICY IF EXISTS "Customers can select assigned matrix_allocations" ON public.matrix_allocations;
 -- DROP FUNCTION IF EXISTS public.user_assigned_pricelist_version_ids(uuid);
