@@ -677,7 +677,11 @@ serve(async (req) => {
       }
 
       const { data: current, error: curErr } = await supabase.from("docstudio_files").select("*").eq("id", id).is("deleted_at", null).single();
-      if (curErr || !current) return json({ error: "File not found" }, 404);
+      if (curErr || !current) {
+        // Autosave against a deleted record is an expected client state, not a failure.
+        if (method === "POST" && isAutosave) return json({ missing: true });
+        return json({ error: "File not found" }, 404);
+      }
 
       if (method === "POST" && isAutosave) {
         const { data, error } = await supabase
@@ -752,7 +756,11 @@ serve(async (req) => {
       }
 
       const { data: current, error: curErr } = await supabase.from("docstudio_billing_documents").select("*").eq("id", id).is("deleted_at", null).single();
-      if (curErr || !current) return json({ error: "Document not found" }, 404);
+      if (curErr || !current) {
+        // Autosave against a deleted record is an expected client state, not a failure.
+        if (method === "POST" && isAutosave) return json({ missing: true });
+        return json({ error: "Document not found" }, 404);
+      }
 
       if (method === "POST" && isAutosave) {
         const { data, error } = await supabase
