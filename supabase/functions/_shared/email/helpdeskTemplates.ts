@@ -32,7 +32,7 @@ function layout(inner: string): string {
     <h2 style="color:#111827;margin-top:0">${HELPDESK_SITE_NAME} Support</h2>
 ${inner}
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-    <p style="color:#9ca3af;font-size:12px;margin:0">${HELPDESK_SITE_NAME} · Automated message, please do not reply directly.</p>
+    <p style="color:#9ca3af;font-size:12px;margin:0">${HELPDESK_SITE_NAME} · You can reply to this email to add to the ticket.</p>
   </div>
 </body>
 </html>`
