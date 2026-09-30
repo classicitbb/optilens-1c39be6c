@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
 
   // ── Thread replies onto the existing ticket ──
   // Outbound helpdesk emails carry "[TCK-…]" in the subject. Only thread when the
-  // sender is someone already on that ticket, so a guessed ticket number cannot
+  // sender is someone already on that ticket (its audience, customer or watchers), so a guessed ticket number cannot
   // be used to inject messages; anyone else falls through to a new ticket.
   const tagMatch = subject.match(/\[([A-Za-z]+-\d+)\]/);
   if (tagMatch && sender.email) {
@@ -219,6 +219,12 @@ Deno.serve(async (req) => {
       if (existingTicket.partner_contact_id) {
         const { data: linked } = await db.from("contacts").select("email").eq("id", existingTicket.partner_contact_id).maybeSingle();
         if (linked?.email) allowed.add(linked.email.trim().toLowerCase());
+      }
+      // Everyone the ticket was emailed to (a company ticket reaches every
+      // contact and portal member of the account; a person ticket just them).
+      const { data: audience } = await db.rpc("helpdesk_ticket_recipients", { p_ticket_id: existingTicket.id });
+      for (const r of (audience ?? []) as Array<{ email: string | null }>) {
+        if (r.email) allowed.add(r.email.trim().toLowerCase());
       }
       const { data: watchers } = await db
         .from("helpdesk_ticket_watchers")

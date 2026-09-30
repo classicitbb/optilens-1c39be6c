@@ -45,8 +45,8 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
   { id: "contact-inquiry-notification", group: "Application", title: "Contact inquiry notification", trigger: "Website contact form submitted", recipient: "Sales / support team", subject: "Website contact inquiry from Jane Doe", preheader: "New contact inquiry from Jane Doe", heading: "New Contact Inquiry", paragraphs: ["A new inquiry has been received on Classic Visions.", "Message: Hi, I would like to enquire about your lens products for my practice."], details: [["Name", "Jane Doe"], ["Email", "jane@example.com"], ["Business", "Doe Opticians"], ["Page", "/contact"]], source: "_shared/transactional-email-templates/contact-inquiry-notification.tsx" },
   { id: "inquiry-confirmation", group: "Application", title: "Inquiry confirmation", trigger: "Website inquiry received", recipient: "Person who submitted inquiry", subject: "Quote request received", preheader: "Quote request received — Classic Visions", heading: "Quote request received", paragraphs: ["Hi {{name}}, we have received your optical website design inquiry. Our team will prepare a detailed quote and get back to you shortly.", "If you need to follow up before we respond, you can reply directly to this email or contact us at support@classicvisions.net."], cta: "Visit Classic Visions", source: "_shared/transactional-email-templates/inquiry-confirmation.tsx" },
   { id: "statement-ready", group: "Application", title: "Statement ready", trigger: "New account statement available", recipient: "Account holder", subject: "Your statement is ready — $4320.50 due", preheader: "Your Classic Visions statement is ready — balance $4320.50", heading: "Your statement is ready", paragraphs: ["Hi {{name}}, your Classic Visions account statement (RETAIL) for Jun 1, 2026 – Jun 30, 2026 is now available to view online.", "Sign in to your Classic Visions account to view the full statement, transaction detail, and payment options."], cta: "View Statement", details: [["Balance due", "$4,320.50"], ["Due date", "Jul 30, 2026"]], source: "_shared/transactional-email-templates/statement-ready.tsx" },
-  { id: "helpdesk-ticket-created", group: "Helpdesk", title: "Ticket received", trigger: "Support ticket created (portal, email or staff)", recipient: "Person who raised the ticket", subject: "[TCK-12345678] We received your support request", preheader: "", heading: "Classic Visions Support", paragraphs: [], source: "helpdesk-email/index.ts (ticket_created)" },
-  { id: "helpdesk-staff-reply", group: "Helpdesk", title: "Staff reply", trigger: "Staff replies on a ticket", recipient: "Ticket's customer email", subject: "Re: [TCK-12345678] Lens order question", preheader: "", heading: "Classic Visions Support", paragraphs: [], source: "helpdesk-email/index.ts (staff_reply)" },
+  { id: "helpdesk-ticket-created", group: "Helpdesk", title: "Ticket received", trigger: "Support ticket created (portal, email or staff)", recipient: "Ticket audience: one person, or every contact of the account for a company ticket", subject: "[TCK-12345678] Lens order question", preheader: "", heading: "Classic Visions Support", paragraphs: [], source: "_shared/email/helpdeskTemplates.ts (ticketCreatedEmail)" },
+  { id: "helpdesk-staff-reply", group: "Helpdesk", title: "Staff reply", trigger: "Staff replies on a ticket", recipient: "Ticket audience (no reply text in the email)", subject: "Re: [TCK-12345678] Lens order question", preheader: "", heading: "Classic Visions Support", paragraphs: [], source: "_shared/email/helpdeskTemplates.ts (ticketMessageEmail)" },
   { id: "helpdesk-sla-breach", group: "Helpdesk", title: "SLA breach alert", trigger: "Ticket exceeds its SLA deadline", recipient: "Ticket assignee (customer gets the apology variant of Staff reply)", subject: "[SLA Alert] TCK-12345678: Lens order question", preheader: "", heading: "", paragraphs: [], source: "helpdesk-email/index.ts (followup_breach)" },
 ];
 
@@ -62,21 +62,15 @@ const HelpdeskBody = ({ id, name }: { id: string; name: string }) => {
   const btn = "inline-block rounded-md px-5 py-2.5 text-sm";
   const shell = "mx-auto max-w-[540px] rounded-lg border border-gray-200 bg-white p-8 text-gray-700";
   const footer = "mt-6 border-t border-gray-200 pt-5 text-xs text-gray-400";
-  if (id === "helpdesk-ticket-created") return <div className={shell}>
+  const reason = <p className="text-[13px] text-gray-500">You are receiving this because you are a contact for Doe Opticians. If you believe this was sent to you in error, please let us know.</p>;
+  if (id === "helpdesk-ticket-created" || id === "helpdesk-staff-reply") return <div className={shell}>
     <h2 className="mt-0 text-xl font-bold text-gray-900">Classic Visions Support</h2>
     <p className="mt-4">Hi {name},</p>
-    <p className="mt-4">We've received your support ticket <strong>TCK-12345678</strong>: <em>Lens order question</em>.</p>
-    <p className="mt-4">Our team will respond within <strong>1 business day</strong>. You can track progress or close the ticket using the links below.</p>
-    <div className="my-7 flex flex-wrap gap-3"><span className={cn(btn, "bg-gray-900 text-white")}>View Ticket</span><span className={cn(btn, "border border-gray-300 bg-gray-100 text-gray-700")}>Close Ticket (resolved)</span></div>
-    <p className="text-[13px] text-gray-500">If you did not submit a support ticket, you can safely ignore this email.</p>
+    <p className="mt-4">{id === "helpdesk-ticket-created" ? "Classic Visions has opened ticket" : "There is a new message on ticket"} <strong>TCK-12345678</strong> for <strong>Doe Opticians</strong>.</p>
+    <p className="mt-4">For privacy, the details are only available after you sign in to your Classic Visions account.</p>
+    <p className="my-7"><span className={cn(btn, "bg-gray-900 text-white")}>{id === "helpdesk-ticket-created" ? "Sign in to view ticket" : "Sign in to read message"}</span></p>
+    {reason}
     <p className={footer}>Classic Visions · You can reply to this email to add to the ticket.</p>
-  </div>;
-  if (id === "helpdesk-staff-reply") return <div className={shell}>
-    <h2 className="mt-0 text-xl font-bold text-gray-900">Classic Visions Support</h2>
-    <p className="mt-4">New reply on your ticket <strong>TCK-12345678</strong>: <em>Lens order question</em></p>
-    <div className="my-5 rounded border-l-[3px] border-gray-900 bg-gray-50 p-4 text-sm leading-relaxed">Hi {name}, thanks for getting in touch. We've checked the order and it ships tomorrow.<br />Let us know if you need anything else.</div>
-    <span className={cn(btn, "bg-gray-900 text-white")}>View Full Thread</span>
-    <p className={footer}>Classic Visions · Reply to this email to respond to the ticket.</p>
   </div>;
   return <div className={shell}>
     <h2 className="mt-0 text-xl font-bold text-red-600">⚠ First Response SLA Breached</h2>
