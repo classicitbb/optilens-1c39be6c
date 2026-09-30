@@ -44,6 +44,8 @@ interface InboundEmail {
   subject: string;
   body_text: string;
   body_html?: string;
+  /** Reply text with quoted history removed, when the provider supplies it (Mailgun stripped-text). */
+  stripped_text?: string;
   message_id: string;
   date?: string;
 }
@@ -61,6 +63,7 @@ function emailFromForm(form: FormData): InboundEmail {
     subject: str(form, "subject") || str(form, "Subject") || "(no subject)",
     body_text: str(form, "body-plain") || str(form, "stripped-text") || "",
     body_html: str(form, "body-html") || str(form, "stripped-html") || undefined,
+    stripped_text: str(form, "stripped-text") || undefined,
     message_id: str(form, "Message-Id") || str(form, "message-id") || str(form, "Message-ID") || "",
     date: str(form, "Date") || str(form, "date") || undefined,
   };
@@ -112,6 +115,7 @@ Deno.serve(async (req) => {
         subject: payload.subject || "(no subject)",
         body_text: payload.body_text || "",
         body_html: payload.body_html || undefined,
+        stripped_text: payload.stripped_text || undefined,
         message_id: payload.message_id || "",
         date: payload.date || undefined,
       };
@@ -196,6 +200,72 @@ Deno.serve(async (req) => {
 
   const sender = parseFrom(from);
   const bodyContent = body_text || body_html || "(no body)";
+
+  // ── Thread replies onto the existing ticket ──
+  // Outbound helpdesk emails carry "[TCK-…]" in the subject. Only thread when the
+  // sender is someone already on that ticket, so a guessed ticket number cannot
+  // be used to inject messages; anyone else falls through to a new ticket.
+  const tagMatch = subject.match(/\[([A-Za-z]+-\d+)\]/);
+  if (tagMatch && sender.email) {
+    const { data: existingTicket } = await db
+      .from("helpdesk_tickets")
+      .select("id,ticket_number,customer_email,partner_contact_id")
+      .eq("ticket_number", tagMatch[1].toUpperCase())
+      .maybeSingle();
+
+    if (existingTicket) {
+      const allowed = new Set<string>();
+      if (existingTicket.customer_email) allowed.add(existingTicket.customer_email.trim().toLowerCase());
+      if (existingTicket.partner_contact_id) {
+        const { data: linked } = await db.from("contacts").select("email").eq("id", existingTicket.partner_contact_id).maybeSingle();
+        if (linked?.email) allowed.add(linked.email.trim().toLowerCase());
+      }
+      const { data: watchers } = await db
+        .from("helpdesk_ticket_watchers")
+        .select("contact_email")
+        .eq("ticket_id", existingTicket.id)
+        .eq("watcher_type", "external_contact");
+      for (const w of watchers ?? []) if (w.contact_email) allowed.add(w.contact_email.trim().toLowerCase());
+
+      if (allowed.has(sender.email)) {
+        const replyText = (email.stripped_text || bodyContent).trim().slice(0, 12000) || "(no body)";
+        const { data: msg, error: msgErr } = await db
+          .from("helpdesk_ticket_messages")
+          .insert({
+            ticket_id: existingTicket.id,
+            direction: "inbound",
+            body: replyText,
+            sender_name: sender.name,
+            sender_email: sender.email,
+            client_message_id: crypto.randomUUID(),
+          })
+          .select("id")
+          .single();
+
+        if (msgErr) {
+          console.error(`${TAG} Reply insert error:`, msgErr);
+          return jsonResponse({ error: "Failed to add reply" }, 500);
+        }
+
+        await db.from("helpdesk_inbound_email_log").insert({
+          message_id: message_id || `gen-${Date.now()}`,
+          mailbox: "support@classicvisions.net",
+          from_address: sender.email,
+          subject: subject.slice(0, 500),
+          ticket_id: existingTicket.id,
+        });
+        await db.from("helpdesk_ticket_events").insert({
+          ticket_id: existingTicket.id,
+          event_type: "customer_reply",
+          payload: { message_id: msg.id, source_channel: "email", from_address: sender.email },
+        });
+
+        console.log(`${TAG} ✅ Threaded reply from ${sender.email} onto ${existingTicket.ticket_number}`);
+        return jsonResponse({ ok: true, threaded: true, ticketId: existingTicket.id, ticketNumber: existingTicket.ticket_number });
+      }
+      console.warn(`${TAG} Sender ${sender.email} is not on ${existingTicket.ticket_number}; creating a new ticket`);
+    }
+  }
   const ticketNumber = generateTicketNumber();
   const now = new Date().toISOString();
 
