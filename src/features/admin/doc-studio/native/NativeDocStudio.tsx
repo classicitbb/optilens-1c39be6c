@@ -1086,7 +1086,17 @@ const NativeDocStudio = () => {
           ? docStudioApi.autosaveBilling(draft.id!, payload)
           : docStudioApi.autosaveFile(draft.id!, payload);
       const draftId = draft.id;
-      void request.catch((error: { status?: number }) => {
+      const handleMissing = () => {
+        setDraft((current) =>
+          current.id === draftId ? { ...current, id: undefined } : current,
+        );
+        toast.warning(
+          "This document was deleted elsewhere. Your changes are kept — click Save to store them as a new document.",
+        );
+      };
+      void request.then((result) => {
+        if (!result) handleMissing();
+      }).catch((error: { status?: number }) => {
         if (error?.status === 404) {
           // The saved copy was deleted (e.g. from another tab). Keep the
           // content as an unsaved draft so Save creates a fresh document
