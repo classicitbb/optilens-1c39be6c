@@ -1,5 +1,12 @@
 # Work Handoff
 
+## 2026-09-30 — Email status banner dismissal
+
+Status: Complete — no active handoff.
+
+Doc Studio's email status bar has an accessible close button. Dismissal uses the tab-session `docstudio-email-health-dismissed` key, storing only status/attempt identity. It survives reloads, keeps health polling active, and shows a changed status or latest attempt again. The detailed health page is unchanged. No production release or email send occurred. Verified authenticated local dismissal and persistence after reload, production build and diff checks. Full tests: 949 passed, four existing failures (three CRLF source checks plus the existing customer-data security audit), one expected failure. PR checks stop at existing publicContentIndex.ts drift. Lint results are recorded in STATUS.md.
+
+
 ## 2026-09-30 — Preview toolbar follow-up
 
 Status: Complete — no active handoff for local toolbar work.

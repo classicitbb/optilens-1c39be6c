@@ -114,3 +114,5 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 - Rx mount payloads use `plastic`, `metal`, `grooved`, or `rimless`. Restore
   compatibility maps historical `full` to `plastic` and `supra` to `grooved`;
   assistant handoffs must emit only the current values.
+
+- Doc Studio email-health dismissal is local to a tab session (`docstudio-email-health-dismissed`). Polling continues while hidden; status/latest-attempt/rate-limit changes show the banner again. Only attempt identity is stored, without recipient/error text.

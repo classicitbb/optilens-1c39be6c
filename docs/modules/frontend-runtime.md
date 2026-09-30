@@ -1,5 +1,10 @@
 # Frontend Runtime Module Docs
 
+## Doc Studio email status dismissal
+
+`EmailDeliveryHealthBanner` retains the shared health query while hidden. The `docstudio-email-health-dismissed` sessionStorage key remembers the dismissed status, latest attempt identity/time/status and rate-limit expiry. A changed identity shows the bar again. Storage denial still allows dismissal until the component remounts. No recipient or provider error text is persisted.
+
+
 ## 2026-09-30 — Preview toolbar follow-up (source only)
 
 `public/ds/preview-toolbar.css` is loaded by standalone `studio.html` and native `DocStudioEmbed.tsx`. Preview actions use inline SVG paths independent of Google icon fonts. The bar, identity and action groups wrap; text buttons grow vertically; live save status wraps rather than hiding the full message.

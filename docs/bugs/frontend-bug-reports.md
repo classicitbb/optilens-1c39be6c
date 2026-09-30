@@ -1,5 +1,10 @@
 # Frontend Bug Reports
 
+## 2026-09-30 — Doc Studio email bar could not be dismissed
+
+Fixed in local source: added a labelled SVG close control and tab-session dismissal. Dismissal leaves delivery polling/audit data intact and does not hide a newer attempt or status. Production release remains pending approval.
+
+
 ## 2026-09-30 — Preview toolbar icons and labels
 
 The preview toolbar relied on remote font ligatures and a fixed-height, non-wrapping row. Inline SVG action icons now avoid font-load failures. Shared CSS lets controls and labels wrap; 640px browser QA exposed and resolved the long export-button overflow. No save/share/delete action was exercised during QA.

@@ -1,5 +1,10 @@
 # Frontend Help Docs
 
+## Dismiss the Doc Studio email status bar
+
+Use the close button beside **View details** to hide the current bar for this tab session, including reloads. A changed delivery status or new send attempt shows it again. Email delivery details remain available under Settings > Email Previews.
+
+
 ## 2026-09-30 — Preview toolbar (pending release)
 
 At narrower widths preview controls flow onto additional rows. Save, Save as, Rename, Share and Delete retain their tooltips and accessible names; their icons render without the external icon font. Export labels remain readable and save-status text wraps.
