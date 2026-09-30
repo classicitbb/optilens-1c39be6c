@@ -9,7 +9,7 @@ import { fetchCustomerCommandCenter } from "@/features/portal/customerCommandCen
 import { resolveUserFullName } from "@/lib/profileData";
 import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
-import { uploadHelpdeskImages } from "@/lib/helpdeskAttachments";
+import { uploadHelpdeskFiles } from "@/lib/helpdeskAttachments";
 import { generateAssistantAnswer } from "./assistantGeneration";
 import {
   buildAssistantCorpus,
@@ -565,7 +565,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     if (!trimmedQuery && !attachments?.length) return;
 
     const queryForModel = attachments?.length
-      ? `${trimmedQuery}${trimmedQuery ? "\n\n" : ""}[Attached image${attachments.length === 1 ? "" : "s"}: ${attachments.map((attachment) => attachment.name).join(", ")}]`
+      ? `${trimmedQuery}${trimmedQuery ? "\n\n" : ""}[Attached file${attachments.length === 1 ? "" : "s"}: ${attachments.map((attachment) => attachment.name).join(", ")}]`
       : trimmedQuery;
 
     const repeatedUnsatisfied = shouldAskClarifier({
@@ -1020,7 +1020,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     }
   }, [activeProfile, cancelForm, handleLensGuideStep, openForm, submitQuery, submitWebSearch]);
 
-  const submitForm = useCallback(async () => {
+  const submitForm = useCallback(async (formFiles: File[] = []) => {
     if (!formState) return;
 
     if (formState.kind === "trade_signup") {
@@ -1137,7 +1137,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
 
       let portalTicketId: string | null = null;
       let quoteNumber: string | null = null;
-      let imageAttachmentError: string | null = null;
+      let attachmentUploadError: string | null = null;
       if (isQuoteRequest && user) {
         const { data, error } = await (supabase.rpc as any)("submit_customer_quote_request", {
           p_customer_name: formState.customerName.trim() || accountName || "Signed-in customer",
@@ -1157,25 +1157,6 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           priority: 1,
           sourceChannel: "ai_assistant",
         });
-        // The assistant already holds local image previews while a customer is
-        // preparing a request. Persist them only after the ticket exists, so
-        // every image has the same ticket-scoped access control as replies.
-        const outgoingImages = messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []);
-        if (portalTicketId && outgoingImages.length) {
-          // The ticket already exists at this point, so an image failure must not
-          // discard the submission - report it and keep the success confirmation.
-          try {
-            const files = await Promise.all(outgoingImages.map(async (image) => {
-              const response = await fetch(image.previewUrl);
-              const blob = await response.blob();
-              return new File([blob], image.name, { type: blob.type || "image/png" });
-            }));
-            await uploadHelpdeskImages(portalTicketId, files);
-          } catch (imageError) {
-            console.error("Failed to attach assistant images to ticket", imageError);
-            imageAttachmentError = imageError instanceof Error ? imageError.message : "The images could not be uploaded.";
-          }
-        }
       } else {
         const message = [
           requestDetails,
@@ -1200,6 +1181,25 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         });
       }
 
+      // Files picked in the chat composer and in the request form are persisted
+      // only after the ticket exists, so every file has the same ticket-scoped
+      // access control as replies. The ticket is already created at this point,
+      // so an upload failure must not discard the submission - report it and keep
+      // the success confirmation.
+      if (portalTicketId && (formFiles.length || messages.some((message) => message.role === "user" && message.attachments?.length))) {
+        try {
+          const chatFiles = await Promise.all(messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []).map(async (attachment) => {
+            const response = await fetch(attachment.previewUrl);
+            const blob = await response.blob();
+            return new File([blob], attachment.name, { type: attachment.mimeType || blob.type || "image/png" });
+          }));
+          await uploadHelpdeskFiles(portalTicketId, [...chatFiles, ...formFiles]);
+        } catch (attachmentError) {
+          console.error("Failed to attach assistant files to ticket", attachmentError);
+          attachmentUploadError = attachmentError instanceof Error ? attachmentError.message : "The files could not be uploaded.";
+        }
+      }
+
       setFormState(null);
       setMessages((current) => [
         ...current,
@@ -1209,11 +1209,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           kind: "confirmation",
           title: isQuoteRequest ? "Quote request sent" : isPricelistRequest ? "Price-list request sent" : "Request sent",
           text: isQuoteRequest
-            ? `Your quote request${quoteNumber ? ` ${quoteNumber}` : ""} is now linked to a live Helpdesk conversation for corrections, questions, and replies.`
+            ? `Your quote request${quoteNumber ? ` ${quoteNumber}` : ""} is now linked to a live Helpdesk conversation for corrections, questions, and replies.${attachmentUploadError ? ` Your attachments could not be added (${attachmentUploadError}) - you can add them again from the conversation.` : ""}`
             : isPricelistRequest
             ? "Your approved price-list request was sent to Russell and added to the CRM for follow-up."
             : formState.kind === "portal_support"
-            ? `Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here.${imageAttachmentError ? ` Your images could not be attached (${imageAttachmentError}) - you can add them again from the conversation.` : ""}`
+            ? `Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here.${attachmentUploadError ? ` Your attachments could not be added (${attachmentUploadError}) - you can add them again from the conversation.` : ""}`
             : "Your request was submitted with the current page and assistant context attached. You can keep chatting here, or open one of the source links above while the team follows up.",
           quickActions: pathname.startsWith("/profile")
             ? [

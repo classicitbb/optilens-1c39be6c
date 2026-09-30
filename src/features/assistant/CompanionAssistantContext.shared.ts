@@ -44,10 +44,10 @@ export type AssistantMessage =
       role: "user";
       kind: "user";
       text: string;
-      attachments?: { name: string; previewUrl: string }[];
+      attachments?: AssistantOutgoingAttachment[];
     };
 
-export type AssistantOutgoingAttachment = { name: string; previewUrl: string };
+export type AssistantOutgoingAttachment = { name: string; previewUrl: string; mimeType?: string };
 
 export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request" | "trade_signup";
 
@@ -118,7 +118,7 @@ export interface CompanionAssistantContextValue {
   closeForm: () => void;
   cancelForm: () => void;
   updateForm: (patch: Partial<AssistantFormState>) => void;
-  submitForm: () => Promise<void>;
+  submitForm: (files?: File[]) => Promise<void>;
 }
 
 export const CompanionAssistantContext = createContext<CompanionAssistantContextValue | undefined>(undefined);

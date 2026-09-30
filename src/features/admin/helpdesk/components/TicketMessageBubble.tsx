@@ -1,15 +1,21 @@
 import { format } from "date-fns";
 import { Lock, Mail, User } from "lucide-react";
 import { RichMarkdown } from "@/components/content/RichMarkdown";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import type { HelpdeskAttachment } from "@/lib/helpdeskAttachments";
 import type { HelpdeskTicketMessage } from "../hooks/useHelpdeskMessages";
 
 interface TicketMessageBubbleProps {
   message: HelpdeskTicketMessage;
+  attachments?: HelpdeskAttachment[];
 }
 
-export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
+export const TicketMessageBubble = ({ message, attachments = [] }: TicketMessageBubbleProps) => {
   const time = format(new Date(message.sent_at), "MMM d, h:mm a");
   const senderLabel = message.sender_name ?? message.sender_email ?? "Unknown";
+  const files = attachments.length
+    ? <div className="mt-2"><HelpdeskImageAttachments ticketId={message.ticket_id} attachments={attachments} onFilesChange={() => undefined} disabled readOnly /></div>
+    : null;
 
   if (message.direction === "internal_note") {
     return (
@@ -22,6 +28,7 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
         <div className="text-foreground/80">
           <RichMarkdown content={message.body} />
         </div>
+        {files}
       </div>
     );
   }
@@ -40,6 +47,7 @@ export const TicketMessageBubble = ({ message }: TicketMessageBubbleProps) => {
         <div className="text-inherit">
           <RichMarkdown content={message.body} tone={isOutbound ? "user" : "assistant"} />
         </div>
+        {files}
       </div>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
         {isOutbound ? <User size={10} /> : <Mail size={10} />}

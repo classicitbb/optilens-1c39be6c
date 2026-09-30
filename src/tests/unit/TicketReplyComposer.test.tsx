@@ -30,6 +30,7 @@ describe("TicketReplyComposer", () => {
         ticketId: "ticket-123",
         direction: "outbound",
         body: "Reply to send",
+        files: [],
       });
     });
   });

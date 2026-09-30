@@ -2,10 +2,13 @@ import { format } from "date-fns";
 import { Mail } from "lucide-react";
 import { useNavigate } from "react-router";
 import { RichMarkdown } from "@/components/content/RichMarkdown";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import type { HelpdeskAttachment } from "@/lib/helpdeskAttachments";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
 interface TicketOpeningMessageProps {
   ticket: HelpdeskTicketDetail;
+  attachments?: HelpdeskAttachment[];
 }
 
 const assistantContextMarker = "Assistant context:";
@@ -146,7 +149,7 @@ const splitAssistantContext = (description: string) => {
 };
 
 /** The original ticket request is a conversation item, not header metadata. */
-export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
+export const TicketOpeningMessage = ({ ticket, attachments = [] }: TicketOpeningMessageProps) => {
   const navigate = useNavigate();
   const time = format(new Date(ticket.created_at), "MMM d, h:mm a");
   const senderLabel = ticket.partner_contact?.name ?? ticket.customer_email ?? "Customer";
@@ -170,6 +173,11 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
         {trailingDetails && (
           <div className="mt-3">
             <RichMarkdown content={trailingDetails} />
+          </div>
+        )}
+        {attachments.length > 0 && (
+          <div className="mt-3">
+            <HelpdeskImageAttachments ticketId={ticket.id} attachments={attachments} onFilesChange={() => undefined} disabled readOnly />
           </div>
         )}
       </div>

@@ -12,27 +12,46 @@ export type HelpdeskAttachment = {
   signedUrl?: string;
 };
 
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const acceptedImage = (file: File) => /^image\/(png|jpe?g|gif|webp)$/i.test(file.type);
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_HELPDESK_ATTACHMENTS = 5;
 
-export function validateHelpdeskImages(files: File[]) {
-  if (files.length > 5) return "Add up to five images at a time.";
+// Keep in sync with the helpdesk-attachments bucket and the table's mime_type check.
+export const HELPDESK_ATTACHMENT_MIME_TYPES = [
+  "image/png", "image/jpeg", "image/gif", "image/webp",
+  "application/pdf", "text/plain", "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav", "audio/x-wav", "audio/webm", "audio/ogg",
+] as const;
+
+// Value for an <input type="file"> accept attribute: photos, documents and audio.
+export const HELPDESK_ATTACHMENT_ACCEPT = [...HELPDESK_ATTACHMENT_MIME_TYPES, ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".txt", ".mp3", ".m4a", ".wav", ".ogg"].join(",");
+
+const acceptedFile = (file: File) => (HELPDESK_ATTACHMENT_MIME_TYPES as readonly string[]).includes(file.type);
+
+export const isImageAttachment = (mimeType: string) => mimeType.startsWith("image/");
+export const isAudioAttachment = (mimeType: string) => mimeType.startsWith("audio/");
+
+export function validateHelpdeskFiles(files: File[]) {
+  if (files.length > MAX_HELPDESK_ATTACHMENTS) return "Add up to five files at a time.";
   for (const file of files) {
-    if (!acceptedImage(file)) return `${file.name} is not a supported image.`;
-    if (file.size > MAX_IMAGE_BYTES) return `${file.name} is larger than 10 MB.`;
+    if (!acceptedFile(file)) return `${file.name} is not a supported photo, document or audio file.`;
+    if (file.size > MAX_ATTACHMENT_BYTES) return `${file.name} is larger than 10 MB.`;
   }
   return null;
 }
 
-export async function uploadHelpdeskImages(ticketId: string, files: File[], messageId: string | null = null) {
-  const validationError = validateHelpdeskImages(files);
+export async function uploadHelpdeskFiles(ticketId: string, files: File[], messageId: string | null = null) {
+  const validationError = validateHelpdeskFiles(files);
   if (validationError) throw new Error(validationError);
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Sign in to add images to this ticket.");
+  if (!user) throw new Error("Sign in to add files to this ticket.");
 
   const uploaded: HelpdeskAttachment[] = [];
   for (const file of files) {
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-100) || "image";
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-100) || "file";
     const path = `${ticketId}/${user.id}/${crypto.randomUUID()}-${safeName}`;
     const { error: uploadError } = await supabase.storage.from("helpdesk-attachments").upload(path, file, {
       contentType: file.type,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { helpdeskAttachmentQueryKeys } from "@/features/admin/helpdesk/hooks/useHelpdeskAttachments";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,6 +13,8 @@ import InlineDictationButton from "@/components/admin/InlineDictationButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { useToast } from "@/hooks/use-toast";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import { uploadHelpdeskFiles } from "@/lib/helpdeskAttachments";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TeamOption {
@@ -48,8 +51,10 @@ const EMPTY_PRIORITIES: PriorityOption[] = [];
 export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: CreateHelpdeskTicketDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const qc = useQueryClient();
   const createTicket = useCreateHelpdeskTicket();
   const titleRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -120,6 +125,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
   useEffect(() => {
     if (!open) return;
 
+    setFiles([]);
     setForm({
       title: "",
       description: "",
@@ -143,7 +149,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
     }
 
     try {
-      await createTicket.mutateAsync({
+      const ticketId = await createTicket.mutateAsync({
         title: form.title,
         description: form.description,
         teamId: form.teamId || null,
@@ -156,6 +162,17 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
         sourceChannel: "manual",
         notifyContact: !!form.contactId && form.notifyContacts,
       });
+      if (files.length) {
+        // The ticket exists already; report a failed upload without losing it.
+        try {
+          await uploadHelpdeskFiles(ticketId, files);
+          qc.invalidateQueries({ queryKey: helpdeskAttachmentQueryKeys.list(ticketId) });
+        } catch (uploadError) {
+          toast({ title: "Ticket created, but attachments failed", description: (uploadError as Error).message, variant: "destructive" });
+          onOpenChange(false);
+          return;
+        }
+      }
       toast({ title: "Ticket created" });
       onOpenChange(false);
     } catch (error) {
@@ -236,6 +253,8 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
               <InlineDictationButton ariaLabel="Dictate ticket description" onValueChange={(description) => setForm((current) => ({ ...current, description }))} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
             </div>
           </div>
+
+          <HelpdeskImageAttachments key={String(open)} ticketId="" attachments={[]} onFilesChange={setFiles} disabled={createTicket.isPending} />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">

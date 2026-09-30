@@ -82,8 +82,9 @@ vi.mock("@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket", () => ({
   }),
 }));
 
-vi.mock("@/lib/helpdeskAttachments", () => ({
-  uploadHelpdeskImages: assistantMocks.uploadImages,
+vi.mock("@/lib/helpdeskAttachments", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/helpdeskAttachments")>()),
+  uploadHelpdeskFiles: assistantMocks.uploadImages,
 }));
 
 vi.mock("@/features/assistant/assistantGeneration", () => ({
@@ -319,6 +320,6 @@ describe("CompanionAssistant", () => {
     await waitFor(() => expect(screen.getByTestId("support-path")).toHaveTextContent("/profile/helpdesk/ticket-1"));
     expect(assistantMocks.createTicket).toHaveBeenCalledTimes(1);
     expect(assistantMocks.uploadImages).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(new RegExp(`Your images could not be attached.*${error.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i"))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`Your attachments could not be added.*${error.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i"))).toBeInTheDocument();
   });
 });

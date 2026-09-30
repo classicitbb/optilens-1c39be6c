@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Link, useLocation } from "react-router";
-import { ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, FileText, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Music, Paperclip, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useVoiceEngine } from "@/hooks/useVoiceEngine";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { supabase } from "@/integrations/supabase/client";
+import { HELPDESK_ATTACHMENT_ACCEPT, isAudioAttachment, isImageAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 
 const MessageQuickActions = ({
   quickActions,
@@ -233,12 +234,16 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
                     {message.attachments?.length ? (
                       <div className="flex flex-wrap gap-1.5">
                         {message.attachments.map((attachment) => (
-                          <img
-                            key={attachment.previewUrl}
-                            src={attachment.previewUrl}
-                            alt={attachment.name}
-                            className="h-24 w-24 rounded-[14px] border border-primary-foreground/25 object-cover"
-                          />
+                          isImageAttachment(attachment.mimeType ?? "image/") ? (
+                            <img
+                              key={attachment.previewUrl}
+                              src={attachment.previewUrl}
+                              alt={attachment.name}
+                              className="h-24 w-24 rounded-[14px] border border-primary-foreground/25 object-cover"
+                            />
+                          ) : (
+                            <AttachmentChip key={attachment.previewUrl} name={attachment.name} mimeType={attachment.mimeType} className="border-primary-foreground/25" />
+                          )
                         ))}
                       </div>
                     ) : null}
@@ -315,6 +320,20 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
   );
 };
 
+const AttachmentChip = ({ name, mimeType, previewUrl, onRemove, className }: { name: string; mimeType?: string; previewUrl?: string; onRemove?: () => void; className?: string }) => {
+  const type = mimeType ?? "";
+  const Icon = isAudioAttachment(type) ? Music : FileText;
+  return (
+    <div className={cn("flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-1 text-xs", className)}>
+      {isImageAttachment(type) && previewUrl
+        ? <img src={previewUrl} alt={name} className="h-8 w-8 rounded object-cover" />
+        : <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />}
+      <span className="max-w-40 truncate">{name}</span>
+      {onRemove ? <button type="button" className="shrink-0 opacity-70 hover:opacity-100" aria-label={`Remove ${name}`} onClick={onRemove}><X className="h-3.5 w-3.5" /></button> : null}
+    </div>
+  );
+};
+
 const AssistantFeedbackControls = ({
   messageId,
   feedback,
@@ -383,7 +402,17 @@ const AssistantRequestForm = () => {
   const { identity } = usePortalIdentity();
   const { formState, updateForm, submitForm, submitQuickAction, isSubmitting } = useCompanionAssistant();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [requestFiles, setRequestFiles] = useState<File[]>([]);
+  const [requestFileError, setRequestFileError] = useState<string | null>(null);
+  const requestFileInputRef = useRef<HTMLInputElement | null>(null);
   if (!formState) return null;
+
+  const addRequestFiles = (files: File[]) => {
+    if (!files.length) return;
+    const error = validateHelpdeskFiles([...requestFiles, ...files]);
+    setRequestFileError(error);
+    if (!error) setRequestFiles((current) => [...current, ...files]);
+  };
 
   const isQuoteRequest = formState.kind === "quote_request";
   const isPortalSupport = formState.kind === "portal_support";
@@ -412,7 +441,7 @@ const AssistantRequestForm = () => {
       aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
-        if (canSubmit) void submitForm();
+        if (canSubmit) void submitForm(requestFiles);
       }}
     >
       <div className="space-y-1">
@@ -535,6 +564,37 @@ const AssistantRequestForm = () => {
         </div>
       )}
 
+      {user && (isPortalSupport || isQuoteRequest) ? (
+        <div className="space-y-2">
+          <input
+            ref={requestFileInputRef}
+            type="file"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-label="Choose photos, documents or audio"
+            accept={HELPDESK_ATTACHMENT_ACCEPT}
+            onChange={(event) => { addRequestFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }}
+          />
+          <div
+            className="flex items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => { event.preventDefault(); addRequestFiles(Array.from(event.dataTransfer.files)); }}
+          >
+            <span>Attach photos, documents or audio (up to 5 files, 10 MB each).</span>
+            <Button type="button" variant="ghost" size="sm" disabled={isSubmitting} onClick={() => requestFileInputRef.current?.click()}><Paperclip className="mr-1 h-4 w-4" />Attach files</Button>
+          </div>
+          {requestFiles.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {requestFiles.map((file, index) => (
+                <AttachmentChip key={`${file.name}-${file.size}-${index}`} name={file.name} mimeType={file.type} onRemove={() => { setRequestFileError(null); setRequestFiles((current) => current.filter((_, position) => position !== index)); }} />
+              ))}
+            </div>
+          ) : null}
+          {requestFileError ? <p role="alert" className="text-xs text-destructive">{requestFileError}</p> : null}
+        </div>
+      ) : null}
+
       <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
         <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
         <Button type="submit" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
@@ -643,21 +703,23 @@ const CompanionAssistant = () => {
     } catch { /* Autoplay policy may suppress the optional chime. */ }
   }, [nudge]);
 
-  const MAX_ATTACHMENTS = 4;
-  const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
-  const [attachments, setAttachments] = useState<{ id: string; name: string; previewUrl: string }[]>([]);
+  const [attachments, setAttachments] = useState<{ id: string; file: File; previewUrl: string }[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const addAttachmentFiles = (files: File[]) => {
-    const images = files.filter((file) => file.type.startsWith("image/") && file.size <= MAX_ATTACHMENT_BYTES);
-    if (!images.length) return;
+    if (!files.length) return;
+    const error = validateHelpdeskFiles([...attachments.map((attachment) => attachment.file), ...files]);
+    setAttachmentError(error);
+    if (error) return;
     setAttachments((current) => [
       ...current,
-      ...images.map((file) => ({ id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`, name: file.name, previewUrl: URL.createObjectURL(file) })),
-    ].slice(0, MAX_ATTACHMENTS));
+      ...files.map((file) => ({ id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`, file, previewUrl: URL.createObjectURL(file) })),
+    ]);
   };
 
   const removeAttachment = (id: string) => {
+    setAttachmentError(null);
     setAttachments((current) => {
       const target = current.find((attachment) => attachment.id === id);
       if (target) URL.revokeObjectURL(target.previewUrl);
@@ -668,9 +730,10 @@ const CompanionAssistant = () => {
   const submitWithAttachments = () => {
     const trimmed = currentQuery.trim();
     if (!trimmed && attachments.length === 0) return;
-    void submitQuery(trimmed, undefined, undefined, attachments.length ? attachments.map(({ name, previewUrl }) => ({ name, previewUrl })) : undefined);
-    // Object URLs are kept alive so the sent images keep rendering inline in the chat history.
+    void submitQuery(trimmed, undefined, undefined, attachments.length ? attachments.map(({ file, previewUrl }) => ({ name: file.name, previewUrl, mimeType: file.type })) : undefined);
+    // Object URLs are kept alive so the sent files keep rendering inline in the chat history.
     setAttachments([]);
+    setAttachmentError(null);
   };
 
   // Track cookie-consent state so we can hide the launcher while the banner is showing
@@ -879,14 +942,53 @@ const CompanionAssistant = () => {
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
+        {attachments.length || attachmentError ? (
+          <div className="space-y-1.5">
+            {attachments.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {attachments.map((attachment) => (
+                  <AttachmentChip key={attachment.id} name={attachment.file.name} mimeType={attachment.file.type} previewUrl={attachment.previewUrl} className="bg-card/90" onRemove={() => removeAttachment(attachment.id)} />
+                ))}
+              </div>
+            ) : null}
+            {attachmentError ? <p role="alert" className="text-xs text-destructive">{attachmentError}</p> : null}
+          </div>
+        ) : null}
+
+        <div
+          className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => { event.preventDefault(); addAttachmentFiles(Array.from(event.dataTransfer.files)); }}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-label="Choose photos, documents or audio"
+            accept={HELPDESK_ATTACHMENT_ACCEPT}
+            onChange={(event) => { addAttachmentFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }}
+          />
           <div className="flex items-end gap-2">
             <Button
               type="button"
               size="icon"
               variant="ghost"
+              className="ml-1 h-9 w-9 shrink-0 rounded-full text-foreground/60 hover:bg-muted hover:text-foreground"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach photos, documents or audio"
+              aria-label="Attach photos, documents or audio"
+              disabled={isSubmitting}
+            >
+              <Paperclip className="h-4 w-4 text-accent" />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
               className={cn(
-                "ml-1 h-9 w-9 shrink-0 rounded-full transition-all",
+                "h-9 w-9 shrink-0 rounded-full transition-all",
                 voiceInput.isListening
                   ? "voice-listening-indicator voice-mic-active bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : "text-foreground/60 hover:bg-muted hover:text-foreground"
@@ -913,7 +1015,7 @@ const CompanionAssistant = () => {
                 }
               }}
               onPaste={(event) => {
-                const files = Array.from(event.clipboardData?.files ?? []).filter((file) => file.type.startsWith("image/"));
+                const files = Array.from(event.clipboardData?.files ?? []);
                 if (files.length) {
                   event.preventDefault();
                   addAttachmentFiles(files);

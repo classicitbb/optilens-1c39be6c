@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Send, StickyNote } from "lucide-react";
 import { useTicketMessageMutation } from "../hooks/useTicketMessageMutation";
 import { useToast } from "@/hooks/use-toast";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
 
 interface TicketReplyComposerProps {
   ticketId: string;
@@ -13,11 +14,15 @@ interface TicketReplyComposerProps {
 export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
   const [replyBody, setReplyBody] = useState("");
   const [noteBody, setNoteBody] = useState("");
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
+  const [noteFiles, setNoteFiles] = useState<File[]>([]);
+  // Bumping the key remounts the pickers, clearing their selection after a send.
+  const [pickerKey, setPickerKey] = useState(0);
   const { mutateAsync, isPending } = useTicketMessageMutation();
   const { toast } = useToast();
 
   const handleSendReply = async () => {
-    const body = replyBody.trim();
+    const body = replyBody.trim() || (replyFiles.length ? "File attached" : "");
     if (!body) return;
 
     try {
@@ -25,9 +30,12 @@ export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
         ticketId,
         direction: "outbound",
         body,
+        files: replyFiles,
       });
 
       setReplyBody("");
+      setReplyFiles([]);
+      setPickerKey((key) => key + 1);
       toast({ title: "Reply sent" });
     } catch {
       // The mutation displays the customer-safe error toast. Catching here
@@ -36,7 +44,7 @@ export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
   };
 
   const handleAddNote = async () => {
-    const body = noteBody.trim();
+    const body = noteBody.trim() || (noteFiles.length ? "File attached" : "");
     if (!body) return;
 
     try {
@@ -44,9 +52,12 @@ export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
         ticketId,
         direction: "internal_note",
         body,
+        files: noteFiles,
       });
 
       setNoteBody("");
+      setNoteFiles([]);
+      setPickerKey((key) => key + 1);
       toast({ title: "Note added" });
     } catch {
       // The mutation displays the customer-safe error toast. Catching here
@@ -78,9 +89,10 @@ export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSendReply();
             }}
           />
+          <HelpdeskImageAttachments key={`reply-${pickerKey}`} ticketId={ticketId} attachments={[]} onFilesChange={setReplyFiles} disabled={isPending} />
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Ctrl + Enter to send</span>
-            <Button size="sm" onClick={handleSendReply} disabled={isPending || !replyBody.trim()}>
+            <Button size="sm" onClick={handleSendReply} disabled={isPending || (!replyBody.trim() && !replyFiles.length)}>
               <Send size={13} className="mr-1.5" />
               Send reply
             </Button>
@@ -97,13 +109,14 @@ export const TicketReplyComposer = ({ ticketId }: TicketReplyComposerProps) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleAddNote();
             }}
           />
+          <HelpdeskImageAttachments key={`note-${pickerKey}`} ticketId={ticketId} attachments={[]} onFilesChange={setNoteFiles} disabled={isPending} />
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Only visible to your team</span>
             <Button
               size="sm"
               variant="secondary"
               onClick={handleAddNote}
-              disabled={isPending || !noteBody.trim()}
+              disabled={isPending || (!noteBody.trim() && !noteFiles.length)}
             >
               <StickyNote size={13} className="mr-1.5" />
               Add note

@@ -14,7 +14,7 @@ import { useLiveHelpdeskTicketUpdates } from "@/features/admin/helpdesk/hooks/us
 import { useScrollToLatestMessage } from "@/features/admin/helpdesk/hooks/useScrollToLatestMessage";
 import NpsPrompt from "@/components/feedback/NpsPrompt";
 import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
-import { uploadHelpdeskImages, type HelpdeskAttachment, validateHelpdeskImages } from "@/lib/helpdeskAttachments";
+import { uploadHelpdeskFiles, type HelpdeskAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 import { RichMarkdown } from "@/components/content/RichMarkdown";
 
 const HelpdeskTicketDetailSection = () => {
@@ -103,7 +103,7 @@ const HelpdeskTicketDetailSection = () => {
       });
       if (error) throw error;
       const message = Array.isArray(data) ? data[0] : data;
-      if (images.length) await uploadHelpdeskImages(ticketId!, images, message.id);
+      if (images.length) await uploadHelpdeskFiles(ticketId!, images, message.id);
       return message;
     },
     onSuccess: () => {
@@ -210,7 +210,7 @@ const HelpdeskTicketDetailSection = () => {
               onPaste={(event) => {
                 const images = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith("image/"));
                 if (!images.length) return;
-                const error = validateHelpdeskImages(images);
+                const error = validateHelpdeskFiles(images);
                 setImageError(error);
                 if (!error) { event.preventDefault(); setReplyImages(images); }
               }}
@@ -218,7 +218,7 @@ const HelpdeskTicketDetailSection = () => {
                 const images = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith("image/"));
                 if (!images.length) return;
                 event.preventDefault();
-                const error = validateHelpdeskImages(images);
+                const error = validateHelpdeskFiles(images);
                 setImageError(error);
                 if (!error) setReplyImages(images);
               }}
@@ -237,7 +237,7 @@ const HelpdeskTicketDetailSection = () => {
               </Button>
               <Button
                 size="sm"
-                onClick={() => sendReply.mutate({ body: replyBody.trim() || "Image attached", images: replyImages })}
+                onClick={() => sendReply.mutate({ body: replyBody.trim() || "File attached", images: replyImages })}
                 disabled={sendReply.isPending || (!replyBody.trim() && !replyImages.length)}
               >
                 <Send size={13} className="mr-1.5" />

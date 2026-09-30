@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadHelpdeskFiles } from "@/lib/helpdeskAttachments";
+import { helpdeskAttachmentQueryKeys } from "./useHelpdeskAttachments";
 import { helpdeskMessageQueryKeys } from "./useHelpdeskMessages";
 import { helpdeskTicketQueryKeys } from "./useHelpdeskTickets";
 
@@ -8,6 +10,7 @@ interface SendMessageParams {
   ticketId: string;
   direction: "inbound" | "outbound" | "internal_note";
   body: string;
+  files?: File[];
 }
 
 export const useTicketMessageMutation = () => {
@@ -19,6 +22,7 @@ export const useTicketMessageMutation = () => {
       ticketId,
       direction,
       body,
+      files = [],
     }: SendMessageParams) => {
       const db = supabase as any;
       if (direction === "inbound") throw new Error("Staff cannot send a customer-direction Helpdesk message.");

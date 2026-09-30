@@ -1,4 +1,5 @@
 import { useHelpdeskMessages } from "../hooks/useHelpdeskMessages";
+import { useHelpdeskAttachments } from "../hooks/useHelpdeskAttachments";
 import { useHelpdeskTicketTimeline } from "../hooks/useHelpdeskTicketTimeline";
 import type { HelpdeskTicketMessage } from "../hooks/useHelpdeskMessages";
 import type { HelpdeskTicketEvent } from "../hooks/useHelpdeskTicketTimeline";
@@ -25,6 +26,7 @@ export const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
   const { user } = useAuth();
   useLiveHelpdeskTicketUpdates(ticketId);
   const { data: messages = [], isLoading: loadingMessages } = useHelpdeskMessages(ticketId);
+  const { data: attachments = [] } = useHelpdeskAttachments(ticketId);
   const { data: events = [], isLoading: loadingEvents } = useHelpdeskTicketTimeline(ticketId);
 
   const isLoading = loadingMessages || loadingEvents;
@@ -59,9 +61,9 @@ export const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
         const isLatest = index === items.length - 1;
         const content =
           item.kind === "opening" ? (
-            <TicketOpeningMessage ticket={item.data} />
+            <TicketOpeningMessage ticket={item.data} attachments={attachments.filter((attachment) => !attachment.message_id)} />
           ) : item.kind === "message" ? (
-            <TicketMessageBubble message={item.data} />
+            <TicketMessageBubble message={item.data} attachments={attachments.filter((attachment) => attachment.message_id === item.data.id)} />
           ) : (
             <TicketActivityEntry event={item.data} />
           );
