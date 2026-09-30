@@ -324,8 +324,8 @@ Deno.serve(async (req) => {
     },
   });
 
-  // ── Acknowledgment email ──
-  try {
+  // ── Acknowledgment email ── (skipped for the admin self-test sender)
+  if (!sender.email.endsWith("@selftest.invalid")) try {
     await fetch(`${supabaseUrl}/functions/v1/helpdesk-email`, {
       method: "POST",
       headers: {

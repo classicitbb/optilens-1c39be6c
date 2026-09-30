@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2, FileCode2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import EmailDeliveryHealthCard from "@/components/admin/EmailDeliveryHealthCard";
+import InboundEmailStatusCard from "@/components/admin/InboundEmailStatusCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -207,6 +208,7 @@ export default function EmailPreviewsPage() {
       </AdminPageHeader>
 
       <EmailDeliveryHealthCard />
+      <InboundEmailStatusCard />
 
       <div className="grid min-h-0 flex-1 gap-4 lg:min-h-[480px] lg:grid-cols-[minmax(260px,1fr)_minmax(0,2fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-card">
