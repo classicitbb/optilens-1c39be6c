@@ -4264,6 +4264,60 @@ export type Database = {
           },
         ]
       }
+      helpdesk_notification_queue: {
+        Row: {
+          account_contact_id: string
+          attempts: number
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          recipient_email: string
+          recipient_name: string | null
+          sent_at: string | null
+          skipped_reason: string | null
+        }
+        Insert: {
+          account_contact_id: string
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          skipped_reason?: string | null
+        }
+        Update: {
+          account_contact_id?: string
+          attempts?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          skipped_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_notification_queue_account_contact_id_fkey"
+            columns: ["account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpdesk_notification_queue_account_contact_id_fkey"
+            columns: ["account_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
       helpdesk_priorities: {
         Row: {
           color: string
@@ -6030,13 +6084,6 @@ export type Database = {
             columns: ["innovations_alias"]
             isOneToOne: false
             referencedRelation: "innovations_lens_aliases"
-            referencedColumns: ["alias"]
-          },
-          {
-            foreignKeyName: "lens_alias_map_innovations_alias_fkey"
-            columns: ["innovations_alias"]
-            isOneToOne: false
-            referencedRelation: "rx_catalog_aliases"
             referencedColumns: ["alias"]
           },
           {
@@ -8852,13 +8899,6 @@ export type Database = {
             columns: ["innovations_alias"]
             isOneToOne: false
             referencedRelation: "innovations_lens_aliases"
-            referencedColumns: ["alias"]
-          },
-          {
-            foreignKeyName: "quote_lines_innovations_alias_fkey"
-            columns: ["innovations_alias"]
-            isOneToOne: false
-            referencedRelation: "rx_catalog_aliases"
             referencedColumns: ["alias"]
           },
           {
@@ -12223,48 +12263,6 @@ export type Database = {
           },
         ]
       }
-      rx_catalog_aliases: {
-        Row: {
-          alias: string | null
-          category: string | null
-          color_code: string | null
-          color_description: string | null
-          is_active: boolean | null
-          material_code: string | null
-          material_description: string | null
-          mf_type: string | null
-          pricing_key: string | null
-          style_code: string | null
-          style_description: string | null
-        }
-        Insert: {
-          alias?: string | null
-          category?: string | null
-          color_code?: string | null
-          color_description?: string | null
-          is_active?: boolean | null
-          material_code?: string | null
-          material_description?: string | null
-          mf_type?: string | null
-          pricing_key?: string | null
-          style_code?: string | null
-          style_description?: string | null
-        }
-        Update: {
-          alias?: string | null
-          category?: string | null
-          color_code?: string | null
-          color_description?: string | null
-          is_active?: boolean | null
-          material_code?: string | null
-          material_description?: string | null
-          mf_type?: string | null
-          pricing_key?: string | null
-          style_code?: string | null
-          style_description?: string | null
-        }
-        Relationships: []
-      }
       scotia_payment_activity: {
         Row: {
           amount: number | null
@@ -12958,6 +12956,24 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_rx_addons: {
+        Args: never
+        Returns: {
+          auto_rule: Json
+          category: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          is_auto: boolean
+          name: string
+          price: number
+          show_on_website: boolean
+          sku: string
+          sort_order: number
+          updated_at: string
+        }[]
+      }
       get_rx_catalog_aliases: {
         Args: never
         Returns: {
@@ -12974,6 +12990,7 @@ export type Database = {
           style_description: string
         }[]
       }
+      get_rx_fx_rates: { Args: never; Returns: Json }
       get_scotia_credentials: {
         Args: never
         Returns: {
@@ -13065,6 +13082,32 @@ export type Database = {
         Returns: boolean
       }
       has_staff_role: { Args: { _user_id: string }; Returns: boolean }
+      helpdesk_contact_recipients: {
+        Args: { p_contact_id: string }
+        Returns: {
+          account_name: string
+          contact_id: string
+          email: string
+          name: string
+        }[]
+      }
+      helpdesk_enqueue_account_notice: {
+        Args: { p_account_contact_id: string; p_email: string; p_name: string }
+        Returns: undefined
+      }
+      helpdesk_ticket_recipients: {
+        Args: { p_ticket_id: string }
+        Returns: {
+          account_name: string
+          contact_id: string
+          email: string
+          name: string
+        }[]
+      }
+      helpdesk_visible_contact_ids: {
+        Args: { p_user_id: string }
+        Returns: string[]
+      }
       insert_helpdesk_ticket_autoresponse: {
         Args: { p_ticket_id: string }
         Returns: undefined
