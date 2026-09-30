@@ -1360,7 +1360,7 @@ function render(){
   $('#mCur').textContent=show?'order total':'Pricing not shown on this account';
   $('#qSub').textContent=!show?'confirmed with you before production'
     :(!ready?'choose a lens to start pricing'
-      :unpriced?'this lens is not on your pricelist — save as a draft and we will quote it'
+      :unpriced?'this lens is not on your pricelist — you can still order it and it will be priced when processed'
       :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))
         +(indicative?` · ${S.cur} shown for guidance, billed in USD`:' · updates as you type'));
   const amt=$('#qAmt'); amt.textContent=onRequest?'on request':(show?money(total):'——');
@@ -1433,16 +1433,19 @@ function render(){
   $$('#vList li').forEach(li=>li.addEventListener('click',()=>{const t=rootEl.querySelector(li.dataset.go); if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});}));
   $('#vBar').style.width=Math.round(checks.filter(k=>k.ok).length/checks.length*100)+'%';
   const valid=checks.every(k=>k.ok);
-  /* An unpriced combination cannot go to the cart — there is no price to charge,
-     so the only route is a draft we quote back. Flagged for assistance so it
-     reaches the same follow-up queue as any other help request. The mutation
-     sits above the assist-list render below, so it lands in this same pass. */
+  /* An unpriced combination is still orderable: the quote here is only an
+     indication, and Innovations prices the job when it receives it. The order
+     goes through with no charge on this side and is flagged for assistance so
+     it reaches the same follow-up queue as any other help request; the
+     customer sees the priced total under My Orders once it is invoiced. The
+     mutation sits above the assist-list render below, so it lands in this same
+     pass. */
   const {unpriced:noPrice}=price();
   if(noPrice) S.assists.add(UNPRICED_ASSIST); else S.assists.delete(UNPRICED_ASSIST);
   ['#submitBtn','#submitBtn2'].forEach(s=>{
     const b=$(s);
-    b.disabled=!valid||noPrice;
-    b.title=noPrice?'This lens is not priced on your account — save it as a draft and we will quote it.':'';
+    b.disabled=!valid;
+    b.title=noPrice?'This lens is not on your pricelist — it will be priced when your order is processed.':'';
   });
 
   const goToDrafts=shouldOfferGoToDrafts();
