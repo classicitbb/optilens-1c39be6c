@@ -18,7 +18,9 @@ export const useInnovationsCatalogAliases = () =>
     queryFn: async () => {
       const all: CatalogAlias[] = [];
       for (let from = 0; ; from += PAGE) {
-        const { data, error } = await (supabase.from("innovations_lens_aliases") as any)
+        // A view (no suppliers column) — customers cannot read the raw table.
+        // Not in the generated types until the next regeneration, hence the cast.
+        const { data, error } = await (supabase as any).from("rx_catalog_aliases")
           .select("alias, style_code, style_description, color_code, color_description, mf_type, pricing_key")
           .eq("is_active", true)
           .order("alias")
