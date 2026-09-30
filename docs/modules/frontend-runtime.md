@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-30 — Preview toolbar follow-up (source only)
+
+`public/ds/preview-toolbar.css` is loaded by standalone `studio.html` and native `DocStudioEmbed.tsx`. Preview actions use inline SVG paths independent of Google icon fonts. The bar, identity and action groups wrap; text buttons grow vertically; live save status wraps rather than hiding the full message.
+
 ## 2026-09-30 — Doc Studio letterhead (source only)
 
 Presentation tables reset inherited admin grid styles. Saved letter fields `ltRule` and `ltSpacing` share preview/Word rendering; body text remains readable on long letters. See `docs/doc-studio-letterhead-review.md` for verification and export limits.

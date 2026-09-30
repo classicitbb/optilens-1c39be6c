@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-09-30 — Preview toolbar (pending release)
+
+At narrower widths preview controls flow onto additional rows. Save, Save as, Rename, Share and Delete retain their tooltips and accessible names; their icons render without the external icon font. Export labels remain readable and save-status text wraps.
+
 ## 2026-09-30 — Letterhead polish (pending release)
 
 Choose Gold rule, Teal rule or No rule above document type. Comfortable is recommended for correspondence; Compact reduces paragraph gaps. Choices follow saved letters and Word exports. The footer keeps one light separator. Multipage print repetition is not yet verified.

@@ -1,5 +1,13 @@
 # Work Handoff
 
+## 2026-09-30 — Preview toolbar follow-up
+
+Status: Complete — no active handoff for local toolbar work.
+
+Final full-suite result: 949 passed, four unrelated failures, one expected failure. Browser checks at 1513px, 900px, 760px and 640px confirm letterhead labels/actions fit; email/billing at 640px have no toolbar overflow or font-ligature icons. Final build, lint and diff checks pass. PR checks retain the existing public-search-index drift.
+
+`studio.html` uses inline SVGs for Save, Save as, Rename, Share, Delete and dropdown chevrons. `preview-toolbar.css` is shared with the native mount; the toolbar/action groups and text buttons wrap and grow rather than clipping. Status text wraps and has a live-region role. No action, authorization or persistence contract changed. Browser checks cover desktop and narrower letterhead/email/billing layouts; build and lint pass. The full-suite and PR-check baseline failures are recorded in the earlier handoff below. No deployment was made; production release still needs approval.
+
 ## 2026-09-30 — Doc Studio letterhead and email
 
 Status: Source complete; production release and send verification pending approval.

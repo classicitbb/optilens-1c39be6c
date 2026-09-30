@@ -39,7 +39,7 @@ const SCRIPT_SOURCES = [
   `${DS_BASE}/studio-logic.js`,
 ];
 
-const STYLESHEET_HREFS = [DESIGN_SYSTEM_CSS, MATERIAL_SYMBOLS_CSS];
+const STYLESHEET_HREFS = [DESIGN_SYSTEM_CSS, MATERIAL_SYMBOLS_CSS, `${DS_BASE}/preview-toolbar.css`];
 
 /**
  * Scoped replacement for studio.html's <style> block. The original targets

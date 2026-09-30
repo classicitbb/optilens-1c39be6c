@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-09-30 — Preview toolbar icons and labels
+
+The preview toolbar relied on remote font ligatures and a fixed-height, non-wrapping row. Inline SVG action icons now avoid font-load failures. Shared CSS lets controls and labels wrap; 640px browser QA exposed and resolved the long export-button overflow. No save/share/delete action was exercised during QA.
+
 ## 2026-09-30 — Stray letterhead lines and blank email text
 
 Admin table-cell borders/padding/hover styles leaked into native Studio layout tables; a computed-style regression reproduced this and a scoped reset fixes it. Long letters no longer shrink body typography. Image-only HTML caused the managed text converter to return whitespace; a mocked provider reproduced `missing_parameter: text`, now prevented by readable fallback text. Deployed-code inspection was permission-denied; the historical send remains unverified. See the letterhead review and handoff.

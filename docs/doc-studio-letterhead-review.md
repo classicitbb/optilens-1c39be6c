@@ -1,5 +1,7 @@
 # Doc Studio letterhead review — September 30, 2026
 
+Toolbar follow-up: action and dropdown icons now use inline SVGs, avoiding external font dependency. Shared standalone/native toolbar styles let action groups, export labels and save status wrap. Icon buttons retain fixed hit areas, tooltips and accessible names. Browser verification includes desktop and narrow layouts; no save/send/share/delete operation was performed.
+
 The navy, teal, linen and restrained gold palette follows the project design philosophy. The native mount inherited admin data-grid styles: every presentation-table cell gained a gray bottom border, padding and hover fill. That caused stray lines around the logo, gold rule and footer. A scoped reset removes those styles while preserving explicit document borders and ordinary admin tables.
 
 Implemented: one hairline header rule in gold or teal, or no header rule; comfortable or compact paragraph spacing; visible teal selected states and keyboard focus; stable 15px body text rather than shrinking long letters. Choices persist with saved letters and share preview/Word builders, including continuation headers. Legacy letters default to Gold/Comfortable.
