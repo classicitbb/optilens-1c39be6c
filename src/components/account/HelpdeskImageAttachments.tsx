@@ -10,6 +10,7 @@ export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange,
   disabled?: boolean;
   readOnly?: boolean;
 }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<{ file: File; url: string }[]>([]);
   const [stored, setStored] = useState<HelpdeskAttachment[]>([]);
@@ -18,24 +19,48 @@ export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange,
   useEffect(() => { void getHelpdeskAttachmentUrls(attachments).then(setStored); }, [attachments, ticketId]);
   const choose = (files: File[]) => {
     if (disabled) return;
-    const validation = validateHelpdeskFiles(files);
+    const combined = [...selected.map((item) => item.file), ...files];
+    const validation = validateHelpdeskFiles(combined);
     setError(validation);
     if (validation) return;
-    selected.forEach((item) => URL.revokeObjectURL(item.url));
-    setSelected(files.map((file) => ({ file, url: URL.createObjectURL(file) })));
-    onFilesChange(files);
+    setSelected([...selected, ...files.map((file) => ({ file, url: URL.createObjectURL(file) }))]);
+    onFilesChange(combined);
   };
-  return <div className="space-y-2">
-    {readOnly ? null : <><input ref={inputRef} className="sr-only" type="file" accept={HELPDESK_ATTACHMENT_ACCEPT} multiple onChange={(e) => choose(Array.from(e.target.files ?? []))} />
-    <div
-      className="flex min-h-12 items-center justify-between rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground"
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={(event) => { event.preventDefault(); choose(Array.from(event.dataTransfer.files)); }}
-      onPaste={(event) => {
-        const pasted = Array.from(event.clipboardData.files);
-        if (pasted.length) { event.preventDefault(); choose(pasted); }
-      }}
-    >
+
+  // Drop and paste work anywhere in the surrounding dialog (or an element marked
+  // data-attachment-scope), not just on the small drop box. Without either, the
+  // component itself is the target.
+  const chooseRef = useRef(choose);
+  chooseRef.current = choose;
+  useEffect(() => {
+    if (readOnly) return;
+    const scope = rootRef.current?.closest<HTMLElement>('[data-attachment-scope],[role="dialog"]') ?? rootRef.current;
+    if (!scope) return;
+    const hasFiles = (event: DragEvent) => Boolean(event.dataTransfer?.types.includes("Files"));
+    const onDragOver = (event: DragEvent) => { if (hasFiles(event)) event.preventDefault(); };
+    const onDrop = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      chooseRef.current(Array.from(event.dataTransfer?.files ?? []));
+    };
+    const onPaste = (event: ClipboardEvent) => {
+      const pasted = Array.from(event.clipboardData?.files ?? []);
+      if (!pasted.length) return;
+      event.preventDefault();
+      chooseRef.current(pasted);
+    };
+    scope.addEventListener("dragover", onDragOver);
+    scope.addEventListener("drop", onDrop);
+    scope.addEventListener("paste", onPaste);
+    return () => {
+      scope.removeEventListener("dragover", onDragOver);
+      scope.removeEventListener("drop", onDrop);
+      scope.removeEventListener("paste", onPaste);
+    };
+  }, [readOnly]);
+  return <div ref={rootRef} className="space-y-2">
+    {readOnly ? null : <><input ref={inputRef} className="sr-only" type="file" accept={HELPDESK_ATTACHMENT_ACCEPT} multiple onChange={(e) => { choose(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+    <div className="flex min-h-12 items-center justify-between rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
       <span>Paste or drag files here, or add up to 5 photos, documents or audio files (10 MB each).</span>
       <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => inputRef.current?.click()}><Paperclip className="mr-1 h-4 w-4" />Attach files</Button>
     </div>

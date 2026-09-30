@@ -396,23 +396,21 @@ const requestAreaForPath = (pathname: string) => {
   return "Classic Visions website";
 };
 
-const AssistantRequestForm = () => {
+// Files for the request form live in the window so a drop or paste anywhere in
+// Iris can reach them.
+const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles, removeRequestFile }: {
+  requestFiles: File[];
+  requestFileError: string | null;
+  addRequestFiles: (files: File[]) => void;
+  removeRequestFile: (index: number) => void;
+}) => {
   const location = useLocation();
   const { user } = useAuth();
   const { identity } = usePortalIdentity();
   const { formState, updateForm, submitForm, submitQuickAction, isSubmitting } = useCompanionAssistant();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [requestFiles, setRequestFiles] = useState<File[]>([]);
-  const [requestFileError, setRequestFileError] = useState<string | null>(null);
   const requestFileInputRef = useRef<HTMLInputElement | null>(null);
   if (!formState) return null;
-
-  const addRequestFiles = (files: File[]) => {
-    if (!files.length) return;
-    const error = validateHelpdeskFiles([...requestFiles, ...files]);
-    setRequestFileError(error);
-    if (!error) setRequestFiles((current) => [...current, ...files]);
-  };
 
   const isQuoteRequest = formState.kind === "quote_request";
   const isPortalSupport = formState.kind === "portal_support";
@@ -576,18 +574,14 @@ const AssistantRequestForm = () => {
             accept={HELPDESK_ATTACHMENT_ACCEPT}
             onChange={(event) => { addRequestFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }}
           />
-          <div
-            className="flex items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => { event.preventDefault(); addRequestFiles(Array.from(event.dataTransfer.files)); }}
-          >
-            <span>Attach photos, documents or audio (up to 5 files, 10 MB each).</span>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+            <span>Drop, paste or attach photos, documents or audio (up to 5 files, 10 MB each).</span>
             <Button type="button" variant="ghost" size="sm" disabled={isSubmitting} onClick={() => requestFileInputRef.current?.click()}><Paperclip className="mr-1 h-4 w-4" />Attach files</Button>
           </div>
           {requestFiles.length ? (
             <div className="flex flex-wrap gap-1.5">
               {requestFiles.map((file, index) => (
-                <AttachmentChip key={`${file.name}-${file.size}-${index}`} name={file.name} mimeType={file.type} onRemove={() => { setRequestFileError(null); setRequestFiles((current) => current.filter((_, position) => position !== index)); }} />
+                <AttachmentChip key={`${file.name}-${file.size}-${index}`} name={file.name} mimeType={file.type} onRemove={() => removeRequestFile(index)} />
               ))}
             </div>
           ) : null}
@@ -718,6 +712,31 @@ const CompanionAssistant = () => {
     ]);
   };
 
+  const [requestFiles, setRequestFiles] = useState<File[]>([]);
+  const [requestFileError, setRequestFileError] = useState<string | null>(null);
+  const addRequestFiles = (files: File[]) => {
+    if (!files.length) return;
+    const error = validateHelpdeskFiles([...requestFiles, ...files]);
+    setRequestFileError(error);
+    if (!error) setRequestFiles((current) => [...current, ...files]);
+  };
+  const removeRequestFile = (index: number) => {
+    setRequestFileError(null);
+    setRequestFiles((current) => current.filter((_, position) => position !== index));
+  };
+  useEffect(() => {
+    if (!formState) { setRequestFiles([]); setRequestFileError(null); }
+  }, [formState]);
+
+  // A drop or paste anywhere in the Iris window goes to the request form when
+  // one is open (and can take files), otherwise to the chat composer.
+  const requestFormTakesFiles = Boolean(user && formState && (formState.kind === "portal_support" || formState.kind === "quote_request"));
+  const routeDroppedFiles = (files: File[]) => {
+    if (historyOpen) return;
+    if (formState) { if (requestFormTakesFiles) addRequestFiles(files); return; }
+    addAttachmentFiles(files);
+  };
+
   const removeAttachment = (id: string) => {
     setAttachmentError(null);
     setAttachments((current) => {
@@ -806,6 +825,18 @@ const CompanionAssistant = () => {
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
           : "h-full rounded-[28px]",
       )}
+      onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        routeDroppedFiles(Array.from(event.dataTransfer.files));
+      }}
+      onPaste={(event) => {
+        const files = Array.from(event.clipboardData?.files ?? []);
+        if (!files.length) return;
+        event.preventDefault();
+        routeDroppedFiles(files);
+      }}
     >
       <div
         className="flex touch-none items-start justify-between gap-3 border-b border-border/50 px-4 py-4 sm:cursor-move"
@@ -912,7 +943,7 @@ const CompanionAssistant = () => {
             <div className="space-y-2">{savedConversations.map((conversation) => <button key={conversation.id} type="button" className="w-full rounded-lg border p-3 text-left hover:bg-muted" onClick={async () => { await loadConversation(conversation.id); setHistoryOpen(false); }}><p className="truncate text-sm font-medium">{conversation.title}</p><p className="mt-1 text-xs capitalize text-muted-foreground">{conversation.audience} · {new Date(conversation.updated_at).toLocaleString()}</p></button>)}</div>
           </div>
         ) : formState ? (
-          <div className="flex min-h-0 flex-1 p-4"><AssistantRequestForm /></div>
+          <div className="flex min-h-0 flex-1 p-4"><AssistantRequestForm requestFiles={requestFiles} requestFileError={requestFileError} addRequestFiles={addRequestFiles} removeRequestFile={removeRequestFile} /></div>
         ) : <AssistantMessageList onSpeak={voiceEngine.ttsSupported ? voiceEngine.speak : undefined} />}
       </div>
 
@@ -957,8 +988,6 @@ const CompanionAssistant = () => {
 
         <div
           className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]"
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => { event.preventDefault(); addAttachmentFiles(Array.from(event.dataTransfer.files)); }}
         >
           <input
             ref={fileInputRef}
@@ -1012,13 +1041,6 @@ const CompanionAssistant = () => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
                   submitWithAttachments();
-                }
-              }}
-              onPaste={(event) => {
-                const files = Array.from(event.clipboardData?.files ?? []);
-                if (files.length) {
-                  event.preventDefault();
-                  addAttachmentFiles(files);
                 }
               }}
               placeholder={voiceInput.isListening ? "Listening..." : voiceInput.isTranscribing ? "Transcribing your recording..." : "Ask anything"}
