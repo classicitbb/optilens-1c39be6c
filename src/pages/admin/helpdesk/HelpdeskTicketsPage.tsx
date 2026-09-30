@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { Ticket, Plus } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useOpenTicket } from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
 import InlineDictationButton from "@/components/admin/InlineDictationButton";
 
 
@@ -73,7 +74,7 @@ function consistentDefault(field: keyof CreateSnapshot): string | undefined {
 
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const openTicket = useOpenTicket();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
@@ -460,7 +461,7 @@ const HelpdeskTicketsPage = () => {
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('[data-no-row-click]')) return;
                           markTicketOpened(ticket.id);
-                          navigate(`/admin/helpdesk/tickets/${ticket.id}`, { state: { returnTo: "/admin/helpdesk/tickets" } });
+                          openTicket(ticket.id);
                         }}
                         style={{ borderLeft: `3px solid ${prioColor}` }}
                       >

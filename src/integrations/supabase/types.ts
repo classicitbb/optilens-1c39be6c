@@ -6033,6 +6033,13 @@ export type Database = {
             referencedColumns: ["alias"]
           },
           {
+            foreignKeyName: "lens_alias_map_innovations_alias_fkey"
+            columns: ["innovations_alias"]
+            isOneToOne: false
+            referencedRelation: "rx_catalog_aliases"
+            referencedColumns: ["alias"]
+          },
+          {
             foreignKeyName: "lens_alias_map_lens_id_fkey"
             columns: ["lens_id"]
             isOneToOne: false
@@ -8845,6 +8852,13 @@ export type Database = {
             columns: ["innovations_alias"]
             isOneToOne: false
             referencedRelation: "innovations_lens_aliases"
+            referencedColumns: ["alias"]
+          },
+          {
+            foreignKeyName: "quote_lines_innovations_alias_fkey"
+            columns: ["innovations_alias"]
+            isOneToOne: false
+            referencedRelation: "rx_catalog_aliases"
             referencedColumns: ["alias"]
           },
           {
@@ -12209,6 +12223,48 @@ export type Database = {
           },
         ]
       }
+      rx_catalog_aliases: {
+        Row: {
+          alias: string | null
+          category: string | null
+          color_code: string | null
+          color_description: string | null
+          is_active: boolean | null
+          material_code: string | null
+          material_description: string | null
+          mf_type: string | null
+          pricing_key: string | null
+          style_code: string | null
+          style_description: string | null
+        }
+        Insert: {
+          alias?: string | null
+          category?: string | null
+          color_code?: string | null
+          color_description?: string | null
+          is_active?: boolean | null
+          material_code?: string | null
+          material_description?: string | null
+          mf_type?: string | null
+          pricing_key?: string | null
+          style_code?: string | null
+          style_description?: string | null
+        }
+        Update: {
+          alias?: string | null
+          category?: string | null
+          color_code?: string | null
+          color_description?: string | null
+          is_active?: boolean | null
+          material_code?: string | null
+          material_description?: string | null
+          mf_type?: string | null
+          pricing_key?: string | null
+          style_code?: string | null
+          style_description?: string | null
+        }
+        Relationships: []
+      }
       scotia_payment_activity: {
         Row: {
           amount: number | null
@@ -12902,6 +12958,22 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_rx_catalog_aliases: {
+        Args: never
+        Returns: {
+          alias: string
+          category: string
+          color_code: string
+          color_description: string
+          is_active: boolean
+          material_code: string
+          material_description: string
+          mf_type: string
+          pricing_key: string
+          style_code: string
+          style_description: string
+        }[]
+      }
       get_scotia_credentials: {
         Args: never
         Returns: {
@@ -13355,6 +13427,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      record_walk_in_cash_payment: {
+        Args: {
+          p_amount: number
+          p_contact_id?: string
+          p_customer_email?: string
+          p_customer_name: string
+          p_order_reference?: string
+          p_reason?: string
+        }
+        Returns: string
+      }
       redact_pii_jsonb: { Args: { p_payload: Json }; Returns: Json }
       redact_security_payload: { Args: { p_payload: Json }; Returns: Json }
       release_stock_order_submission: {
@@ -13767,6 +13850,10 @@ export type Database = {
       upsert_website_analytics_session: {
         Args: { p_session: Json }
         Returns: undefined
+      }
+      user_assigned_pricelist_version_ids: {
+        Args: { p_user_id?: string }
+        Returns: number[]
       }
       verify_api_key: {
         Args: { p_token: string }

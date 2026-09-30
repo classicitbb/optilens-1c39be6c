@@ -154,7 +154,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
         ticketTypeId: form.ticketTypeId || null,
         deadline: form.dueDate ? new Date(`${form.dueDate}T00:00:00`).toISOString() : null,
         sourceChannel: "manual",
-        notifyContacts: !!form.contactId && form.notifyContacts,
+        notifyContact: !!form.contactId && form.notifyContacts,
       });
       toast({ title: "Ticket created" });
       onOpenChange(false);

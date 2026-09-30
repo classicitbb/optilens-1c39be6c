@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { requestLiveData } from "@/lib/liveDataGateway";
 import InquireButton from "@/components/account/InquireButton";
+import { ORDER_AGE_BANDS, orderAgeBand, orderAgeTint } from "@/lib/orderAge";
 
 
 const formatAddress = (address?: Record<string, unknown> | null) => {
@@ -104,6 +105,7 @@ type LiveDeliveryItem = {
   quantity?: number | null;
   status_name?: string | null;
   amount?: number | null;
+  received_at?: string | null;
 };
 
 type LiveDeliveriesResponse = {
@@ -287,8 +289,11 @@ const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpan
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shipmentItems.map((item, index) => (
-                  <TableRow key={`${item.order_id ?? "item"}-${item.rx_number ?? index}`} className={item.invoice_id ? "cursor-pointer hover:bg-muted/50" : undefined} onClick={() => {
+                {shipmentItems.map((item, index) => {
+                  // Only open shipments are age-shaded; items fall back to the shipment start when the bridge sends no per-item date.
+                  const ageBand = isOpen ? orderAgeBand(item.received_at ?? delivery.started_at) : null;
+                  return (
+                  <TableRow key={`${item.order_id ?? "item"}-${item.rx_number ?? index}`} className={item.invoice_id ? "cursor-pointer hover:bg-muted/50" : undefined} style={ageBand ? { backgroundColor: orderAgeTint(ageBand) } : undefined} title={ageBand ? `Order age: ${ageBand.label}` : undefined} onClick={() => {
                     const invoiceId = Number(item.invoice_id);
                     if (Number.isSafeInteger(invoiceId) && invoiceId > 0) onSelectInvoice(invoiceId, item);
                   }}>
@@ -299,7 +304,8 @@ const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpan
                     <TableCell>{item.status_name ?? "—"}</TableCell>
                     {showPrices ? <TableCell className="text-right">{formatLivePrice(shipmentPrices[index])}</TableCell> : null}
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
               {showPrices ? (
                 <TableFooter>
@@ -320,9 +326,21 @@ const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpan
   );
 };
 
-const MyOrdersSection = () => {
-  const { canAccessFeature, identity, emulation } = usePortalIdentity();
-  const { orders, loading } = useOrders(emulation?.userId);
+// Set when staff view a customer's orders from the admin (no emulation): data
+// is fetched for this customer and every section is shown with prices.
+export type StaffOrdersTarget = {
+  userId: string;
+  crmCustomerId: number | null;
+  accountNumber: string | null;
+  ordersUseBillToAccount: boolean;
+};
+
+const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = {}) => {
+  const portal = usePortalIdentity();
+  const identity = staffTarget ?? portal.identity;
+  const targetUserId = staffTarget?.userId ?? portal.emulation?.userId;
+  const canAccessFeature = (feature: Parameters<typeof portal.canAccessFeature>[0]) => !!staffTarget || portal.canAccessFeature(feature);
+  const { orders, loading } = useOrders(targetUserId);
   const canSeePrivateOrders = canAccessFeature("private-orders");
   const canSeeLiveOrderStatus = canAccessFeature("live-order-status");
   const showPrices = canAccessFeature("order-prices");
@@ -372,7 +390,7 @@ const MyOrdersSection = () => {
   const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
 
-  const paymentsQuery = useAccountPayments(emulation?.userId);
+  const paymentsQuery = useAccountPayments(targetUserId);
   const [orderFilter, setOrderFilter] = useState<OrderBucket | "all">("pending");
   const [orderSearch, setOrderSearch] = useState("");
   const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
@@ -452,8 +470,10 @@ const MyOrdersSection = () => {
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
-        <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        {staffTarget ? null : <>
+          <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
+          <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        </>}
         <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
           {pendingCount ? <a href="#pending-orders"><Badge className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingCount}</Badge></a> : null}
           {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {filteredInnovationsOrders.length}</Badge></a> : null}
@@ -537,12 +557,16 @@ const MyOrdersSection = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {visibleInnovationsOrders.map((order, index) => (
+                    {visibleInnovationsOrders.map((order, index) => {
+                      const ageBand = orderAgeBand(order.received_at);
+                      return (
                       <TableRow
                         key={`${order.rx_number ?? "order"}-${order.received_at ?? "unknown"}`}
                         className="cursor-pointer focus-within:bg-muted/50 hover:bg-muted/50"
+                        style={ageBand ? { backgroundColor: orderAgeTint(ageBand) } : undefined}
+                        title={ageBand ? `Order age: ${ageBand.label}` : undefined}
                         onClick={() => setSelectedLabOrder(order)}
-                        aria-label={`View invoice details for ${order.patient ?? order.rx_number ?? "lab order"}`}
+                        aria-label={`View invoice details for ${order.patient ?? order.rx_number ?? "lab order"}${ageBand ? ` (order age ${ageBand.label})` : ""}`}
                       >
                         <TableCell>{order.rx_number ?? "—"}</TableCell>
                         <TableCell>{order.patient ?? "—"}</TableCell>
@@ -568,10 +592,20 @@ const MyOrdersSection = () => {
                         </TableCell>
                         {showPrices ? <TableCell className="text-right">{formatLivePrice(innovationsPrices[index])} BBD</TableCell> : null}
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-3 py-2 text-xs text-muted-foreground" aria-label="Order age colour key">
+                <span>Order age:</span>
+                {ORDER_AGE_BANDS.map((band) => (
+                  <span key={band.label} className="inline-flex items-center gap-1">
+                    <span className="h-3 w-3 rounded-sm border" style={{ backgroundColor: orderAgeTint(band, 0.6) }} aria-hidden="true" />
+                    {band.label}
+                  </span>
+                ))}
+              </div>
               {filteredInnovationsOrders.length > innovationsVisibleCount ? (
                 <div className="flex items-center justify-between gap-3 border-t p-3">
                   <p className="text-xs text-muted-foreground">
@@ -819,6 +853,20 @@ const MyOrdersSection = () => {
                                 ) : (
                                   <span className="text-sm text-muted-foreground">Applied to account</span>
                                 )}
+                                {staffTarget ? (
+                                  <InquireButton
+                                    label="Raise a ticket about this order"
+                                    title={`Inquiry about ${row.typeLabel} ${row.reference}`}
+                                    description={[
+                                      `${row.typeLabel} ${row.reference}`,
+                                      `Date: ${format(new Date(row.date), "PPP")}`,
+                                      `Status: ${row.statusLabel}`,
+                                      `Total: $${row.total.toFixed(2)} USD`,
+                                      "",
+                                      "Question: ",
+                                    ].join("\n")}
+                                  />
+                                ) : null}
                               </div>
                             </TableCell>
                           </TableRow>

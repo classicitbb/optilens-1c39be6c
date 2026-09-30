@@ -1,6 +1,5 @@
 import { useMemo, useState, useCallback, useRef, useEffect, DragEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
 import { LayoutDashboard, List, Kanban, Maximize2, Minimize2, Star, Pencil, ChevronRight, ChevronDown, Plus, Clock3 } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import { useHelpdeskTicketAlerts } from "@/features/admin/helpdesk/hooks/useHelp
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useOpenTicket } from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
 
 
 interface OverviewTicket {
@@ -402,7 +402,7 @@ const HelpdeskOverviewPage = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editTicket, setEditTicket] = useState<OverviewTicket | null>(null);
   const [activeNow, setActiveNow] = useState(() => new Date());
-  const navigate = useNavigate();
+  const openTicket = useOpenTicket();
 
   const updateStage = useUpdateHelpdeskTicketStage();
   const createTicket = useCreateHelpdeskTicket();
@@ -427,8 +427,8 @@ const HelpdeskOverviewPage = () => {
   const { alertingTicketIds, markTicketOpened } = useHelpdeskTicketAlerts(tickets);
   const handleOpenTicket = useCallback((t: OverviewTicket) => {
     markTicketOpened(t.id);
-    navigate(`/admin/helpdesk/tickets/${t.id}`, { state: { returnTo: "/admin/helpdesk/overview" } });
-  }, [navigate, markTicketOpened]);
+    openTicket(t.id);
+  }, [openTicket, markTicketOpened]);
 
   const ticketIds = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
   const { data: creatorEvents = [] } = useQuery({

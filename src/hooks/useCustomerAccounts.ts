@@ -22,7 +22,24 @@ export const useCustomerAccounts = () => {
         .select("id, name, account_number, country_code")
         .order("name");
       if (error) throw error;
-      return data as CustomerAccountOption[];
+      if ((data ?? []).length > 0) return data as CustomerAccountOption[];
+
+      // `customers` is staff-only under RLS, so a portal customer gets an empty
+      // list here — and the Rx form, with no account to bill, runs in its demo
+      // fallback (no "Ordering for" account, EUR currency). Their own accounts
+      // come from the portal memberships RPC instead. country_code is not on
+      // that RPC; it is unpopulated on every account today, and null is what
+      // the form already treats as "unknown".
+      const { data: memberships, error: memErr } = await (supabase.rpc as any)("get_portal_account_memberships");
+      if (memErr) throw memErr;
+      return ((memberships ?? []) as any[])
+        .filter((m) => m.membership_status === "active")
+        .map((m) => ({
+          id: m.customer_id as number,
+          name: (m.customer_name ?? "") as string,
+          account_number: (m.account_number ?? null) as string | null,
+          country_code: null,
+        }));
     },
     staleTime: 5 * 60 * 1000,
   });

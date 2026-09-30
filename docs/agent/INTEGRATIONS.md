@@ -16,6 +16,8 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 
 ## Operating rules
 
+- App email uses Lovable managed email through `_shared/email/managed-send.ts`; compatibility `smtp.ts` sends log as `raw`. The provider requires nonblank `text`, even for image-only HTML. `LOVABLE_API_KEY` and optional `LOVABLE_SEND_URL` stay server-only. A Lovable source read does not prove active Edge deployment; deployed-code inspection was permission-denied in the September 30 review.
+
 - Verify each connector in the current session with a harmless read.
 - Lovable intent does not replace repository tests or `STATUS.md`.
 - Review Lovable-generated changes before acceptance.

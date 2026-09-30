@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router";
-import { CreditCard, Link2, Loader2, Mail, Printer, ReceiptText, RotateCcw, Send, ShieldCheck } from "lucide-react";
+import { Banknote, CreditCard, Link2, Loader2, Mail, Printer, ReceiptText, RotateCcw, Send, ShieldCheck } from "lucide-react";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -35,6 +35,7 @@ type WalkInPayment = {
   amount: number;
   currency: string;
   status: "pending" | "settled" | "failed";
+  provider: string | null;
   payment_reference: string;
   gateway_transaction_id: string | null;
   gateway_response_code: string | null;
@@ -75,7 +76,7 @@ const WalkInPaymentsPage = () => {
     if (!watchedPaymentId || !isStaff) return;
     const { data, error: fetchError } = await (supabase as any)
       .from("walk_in_payments")
-      .select("id,customer_name,customer_email,order_reference,reason,amount,currency,status,payment_reference,gateway_transaction_id,gateway_response_code,gateway_fail_rc,card_brand,card_last4,paid_at,created_at")
+      .select("id,provider,customer_name,customer_email,order_reference,reason,amount,currency,status,payment_reference,gateway_transaction_id,gateway_response_code,gateway_fail_rc,card_brand,card_last4,paid_at,created_at")
       .eq("id", watchedPaymentId)
       .maybeSingle();
     const fetchedPayment = fetchError ? null : (data as WalkInPayment | null);
@@ -237,6 +238,38 @@ const WalkInPaymentsPage = () => {
     }
   };
 
+  /**
+   * Cash already in hand: stored as settled straight away, then the receipt is
+   * emailed (to the customer if given, otherwise the staff member).
+   */
+  const recordCash = async () => {
+    const amount = validatedAmount();
+    if (amount === null) return;
+    setSubmitting(true);
+    try {
+      const { data: cashId, error: cashError } = await (supabase.rpc as any)("record_walk_in_cash_payment", {
+        p_amount: amount,
+        p_customer_name: form.customerName,
+        p_customer_email: form.customerEmail.trim() || null,
+        p_order_reference: form.orderReference || null,
+        p_reason: form.reason || null,
+        p_contact_id: form.contactId || null,
+      });
+      if (cashError || !cashId) throw new Error(cashError?.message || "Could not record the cash receipt.");
+      const { error: mailError } = await supabase.functions.invoke("scotia-payment", {
+        body: { action: "send-walkin-receipt", paymentId: cashId, force: false },
+      });
+      if (mailError) {
+        toast({ variant: "destructive", title: "Cash recorded, email not sent", description: "Use Email receipt to try again." });
+      }
+      setSearchParams({ payment: String(cashId) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not record the cash receipt.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const takePayment = async () => {
     const amount = validatedAmount();
     if (amount === null) return;
@@ -276,6 +309,7 @@ const WalkInPaymentsPage = () => {
   // receipt keys off whichever payment this screen is watching.
   const displayedPayment = watchedPaymentId ? payment : null;
   const receiptReady = displayedPayment?.status === "settled";
+  const isCash = displayedPayment?.provider === "cash";
   const displayReference = displayedPayment?.gateway_transaction_id || displayedPayment?.payment_reference;
 
   return (
@@ -311,7 +345,7 @@ const WalkInPaymentsPage = () => {
                 <AlertDialogDescription className="space-y-2 pt-1 text-sm text-foreground">
                   <p>
                     Payment of <strong>{money(Number(displayedPayment.amount))} BBD</strong> from{" "}
-                    <strong>{displayedPayment.customer_name}</strong> was approved.
+                    <strong>{displayedPayment.customer_name}</strong> {isCash ? "was recorded." : "was approved."}
                   </p>
                   {displayedPayment.customer_email ? (
                     <p className="text-xs text-muted-foreground">
@@ -343,7 +377,7 @@ const WalkInPaymentsPage = () => {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-emerald-700"><ShieldCheck className="h-5 w-5" />Payment received</CardTitle>
-                  <CardDescription>Verified Scotia/Fiserv card payment</CardDescription>
+                  <CardDescription>{isCash ? "Cash received at the counter" : "Verified Scotia/Fiserv card payment"}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 print:hidden">
                   <Button
@@ -378,7 +412,7 @@ const WalkInPaymentsPage = () => {
               )}
               {displayedPayment.order_reference ? <div><span className="text-muted-foreground">Order / reference</span><p>{displayedPayment.order_reference}</p></div> : null}
               {displayedPayment.reason ? <div><span className="text-muted-foreground">Reason</span><p>{displayedPayment.reason}</p></div> : null}
-              <div><span className="text-muted-foreground">Card</span><p>{displayedPayment.card_brand || "Card"}{displayedPayment.card_last4 ? ` •••• ${displayedPayment.card_last4}` : ""}</p></div>
+              {isCash ? <div><span className="text-muted-foreground">Method</span><p>Cash</p></div> : <div><span className="text-muted-foreground">Card</span><p>{displayedPayment.card_brand || "Card"}{displayedPayment.card_last4 ? ` •••• ${displayedPayment.card_last4}` : ""}</p></div>}
             </CardContent>
           </Card>
         </>
@@ -408,7 +442,7 @@ const WalkInPaymentsPage = () => {
             <label className="grid gap-1.5 text-sm font-medium sm:col-span-2">Link to a contact <span className="font-normal text-muted-foreground">(optional)</span><ContactPickerSelect value={form.contactId} onValueChange={(contactId) => setForm((current) => ({ ...current, contactId }))} placeholder="Search contacts" /></label>
             <div className="sm:col-span-2 grid gap-3 border-t pt-4">
               <p className="text-xs text-muted-foreground">This page never collects or displays raw card details.</p>
-              <div className="grid gap-2 sm:grid-cols-3">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <Button onClick={takePayment} disabled={submitting}>
                   {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
                   Take card now
@@ -421,11 +455,16 @@ const WalkInPaymentsPage = () => {
                   <Send className="mr-2 h-4 w-4" />
                   Request by email
                 </Button>
+                <Button variant="outline" onClick={recordCash} disabled={submitting}>
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Record cash
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
                 <strong>Take card now</strong> uses this device. <strong>Publish link</strong> gives the
                 customer a code to pay on their own phone. <strong>Request by email</strong> sends them a
-                link they can use from anywhere.
+                link they can use from anywhere. <strong>Record cash</strong> logs cash taken at the counter and
+                emails a receipt.
               </p>
             </div>
           </CardContent>

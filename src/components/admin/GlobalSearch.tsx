@@ -194,7 +194,7 @@ const GlobalSearch = () => {
       }
 
       const { data: profiles } = await (supabase.from("profiles") as any)
-        .select("id, full_name, display_name")
+        .select("id, user_id, full_name, display_name")
         .or(`full_name.ilike.${q},display_name.ilike.${q}`)
         .limit(5);
       if (profiles) {
@@ -202,7 +202,7 @@ const GlobalSearch = () => {
           id: `profile-${p.id}`,
           label: p.full_name || p.display_name || "Unknown User",
           sublabel: "Web Portal User",
-          path: `/admin/settings/users?id=${p.id}`,
+          path: `/admin/website/portals?account=${encodeURIComponent(`user:${p.user_id}`)}`,
           icon: User,
           group: "Web Portal",
         })));

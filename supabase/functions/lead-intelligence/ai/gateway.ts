@@ -1,5 +1,5 @@
-// @ts-nocheck
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import { recordAiSpend } from "../../_shared/aiSpend.ts";
 // Thin wrapper over the Lovable AI gateway for forced-tool-call requests.
 //

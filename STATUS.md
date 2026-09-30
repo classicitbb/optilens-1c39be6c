@@ -4,11 +4,17 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-27
+Last updated: 2026-09-30
 
 ---
 
 ## Active work
+
+- **Doc Studio email banner dismissal** — local source adds a keyboard-accessible close button and tab-session persistence. New delivery status/attempts show it again while polling continues. Browser dismissal/reload verification and build pass. Full tests retain four unrelated failures (949 passed); PR checks retain existing public-search-index drift. Lint passes with warnings only; production release requires approval.
+
+- **Doc Studio toolbar follow-up** — source replaces preview-toolbar font ligatures with inline SVG icons and shares wrapping layout CSS between standalone/native Studio. Text buttons and save status grow/wrap; icon buttons retain labels/tooltips and fixed hit areas. Local browser verification and build/lint pass; production release remains pending.
+
+- **Doc Studio letterhead review** — source isolates presentation tables from admin borders/padding, adds Gold/Teal/No rule and Comfortable/Compact choices shared by preview/Word, and keeps long-letter typography readable. Image-only managed email now receives nonblank fallback text. Local browser QA, focused tests, TypeScript, lint and build pass. No release or email occurred. Four unrelated full-suite failures remain; see `docs/doc-studio-letterhead-review.md` and HANDOFF.md.
 
 - **Native website ordering plan** — `docs/lablink-to-native-ordering-plan.md`
   maps custom prescription lenses to the profile Rx Order Form and all other

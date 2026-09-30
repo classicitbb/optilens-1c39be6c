@@ -1,5 +1,18 @@
 # Frontend Help Docs
 
+## Dismiss the Doc Studio email status bar
+
+Use the close button beside **View details** to hide the current bar for this tab session, including reloads. A changed delivery status or new send attempt shows it again. Email delivery details remain available under Settings > Email Previews.
+
+
+## 2026-09-30 — Preview toolbar (pending release)
+
+At narrower widths preview controls flow onto additional rows. Save, Save as, Rename, Share and Delete retain their tooltips and accessible names; their icons render without the external icon font. Export labels remain readable and save-status text wraps.
+
+## 2026-09-30 — Letterhead polish (pending release)
+
+Choose Gold rule, Teal rule or No rule above document type. Comfortable is recommended for correspondence; Compact reduces paragraph gaps. Choices follow saved letters and Word exports. The footer keeps one light separator. Multipage print repetition is not yet verified.
+
 ## 2026-09-26 — Completing an Rx order
 
 - Press Enter through first name, last name, then the optional order reference. The patient panel stays open until you move into Frame & measurements.

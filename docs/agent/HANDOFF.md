@@ -1,5 +1,32 @@
 # Work Handoff
 
+## 2026-09-30 — Email status banner dismissal
+
+Status: Complete — no active handoff.
+
+Doc Studio's email status bar has an accessible close button. Dismissal uses the tab-session `docstudio-email-health-dismissed` key, storing only status/attempt identity. It survives reloads, keeps health polling active, and shows a changed status or latest attempt again. The detailed health page is unchanged. No production release or email send occurred. Verified authenticated local dismissal and persistence after reload, production build and diff checks. Full tests: 949 passed, four existing failures (three CRLF source checks plus the existing customer-data security audit), one expected failure. PR checks stop at existing publicContentIndex.ts drift. Lint results are recorded in STATUS.md.
+
+
+## 2026-09-30 — Preview toolbar follow-up
+
+Status: Complete — no active handoff for local toolbar work.
+
+Final full-suite result: 949 passed, four unrelated failures, one expected failure. Browser checks at 1513px, 900px, 760px and 640px confirm letterhead labels/actions fit; email/billing at 640px have no toolbar overflow or font-ligature icons. Final build, lint and diff checks pass. PR checks retain the existing public-search-index drift.
+
+`studio.html` uses inline SVGs for Save, Save as, Rename, Share, Delete and dropdown chevrons. `preview-toolbar.css` is shared with the native mount; the toolbar/action groups and text buttons wrap and grow rather than clipping. Status text wraps and has a live-region role. No action, authorization or persistence contract changed. Browser checks cover desktop and narrower letterhead/email/billing layouts; build and lint pass. The full-suite and PR-check baseline failures are recorded in the earlier handoff below. No deployment was made; production release still needs approval.
+
+## 2026-09-30 — Doc Studio letterhead and email
+
+Status: Source complete; production release and send verification pending approval.
+
+Final focused run: 22/22 tests across letterhead, managed-email payload and document-content tests pass. PR checks pass lockfile, the documented source-only symmetry exception and Copilot facts, then stop at pre-existing `publicContentIndex.ts` drift (`npm run qa:search-index`). Final build and diff checks pass. The three legacy CRLF failures and unrelated security-audit failure remain outside this change.
+
+Affected files: `public/ds/studio-{logic.js,html}`, `DocStudioEmbed.tsx`, shared managed email and Copilot document-content keys, two regression tests, review and continuity docs. Presentation tables no longer inherit admin borders/padding/hover fills. Rule and spacing choices share preview/Word builders and saved content; legacy letters default to Gold/Comfortable. Long letters retain readable typography. Image-only email receives nonblank fallback text.
+
+Verified: authenticated local browser controls, focused tests, TypeScript, full lint (warnings only), and build. Full suite: 948 passed, four failed, one expected failure. Unrelated failures: two assistant-memory CRLF checks, one walk-in-payment CRLF check, and the customer-data audit of `20260929190000_customer_rx_pricing_read.sql`. No production write, send, push or deploy occurred. Supabase denied deployed-code inspection; Lovable source already has the older HTML-to-text fallback, so the historical send's exact trigger remains unverified.
+
+Approval required: frontend/affected Edge Function release; separately one named-recipient test email. Exact executable next action: `npx vitest run --coverage=false src/tests/unit/docStudioLetterhead.test.ts src/tests/unit/managedEmailPayload.test.ts`. After release approval, identify the actual raw-email caller, deploy the affected functions, run `npm run qa:edge-smoke`, and verify an authorized test send. Preserve the other handoffs below.
+
 - Repository: `classicitbb/optilens-1c39be6c`
 - Status: Document AI source integration ready — Google IAM configuration blocked
 - Last synchronized: 2026-09-27
