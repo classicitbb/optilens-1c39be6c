@@ -4,11 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-09-27
+Last updated: 2026-09-30
 
 ---
 
 ## Active work
+
+- **Doc Studio letterhead review** — source isolates presentation tables from admin borders/padding, adds Gold/Teal/No rule and Comfortable/Compact choices shared by preview/Word, and keeps long-letter typography readable. Image-only managed email now receives nonblank fallback text. Local browser QA, focused tests, TypeScript, lint and build pass. No release or email occurred. Four unrelated full-suite failures remain; see `docs/doc-studio-letterhead-review.md` and HANDOFF.md.
 
 - **Native website ordering plan** — `docs/lablink-to-native-ordering-plan.md`
   maps custom prescription lenses to the profile Rx Order Form and all other

@@ -35,7 +35,7 @@ export const BILL_FILE_KEYS = [
 /** Content key sets for the file types in scope — studio-logic.js:1676. */
 export const FILE_KEYS: Record<string, readonly string[]> = {
   email: ["emHeader", "emFooter", "emEyebrow", "emPreheader", "emHeading", "emCta", "emCtaUrl", "emHeroUrl", "emTagline", "emDisclaimer", "emBody"],
-  letter: ["docType", "ltDate", "ltRecipient", "ltSubject", "ltSignName", "ltSignTitle", "ltEyebrow", "ltAmount", "ltTo", "ltFrom", "ltRe", "ltBody"],
+  letter: ["docType", "ltRule", "ltSpacing", "ltDate", "ltRecipient", "ltSubject", "ltSignName", "ltSignTitle", "ltEyebrow", "ltAmount", "ltTo", "ltFrom", "ltRe", "ltBody"],
 };
 
 /** Per-type metadata — studio-logic.js:1519. */

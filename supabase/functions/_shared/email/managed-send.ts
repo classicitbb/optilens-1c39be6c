@@ -58,7 +58,8 @@ export function htmlToText(html: string): string {
     .replace(/[ \t]+/g, ' ')
     .replace(/\n\s*\n\s*/g, '\n\n')
     .trim()
-  return text || ' '
+  // Image-only messages still need a non-whitespace plain-text part.
+  return text || 'Please view the HTML version of this message.'
 }
 
 async function logSend(

@@ -49,6 +49,8 @@
     emTagline: 'Classic Visions — wholesale optical supply, Barbados.',
     emDisclaimer: 'You are receiving this email as a valued Classic Visions trade partner. This message and any attachments are confidential.',
     docType: 'business',
+    ltRule: 'gold',
+    ltSpacing: 'comfortable',
     ltDate: '',
     ltRecipient: 'Mr. David Brathwaite\nBrathwaite Optical\nBridgetown, Barbados',
     ltSubject: 'Your June wholesale order',
@@ -721,14 +723,14 @@
   fitFont = (base, scale, min) => Math.max(min || 8, Math.round(base * scale));
   clampTextStyle = () => 'overflow-wrap:anywhere;word-break:normal;hyphens:auto';
 
-  styleBody = (html) => {
-    const fit = this.fitScale(html, 1700, .72);
+  styleBody = (html, opts = {}) => {
+    const fit = opts.letter ? 1 : this.fitScale(html, 1700, .72);
     const p = this.fitFont(15, fit, 10), h2 = this.fitFont(17, fit, 12), h3 = this.fitFont(14.5, fit, 11), li = this.fitFont(15, fit, 10);
     const map = {
       H1: `font:800 ${this.fitFont(21, fit, 13)}px/1.2 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin:${Math.round(26*fit)}px 0 ${Math.round(10*fit)}px;${this.clampTextStyle()}`,
       H2: `font:700 ${h2}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.01em;color:#0B1E35;margin:${Math.round(24*fit)}px 0 ${Math.round(8*fit)}px;${this.clampTextStyle()}`,
       H3: `font:700 ${h3}px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin:${Math.round(20*fit)}px 0 ${Math.round(6*fit)}px;${this.clampTextStyle()}`,
-      P: `font:400 ${p}px/1.62 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round(14*fit)}px;${this.clampTextStyle()}`,
+      P: `font:400 ${p}px/${opts.compact ? '1.5' : '1.62'} 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round((opts.compact ? 10 : 14)*fit)}px;${this.clampTextStyle()}`,
       UL: `margin:0 0 ${Math.round(14*fit)}px;padding-left:${Math.round(22*fit)}px`, OL: `margin:0 0 ${Math.round(14*fit)}px;padding-left:${Math.round(22*fit)}px`,
       LI: `font:400 ${li}px/1.55 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round(6*fit)}px;${this.clampTextStyle()}`,
       A: "color:#1A8A9C;text-decoration:underline",
@@ -836,6 +838,12 @@
   };
 
   // ---------- LETTER ----------
+  letterRuleHtml = (margin) => {
+    const style = this.state.ltRule || 'gold';
+    if (style === 'none') return '';
+    const color = style === 'teal' ? '#1A8A9C' : '#C89130';
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:${margin}"><tr><td style="border:0;border-top:1px solid ${color};padding:0;font-size:0;line-height:0">&nbsp;</td></tr></table>`;
+  };
   // Header / footer markup is shared by the on-screen preview and the Word
   // export. In the export the same blocks are lifted into genuine Word header
   // and footer parts, so page padding is dropped (Word page margins own it).
@@ -849,7 +857,7 @@
           <td style="font:800 11px/1.4 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;color:#0B1E35">CLASSIC VISIONS</td>
           <td style="text-align:right;font:400 10.5px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${opts.word ? `Page <span style="mso-field-code:PAGE">2</span>` : 'Page 2'}</td>
         </tr></table>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:8px 0 0"><tr><td style="border-top:1px solid #ece9e0;font-size:0;line-height:0">&nbsp;</td></tr></table>
+        ${this.letterRuleHtml('8px 0 0')}
       </div>`;
     }
     return `<div style="padding:${pad}">
@@ -857,7 +865,7 @@
         <td style="vertical-align:middle">${this.lockup('light', { big: true, src: opts.logoSrc })}</td>
         <td style="vertical-align:middle;text-align:right;font:400 11.5px/1.75 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c">${esc(b.phone)}<br>${esc(b.email)}<br>${esc(b.web)}</td>
       </tr></table>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:22px 0 0"><tr><td style="border-top:2px solid #C89130;font-size:0;line-height:0">&nbsp;</td></tr></table>
+      ${this.letterRuleHtml('22px 0 0')}
     </div>`;
   };
 
@@ -899,7 +907,8 @@
     }
     const amountRadius = opts.word ? '' : 'border-radius:8px;';
     const amount = (d.docType === 'collection' && d.ltAmount) ? `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6px ${px} 2px"><tr><td style="border:1px solid #C89130;${amountRadius}padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px;white-space:nowrap">${esc(d.ltAmount)}</div></td></tr></table>` : '';
-    const bodyHtml = `<div style="padding:16px ${px} 0">${this.styleBody(d.ltBody)}</div>`;
+    const compact = d.ltSpacing === 'compact';
+    const bodyHtml = `<div style="padding:${compact ? '10px' : '16px'} ${px} 0">${this.styleBody(d.ltBody, { compact, letter: true })}</div>`;
     const sign = d.docType === 'memo' ? '' : `<div style="padding:10px ${px} 0">
       <p style="font:400 14px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#1c2b3a;margin:0 0 40px">Sincerely,</p>
       <div style="font:700 14px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(d.ltSignName)}</div>
@@ -1027,7 +1036,7 @@
     return;
     const name = prompt('Name this letterhead template:'); if (!name) return;
     const ltBody = this.letterEditor ? this.letterEditor.innerHTML : this.state.ltBody;
-    const k = ['docType', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe'];
+    const k = ['docType', 'ltRule', 'ltSpacing', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe'];
     const fields = { ltBody }; k.forEach(x => fields[x] = this.state[x]);
     this.setState(s => ({ letterLib: [...s.letterLib, { id: Date.now() + '', name, fields }] }), this.persist);
     this.toast('Template saved');
@@ -1116,7 +1125,7 @@
   // ---------- view helpers ----------
   tabStyle = (active) => `padding:7px 16px;border:0;border-radius:7px;cursor:pointer;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;background:${active ? '#F4F2ED' : 'transparent'};color:${active ? '#0B1E35' : '#cdd8e4'};transition:.15s`;
   segStyle = (active) => `flex:1;padding:9px 6px;border-radius:8px;border:1px solid ${active ? '#0B1E35' : '#d9d7cf'};background:${active ? '#0B1E35' : '#fff'};color:${active ? '#fff' : '#0B1E35'};font:700 11.5px/1.2 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:center;transition:.15s`;
-  seg = (key, opts) => opts.map(o => ({ label: o.l, style: this.segStyle(this.state[key] === o.k), onClick: () => this.set(key, o.k) }));
+  seg = (key, opts) => opts.map(o => ({ label: o.l, pressed: this.state[key] === o.k, style: this.segStyle(this.state[key] === o.k), onClick: () => this.set(key, o.k) }));
 
 
   // ---------- customer reference data ----------
@@ -1735,7 +1744,7 @@
   };
   FILE_KEYS = {
     email: ['emHeader', 'emFooter', 'emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'emBody'],
-    letter: ['docType', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe', 'ltBody'],
+    letter: ['docType', 'ltRule', 'ltSpacing', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe', 'ltBody'],
     signature: ['sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'sgLogo'],
     social: ['smFormat', 'smStyle', 'smHeadline', 'smHeadlineAlign', 'smHeadlineItalic', 'smBody', 'smSub', 'smHandle'],
     shiplabel: ['slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
@@ -1924,6 +1933,7 @@
     this.setState({
       ...fields,
       tab: type,
+      ...(type === 'letter' ? { ltRule: ['gold', 'teal', 'none'].includes(fields.ltRule) ? fields.ltRule : 'gold', ltSpacing: fields.ltSpacing === 'compact' ? 'compact' : 'comfortable' } : {}),
       currentFileId: file.id || '',
       currentFileKind: 'file',
       currentFileType: type,
@@ -2666,6 +2676,8 @@
       emHeaderOpts: this.seg('emHeader', [{ k: 'navy', l: 'Navy band' }, { k: 'minimal', l: 'Minimal' }, { k: 'teal', l: 'Teal edge' }]),
       emFooterOpts: this.seg('emFooter', [{ k: 'navy', l: 'Navy' }, { k: 'linen', l: 'Light' }]),
       docTypeOpts: this.seg('docType', [{ k: 'business', l: 'Business' }, { k: 'announcement', l: 'Announcement' }, { k: 'collection', l: 'Collection' }, { k: 'memo', l: 'Memo' }]),
+      letterRuleOpts: this.seg('ltRule', [{ k: 'gold', l: 'Gold rule' }, { k: 'teal', l: 'Teal rule' }, { k: 'none', l: 'No rule' }]),
+      letterSpacingOpts: this.seg('ltSpacing', [{ k: 'comfortable', l: 'Comfortable' }, { k: 'compact', l: 'Compact' }]),
       isMemo: d.docType === 'memo', notMemo: d.docType !== 'memo', isAnnounce: d.docType === 'announcement', isBizColl, isCollection: d.docType === 'collection',
       showSubject: d.docType !== 'memo', subjectLabel: d.docType === 'announcement' ? 'Title' : 'Subject (Re:)',
       emailLib, letterLib, sigLib, snippetItems, letterheadBlocks,

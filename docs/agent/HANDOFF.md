@@ -1,5 +1,17 @@
 # Work Handoff
 
+## 2026-09-30 — Doc Studio letterhead and email
+
+Status: Source complete; production release and send verification pending approval.
+
+Final focused run: 22/22 tests across letterhead, managed-email payload and document-content tests pass. PR checks pass lockfile, the documented source-only symmetry exception and Copilot facts, then stop at pre-existing `publicContentIndex.ts` drift (`npm run qa:search-index`). Final build and diff checks pass. The three legacy CRLF failures and unrelated security-audit failure remain outside this change.
+
+Affected files: `public/ds/studio-{logic.js,html}`, `DocStudioEmbed.tsx`, shared managed email and Copilot document-content keys, two regression tests, review and continuity docs. Presentation tables no longer inherit admin borders/padding/hover fills. Rule and spacing choices share preview/Word builders and saved content; legacy letters default to Gold/Comfortable. Long letters retain readable typography. Image-only email receives nonblank fallback text.
+
+Verified: authenticated local browser controls, focused tests, TypeScript, full lint (warnings only), and build. Full suite: 948 passed, four failed, one expected failure. Unrelated failures: two assistant-memory CRLF checks, one walk-in-payment CRLF check, and the customer-data audit of `20260929190000_customer_rx_pricing_read.sql`. No production write, send, push or deploy occurred. Supabase denied deployed-code inspection; Lovable source already has the older HTML-to-text fallback, so the historical send's exact trigger remains unverified.
+
+Approval required: frontend/affected Edge Function release; separately one named-recipient test email. Exact executable next action: `npx vitest run --coverage=false src/tests/unit/docStudioLetterhead.test.ts src/tests/unit/managedEmailPayload.test.ts`. After release approval, identify the actual raw-email caller, deploy the affected functions, run `npm run qa:edge-smoke`, and verify an authorized test send. Preserve the other handoffs below.
+
 - Repository: `classicitbb/optilens-1c39be6c`
 - Status: Document AI source integration ready — Google IAM configuration blocked
 - Last synchronized: 2026-09-27

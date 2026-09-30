@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-09-30 — Doc Studio letterhead (source only)
+
+Presentation tables reset inherited admin grid styles. Saved letter fields `ltRule` and `ltSpacing` share preview/Word rendering; body text remains readable on long letters. See `docs/doc-studio-letterhead-review.md` for verification and export limits.
+
 ## 2026-09-26 — Portal Rx order form
 
 - `/profile/rx-order` keeps the account layout at a route-scoped 1200px maximum. The embed `.wrap` owns a 2px desktop inset and retains a 14px mobile inset at 640px and below.

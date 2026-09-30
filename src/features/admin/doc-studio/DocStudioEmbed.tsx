@@ -62,6 +62,13 @@ const NATIVE_CSS = `
 .ds-native-host .cv-in:focus{border-color:#1A8A9C !important;box-shadow:0 0 0 3px rgba(26,138,156,.12)}
 .ds-native-host .cv-scroll::-webkit-scrollbar{width:10px;height:10px}
 .ds-native-host .cv-scroll::-webkit-scrollbar-thumb{background:#cdc8ba;border-radius:8px;border:3px solid transparent;background-clip:content-box}
+/* Document layout tables carry their own inline styles, not admin data-grid rules. */
+.ds-native-host table[role="presentation"]{background:transparent;color:inherit}
+.ds-native-host table[role="presentation"] td,.ds-native-host table[role="presentation"] th{padding:0;border:0;font:inherit;color:inherit;background:transparent;letter-spacing:normal;text-transform:none}
+.ds-native-host table[role="presentation"] tr:hover td{background:transparent}
+.ds-native-host button:focus-visible{outline:2px solid #1A8A9C;outline-offset:3px}
+.ds-native-host .ds-letter-polish button[aria-pressed="true"]{background:#1A8A9C!important;border-color:#1A8A9C!important;color:#fff!important}
+.ds-native-host .ds-letter-polish button:hover{outline:1px solid #1A8A9C;outline-offset:2px}
 `;
 
 declare global {

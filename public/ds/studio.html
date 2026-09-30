@@ -236,6 +236,17 @@
       <sc-if value="{{ isLetter }}" hint-placeholder-val="{{ false }}">
       <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:20px">
 
+        <fieldset class="ds-letter-polish" style="border:0;margin:0;padding:0;min-width:0">
+          <legend style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Letterhead polish</legend>
+          <div role="group" aria-label="Header rule" style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ letterRuleOpts }}" as="o" hint-placeholder-count="3"><button aria-pressed="{{ o.pressed }}" onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+          </div>
+          <div role="group" aria-label="Body spacing" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:9px">
+            <sc-for list="{{ letterSpacingOpts }}" as="o" hint-placeholder-count="2"><button aria-pressed="{{ o.pressed }}" onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+          </div>
+          <p style="font:400 11.5px/1.5 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin:9px 0 0">One restrained header rule. These choices also apply to print and Word exports.</p>
+        </fieldset>
+
         <div>
           <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Document type</div>
           <div style="display:flex;flex-wrap:wrap;gap:7px">

@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-09-30 — Letterhead polish (pending release)
+
+Choose Gold rule, Teal rule or No rule above document type. Comfortable is recommended for correspondence; Compact reduces paragraph gaps. Choices follow saved letters and Word exports. The footer keeps one light separator. Multipage print repetition is not yet verified.
+
 ## 2026-09-26 — Completing an Rx order
 
 - Press Enter through first name, last name, then the optional order reference. The patient panel stays open until you move into Frame & measurements.

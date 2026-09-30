@@ -69,6 +69,8 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 
 ## Durable constraints
 
+- Doc Studio mounts natively through `DocStudioEmbed.tsx`. Admin grid styles must not reach its presentation tables. Letter header/footer builders serve preview and Word; `ltRule` and `ltSpacing` belong in Studio and Copilot content keys. Letter typography stays fixed while spacing is selectable. Focused command: `npx vitest run --coverage=false src/tests/unit/docStudioLetterhead.test.ts src/tests/unit/managedEmailPayload.test.ts`.
+
 - Native ordering direction (plan only): custom prescription lenses enter at
   `/profile/rx-order`; stock lenses and all other catalogued products enter at
   `/store`. The access and customer-ownership work required to make the Rx form
