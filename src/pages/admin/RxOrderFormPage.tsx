@@ -6,7 +6,7 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { useToast } from "@/hooks/use-toast";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FlaskConical } from "lucide-react";
 import "./rx-order-form-page.css";
 
 // Admin surface for the ported prototype Rx order form. Fast-path entry
@@ -68,6 +68,9 @@ const RxOrderFormPage = () => {
         {quote?.quote_number && (
           <span className="text-[11px] text-muted-foreground">Saved as quote <span className="font-mono">{quote.quote_number}</span></span>
         )}
+        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 ml-auto" onClick={() => navigate("/admin/orders/rx-test")}>
+          <FlaskConical className="h-3.5 w-3.5" /> Test bench
+        </Button>
       </div>
       {quoteId ? (
         <RxOrderEmbed

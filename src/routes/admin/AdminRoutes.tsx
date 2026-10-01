@@ -44,6 +44,8 @@ const RxOrderFormPage = lazyWithRetry(() => import("@/pages/admin/RxOrderFormPag
 const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrderBuilderPage"),
 );
 const RxSubmissionsPage = lazyWithRetry(() => import("@/pages/admin/RxSubmissionsPage"));
+// Staff test bench: the Rx form against test fixtures. Nothing is saved or sent to a lab.
+const RxOrderTestBench = lazyWithRetry(() => import("@/features/rx-order/dev/RxOrderPreview"));
 const AliasMappingPage = lazyWithRetry(() => import("@/pages/admin/AliasMappingPage"));
 const QuoteEditorPage = lazyWithRetry(() => import("@/pages/admin/QuoteEditorPage"));
 const QuotePrintPreviewPage = lazyWithRetry(() => import("@/pages/admin/QuotePrintPreviewPage"),
@@ -274,6 +276,7 @@ const AdminRoutes = () => (
         element={<QuotePrintPreviewPage />}
       />
       <Route path="orders/rx-submissions" element={<RxSubmissionsPage />} />
+      <Route path="orders/rx-test" element={<RxOrderTestBench />} />
       <Route path="website/orders" element={<LegacyWebsiteOrdersRedirect />} />
       <Route path="website/quotations/*" element={<LegacyWebsiteOrdersRedirect />} />
       <Route path="website/stock-orders" element={<LegacyWebsiteOrdersRedirect />} />

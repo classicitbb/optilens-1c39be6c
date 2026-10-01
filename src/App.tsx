@@ -4,12 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from "react-router";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-// Dev-only Rx form bench. The conditional has to wrap the import() itself:
-// guarding only the <Route> still leaves a static dynamic-import in the graph,
-// and Rollup emits it as a real chunk — which shipped the bench and its test
-// fixtures to production even though nothing rendered them. import.meta.env.DEV
-// is substituted with a literal false at build time, so this whole branch (and
-// the chunk) is dropped instead.
+// Dev-only, sign-in-free route to the Rx form bench. The conditional has to
+// wrap the import() itself: guarding only the <Route> still leaves a static
+// dynamic-import in the graph. import.meta.env.DEV is substituted with a
+// literal false at build time, so this public route is dropped from production.
+// Staff reach the same bench in production at /admin/orders/rx-test, behind
+// the admin guard (see AdminRoutes).
 const RxOrderPreview = import.meta.env.DEV
   ? lazyWithRetry(() => import("@/features/rx-order/dev/RxOrderPreview"))
   : () => null;

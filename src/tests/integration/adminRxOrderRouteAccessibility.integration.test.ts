@@ -9,6 +9,7 @@ describe("admin Rx order route accessibility", () => {
     "admin.orders.quotations.new-rx",
     "admin.orders.quotations.rx",
     "admin.orders.rx-submissions",
+    "admin.orders.rx-test",
   ];
 
   it("registers each canonical Rx route as an admin route", () => {
@@ -27,6 +28,7 @@ describe("admin Rx order route accessibility", () => {
     expect(source).toContain('path="orders/quotations/new-rx"');
     expect(source).toContain('path="orders/quotations/rx/:id"');
     expect(source).toContain('path="orders/rx-submissions"');
+    expect(source).toContain('path="orders/rx-test"');
   });
 
   it("exposes Activities and the Rx order form as direct header launcher shortcuts", () => {

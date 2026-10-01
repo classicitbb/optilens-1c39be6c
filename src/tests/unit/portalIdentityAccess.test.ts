@@ -40,9 +40,10 @@ describe("canAccessPortalFeature", () => {
     expect(canAccessPortalFeature(identity({ featureOverrides: { "live-order-status": false } }), "live-order-status")).toBe(false);
   });
 
-  it("allows Lens Assistant for approved customers unless the profile override disables it", () => {
-    expect(canAccessPortalFeature(identity(), "rx-order")).toBe(true);
+  it("keeps the Rx order form off unless staff explicitly enable it", () => {
+    expect(canAccessPortalFeature(identity(), "rx-order")).toBe(false);
     expect(canAccessPortalFeature(identity({ portalAccessStatus: "pending_approval" }), "rx-order")).toBe(false);
+    expect(canAccessPortalFeature(identity({ featureOverrides: { "rx-order": true } }), "rx-order")).toBe(true);
     expect(canAccessPortalFeature(identity({ featureOverrides: { "rx-order": false } }), "rx-order")).toBe(false);
     expect(canAccessPortalFeature(identity({ portalAccessStatus: "pending_approval", featureOverrides: { "rx-order": true } }), "rx-order")).toBe(true);
   });

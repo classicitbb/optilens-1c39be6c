@@ -186,7 +186,7 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "live-order-status": "Approved customer access for live lab and delivery status.",
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
   "order-prices": "Off by default. Enable to show item prices and totals on this customer's Order status and lab shipment views.",
-  "rx-order": "Approved customer access to the portal Rx order form in this profile.",
+  "rx-order": "Off by default. Turn on to give this customer the Rx order form (pilot).",
 };
 
 type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "active" | "all";

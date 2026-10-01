@@ -1,5 +1,7 @@
-// Dev-only Rx form bench — mounted at /dev/rx-order under `npm run dev` and
-// stripped from production builds (see the import.meta.env.DEV guard in App).
+// Rx form bench — mounted at /dev/rx-order under `npm run dev` (no sign-in),
+// and for staff in every build at /admin/orders/rx-test (AdminRoutes), so the
+// form can be tested in admin while customer access is switched off. It never
+// writes to the database or sends anything to a lab.
 //
 // The real form lives behind portal auth, a live quote, a pricelist scope and
 // the Innovations alias feed, so seeing a change meant signing in and clicking
