@@ -20,6 +20,7 @@
 // with its own drifting fixture data would show a form nobody else's tests
 // describe.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
@@ -74,6 +75,7 @@ const reactFixtureCatalog = (data: ReturnType<typeof dataFor>, pricesVisible: bo
 });
 
 const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
+  const navigate = useNavigate();
   const { data: accounts = [] } = useCustomerAccounts();
   const [mode, setMode] = useState<Mode>("fixtures");
   // Which implementation the customer preview mounts: the previous engine or the React rewrite.
@@ -159,6 +161,10 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
           font: "12.5px/1.4 ui-sans-serif, system-ui, sans-serif",
         }}
       >
+        {/* the way out: the admin bench returns to the regular Rx order form, the dev bench to the site */}
+        <button type="button" onClick={() => navigate(allowLive ? "/admin/orders/quotations/new-rx" : "/")}>
+          ← {allowLive ? "Rx order form" : "Back"}
+        </button>
         <strong style={{ fontSize: 13 }}>Rx form bench</strong>
 
         {allowLive && (
