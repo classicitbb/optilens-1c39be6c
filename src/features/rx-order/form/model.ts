@@ -10,6 +10,8 @@ import {
   comboOptions, repairTriple, splitLensesDuplicate, tripleComplete, type ComboOptions, type Triple,
 } from "../domain/catalog";
 import { parseNum, SHORTHAND_FIELDS } from "../domain/parse";
+import { hasOutline, shapeFromPayload, shapeGeometry, shapeToPayload, type ShapeGeometry } from "../domain/shape";
+import { STD_SHAPES } from "../domain/standardShapes";
 import { priceOrder, type PriceInput, type PriceResult, type PriceSide } from "../domain/price";
 import { RX_ORDER_SCHEMA_V2, upgradeV1, type RxOrderSource, type RxOrderV2 } from "../domain/schema";
 import {
@@ -17,7 +19,7 @@ import {
   type Eye, type FrameIssue, type RxEyeValues, type RxIssue, type RxRules, type RxWarning,
 } from "../domain/validate";
 import {
-  EXPORT_DELIVERY, DEFAULT_DELIVERY, defaultValues, emptyEye,
+  EXPORT_DELIVERY, DEFAULT_DELIVERY, defaultValues, emptyEye, emptyShape,
   type CatalogItem, type CatalogTreatment, type RxCatalog, type RxEyeText, type RxFormValues,
 } from "./types";
 
@@ -139,6 +141,14 @@ export interface Derived {
     /** The ED in force: the person's own, or the √(A²+B²) estimate. */
     ed: number | null;
     edIsEstimate: boolean;
+    /** The ED is read off the outline and cannot be typed over. */
+    edLocked: boolean;
+    /** The outline rescaled to the A × B typed (null when no shape). */
+    geometry: ShapeGeometry | null;
+    /** All four box measurements are in — the shape can be confirmed against them. */
+    boxComplete: boolean;
+    /** Problems with the shape / trace requirement (remote edge needs a trace). */
+    shapeIssues: string[];
     issues: FrameIssue[];
   };
   diameter: { suggested: number | null; pick: number | null; effective: number };
@@ -181,7 +191,9 @@ export function derive(v: RxFormValues, catalog: RxCatalog): Derived {
   const a = parseNum(v.frame.a), b = parseNum(v.frame.b), dbl = parseNum(v.frame.dbl);
   const estimate = estimateED(a, b);
   const typedEd = parseNum(v.frame.ed);
-  const ed = v.frame.edTouched ? typedEd : estimate;
+  // A real outline makes ED a measurement, not an opinion: it locks the field.
+  const geometry = hasOutline(v.shape.data) ? shapeGeometry(v.shape.data, { a, b, dbl }) : null;
+  const ed = geometry ? geometry.metrics.ed : v.frame.edTouched ? typedEd : estimate;
   const rules = rxRules({
     eyes: v.job.eyes, vision: v.job.vision, purpose: v.job.purpose,
     designNeedsAdd: !!designA?.needsAdd, isProg, frameB: b,
@@ -260,8 +272,18 @@ export function derive(v: RxFormValues, catalog: RxCatalog): Derived {
 
   // sections
   const patient = !!v.patient.first.trim() && !!v.patient.last.trim();
-  const frame = !!v.frame.name.trim() && !!v.frame.mount && a !== null && b !== null && ed !== null && dbl !== null
-    && frameIssues.length === 0;
+  const boxComplete = a !== null && b !== null && ed !== null && dbl !== null;
+  const remote = v.job.scope === "remote";
+  const shapeIssues: string[] = [];
+  // Remote edge cuts to the trace: a file is required, and its outline has to be
+  // confirmed against the frame. (A standard shape alone is not a trace.)
+  if (remote) {
+    if (v.shape.fileName && !v.shape.data) shapeIssues.push("No trace points could be read from that file — upload it again, or re-export the trace.");
+    else if (v.shape.source !== "trace") shapeIssues.push("Remote edge needs your frame trace file (.oma, .tr or .vca).");
+    else if (!(v.shape.confirmed && boxComplete)) shapeIssues.push("Confirm the shape is correct for the frame in hand.");
+  }
+  const frame = !!v.frame.name.trim() && !!v.frame.mount && boxComplete
+    && frameIssues.length === 0 && shapeIssues.length === 0;
   const sections: Record<SectionId, boolean> = {
     patient,
     frame,
@@ -285,7 +307,10 @@ export function derive(v: RxFormValues, catalog: RxCatalog): Derived {
   const blocked = price.unpriced && catalog.blockUnpricedOrders;
   return {
     eyes, rows, rules, rx,
-    frame: { a, b, dbl, ed, edIsEstimate: !v.frame.edTouched && estimate !== null, issues: frameIssues },
+    frame: {
+      a, b, dbl, ed, edIsEstimate: !geometry && !v.frame.edTouched && estimate !== null,
+      edLocked: !!geometry, geometry, boxComplete, shapeIssues, issues: frameIssues,
+    },
     diameter: { suggested, pick, effective },
     lens: { sides: sidesTriples, complete: lensComplete, duplicate, names, options, repairs, isProg },
     treat: { issues, tintId: tint?.id ?? null, arSelected, serviceLead: arSelected ? AR_LEAD : PLAIN_LEAD },
@@ -308,7 +333,9 @@ export function sectionSummary(id: SectionId, v: RxFormValues, d: Derived, catal
       return [`${v.patient.first.trim()} ${v.patient.last.trim()}`.trim(), v.reference.trim() && `Ref ${v.reference.trim()}`].filter(Boolean).join(" · ");
     case "frame": {
       const scope = { uncut: "Uncut lenses", remote: "Remote edge", glaze: "Full glaze" }[v.job.scope];
-      return [scope, v.frame.name.trim(), v.frame.mount, d.frame.a !== null && `A ${d.frame.a} · B ${d.frame.b} · ED ${d.frame.ed} · DBL ${d.frame.dbl}`]
+      const shape = v.shape.source === "standard" ? STD_SHAPES.find((s) => s.id === v.shape.standardId)?.n : v.shape.source === "trace" ? v.shape.fileName : null;
+      return [scope, v.frame.name.trim(), v.frame.mount, shape && `Shape: ${shape}`,
+        d.frame.a !== null && `A ${d.frame.a} · B ${d.frame.b} · ED ${d.frame.ed !== null ? +d.frame.ed.toFixed(2) : "—"} · DBL ${d.frame.dbl}`]
         .filter(Boolean).join(" · ");
     }
     case "lens":
@@ -376,7 +403,11 @@ export function buildOrder(
     patient: { first: v.patient.first, last: v.patient.last },
     job: { ...v.job },
     frame: { name: v.frame.name, mount: v.frame.mount, source: v.frame.source, a: d.frame.a, b: d.frame.b, ed: d.frame.ed, dbl: d.frame.dbl },
-    shape: null,
+    shape: d.frame.geometry && v.shape.data && v.shape.source
+      ? (shapeToPayload(v.shape.data, d.frame.geometry, {
+          source: v.shape.source, standardId: v.shape.standardId, fileName: v.shape.fileName, confirmed: v.shape.confirmed,
+        }) as unknown as Record<string, unknown>)
+      : null,
     lens: {
       od: v.job.eyes === "os" ? null : lensOf(v.lens.od),
       os: v.job.eyes === "od" ? null : lensOf(split ? v.lens.os : v.lens.od),
@@ -427,9 +458,16 @@ export function valuesFromOrder(input: unknown, catalog: RxCatalog): RxFormValue
     frame: {
       name: o.frame.name, mount: o.frame.mount, source: o.frame.source || base.frame.source,
       a: textOf(o.frame.a), b: textOf(o.frame.b), ed: textOf(o.frame.ed), dbl: textOf(o.frame.dbl),
-      // A saved ED that differs from the box estimate was the person's own.
+      // A saved ED that differs from the box estimate was the person's own
+      // (unless the outline set it, in which case the field is locked anyway).
       edTouched: o.frame.ed !== null && o.frame.ed !== estimateED(o.frame.a, o.frame.b),
     },
+    shape: (() => {
+      const s = shapeFromPayload(o.shape);
+      return s
+        ? { source: s.source, standardId: s.standardId, fileName: s.fileName, fileSize: null, data: s.shape, confirmed: s.confirmed }
+        : emptyShape();
+    })(),
     lens: {
       od: { m: od.material, d: od.design, c: od.colour },
       os: { m: os.material, d: os.design, c: os.colour },

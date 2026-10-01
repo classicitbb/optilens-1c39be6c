@@ -1,6 +1,7 @@
 // Shapes shared by the React Rx form (Phase 1b).
 import type { Combo, Triple } from "../domain/catalog";
 import type { SurchargeRule } from "../domain/price";
+import type { ShapeData, ShapeSource } from "../domain/shape";
 
 /** Everything a person can type or pick. Numbers stay strings until derived. */
 export interface RxEyeText {
@@ -31,6 +32,21 @@ export interface TintText {
   match: boolean;
 }
 
+/** The frame outline in play: a standard shape, or the outline read from a trace file. */
+export interface ShapeText {
+  source: ShapeSource | null;
+  standardId: string | null;
+  /** The trace file's name, kept even when no outline could be read from it. */
+  fileName: string | null;
+  fileSize: number | null;
+  /** The outline (null while none is chosen, or when the file held none). */
+  data: ShapeData | null;
+  /** The person has confirmed this is the right shape for the frame in hand. */
+  confirmed: boolean;
+}
+
+export const emptyShape = (): ShapeText => ({ source: null, standardId: null, fileName: null, fileSize: null, data: null, confirmed: false });
+
 export interface RxFormValues {
   patient: { first: string; last: string };
   reference: string;
@@ -53,6 +69,7 @@ export interface RxFormValues {
     /** The person typed their own ED, so stop auto-estimating it. */
     edTouched: boolean;
   };
+  shape: ShapeText;
   lens: {
     /** The job's lens — the right eye's when `split` is on. */
     od: Triple;
@@ -87,6 +104,7 @@ export const defaultValues = (accountId: number | null = null): RxFormValues => 
   accountId,
   job: { scope: "uncut", eyes: "pair", vision: "sv", purpose: "dist" },
   frame: { name: "", mount: "", source: "Customer — shipping to lab", a: "", b: "", ed: "", dbl: "", edTouched: false },
+  shape: emptyShape(),
   lens: { od: emptyTriple(), os: emptyTriple(), split: false, diameter: "auto", corridor: "13", baseCurve: "auto" },
   rx: { od: emptyEye(), os: emptyEye() },
   plusCyl: { on: false, od: { sph: "", cyl: "", axis: "" }, os: { sph: "", cyl: "", axis: "" } },

@@ -8,9 +8,11 @@ import { useForm } from "react-hook-form";
 import { repairTriple, type Triple } from "../domain/catalog";
 import { normaliseRxField, transposePlusCyl, type RxField } from "../domain/normalise";
 import { parseNum, roundQuarter, signed } from "../domain/parse";
+import { hasOutline, parseOma } from "../domain/shape";
+import { standardShape } from "../domain/standardLibrary";
 import { activeEyesOf, defaultDelivery, derive, estimateED, toggleTreatment, type Derived, type SectionId } from "./model";
 import {
-  defaultValues, emptyEye, emptyTriple, type PlusCylText, type RxCatalog, type RxEyeText, type RxFormValues,
+  defaultValues, emptyEye, emptyShape, emptyTriple, type PlusCylText, type RxCatalog, type RxEyeText, type RxFormValues,
 } from "./types";
 
 type Eye = "od" | "os";
@@ -24,6 +26,13 @@ export interface RxFormApi {
   setJob: (key: keyof RxFormValues["job"], value: string) => string | null;
   setFrame: (key: "name" | "mount" | "source" | "a" | "b" | "ed" | "dbl", value: string) => void;
   pickLens: (side: "od" | "os", axis: keyof Triple, id: string) => string | null;
+  /** Read a dropped trace file: fills A, B and the frame name from it. Returns a note to show. */
+  loadTrace: (text: string, name: string, size: number) => string;
+  /** Use a standard shape (replaces any trace the person must confirm first). */
+  pickStandardShape: (id: string) => string | null;
+  clearShape: () => void;
+  removeTrace: () => void;
+  setShapeConfirmed: (confirmed: boolean) => void;
   setSplit: (on: boolean) => void;
   copyLensToOs: () => void;
   setRxText: (eye: Eye, field: keyof RxEyeText, value: string) => void;
@@ -55,6 +64,7 @@ export function isEmptyOrder(v: RxFormValues): boolean {
     && blank(v.frame.name) && blank(v.frame.a) && blank(v.frame.b) && blank(v.frame.dbl)
     && !v.lens.od.m && !v.lens.od.d && !v.lens.od.c && !v.lens.os.m && !v.lens.os.d && !v.lens.os.c
     && eyeBlank(v.rx.od) && eyeBlank(v.rx.os)
+    && !v.shape.data && !v.shape.fileName
     && v.treatments.length === 0 && blank(v.delivery.notes);
 }
 
@@ -83,6 +93,12 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
     const wanted = defaultDelivery(catalog.accountCountry);
     if (d.method !== wanted) set("delivery.method", wanted);
   }, [catalog.accountCountry, get, set, values.delivery.methodTouched]);
+
+  // A confirmation is only ever about the shape AS MEASURED. If a box figure is
+  // cleared after the fact, what was verified no longer exists, so it is withdrawn.
+  useEffect(() => {
+    if (get().shape.confirmed && !derived.frame.boxComplete) set("shape.confirmed", false);
+  }, [derived.frame.boxComplete, get, set]);
 
   /** Make both sides consistent with the catalogue; returns what was cleared. */
   const repairLens = useCallback((vision: "sv" | "mf"): string | null => {
@@ -117,6 +133,8 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
   };
 
   const setFrame: RxFormApi["setFrame"] = (key, value) => {
+    // With an outline, ED is measured off it and cannot be typed over.
+    if (key === "ed" && get().shape.data) return;
     set(`frame.${key}`, value);
     if (key === "ed") set("frame.edTouched", value.trim() !== "");
     if ((key === "a" || key === "b") && !get().frame.edTouched) {
@@ -131,6 +149,38 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
     set(`lens.${side}`, r.triple);
     return r.cleared && r.cleared !== "all" ? `Cleared ${r.cleared} — that combination isn't on your pricelist` : null;
   };
+
+  const fixed = (n: number | null, dp = 2) => (n === null ? "" : n.toFixed(dp));
+
+  const loadTrace: RxFormApi["loadTrace"] = (text, name, size) => {
+    const data = parseOma(text);
+    // A and B come from the file; DBL waits for the person (it is a real frame
+    // measurement a generic trace does not know).
+    if (data?.hbox) set("frame.a", fixed(data.hbox));
+    if (data?.vbox) set("frame.b", fixed(data.vbox));
+    set("frame.edTouched", false);
+    if (data?.job) set("frame.name", data.job);
+    set("shape", {
+      source: hasOutline(data) ? "trace" : null,
+      standardId: null,
+      fileName: name,
+      fileSize: size,
+      data: hasOutline(data) ? data : null,
+      confirmed: false,
+    });
+    return hasOutline(data)
+      ? `Trace loaded: A ${get().frame.a}, B ${get().frame.b}`
+      : "File attached, but no trace points could be read from it";
+  };
+  const pickStandardShape: RxFormApi["pickStandardShape"] = (id) => {
+    const data = standardShape(id);
+    if (!data) return "That shape isn't available";
+    set("shape", { source: "standard", standardId: id, fileName: null, fileSize: null, data, confirmed: false });
+    return null;
+  };
+  const clearShape = () => set("shape", emptyShape());
+  const removeTrace = () => set("shape", emptyShape());
+  const setShapeConfirmed = (confirmed: boolean) => set("shape.confirmed", confirmed);
 
   const setSplit: RxFormApi["setSplit"] = (on) => {
     set("lens.split", on);
@@ -212,7 +262,7 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
     const d = defaultValues(get().accountId);
     switch (id) {
       case "patient": set("patient", d.patient); set("reference", ""); break;
-      case "frame": set("frame", d.frame); set("job.scope", "uncut"); break;
+      case "frame": set("frame", d.frame); set("shape", emptyShape()); set("job.scope", "uncut"); break;
       case "lens": set("lens", d.lens); break;
       case "rx": clearRx(); set("plusCyl", d.plusCyl); set("dismissedWarnings", []); break;
       case "treat": set("treatments", []); set("tint", d.tint); break;
@@ -223,7 +273,7 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
   const reset = (v?: RxFormValues) => form.reset(v ?? defaultValues(get().accountId));
 
   return {
-    values, derived, form, set, setJob, setFrame, pickLens, setSplit, copyLensToOs, setRxText, blurRx,
+    values, derived, form, set, setJob, setFrame, pickLens, loadTrace, pickStandardShape, clearShape, removeTrace, setShapeConfirmed, setSplit, copyLensToOs, setRxText, blurRx,
     copyOdToOs, clearRx, setPlusText, blurPlus, togglePlusCyl, toggleCoating, removeCoating, setTint,
     setDelivery, dismissWarning, removeAssistance, clearSection, reset,
     isEmpty: isEmptyOrder(values),

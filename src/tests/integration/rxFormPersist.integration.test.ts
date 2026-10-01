@@ -7,6 +7,8 @@ import { DEFAULT_SURCHARGE_RULES } from "@/features/rx-order/domain/price";
 import { buildOrder, derive } from "@/features/rx-order/form/model";
 import { defaultValues, type RxCatalog, type RxFormValues } from "@/features/rx-order/form/types";
 import { saveRxOrderMirror } from "@/tests/support/rxSubmissionFixture";
+import { SAMPLE_OMA_1471 } from "@/features/rx-order/domain/standardShapes";
+import { parseOma, shapeGeometry } from "@/features/rx-order/domain/shape";
 
 const rows = vi.hoisted(() => ({ current: { quote_lines: [], rx_details: [], quote_frame_details: [], quotes: [] } as any }));
 vi.mock("@/integrations/supabase/client", () => ({
@@ -88,6 +90,28 @@ describe("the form's order through the real save path", () => {
     // saved prescription and frame in their own columns
     expect(rows.current.rx_details[0]).toMatchObject({ od_sph: 7, os_sph: 7, od_prism_value: 2, od_prism_dir: "OUT" });
     expect(rows.current.quote_frame_details[0]).toMatchObject({ job_scope: "full_glaze", mount_type: "rimless" });
+  });
+
+  it("a remote-edge order with a trace saves as remote_edge with its trace geometry", async () => {
+    const v = values();
+    v.job.scope = "remote";
+    v.frame.mount = "plastic";
+    const data = parseOma(SAMPLE_OMA_1471)!;
+    v.frame.a = data.hbox!.toFixed(2); v.frame.b = data.vbox!.toFixed(2);
+    v.shape = { source: "trace", standardId: null, fileName: "1471.oma", fileSize: 8681, data, confirmed: true };
+    v.treatments = [];
+    v.rx.od.prism = ""; v.rx.os.prism = ""; v.rx.od.sph = "-2.00"; v.rx.os.sph = "-2.00";
+    const d = derive(v, catalog);
+    expect(d.sections.frame).toBe(true);
+    const order = buildOrder(v, d, catalog, { orderNo: null, account: { id: 776, name: "Retail" }, source: "form" });
+    await persistPayload(null, downgradeToV1(order), ctx);
+    const frame = rows.current.quote_frame_details[0];
+    const g = shapeGeometry(data, { a: Number(v.frame.a), b: Number(v.frame.b), dbl: 18 })!;
+    expect(frame).toMatchObject({ job_scope: "remote_edge", is_uncut: false, shape_source_file: "1471.oma", mount_type: "plastic" });
+    expect(frame.shape_traced_ed).toBeCloseTo(g.metrics.ed, 1);
+    expect(frame.trace_geometry.radii.R).toHaveLength(data.points.R.length);
+    // remote edge adds its charge (glazing + remote) as a surcharge line citing the rule
+    expect((rows.current.quote_lines as any[]).some((l) => l.group_key === "surcharge:remote_edge")).toBe(true);
   });
 
   it("the mirror of the database function would accept exactly this payload", () => {
