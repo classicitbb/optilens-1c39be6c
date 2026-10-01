@@ -133,6 +133,9 @@ export const canAccessPortalFeature = (identity: PortalIdentity | null, feature:
   }
   // Off by default: prices only show once staff explicitly enables it for a customer.
   if (feature === "order-prices") return override === true;
+  // Off by default while the Rx form is rebuilt: staff use it in admin, and a
+  // customer only gets it when staff explicitly enable it as a pilot.
+  if (feature === "rx-order") return override === true;
   if (override === true) return true;
   if (feature === "private-orders") return identity.portalAccessStatus === "approved_customer";
   return identity.portalAccessStatus === "approved_customer";
