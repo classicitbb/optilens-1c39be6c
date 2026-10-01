@@ -19,8 +19,9 @@ describe("admin stock order builder route accessibility", () => {
       "Orders",
       "Quotations",
       "Rx Order Form",
+      "Rx Capture",
       "Stock Order Builder",
-      "Innovations Submissions",
+      "Rx Orders",
     ]);
     expect(ADMIN_APPS.website.sidebarItems.slice(0, 3).map((item) => item.label)).toEqual([
       "Website Portals",
@@ -117,7 +118,7 @@ describe("admin stock order builder route accessibility", () => {
     expect(list).toContain('navigate("/admin/orders/stock-orders")');
     expect(list).toContain('`/admin/orders/stock-orders?quote=${encodeURIComponent(q.id)}`');
     expect(editor).toContain('navigate(`/admin/orders/stock-orders?quote=${encodeURIComponent(quote.id)}`, { replace: true })');
-    expect(editor).toContain('navigate(`/admin/orders/quotations/rx/${quote.id}`, { replace: true })');
+    expect(editor).toContain('navigate(`/admin/orders/rx/${quote.id}/edit`, { replace: true })');
     expect(builder).toContain('useStockOrderDraftForQuote(quoteId)');
   });
 

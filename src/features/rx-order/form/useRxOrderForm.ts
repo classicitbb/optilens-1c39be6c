@@ -1,0 +1,327 @@
+// Form state and actions for the React Rx form. State lives in react-hook-form;
+// everything computed from it comes from the pure model (derive), and every rule
+// that changes values — narrowing the lens catalogue, normalising a typed
+// prescription, replacing a coating — is a domain function, so this hook is only
+// the wiring. UI components never compute; they read `derived` and call actions.
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { CHEM_MAX_CLIPS, newClip, setClipField, setClipType, type ChemClip, type ChemType } from "../domain/chemistrie";
+import type { Advice } from "../domain/advice";
+import { repairTriple, type Triple } from "../domain/catalog";
+import { normaliseRxField, transposePlusCyl, type RxField } from "../domain/normalise";
+import { parseNum, roundQuarter, signed } from "../domain/parse";
+import { hasOutline, parseOma } from "../domain/shape";
+import { standardShape } from "../domain/standardLibrary";
+import { activeEyesOf, defaultDelivery, derive, estimateED, toggleTreatment, type Derived, type SectionId } from "./model";
+import {
+  defaultValues, emptyEye, emptyShape, emptyTriple, type PlusCylText, type RxCatalog, type RxEyeText, type RxFormValues,
+} from "./types";
+
+type Eye = "od" | "os";
+
+export interface RxFormApi {
+  values: RxFormValues;
+  derived: Derived;
+  /** Raw react-hook-form handle for `register` on simple text inputs. */
+  form: ReturnType<typeof useForm<RxFormValues>>;
+  set: <P extends string>(path: P, value: unknown) => void;
+  setJob: (key: keyof RxFormValues["job"], value: string) => string | null;
+  setFrame: (key: "name" | "mount" | "source" | "a" | "b" | "ed" | "dbl", value: string) => void;
+  pickLens: (side: "od" | "os", axis: keyof Triple, id: string) => string | null;
+  /**
+   * Read a trace file's text: fills A, B and the frame name from it. A file with
+   * no readable outline is REJECTED — nothing changes and `ok` is false.
+   */
+  loadTrace: (text: string, name: string, size: number) => { ok: boolean; message: string };
+  /** Use a standard shape (replaces any trace the person must confirm first). */
+  pickStandardShape: (id: string) => string | null;
+  clearShape: () => void;
+  removeTrace: () => void;
+  setShapeConfirmed: (confirmed: boolean) => void;
+  setSplit: (on: boolean) => void;
+  copyLensToOs: () => void;
+  setRxText: (eye: Eye, field: keyof RxEyeText, value: string) => void;
+  /** Normalise a prescription field when the person leaves it; returns a note to show, if any. */
+  blurRx: (eye: Eye, field: keyof RxEyeText) => string | null;
+  copyOdToOs: () => void;
+  clearRx: () => void;
+  setPlusText: (eye: Eye, field: keyof PlusCylText, value: string) => void;
+  blurPlus: (eye: Eye, field: keyof PlusCylText) => void;
+  togglePlusCyl: (on: boolean) => void;
+  toggleCoating: (id: string) => string | null;
+  /** Switch the Chemistrie layer on (one starter clip) or off (clips cleared). */
+  toggleChemistrie: (on: boolean) => void;
+  addChemClip: () => string | null;
+  removeChemClip: (id: string) => void;
+  setChemType: (id: string, type: ChemType) => void;
+  setChemField: (id: string, field: "colour" | "mirror" | "gradient" | "add" | "magnet" | "bridge" | "crystal", value: string) => void;
+  removeCoating: (id: string) => void;
+  setTint: (patch: Partial<RxFormValues["tint"]>) => void;
+  setDelivery: (patch: Partial<RxFormValues["delivery"]>) => void;
+  dismissWarning: (id: string) => void;
+  /** Take a lens tip's one-tap suggestion; returns a note to show, if any. */
+  applyAdvice: (advice: Advice) => string | null;
+  removeAssistance: (text: string) => void;
+  clearSection: (id: SectionId) => void;
+  reset: (v?: RxFormValues) => void;
+  /** The person has checked a flagged field and it is right as read. */
+  confirmFlag: (path: string) => void;
+  confirmAllFlags: () => void;
+  /** Nothing has been entered: autosave skips it and "save draft" has nothing to save. */
+  isEmpty: boolean;
+}
+
+const blank = (s: string) => s.trim() === "";
+
+/** A pristine, never-touched form. */
+export function isEmptyOrder(v: RxFormValues): boolean {
+  const eyeBlank = (r: RxEyeText) => Object.entries(r).every(([k, x]) => k === "base" || blank(x)) && blank(r.base);
+  return blank(v.patient.first) && blank(v.patient.last) && blank(v.reference)
+    && blank(v.frame.name) && blank(v.frame.a) && blank(v.frame.b) && blank(v.frame.dbl)
+    && !v.lens.od.m && !v.lens.od.d && !v.lens.od.c && !v.lens.os.m && !v.lens.os.d && !v.lens.os.c
+    && eyeBlank(v.rx.od) && eyeBlank(v.rx.os)
+    && !v.shape.data && !v.shape.fileName
+    && v.treatments.length === 0 && v.chemClips.length === 0 && blank(v.delivery.notes);
+}
+
+export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFormValues; accountId: number | null }): RxFormApi {
+  const { catalog } = args;
+  const form = useForm<RxFormValues>({ defaultValues: args.initialValues ?? defaultValues(args.accountId) });
+  const values = form.watch();
+  const derived = useMemo(() => derive(values, catalog), [values, catalog]);
+  const catalogRef = useRef(catalog);
+  catalogRef.current = catalog;
+  const get = useCallback(() => form.getValues(), [form]);
+
+  const set = useCallback((path: string, value: unknown) => {
+    // Changing a value is review: its flag (or a flag under it) goes. Writing the
+    // same value back — a blur that only re-normalises — is not.
+    const flags = form.getValues("flags");
+    if (path !== "flags" && flags.length) {
+      const before = form.getValues(path as any);
+      if (JSON.stringify(before) !== JSON.stringify(value)) {
+        const left = flags.filter((f) => f.path !== path && !f.path.startsWith(path + "."));
+        if (left.length !== flags.length) form.setValue("flags", left, { shouldDirty: true });
+      }
+    }
+    form.setValue(path as any, value as any, { shouldDirty: true });
+  }, [form]);
+
+  // The account follows the host (staff switch it in the header).
+  useEffect(() => {
+    if (get().accountId !== args.accountId) set("accountId", args.accountId);
+  }, [args.accountId, get, set]);
+
+  // Until the person chooses, delivery follows the account's country.
+  useEffect(() => {
+    const d = get().delivery;
+    if (d.methodTouched) return;
+    const wanted = defaultDelivery(catalog.accountCountry);
+    if (d.method !== wanted) set("delivery.method", wanted);
+  }, [catalog.accountCountry, get, set, values.delivery.methodTouched]);
+
+  // A confirmation is only ever about the shape AS MEASURED. If a box figure is
+  // cleared after the fact, what was verified no longer exists, so it is withdrawn.
+  useEffect(() => {
+    if (get().shape.confirmed && !derived.frame.boxComplete) set("shape.confirmed", false);
+  }, [derived.frame.boxComplete, get, set]);
+
+  /** Make both sides consistent with the catalogue; returns what was cleared. */
+  const repairLens = useCallback((vision: "sv" | "mf"): string | null => {
+    let note: string | null = null;
+    for (const side of ["od", "os"] as const) {
+      const t = get().lens[side];
+      const r = repairTriple(catalogRef.current, vision, t);
+      if (r.cleared) {
+        set(`lens.${side}`, r.triple);
+        note = r.cleared === "all"
+          ? "Cleared the lens — that combination isn't on your pricelist"
+          : `Cleared ${r.cleared} — that combination isn't on your pricelist`;
+      }
+    }
+    return note;
+  }, [get, set]);
+
+  const setJob: RxFormApi["setJob"] = (key, value) => {
+    set(`job.${key}`, value);
+    let note: string | null = null;
+    if (key === "vision") {
+      // A design belongs to one vision type, so switching clears both designs.
+      set("lens.od", { ...get().lens.od, d: "" });
+      set("lens.os", { ...get().lens.os, d: "" });
+      note = repairLens(value as "sv" | "mf");
+    }
+    if (key === "eyes" && value !== "pair" && get().lens.split) {
+      set("lens.split", false);
+      set("lens.os", emptyTriple());
+    }
+    return note;
+  };
+
+  const setFrame: RxFormApi["setFrame"] = (key, value) => {
+    // With an outline, ED is measured off it and cannot be typed over.
+    if (key === "ed" && get().shape.data) return;
+    set(`frame.${key}`, value);
+    if (key === "ed") set("frame.edTouched", value.trim() !== "");
+    if ((key === "a" || key === "b") && !get().frame.edTouched) {
+      const est = estimateED(parseNum(key === "a" ? value : get().frame.a), parseNum(key === "b" ? value : get().frame.b));
+      set("frame.ed", est === null ? "" : est.toFixed(1));
+    }
+  };
+
+  const pickLens: RxFormApi["pickLens"] = (side, axis, id) => {
+    const next = { ...get().lens[side], [axis]: id };
+    const r = repairTriple(catalogRef.current, get().job.vision, next);
+    set(`lens.${side}`, r.triple);
+    return r.cleared && r.cleared !== "all" ? `Cleared ${r.cleared} — that combination isn't on your pricelist` : null;
+  };
+
+  const fixed = (n: number | null, dp = 2) => (n === null ? "" : n.toFixed(dp));
+
+  const loadTrace: RxFormApi["loadTrace"] = (text, name, size) => {
+    const data = parseOma(text);
+    if (!hasOutline(data)) {
+      return { ok: false, message: `${name} isn't a valid frame trace — no outline could be read from it, so it was not attached.` };
+    }
+    // A and B come from the file; DBL waits for the person (it is a real frame
+    // measurement a generic trace does not know).
+    if (data.hbox) set("frame.a", fixed(data.hbox));
+    if (data.vbox) set("frame.b", fixed(data.vbox));
+    set("frame.edTouched", false);
+    if (data.job) set("frame.name", data.job);
+    set("shape", { source: "trace", standardId: null, fileName: name, fileSize: size, data, confirmed: false });
+    return { ok: true, message: `Trace loaded: A ${get().frame.a}, B ${get().frame.b}` };
+  };
+  const pickStandardShape: RxFormApi["pickStandardShape"] = (id) => {
+    const data = standardShape(id);
+    if (!data) return "That shape isn't available";
+    set("shape", { source: "standard", standardId: id, fileName: null, fileSize: null, data, confirmed: false });
+    return null;
+  };
+  const clearShape = () => set("shape", emptyShape());
+  const removeTrace = () => set("shape", emptyShape());
+  const setShapeConfirmed = (confirmed: boolean) => set("shape.confirmed", confirmed);
+
+  const setSplit: RxFormApi["setSplit"] = (on) => {
+    set("lens.split", on);
+    if (!on) set("lens.os", emptyTriple());
+    // Turning split ON seeds the left eye from the right, so the common case —
+    // the same lens with one property different — is one edit rather than three.
+    else if (!get().lens.os.m && !get().lens.os.d && !get().lens.os.c) set("lens.os", { ...get().lens.od });
+  };
+  const copyLensToOs = () => set("lens.os", { ...get().lens.od });
+
+  const setRxText: RxFormApi["setRxText"] = (eye, field, value) => set(`rx.${eye}.${field}`, value);
+
+  const blurRx: RxFormApi["blurRx"] = (eye, field) => {
+    if (field === "base") return null;
+    const raw = get().rx[eye][field];
+    const out = normaliseRxField(field as RxField, raw);
+    if (!out) return null;
+    set(`rx.${eye}.${field}`, out.value);
+    if (out.splitBoth) {
+      // A binocular PD is split between the eyes, and the person is told.
+      for (const e of ["od", "os"] as const) set(`rx.${e}.${field}`, out.splitBoth.half);
+      return `Binocular ${out.splitBoth.binocular.toFixed(1)} split to ${out.splitBoth.half} / ${out.splitBoth.half}`;
+    }
+    return null;
+  };
+
+  const copyOdToOs = () => set("rx.os", { ...get().rx.od });
+  const clearRx = () => {
+    set("rx.od", emptyEye());
+    set("rx.os", emptyEye());
+  };
+
+  const setPlusText: RxFormApi["setPlusText"] = (eye, field, value) => set(`plusCyl.${eye}.${field}`, value);
+  const syncPlus = () => {
+    if (!get().plusCyl.on) return;
+    for (const e of ["od", "os"] as const) {
+      const p = get().plusCyl[e];
+      const t = transposePlusCyl(parseNum(p.sph, true), parseNum(p.cyl, true), parseNum(p.axis));
+      if (t) {
+        set(`rx.${e}.sph`, t.sph);
+        set(`rx.${e}.cyl`, t.cyl);
+        set(`rx.${e}.axis`, t.axis);
+      }
+    }
+  };
+  const blurPlus: RxFormApi["blurPlus"] = (eye, field) => {
+    const raw = get().plusCyl[eye][field];
+    if (blank(raw)) return syncPlus();
+    const v = parseNum(raw, field !== "axis");
+    if (v === null) { set(`plusCyl.${eye}.${field}`, ""); return syncPlus(); }
+    if (field === "sph") set(`plusCyl.${eye}.sph`, signed(roundQuarter(Math.max(-25, Math.min(18, v)))));
+    else if (field === "cyl") set(`plusCyl.${eye}.cyl`, signed(Math.abs(roundQuarter(v))));
+    else {
+      let a = Math.round(v); a = ((a % 180) + 180) % 180; if (a === 0) a = 180;
+      set(`plusCyl.${eye}.axis`, String(a));
+    }
+    syncPlus();
+  };
+  const togglePlusCyl = (on: boolean) => set("plusCyl.on", on);
+
+  const sideColourNames = (): string[] => {
+    const v = get();
+    const sides = v.lens.split && v.job.eyes === "pair" ? [v.lens.od, v.lens.os] : [v.lens.od];
+    return sides.map((t) => catalogRef.current.colours.find((c) => c.id === t.c)?.n ?? "");
+  };
+  const toggleCoating: RxFormApi["toggleCoating"] = (id) => {
+    const r = toggleTreatment(get().treatments, id, catalogRef.current, sideColourNames());
+    if ("blocked" in r) return r.blocked;
+    set("treatments", r.treatments);
+    return null;
+  };
+  const clips = () => get().chemClips;
+  const toggleChemistrie: RxFormApi["toggleChemistrie"] = (on) => set("chemClips", on ? (clips().length ? clips() : [newClip([])]) : []);
+  const addChemClip: RxFormApi["addChemClip"] = () => {
+    if (clips().length >= CHEM_MAX_CLIPS) return null;
+    const next = [...clips(), newClip(clips())];
+    set("chemClips", next);
+    return `Clip ${next.length} added — configure it below`;
+  };
+  const removeChemClip = (id: string) => set("chemClips", clips().filter((c) => c.id !== id));
+  const mapClip = (id: string, f: (c: ChemClip) => ChemClip) => set("chemClips", clips().map((c) => (c.id === id ? f(c) : c)));
+  const setChemType: RxFormApi["setChemType"] = (id, type) => mapClip(id, (c) => setClipType(c, type));
+  const setChemField: RxFormApi["setChemField"] = (id, field, value) => mapClip(id, (c) => setClipField(c, field, value));
+  const removeCoating = (id: string) => set("treatments", get().treatments.filter((x) => x !== id));
+  const setTint: RxFormApi["setTint"] = (patch) => set("tint", { ...get().tint, ...patch });
+  const setDelivery: RxFormApi["setDelivery"] = (patch) => set("delivery", { ...get().delivery, ...patch });
+  const applyAdvice: RxFormApi["applyAdvice"] = (advice) => {
+    const action = advice.action;
+    if (!action) return null;
+    if (action.kind === "treatment") return toggleCoating(action.id);
+    // a lens tip is about the job's lens; with a lens per eye, both follow it
+    const split = get().lens.split && get().job.eyes === "pair";
+    const notes = (split ? (["od", "os"] as const) : (["od"] as const)).map((side) => pickLens(side, "m", action.id));
+    return notes.find(Boolean) ?? null;
+  };
+  const dismissWarning = (id: string) => set("dismissedWarnings", [...new Set([...get().dismissedWarnings, id])]);
+  const removeAssistance = (text: string) => set("assistance", get().assistance.filter((a) => a !== text));
+
+  const clearSection: RxFormApi["clearSection"] = (id) => {
+    const d = defaultValues(get().accountId);
+    switch (id) {
+      case "patient": set("patient", d.patient); set("reference", ""); break;
+      case "frame": set("frame", d.frame); set("shape", emptyShape()); set("job.scope", "uncut"); break;
+      case "lens": set("lens", d.lens); break;
+      case "rx": clearRx(); set("plusCyl", d.plusCyl); set("dismissedWarnings", []); break;
+      case "treat": set("treatments", []); set("chemClips", []); set("tint", d.tint); break;
+      case "notes": set("delivery", { ...d.delivery, method: defaultDelivery(catalogRef.current.accountCountry) }); break;
+    }
+  };
+
+  const confirmFlag = (path: string) => set("flags", get().flags.filter((f) => f.path !== path));
+  const confirmAllFlags = () => set("flags", []);
+
+  const reset = (v?: RxFormValues) => form.reset(v ?? defaultValues(get().accountId));
+
+  return {
+    values, derived, form, set, setJob, setFrame, pickLens, loadTrace, pickStandardShape, clearShape, removeTrace, setShapeConfirmed, setSplit, copyLensToOs, setRxText, blurRx,
+    copyOdToOs, clearRx, setPlusText, blurPlus, togglePlusCyl, toggleCoating, toggleChemistrie, addChemClip, removeChemClip, setChemType, setChemField, removeCoating, setTint,
+    setDelivery, dismissWarning, applyAdvice, removeAssistance, clearSection, reset, confirmFlag, confirmAllFlags,
+    isEmpty: isEmptyOrder(values),
+  };
+}
+
+export { activeEyesOf };

@@ -45,7 +45,7 @@ const QuotationsListPage = () => {
   // RX quotes open in the in-house Rx order form; STOCK has one canonical
   // editor in the Stock Order Builder.
   const quoteEditPath = (q: Pick<Quote, "id" | "quote_type">) =>
-    q.quote_type === "RX" ? `/admin/orders/quotations/rx/${q.id}` : `/admin/orders/stock-orders?quote=${encodeURIComponent(q.id)}`;
+    q.quote_type === "RX" ? `/admin/orders/rx/${q.id}/edit` : `/admin/orders/stock-orders?quote=${encodeURIComponent(q.id)}`;
 
   const handleCreate = (quoteType: "STOCK" | "RX") => {
     if (quoteType === "STOCK") {

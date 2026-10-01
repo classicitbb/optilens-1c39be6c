@@ -117,7 +117,7 @@ const QUICK_ACTIONS = [
     title: "New Rx Order",
     description: "Start a prescription lens order.",
     icon: Eye,
-    href: "/admin/orders/quotations/new-rx",
+    href: "/admin/orders/rx/new",
     featurePrefix: "orders" as const,
   },
   {

@@ -1054,3 +1054,35 @@
   border: 0px solid transparent;
 }
 
+/* Rx order print sheet — hidden on screen, the only thing printed while the
+   form sets body.rx-printing (features/rx-order/form/PrintSheet.tsx). */
+.rx-print-root { display: none; }
+@media print {
+  body.rx-printing > *:not(.rx-print-root) { display: none !important; }
+  body.rx-printing .rx-print-root { display: block; }
+  body.rx-printing { background: #fff !important; color: #0b1e35 !important; }
+  @page { margin: 14mm; }
+}
+.rx-print-sheet { font: 13px/1.55 ui-sans-serif, system-ui, "Segoe UI", Arial; color: #0b1e35; max-width: 760px; margin: 0 auto; }
+.rx-print-hd { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0b1e35; padding-bottom: 12px; margin-bottom: 18px; }
+.rx-print-hd h1 { margin: 0; font-size: 19px; }
+.rx-print-hd p { margin: 3px 0 0; font-size: 12px; color: #557; }
+.rx-print-hd p b { font-size: 14px; color: #0b1e35; }
+.rx-print-biz { text-align: right; font-size: 12px; color: #557; }
+.rx-print-biz b { display: block; font-size: 14px; color: #0b1e35; }
+.rx-print-sheet h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #557; margin: 20px 0 7px; border-bottom: 1px solid #ddd; padding-bottom: 4px; break-after: avoid; }
+.rx-print-sheet table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rx-print-sheet th, .rx-print-sheet td { border: 1px solid #ccd; padding: 6px 8px; text-align: center; }
+.rx-print-sheet thead th { background: #f3f1ec; font-weight: 650; }
+.rx-print-sheet tbody th { text-align: left; width: 52px; }
+.rx-print-kv { display: grid; grid-template-columns: 130px 1fr; gap: 3px 12px; font-size: 12.5px; margin: 0; }
+.rx-print-kv > div { display: contents; }
+.rx-print-kv dt { color: #557; }
+.rx-print-kv dd { margin: 0; }
+.rx-print-note { margin: 8px 0 4px; font-size: 11px; color: #557; }
+.rx-print-outline { max-width: 430px; border: 1px solid #ccd; border-radius: 6px; padding: 8px; background: #fbfaf7; margin-bottom: 8px; break-inside: avoid; }
+.rx-print-total { margin-top: 16px; padding: 11px 14px; background: #f3f1ec; border-radius: 8px; display: flex; justify-content: space-between; font-size: 15px; font-weight: 650; }
+.rx-print-total-quiet { font-size: 12.5px; font-weight: 500; color: #557; }
+.rx-print-sig { margin-top: 34px; display: flex; gap: 40px; break-inside: avoid; }
+.rx-print-sig div { flex: 1; border-top: 1px solid #99a; padding-top: 6px; font-size: 11px; color: #557; }
+.rx-print-ft { margin-top: 26px; font-size: 10.5px; color: #889; text-align: center; }
