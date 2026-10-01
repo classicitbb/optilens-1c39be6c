@@ -276,7 +276,7 @@ const AdminRoutes = () => (
         element={<QuotePrintPreviewPage />}
       />
       <Route path="orders/rx-submissions" element={<RxSubmissionsPage />} />
-      <Route path="orders/rx-test" element={<RxOrderTestBench />} />
+      <Route path="orders/rx-test" element={<RxOrderTestBench allowLive />} />
       <Route path="website/orders" element={<LegacyWebsiteOrdersRedirect />} />
       <Route path="website/quotations/*" element={<LegacyWebsiteOrdersRedirect />} />
       <Route path="website/stock-orders" element={<LegacyWebsiteOrdersRedirect />} />

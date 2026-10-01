@@ -34,8 +34,14 @@ export interface RxOrderEmbedProps {
   quoteNumber?: string | null;
   /** Called once, when the first save creates the quote. */
   onQuoteCreated?: (q: { quoteId: string; quoteNumber: string | null; rxOrderNumber: number | null }) => void;
-  /** Staff test-bench: saves are tagged is_test and kept out of lists and reports. */
+  /**
+   * Staff test-bench. Saves are tagged is_test (kept out of lists and reports)
+   * and the order goes NOWHERE: nothing is added to the cart, placed on an
+   * account, copied to the saved-drafts store, or sent to a lab.
+   */
   isTest?: boolean;
+  /** Test mode only: what the submit would have done, for the bench to show. */
+  onTestSubmitted?: (what: string, saved: { quoteId: string; quoteNumber: string | null; totalBBD: number }) => void;
   surface: "admin" | "portal";
   /** Portal: the signed-in B2B account (locks the branch picker). Admin: null. */
   lockedAccountId?: number | null;
@@ -76,7 +82,7 @@ interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
 // Hosts the ported prototype form. The engine owns the DOM inside the
 // .cv-rx-embed container; React only mounts/unmounts it and feeds adapters.
 export const RxOrderEmbed = ({
-  quoteId, quoteNumber, onQuoteCreated, isTest = false, surface, lockedAccountId = null,
+  quoteId, quoteNumber, onQuoteCreated, isTest = false, onTestSubmitted, surface, lockedAccountId = null,
   checkoutPath = "/checkout", storePath = "/store",
   onStartAnother,
   prefill, prefillBanner, resumedDraftId, pricesVisible = true, currency = "BBD",
@@ -291,6 +297,7 @@ export const RxOrderEmbed = ({
       onBranchChange: (branchId: string) => { setSelectedAccountId(Number(branchId) || null); },
       onDraftSaved: async (payload: any) => {
         await persist(payload);
+        if (isTest) return;
         const saved = await saveEmbeddedRxDraft.mutateAsync({ payload, id: draftIdRef.current });
         draftIdRef.current = saved.id;
       },
@@ -300,6 +307,10 @@ export const RxOrderEmbed = ({
       onFormCleared: () => { draftIdRef.current = undefined; },
       onSubmitted: async (payload: any) => {
         const { totalBBD, quoteId: savedId, quoteNumber: savedNumber } = await persist(payload);
+        if (isTest) {
+          onTestSubmitted?.("Would be added to the cart", { quoteId: savedId, quoteNumber: savedNumber, totalBBD });
+          return;
+        }
         const added = await addToCart({
           id: syntheticCartProductId(savedId),
           name: `Rx Order ${savedNumber ?? ""} — ${patientLabel(payload)}`.trim(),
@@ -317,6 +328,10 @@ export const RxOrderEmbed = ({
       // lab. The customer's existing cart is left exactly as it was.
       onSubmittedDirect: async (payload: any) => {
         const { totalBBD, quoteId: savedId, quoteNumber: savedNumber } = await persist(payload);
+        if (isTest) {
+          onTestSubmitted?.("Would be placed on the account and sent to the lab", { quoteId: savedId, quoteNumber: savedNumber, totalBBD });
+          return;
+        }
         const { data, error } = await (supabase.rpc as any)("place_rx_order_direct", {
           p_items: [{
             product_id: syntheticCartProductId(savedId),
@@ -342,6 +357,10 @@ export const RxOrderEmbed = ({
         // A new quote through the same atomic save (null id = create). The
         // account, patient and prices all travel in the payload itself.
         const copy = await persistTo(null, payload);
+        if (isTest) {
+          onTestSubmitted?.("Would be copied into a new order", { quoteId: copy.quoteId, quoteNumber: copy.quoteNumber, totalBBD: copy.totalBBD });
+          return;
+        }
         const { error: statusErr } = await (supabase.from("quotes") as any)
           .update({ status: "Accepted" }).eq("id", copy.quoteId);
         if (statusErr) throw statusErr;

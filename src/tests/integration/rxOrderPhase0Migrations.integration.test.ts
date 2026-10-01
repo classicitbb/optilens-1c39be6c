@@ -55,4 +55,21 @@ describe("Rx order Phase 0 migrations", () => {
     expect(s).not.toMatch(/CREATE POLICY[^;]*FOR (INSERT|UPDATE|DELETE|ALL)/);
     expect(s).toMatch(/AFTER INSERT OR UPDATE OF status ON public\.rx_order_submissions/);
   });
+
+  it("keeps test-bench orders out of the outbox, the cart and every quote list", () => {
+    const guard = sql("20261001140000_rx_test_quotes_stay_out_of_outbox");
+    expect(guard).toMatch(/BEFORE INSERT ON public\.rx_order_submissions/);
+    expect(guard).toMatch(/q\.is_test/);
+    expect(guard).toMatch(/RETURN NULL/);
+
+    // test mode in the embed returns BEFORE any cart / account / drafts write
+    const embed = readFileSync("src/features/rx-order/RxOrderEmbed.tsx", "utf8");
+    expect(embed).toMatch(/if \(isTest\) \{\s+onTestSubmitted\?\.\("Would be added to the cart"[\s\S]*?return;\s+\}\s+const added = await addToCart/);
+    expect(embed).toMatch(/if \(isTest\) \{\s+onTestSubmitted\?\.\("Would be placed on the account/);
+    expect(embed).toMatch(/await persist\(payload\);\s+if \(isTest\) return;/);
+
+    for (const file of ["src/hooks/useQuotes.ts", "src/lib/mcp/tools/list-quotes.ts"]) {
+      expect(readFileSync(file, "utf8")).toMatch(/\.eq\("is_test", false\)/);
+    }
+  });
 });

@@ -192,8 +192,10 @@ export const useQuotes = () => {
   const query = useQuery<Quote[]>({
     queryKey: ["quotes"],
     queryFn: async () => {
+      // Test-bench saves (is_test) never show in the quotation lists.
       const { data, error } = await (supabase.from("quotes") as any)
         .select("*")
+        .eq("is_test", false)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Quote[];

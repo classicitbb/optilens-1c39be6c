@@ -8944,6 +8944,9 @@ export type Database = {
           gp_amount: number
           gp_percent: number
           grand_total: number
+          is_test: boolean
+          rx_order_number: number | null
+          rx_payload: Json | null
           helpdesk_ticket_id: string | null
           id: string
           lead_time_days: number | null
@@ -8970,6 +8973,9 @@ export type Database = {
           gp_amount?: number
           gp_percent?: number
           grand_total?: number
+          is_test?: boolean
+          rx_order_number?: number | null
+          rx_payload?: Json | null
           helpdesk_ticket_id?: string | null
           id?: string
           lead_time_days?: number | null
@@ -8996,6 +9002,9 @@ export type Database = {
           gp_amount?: number
           gp_percent?: number
           grand_total?: number
+          is_test?: boolean
+          rx_order_number?: number | null
+          rx_payload?: Json | null
           helpdesk_ticket_id?: string | null
           id?: string
           lead_time_days?: number | null

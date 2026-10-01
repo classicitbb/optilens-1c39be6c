@@ -25,6 +25,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
   const { data: draftQuotes } = await (supabase.from("quotes") as any)
     .select("id,updated_at")
     .eq("status", "draft")
+    .eq("is_test", false)
     .order("updated_at", { ascending: false })
     .limit(1);
 

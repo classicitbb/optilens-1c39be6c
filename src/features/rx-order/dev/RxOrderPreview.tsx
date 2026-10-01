@@ -11,11 +11,19 @@
 // toggles — so a UI or validation change can be looked at in both themes in
 // seconds, with no network at all.
 //
+// "Preview as customer" (staff route only) mounts the REAL form — live
+// catalogue, the chosen account's pricelist and currency — as that customer
+// would see it, in test mode: saves are tagged is_test, and the order goes
+// nowhere (no cart, no account order, no lab, no saved-drafts copy).
+//
 // It deliberately shares src/tests/support/rxOrderHarness's catalogue: a bench
 // with its own drifting fixture data would show a form nobody else's tests
 // describe.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import { supabase } from "@/integrations/supabase/client";
+import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
+import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
 import { RX_TEST_DATA, TREATMENTS, testLensPrice } from "@/tests/support/rxOrderHarness";
 import "@/features/rx-order/embed/rx-order.css";
 import markup from "@/features/rx-order/embed/rx-order-markup.html?raw";
@@ -43,7 +51,32 @@ const dataFor = (scenario: Scenario) => {
   return RX_TEST_DATA;
 };
 
-const RxOrderPreview = () => {
+type Mode = "fixtures" | "customer";
+
+const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
+  const { data: accounts = [] } = useCustomerAccounts();
+  const [mode, setMode] = useState<Mode>("fixtures");
+  const [accountFilter, setAccountFilter] = useState("");
+  const [accountId, setAccountId] = useState<number | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const [testQuote, setTestQuote] = useState<string | null>(null);
+  const [cleanupNote, setCleanupNote] = useState<string | null>(null);
+  const live = allowLive && mode === "customer";
+  const matches = useMemo(() => {
+    const f = accountFilter.trim().toLowerCase();
+    const list = f ? accounts.filter((a) => `${a.name} ${a.account_number ?? ""}`.toLowerCase().includes(f)) : accounts;
+    return list.slice(0, 60);
+  }, [accounts, accountFilter]);
+
+  const deleteMyTestOrders = async () => {
+    if (!window.confirm("Delete every test Rx order you have saved on the bench?")) return;
+    const { data: me } = await supabase.auth.getUser();
+    const { data, error } = await (supabase.from("quotes") as any)
+      .delete().eq("is_test", true).eq("created_by", me.user?.id ?? "").select("id");
+    setCleanupNote(error ? `Could not delete: ${error.message}` : `Deleted ${(data ?? []).length} test order(s).`);
+    setTestQuote(null);
+  };
+
   const hostRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<any>(null);
   const { resolvedTheme, setTheme } = useTheme();
@@ -54,7 +87,7 @@ const RxOrderPreview = () => {
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host) return;
+    if (!host || live) return;
     host.innerHTML = markup;
 
     const data = dataFor(scenario);
@@ -91,7 +124,7 @@ const RxOrderPreview = () => {
       engineRef.current = null;
       host.innerHTML = "";
     };
-  }, [scenario, creditApproved, pricesVisible]);
+  }, [scenario, creditApproved, pricesVisible, live]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)" }}>
@@ -105,12 +138,39 @@ const RxOrderPreview = () => {
       >
         <strong style={{ fontSize: 13 }}>Rx form bench</strong>
 
-        <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          Scenario
-          <select value={scenario} onChange={(e) => setScenario(e.target.value as Scenario)}>
-            {SCENARIOS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-          </select>
-        </label>
+        {allowLive && (
+          <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            Mode
+            <select value={mode} onChange={(e) => { setMode(e.target.value as Mode); setLastSubmit(null); }}>
+              <option value="fixtures">Fixtures (no network)</option>
+              <option value="customer">Preview as customer</option>
+            </select>
+          </label>
+        )}
+
+        {live ? (
+          <>
+            <input
+              placeholder="Find account…" value={accountFilter}
+              onChange={(e) => setAccountFilter(e.target.value)} style={{ width: 150 }}
+            />
+            <select
+              value={accountId ?? ""} onChange={(e) => { setAccountId(e.target.value ? Number(e.target.value) : null); setLastSubmit(null); setTestQuote(null); }}
+              style={{ maxWidth: 240 }}
+            >
+              <option value="">Choose an account…</option>
+              {matches.map((a) => <option key={a.id} value={a.id}>{a.name}{a.account_number ? ` · ${a.account_number}` : ""}</option>)}
+            </select>
+            <button type="button" onClick={deleteMyTestOrders}>Delete my test orders</button>
+          </>
+        ) : (
+          <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            Scenario
+            <select value={scenario} onChange={(e) => setScenario(e.target.value as Scenario)}>
+              {SCENARIOS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </label>
+        )}
 
         <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input type="checkbox" checked={creditApproved} onChange={(e) => setCreditApproved(e.target.checked)} />
@@ -126,11 +186,39 @@ const RxOrderPreview = () => {
           {resolvedTheme === "dark" ? "☀ Light" : "☾ Dark"}
         </button>
 
-        <span style={{ opacity: 0.7 }}>{SCENARIOS.find((s) => s.id === scenario)?.hint}</span>
+        <span style={{ opacity: 0.7 }}>
+          {live
+            ? "TEST MODE — saves are tagged test; nothing goes to the cart, an account, or a lab."
+            : SCENARIOS.find((s) => s.id === scenario)?.hint}
+        </span>
+        {live && testQuote && <span style={{ fontFamily: "monospace" }}>Test quote {testQuote}</span>}
+        {live && cleanupNote && <span>{cleanupNote}</span>}
         {lastSubmit && <span style={{ marginLeft: "auto", fontWeight: 650 }}>{lastSubmit}</span>}
       </div>
 
-      <div className="cv-rx-embed" ref={hostRef} />
+      {live ? (
+        accountId == null ? (
+          <div style={{ padding: 48, textAlign: "center", fontSize: 13, opacity: 0.7 }}>
+            Choose an account above to see the form exactly as that customer would — their pricelist, their currency.
+          </div>
+        ) : (
+          <RxOrderEmbed
+            key={`${accountId}:${creditApproved}:${pricesVisible}:${resetKey}`}
+            quoteId={null}
+            surface="admin"
+            lockedAccountId={accountId}
+            pricesVisible={pricesVisible}
+            allowDirectSubmit={creditApproved}
+            currency="BBD"
+            isTest
+            onQuoteCreated={({ quoteNumber }) => setTestQuote(quoteNumber)}
+            onTestSubmitted={(what, saved) => setLastSubmit(`${what} · test quote ${saved.quoteNumber ?? ""} · BBD ${saved.totalBBD.toFixed(2)}`)}
+            onStartAnother={() => { setTestQuote(null); setLastSubmit(null); setResetKey((k) => k + 1); }}
+          />
+        )
+      ) : (
+        <div className="cv-rx-embed" ref={hostRef} />
+      )}
     </div>
   );
 };
