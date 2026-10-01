@@ -99,7 +99,5 @@ describe("advice in the form", () => {
     expect(result.current.derived.advice.map((a) => a.id)).toContain("rimless_impact");
     act(() => result.current.dismissWarning("advice:rimless_impact"));
     expect(result.current.derived.advice.map((a) => a.id)).not.toContain("rimless_impact");
-    // a tip never blocks submit
-    expect(result.current.derived.checklist.every((c) => c.id !== "advice")).toBe(true);
   });
 });

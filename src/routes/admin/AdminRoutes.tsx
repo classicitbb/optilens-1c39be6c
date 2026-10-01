@@ -45,6 +45,9 @@ const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrd
 );
 const RxSubmissionsPage = lazyWithRetry(() => import("@/pages/admin/RxSubmissionsPage"));
 // Staff test bench: the Rx form against test fixtures. Nothing is saved or sent to a lab.
+const RxOrdersWorkspace = lazyWithRetry(() => import("@/features/rx-order/workspace/RxOrdersWorkspace"));
+const RxRulesPage = lazyWithRetry(() => import("@/features/rx-order/workspace/RxRulesPage"));
+const RxOrderEditPage = lazyWithRetry(() => import("@/pages/admin/RxOrderEditPage"));
 const RxCapturePage = lazyWithRetry(() => import("@/features/rx-capture/RxCapturePage"));
 const RxOrderTestBench = lazyWithRetry(() => import("@/features/rx-order/dev/RxOrderPreview"));
 const AliasMappingPage = lazyWithRetry(() => import("@/pages/admin/AliasMappingPage"));
@@ -276,6 +279,10 @@ const AdminRoutes = () => (
         path="orders/quotations/:id/print-preview"
         element={<QuotePrintPreviewPage />}
       />
+      <Route path="orders/rx" element={<RxOrdersWorkspace />} />
+      <Route path="orders/rx/settings" element={<RxRulesPage />} />
+      <Route path="orders/rx/new" element={<RxOrderEditPage />} />
+      <Route path="orders/rx/:quoteId/edit" element={<RxOrderEditPage />} />
       <Route path="orders/rx-submissions" element={<RxSubmissionsPage />} />
       <Route path="orders/rx-capture" element={<RxCapturePage />} />
       <Route path="orders/rx-test" element={<RxOrderTestBench allowLive />} />

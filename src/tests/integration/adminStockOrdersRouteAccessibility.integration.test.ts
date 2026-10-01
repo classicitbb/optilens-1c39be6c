@@ -21,7 +21,7 @@ describe("admin stock order builder route accessibility", () => {
       "Rx Order Form",
       "Rx Capture",
       "Stock Order Builder",
-      "Innovations Submissions",
+      "Rx Orders",
     ]);
     expect(ADMIN_APPS.website.sidebarItems.slice(0, 3).map((item) => item.label)).toEqual([
       "Website Portals",

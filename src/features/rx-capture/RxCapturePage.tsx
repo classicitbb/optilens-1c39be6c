@@ -4,6 +4,7 @@
 // captured and what state it is in.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router";
 import { ArrowLeft, FileText, Loader2, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +38,15 @@ export default function RxCapturePage() {
   const [accountId, setAccountId] = useState<number | null>(null);
   const [busy, setBusy] = useState(0);
   const [reviewing, setReviewing] = useState<Job | null>(null);
+  // /admin/orders/rx-capture?job=<id> opens that capture straight into review (from the Rx Orders workspace)
+  const [params] = useSearchParams();
+  const jobParam = params.get("job");
+  useEffect(() => {
+    if (!jobParam) return;
+    let live = true;
+    void jobs().select("*").eq("id", jobParam).maybeSingle().then(({ data }: { data: Job | null }) => { if (live && data) setReviewing(data); });
+    return () => { live = false; };
+  }, [jobParam]);
   const input = useRef<HTMLInputElement>(null);
 
   const { data: list = [] } = useQuery<Job[]>({
