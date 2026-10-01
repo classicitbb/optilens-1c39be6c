@@ -25,3 +25,7 @@ staff use it in admin and at the test bench (`/admin/orders/rx-test`).
 
 ## Not done yet (see the improvement plan)
 Rest of Phase 1b ( advice tips, wiring into the admin page + cutover), Phase 2 customer order management, Phase 3 admin workspace, Phase 4 photo capture. Two draft stores still exist (`quotes` and `rx_order_drafts`).
+
+## Rx capture (Phase 4a/4b, staff only)
+
+`/admin/orders/rx-capture` (`src/features/rx-capture/`): pick a customer, drop / choose / paste photos or PDFs (no voice). Each file goes to the private `rx-captures` bucket + a `rx_capture_jobs` row; the `rx-capture-extract` edge function reads it (Lovable gateway, forced tool call, prompt ported from optilens-local) and `_shared/rx-capture/extraction.ts` maps it to a cv.rxorder/1 draft with `flags`. Review opens `RxForm` with the original beside it; the first save creates the quote (`rx_capture_jobs.quote_id`). Originals are kept 24 months (`purge_after`); the scheduled purge is not built. The function needs a manual deploy (see project AGENTS.md) and the migration `20261001150000` was applied live via the Lovable MCP.

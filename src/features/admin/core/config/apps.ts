@@ -103,6 +103,7 @@ export const ADMIN_APPS = {
       { label: 'Orders', route: '/admin/orders', icon: Package },
       { label: 'Quotations', route: '/admin/orders/quotations', icon: FileEdit },
       { label: 'Rx Order Form', route: '/admin/orders/quotations/new-rx', icon: Eye },
+      { label: 'Rx Capture', route: '/admin/orders/rx-capture', icon: Upload },
       { label: 'Stock Order Builder', route: '/admin/orders/stock-orders', icon: Package },
       { label: 'Innovations Submissions', route: '/admin/orders/rx-submissions', icon: Upload },
     ] satisfies SidebarItem[],

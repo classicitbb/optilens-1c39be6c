@@ -308,16 +308,23 @@ function LoadedForm({
     }
   };
 
-  // Save, then print the order sheet. The sheet is already in the page; the body
+  // Save, then print the order sheet. The sheet is mounted just for the print; the body
   // class makes it the only thing the print stylesheet shows (index.css).
+  const [printing, setPrinting] = useState(false);
   const onPrint = async () => {
     try { await save(); }
     catch (e: any) { toast({ title: "Could not save before printing", description: e?.message, variant: "destructive" }); return; }
-    const clear = () => document.body.classList.remove("rx-printing");
+    setPrinting(true);
+  };
+  // The sheet only exists in the page while it is being printed.
+  useEffect(() => {
+    if (!printing) return;
+    const clear = () => { document.body.classList.remove("rx-printing"); setPrinting(false); };
     window.addEventListener("afterprint", clear, { once: true });
     document.body.classList.add("rx-printing");
     window.print();
-  };
+    return () => { window.removeEventListener("afterprint", clear); document.body.classList.remove("rx-printing"); };
+  }, [printing]);
 
   const onSaveDraft = async () => {
     if (hasSavedDrafts && api.isEmpty) { navigate("/profile/drafts"); return; }
@@ -516,7 +523,7 @@ function LoadedForm({
         </DialogContent>
       </Dialog>
 
-      {props.surface === "admin" && createPortal(
+      {printing && createPortal(
         <PrintSheet values={values} derived={derived} catalog={catalog} orderNo={orderNo} accountName={account?.name ?? null} />,
         document.body,
       )}

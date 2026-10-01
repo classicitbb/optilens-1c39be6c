@@ -25,6 +25,8 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.voice-transcribe]
     verify_jwt = false
+  [functions.rx-capture-extract]
+    verify_jwt = true
 
   [functions.crm-draft-outreach]
     verify_jwt = true

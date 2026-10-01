@@ -103,6 +103,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.orders.quotation", path: "/admin/orders/quotations/:id", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.quotation.print-preview", path: "/admin/orders/quotations/:id/print-preview", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.rx-submissions", path: "/admin/orders/rx-submissions", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.orders.rx-capture", path: "/admin/orders/rx-capture", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.rx-test", path: "/admin/orders/rx-test", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.stock-orders", path: "/admin/orders/stock-orders", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders", path: "/admin/orders", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },

@@ -19,6 +19,7 @@ describe("admin stock order builder route accessibility", () => {
       "Orders",
       "Quotations",
       "Rx Order Form",
+      "Rx Capture",
       "Stock Order Builder",
       "Innovations Submissions",
     ]);

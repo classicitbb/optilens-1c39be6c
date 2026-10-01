@@ -1,5 +1,5 @@
 // The printable order sheet: a plain-paper rendering of the order as it stands.
-// It is mounted off-screen in the page and shown only while `body.rx-printing`
+// It is mounted only while an order is being printed, and shown only under `body.rx-printing`
 // is set (see index.css), so printing needs no pop-up and no second document.
 // Everything comes from the derived model; nothing is read from the DOM.
 import { clipParts } from "../domain/chemistrie";
