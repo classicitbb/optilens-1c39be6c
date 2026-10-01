@@ -485,6 +485,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_auto: boolean
+          is_popular: boolean
           name: string
           price: number
           show_on_website: boolean
@@ -502,6 +503,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_auto?: boolean
+          is_popular?: boolean
           name: string
           price?: number
           show_on_website?: boolean
@@ -519,6 +521,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_auto?: boolean
+          is_popular?: boolean
           name?: string
           price?: number
           show_on_website?: boolean
@@ -8734,6 +8737,7 @@ export type Database = {
           is_uncut: boolean
           job_scope: string
           model_colour: string | null
+          mount_type: string | null
           quote_id: string
           shape_source_file: string | null
           shape_traced_axis: number | null
@@ -8755,6 +8759,7 @@ export type Database = {
           is_uncut?: boolean
           job_scope?: string
           model_colour?: string | null
+          mount_type?: string | null
           quote_id: string
           shape_source_file?: string | null
           shape_traced_axis?: number | null
@@ -8776,6 +8781,7 @@ export type Database = {
           is_uncut?: boolean
           job_scope?: string
           model_colour?: string | null
+          mount_type?: string | null
           quote_id?: string
           shape_source_file?: string | null
           shape_traced_axis?: number | null
@@ -8944,17 +8950,17 @@ export type Database = {
           gp_amount: number
           gp_percent: number
           grand_total: number
-          is_test: boolean
-          rx_order_number: number | null
-          rx_payload: Json | null
           helpdesk_ticket_id: string | null
           id: string
+          is_test: boolean
           lead_time_days: number | null
           notes_customer: string | null
           notes_internal: string | null
           price_profile_id: string | null
           quote_number: string
           quote_type: string
+          rx_order_number: number | null
+          rx_payload: Json | null
           status: string
           subtotal_sell: number
           total_landed_cost: number
@@ -8973,17 +8979,17 @@ export type Database = {
           gp_amount?: number
           gp_percent?: number
           grand_total?: number
-          is_test?: boolean
-          rx_order_number?: number | null
-          rx_payload?: Json | null
           helpdesk_ticket_id?: string | null
           id?: string
+          is_test?: boolean
           lead_time_days?: number | null
           notes_customer?: string | null
           notes_internal?: string | null
           price_profile_id?: string | null
           quote_number: string
           quote_type: string
+          rx_order_number?: number | null
+          rx_payload?: Json | null
           status?: string
           subtotal_sell?: number
           total_landed_cost?: number
@@ -9002,17 +9008,17 @@ export type Database = {
           gp_amount?: number
           gp_percent?: number
           grand_total?: number
-          is_test?: boolean
-          rx_order_number?: number | null
-          rx_payload?: Json | null
           helpdesk_ticket_id?: string | null
           id?: string
+          is_test?: boolean
           lead_time_days?: number | null
           notes_customer?: string | null
           notes_internal?: string | null
           price_profile_id?: string | null
           quote_number?: string
           quote_type?: string
+          rx_order_number?: number | null
+          rx_payload?: Json | null
           status?: string
           subtotal_sell?: number
           total_landed_cost?: number
@@ -9125,6 +9131,120 @@ export type Database = {
         }
         Relationships: []
       }
+      rx_capture_jobs: {
+        Row: {
+          account_id: number | null
+          created_at: string
+          created_by: string | null
+          draft: Json | null
+          error: string | null
+          extra_paths: Json
+          extraction: Json | null
+          file_name: string | null
+          id: string
+          local_order_id: string | null
+          mime_type: string | null
+          model: string | null
+          purge_after: string
+          quote_id: string | null
+          source: string
+          status: string
+          storage_path: string | null
+        }
+        Insert: {
+          account_id?: number | null
+          created_at?: string
+          created_by?: string | null
+          draft?: Json | null
+          error?: string | null
+          extra_paths?: Json
+          extraction?: Json | null
+          file_name?: string | null
+          id?: string
+          local_order_id?: string | null
+          mime_type?: string | null
+          model?: string | null
+          purge_after?: string
+          quote_id?: string | null
+          source?: string
+          status?: string
+          storage_path?: string | null
+        }
+        Update: {
+          account_id?: number | null
+          created_at?: string
+          created_by?: string | null
+          draft?: Json | null
+          error?: string | null
+          extra_paths?: Json
+          extraction?: Json | null
+          file_name?: string | null
+          id?: string
+          local_order_id?: string | null
+          mime_type?: string | null
+          model?: string | null
+          purge_after?: string
+          quote_id?: string | null
+          source?: string
+          status?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_capture_jobs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "rx_capture_jobs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_capture_jobs_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "rx_capture_jobs_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_capture_jobs_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes_customer"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_capture_settings: {
+        Row: {
+          id: boolean
+          notify_token: string
+          purge_token: string
+        }
+        Insert: {
+          id?: boolean
+          notify_token?: string
+          purge_token?: string
+        }
+        Update: {
+          id?: boolean
+          notify_token?: string
+          purge_token?: string
+        }
+        Relationships: []
+      }
       rx_details: {
         Row: {
           created_at: string
@@ -9138,6 +9258,7 @@ export type Database = {
           od_eye_level: number | null
           od_face_form_angle: number | null
           od_fpd: number | null
+          od_height: string | null
           od_inset: number | null
           od_npd: number | null
           od_object_distance: number | null
@@ -9160,6 +9281,7 @@ export type Database = {
           os_eye_level: number | null
           os_face_form_angle: number | null
           os_fpd: number | null
+          os_height: string | null
           os_inset: number | null
           os_npd: number | null
           os_object_distance: number | null
@@ -9192,6 +9314,7 @@ export type Database = {
           od_eye_level?: number | null
           od_face_form_angle?: number | null
           od_fpd?: number | null
+          od_height?: string | null
           od_inset?: number | null
           od_npd?: number | null
           od_object_distance?: number | null
@@ -9214,6 +9337,7 @@ export type Database = {
           os_eye_level?: number | null
           os_face_form_angle?: number | null
           os_fpd?: number | null
+          os_height?: string | null
           os_inset?: number | null
           os_npd?: number | null
           os_object_distance?: number | null
@@ -9246,6 +9370,7 @@ export type Database = {
           od_eye_level?: number | null
           od_face_form_angle?: number | null
           od_fpd?: number | null
+          od_height?: string | null
           od_inset?: number | null
           od_npd?: number | null
           od_object_distance?: number | null
@@ -9268,6 +9393,7 @@ export type Database = {
           os_eye_level?: number | null
           os_face_form_angle?: number | null
           os_fpd?: number | null
+          os_height?: string | null
           os_inset?: number | null
           os_npd?: number | null
           os_object_distance?: number | null
@@ -9304,6 +9430,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rx_lens_advice_rules: {
+        Row: {
+          active: boolean
+          code: string
+          detail: string | null
+          label: string
+          params: Json
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          detail?: string | null
+          label: string
+          params?: Json
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          detail?: string | null
+          label?: string
+          params?: Json
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       rx_order_drafts: {
         Row: {
@@ -9348,6 +9507,64 @@ export type Database = {
             columns: ["rule_set_id"]
             isOneToOne: false
             referencedRelation: "lens_recommendation_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rx_order_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event: string
+          from_status: string | null
+          id: string
+          quote_id: string
+          submission_id: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event: string
+          from_status?: string | null
+          id?: string
+          quote_id: string
+          submission_id?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event?: string
+          from_status?: string | null
+          id?: string
+          quote_id?: string
+          submission_id?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rx_order_events_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_order_events_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes_customer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_order_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "rx_order_submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -9649,6 +9866,57 @@ export type Database = {
           key?: string
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rx_surcharge_rules: {
+        Row: {
+          active: boolean
+          amount: number
+          basis: string
+          code: string
+          detail: string | null
+          label: string
+          per_eye: boolean
+          sort_order: number
+          threshold: number | null
+          tier2_amount: number | null
+          tier2_threshold: number | null
+          unit_amount: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          basis: string
+          code: string
+          detail?: string | null
+          label: string
+          per_eye?: boolean
+          sort_order?: number
+          threshold?: number | null
+          tier2_amount?: number | null
+          tier2_threshold?: number | null
+          unit_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          basis?: string
+          code?: string
+          detail?: string | null
+          label?: string
+          per_eye?: boolean
+          sort_order?: number
+          threshold?: number | null
+          tier2_amount?: number | null
+          tier2_threshold?: number | null
+          unit_amount?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -12609,6 +12877,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_write_customer_quote: {
+        Args: { p_quote_type: string; p_user_id?: string }
+        Returns: boolean
+      }
       cancel_integration_sync_job: {
         Args: { p_sync_job_id: string }
         Returns: undefined
@@ -13171,6 +13443,17 @@ export type Database = {
         }
         Returns: string
       }
+      log_rx_order_event: {
+        Args: {
+          p_detail?: Json
+          p_event: string
+          p_from?: string
+          p_quote_id: string
+          p_submission_id?: string
+          p_to?: string
+        }
+        Returns: undefined
+      }
       log_security_event: {
         Args: {
           p_actor_role?: string
@@ -13568,6 +13851,10 @@ export type Database = {
         Returns: string
       }
       revoke_api_key: { Args: { p_id: string }; Returns: undefined }
+      save_rx_order: {
+        Args: { p_is_test?: boolean; p_payload: Json; p_quote_id: string }
+        Returns: Json
+      }
       save_stock_order_as_quote: {
         Args: { p_submission_id: string }
         Returns: {
