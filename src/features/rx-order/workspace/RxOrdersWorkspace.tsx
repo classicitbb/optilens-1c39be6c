@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
@@ -18,7 +19,7 @@ import {
   applyFilters, countByTab, NO_FILTERS, SOURCE_LABELS, statusLabel, TABS, type Filters, type WorkspaceItem, type WorkspaceTab,
 } from "./classify";
 import { RxOrderDrawer } from "./RxOrderDrawer";
-import { useRxWorkspace } from "./useRxWorkspace";
+import { emailCustomer, useRxWorkspace, type CustomerEvent } from "./useRxWorkspace";
 
 type Provider = "innovations" | "gatekeeper";
 
@@ -47,6 +48,8 @@ export default function RxOrdersWorkspace() {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [choices, setChoices] = useState<Record<string, Provider>>({});
   const [bulkBusy, setBulkBusy] = useState(false);
+  // Customer emails are a deliberate choice each time: off unless staff switch it on.
+  const [emailOnRelease, setEmailOnRelease] = useState(false);
 
   const filtered = useMemo(() => applyFilters(ws.items, filters), [ws.items, filters]);
   const counts = useMemo(() => countByTab(filtered), [filtered]);
@@ -57,13 +60,27 @@ export default function RxOrdersWorkspace() {
   const releasable = rows.filter((i) => i.tab === "ready" && i.submission);
   const picked = releasable.filter((i) => selected.has(i.key));
 
+  const tellCustomer = async (id: string, event: CustomerEvent) => {
+    try {
+      const status = await emailCustomer(id, event);
+      toast({ title: status === "sent" ? "Customer emailed" : status === "already_sent" ? "Already emailed" : "Not sent — notifications are off for this customer" });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Could not email the customer", description: e instanceof Error ? e.message : undefined });
+    }
+  };
+
+  const release = async (i: WorkspaceItem, provider: Provider) => {
+    await approveMutation.mutateAsync({ id: i.submission!.id, provider });
+    if (emailOnRelease) await tellCustomer(i.submission!.id, "released");
+  };
+
   const releaseSelected = async () => {
     if (!picked.length || !window.confirm(`Release ${picked.length} order${picked.length === 1 ? "" : "s"} to the lab? Each goes to its chosen sender.`)) return;
     setBulkBusy(true);
     let ok = 0;
     const failed: string[] = [];
     for (const i of picked) {
-      try { await approveMutation.mutateAsync({ id: i.submission!.id, provider: providerOf(i) }); ok += 1; }
+      try { await release(i, providerOf(i)); ok += 1; }
       catch { failed.push(i.quoteNumber ?? i.key); }
     }
     setBulkBusy(false);
@@ -73,7 +90,7 @@ export default function RxOrdersWorkspace() {
       : { title: `Released ${ok} order${ok === 1 ? "" : "s"}` });
   };
 
-  const actions = (i: WorkspaceItem) => {
+  const actions = (i: WorkspaceItem, inDrawer = false) => {
     const s = i.submission;
     if (i.kind === "capture") {
       return (
@@ -100,11 +117,16 @@ export default function RxOrdersWorkspace() {
                 <SelectItem value="gatekeeper">Gatekeeper</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm" className="h-6 gap-1 px-2 text-[10px]" disabled={approveMutation.isPending} onClick={() => approveMutation.mutate({ id: s.id, provider })}>
+            <Button size="sm" className="h-6 gap-1 px-2 text-[10px]" disabled={approveMutation.isPending} onClick={() => { void release(i, provider).catch(() => undefined); }}>
               {s.status === "failed" ? <><RotateCcw className="h-3 w-3" /> Retry</> : <><Send className="h-3 w-3" /> Release</>}
             </Button>
           </>
         )}
+        {inDrawer && ["approved", "claimed", "submitted"].includes(s.status) && (["released", "shipped"] as const).map((ev) => (
+          <Button key={ev} size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => void tellCustomer(s.id, ev)}>
+            Email customer: {ev}
+          </Button>
+        ))}
         {["approved", "claimed"].includes(s.status) && s.dispatch_provider === "gatekeeper" && (
           <Button size="sm" variant="outline" className="h-6 gap-1 px-2 text-[10px]" disabled={resendMutation.isPending} onClick={() => resendMutation.mutate(s.id)}>
             <RotateCcw className="h-3 w-3" /> {s.transport ? "Resend" : "Send now"}
@@ -127,6 +149,9 @@ export default function RxOrdersWorkspace() {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2 text-base font-semibold"><Send className="h-4 w-4" /> Rx Orders</h1>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground" title="Send the customer an email when you release an order">
+            <Switch checked={emailOnRelease} onCheckedChange={setEmailOnRelease} aria-label="Email customer when released" /> Email customer when released
+          </label>
           <Button size="sm" variant="outline" className="h-7 gap-1 px-2 text-[11px]" onClick={() => navigate("/admin/orders/rx-capture")}>
             <Camera className="h-3 w-3" /> Capture
           </Button>
@@ -248,7 +273,7 @@ export default function RxOrdersWorkspace() {
         manually at most once every 5 minutes. Orders cannot be edited once released.
       </p>
 
-      <RxOrderDrawer item={open} onClose={() => setOpenKey(null)} actions={open ? actions(open) : null} />
+      <RxOrderDrawer item={open} onClose={() => setOpenKey(null)} actions={open ? actions(open, true) : null} />
     </div>
   );
 }

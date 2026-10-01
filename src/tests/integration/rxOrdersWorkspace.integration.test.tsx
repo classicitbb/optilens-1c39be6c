@@ -5,7 +5,7 @@ import RxOrdersWorkspace from "@/features/rx-order/workspace/RxOrdersWorkspace";
 import { buildItems, type CaptureRow } from "@/features/rx-order/workspace/classify";
 import type { RxSubmissionRow } from "@/features/rx-order/types";
 
-const mocks = vi.hoisted(() => ({ approve: vi.fn(), cancel: vi.fn(), resend: vi.fn(), pull: vi.fn(), navigate: vi.fn(), state: { items: [] as any[] } }));
+const mocks = vi.hoisted(() => ({ email: vi.fn(), approve: vi.fn(), cancel: vi.fn(), resend: vi.fn(), pull: vi.fn(), navigate: vi.fn(), state: { items: [] as any[] } }));
 
 vi.mock("react-router", async (orig) => ({ ...(await orig<typeof import("react-router")>()), useNavigate: () => mocks.navigate }));
 vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn(), useToast: () => ({ toast: vi.fn() }) }));
@@ -21,6 +21,7 @@ vi.mock("@/features/rx-order/workspace/useRxWorkspace", () => ({
   }),
   useRxOrderDetail: () => ({ data: { quote: null, lines: [], events: [{ id: "e1", event: "submission_pending_review", from_status: null, to_status: "pending_review", detail: {}, created_at: "2026-10-01T10:00:00Z" }] } }),
   useCaptureImage: () => ({ data: null }),
+  emailCustomer: mocks.email,
 }));
 
 const sub = (id: string, over: Partial<RxSubmissionRow> = {}): RxSubmissionRow => ({
@@ -113,5 +114,40 @@ describe("Rx Orders workspace", () => {
     expect(within(drawer).getByText("Q-1")).toBeInTheDocument();
     fireEvent.mouseDown(within(drawer).getByRole("tab", { name: "Timeline" }));
     await waitFor(() => expect(within(drawer).getByText(/submission pending review/)).toBeInTheDocument());
+  });
+
+  it("does not email the customer on release unless the switch is on", async () => {
+    load([sub("1")]);
+    mocks.approve.mockResolvedValue(undefined);
+    show();
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Ready to release/ }));
+    await waitFor(() => screen.getByRole("button", { name: /^Release$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Release$/ }));
+    await waitFor(() => expect(mocks.approve).toHaveBeenCalled());
+    expect(mocks.email).not.toHaveBeenCalled();
+  });
+
+  it("emails the customer after release when the switch is on", async () => {
+    load([sub("1")]);
+    mocks.approve.mockResolvedValue(undefined);
+    mocks.email.mockResolvedValue("sent");
+    show();
+    fireEvent.click(screen.getByRole("switch", { name: /Email customer when released/ }));
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Ready to release/ }));
+    await waitFor(() => screen.getByRole("button", { name: /^Release$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Release$/ }));
+    await waitFor(() => expect(mocks.email).toHaveBeenCalledWith("1", "released"));
+  });
+
+  it("offers released / shipped emails for a released order in its drawer", async () => {
+    load([sub("1", { status: "submitted", lab_status: "In production" })]);
+    mocks.email.mockResolvedValue("sent");
+    show();
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /At lab/ }));
+    await waitFor(() => screen.getByText("Q-1"));
+    fireEvent.click(screen.getByText("Q-1"));
+    const drawer = await screen.findByRole("dialog");
+    fireEvent.click(within(drawer).getByRole("button", { name: /Email customer: shipped/ }));
+    await waitFor(() => expect(mocks.email).toHaveBeenCalledWith("1", "shipped"));
   });
 });

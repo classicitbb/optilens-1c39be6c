@@ -62,6 +62,19 @@ export function useRxWorkspace() {
   };
 }
 
+export type CustomerEvent = "released" | "shipped";
+
+/** Email the account's customer about a released order — always a deliberate staff action. */
+export async function emailCustomer(submissionId: string, event: CustomerEvent): Promise<"sent" | "already_sent" | "suppressed"> {
+  const { data, error } = await supabase.functions.invoke("rx-order-notify", { body: { action: "customer", submissionId, event } });
+  if (error) {
+    let message = error.message;
+    try { message = (await (error as { context?: Response }).context?.json?.())?.error ?? message; } catch { /* keep the transport message */ }
+    throw new Error(message);
+  }
+  return (data?.status ?? "sent") as "sent" | "already_sent" | "suppressed";
+}
+
 export interface RxOrderDetail {
   quote: { id: string; quote_number: string; status: string; rx_payload: unknown; notes_internal: string | null } | null;
   lines: { id: string; item_name: string; line_type: string; qty: number; unit_sell_price_bbd: number }[];
