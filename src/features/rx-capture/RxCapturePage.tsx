@@ -16,9 +16,11 @@ import { ACCEPT, extensionFor, isAcceptedFile, filesFromClipboard } from "./file
 interface Job {
   id: string;
   account_id: number | null;
-  storage_path: string;
+  storage_path: string | null;
+  extra_paths: string[];
+  source: "web" | "local_capture";
   file_name: string | null;
-  mime_type: string;
+  mime_type: string | null;
   status: "queued" | "processing" | "ready" | "failed";
   error: string | null;
   draft: Record<string, unknown> | null;
@@ -90,7 +92,8 @@ export default function RxCapturePage() {
   }, [upload, reviewing]);
 
   const remove = async (job: Job) => {
-    await supabase.storage.from("rx-captures").remove([job.storage_path]);
+    const paths = [job.storage_path, ...(job.extra_paths ?? [])].filter((p): p is string => !!p);
+    if (paths.length) await supabase.storage.from("rx-captures").remove(paths);
     await jobs().delete().eq("id", job.id);
     void refresh();
   };
@@ -136,7 +139,7 @@ export default function RxCapturePage() {
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <b className="block truncate">{accounts.find((a) => a.id === j.account_id)?.name ?? "—"}</b>
-              <span className="text-muted-foreground">{new Date(j.created_at).toLocaleString()} · {j.file_name ?? "pasted image"}</span>
+              <span className="text-muted-foreground">{new Date(j.created_at).toLocaleString()} · {j.source === "local_capture" ? "From the office capture" : j.file_name ?? "pasted image"}</span>
               {j.status === "failed" && <span className="block text-destructive">{j.error}</span>}
               {j.quote_id && <span className="block text-emerald-700">Saved as a draft order</span>}
             </div>
@@ -156,6 +159,7 @@ export default function RxCapturePage() {
 /** The original beside the form; the form opens with what was read, flagged where unsure. */
 function Review({ job, accountName, onBack }: { job: Job; accountName?: string; onBack: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [extras, setExtras] = useState<string[]>([]);
   const [quoteId, setQuoteId] = useState<string | null>(job.quote_id);
   const { data: quote } = useQuery({
     queryKey: ["rx-capture-review-quote", job.quote_id],
@@ -169,9 +173,11 @@ function Review({ job, accountName, onBack }: { job: Job; accountName?: string; 
 
   useEffect(() => {
     let live = true;
-    supabase.storage.from("rx-captures").createSignedUrl(job.storage_path, 3600).then(({ data }) => { if (live) setUrl(data?.signedUrl ?? null); });
+    const sign = async (path: string) => (await supabase.storage.from("rx-captures").createSignedUrl(path, 3600)).data?.signedUrl ?? null;
+    if (job.storage_path) void sign(job.storage_path).then((u) => { if (live) setUrl(u); });
+    void Promise.all((job.extra_paths ?? []).map(sign)).then((us) => { if (live) setExtras(us.filter((u): u is string => !!u)); });
     return () => { live = false; };
-  }, [job.storage_path]);
+  }, [job.storage_path, job.extra_paths]);
 
   // First open: what was read. After it has been saved once: the saved quote, so edits are not lost.
   const prefill = job.quote_id
@@ -185,12 +191,14 @@ function Review({ job, accountName, onBack }: { job: Job; accountName?: string; 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div className="xl:sticky xl:top-3 xl:self-start">
           <div className="max-h-[85vh] overflow-auto rounded-lg border bg-muted/30">
-            {!url ? <p className="p-6 text-xs text-muted-foreground">Loading the original…</p>
+            {!job.storage_path ? <p className="p-6 text-xs text-muted-foreground">No image came with this order.</p>
+              : !url ? <p className="p-6 text-xs text-muted-foreground">Loading the original…</p>
               : job.mime_type === "application/pdf"
                 ? <iframe title="Original" src={url} className="h-[85vh] w-full" />
                 : <img src={url} alt="The captured sheet" className="w-full" />}
           </div>
           {url && <a href={url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] underline">Open the original in a new tab</a>}
+          {extras.map((u, i) => <a key={u} href={u} target="_blank" rel="noreferrer" className="ml-3 inline-block text-[11px] underline">Image {i + 2}</a>)}
         </div>
         {waiting ? <p className="p-6 text-xs text-muted-foreground">Opening the draft…</p> : (
           <RxForm
@@ -198,7 +206,9 @@ function Review({ job, accountName, onBack }: { job: Job; accountName?: string; 
             surface="admin"
             lockedAccountId={job.account_id}
             prefill={prefill ?? undefined}
-            prefillBanner={job.draft && !job.quote_id ? "Read from the captured sheet. Fields marked amber were hard to read — check them against the original." : undefined}
+            prefillBanner={job.draft && !job.quote_id ? (job.source === "local_capture"
+              ? "Captured and checked at the office. The lens was matched to your catalogue where possible — confirm it and the prices before sending."
+              : "Read from the captured sheet. Fields marked amber were hard to read — check them against the original.") : undefined}
             onQuoteCreated={async ({ quoteId: id }) => {
               setQuoteId(id);
               await jobs().update({ quote_id: id }).eq("id", job.id);

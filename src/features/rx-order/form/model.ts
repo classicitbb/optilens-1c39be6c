@@ -451,7 +451,12 @@ export function valuesFromOrder(input: unknown, catalog: RxCatalog): RxFormValue
     pd: textOf(r.pd, 1), npd: textOf(r.npd, 1), ht: textOf(r.height, 1),
     prism: r.prism === null ? "" : Math.abs(r.prism).toFixed(2), base: r.base,
   });
-  const od = o.lens.od ?? o.lens.os ?? { material: "", design: "", colour: "" };
+  // An office-captured order names its lens by Innovations alias; resolve it against this account's catalogue.
+  const aliasTriple = (() => {
+    const alias = (input as { lens?: { innovationsAlias?: unknown } } | null)?.lens?.innovationsAlias;
+    return typeof alias === "string" && alias ? catalog.tripleForAlias?.(alias) ?? null : null;
+  })();
+  const od = aliasTriple ? { material: aliasTriple.m, design: aliasTriple.d, colour: aliasTriple.c } : (o.lens.od ?? o.lens.os ?? { material: "", design: "", colour: "" });
   const os = o.lens.os ?? od;
   const split = !!(o.lens.od && o.lens.os && (o.lens.od.material !== o.lens.os.material || o.lens.od.design !== o.lens.os.design || o.lens.od.colour !== o.lens.os.colour));
   const tint = (o.tintConfig ?? {}) as Record<string, any>;

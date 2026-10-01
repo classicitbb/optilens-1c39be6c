@@ -168,6 +168,8 @@ export interface RxCatalog {
    * "not offered on this account", `undefined` when there is no price source.
    */
   lensPrice: (m: string, d: string, c: string) => number | null | undefined;
+  /** The catalogue selection an Innovations lens alias stands for (office-captured orders arrive with one). */
+  tripleForAlias?: (alias: string) => Triple | null;
   hasPriceSource: boolean;
   /** An unpriced lens may be saved as a draft but not submitted. */
   blockUnpricedOrders: boolean;

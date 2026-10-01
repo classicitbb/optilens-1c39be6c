@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mapExtractionToDraft, splitName } from "../../../supabase/functions/_shared/rx-capture/extraction";
+import { applyLocalResolution, mapExtractionToDraft, splitName } from "../../../supabase/functions/_shared/rx-capture/extraction";
 import { upgradeV1 } from "@/features/rx-order/domain/schema";
+import { valuesFromOrder } from "@/features/rx-order/form/model";
+import { DEFAULT_SURCHARGE_RULES } from "@/features/rx-order/domain/price";
+import type { RxCatalog } from "@/features/rx-order/form/types";
 import { extensionFor, filesFromClipboard, isAcceptedFile } from "@/features/rx-capture/files";
 
 const eye = (o: Record<string, string> = {}) => ({ sphere: "", cylinder: "", axis: "", add: "", prism: "", base: "", ...o });
@@ -91,5 +94,47 @@ describe("capture files", () => {
     const data = { items: [{ kind: "string", getAsFile: () => null }, { kind: "file", getAsFile: () => f("image/png") }] } as unknown as DataTransfer;
     expect(filesFromClipboard(data)).toHaveLength(1);
     expect(filesFromClipboard(null)).toEqual([]);
+  });
+});
+
+describe("applyLocalResolution (an office-reviewed order)", () => {
+  const resolved = (r: Record<string, unknown>, over: Record<string, unknown> = {}) =>
+    applyLocalResolution(mapExtractionToDraft(sheet({ uncertainFields: ["prescription.od.sphere"], ...over }) as never), r as never);
+
+  it("takes the reviewer's choices and drops the hard-to-read flags", () => {
+    const { payload, flags } = resolved({ lensAlias: "1234567890123", frameMode: "edged", frameMounting: "1", coatingSku: "AR-1", addonSkus: ["TINT-2"], instructions: "Rush" });
+    expect(flags).toEqual([]);
+    expect(payload.flags).toEqual([]);
+    expect((payload.lens as any).innovationsAlias).toBe("1234567890123");
+    expect(payload.job).toMatchObject({ scope: "glaze" });
+    expect((payload.frame as any).mount).toBe("metal");
+    expect((payload.delivery as any).notes).toBe("Office-selected coating / add-on SKUs: AR-1, TINT-2\nRush");
+  });
+
+  it("a frame the office has not edged stays uncut, and rimless stays a question for the form", () => {
+    const { payload } = resolved({ frameMode: "uncut", frameMounting: "3" });
+    expect(payload.job).toMatchObject({ scope: "uncut" });
+    expect((payload.frame as any).mount).toBe("");
+  });
+
+  it("works with no resolution at all", () => {
+    expect(() => applyLocalResolution(mapExtractionToDraft(sheet() as never), null)).not.toThrow();
+  });
+});
+
+describe("an alias on the payload fills the lens from the account catalogue", () => {
+  const catalog = {
+    materials: [{ id: "m1", n: "Plastic", up: 0 }], designs: [{ id: "d1", n: "SV", v: "sv", base: 0 }], colours: [{ id: "c1", n: "Clear", up: 0 }],
+    combos: [{ m: "m1", d: "d1", c: "c1" }], treatments: [], clashes: [], lensPrice: () => 100, hasPriceSource: true, blockUnpricedOrders: false,
+    surchargeRules: DEFAULT_SURCHARGE_RULES, accountCountry: "BB", pricesVisible: true,
+    tripleForAlias: (a: string) => (a === "1234567890123" ? { m: "m1", d: "d1", c: "c1" } : null),
+  } as unknown as RxCatalog;
+  const draft = (alias: string) => applyLocalResolution(mapExtractionToDraft(sheet() as never), { lensAlias: alias }).payload;
+
+  it("resolves a known alias", () => {
+    expect(valuesFromOrder(draft("1234567890123"), catalog).lens.od).toEqual({ m: "m1", d: "d1", c: "c1" });
+  });
+  it("leaves the lens to be chosen when the alias is not on this account", () => {
+    expect(valuesFromOrder(draft("9999999999999"), catalog).lens.od).toEqual({ m: "", d: "", c: "" });
   });
 });

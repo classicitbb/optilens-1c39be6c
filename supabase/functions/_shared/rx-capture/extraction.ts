@@ -190,3 +190,38 @@ export function mapExtractionToDraft(raw: RawExtraction | null | undefined, now 
   };
   return { payload, flags };
 }
+
+/** What optilens-local's reviewer chose, on top of what the sheet said. */
+export interface LocalResolution {
+  customerNumber?: string;
+  lensAlias?: string;
+  coatingSku?: string | null;
+  addonSkus?: string[];
+  frameMode?: string;
+  frameMounting?: string;
+  instructions?: string;
+}
+
+/**
+ * An order captured and reviewed at the office (optilens-local) arrives already
+ * checked: its lens is an exact Innovations alias, the mount and frame mode were
+ * chosen by the reviewer, so the "hard to read" flags are dropped. The 13-digit
+ * alias rides on the payload (`lens.innovationsAlias`) for the form to resolve
+ * against the account's catalogue; coating / add-on SKUs and the reviewer's
+ * instructions go in the lab notes, since they have no field of their own.
+ */
+export function applyLocalResolution(draft: DraftFromCapture, resolution: LocalResolution | null | undefined): DraftFromCapture {
+  const r = resolution ?? {};
+  const payload = { ...draft.payload } as Record<string, any>;
+  const alias = text(r.lensAlias, 13).replace(/\D/g, "");
+  payload.lens = { ...payload.lens, ...(alias ? { innovationsAlias: alias } : {}) };
+  if (r.frameMounting !== undefined) payload.frame = { ...payload.frame, mount: MOUNT[text(r.frameMounting, 4)] ?? "" };
+  const mode = text(r.frameMode, 10).toLowerCase();
+  payload.job = { ...payload.job, scope: mode === "edged" ? "glaze" : "uncut" };
+  const skus = [text(r.coatingSku, 80), ...(Array.isArray(r.addonSkus) ? r.addonSkus.map((s) => text(s, 80)) : [])].filter(Boolean);
+  const notes = [payload.delivery?.notes, skus.length ? `Office-selected coating / add-on SKUs: ${skus.join(", ")}` : "", text(r.instructions, 500)]
+    .filter(Boolean).join("\n");
+  payload.delivery = { ...payload.delivery, notes };
+  payload.flags = [];
+  return { payload, flags: [] };
+}

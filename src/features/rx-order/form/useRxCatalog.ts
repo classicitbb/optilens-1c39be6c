@@ -121,6 +121,10 @@ export function useRxCatalog(opts: UseRxCatalogOptions) {
         return priceForAlias(alias, lookup);
       },
       hasPriceSource: true,
+      tripleForAlias: (alias) => {
+        const hit = catalog.data.combos.find((x) => aliasFor(x.m, x.d, x.c)?.alias === alias);
+        return hit ? { m: hit.m, d: hit.d, c: hit.c } : null;
+      },
       blockUnpricedOrders: opts.blockUnpricedOrders ?? false,
       surchargeRules,
       accountCountry: account?.country_code ?? null,
