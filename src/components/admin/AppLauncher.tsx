@@ -29,7 +29,7 @@ const LAUNCHER_SHORTCUTS = {
     key: "rx-order",
     title: "Rx Order Form",
     icon: Glasses,
-    defaultRoute: "/admin/orders/quotations/new-rx",
+    defaultRoute: "/admin/orders/rx/new",
     featurePrefix: "orders",
   },
   "stock-order": {

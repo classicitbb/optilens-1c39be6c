@@ -1,7 +1,7 @@
 import {
   DollarSign, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
-  ListChecks,
+  ListChecks, Camera,
   FileEdit,
   Contact, Tags,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
@@ -102,9 +102,10 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Orders', route: '/admin/orders', icon: Package },
       { label: 'Quotations', route: '/admin/orders/quotations', icon: FileEdit },
-      { label: 'Rx Order Form', route: '/admin/orders/quotations/new-rx', icon: Eye },
+      { label: 'Rx Order Form', route: '/admin/orders/rx/new', icon: Eye },
+      { label: 'Rx Capture', route: '/admin/orders/rx-capture', icon: Camera },
       { label: 'Stock Order Builder', route: '/admin/orders/stock-orders', icon: Package },
-      { label: 'Innovations Submissions', route: '/admin/orders/rx-submissions', icon: Upload },
+      { label: 'Rx Orders', route: '/admin/orders/rx', icon: ClipboardList },
     ] satisfies SidebarItem[],
   },
   finance: {

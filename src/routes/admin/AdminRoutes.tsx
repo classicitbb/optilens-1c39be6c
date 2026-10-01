@@ -45,6 +45,10 @@ const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrd
 );
 const RxSubmissionsPage = lazyWithRetry(() => import("@/pages/admin/RxSubmissionsPage"));
 // Staff test bench: the Rx form against test fixtures. Nothing is saved or sent to a lab.
+const RxOrdersWorkspace = lazyWithRetry(() => import("@/features/rx-order/workspace/RxOrdersWorkspace"));
+const RxRulesPage = lazyWithRetry(() => import("@/features/rx-order/workspace/RxRulesPage"));
+const RxOrderEditPage = lazyWithRetry(() => import("@/pages/admin/RxOrderEditPage"));
+const RxCapturePage = lazyWithRetry(() => import("@/features/rx-capture/RxCapturePage"));
 const RxOrderTestBench = lazyWithRetry(() => import("@/features/rx-order/dev/RxOrderPreview"));
 const AliasMappingPage = lazyWithRetry(() => import("@/pages/admin/AliasMappingPage"));
 const QuoteEditorPage = lazyWithRetry(() => import("@/pages/admin/QuoteEditorPage"));
@@ -117,6 +121,13 @@ const LegacyPricelistRedirect = ({ section }: { section: PricelistEditorSection 
 const HelpdeskTicketRedirect = () => {
   const { id } = useParams<{ id: string }>();
   return <Navigate to={`/admin/helpdesk/tickets${ticketHref(id ?? "")}`} replace />;
+};
+
+// The React Rx form is the Rx order form. The old prototype form stays reachable at
+// /admin/orders/rx-legacy/* (for reference) and these old URLs land on the new one.
+const RxQuoteRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/admin/orders/rx/${id ?? ""}/edit`} replace />;
 };
 
 // Order handling moved from /admin/website/* to /admin/orders/*; keep old links
@@ -268,14 +279,21 @@ const AdminRoutes = () => (
       <Route path="orders" element={<OrdersPage />} />
       <Route path="orders/quotations" element={<QuotationsListPage />} />
       <Route path="orders/stock-orders" element={<StockOrderBuilderPage />} />
-      <Route path="orders/quotations/new-rx" element={<RxOrderFormPage />} />
-      <Route path="orders/quotations/rx/:id" element={<RxOrderFormPage />} />
+      <Route path="orders/quotations/new-rx" element={<Navigate to="/admin/orders/rx/new" replace />} />
+      <Route path="orders/quotations/rx/:id" element={<RxQuoteRedirect />} />
+      <Route path="orders/rx-legacy/new" element={<RxOrderFormPage />} />
+      <Route path="orders/rx-legacy/:id" element={<RxOrderFormPage />} />
       <Route path="orders/quotations/:id" element={<QuoteEditorPage />} />
       <Route
         path="orders/quotations/:id/print-preview"
         element={<QuotePrintPreviewPage />}
       />
+      <Route path="orders/rx" element={<RxOrdersWorkspace />} />
+      <Route path="orders/rx/settings" element={<RxRulesPage />} />
+      <Route path="orders/rx/new" element={<RxOrderEditPage />} />
+      <Route path="orders/rx/:quoteId/edit" element={<RxOrderEditPage />} />
       <Route path="orders/rx-submissions" element={<RxSubmissionsPage />} />
+      <Route path="orders/rx-capture" element={<RxCapturePage />} />
       <Route path="orders/rx-test" element={<RxOrderTestBench allowLive />} />
       <Route path="website/orders" element={<LegacyWebsiteOrdersRedirect />} />
       <Route path="website/quotations/*" element={<LegacyWebsiteOrdersRedirect />} />

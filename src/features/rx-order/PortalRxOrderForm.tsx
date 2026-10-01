@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
-import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
+import RxForm from "@/features/rx-order/form/RxForm";
 import { isEmbeddedRxOrderPayload, resolveResumedRxDraftId, useRxDraft } from "@/features/lens-assistant/api";
 import { buildPrefillBanner, buildRxPrefillPayload } from "@/features/rx-order/prefill/rxOrderPrefill";
 
@@ -53,7 +53,7 @@ const PortalRxOrderForm = () => {
   const ready = !identityLoading && (lockedAccountId != null || isStaff) && draftSettled;
 
   return ready ? (
-    <RxOrderEmbed
+    <RxForm
       key={formKey}
       quoteId={null}
       surface="portal"
@@ -69,7 +69,6 @@ const PortalRxOrderForm = () => {
       // Staff do not: an order placed from the admin surface still belongs in
       // the cart, where the account it bills is an explicit choice.
       allowDirectSubmit={!isStaff && identity?.paymentTerms === "credit"}
-      currency="BBD"
     />
   ) : (
     <div className="p-12 text-center text-sm text-muted-foreground">

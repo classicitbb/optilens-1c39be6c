@@ -14,6 +14,8 @@ export interface Addon {
   auto_rule: Json | null;
   is_active: boolean;
   show_on_website: boolean;
+  /** Shown first in the Rx order form's coatings card. */
+  is_popular: boolean;
   sort_order: number;
   supplier_id: string | null;
   supplier_name: string | null;
@@ -32,6 +34,7 @@ export interface AddonFormData {
   auto_rule: Json | null;
   is_active: boolean;
   show_on_website: boolean;
+  is_popular: boolean;
   sort_order: number;
   supplier_id: string | null;
 }
@@ -116,6 +119,7 @@ export const useAddons = () => {
         auto_rule: addon.auto_rule,
         is_active: addon.is_active,
         show_on_website: addon.show_on_website,
+        is_popular: addon.is_popular ?? false,
         sort_order: addon.sort_order,
         supplier_id: addon.supplier_id,
       };

@@ -16,7 +16,7 @@ const rowToV1 = (r: NonNullable<RxOrderV2["rx"]["od"]>) => ({
 
 /**
  * The cv.rxorder/1 shape of a v2 order. Lossy only where v1 has no field:
- * `source` and `flags` are dropped. A split lens is re-expressed as the
+ * `source` is dropped (`flags` ride along as an extra key). A split lens is re-expressed as the
  * `lens` / `lensOs` / `split` trio v1 readers expect (right eye's lens in
  * `lens`).
  */
@@ -56,5 +56,6 @@ export function downgradeToV1(o: RxOrderV2): Record<string, unknown> {
     assistance: o.assistance,
     delivery: o.delivery,
     quote: o.quote,
+    ...(o.flags.length ? { flags: o.flags } : {}),
   };
 }
