@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Minus, Plus, Trash2, ArrowLeft, ShoppingCart, FileText, Tag, Package } from "lucide-react";
+import { Minus, Pencil, Plus, Trash2, ArrowLeft, ShoppingCart, FileText, Tag, Package } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -213,6 +213,16 @@ const CartPage = () => {
                           </span>
                         </td>
                         <td className="px-2 py-3 text-center">
+                          {(item.variant_metadata as any)?.kind === "rx_order" && (item.variant_metadata as any)?.rx_quote_id ? (
+                            <Link
+                              to={`/profile/rx-order?edit=${(item.variant_metadata as any).rx_quote_id}&cart=1`}
+                              className="mb-1 flex h-7 w-7 items-center justify-center rounded text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                              aria-label={`Edit ${item.product_name}`}
+                              title="Edit this Rx order"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Link>
+                          ) : null}
                           <button
                             type="button"
                             onClick={() => removeFromCart(item.id)}

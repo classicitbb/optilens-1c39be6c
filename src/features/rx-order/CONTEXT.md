@@ -23,6 +23,10 @@ staff use it in admin and at the test bench (`/admin/orders/rx-test`).
 - Test-bench orders are `quotes.is_test`: out of quote lists, never in the outbox (DB trigger), never in the cart.
 - Writes to Rx quotes by customers need `rx-order`, not `quotes` (policies via `can_write_customer_quote`).
 
+## Phase 2 (customer order management)
+
+Customers read Rx orders only through three SECURITY DEFINER functions (migration `20261002100000`): `list_my_rx_orders()`, `get_my_rx_order_status(quote_id)` and `cancel_my_rx_order(quote_id)`; they never touch `rx_order_submissions`/`rx_order_events`. `orders/lifecycle.ts` (pure, tested) turns the safe facts into the stage (Draft → Submitted → In review → Sent to lab → In production → Shipped, or Cancelled), the timeline, the open actions and the reorder/remake payload; a failed lab hand-off reads as "In review". My Orders shows Rx orders as their own rows (patient, reference, lens, stage chip, search); detail is `/profile/orders/rx/:id` (`orders/RxOrderDetailPage.tsx`, summary shared with Saved Drafts via `orders/RxPayloadSummary.tsx`). Edit = `/profile/rx-order?edit=<quote>` (until release; `save_rx_order` enforces it), reorder/remake = `?from=<quote>&as=reorder|remake` (same Rx/lens/coatings, frame cleared, note added), cart pencil = `?edit=<quote>&cart=1` (re-saving updates the cart item and warns if the price moved). Cancel is refused once released, once paid, or when the order holds other items. Edits after submit do not re-price the `orders` row. The drafts list still reads `rx_order_drafts` (the form mirrors every draft there), with a "From Lens Assistant" tag.
+
 ## Not done yet (see the improvement plan)
 Rest of Phase 1b ( advice tips, wiring into the admin page + cutover), Phase 2 customer order management, Phase 3 admin workspace, Phase 4 photo capture. Two draft stores still exist (`quotes` and `rx_order_drafts`).
 

@@ -25,6 +25,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { requestLiveData } from "@/lib/liveDataGateway";
 import InquireButton from "@/components/account/InquireButton";
 import { ORDER_AGE_BANDS, orderAgeBand, orderAgeTint } from "@/lib/orderAge";
+import { useMyRxOrders } from "@/features/rx-order/orders/api";
+import { rxBrief, rxStage, STAGE_LABELS, type RxOrderFacts, type RxStage } from "@/features/rx-order/orders/lifecycle";
 
 
 const formatAddress = (address?: Record<string, unknown> | null) => {
@@ -70,7 +72,7 @@ const ORDER_FILTERS: { value: OrderBucket | "all"; label: string }[] = [
 
 type OrderRow = {
   key: string;
-  kind: "order" | "payment";
+  kind: "order" | "payment" | "rx";
   reference: string;
   typeLabel: string;
   date: string;
@@ -80,7 +82,11 @@ type OrderRow = {
   itemCount: number;
   total: number;
   order: OrderEntity | null;
+  /** Set when this row is an Rx order: patient, the customer's reference and the lens, for display and search. */
+  rx?: { facts: RxOrderFacts; patient: string; reference: string; lens: string; stage: RxStage };
 };
+
+const rxBucket = (stage: RxStage): OrderBucket => (stage === "shipped" ? "completed" : stage === "cancelled" ? "other" : "pending");
 
 type LiveDelivery = {
   shipment_session_id: string;
@@ -391,6 +397,9 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
 
   const paymentsQuery = useAccountPayments(targetUserId);
+  // Rx orders are first-class rows (patient, reference, lens, stage), not a generic "Web order".
+  // The Rx list is the caller's own, so it is not loaded when staff view or emulate a customer.
+  const rxOrdersQuery = useMyRxOrders(!staffTarget && !portal.emulation);
   const [orderFilter, setOrderFilter] = useState<OrderBucket | "all">("pending");
   const [orderSearch, setOrderSearch] = useState("");
   const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
@@ -405,21 +414,51 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
   });
 
   const orderRows = useMemo<OrderRow[]>(() => {
-    const webRows: OrderRow[] = orders.map((order) => ({
-      key: `order-${order.id}`,
-      kind: "order",
-      reference: `#${order.id.slice(0, 8).toUpperCase()}`,
-      typeLabel: "Web order",
-      date: order.createdAt,
-      status: order.status,
-      statusLabel: order.status === "pending_payment"
-        ? "Awaiting payment"
-        : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace(/_/g, " "),
-      bucket: bucketForStatus(order.status),
-      itemCount: order.items?.length ?? 0,
-      total: order.totalAmount,
-      order,
-    }));
+    const rxByOrder = new Map<string, RxOrderFacts>();
+    for (const f of rxOrdersQuery.data ?? []) if (f.order_id) rxByOrder.set(f.order_id, f);
+    const rxInfo = (facts: RxOrderFacts) => ({ facts, ...rxBrief(facts.payload), stage: rxStage(facts) });
+    const webRows: OrderRow[] = orders.map((order) => {
+      const facts = rxByOrder.get(order.id);
+      const rx = facts ? rxInfo(facts) : undefined;
+      return {
+        key: `order-${order.id}`,
+        kind: "order",
+        reference: `#${order.id.slice(0, 8).toUpperCase()}`,
+        typeLabel: rx ? "Rx order" : "Web order",
+        date: order.createdAt,
+        status: order.status,
+        statusLabel: rx
+          ? STAGE_LABELS[rx.stage]
+          : order.status === "pending_payment"
+            ? "Awaiting payment"
+            : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace(/_/g, " "),
+        bucket: rx ? rxBucket(rx.stage) : bucketForStatus(order.status),
+        itemCount: order.items?.length ?? 0,
+        total: order.totalAmount,
+        order,
+        rx,
+      };
+    });
+    const placed = new Set(orders.map((o) => o.id));
+    const rxOnlyRows: OrderRow[] = (rxOrdersQuery.data ?? [])
+      .filter((f) => !f.order_id || !placed.has(f.order_id))
+      .map((facts) => {
+        const rx = rxInfo(facts);
+        return {
+          key: `rx-${facts.quote_id}`,
+          kind: "rx" as const,
+          reference: facts.rx_order_number != null ? `#${facts.rx_order_number}` : `#${facts.quote_id.slice(0, 8).toUpperCase()}`,
+          typeLabel: "Rx order",
+          date: facts.created_at,
+          status: rx.stage,
+          statusLabel: STAGE_LABELS[rx.stage],
+          bucket: rxBucket(rx.stage),
+          itemCount: 1,
+          total: Number(facts.total ?? 0),
+          order: null,
+          rx,
+        };
+      });
     const paymentRows: OrderRow[] = (paymentsQuery.data ?? []).map((payment) => ({
       key: `payment-${payment.id}`,
       kind: "payment",
@@ -433,10 +472,10 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
       total: payment.amount,
       order: null,
     }));
-    return [...webRows, ...paymentRows].sort(
+    return [...webRows, ...rxOnlyRows, ...paymentRows].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
-  }, [orders, paymentsQuery.data]);
+  }, [orders, paymentsQuery.data, rxOrdersQuery.data]);
 
   const bucketCounts = useMemo(() => ({
     pending: orderRows.filter((row) => row.bucket === "pending").length,
@@ -454,6 +493,10 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
         row.reference,
         row.typeLabel,
         row.statusLabel,
+        row.rx?.patient,
+        row.rx?.reference,
+        row.rx?.lens,
+        row.rx?.facts.rx_order_number,
         row.total.toFixed(2),
         format(new Date(row.date), "PPP"),
         ...(row.order?.items ?? []).map((item) => item.productName),
@@ -761,8 +804,8 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                   type="search"
                   value={orderSearch}
                   onChange={(event) => setOrderSearch(event.target.value)}
-                  placeholder="Search orders"
-                  aria-label="Search orders by number, status, date, total or product"
+                  placeholder="Search orders or patients"
+                  aria-label="Search orders by number, patient, reference, status, date, total or product"
                   className="h-9 pl-9"
                 />
               </div>
@@ -796,7 +839,16 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                       return (
                         <Fragment key={row.key}>
                           <TableRow className="group transition-colors hover:bg-muted/50">
-                            <TableCell className="font-medium transition-colors group-hover:text-primary">Order {row.reference}</TableCell>
+                            <TableCell className="font-medium transition-colors group-hover:text-primary">
+                              {row.rx ? (
+                                <Link to={`/profile/orders/rx/${row.rx.facts.quote_id}`} className="block hover:underline">
+                                  Rx order {row.rx.facts.rx_order_number != null ? `#${row.rx.facts.rx_order_number}` : row.reference}
+                                  <span className="block max-w-xs truncate text-xs font-normal text-muted-foreground">
+                                    {[row.rx.patient, row.rx.reference && `Ref ${row.rx.reference}`, row.rx.lens].filter(Boolean).join(" · ")}
+                                  </span>
+                                </Link>
+                              ) : `Order ${row.reference}`}
+                            </TableCell>
                             <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                               {format(new Date(row.date), "PPP 'at' p")}
                             </TableCell>
@@ -810,6 +862,9 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                             <TableCell className="text-right font-semibold">${row.total.toFixed(2)} USD</TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
+                                {row.rx ? (
+                                  <Button asChild variant="outline" size="sm"><Link to={`/profile/orders/rx/${row.rx.facts.quote_id}`}>View Rx order</Link></Button>
+                                ) : null}
                                 {row.order ? (
                                   <>
                                     <Button
@@ -850,7 +905,7 @@ const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = 
                                       {isExpanded ? "Hide items" : `View ${row.itemCount} item${row.itemCount === 1 ? "" : "s"}`}
                                     </Button>
                                   </>
-                                ) : (
+                                ) : row.rx ? null : (
                                   <span className="text-sm text-muted-foreground">Applied to account</span>
                                 )}
                                 {staffTarget ? (
