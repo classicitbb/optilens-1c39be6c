@@ -9,6 +9,7 @@
 import {
   comboOptions, repairTriple, splitLensesDuplicate, tripleComplete, type ComboOptions, type Triple,
 } from "../domain/catalog";
+import { lensAdvice, type Advice } from "../domain/advice";
 import { clipIssues, normaliseSavedClip, notesWithChemistrie, stripChemNotes } from "../domain/chemistrie";
 import { parseNum, SHORTHAND_FIELDS } from "../domain/parse";
 import { hasOutline, shapeFromPayload, shapeGeometry, shapeToPayload, type ShapeGeometry } from "../domain/shape";
@@ -173,6 +174,8 @@ export interface Derived {
     serviceLead: string;
   };
   price: PriceResult;
+  /** Non-blocking lens tips the person has not dismissed. */
+  advice: Advice[];
   sections: Record<SectionId, boolean>;
   checklist: ChecklistItem[];
   assistance: string[];
@@ -319,6 +322,10 @@ export function derive(v: RxFormValues, catalog: RxCatalog): Derived {
     lens: { sides: sidesTriples, complete: lensComplete, duplicate, names, options, repairs, isProg },
     treat: { issues, chemIssues, tintId: tint?.id ?? null, arSelected, serviceLead: arSelected ? AR_LEAD : PLAIN_LEAD },
     price, sections, checklist, assistance,
+    advice: lensAdvice({
+      eyes, rows, mount: v.frame.mount, ed, sides: sidesTriples, materials: catalog.materials, combos: catalog.combos,
+      treatments: catalog.treatments, selectedTreatments: v.treatments,
+    }, catalog.adviceRules).filter((a) => !v.dismissedWarnings.includes("advice:" + a.id)),
     canSubmit: allValid && !blocked,
     blockedReason: !price.unpriced ? null : blocked
       ? "This lens is not priced on your account — save it as a draft and we will quote it."

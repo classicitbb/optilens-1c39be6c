@@ -4,6 +4,7 @@ import type { SurchargeRule } from "../domain/price";
 import type { ChemClip } from "../domain/chemistrie";
 import type { ShapeData, ShapeSource } from "../domain/shape";
 import type { RxFlag } from "../domain/schema";
+import type { AdviceRule } from "../domain/advice";
 
 /** Everything a person can type or pick. Numbers stay strings until derived. */
 export interface RxEyeText {
@@ -169,6 +170,8 @@ export interface RxCatalog {
    */
   lensPrice: (m: string, d: string, c: string) => number | null | undefined;
   /** The catalogue selection an Innovations lens alias stands for (office-captured orders arrive with one). */
+  /** Thresholds behind the lens tips; the seeded defaults when absent. */
+  adviceRules?: readonly AdviceRule[];
   tripleForAlias?: (alias: string) => Triple | null;
   hasPriceSource: boolean;
   /** An unpriced lens may be saved as a draft but not submitted. */

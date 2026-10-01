@@ -15,7 +15,20 @@ import { buildInnovationsCatalog, comboKey, type CatalogAlias } from "../embed/i
 import { buildEngineData, type LensRef } from "../embed/rx-order-adapter";
 import { priceForAlias, type PriceLookup } from "../pricing/matrixPricing";
 import { DEFAULT_SURCHARGE_RULES, surchargeRuleFromRow, type SurchargeRule } from "../domain/price";
+import { DEFAULT_ADVICE_RULES, type AdviceRule } from "../domain/advice";
 import type { RxCatalog } from "./types";
+
+/** Admin-editable lens-tip thresholds; the seeded defaults stand in until they load. */
+export const useAdviceRules = () =>
+  useQuery<readonly AdviceRule[]>({
+    queryKey: ["rx-lens-advice-rules"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("rx_lens_advice_rules").select("code, active, params").order("sort_order");
+      if (error || !data?.length) return DEFAULT_ADVICE_RULES;
+      return data as AdviceRule[];
+    },
+  });
 
 /** Admin-editable surcharges; the seeded defaults stand in until they load (or if the table is unreadable). */
 export const useSurchargeRules = () =>
@@ -51,6 +64,7 @@ export function useRxCatalog(opts: UseRxCatalogOptions) {
   const { data: addons = [], isLoading: addonsLoading } = useAddons();
   const { data: accounts = [], isLoading: accountsLoading } = useCustomerAccounts();
   const { data: surchargeRules = DEFAULT_SURCHARGE_RULES } = useSurchargeRules();
+  const { data: adviceRules = DEFAULT_ADVICE_RULES } = useAdviceRules();
   const { data: clashRules = [] } = useQuery<{ addon_id_a: string; addon_id_b: string; reason: string }[]>({
     queryKey: ["addon-clash-rules"],
     staleTime: 5 * 60_000,
@@ -127,12 +141,13 @@ export function useRxCatalog(opts: UseRxCatalogOptions) {
       },
       blockUnpricedOrders: opts.blockUnpricedOrders ?? false,
       surchargeRules,
+      adviceRules,
       accountCountry: account?.country_code ?? null,
       pricesVisible: opts.pricesVisible,
     };
     // priceLookup is read through a ref but a new lookup must refresh the memo
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [built, priceLookup, surchargeRules, accounts, effectiveAccountId, opts.pricesVisible, opts.blockUnpricedOrders]);
+  }, [built, priceLookup, surchargeRules, adviceRules, accounts, effectiveAccountId, opts.pricesVisible, opts.blockUnpricedOrders]);
 
   const persistContext: PersistContext | null = useMemo(() => {
     if (!built) return null;

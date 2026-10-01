@@ -118,10 +118,9 @@ export function buildEngineData(opts: {
       // lab work is the silent failure; the form raises it instead.
       unpriced: !(price > 0),
       grp: g.grp,
-      // Popular choices are intentional, not whichever records happen to be
-      // first in the RPC result. Back AR must earn its way into this set from
-      // real usage data; the current catalogue does not expose that count.
-      pop: /blue\s*defen[cs]e|super\s*ar/i.test(a.name),
+      // Popular choices are intentional (addons.is_popular, set in the add-on editor),
+      // not whichever records happen to be first in the RPC result.
+      pop: (a as { is_popular?: boolean }).is_popular ?? false,
     };
   });
 

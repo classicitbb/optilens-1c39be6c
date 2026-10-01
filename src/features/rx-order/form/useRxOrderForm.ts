@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { CHEM_MAX_CLIPS, newClip, setClipField, setClipType, type ChemClip, type ChemType } from "../domain/chemistrie";
+import type { Advice } from "../domain/advice";
 import { repairTriple, type Triple } from "../domain/catalog";
 import { normaliseRxField, transposePlusCyl, type RxField } from "../domain/normalise";
 import { parseNum, roundQuarter, signed } from "../domain/parse";
@@ -58,6 +59,8 @@ export interface RxFormApi {
   setTint: (patch: Partial<RxFormValues["tint"]>) => void;
   setDelivery: (patch: Partial<RxFormValues["delivery"]>) => void;
   dismissWarning: (id: string) => void;
+  /** Take a lens tip's one-tap suggestion; returns a note to show, if any. */
+  applyAdvice: (advice: Advice) => string | null;
   removeAssistance: (text: string) => void;
   clearSection: (id: SectionId) => void;
   reset: (v?: RxFormValues) => void;
@@ -284,6 +287,15 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
   const removeCoating = (id: string) => set("treatments", get().treatments.filter((x) => x !== id));
   const setTint: RxFormApi["setTint"] = (patch) => set("tint", { ...get().tint, ...patch });
   const setDelivery: RxFormApi["setDelivery"] = (patch) => set("delivery", { ...get().delivery, ...patch });
+  const applyAdvice: RxFormApi["applyAdvice"] = (advice) => {
+    const action = advice.action;
+    if (!action) return null;
+    if (action.kind === "treatment") return toggleCoating(action.id);
+    // a lens tip is about the job's lens; with a lens per eye, both follow it
+    const split = get().lens.split && get().job.eyes === "pair";
+    const notes = (split ? (["od", "os"] as const) : (["od"] as const)).map((side) => pickLens(side, "m", action.id));
+    return notes.find(Boolean) ?? null;
+  };
   const dismissWarning = (id: string) => set("dismissedWarnings", [...new Set([...get().dismissedWarnings, id])]);
   const removeAssistance = (text: string) => set("assistance", get().assistance.filter((a) => a !== text));
 
@@ -307,7 +319,7 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
   return {
     values, derived, form, set, setJob, setFrame, pickLens, loadTrace, pickStandardShape, clearShape, removeTrace, setShapeConfirmed, setSplit, copyLensToOs, setRxText, blurRx,
     copyOdToOs, clearRx, setPlusText, blurPlus, togglePlusCyl, toggleCoating, toggleChemistrie, addChemClip, removeChemClip, setChemType, setChemField, removeCoating, setTint,
-    setDelivery, dismissWarning, removeAssistance, clearSection, reset, confirmFlag, confirmAllFlags,
+    setDelivery, dismissWarning, applyAdvice, removeAssistance, clearSection, reset, confirmFlag, confirmAllFlags,
     isEmpty: isEmptyOrder(values),
   };
 }

@@ -117,6 +117,19 @@ export function LensCard({ api, catalog, step, notify }: CardProps) {
         {derived.lens.duplicate && (
           <Callout tone="warn">Both eyes have the same lens — turn off “Different lens for each eye”, or change one side.</Callout>
         )}
+        {derived.advice.map((a) => (
+          <Callout
+            key={a.id}
+            onDismiss={() => api.dismissWarning("advice:" + a.id)}
+            action={a.action && (
+              <Button type="button" size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => { const note = api.applyAdvice(a); if (note) notify(note); }}>
+                {a.action.label}
+              </Button>
+            )}
+          >
+            <span className="font-semibold">Tip · </span>{a.text}
+          </Callout>
+        ))}
         <Callout>
           {names.some(Boolean)
             ? names.map((n, i) => <div key={i}>{split ? `${i === 0 ? "OD" : "OS"}: ` : ""}{n ?? "Pick a material, design and colour to name the lens."}</div>)
