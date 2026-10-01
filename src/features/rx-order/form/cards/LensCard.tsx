@@ -2,12 +2,8 @@
 // The pickers show what the account can order given the OTHER choices already
 // made (each list narrows the others); they never look at the prescription or
 // the frame — that guidance is advice, not a limit.
-import { useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { BLANK_SIZES } from "../model";
@@ -15,53 +11,8 @@ import { SectionSummary } from "../Summary";
 import type { Triple } from "../../domain/catalog";
 import { Callout, Field, Seg, StepCard, CONTROL } from "../ui";
 import type { CatalogItem } from "../types";
+import { ComboBox } from "./ComboBox";
 import type { CardProps } from "./types";
-
-function ComboField({
-  label, num, value, items, onPick, required = true,
-}: {
-  label: string;
-  num: number;
-  value: string;
-  items: CatalogItem[];
-  onPick: (id: string) => void;
-  required?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = items.find((i) => i.id === value);
-  return (
-    <Field label={`${num} · ${label}`} required={required}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button" variant="outline" role="combobox" aria-expanded={open} aria-label={label}
-            className="h-9 w-full justify-between px-3 text-left text-sm font-normal"
-          >
-            <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected?.n ?? "Type or choose…"}</span>
-            <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[240px] p-0" align="start">
-          <Command>
-            <CommandInput placeholder={`Search ${label.toLowerCase()}…`} />
-            <CommandList>
-              <CommandEmpty>No matches</CommandEmpty>
-              {items.map((item) => (
-                <CommandItem
-                  key={item.id} value={item.n}
-                  onSelect={() => { onPick(item.id); setOpen(false); }}
-                >
-                  <Check className={cn("mr-2 h-3.5 w-3.5", item.id === value ? "opacity-100" : "opacity-0")} />
-                  {item.n}
-                </CommandItem>
-              ))}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </Field>
-  );
-}
 
 function LensSide({
   side, triple, options, catalog, api, notify, title,
@@ -93,9 +44,9 @@ function LensSide({
         </p>
       )}
       <div className="grid gap-3 sm:grid-cols-3">
-        <ComboField num={1} label="Material / index" value={triple.m} items={items(catalog.materials, options.mats)} onPick={pick("m")} />
-        <ComboField num={2} label="Lens design / type" value={triple.d} items={items(catalog.designs, options.designs)} onPick={pick("d")} />
-        <ComboField num={3} label="Lens colour option" value={triple.c} items={items(catalog.colours, options.cols)} onPick={pick("c")} />
+        <ComboBox num={1} label="Material / index" value={triple.m} items={items(catalog.materials, options.mats)} onPick={pick("m")} />
+        <ComboBox num={2} label="Lens design / type" value={triple.d} items={items(catalog.designs, options.designs)} onPick={pick("d")} />
+        <ComboBox num={3} label="Lens colour option" value={triple.c} items={items(catalog.colours, options.cols)} onPick={pick("c")} />
       </div>
     </div>
   );

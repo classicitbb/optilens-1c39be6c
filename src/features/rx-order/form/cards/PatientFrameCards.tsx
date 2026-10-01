@@ -136,6 +136,8 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
               : derived.frame.a !== null && derived.frame.b !== null ? `Estimated √(A²+B²) = ${edShown} mm — editable` : "Auto from A and B — editable"}
         >
           <Input id="rx-fed" inputMode="decimal" placeholder="—" value={edShown} readOnly={locked}
+            // an estimated or measured ED is skipped by Tab / Enter; it is a normal stop once the person types their own
+            tabIndex={f.edTouched && !locked ? 0 : -1}
             className={cn(CONTROL, locked && "cursor-not-allowed bg-muted/50")} onChange={(e) => api.setFrame("ed", e.target.value)} />
         </Field>
         <Field label="DBL" required htmlFor="rx-fdbl" error={issueFor("dbl")}>

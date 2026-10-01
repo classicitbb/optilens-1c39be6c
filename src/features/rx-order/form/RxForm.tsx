@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { downgradeToV1 } from "../domain/payload";
+import { advanceFrom } from "./focus";
 import { persistPayload, savedRxPayload, syntheticCartProductId, type PersistedRxOrder } from "../embed/rx-order-adapter";
 import { CoatingsCard, DeliveryCard } from "./cards/CoatingsDeliveryCards";
 import { LensCard } from "./cards/LensCard";
@@ -331,6 +332,33 @@ function LoadedForm({
     setVisited((s) => (s.has(id) ? s : new Set(s).add(id)));
     setEditing((s) => (s.size && !(s.size === 1 && s.has(id)) ? new Set([...s].filter((x) => x === id)) : s));
   };
+  // ── Enter advances through the fields ──────────────────────────────────────
+  // Text fields and native selects move on at Enter. A Radix dropdown (mount,
+  // service level…) opens on Enter and picks an option on Enter; once the pick
+  // has returned focus to its trigger, move on from there too.
+  const lastTrigger = useRef<HTMLElement | null>(null);
+  const advanceWhenFocused = (trigger: HTMLElement | null) => {
+    if (!trigger) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries++;
+      if (document.activeElement === trigger) { clearInterval(timer); advanceFrom(trigger); }
+      else if (tries > 20) clearInterval(timer);
+    }, 30);
+  };
+  const onFormFocus = (e: React.FocusEvent<HTMLElement>) => {
+    const t = e.target as HTMLElement;
+    if (t.matches('button[role="combobox"]')) lastTrigger.current = t;
+  };
+  const onFormKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter" || e.defaultPrevented || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+    const t = e.target as HTMLElement;
+    if (t.getAttribute("role") === "option") { advanceWhenFocused(lastTrigger.current); return; }
+    if ((t instanceof HTMLInputElement && t.type !== "checkbox" && t.type !== "radio" && t.type !== "file" && t.type !== "button") || t instanceof HTMLSelectElement) {
+      if (advanceFrom(t)) e.preventDefault();
+    }
+  };
+
   const go = (id: SectionId) => document.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const cardProps = (id: SectionId): CardProps => ({ api, catalog, notify, step: stepFor(id) });
@@ -348,7 +376,7 @@ function LoadedForm({
   const locked = props.lockedAccountId != null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-4 lg:pb-8" data-testid="rx-form">
+    <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-4 lg:pb-8" data-testid="rx-form" data-rx-form onKeyDown={onFormKeyDown} onFocusCapture={onFormFocus}>
       {isTest && (
         <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status">
           <b>Test order.</b> Saves are tagged as test and nothing goes to the cart, an account or a lab.
