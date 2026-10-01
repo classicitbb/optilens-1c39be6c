@@ -15,6 +15,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
+import { applyLocalResolution, mapExtractionToDraft } from "../_shared/rx-capture/extraction.ts";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
 import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 import { sendManagedEmail } from "../_shared/email/managed-send.ts";
@@ -656,6 +657,71 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true });
     }
     return json({ error: "Unsupported _requests operation." }, 404);
+  }
+
+  // ── Rx capture ingest: an order captured and reviewed at the office
+  // (optilens-local RX Capture) joins the website's capture queue as a draft
+  // for staff to open in the Rx form. Idempotent on local_order_id. ──
+  if (entity === "_rx_captures") {
+    if (!scopes.includes("customers:write")) {
+      return json({ error: "Missing required scope: customers:write" }, 403);
+    }
+    if (req.method !== "POST" || id !== "ingest") return json({ error: "Unsupported _rx_captures operation." }, 404);
+    const body = (await req.json().catch(() => null)) as any;
+    const localOrderId = typeof body?.localOrderId === "string" ? body.localOrderId.trim() : "";
+    if (!localOrderId || !body?.normalizedOrder || typeof body.normalizedOrder !== "object") {
+      return json({ error: "Body must be { localOrderId, normalizedOrder, resolution?, images?: [{ name, mimeType, base64 }] }." }, 400);
+    }
+    const { data: existing } = await supabase.from("rx_capture_jobs").select("id").eq("local_order_id", localOrderId).maybeSingle();
+    if (existing) return json({ ok: true, id: (existing as any).id, duplicate: true });
+
+    // The office customer number is the ERP account number on the website.
+    const customerNumber = String(body.resolution?.customerNumber ?? "").trim();
+    let accountId: number | null = null;
+    if (customerNumber) {
+      const { data: byNumber } = await supabase.from("customers").select("id").eq("account_number", customerNumber).limit(1).maybeSingle();
+      accountId = (byNumber as any)?.id ?? null;
+    }
+
+    const allowed: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+    const stored: string[] = [];
+    let firstMime: string | null = null;
+    let firstName: string | null = null;
+    for (const image of Array.isArray(body.images) ? body.images.slice(0, 2) : []) {
+      const ext = allowed[String(image?.mimeType ?? "")];
+      if (!ext || typeof image?.base64 !== "string") continue;
+      const bytes = Uint8Array.from(atob(image.base64), (c) => c.charCodeAt(0));
+      if (bytes.byteLength > 12 * 1024 * 1024) continue;
+      const path = `local/${localOrderId}/${stored.length + 1}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("rx-captures").upload(path, bytes, { contentType: image.mimeType, upsert: true });
+      if (upErr) return json({ error: "Image upload failed", detail: upErr.message }, 500);
+      if (!stored.length) { firstMime = image.mimeType; firstName = typeof image.name === "string" ? image.name.slice(0, 200) : null; }
+      stored.push(path);
+    }
+
+    const draft = applyLocalResolution(mapExtractionToDraft(body.normalizedOrder), body.resolution);
+    const { data: job, error: jobErr } = await supabase.from("rx_capture_jobs").insert({
+      source: "local_capture",
+      local_order_id: localOrderId,
+      account_id: accountId,
+      status: "ready",
+      storage_path: stored[0] ?? null,
+      extra_paths: stored.slice(1),
+      mime_type: firstMime,
+      file_name: firstName,
+      extraction: body.normalizedOrder,
+      draft: draft.payload,
+      model: "optilens-local",
+    }).select("id").single();
+    if (jobErr) {
+      // lost a race with a retry of the same order
+      if (/rx_capture_jobs_local_order_uidx|duplicate key/i.test(jobErr.message)) {
+        const { data: again } = await supabase.from("rx_capture_jobs").select("id").eq("local_order_id", localOrderId).maybeSingle();
+        if (again) return json({ ok: true, id: (again as any).id, duplicate: true });
+      }
+      return json({ error: "Could not save the capture", detail: jobErr.message }, 500);
+    }
+    return json({ ok: true, id: (job as any).id, account_resolved: accountId !== null, images: stored.length });
   }
 
   // ── Rx submission outbox (office worker pulls approved submissions,
