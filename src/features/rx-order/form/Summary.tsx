@@ -10,7 +10,7 @@ import type { RxCatalog, RxFormValues } from "./types";
 export const MOUNT_LABELS: Record<string, string> = {
   plastic: "Plastic", metal: "Metal", grooved: "Grooved / nylon", rimless: "Rimless — drill mount",
 };
-const SCOPE_LABELS = { uncut: "Uncut", remote: "Remote edge", glaze: "Full glaze" } as const;
+export const SCOPE_LABELS ={ uncut: "Uncut", remote: "Remote edge", glaze: "Full glaze" } as const;
 
 type Field = { label: string; value: string };
 

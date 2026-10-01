@@ -7,8 +7,9 @@
 // sticky step rail and a live quote. Everything it shows is derived by the pure
 // model; this file owns only the side effects.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
-import { Check, ChevronsUpDown, Code2, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Code2, Loader2, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useCartDrafts } from "@/hooks/useCartDrafts";
@@ -28,6 +29,7 @@ import { FrameCard, PatientCard } from "./cards/PatientFrameCards";
 import { RxCard } from "./cards/RxCard";
 import type { CardProps } from "./cards/types";
 import { buildOrder, firstIncomplete, SECTION_ORDER, valuesFromOrder, type SectionId } from "./model";
+import { PrintSheet } from "./PrintSheet";
 import { QuotePanel } from "./QuotePanel";
 import { useRxCatalog, type PersistContext } from "./useRxCatalog";
 import { useRxOrderForm } from "./useRxOrderForm";
@@ -305,6 +307,17 @@ function LoadedForm({
     }
   };
 
+  // Save, then print the order sheet. The sheet is already in the page; the body
+  // class makes it the only thing the print stylesheet shows (index.css).
+  const onPrint = async () => {
+    try { await save(); }
+    catch (e: any) { toast({ title: "Could not save before printing", description: e?.message, variant: "destructive" }); return; }
+    const clear = () => document.body.classList.remove("rx-printing");
+    window.addEventListener("afterprint", clear, { once: true });
+    document.body.classList.add("rx-printing");
+    window.print();
+  };
+
   const onSaveDraft = async () => {
     if (hasSavedDrafts && api.isEmpty) { navigate("/profile/drafts"); return; }
     if (api.isEmpty) { notify("Nothing to save yet"); return; }
@@ -401,6 +414,11 @@ function LoadedForm({
               <Code2 className="h-3.5 w-3.5" /> Payload
             </Button>
           )}
+          {props.surface === "admin" && (
+            <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={api.isEmpty} onClick={onPrint}>
+              <Printer className="h-3.5 w-3.5" /> Save &amp; print
+            </Button>
+          )}
           <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={onSaveDraft}>
             {hasSavedDrafts && api.isEmpty ? "Go to saved drafts" : "Save draft"}
           </Button>
@@ -494,6 +512,11 @@ function LoadedForm({
           </div>
         </DialogContent>
       </Dialog>
+
+      {props.surface === "admin" && createPortal(
+        <PrintSheet values={values} derived={derived} catalog={catalog} orderNo={orderNo} accountName={account?.name ?? null} />,
+        document.body,
+      )}
 
       <Dialog open={payloadOpen} onOpenChange={setPayloadOpen}>
         <DialogContent className="max-w-3xl">
