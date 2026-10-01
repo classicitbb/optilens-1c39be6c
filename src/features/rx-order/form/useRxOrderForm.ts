@@ -103,7 +103,12 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
   const setJob: RxFormApi["setJob"] = (key, value) => {
     set(`job.${key}`, value);
     let note: string | null = null;
-    if (key === "vision") note = repairLens(value as "sv" | "mf");
+    if (key === "vision") {
+      // A design belongs to one vision type, so switching clears both designs.
+      set("lens.od", { ...get().lens.od, d: "" });
+      set("lens.os", { ...get().lens.os, d: "" });
+      note = repairLens(value as "sv" | "mf");
+    }
     if (key === "eyes" && value !== "pair" && get().lens.split) {
       set("lens.split", false);
       set("lens.os", emptyTriple());
@@ -130,6 +135,9 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
   const setSplit: RxFormApi["setSplit"] = (on) => {
     set("lens.split", on);
     if (!on) set("lens.os", emptyTriple());
+    // Turning split ON seeds the left eye from the right, so the common case —
+    // the same lens with one property different — is one edit rather than three.
+    else if (!get().lens.os.m && !get().lens.os.d && !get().lens.os.c) set("lens.os", { ...get().lens.od });
   };
   const copyLensToOs = () => set("lens.os", { ...get().lens.od });
 

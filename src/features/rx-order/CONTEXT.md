@@ -10,6 +10,7 @@ staff use it in admin and at the test bench (`/admin/orders/rx-test`).
 | Layer | Where | Notes |
 |---|---|---|
 | Form (current) | `embed/` + `RxOrderEmbed.tsx` | `rx-order-engine.js` is a 4,400-line closure ("do not refactor"). Being replaced by the React form; stays the reference until cutover. |
+| Form (React, Phase 1b) | `form/` | `RxForm.tsx` is a drop-in for `RxOrderEmbed` (same props, plus `fixture` for the no-network dev bench). `model.ts` is the pure brain (`derive`, `buildOrder`, `valuesFromOrder`, coating clash rules); `useRxOrderForm.ts` is react-hook-form state + actions; `useRxCatalog.ts` assembles the catalogue (Innovations aliases + pricelist matrix + `rx_surcharge_rules`); `cards/` + `QuotePanel.tsx` are presentational. **Admin / test bench only for now** — customers are still off (`rx-order` opt-in). Missing vs the previous form: remote edge / trace upload and the shape picker, Chemistrie clips, lens advice tips, print sheet, flagged-field highlights. |
 | Domain (pure) | `domain/` | `parse`, `normalise`, `validate`, `catalog`, `price`, `payload`, `schema`. No DOM, no Supabase. Each is characterised against the engine by `src/tests/integration/rxOrder*.integration.test.ts` (seeded; failures print the seed). |
 | Save | `embed/rx-order-adapter.ts` `persistPayload` → `save_rx_order` RPC | One atomic call. Creates the quote on first save (opening the form creates nothing). Total is summed from the saved lines server-side. |
 | Contract | `domain/schema.ts` (`cv.rxorder/2`) + edge mirror `supabase/functions/_shared/rx-order/schema.ts` | Mirror must stay identical apart from the zod import (a test enforces it). `upgradeV1` / `downgradeToV1` bridge to what the engine emits. |
@@ -23,4 +24,4 @@ staff use it in admin and at the test bench (`/admin/orders/rx-test`).
 - Writes to Rx quotes by customers need `rx-order`, not `quotes` (policies via `can_write_customer_quote`).
 
 ## Not done yet (see the improvement plan)
-Phase 1b React UI, Phase 2 customer order management, Phase 3 admin workspace, Phase 4 photo capture. Two draft stores still exist (`quotes` and `rx_order_drafts`).
+Rest of Phase 1b (trace/shape, Chemistrie, advice tips, flags, print, wiring into the admin page + cutover), Phase 2 customer order management, Phase 3 admin workspace, Phase 4 photo capture. Two draft stores still exist (`quotes` and `rx_order_drafts`).

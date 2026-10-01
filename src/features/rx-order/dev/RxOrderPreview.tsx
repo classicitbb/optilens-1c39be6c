@@ -24,7 +24,10 @@ import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
+import RxForm from "@/features/rx-order/form/RxForm";
 import { RX_TEST_DATA, TREATMENTS, testLensPrice } from "@/tests/support/rxOrderHarness";
+import { DEFAULT_SURCHARGE_RULES } from "@/features/rx-order/domain/price";
+import type { RxCatalog } from "@/features/rx-order/form/types";
 import "@/features/rx-order/embed/rx-order.css";
 import markup from "@/features/rx-order/embed/rx-order-markup.html?raw";
 import { createRxOrderEngine } from "@/features/rx-order/embed/rx-order-engine.js";
@@ -52,10 +55,30 @@ const dataFor = (scenario: Scenario) => {
 };
 
 type Mode = "fixtures" | "customer";
+type FormVersion = "engine" | "react";
+
+// The fixtures the previous-form bench uses, in the React form's catalogue shape.
+const reactFixtureCatalog = (data: ReturnType<typeof dataFor>, pricesVisible: boolean, unpricedLens: boolean): RxCatalog => ({
+  materials: data.materials.map((m) => ({ id: m.id, n: m.n, up: m.up })),
+  designs: data.designs.map((d) => ({ id: d.id, n: d.n, v: d.v as "sv" | "mf", base: d.base, prog: d.prog, needsAdd: (d as any).needsAdd })),
+  colours: data.colours.map((c) => ({ id: c.id, n: c.n, up: c.up })),
+  combos: data.combos,
+  treatments: data.treatments.map((t) => ({ id: t.id, c: t.c, n: t.n, d: t.d, p: t.p, grp: t.grp, pop: (t as any).pop, unpriced: (t as any).unpriced })),
+  clashes: data.clashes,
+  lensPrice: unpricedLens ? () => null : testLensPrice,
+  hasPriceSource: true,
+  blockUnpricedOrders: false,
+  surchargeRules: DEFAULT_SURCHARGE_RULES,
+  accountCountry: "BB",
+  pricesVisible,
+});
 
 const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
   const { data: accounts = [] } = useCustomerAccounts();
   const [mode, setMode] = useState<Mode>("fixtures");
+  // Which implementation the customer preview mounts: the previous engine or the React rewrite.
+  const [formVersion, setFormVersion] = useState<FormVersion>("react");
+  const reactFixture = !allowLive || mode === "fixtures" ? formVersion === "react" : false;
   const [accountFilter, setAccountFilter] = useState("");
   const [accountId, setAccountId] = useState<number | null>(null);
   const [resetKey, setResetKey] = useState(0);
@@ -87,7 +110,7 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
 
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || live) return;
+    if (!host || live || reactFixture) return;
     host.innerHTML = markup;
 
     const data = dataFor(scenario);
@@ -124,7 +147,7 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
       engineRef.current = null;
       host.innerHTML = "";
     };
-  }, [scenario, creditApproved, pricesVisible, live]);
+  }, [scenario, creditApproved, pricesVisible, live, reactFixture]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--background)" }}>
@@ -147,6 +170,14 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
             </select>
           </label>
         )}
+
+        <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          Form
+          <select value={formVersion} onChange={(e) => { setFormVersion(e.target.value as FormVersion); setLastSubmit(null); setTestQuote(null); }}>
+            <option value="react">New React form</option>
+            <option value="engine">Previous form</option>
+          </select>
+        </label>
 
         {live ? (
           <>
@@ -202,6 +233,21 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
             Choose an account above to see the form exactly as that customer would — their pricelist, their currency.
           </div>
         ) : (
+          formVersion === "react" ? (
+            <RxForm
+              key={`react:${accountId}:${creditApproved}:${pricesVisible}:${resetKey}`}
+              quoteId={null}
+              surface="admin"
+              lockedAccountId={accountId}
+              pricesVisible={pricesVisible}
+              allowDirectSubmit={creditApproved}
+              isTest
+              showPayload
+              onQuoteCreated={({ quoteNumber }) => setTestQuote(quoteNumber)}
+              onTestSubmitted={(what, saved) => setLastSubmit(`${what} · test quote ${saved.quoteNumber ?? ""} · BBD ${saved.totalBBD.toFixed(2)}`)}
+              onStartAnother={() => { setTestQuote(null); setLastSubmit(null); setResetKey((k) => k + 1); }}
+            />
+          ) : (
           <RxOrderEmbed
             key={`${accountId}:${creditApproved}:${pricesVisible}:${resetKey}`}
             quoteId={null}
@@ -215,7 +261,24 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
             onTestSubmitted={(what, saved) => setLastSubmit(`${what} · test quote ${saved.quoteNumber ?? ""} · BBD ${saved.totalBBD.toFixed(2)}`)}
             onStartAnother={() => { setTestQuote(null); setLastSubmit(null); setResetKey((k) => k + 1); }}
           />
+          )
         )
+      ) : reactFixture ? (
+        <RxForm
+          key={`fixture:${scenario}:${creditApproved}:${pricesVisible}:${resetKey}`}
+          quoteId={null}
+          surface="admin"
+          fixture={{
+            catalog: reactFixtureCatalog(dataFor(scenario), pricesVisible, scenario === "unpriced-lens"),
+            accounts: RX_TEST_DATA.branches.map((b) => ({ id: Number(b.id), name: b.name, account_number: b.info })),
+          }}
+          pricesVisible={pricesVisible}
+          allowDirectSubmit={creditApproved}
+          isTest
+          showPayload
+          onTestSubmitted={(what, saved) => setLastSubmit(`${what} · BBD ${saved.totalBBD.toFixed(2)}`)}
+          onStartAnother={() => { setLastSubmit(null); setResetKey((k) => k + 1); }}
+        />
       ) : (
         <div className="cv-rx-embed" ref={hostRef} />
       )}
