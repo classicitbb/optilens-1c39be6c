@@ -114,6 +114,33 @@ describe("the form's order through the real save path", () => {
     expect((rows.current.quote_lines as any[]).some((l) => l.group_key === "surcharge:remote_edge")).toBe(true);
   });
 
+  it("Chemistrie clips reach the lab as notes and never become a line or a charge", async () => {
+    const v = values();
+    v.job.scope = "uncut";
+    v.treatments = [];
+    v.delivery.service = "std";
+    v.rx.od.prism = ""; v.rx.os.prism = ""; v.rx.od.sph = "-2.00"; v.rx.os.sph = "-2.00";
+    v.delivery.notes = "Rush";
+    const without = derive(v, catalog);
+    v.chemClips = [
+      { id: "a", type: "sun", colour: "Grey", mirror: "", gradient: "", polarised: true, add: "", magnet: "Silver", bridge: "Black", crystal: "none" },
+      { id: "b", type: "readers", colour: "", mirror: "", gradient: "", polarised: false, add: "1.50", magnet: "Gold", bridge: "Black", crystal: "emerald" },
+    ];
+    const d = derive(v, catalog);
+    expect(d.price.sub).toBe(without.price.sub);
+    const order = buildOrder(v, d, catalog, { orderNo: null, account: { id: 776, name: "Retail" }, source: "form" });
+    await persistPayload(null, downgradeToV1(order), ctx);
+    const lines = rows.current.quote_lines as any[];
+    expect(lines.some((l) => /chemistrie/i.test(l.item_name))).toBe(false);
+    expect(lines.reduce((s, l) => s + l.qty * l.unit_sell_price_bbd, 0)).toBeCloseTo(without.price.sub, 1);
+    // the specification is in the notes the lab receives
+    const notes = rows.current.quotes[0].notes_customer as string;
+    expect(notes).toContain("Rush");
+    expect(notes).toContain("Chemistrie clip 1 — Chemistrie Sun · Solid polarised: Grey");
+    expect(notes).toContain("Chemistrie clip 2 — Chemistrie Readers · Reader power: +1.50");
+    expect(rows.current.quotes[0].rx_payload.chemistrie).toHaveLength(2);
+  });
+
   it("the mirror of the database function would accept exactly this payload", () => {
     // saveRxOrderMirror throws on the same rules the SQL enforces (unknown line type, bad surcharge code)
     expect(() => saveRxOrderMirror(null, { lines: [{ line_type: "Fee", item_name: "x", qty: 1, unit_sell_price_bbd: 1, group_key: "surcharge:nope" }] }, { quote_lines: [], rx_details: [], quote_frame_details: [], quotes: [] })).toThrow(/surcharge/);

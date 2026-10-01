@@ -1,6 +1,7 @@
 // What a folded card shows: labelled fields (and, for the prescription, a small
 // table) instead of one run-on line. Presentation only — values come from the
 // derived model.
+import { clipParts } from "../domain/chemistrie";
 import { STD_SHAPES } from "../domain/standardShapes";
 import { cn } from "@/lib/utils";
 import type { Derived, SectionId } from "./model";
@@ -147,6 +148,9 @@ export function SectionSummary({
         <Fields fields={[
           { label: "Coatings & treatments", value: names.length ? names.join(", ") : "None" },
           ...(tint ? [{ label: "Tint", value: `${values.tint.colour}${values.tint.match ? " · match to sample" : ""}` }] : []),
+          ...(values.chemClips.length
+            ? [{ label: "Chemistrie (lab instructions)", value: values.chemClips.map((c, i) => `Clip ${i + 1}: ${clipParts(c).join(" · ")}`).join("  |  ") }]
+            : []),
         ]} />
       </div>
     );

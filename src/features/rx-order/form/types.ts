@@ -1,6 +1,7 @@
 // Shapes shared by the React Rx form (Phase 1b).
 import type { Combo, Triple } from "../domain/catalog";
 import type { SurchargeRule } from "../domain/price";
+import type { ChemClip } from "../domain/chemistrie";
 import type { ShapeData, ShapeSource } from "../domain/shape";
 
 /** Everything a person can type or pick. Numbers stay strings until derived. */
@@ -84,6 +85,8 @@ export interface RxFormValues {
   rx: { od: RxEyeText; os: RxEyeText };
   plusCyl: { on: boolean; od: PlusCylText; os: PlusCylText };
   treatments: string[];
+  /** Chemistrie clip-on layers (lab instructions only — never priced). */
+  chemClips: ChemClip[];
   tint: TintText;
   delivery: { service: string; method: string; methodTouched: boolean; notes: string };
   /** Warning ids the person has dismissed ("sign", "ht-od"). */
@@ -109,6 +112,7 @@ export const defaultValues = (accountId: number | null = null): RxFormValues => 
   rx: { od: emptyEye(), os: emptyEye() },
   plusCyl: { on: false, od: { sph: "", cyl: "", axis: "" }, os: { sph: "", cyl: "", axis: "" } },
   treatments: [],
+  chemClips: [],
   tint: { colour: "Grey", density: "75", gradTop: "80", gradBottom: "10", finish: "Standard", match: false },
   delivery: { service: "std", method: DEFAULT_DELIVERY, methodTouched: false, notes: "" },
   dismissedWarnings: [],

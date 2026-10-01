@@ -14,6 +14,7 @@ import { clashOf } from "../model";
 import { SectionSummary } from "../Summary";
 import { EXPORT_DELIVERY } from "../types";
 import { Callout, Field, StepCard, CONTROL } from "../ui";
+import { ChemistrieBlock } from "./ChemistrieBlock";
 import { TreatmentOption, TreatmentsDialog } from "./TreatmentsDialog";
 import type { CardProps } from "./types";
 
@@ -110,6 +111,8 @@ export function CoatingsCard({ api, catalog, step, notify }: CardProps) {
           </label>
         </div>
       )}
+
+      <ChemistrieBlock api={api} />
 
       <TreatmentsDialog open={modal} onOpenChange={setModal} catalog={catalog} api={api} sideColours={sideColours} notify={notify} />
     </StepCard>

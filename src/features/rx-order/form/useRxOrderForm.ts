@@ -5,6 +5,7 @@
 // the wiring. UI components never compute; they read `derived` and call actions.
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
+import { CHEM_MAX_CLIPS, newClip, setClipField, setClipType, type ChemClip, type ChemType } from "../domain/chemistrie";
 import { repairTriple, type Triple } from "../domain/catalog";
 import { normaliseRxField, transposePlusCyl, type RxField } from "../domain/normalise";
 import { parseNum, roundQuarter, signed } from "../domain/parse";
@@ -47,6 +48,12 @@ export interface RxFormApi {
   blurPlus: (eye: Eye, field: keyof PlusCylText) => void;
   togglePlusCyl: (on: boolean) => void;
   toggleCoating: (id: string) => string | null;
+  /** Switch the Chemistrie layer on (one starter clip) or off (clips cleared). */
+  toggleChemistrie: (on: boolean) => void;
+  addChemClip: () => string | null;
+  removeChemClip: (id: string) => void;
+  setChemType: (id: string, type: ChemType) => void;
+  setChemField: (id: string, field: "colour" | "mirror" | "gradient" | "add" | "magnet" | "bridge" | "crystal", value: string) => void;
   removeCoating: (id: string) => void;
   setTint: (patch: Partial<RxFormValues["tint"]>) => void;
   setDelivery: (patch: Partial<RxFormValues["delivery"]>) => void;
@@ -68,7 +75,7 @@ export function isEmptyOrder(v: RxFormValues): boolean {
     && !v.lens.od.m && !v.lens.od.d && !v.lens.od.c && !v.lens.os.m && !v.lens.os.d && !v.lens.os.c
     && eyeBlank(v.rx.od) && eyeBlank(v.rx.os)
     && !v.shape.data && !v.shape.fileName
-    && v.treatments.length === 0 && blank(v.delivery.notes);
+    && v.treatments.length === 0 && v.chemClips.length === 0 && blank(v.delivery.notes);
 }
 
 export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFormValues; accountId: number | null }): RxFormApi {
@@ -249,6 +256,18 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
     set("treatments", r.treatments);
     return null;
   };
+  const clips = () => get().chemClips;
+  const toggleChemistrie: RxFormApi["toggleChemistrie"] = (on) => set("chemClips", on ? (clips().length ? clips() : [newClip([])]) : []);
+  const addChemClip: RxFormApi["addChemClip"] = () => {
+    if (clips().length >= CHEM_MAX_CLIPS) return null;
+    const next = [...clips(), newClip(clips())];
+    set("chemClips", next);
+    return `Clip ${next.length} added — configure it below`;
+  };
+  const removeChemClip = (id: string) => set("chemClips", clips().filter((c) => c.id !== id));
+  const mapClip = (id: string, f: (c: ChemClip) => ChemClip) => set("chemClips", clips().map((c) => (c.id === id ? f(c) : c)));
+  const setChemType: RxFormApi["setChemType"] = (id, type) => mapClip(id, (c) => setClipType(c, type));
+  const setChemField: RxFormApi["setChemField"] = (id, field, value) => mapClip(id, (c) => setClipField(c, field, value));
   const removeCoating = (id: string) => set("treatments", get().treatments.filter((x) => x !== id));
   const setTint: RxFormApi["setTint"] = (patch) => set("tint", { ...get().tint, ...patch });
   const setDelivery: RxFormApi["setDelivery"] = (patch) => set("delivery", { ...get().delivery, ...patch });
@@ -262,7 +281,7 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
       case "frame": set("frame", d.frame); set("shape", emptyShape()); set("job.scope", "uncut"); break;
       case "lens": set("lens", d.lens); break;
       case "rx": clearRx(); set("plusCyl", d.plusCyl); set("dismissedWarnings", []); break;
-      case "treat": set("treatments", []); set("tint", d.tint); break;
+      case "treat": set("treatments", []); set("chemClips", []); set("tint", d.tint); break;
       case "notes": set("delivery", { ...d.delivery, method: defaultDelivery(catalogRef.current.accountCountry) }); break;
     }
   };
@@ -271,7 +290,7 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
 
   return {
     values, derived, form, set, setJob, setFrame, pickLens, loadTrace, pickStandardShape, clearShape, removeTrace, setShapeConfirmed, setSplit, copyLensToOs, setRxText, blurRx,
-    copyOdToOs, clearRx, setPlusText, blurPlus, togglePlusCyl, toggleCoating, removeCoating, setTint,
+    copyOdToOs, clearRx, setPlusText, blurPlus, togglePlusCyl, toggleCoating, toggleChemistrie, addChemClip, removeChemClip, setChemType, setChemField, removeCoating, setTint,
     setDelivery, dismissWarning, removeAssistance, clearSection, reset,
     isEmpty: isEmptyOrder(values),
   };

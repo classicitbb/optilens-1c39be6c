@@ -9,6 +9,7 @@
 import {
   comboOptions, repairTriple, splitLensesDuplicate, tripleComplete, type ComboOptions, type Triple,
 } from "../domain/catalog";
+import { clipIssues, normaliseSavedClip, notesWithChemistrie, stripChemNotes } from "../domain/chemistrie";
 import { parseNum, SHORTHAND_FIELDS } from "../domain/parse";
 import { hasOutline, shapeFromPayload, shapeGeometry, shapeToPayload, type ShapeGeometry } from "../domain/shape";
 import { STD_SHAPES } from "../domain/standardShapes";
@@ -165,6 +166,8 @@ export interface Derived {
   };
   treat: {
     issues: AddonIssue[];
+    /** Chemistrie clips that are incomplete or duplicated (block submit). */
+    chemIssues: string[];
     tintId: string | null;
     arSelected: boolean;
     serviceLead: string;
@@ -233,6 +236,7 @@ export function derive(v: RxFormValues, catalog: RxCatalog): Derived {
   // coatings
   const colourNames = sidesTriples.map((t) => find(catalog.colours, t.c)?.n ?? "");
   const issues = addonIssues(v.treatments, catalog);
+  const chemIssues = clipIssues(v.chemClips);
   const selectedTreatments = v.treatments
     .map((id) => catalog.treatments.find((t) => t.id === id))
     .filter((t): t is CatalogTreatment => !!t);
@@ -289,7 +293,7 @@ export function derive(v: RxFormValues, catalog: RxCatalog): Derived {
     frame,
     lens: lensComplete && !duplicate,
     rx: rxSectionComplete(rows, rules),
-    treat: issues.length === 0,
+    treat: issues.length === 0 && chemIssues.length === 0,
     notes: true,
   };
   const checklist: ChecklistItem[] = [
@@ -313,7 +317,7 @@ export function derive(v: RxFormValues, catalog: RxCatalog): Derived {
     },
     diameter: { suggested, pick, effective },
     lens: { sides: sidesTriples, complete: lensComplete, duplicate, names, options, repairs, isProg },
-    treat: { issues, tintId: tint?.id ?? null, arSelected, serviceLead: arSelected ? AR_LEAD : PLAIN_LEAD },
+    treat: { issues, chemIssues, tintId: tint?.id ?? null, arSelected, serviceLead: arSelected ? AR_LEAD : PLAIN_LEAD },
     price, sections, checklist, assistance,
     canSubmit: allValid && !blocked,
     blockedReason: !price.unpriced ? null : blocked
@@ -423,10 +427,11 @@ export function buildOrder(
       gradTop: Number(v.tint.gradTop) || 0, gradBottom: Number(v.tint.gradBottom) || 0,
       finish: v.tint.finish, match: v.tint.match,
     } : null,
-    chemistrie: null,
+    chemistrie: v.chemClips.length ? v.chemClips.map((c) => ({ ...c })) : null,
     ownerReview: v.tint.match && !!d.treat.tintId,
     assistance: d.assistance,
-    delivery: { service: v.delivery.service, method: v.delivery.method, notes: v.delivery.notes },
+    // the Chemistrie specification rides in the lab notes, after the person's own
+    delivery: { service: v.delivery.service, method: v.delivery.method, notes: notesWithChemistrie(v.delivery.notes, v.chemClips) },
     quote,
     flags: [],
   };
@@ -478,12 +483,13 @@ export function valuesFromOrder(input: unknown, catalog: RxCatalog): RxFormValue
     },
     rx: { od: eyeText(o.rx.od), os: eyeText(o.rx.os) },
     treatments: o.treatments.filter((id) => typeof id === "string"),
+    chemClips: (o.chemistrie ?? []).map(normaliseSavedClip),
     tint: {
       colour: tint.colour ?? base.tint.colour, density: String(tint.density ?? base.tint.density),
       gradTop: String(tint.gradTop ?? base.tint.gradTop), gradBottom: String(tint.gradBottom ?? base.tint.gradBottom),
       finish: tint.finish ?? base.tint.finish, match: !!tint.match,
     },
-    delivery: { service: o.delivery.service || "std", method: o.delivery.method || defaultDelivery(catalog.accountCountry), methodTouched: !!o.delivery.method, notes: o.delivery.notes },
+    delivery: { service: o.delivery.service || "std", method: o.delivery.method || defaultDelivery(catalog.accountCountry), methodTouched: !!o.delivery.method, notes: stripChemNotes(o.delivery.notes) },
     assistance: o.assistance.filter((a) => a !== UNPRICED_ASSIST),
   };
 }
