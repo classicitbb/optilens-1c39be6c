@@ -11,7 +11,8 @@ import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import RxForm from "@/features/rx-order/form/RxForm";
-import { ACCEPT, extensionFor, isAcceptedFile, filesFromClipboard } from "./files";
+import { createCaptureJob, readCapture, captureJobs as jobs } from "./api";
+import { ACCEPT, isAcceptedFile, filesFromClipboard } from "./files";
 
 interface Job {
   id: string;
@@ -27,8 +28,6 @@ interface Job {
   quote_id: string | null;
   created_at: string;
 }
-
-const jobs = () => supabase.from("rx_capture_jobs" as never) as any;
 
 export default function RxCapturePage() {
   const { user } = useAuth();
@@ -60,16 +59,10 @@ export default function RxCapturePage() {
     setBusy((n) => n + ok.length);
     await Promise.all(ok.map(async (file) => {
       try {
-        const path = `${user.id}/${crypto.randomUUID()}.${extensionFor(file)}`;
-        const up = await supabase.storage.from("rx-captures").upload(path, file, { contentType: file.type });
-        if (up.error) throw up.error;
-        const { data, error } = await jobs()
-          .insert({ account_id: accountId, storage_path: path, file_name: file.name || null, mime_type: file.type })
-          .select("id").single();
-        if (error) throw error;
+        const jobId = await createCaptureJob(file, accountId, user.id);
         void refresh();
         // reading happens in the background; the list shows its progress
-        supabase.functions.invoke("rx-capture-extract", { body: { jobId: data.id } }).finally(refresh);
+        readCapture(jobId).catch(() => undefined).finally(refresh);
       } catch (e: any) {
         toast({ title: "Could not upload", description: e?.message, variant: "destructive" });
       } finally {

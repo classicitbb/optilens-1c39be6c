@@ -1,6 +1,7 @@
 // Reads one captured photo / document and turns it into a draft Rx order.
 //
-//   POST { jobId }  (staff only)
+//   POST { jobId }  (staff, or the customer who made the capture when their
+//   account has the Rx order form switched on — at most DAILY_LIMIT reads a day)
 //
 // The image was already uploaded to the private `rx-captures` bucket and a
 // `rx_capture_jobs` row created by the staff page. This function downloads it,
@@ -9,13 +10,14 @@
 // leaves the job `failed` with a message; the page lets staff open it blank with
 // the image beside it, so a capture never disappears.
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
-import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { requireAuthenticatedUser } from "../_shared/http/auth.ts";
 import { recordAiSpend } from "../_shared/aiSpend.ts";
 import { EXTRACTION_INSTRUCTIONS, extractionToolParameters, mapExtractionToDraft } from "../_shared/rx-capture/extraction.ts";
 
 const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-pro";
 const MAX_BYTES = 12 * 1024 * 1024;
+const DAILY_LIMIT = 40;
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -38,10 +40,7 @@ Deno.serve(async (req) => {
   if (rejected) return rejected;
   if (req.method !== "POST") return json(req, 405, { error: "Method not allowed" });
 
-  const auth = await requirePrivilegedAccess(req, getCorsHeaders(req, corsPolicy), {
-    allowedRoles: ["admin", "operator"],
-    sourceFunction: "rx-capture-extract",
-  });
+  const auth = await requireAuthenticatedUser(req, getCorsHeaders(req, corsPolicy));
   if (auth instanceof Response) return auth;
   const db = auth.supabaseAdminClient;
 
@@ -54,8 +53,22 @@ Deno.serve(async (req) => {
     return json(req, status, { error: message });
   };
 
-  const { data: job, error: jobError } = await db.from("rx_capture_jobs").select("id, storage_path, mime_type, status").eq("id", jobId).maybeSingle();
+  const { data: job, error: jobError } = await db.from("rx_capture_jobs").select("id, storage_path, mime_type, status, created_by, account_id").eq("id", jobId).maybeSingle();
   if (jobError || !job) return json(req, 404, { error: "Capture not found" });
+
+  // Staff may read any capture. A customer may read only their own, and only while
+  // the form is switched on for them and the account is one they belong to.
+  const userId = auth.user.id;
+  const { data: isStaff } = await db.rpc("has_edit_role", { _user_id: userId });
+  if (!isStaff) {
+    if (job.created_by !== userId) return json(req, 403, { error: "Not your capture" });
+    const { data: formOn } = await db.rpc("can_access_customer_portal_feature", { p_user_id: userId, p_feature_key: "rx-order" });
+    const { data: accountOk } = await db.rpc("can_access_portal_account", { p_customer_id: job.account_id, p_user_id: userId });
+    if (!formOn || !accountOk) return json(req, 403, { error: "Reading from a photo is not enabled for your account." });
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { count } = await db.from("rx_capture_jobs").select("id", { count: "exact", head: true }).eq("created_by", userId).gte("created_at", since);
+    if ((count ?? 0) > DAILY_LIMIT) return json(req, 429, { error: "Daily limit reached — try again tomorrow." });
+  }
   if (job.status === "ready") return json(req, 200, { status: "ready" });
 
   const apiKey = Deno.env.get("LOVABLE_API_KEY")?.trim();

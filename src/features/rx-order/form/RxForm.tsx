@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/hooks/useCart";
 import { useCartDrafts } from "@/hooks/useCartDrafts";
 import { useToast } from "@/hooks/use-toast";
+import { captureJobs } from "@/features/rx-capture/api";
 import { useRxDrafts, useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -29,6 +30,7 @@ import { FrameCard, PatientCard } from "./cards/PatientFrameCards";
 import { RxCard } from "./cards/RxCard";
 import type { CardProps } from "./cards/types";
 import { buildOrder, firstIncomplete, SECTION_ORDER, valuesFromOrder, type SectionId } from "./model";
+import { FillFromPhoto } from "./FillFromPhoto";
 import { FlagBanner } from "./FlagBanner";
 import { PrintSheet } from "./PrintSheet";
 import { QuotePanel } from "./QuotePanel";
@@ -197,12 +199,19 @@ function LoadedForm({
     [values, derived, catalog, account, props.surface],
   );
 
+  // The picture a form was filled from stays attached to the order it became.
+  const captureJobRef = useRef<string | null>(null);
+  const linkCapture = () => {
+    if (captureJobRef.current && quoteIdRef.current) void captureJobs().update({ quote_id: quoteIdRef.current }).eq("id", captureJobRef.current);
+  };
+
   const persistOnce = useCallback(async (v1: any) => {
     const saved = props.fixture
       ? await fakeSave(quoteIdRef.current, v1)
       : await persistPayload(quoteIdRef.current, v1, { ...persistContext, isTest });
     if (saved.created) {
       quoteIdRef.current = saved.quoteId;
+      linkCapture();
       props.onQuoteCreated?.({ quoteId: saved.quoteId, quoteNumber: saved.quoteNumber, rxOrderNumber: saved.rxOrderNumber });
     }
     if (saved.rxOrderNumber != null) { orderNoRef.current = saved.rxOrderNumber; setOrderNo(saved.rxOrderNumber); }
@@ -336,7 +345,8 @@ function LoadedForm({
   // ── folding & disclosure ──────────────────────────────────────────────────
   const [focused, setFocused] = useState<SectionId | null>(null);
   const [editing, setEditing] = useState<ReadonlySet<SectionId>>(new Set());
-  const revealAll = !!props.prefill;
+  const [filled, setFilled] = useState(false);
+  const revealAll = !!props.prefill || filled;
   // A card only folds once the person has been in it. Coatings and delivery are
   // "complete" while still empty (no coating is a valid answer), so without this
   // they would fold the moment they appear and hide their own options. A saved
@@ -421,6 +431,20 @@ function LoadedForm({
             <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setPayloadOpen(true)}>
               <Code2 className="h-3.5 w-3.5" /> Payload
             </Button>
+          )}
+          {props.surface === "portal" && !props.fixture && accountId != null && (
+            <FillFromPhoto
+              accountId={accountId} accountName={account?.name ?? ""} hasEntries={!api.isEmpty} catalog={catalog}
+              onFilled={(v, jobId) => {
+                api.reset(v);
+                captureJobRef.current = jobId;
+                setFilled(true);
+                setVisited(new Set(SECTION_ORDER));
+                linkCapture();
+                notify("Filled from your photo — check the highlighted fields");
+              }}
+              onError={(message) => toast({ title: "Could not read that picture", description: message, variant: "destructive" })}
+            />
           )}
           {props.surface === "admin" && (
             <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={api.isEmpty} onClick={onPrint}>
