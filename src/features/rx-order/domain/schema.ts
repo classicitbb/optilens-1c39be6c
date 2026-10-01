@@ -207,6 +207,6 @@ export function upgradeV1(input: unknown, opts: { source?: RxOrderSource } = {})
       notes: String(delivery.notes ?? ""),
     },
     quote: p.quote && typeof p.quote === "object" ? p.quote : null,
-    flags: [],
+    flags: Array.isArray(p.flags) ? p.flags.flatMap((f: unknown) => { const r = rxFlagSchema.safeParse(f); return r.success ? [r.data] : []; }) : [],
   });
 }

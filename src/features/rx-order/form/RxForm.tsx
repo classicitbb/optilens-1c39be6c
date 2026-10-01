@@ -29,6 +29,7 @@ import { FrameCard, PatientCard } from "./cards/PatientFrameCards";
 import { RxCard } from "./cards/RxCard";
 import type { CardProps } from "./cards/types";
 import { buildOrder, firstIncomplete, SECTION_ORDER, valuesFromOrder, type SectionId } from "./model";
+import { FlagBanner } from "./FlagBanner";
 import { PrintSheet } from "./PrintSheet";
 import { QuotePanel } from "./QuotePanel";
 import { useRxCatalog, type PersistContext } from "./useRxCatalog";
@@ -429,6 +430,8 @@ function LoadedForm({
           )}
         </div>
       </div>
+
+      <FlagBanner flags={values.flags} onConfirm={api.confirmFlag} onConfirmAll={api.confirmAllFlags} />
 
       <nav aria-label="Order steps" className="sticky top-0 z-20 -mx-4 mb-4 flex gap-1 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur">
         {SECTION_ORDER.map((id, i) => {

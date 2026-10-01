@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Callout, Field, Seg, StepCard, CONTROL } from "../ui";
+import { FLAG_RING, flagAttrs, flagOf } from "../flags";
 import { SectionSummary } from "../Summary";
 import { ShapePreview, StandardShapePicker, TraceDrop } from "./ShapeBlock";
 import type { CardProps } from "./types";
@@ -32,13 +33,13 @@ export function PatientCard({ api, catalog, step }: CardProps) {
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Patient first name" required htmlFor="rx-pfirst">
-          <Input className={CONTROL} id="rx-pfirst" placeholder="Marcus" autoComplete="off" {...form.register("patient.first")} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "patient.first") && FLAG_RING)} {...flagAttrs(values.flags, "patient.first")} id="rx-pfirst" placeholder="Marcus" autoComplete="off" value={values.patient.first} onChange={(e) => api.set("patient.first", e.target.value)} />
         </Field>
         <Field label="Patient last name" required htmlFor="rx-plast">
-          <Input className={CONTROL} id="rx-plast" placeholder="Grant" autoComplete="off" {...form.register("patient.last")} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "patient.last") && FLAG_RING)} {...flagAttrs(values.flags, "patient.last")} id="rx-plast" placeholder="Grant" autoComplete="off" value={values.patient.last} onChange={(e) => api.set("patient.last", e.target.value)} />
         </Field>
         <Field label="Your order reference" optional htmlFor="rx-ref" hint="Appears on your invoice if supplied.">
-          <Input className={CONTROL} id="rx-ref" placeholder="e.g. JOB-2291" autoComplete="off" {...form.register("reference")} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "reference") && FLAG_RING)} {...flagAttrs(values.flags, "reference")} id="rx-ref" placeholder="e.g. JOB-2291" autoComplete="off" value={values.reference} onChange={(e) => api.set("reference", e.target.value)} />
         </Field>
       </div>
     </StepCard>
@@ -99,7 +100,7 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Frame name / model" required htmlFor="rx-fname">
-          <Input className={CONTROL} id="rx-fname" placeholder="e.g. Ray-Ban RB5154" autoComplete="off" value={f.name} onChange={(e) => api.setFrame("name", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "frame.name") && FLAG_RING)} {...flagAttrs(values.flags, "frame.name")} id="rx-fname" placeholder="e.g. Ray-Ban RB5154" autoComplete="off" value={f.name} onChange={(e) => api.setFrame("name", e.target.value)} />
         </Field>
         <Field label="Mount type" required>
           <Select value={f.mount || undefined} onValueChange={(v) => api.setFrame("mount", v)}>
@@ -122,10 +123,10 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
 
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <Field label="A" required htmlFor="rx-fa" error={issueFor("a")}>
-          <Input className={CONTROL} id="rx-fa" inputMode="decimal" placeholder="52.0" value={f.a} onChange={(e) => api.setFrame("a", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "frame.a") && FLAG_RING)} {...flagAttrs(values.flags, "frame.a")} id="rx-fa" inputMode="decimal" placeholder="52.0" value={f.a} onChange={(e) => api.setFrame("a", e.target.value)} />
         </Field>
         <Field label="B" required htmlFor="rx-fb" error={issueFor("b")}>
-          <Input className={CONTROL} id="rx-fb" inputMode="decimal" placeholder="38.0" value={f.b} onChange={(e) => api.setFrame("b", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "frame.b") && FLAG_RING)} {...flagAttrs(values.flags, "frame.b")} id="rx-fb" inputMode="decimal" placeholder="38.0" value={f.b} onChange={(e) => api.setFrame("b", e.target.value)} />
         </Field>
         <Field
           label="ED" required htmlFor="rx-fed" error={issueFor("ed")}
@@ -141,7 +142,7 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
             className={cn(CONTROL, locked && "cursor-not-allowed bg-muted/50")} onChange={(e) => api.setFrame("ed", e.target.value)} />
         </Field>
         <Field label="DBL" required htmlFor="rx-fdbl" error={issueFor("dbl")}>
-          <Input className={CONTROL} id="rx-fdbl" inputMode="decimal" placeholder="18.0" value={f.dbl} onChange={(e) => api.setFrame("dbl", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "frame.dbl") && FLAG_RING)} {...flagAttrs(values.flags, "frame.dbl")} id="rx-fdbl" inputMode="decimal" placeholder="18.0" value={f.dbl} onChange={(e) => api.setFrame("dbl", e.target.value)} />
         </Field>
       </div>
       {derived.frame.issues.length > 0 && (

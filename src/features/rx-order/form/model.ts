@@ -433,7 +433,7 @@ export function buildOrder(
     // the Chemistrie specification rides in the lab notes, after the person's own
     delivery: { service: v.delivery.service, method: v.delivery.method, notes: notesWithChemistrie(v.delivery.notes, v.chemClips) },
     quote,
-    flags: [],
+    flags: v.flags,
   };
 }
 
@@ -491,5 +491,6 @@ export function valuesFromOrder(input: unknown, catalog: RxCatalog): RxFormValue
     },
     delivery: { service: o.delivery.service || "std", method: o.delivery.method || defaultDelivery(catalog.accountCountry), methodTouched: !!o.delivery.method, notes: stripChemNotes(o.delivery.notes) },
     assistance: o.assistance.filter((a) => a !== UNPRICED_ASSIST),
+    flags: o.flags,
   };
 }

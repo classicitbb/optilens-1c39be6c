@@ -61,6 +61,9 @@ export interface RxFormApi {
   removeAssistance: (text: string) => void;
   clearSection: (id: SectionId) => void;
   reset: (v?: RxFormValues) => void;
+  /** The person has checked a flagged field and it is right as read. */
+  confirmFlag: (path: string) => void;
+  confirmAllFlags: () => void;
   /** Nothing has been entered: autosave skips it and "save draft" has nothing to save. */
   isEmpty: boolean;
 }
@@ -88,6 +91,16 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
   const get = useCallback(() => form.getValues(), [form]);
 
   const set = useCallback((path: string, value: unknown) => {
+    // Changing a value is review: its flag (or a flag under it) goes. Writing the
+    // same value back — a blur that only re-normalises — is not.
+    const flags = form.getValues("flags");
+    if (path !== "flags" && flags.length) {
+      const before = form.getValues(path as any);
+      if (JSON.stringify(before) !== JSON.stringify(value)) {
+        const left = flags.filter((f) => f.path !== path && !f.path.startsWith(path + "."));
+        if (left.length !== flags.length) form.setValue("flags", left, { shouldDirty: true });
+      }
+    }
     form.setValue(path as any, value as any, { shouldDirty: true });
   }, [form]);
 
@@ -286,12 +299,15 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
     }
   };
 
+  const confirmFlag = (path: string) => set("flags", get().flags.filter((f) => f.path !== path));
+  const confirmAllFlags = () => set("flags", []);
+
   const reset = (v?: RxFormValues) => form.reset(v ?? defaultValues(get().accountId));
 
   return {
     values, derived, form, set, setJob, setFrame, pickLens, loadTrace, pickStandardShape, clearShape, removeTrace, setShapeConfirmed, setSplit, copyLensToOs, setRxText, blurRx,
     copyOdToOs, clearRx, setPlusText, blurPlus, togglePlusCyl, toggleCoating, toggleChemistrie, addChemClip, removeChemClip, setChemType, setChemField, removeCoating, setTint,
-    setDelivery, dismissWarning, removeAssistance, clearSection, reset,
+    setDelivery, dismissWarning, removeAssistance, clearSection, reset, confirmFlag, confirmAllFlags,
     isEmpty: isEmptyOrder(values),
   };
 }

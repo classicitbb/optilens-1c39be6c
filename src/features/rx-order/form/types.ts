@@ -3,6 +3,7 @@ import type { Combo, Triple } from "../domain/catalog";
 import type { SurchargeRule } from "../domain/price";
 import type { ChemClip } from "../domain/chemistrie";
 import type { ShapeData, ShapeSource } from "../domain/shape";
+import type { RxFlag } from "../domain/schema";
 
 /** Everything a person can type or pick. Numbers stay strings until derived. */
 export interface RxEyeText {
@@ -93,6 +94,8 @@ export interface RxFormValues {
   dismissedWarnings: string[];
   /** Assistance flags raised by hand ("Lens not priced…" is added automatically). */
   assistance: string[];
+  /** Fields a capture could not read with confidence; cleared as they are reviewed. */
+  flags: RxFlag[];
 }
 
 export const emptyEye = (): RxEyeText => ({ sph: "", cyl: "", axis: "", add: "", pd: "", npd: "", ht: "", prism: "", base: "" });
@@ -117,6 +120,7 @@ export const defaultValues = (accountId: number | null = null): RxFormValues => 
   delivery: { service: "std", method: DEFAULT_DELIVERY, methodTouched: false, notes: "" },
   dismissedWarnings: [],
   assistance: [],
+  flags: [],
 });
 
 // ── catalogue the form works from ────────────────────────────────────────────

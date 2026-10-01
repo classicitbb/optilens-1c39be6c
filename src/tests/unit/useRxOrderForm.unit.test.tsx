@@ -136,4 +136,42 @@ describe("useRxOrderForm", () => {
     act(() => { result.current.setDelivery({ method: "Collect from lab", methodTouched: true }); });
     expect(result.current.values.delivery.method).toBe("Collect from lab");
   });
+
+  describe("flags from a capture", () => {
+    const flagged = () => {
+      const h = mount();
+      act(() => h.result.current.set("flags", [
+        { path: "rx.od.sph", reason: "read as 1.25, low confidence" },
+        { path: "patient.first", reason: "handwriting unclear" },
+        { path: "rx.od.axis", reason: "faint" },
+      ]));
+      return h;
+    };
+
+    it("editing a flagged field clears only its flag", () => {
+      const { result } = flagged();
+      act(() => result.current.setRxText("od", "sph", "-1.50"));
+      expect(result.current.values.flags.map((f) => f.path)).toEqual(["patient.first", "rx.od.axis"]);
+    });
+
+    it("leaving a field with the value unchanged keeps its flag", () => {
+      const { result } = flagged();
+      act(() => result.current.set("rx.od.axis", ""));
+      expect(result.current.values.flags.map((f) => f.path)).toContain("rx.od.axis");
+    });
+
+    it("replacing a whole row clears the flags beneath it", () => {
+      const { result } = flagged();
+      act(() => result.current.set("rx.od", { ...result.current.values.rx.od, sph: "-1.00", axis: "90" }));
+      expect(result.current.values.flags.map((f) => f.path)).toEqual(["patient.first"]);
+    });
+
+    it("Looks right clears one flag; All look right clears the rest", () => {
+      const { result } = flagged();
+      act(() => result.current.confirmFlag("patient.first"));
+      expect(result.current.values.flags).toHaveLength(2);
+      act(() => result.current.confirmAllFlags());
+      expect(result.current.values.flags).toEqual([]);
+    });
+  });
 });

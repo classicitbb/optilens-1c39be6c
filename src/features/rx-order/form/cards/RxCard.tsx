@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { RxField } from "../../domain/normalise";
+import { FLAG_RING, flagAttrs, flagOf } from "../flags";
 import { SectionSummary } from "../Summary";
 import type { RxEyeText } from "../types";
 import { Callout, StepCard } from "../ui";
@@ -93,10 +94,11 @@ export function RxCard({ api, catalog, step, notify }: CardProps) {
                           aria-label={`${eye.toUpperCase()} ${c.label}`}
                           aria-invalid={!!err}
                           title={err?.text}
-                          disabled={!on}
+                                                    disabled={!on}
                           inputMode={c.mode}
                           placeholder={PLACEHOLDER[c.key][eye]}
-                          className={cn("h-8 px-2 text-xs", err && "border-destructive ring-1 ring-destructive/30")}
+                          className={cn("h-8 px-2 text-xs", err && "border-destructive ring-1 ring-destructive/30", flagOf(values.flags, `rx.${eye}.${c.key}`) && FLAG_RING)}
+                          {...flagAttrs(values.flags, `rx.${eye}.${c.key}`)}
                           value={values.rx[eye][c.key]}
                           onChange={(ev) => api.setRxText(eye, c.key, ev.target.value)}
                           onBlur={() => blur(eye, c.key)}
