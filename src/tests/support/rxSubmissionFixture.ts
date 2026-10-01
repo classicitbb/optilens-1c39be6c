@@ -63,3 +63,42 @@ export const buildSubmissionPayload = (
     addons: addonLines.map((l) => ({ item_name: l.item_name, sku: l.sku, qty: l.qty, line_type: l.line_type })),
   };
 };
+
+// ── save_rx_order mirror ─────────────────────────────────────────────────────
+// persistPayload() now saves through the save_rx_order RPC instead of writing
+// tables one by one. This mirrors the RPC's row effects (migration
+// 20261001130600) so the tests can still capture "the rows that would exist":
+// lines replaced wholesale, rx_details hung off the FIRST lens line, one frame
+// row, total summed from the lines. The same validation the SQL does is
+// repeated here so a payload the database would refuse fails the test too.
+const SURCHARGE_CODES = [
+  "prism", "oversize_blank", "high_power", "glazing_standard", "glazing_grooved",
+  "glazing_rimless", "remote_edge", "tint_match", "priority_service", "single_eye",
+];
+
+export const saveRxOrderMirror = (quoteId: string | null, payload: any, rows: CapturedRows) => {
+  const id = quoteId ?? "quote-new";
+  const lines: any[] = payload.lines ?? [];
+  lines.forEach((l, i) => {
+    if (!["Lens", "AddOn", "Supply", "Fee", "Discount", "Stock"].includes(l.line_type)) throw new Error(`line ${i + 1}: unknown line_type`);
+    if (!(Number(l.qty) > 0)) throw new Error(`line ${i + 1}: qty must be positive`);
+    if (l.line_type === "Fee" && !SURCHARGE_CODES.some((c) => l.group_key === `surcharge:${c}`)) {
+      throw new Error(`line ${i + 1}: surcharge must cite an active rx_surcharge_rules code in group_key`);
+    }
+  });
+  rows.quote_lines = lines.map((l, i) => ({ ...l, id: `line-${i + 1}`, quote_id: id, sort_order: l.sort_order ?? i }));
+  const total = Math.round(rows.quote_lines.reduce((s, l) => s + l.qty * l.unit_sell_price_bbd, 0) * 100) / 100;
+  const firstLens = rows.quote_lines.find((l) => l.line_type === "Lens");
+  rows.rx_details = firstLens && payload.rx ? [{ ...payload.rx, quote_line_id: firstLens.id }] : [];
+  rows.quote_frame_details = payload.frame ? [{ job_scope: "full_glaze", is_uncut: false, ...payload.frame, quote_id: id }] : [];
+  rows.quotes = [{
+    id,
+    customer_name: payload.header?.customer_name ?? "",
+    contact_name: payload.header?.contact_name ?? null,
+    notes_customer: payload.header?.notes_customer ?? null,
+    rx_payload: payload.order ?? {},
+    subtotal_sell: total,
+    grand_total: total,
+  }];
+  return { quote_id: id, quote_number: "Q-TEST", rx_order_number: 80000001, total, created: quoteId == null };
+};

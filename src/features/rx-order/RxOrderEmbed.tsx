@@ -23,8 +23,19 @@ import { createRxOrderEngine } from "./embed/rx-order-engine.js";
 const FONT_HREF = "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap";
 
 export interface RxOrderEmbedProps {
-  quoteId: string;
+  /**
+   * The quote this order saves into, or null for a new order. A new order has
+   * NO quote until its first real save (autosave skips an empty form), at
+   * which point save_rx_order creates it and `onQuoteCreated` reports it. The
+   * embed keeps the id itself afterwards — changing this prop remounts the
+   * form, so hosts should not feed the created id back in.
+   */
+  quoteId: string | null;
   quoteNumber?: string | null;
+  /** Called once, when the first save creates the quote. */
+  onQuoteCreated?: (q: { quoteId: string; quoteNumber: string | null; rxOrderNumber: number | null }) => void;
+  /** Staff test-bench: saves are tagged is_test and kept out of lists and reports. */
+  isTest?: boolean;
   surface: "admin" | "portal";
   /** Portal: the signed-in B2B account (locks the branch picker). Admin: null. */
   lockedAccountId?: number | null;
@@ -65,7 +76,7 @@ interface ClashRule { addon_id_a: string; addon_id_b: string; reason: string }
 // Hosts the ported prototype form. The engine owns the DOM inside the
 // .cv-rx-embed container; React only mounts/unmounts it and feeds adapters.
 export const RxOrderEmbed = ({
-  quoteId, quoteNumber, surface, lockedAccountId = null,
+  quoteId, quoteNumber, onQuoteCreated, isTest = false, surface, lockedAccountId = null,
   checkoutPath = "/checkout", storePath = "/store",
   onStartAnother,
   prefill, prefillBanner, resumedDraftId, pricesVisible = true, currency = "BBD",
@@ -76,6 +87,13 @@ export const RxOrderEmbed = ({
   const hostRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<any>(null);
   const adapterOptionsRef = useRef<any>(null);
+  // The live quote id/number: seeded from the props, filled in by the first save.
+  const quoteIdRef = useRef<string | null>(quoteId);
+  // Saves run one at a time: an autosave still in flight when the user submits
+  // must finish first, or both would see "no quote yet" and create one each.
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const onQuoteCreatedRef = useRef(onQuoteCreated);
+  onQuoteCreatedRef.current = onQuoteCreated;
   // Which rx_order_drafts row saves land in. Seeded from a resumed draft;
   // otherwise the first save (autosave or manual) creates the row and fills
   // this in, so every save after that in the same session updates it in place.
@@ -225,13 +243,35 @@ export const RxOrderEmbed = ({
         label: `${alias.pricing_key.split("|")[0].trim()} ${alias.mf_type} ${alias.style_description} ${alias.color_description}`,
       };
     };
-    const persistTo = async (id: string, payload: any) => persistPayload(id, payload, {
+    const persistTo = async (id: string | null, payload: any) => persistPayload(id, payload, {
       lensIndex: lensIndexRef.current,
       addons,
       lensPriceBBD,
       resolveAlias,
+      isTest,
     });
-    const persist = (payload: any) => persistTo(quoteId, payload);
+    const persist = (payload: any) => {
+      const run = saveChainRef.current.catch(() => undefined).then(() => persistOnce(payload));
+      saveChainRef.current = run;
+      return run;
+    };
+    const persistOnce = async (payload: any) => {
+      const saved = await persistTo(quoteIdRef.current, payload);
+      if (saved.created) {
+        quoteIdRef.current = saved.quoteId;
+        // The server owns the order number; adopt it so the number on screen,
+        // in the payload and on the quote are one and the same from here on.
+        if (saved.rxOrderNumber != null && engineRef.current) {
+          engineRef.current.state.orderNo = String(saved.rxOrderNumber);
+          const label = hostRef.current?.querySelector("#ordNo");
+          if (label) label.innerHTML = `<span>Order</span> ${saved.rxOrderNumber}`;
+        }
+        onQuoteCreatedRef.current?.({ quoteId: saved.quoteId, quoteNumber: saved.quoteNumber, rxOrderNumber: saved.rxOrderNumber });
+      }
+      return saved;
+    };
+    const patientLabel = (payload: any) =>
+      [payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || "";
 
     hostRef.current.innerHTML = markup;
     const host = hostRef.current;
@@ -259,14 +299,14 @@ export const RxOrderEmbed = ({
       // row rather than overwrite the one this form no longer represents.
       onFormCleared: () => { draftIdRef.current = undefined; },
       onSubmitted: async (payload: any) => {
-        const { totalBBD } = await persist(payload);
+        const { totalBBD, quoteId: savedId, quoteNumber: savedNumber } = await persist(payload);
         const added = await addToCart({
-          id: syntheticCartProductId(quoteId),
-          name: `Rx Order ${quoteNumber ?? ""} — ${[payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || ""}`.trim(),
+          id: syntheticCartProductId(savedId),
+          name: `Rx Order ${savedNumber ?? ""} — ${patientLabel(payload)}`.trim(),
           price: totalBBD,
           productType: "lens",
           priceUnit: "job",
-          variantMetadata: { rx_quote_id: quoteId, kind: "rx_order" },
+          variantMetadata: { rx_quote_id: savedId, kind: "rx_order" },
           quantity: 1,
         });
         if (!added) throw new Error("The order could not be added to the cart.");
@@ -276,15 +316,15 @@ export const RxOrderEmbed = ({
       // is what the order_items enqueue trigger watches to hand the job to the
       // lab. The customer's existing cart is left exactly as it was.
       onSubmittedDirect: async (payload: any) => {
-        const { totalBBD } = await persist(payload);
+        const { totalBBD, quoteId: savedId, quoteNumber: savedNumber } = await persist(payload);
         const { data, error } = await (supabase.rpc as any)("place_rx_order_direct", {
           p_items: [{
-            product_id: syntheticCartProductId(quoteId),
-            product_name: `Rx Order ${quoteNumber ?? ""} — ${[payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || ""}`.trim(),
+            product_id: syntheticCartProductId(savedId),
+            product_name: `Rx Order ${savedNumber ?? ""} — ${patientLabel(payload)}`.trim(),
             product_price: totalBBD,
             product_type: "lens",
             quantity: 1,
-            variant_metadata: { rx_quote_id: quoteId, kind: "rx_order" },
+            variant_metadata: { rx_quote_id: savedId, kind: "rx_order" },
           }],
           p_checkout: {
             checkout_method: "on_account",
@@ -299,29 +339,19 @@ export const RxOrderEmbed = ({
       // customer can still adjust the copy before it commits, matching the
       // modal's own "adjust the copy in the cart" description.
       onDuplicate: async (payload: any) => {
-        const { data: original, error: origErr } = await (supabase.from("quotes") as any)
-          .select("account_id, customer_name, contact_name, currency")
-          .eq("id", quoteId).single();
-        if (origErr) throw origErr;
-        const { data: newQuote, error: qErr } = await (supabase.from("quotes") as any)
-          .insert({
-            quote_type: "RX",
-            account_id: original?.account_id ?? null,
-            customer_name: original?.customer_name ?? null,
-            contact_name: original?.contact_name ?? null,
-            currency: original?.currency ?? currency,
-            status: "Accepted",
-          })
-          .select("id").single();
-        if (qErr) throw qErr;
-        const { totalBBD } = await persistTo(newQuote.id, payload);
+        // A new quote through the same atomic save (null id = create). The
+        // account, patient and prices all travel in the payload itself.
+        const copy = await persistTo(null, payload);
+        const { error: statusErr } = await (supabase.from("quotes") as any)
+          .update({ status: "Accepted" }).eq("id", copy.quoteId);
+        if (statusErr) throw statusErr;
         const added = await addToCart({
-          id: syntheticCartProductId(newQuote.id),
-          name: `Rx Order (copy) — ${[payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ") || payload.account?.name || ""}`.trim(),
-          price: totalBBD,
+          id: syntheticCartProductId(copy.quoteId),
+          name: `Rx Order (copy) — ${patientLabel(payload)}`.trim(),
+          price: copy.totalBBD,
           productType: "lens",
           priceUnit: "job",
-          variantMetadata: { rx_quote_id: newQuote.id, kind: "rx_order" },
+          variantMetadata: { rx_quote_id: copy.quoteId, kind: "rx_order" },
           quantity: 1,
         });
         if (!added) throw new Error("The duplicate could not be added to the cart.");
