@@ -276,8 +276,20 @@ describe("Rx order validation rules", () => {
       h.destroy();
     });
 
-    it("routes an unpriced combination to assistance and blocks the cart", () => {
+    it("routes an unpriced combination to assistance but still allows the order by default", () => {
       const h = mountRxOrder().fillValidOrder({
+        lens: { m: MATERIALS.plastic, d: DESIGNS.sv, c: COLOURS.amber },
+      });
+
+      expect(h.quoteText()).toContain("on request");
+      expect(h.assistFlags()).toEqual(["Lens not priced on this account — quote requested"]);
+      expect(h.submitEnabled()).toBe(true);
+
+      h.destroy();
+    });
+
+    it("routes an unpriced combination to assistance and blocks the cart", () => {
+      const h = mountRxOrder({ blockUnpricedOrders: true }).fillValidOrder({
         lens: { m: MATERIALS.plastic, d: DESIGNS.sv, c: COLOURS.amber },
       });
 

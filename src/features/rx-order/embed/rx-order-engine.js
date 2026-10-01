@@ -1360,7 +1360,9 @@ function render(){
   $('#mCur').textContent=show?'order total':'Pricing not shown on this account';
   $('#qSub').textContent=!show?'confirmed with you before production'
     :(!ready?'choose a lens to start pricing'
-      :unpriced?'this lens is not on your pricelist — you can still order it and it will be priced when processed'
+      :unpriced?(ADAPTER.blockUnpricedOrders
+        ?'this lens is not on your pricelist — save as a draft and we will quote it'
+        :'this lens is not on your pricelist — you can still order it and it will be priced when processed')
       :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))
         +(indicative?` · ${S.cur} shown for guidance, billed in USD`:' · updates as you type'));
   const amt=$('#qAmt'); amt.textContent=onRequest?'on request':(show?money(total):'——');
@@ -1439,13 +1441,19 @@ function render(){
      it reaches the same follow-up queue as any other help request; the
      customer sees the priced total under My Orders once it is invoiced. The
      mutation sits above the assist-list render below, so it lands in this same
-     pass. */
+     pass.
+     ADAPTER.blockUnpricedOrders switches that off: submit is blocked and the
+     only route is a draft we quote back (the quote-only rule in
+     docs/rx-order-innovations-catalogue.md §2.4). */
   const {unpriced:noPrice}=price();
   if(noPrice) S.assists.add(UNPRICED_ASSIST); else S.assists.delete(UNPRICED_ASSIST);
   ['#submitBtn','#submitBtn2'].forEach(s=>{
     const b=$(s);
-    b.disabled=!valid;
-    b.title=noPrice?'This lens is not on your pricelist — it will be priced when your order is processed.':'';
+    const blocked=noPrice&&!!ADAPTER.blockUnpricedOrders;
+    b.disabled=!valid||blocked;
+    b.title=!noPrice?'':(blocked
+      ?'This lens is not priced on your account — save it as a draft and we will quote it.'
+      :'This lens is not on your pricelist — it will be priced when your order is processed.');
   });
 
   const goToDrafts=shouldOfferGoToDrafts();

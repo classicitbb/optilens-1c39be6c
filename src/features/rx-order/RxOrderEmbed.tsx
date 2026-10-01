@@ -239,6 +239,9 @@ export const RxOrderEmbed = ({
       data: engineDataRef.current,
       lockedBranchId: lockedAccountId != null ? String(lockedAccountId) : undefined,
       defaultBranchId: defaultAccountId != null ? String(defaultAccountId) : undefined,
+      // Unpriced lenses stay orderable while we test; set true to make them
+      // quote-only (submit blocked, draft only).
+      blockUnpricedOrders: false,
       // Rx order numbers are numeric identifiers for the PO/lab payload.
       // The quote number remains a separate customer-service reference.
       // Re-applied if the engine ever remounts, which wipes its DOM anyway.

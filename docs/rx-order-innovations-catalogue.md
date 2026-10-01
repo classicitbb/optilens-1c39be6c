@@ -64,6 +64,11 @@ we recommend.
 
 No separate "deliberately excluded" flag — a null price carries that meaning.
 
+> **Temporarily relaxed for testing (2026-10-01).** Unpriced combinations can currently be
+> submitted: the order goes through at no charge, flagged for assistance, and Innovations
+> prices it when processed. Set `blockUnpricedOrders: true` in `RxOrderEmbed.tsx` to restore
+> quote-only (submit blocked, draft only).
+
 ### 2.5 Trifocal bundles with bifocal / multifocal
 
 Already true and requires no change: [`classifier.ts:124`](../src/lib/pricing/classifier.ts)

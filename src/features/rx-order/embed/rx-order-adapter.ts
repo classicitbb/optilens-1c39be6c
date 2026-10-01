@@ -221,10 +221,10 @@ export async function persistPayload(
   const lines: any[] = [];
   const quoteLines: any[] = Array.isArray(payload?.quote?.lines) ? payload.quote.lines : [];
 
-  // No matrix cell and no CV lens row = not offered on this account. Such an
-  // order cannot reach the cart (the engine blocks submit and offers only
-  // "save as draft"), so what lands here is a quote request to be priced by
-  // hand — flagged as such rather than presented as a real price.
+  // No matrix cell and no CV lens row = not offered on this account. While
+  // unpriced orders are allowed (blockUnpricedOrders off) such an order can be
+  // submitted; otherwise only "save as draft" reaches here. Either way it is
+  // priced by hand — flagged as such rather than presented as a real price.
   //
   // The amount columns are NOT NULL DEFAULT 0, so a genuine "no price" cannot
   // be stored as null without a migration. needs_assistance + assistance_note
