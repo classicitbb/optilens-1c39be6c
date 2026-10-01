@@ -5,6 +5,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+/**
+ * One height for every text field, dropdown and picker on the form (the shared
+ * Input is 28px, SelectTrigger 40px, so left alone they sit at different heights
+ * in the same row). Apply to Input, SelectTrigger and the picker buttons.
+ */
+export const CONTROL = "h-9 px-3 py-0 text-sm";
+
 export function Seg<T extends string>({
   value, onChange, options, label, disabled,
 }: {
@@ -104,7 +111,7 @@ export function StepCard({
   sub: string;
   done: boolean;
   folded: boolean;
-  summary: string;
+  summary: ReactNode;
   onEdit: () => void;
   onClear?: () => void;
   children: ReactNode;
@@ -147,7 +154,7 @@ export function StepCard({
         </div>
       </header>
       {folded ? (
-        <p className="px-4 pb-4 pt-2 text-xs text-muted-foreground" aria-live="polite">{summary}</p>
+        <div className="px-4 pb-4 pt-2" aria-live="polite">{summary}</div>
       ) : (
         <div className="space-y-4 px-4 pb-4 pt-3">{children}</div>
       )}

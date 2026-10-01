@@ -260,3 +260,16 @@ export function shapeFromPayload(p: unknown): { shape: ShapeData; source: ShapeS
 
 /** The accepted trace file types. */
 export const TRACE_FILE = /\.(oma|tr|vca)$/i;
+/** A real trace is a few KB to a few hundred; anything this large is not one and is never read. */
+export const TRACE_MAX_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Decide from the file's name and size alone — before a byte is read — whether
+ * it may even be attempted. Returns the reason to show, or null when it may be read.
+ */
+export function rejectTraceFile(file: { name: string; size: number }): string | null {
+  if (!TRACE_FILE.test(file.name)) return "That isn't a trace file. Upload the .oma, .tr or .vca file exported from your tracer.";
+  if (file.size === 0) return "That file is empty.";
+  if (file.size > TRACE_MAX_BYTES) return "That file is too large to be a frame trace, so it was not read.";
+  return null;
+}

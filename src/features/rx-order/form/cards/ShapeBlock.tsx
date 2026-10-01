@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { outlinePath, radiiToXY, scaleOutline, TRACE_FILE, type ShapeData, type ShapeGeometry } from "../../domain/shape";
+import { outlinePath, radiiToXY, rejectTraceFile, scaleOutline, type ShapeData, type ShapeGeometry } from "../../domain/shape";
 import { STD_SHAPES } from "../../domain/standardShapes";
 import { standardShape } from "../../domain/standardLibrary";
 import { Callout } from "../ui";
@@ -128,9 +128,15 @@ export function TraceDrop({ api, notify }: Pick<CardProps, "api" | "notify">) {
 
   const take = (file: File | undefined) => {
     if (!file) return;
-    if (!TRACE_FILE.test(file.name)) { notify("Trace files only — .oma, .tr or .vca"); return; }
+    // Wrong type, empty or oversize: refused on name and size alone, never read.
+    const refusal = rejectTraceFile(file);
+    if (refusal) { notify(refusal); return; }
     const reader = new FileReader();
-    reader.onload = () => notify(api.loadTrace(String(reader.result ?? ""), file.name, file.size));
+    reader.onload = () => {
+      const result = api.loadTrace(String(reader.result ?? ""), file.name, file.size);
+      notify(result.message);
+    };
+    reader.onerror = () => notify("That file could not be read.");
     reader.readAsText(file);
   };
 

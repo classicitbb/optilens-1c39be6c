@@ -6,7 +6,7 @@
 // One scrolling page of six cards that fold into a summary once complete, a
 // sticky step rail and a live quote. Everything it shows is derived by the pure
 // model; this file owns only the side effects.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 import { Check, ChevronsUpDown, Code2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -334,7 +334,7 @@ function LoadedForm({
   const go = (id: SectionId) => document.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const cardProps = (id: SectionId): CardProps => ({ api, catalog, notify, step: stepFor(id) });
-  const cards: Record<SectionId, JSX.Element> = {
+  const cards: Record<SectionId, ReactElement> = {
     patient: <PatientCard {...cardProps("patient")} />,
     frame: <FrameCard {...cardProps("frame")} />,
     lens: <LensCard {...cardProps("lens")} />,

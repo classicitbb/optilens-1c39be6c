@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { RxField } from "../../domain/normalise";
-import { sectionSummary } from "../model";
+import { SectionSummary } from "../Summary";
 import type { RxEyeText } from "../types";
 import { Callout, StepCard } from "../ui";
 import type { CardProps } from "./types";
@@ -64,7 +64,7 @@ export function RxCard({ api, catalog, step, notify }: CardProps) {
       id="sec-rx" index={4} title="Prescription"
       sub="Type it any way — we normalise to minus cyl, 0.25 steps, signed."
       done={derived.sections.rx} folded={step.folded} onEdit={step.edit} onClear={() => api.clearSection("rx")}
-      summary={sectionSummary("rx", values, derived, catalog)}
+      summary={<SectionSummary id="rx" values={values} derived={derived} catalog={catalog} />}
     >
       <div className="overflow-x-auto">
         <table ref={tableRef} className="w-full min-w-[640px] border-separate border-spacing-x-1.5 border-spacing-y-1 text-xs" aria-label="Prescription">

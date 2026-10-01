@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { mountRxOrder } from "@/tests/support/rxOrderHarness";
 import {
-  compactShape, hasOutline, parseOma, shapeFromPayload, shapeGeometry, shapeToPayload,
+  compactShape, hasOutline, parseOma, rejectTraceFile, shapeFromPayload, shapeGeometry, shapeToPayload,
 } from "@/features/rx-order/domain/shape";
 import { SAMPLE_OMA_1471, STD_SHAPES } from "@/features/rx-order/domain/standardShapes";
 
@@ -38,6 +38,18 @@ describe("parseOma", () => {
   it("copes with empty and outline-less input", () => {
     expect(parseOma("")).toBeNull();
     expect(hasOutline(parseOma("JOB=x\nHBOX=50;50\n"))).toBe(false);
+  });
+});
+
+describe("rejectTraceFile (decided from name and size, before anything is read)", () => {
+  it("accepts a trace and refuses everything else", () => {
+    expect(rejectTraceFile({ name: "1471.oma", size: 8681 })).toBeNull();
+    expect(rejectTraceFile({ name: "FRAME.TR", size: 100 })).toBeNull();
+    expect(rejectTraceFile({ name: "x.vca", size: 100 })).toBeNull();
+    expect(rejectTraceFile({ name: "photo.jpg", size: 100 })).toMatch(/isn't a trace file/);
+    expect(rejectTraceFile({ name: "trace.oma.exe", size: 100 })).toMatch(/isn't a trace file/);
+    expect(rejectTraceFile({ name: "a.oma", size: 0 })).toMatch(/empty/);
+    expect(rejectTraceFile({ name: "a.oma", size: 3 * 1024 * 1024 })).toMatch(/too large/);
   });
 });
 

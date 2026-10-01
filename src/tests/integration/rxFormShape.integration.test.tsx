@@ -62,10 +62,11 @@ describe("shape rules in the model", () => {
 
   it("a trace fills A, B and the frame name, locks ED to the outline, and needs confirming", () => {
     const { result } = hook();
-    let note = "";
+    let note = { ok: false, message: "" };
     act(() => { note = result.current.loadTrace(SAMPLE_OMA_1471, "1471.oma", 8681); });
     const shape = parseOma(SAMPLE_OMA_1471)!;
-    expect(note).toMatch(/Trace loaded/);
+    expect(note.ok).toBe(true);
+    expect(note.message).toMatch(/Trace loaded/);
     expect(Number(result.current.values.frame.a)).toBeCloseTo(shape.hbox!, 2);
     expect(Number(result.current.values.frame.b)).toBeCloseTo(shape.vbox!, 2);
     expect(result.current.values.frame.name).toBe(shape.job);
@@ -91,12 +92,19 @@ describe("shape rules in the model", () => {
     expect(result.current.values.shape.confirmed).toBe(false);
   });
 
-  it("a file with no readable outline is attached but says so", () => {
+  it("a file with no readable outline is rejected and the form is left untouched", () => {
     const { result } = hook();
-    act(() => { result.current.loadTrace("JOB=x\nHBOX=50;50\n", "bad.oma", 10); });
-    expect(result.current.values.shape.fileName).toBe("bad.oma");
-    expect(result.current.values.shape.data).toBeNull();
-    expect(result.current.derived.frame.shapeIssues[0]).toMatch(/No trace points could be read/);
+    let out = { ok: true, message: "" };
+    act(() => { out = result.current.loadTrace("JOB=x\nHBOX=50;50\n", "bad.oma", 10); });
+    expect(out.ok).toBe(false);
+    expect(out.message).toMatch(/isn't a valid frame trace/);
+    expect(result.current.values.shape.fileName).toBeNull();
+    expect(result.current.values.frame.a).toBe("");
+    expect(result.current.values.frame.name).toBe("Ray");
+    // a good trace already loaded survives a bad one
+    act(() => { result.current.loadTrace(SAMPLE_OMA_1471, "1471.oma", 1); });
+    act(() => { result.current.loadTrace("garbage", "other.oma", 7); });
+    expect(result.current.values.shape.fileName).toBe("1471.oma");
   });
 
   it("removing the trace, or clearing the section, empties the shape", () => {
@@ -182,14 +190,39 @@ describe("the frame card with a trace dropped in", () => {
     fireEvent.click(screen.getByRole("button", { name: /This is the correct shape/ }));
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Submit to cart" })[0]).toBeEnabled());
     // confirmed and complete: the card folds into its summary, which names the shape
-    expect(screen.getByText(/Shape: 1471\.oma/)).toBeInTheDocument();
+    expect(screen.getByText("Shape / trace")).toBeInTheDocument();
+    expect(screen.getByText("1471.oma")).toBeInTheDocument();
   });
 
-  it("refuses a file that is not a trace", async () => {
+  const dropFile = (file: File) => fireEvent.change(screen.getByLabelText("Frame trace file"), { target: { files: [file] } });
+
+  it("refuses the wrong file type without reading it", async () => {
     renderRemote();
-    const bad = new File(["x"], "notes.txt", { type: "text/plain" });
-    fireEvent.change(screen.getByLabelText("Frame trace file"), { target: { files: [bad] } });
-    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith({ description: "Trace files only — .oma, .tr or .vca" }));
+    const read = vi.spyOn(FileReader.prototype, "readAsText");
+    dropFile(new File(["x"], "notes.txt", { type: "text/plain" }));
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith({ description: expect.stringMatching(/isn't a trace file/) }));
+    expect(read).not.toHaveBeenCalled();
+    expect(screen.getByText(/Drop your trace file here/)).toBeInTheDocument();
+    read.mockRestore();
+  });
+
+  it("refuses an empty or oversize file without reading it", async () => {
+    renderRemote();
+    const read = vi.spyOn(FileReader.prototype, "readAsText");
+    const big = new File(["x"], "huge.oma"); Object.defineProperty(big, "size", { value: 5 * 1024 * 1024 });
+    dropFile(big);
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith({ description: expect.stringMatching(/too large/) }));
+    dropFile(new File([], "empty.oma"));
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith({ description: "That file is empty." }));
+    expect(read).not.toHaveBeenCalled();
+    read.mockRestore();
+  });
+
+  it("a file with the right name but no trace inside is rejected, not attached", async () => {
+    renderRemote();
+    dropFile(new File(["this is not a trace"], "fake.oma", { type: "text/plain" }));
+    await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith({ description: expect.stringMatching(/isn't a valid frame trace/) }));
+    expect(screen.queryByText("fake.oma")).not.toBeInTheDocument();
     expect(screen.getByText(/Drop your trace file here/)).toBeInTheDocument();
   });
 

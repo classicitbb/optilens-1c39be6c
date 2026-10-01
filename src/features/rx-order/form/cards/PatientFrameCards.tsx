@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Callout, Field, Seg, StepCard } from "../ui";
-import { sectionSummary } from "../model";
+import { Callout, Field, Seg, StepCard, CONTROL } from "../ui";
+import { SectionSummary } from "../Summary";
 import { ShapePreview, StandardShapePicker, TraceDrop } from "./ShapeBlock";
 import type { CardProps } from "./types";
 
@@ -27,17 +28,17 @@ export function PatientCard({ api, catalog, step }: CardProps) {
     <StepCard
       id="sec-patient" index={1} title="Patient & order" sub="Who the job is for."
       done={derived.sections.patient} folded={step.folded} onEdit={step.edit} onClear={() => api.clearSection("patient")}
-      summary={sectionSummary("patient", values, derived, catalog)}
+      summary={<SectionSummary id="patient" values={values} derived={derived} catalog={catalog} />}
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Patient first name" required htmlFor="rx-pfirst">
-          <Input id="rx-pfirst" placeholder="Marcus" autoComplete="off" {...form.register("patient.first")} />
+          <Input className={CONTROL} id="rx-pfirst" placeholder="Marcus" autoComplete="off" {...form.register("patient.first")} />
         </Field>
         <Field label="Patient last name" required htmlFor="rx-plast">
-          <Input id="rx-plast" placeholder="Grant" autoComplete="off" {...form.register("patient.last")} />
+          <Input className={CONTROL} id="rx-plast" placeholder="Grant" autoComplete="off" {...form.register("patient.last")} />
         </Field>
         <Field label="Your order reference" optional htmlFor="rx-ref" hint="Appears on your invoice if supplied.">
-          <Input id="rx-ref" placeholder="e.g. JOB-2291" autoComplete="off" {...form.register("reference")} />
+          <Input className={CONTROL} id="rx-ref" placeholder="e.g. JOB-2291" autoComplete="off" {...form.register("reference")} />
         </Field>
       </div>
     </StepCard>
@@ -57,7 +58,7 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
     <StepCard
       id="sec-frame" index={2} title="Frame & measurements" sub="Job type and the frame the lenses have to fit."
       done={derived.sections.frame} folded={step.folded} onEdit={step.edit} onClear={() => api.clearSection("frame")}
-      summary={sectionSummary("frame", values, derived, catalog)}
+      summary={<SectionSummary id="frame" values={values} derived={derived} catalog={catalog} />}
     >
       <div className="space-y-2">
         <p className="text-xs font-semibold">How should we supply this job? <span className="text-destructive">*</span></p>
@@ -98,18 +99,18 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Frame name / model" required htmlFor="rx-fname">
-          <Input id="rx-fname" placeholder="e.g. Ray-Ban RB5154" autoComplete="off" value={f.name} onChange={(e) => api.setFrame("name", e.target.value)} />
+          <Input className={CONTROL} id="rx-fname" placeholder="e.g. Ray-Ban RB5154" autoComplete="off" value={f.name} onChange={(e) => api.setFrame("name", e.target.value)} />
         </Field>
         <Field label="Mount type" required>
           <Select value={f.mount || undefined} onValueChange={(v) => api.setFrame("mount", v)}>
-            <SelectTrigger aria-label="Mount type"><SelectValue placeholder="Choose…" /></SelectTrigger>
+            <SelectTrigger className={CONTROL} aria-label="Mount type"><SelectValue placeholder="Choose…" /></SelectTrigger>
             <SelectContent>{MOUNTS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
         {!remote && (
           <Field label="Frame supplied by">
             <Select value={f.source} onValueChange={(v) => api.setFrame("source", v)}>
-              <SelectTrigger aria-label="Frame supplied by"><SelectValue /></SelectTrigger>
+              <SelectTrigger className={CONTROL} aria-label="Frame supplied by"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Customer — shipping to lab">Customer — shipping to lab</SelectItem>
                 <SelectItem value="Classic Visions stock frame">Classic Visions stock frame</SelectItem>
@@ -121,10 +122,10 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
 
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
         <Field label="A" required htmlFor="rx-fa" error={issueFor("a")}>
-          <Input id="rx-fa" inputMode="decimal" placeholder="52.0" value={f.a} onChange={(e) => api.setFrame("a", e.target.value)} />
+          <Input className={CONTROL} id="rx-fa" inputMode="decimal" placeholder="52.0" value={f.a} onChange={(e) => api.setFrame("a", e.target.value)} />
         </Field>
         <Field label="B" required htmlFor="rx-fb" error={issueFor("b")}>
-          <Input id="rx-fb" inputMode="decimal" placeholder="38.0" value={f.b} onChange={(e) => api.setFrame("b", e.target.value)} />
+          <Input className={CONTROL} id="rx-fb" inputMode="decimal" placeholder="38.0" value={f.b} onChange={(e) => api.setFrame("b", e.target.value)} />
         </Field>
         <Field
           label="ED" required htmlFor="rx-fed" error={issueFor("ed")}
@@ -135,10 +136,10 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
               : derived.frame.a !== null && derived.frame.b !== null ? `Estimated √(A²+B²) = ${edShown} mm — editable` : "Auto from A and B — editable"}
         >
           <Input id="rx-fed" inputMode="decimal" placeholder="—" value={edShown} readOnly={locked}
-            className={locked ? "cursor-not-allowed bg-muted/50" : undefined} onChange={(e) => api.setFrame("ed", e.target.value)} />
+            className={cn(CONTROL, locked && "cursor-not-allowed bg-muted/50")} onChange={(e) => api.setFrame("ed", e.target.value)} />
         </Field>
         <Field label="DBL" required htmlFor="rx-fdbl" error={issueFor("dbl")}>
-          <Input id="rx-fdbl" inputMode="decimal" placeholder="18.0" value={f.dbl} onChange={(e) => api.setFrame("dbl", e.target.value)} />
+          <Input className={CONTROL} id="rx-fdbl" inputMode="decimal" placeholder="18.0" value={f.dbl} onChange={(e) => api.setFrame("dbl", e.target.value)} />
         </Field>
       </div>
       {derived.frame.issues.length > 0 && (

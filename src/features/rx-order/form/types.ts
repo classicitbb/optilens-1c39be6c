@@ -120,11 +120,16 @@ export const defaultValues = (accountId: number | null = null): RxFormValues => 
 export interface CatalogItem {
   id: string;
   n: string;
-  v?: "sv" | "mf";
+  v?: string;
   prog?: boolean;
   needsAdd?: boolean;
   up?: number;
   base?: number;
+}
+
+/** A design always belongs to one vision type. */
+export interface CatalogDesignItem extends CatalogItem {
+  v: "sv" | "mf";
 }
 
 export interface CatalogTreatment {
@@ -144,7 +149,7 @@ export interface CatalogTreatment {
 
 export interface RxCatalog {
   materials: CatalogItem[];
-  designs: CatalogItem[];
+  designs: CatalogDesignItem[];
   colours: CatalogItem[];
   combos: Combo[];
   treatments: CatalogTreatment[];

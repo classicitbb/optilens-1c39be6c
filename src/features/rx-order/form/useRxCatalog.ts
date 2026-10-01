@@ -23,7 +23,8 @@ export const useSurchargeRules = () =>
     queryKey: ["rx-surcharge-rules"],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await (supabase.from("rx_surcharge_rules") as any).select("*").order("sort_order");
+      // not in the generated types yet
+      const { data, error } = await (supabase as any).from("rx_surcharge_rules").select("*").order("sort_order");
       if (error || !data?.length) return DEFAULT_SURCHARGE_RULES;
       return (data as Record<string, any>[]).map(surchargeRuleFromRow);
     },
@@ -107,7 +108,7 @@ export function useRxCatalog(opts: UseRxCatalogOptions) {
     const account = accounts.find((a) => a.id === effectiveAccountId);
     return {
       materials: catalog.data.materials,
-      designs: catalog.data.designs as RxCatalog["designs"],
+      designs: catalog.data.designs.map((d) => ({ ...d, v: (d.v === "mf" ? "mf" : "sv") as "sv" | "mf" })),
       colours: catalog.data.colours,
       combos: catalog.data.combos,
       treatments: cv.data.treatments,

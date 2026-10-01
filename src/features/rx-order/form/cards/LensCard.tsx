@@ -10,9 +10,10 @@ import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { BLANK_SIZES, sectionSummary } from "../model";
+import { BLANK_SIZES } from "../model";
+import { SectionSummary } from "../Summary";
 import type { Triple } from "../../domain/catalog";
-import { Callout, Field, Seg, StepCard } from "../ui";
+import { Callout, Field, Seg, StepCard, CONTROL } from "../ui";
 import type { CatalogItem } from "../types";
 import type { CardProps } from "./types";
 
@@ -109,7 +110,7 @@ export function LensCard({ api, catalog, step, notify }: CardProps) {
     <StepCard
       id="sec-lens" index={3} title="Lens selection" sub="Only combinations that exist on your pricelist are offered."
       done={derived.sections.lens} folded={step.folded} onEdit={step.edit} onClear={() => api.clearSection("lens")}
-      summary={sectionSummary("lens", values, derived, catalog)}
+      summary={<SectionSummary id="lens" values={values} derived={derived} catalog={catalog} />}
     >
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-1.5">
@@ -187,7 +188,7 @@ export function LensCard({ api, catalog, step, notify }: CardProps) {
               : "Enter A, DBL, ED and a PD for a suggestion."}
           >
             <Select value={values.lens.diameter} onValueChange={(v) => api.set("lens.diameter", v)}>
-              <SelectTrigger aria-label="Blank diameter"><SelectValue /></SelectTrigger>
+              <SelectTrigger className={CONTROL} aria-label="Blank diameter"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">{derived.diameter.pick ? `Auto — ${derived.diameter.pick} mm suggested` : "Auto — lab decides"}</SelectItem>
                 {BLANK_SIZES.map((s) => <SelectItem key={s} value={String(s)}>{s} mm{s >= 75 ? " — oversize" : ""}</SelectItem>)}
@@ -197,7 +198,7 @@ export function LensCard({ api, catalog, step, notify }: CardProps) {
           {derived.lens.isProg && (
             <Field label="Corridor length">
               <Select value={values.lens.corridor} onValueChange={(v) => api.set("lens.corridor", v)}>
-                <SelectTrigger aria-label="Corridor length"><SelectValue /></SelectTrigger>
+                <SelectTrigger className={CONTROL} aria-label="Corridor length"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="11">11 mm — short</SelectItem>
                   <SelectItem value="13">13 mm — standard</SelectItem>
@@ -208,7 +209,7 @@ export function LensCard({ api, catalog, step, notify }: CardProps) {
           )}
           <Field label="Base curve">
             <Select value={values.lens.baseCurve} onValueChange={(v) => api.set("lens.baseCurve", v)}>
-              <SelectTrigger aria-label="Base curve"><SelectValue /></SelectTrigger>
+              <SelectTrigger className={CONTROL} aria-label="Base curve"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">Lab's choice (recommended)</SelectItem>
                 {["2.00", "4.00", "6.00", "8.00"].map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}

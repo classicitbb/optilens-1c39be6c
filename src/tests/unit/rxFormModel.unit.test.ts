@@ -118,7 +118,7 @@ describe("derive", () => {
   it("adds the priority surcharge and the AR lead time", () => {
     const v = valid(); v.delivery.service = "pri"; v.treatments = ["ar1"];
     const d = derive(v, catalog());
-    expect(d.price.lines.at(-1)?.n).toBe("Priority service");
+    expect(d.price.lines[d.price.lines.length - 1]?.n).toBe("Priority service");
     expect(d.treat.arSelected).toBe(true);
     expect(d.treat.serviceLead).toBe("9–14 working days");
   });

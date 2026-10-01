@@ -26,8 +26,11 @@ export interface RxFormApi {
   setJob: (key: keyof RxFormValues["job"], value: string) => string | null;
   setFrame: (key: "name" | "mount" | "source" | "a" | "b" | "ed" | "dbl", value: string) => void;
   pickLens: (side: "od" | "os", axis: keyof Triple, id: string) => string | null;
-  /** Read a dropped trace file: fills A, B and the frame name from it. Returns a note to show. */
-  loadTrace: (text: string, name: string, size: number) => string;
+  /**
+   * Read a trace file's text: fills A, B and the frame name from it. A file with
+   * no readable outline is REJECTED — nothing changes and `ok` is false.
+   */
+  loadTrace: (text: string, name: string, size: number) => { ok: boolean; message: string };
   /** Use a standard shape (replaces any trace the person must confirm first). */
   pickStandardShape: (id: string) => string | null;
   clearShape: () => void;
@@ -154,23 +157,17 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
 
   const loadTrace: RxFormApi["loadTrace"] = (text, name, size) => {
     const data = parseOma(text);
+    if (!hasOutline(data)) {
+      return { ok: false, message: `${name} isn't a valid frame trace — no outline could be read from it, so it was not attached.` };
+    }
     // A and B come from the file; DBL waits for the person (it is a real frame
     // measurement a generic trace does not know).
-    if (data?.hbox) set("frame.a", fixed(data.hbox));
-    if (data?.vbox) set("frame.b", fixed(data.vbox));
+    if (data.hbox) set("frame.a", fixed(data.hbox));
+    if (data.vbox) set("frame.b", fixed(data.vbox));
     set("frame.edTouched", false);
-    if (data?.job) set("frame.name", data.job);
-    set("shape", {
-      source: hasOutline(data) ? "trace" : null,
-      standardId: null,
-      fileName: name,
-      fileSize: size,
-      data: hasOutline(data) ? data : null,
-      confirmed: false,
-    });
-    return hasOutline(data)
-      ? `Trace loaded: A ${get().frame.a}, B ${get().frame.b}`
-      : "File attached, but no trace points could be read from it";
+    if (data.job) set("frame.name", data.job);
+    set("shape", { source: "trace", standardId: null, fileName: name, fileSize: size, data, confirmed: false });
+    return { ok: true, message: `Trace loaded: A ${get().frame.a}, B ${get().frame.b}` };
   };
   const pickStandardShape: RxFormApi["pickStandardShape"] = (id) => {
     const data = standardShape(id);
