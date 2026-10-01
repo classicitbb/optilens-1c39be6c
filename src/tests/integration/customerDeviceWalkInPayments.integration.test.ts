@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const read = (relativePath: string) => readFileSync(resolve(process.cwd(), relativePath), "utf8");
+// Normalise CRLF so multi-line assertions hold on a Windows (autocrlf) checkout.
+const read = (relativePath: string) => readFileSync(resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
 
 const MIGRATION = "supabase/migrations/20260917101500_customer_device_walk_in_payments.sql";
 
