@@ -31,6 +31,6 @@ const RxDraftSection = () => {
   );
 };
 
-const AlertDraftNotice = () => <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">This is a portal draft, not a submitted lab order. Final submission and confirmation happen in LabLink.</div>;
+const AlertDraftNotice = () => <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">This is a saved draft, not a submitted lab order. Open the Rx order form to finish it and send it to the lab.</div>;
 
 export default RxDraftSection;

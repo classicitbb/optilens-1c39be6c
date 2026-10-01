@@ -55,6 +55,8 @@ export interface RxFormProps {
   resumedDraftId?: string;
   pricesVisible?: boolean;
   allowDirectSubmit?: boolean;
+  /** Opened from the cart's edit pencil: saving updates that cart item (and its price) instead of adding another. */
+  editFromCart?: boolean;
   blockUnpricedOrders?: boolean;
   /** Show the order payload viewer (staff tooling). */
   showPayload?: boolean;
@@ -281,6 +283,8 @@ function LoadedForm({
         if (error) throw new Error(error.message);
         if (!data) throw new Error("The order could not be placed.");
         setDone({ kind: "direct", label: "Order placed on your account", total: saved.totalBBD, v1 });
+      } else if (props.editFromCart && await updateCartItem(saved, v1)) {
+        // handled: the existing cart item now carries the re-saved order and its current price
       } else {
         const added = await addToCart({
           id: syntheticCartProductId(saved.quoteId), name: cartName(saved.quoteNumber, v1), price: saved.totalBBD,
@@ -294,6 +298,26 @@ function LoadedForm({
     } finally {
       submitting.current = false;
     }
+  };
+
+  // Editing from the cart: the cart item's price was locked when it went in. Re-saving reprices the
+  // order, so the cart item follows it and the customer is told if the price moved.
+  const updateCartItem = async (saved: PersistedRxOrder, v1: any): Promise<boolean> => {
+    const productId = syntheticCartProductId(saved.quoteId);
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return false;
+    const { data: row } = await (supabase.from("cart_items") as any)
+      .select("id, product_price").eq("user_id", auth.user.id).eq("product_id", productId).maybeSingle();
+    if (!row) return false;
+    const { error } = await (supabase.from("cart_items") as any)
+      .update({ product_price: saved.totalBBD, product_name: cartName(saved.quoteNumber, v1) }).eq("id", row.id);
+    if (error) throw new Error(error.message);
+    const was = Number(row.product_price);
+    if (Math.abs(was - saved.totalBBD) > 0.004) {
+      toast({ title: "The price changed", description: `This order was $${was.toFixed(2)} in your cart and is now $${saved.totalBBD.toFixed(2)}.` });
+    }
+    setDone({ kind: "cart", label: "Cart updated", total: saved.totalBBD, v1 });
+    return true;
   };
 
   const duplicate = async () => {
