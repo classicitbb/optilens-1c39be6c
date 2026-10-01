@@ -30,7 +30,7 @@ const DATA = {
 // UNCoated is priced; TGNS Amber has no cell — the live shape of the gap.
 const lensPrice = (_m: string, _d: string, c: string) => (c === "uncoated" ? 278.25 : null);
 
-const mount = () => {
+const mount = (options: Record<string, unknown> = {}) => {
   const host = document.createElement("div");
   host.className = "cv-rx-embed";
   host.innerHTML = markup;
@@ -40,6 +40,7 @@ const mount = () => {
     lockedBranchId: "1",
     orderNo: () => "Q-1",
     lensPrice,
+    ...options,
   });
   const select = (m: string, d: string, c: string) => {
     engine.state.m = m;
@@ -101,8 +102,8 @@ describe("unpriced combinations are quote-only", () => {
     engine.destroy();
   });
 
-  it("keeps an uncovered combination out of the cart", () => {
-    const { host, engine, select } = mount();
+  it("keeps an uncovered combination out of the cart when unpriced orders are blocked", () => {
+    const { host, engine, select } = mount({ blockUnpricedOrders: true });
     select("plastic 1.50", "single vision|regular", "tgns amber");
     engine.refreshData();
 
@@ -111,6 +112,17 @@ describe("unpriced combinations are quote-only", () => {
     expect(host.querySelector("#submitBtn")?.getAttribute("title")).toMatch(/not priced/i);
     // Saving a draft stays available — that is the quote request.
     expect(host.querySelector<HTMLButtonElement>("#saveDraft")?.disabled).toBeFalsy();
+
+    engine.destroy();
+  });
+
+  it("tells the customer an uncovered combination is priced on processing while unpriced orders are allowed", () => {
+    const { host, engine, select } = mount();
+    select("plastic 1.50", "single vision|regular", "tgns amber");
+    engine.refreshData();
+
+    // The quote is only indicative; Innovations prices the job when processed.
+    expect(host.querySelector("#submitBtn")?.getAttribute("title")).toMatch(/priced when your order is processed/i);
 
     engine.destroy();
   });

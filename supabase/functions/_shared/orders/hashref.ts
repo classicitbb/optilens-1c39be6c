@@ -82,6 +82,8 @@ export interface CanonicalOrder {
   dateOrdered: string;
   frame?: CanonicalOrderFrame;
   lens?: CanonicalOrderLens;
+  /** Left-eye lens when it differs from `lens` (a split-lens order). */
+  lensOs?: CanonicalOrderLens;
   rx?: Record<string, unknown>;
   items: CanonicalOrderItem[];
 }
@@ -217,36 +219,65 @@ function renderLensAndRx(order: CanonicalOrder): string[] {
   const rx = (order.rx ?? {}) as Record<string, unknown>;
   if (!lens) throw new Error("A confirmed lens alias with material, style, and colour codes is required.");
 
-  const eyeFields = (side: "od" | "os") => [
-    line(`x_${side}_lens_alias`, lens.alias),
-    line(`x_lens_${side}_material_code`, lens.materialCode),
-    line(`x_lens_${side}_material_desc`, lens.materialDescription),
-    line(`x_lens_${side}_style_code`, lens.styleCode),
-    line(`x_lens_${side}_style_desc`, lens.styleDescription),
-    line(`x_lens_${side}_color_code`, lens.colorCode),
-    line(`x_lens_${side}_color_desc`, lens.colorDescription),
-    line(`rx_${side}_sphere`, numberText(rx[`${side}_sph`], `${side.toUpperCase()} sphere`)),
-    line(`rx_${side}_cylinder`, numberText(rx[`${side}_cyl`], `${side.toUpperCase()} cylinder`, 0)),
-    line(`rx_${side}_axis`, integerText(rx[`${side}_axis`], `${side.toUpperCase()} axis`)),
-    line(`rx_${side}_far`, numberText(rx[`${side}_fpd`], `${side.toUpperCase()} far PD`)),
-    // The spec wants an explicit zero prism rather than an absent field, and
-    // pairs it with a direction even when the amount is zero.
-    line(`rx_${side}_prism`, "0.00"),
-    line(`rx_${side}_prism_dir`, "IN"),
-    line(`rx_${side}_prism2`, "0.00"),
-    line(`rx_${side}_prism2_dir`, "UP"),
-  ];
+  // A single-eye order simply omits the other eye. An eye is "ordered" when it
+  // carries a sphere; plano (0) counts, an empty field does not.
+  const has = (v: unknown) => v !== null && v !== undefined && v !== "";
+  const ordered = (["od", "os"] as const).filter((side) => has(rx[`${side}_sph`]));
+  const eyes = ordered.length ? ordered : (["od", "os"] as const);
 
-  const lines = [line("rx_eye", "3"), ...eyeFields("od"), ...eyeFields("os")];
-  if (Number(rx.od_add ?? 0) > 0 || Number(rx.os_add ?? 0) > 0) {
-    const segHeight = rx.seg_height || rx.fitting_height;
-    lines.push(
-      line("rx_od_add", numberText(rx.od_add, "OD add")),
-      line("rx_os_add", numberText(rx.os_add, "OS add")),
-      line("rx_od_seg_height", numberText(segHeight, "OD segment height")),
-      line("rx_os_seg_height", numberText(segHeight, "OS segment height")),
-      line("x_rx_seg_height_qual", "1"),
-    );
+  // Prism is sent only when prescribed (pricing and calculation are Innovations'
+  // job; no price lines go with it). Unprescribed prism keeps the spec's
+  // explicit zero.
+  const prism = (side: "od" | "os", n: "" | "2", defaultDir: string) => {
+    const value = rx[`${side}_prism${n ? "2" : ""}_value`];
+    const dir = rx[`${side}_prism${n ? "2" : ""}_dir`];
+    const prescribed = has(value) && Number(value) !== 0;
+    return [
+      line(`rx_${side}_prism${n}`, prescribed ? numberText(value, `${side.toUpperCase()} prism`) : "0.00"),
+      line(`rx_${side}_prism${n}_dir`, prescribed && dir ? text(dir, 10).toUpperCase() : defaultDir),
+    ];
+  };
+
+  const eyeFields = (side: "od" | "os") => {
+    const l = side === "os" ? order.lensOs ?? lens : lens;
+    return [
+      line(`x_${side}_lens_alias`, l.alias),
+      line(`x_lens_${side}_material_code`, l.materialCode),
+      line(`x_lens_${side}_material_desc`, l.materialDescription),
+      line(`x_lens_${side}_style_code`, l.styleCode),
+      line(`x_lens_${side}_style_desc`, l.styleDescription),
+      line(`x_lens_${side}_color_code`, l.colorCode),
+      line(`x_lens_${side}_color_desc`, l.colorDescription),
+      line(`rx_${side}_sphere`, numberText(rx[`${side}_sph`], `${side.toUpperCase()} sphere`)),
+      line(`rx_${side}_cylinder`, numberText(rx[`${side}_cyl`], `${side.toUpperCase()} cylinder`, 0)),
+      line(`rx_${side}_axis`, integerText(rx[`${side}_axis`], `${side.toUpperCase()} axis`)),
+      line(`rx_${side}_far`, numberText(rx[`${side}_fpd`], `${side.toUpperCase()} far PD`)),
+      ...prism(side, "", "IN"),
+      ...prism(side, "2", "UP"),
+    ];
+  };
+
+  // PROVISIONAL: 1 = right only, 2 = left only, 3 = both. Single-eye codes are
+  // unconfirmed until trial orders are available; pair orders stay "3".
+  const rxEye = eyes.length === 2 ? "3" : eyes[0] === "od" ? "1" : "2";
+  const lines = [line("rx_eye", rxEye), ...eyes.flatMap((side) => eyeFields(side))];
+
+  // One height per eye, per lens: OC height (single vision), segment height
+  // (bifocal) or fitting height (progressive) all travel in the seg-height
+  // field. Per-eye values win; the single shared value is the older fallback.
+  const height = (side: "od" | "os") => {
+    const own = rx[`${side}_height`];
+    return has(own) ? own : rx.seg_height || rx.fitting_height;
+  };
+  const withAdd = eyes.filter((side) => Number(rx[`${side}_add`] ?? 0) > 0);
+  if (withAdd.length) {
+    for (const side of withAdd) {
+      lines.push(
+        line(`rx_${side}_add`, numberText(rx[`${side}_add`], `${side.toUpperCase()} add`)),
+        line(`rx_${side}_seg_height`, numberText(height(side), `${side.toUpperCase()} segment height`)),
+      );
+    }
+    lines.push(line("x_rx_seg_height_qual", "1"));
   }
   return lines;
 }
@@ -379,7 +410,12 @@ export function canonicalOrderFromRxSubmission(submission: SubmissionLike, now?:
   const payload = (submission.payload ?? {}) as any;
   const quote = payload.quote ?? {};
   const frame = payload.frame ?? {};
-  const lensLine = Array.isArray(payload.lenses) ? payload.lenses[0] : null;
+  const lensLines: any[] = Array.isArray(payload.lenses) ? payload.lenses : [];
+  // A split-lens order is saved as an "OD · …" line and an "OS · …" line (see
+  // persistPayload). Pair them by that label; anything else is a single lens.
+  const eyeOf = (l: any) => (/^OS\s*·/.test(String(l?.item_name ?? "")) ? "os" : "od");
+  const lensLine = lensLines.find((l) => eyeOf(l) === "od") ?? lensLines[0] ?? null;
+  const osLine = lensLines.find((l) => l !== lensLine && eyeOf(l) === "os") ?? null;
   const codes = lensLine?.codes ?? {};
   if (!lensLine || !lensLine.alias || !codes.material_code || !codes.style_code || !codes.color_code) {
     throw new Error("A confirmed lens alias with material, style, and colour codes is required for delivery.");
@@ -403,6 +439,23 @@ export function canonicalOrderFromRxSubmission(submission: SubmissionLike, now?:
       quantity: Math.max(1, Number(addon.qty ?? 1) || 1),
       partRx: "Y",
     }));
+
+  const lensFrom = (l: any): CanonicalOrderLens | null => {
+    const c = l?.codes ?? {};
+    if (!l?.alias || !c.material_code || !c.style_code || !c.color_code) return null;
+    return {
+      alias: String(l.alias),
+      materialCode: String(c.material_code),
+      materialDescription: c.material_description ?? null,
+      styleCode: String(c.style_code),
+      styleDescription: c.style_description ?? null,
+      colorCode: String(c.color_code),
+      colorDescription: c.color_description ?? null,
+    };
+  };
+  const lensOs = osLine && osLine.alias !== lensLine.alias ? lensFrom(osLine) : null;
+  // rx_details hangs off the first lens line only.
+  const rxSource = lensLines.find((l) => l?.rx) ?? lensLine;
 
   return {
     kind: "rx",
@@ -431,7 +484,8 @@ export function canonicalOrderFromRxSubmission(submission: SubmissionLike, now?:
       colorCode: String(codes.color_code),
       colorDescription: codes.color_description ?? null,
     },
-    rx: lensLine.rx ?? {},
+    ...(lensOs ? { lensOs } : {}),
+    rx: rxSource?.rx ?? {},
     items,
   };
 }

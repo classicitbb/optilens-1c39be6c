@@ -48,8 +48,14 @@ coatings, tints and supplies ride in the *same* item blocks.
   `.stockhashref` format spells semi-finished `SLENS`; that spelling is
   accepted on the way in and rewritten to `SFLENS` here, so the office format
   did not have to change.
-- `rx_*_prism` / `rx_*_prism2` are always written, zeroed, with a direction —
-  the spec asks for explicit zeros rather than absent fields.
+- `rx_*_prism` / `rx_*_prism2` carry the prescribed prism and its direction;
+  when none is prescribed they are written as explicit zeros (the spec asks for
+  zeros rather than absent fields). No price lines go with prism — Innovations
+  calculates it.
+- A single-eye order omits the other eye entirely. `rx_eye` 1 (right) / 2 (left)
+  is PROVISIONAL until trial hashref files confirm the code; pairs stay 3.
+- One height per eye (OC / segment / fitting, by lens type) travels as
+  `rx_*_seg_height`.
 
 `src/tests/unit/orderHashref.unit.test.ts` pins all of the above.
 

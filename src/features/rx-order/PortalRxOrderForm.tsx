@@ -1,8 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuotes } from "@/hooks/useQuotes";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
@@ -10,14 +7,14 @@ import { isEmbeddedRxOrderPayload, resolveResumedRxDraftId, useRxDraft } from "@
 import { buildPrefillBanner, buildRxPrefillPayload } from "@/features/rx-order/prefill/rxOrderPrefill";
 
 // Shared portal form used both from the standalone order route and My Account.
-// Keeping order creation here ensures both entry points create and price the
-// same customer-locked RX quote.
+// The quote is not created here: the form creates it on its first real save
+// (save_rx_order), so both entry points price and save the same customer-locked
+// RX quote and merely opening the form leaves nothing behind.
 const PortalRxOrderForm = () => {
   const { toast } = useToast();
-  const { createMutation } = useQuotes();
   const { identity, isLoading: identityLoading, isStaff, canAccessFeature } = usePortalIdentity();
-  const [quoteId, setQuoteId] = useState<string | null>(null);
-  const creatingRef = useRef(false);
+  // Bumped by "Another" to give the form a fresh, quote-less start.
+  const [formKey, setFormKey] = useState(0);
   const [searchParams] = useSearchParams();
   const draftId = searchParams.get("draft") ?? undefined;
   const { data: draft, isFetched: draftFetched, isError: draftError } = useRxDraft(draftId);
@@ -44,30 +41,6 @@ const PortalRxOrderForm = () => {
 
   const lockedAccountId: number | null = identity?.crmCustomerId ?? null;
 
-  const { data: quote } = useQuery({
-    queryKey: ["rx-order-quote-header", quoteId],
-    enabled: !!quoteId,
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("quotes") as any)
-        .select("id, quote_number").eq("id", quoteId).single();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  useEffect(() => {
-    if (quoteId || creatingRef.current || identityLoading) return;
-    if (lockedAccountId == null && !isStaff) return;
-    creatingRef.current = true;
-    createMutation.mutate(
-      { quote_type: "RX", account_id: lockedAccountId },
-      {
-        onSuccess: (quote) => setQuoteId(quote.id),
-        onError: (error: any) => toast({ title: "Could not start an Rx order", description: error.message, variant: "destructive" }),
-      },
-    );
-  }, [quoteId, lockedAccountId, identityLoading, isStaff]); // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!identityLoading && lockedAccountId == null && !isStaff) {
     return (
       <div className="p-12 text-center text-sm text-muted-foreground">
@@ -77,15 +50,17 @@ const PortalRxOrderForm = () => {
     );
   }
 
-  return quoteId && draftSettled ? (
+  const ready = !identityLoading && (lockedAccountId != null || isStaff) && draftSettled;
+
+  return ready ? (
     <RxOrderEmbed
-      quoteId={quoteId}
-      quoteNumber={quote?.quote_number}
+      key={formKey}
+      quoteId={null}
       surface="portal"
       lockedAccountId={lockedAccountId}
       checkoutPath="/checkout"
       storePath="/store"
-      onStartAnother={() => { setQuoteId(null); creatingRef.current = false; }}
+      onStartAnother={() => setFormKey((k) => k + 1)}
       prefill={prefill}
       prefillBanner={prefillBanner}
       resumedDraftId={resolveResumedRxDraftId(draftId, draft?.input_payload)}

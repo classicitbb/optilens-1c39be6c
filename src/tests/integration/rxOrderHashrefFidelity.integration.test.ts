@@ -43,7 +43,18 @@ vi.mock("@/integrations/supabase/client", () => {
       Promise.resolve({ data: pendingRows ?? [], error: null }).then(ok, err);
     return c;
   };
-  return { supabase: { from: (t: string) => builder(t) } };
+  // persistPayload saves through the save_rx_order RPC; the mirror reproduces
+  // its row effects into the same captured rows the table stubs fill.
+  const rpc = async (name: string, args: any) => {
+    if (name !== "save_rx_order") return { data: null, error: { message: `unexpected rpc ${name}` } };
+    const { saveRxOrderMirror } = await import("@/tests/support/rxSubmissionFixture");
+    try {
+      return { data: saveRxOrderMirror(args.p_quote_id, args.p_payload, captured.rows), error: null };
+    } catch (e: any) {
+      return { data: null, error: { message: e.message } };
+    }
+  };
+  return { supabase: { from: (t: string) => builder(t), rpc } };
 });
 
 // ── seeded generator ────────────────────────────────────────────────────────
@@ -197,13 +208,11 @@ const parse = (file: string) => {
 describe(`Rx order → Hashref fidelity (seed ${SEED}, ${BATCH} orders)`, () => {
   beforeEach(() => { document.body.innerHTML = ""; localStorage.clear(); });
 
-  // KNOWN FAILING, on purpose. This test currently finds real defects in the
-  // outbound file (single-eye orders fail to build; prism is written as 0.00;
-  // a split order's left lens and per-eye segment height are lost; frame_model
-  // carries the mount type). `it.fails` keeps CI green while they stand and
-  // turns RED the moment they are all fixed — at which point change it.fails
-  // back to it. Run it to see the current defect list in the console output.
-  it.fails("every value entered reaches Innovations unchanged", async () => {
+  // Decisions behind what "unchanged" means here: prism is sent only when
+  // prescribed (Innovations prices it; no price lines go with the file); a
+  // single-eye order omits the other eye; one height per eye travels as the
+  // seg-height field whatever the lens type.
+  it("every value entered reaches Innovations unchanged", async () => {
     const defects = new Map<string, string[]>();
     const flag = (cls: string, detail: string) => defects.set(cls, [...(defects.get(cls) ?? []), detail]);
     const rejected: string[] = [];
@@ -215,7 +224,16 @@ describe(`Rx order → Hashref fidelity (seed ${SEED}, ${BATCH} orders)`, () => 
       const entered = await enterOrder(spec);
       if ("rejected" in entered) { rejected.push(`${tag}: ${entered.rejected}`); continue; }
 
-      const { submission } = await persist(entered.payload, n);
+      const { rows, submission } = await persist(entered.payload, n);
+
+      // The saved total is the sum of the saved lines (the server sums them),
+      // and must equal what the form quoted — within the cent rounding of
+      // splitting an amount across lines.
+      const quotedTotal = Number(entered.payload.quote?.total ?? 0);
+      const savedTotal = Number(rows.quotes[0]?.grand_total ?? 0);
+      if (Math.abs(savedTotal - quotedTotal) > 0.05 * Math.max(1, rows.quote_lines.length)) {
+        flag("TOTAL_MISMATCH", `${tag}: form quoted ${quotedTotal}, saved lines sum to ${savedTotal}`);
+      }
       let file: string;
       try {
         const order = canonicalOrderFromRxSubmission({ id: `sub-${n}`, gatekeeper_order_id: 100000 + n, payload: submission as any });
@@ -280,5 +298,5 @@ describe(`Rx order → Hashref fidelity (seed ${SEED}, ${BATCH} orders)`, () => 
     console.log(`Rx→Hashref fidelity: ${built} files built, ${rejected.length} orders refused by the form.\n${summary || "no defects"}`);
     expect(built, `form refused too many generated orders:\n${rejected.join("\n")}`).toBeGreaterThan(BATCH / 2);
     expect(summary, summary).toBe("");
-  });
+  }, 60_000);
 });

@@ -171,7 +171,7 @@ describe("split eyes — a different lens per side", () => {
     });
 
     it("blocks the cart when only the left eye is unpriced", () => {
-      const h = mountRxOrder().fillValidOrder();
+      const h = mountRxOrder({ blockUnpricedOrders: true }).fillValidOrder();
       h.setSplit(true);
       h.selectLensOs({ m: MATERIALS.plastic, d: DESIGNS.sv, c: COLOURS.amber });
 

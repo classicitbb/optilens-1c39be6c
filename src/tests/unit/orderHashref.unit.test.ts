@@ -123,6 +123,27 @@ describe("prescription orders", () => {
     expect(fields.get("frame_a")).toBe("52.00");
   });
 
+  it("sends the left eye's own lens on a split-lens order", () => {
+    const submission = rxSubmission();
+    const od = submission.payload.lenses[0] as any;
+    od.item_name = "OD · Plastic Single Vision";
+    submission.payload.lenses.push({
+      item_name: "OS · Poly Single Vision",
+      alias: "0000000200002",
+      codes: {
+        material_code: "30", material_description: "POLY",
+        style_code: "100", style_description: "SINGLE VISION",
+        color_code: "1", color_description: "CLEAR",
+      },
+      rx: null,
+    } as any);
+    const fields = fieldsOf(buildOrderHashref(canonicalOrderFromRxSubmission(submission), ROUTING));
+    expect(fields.get("x_od_lens_alias")).toBe("0000000100001");
+    expect(fields.get("x_os_lens_alias")).toBe("0000000200002");
+    expect(fields.get("x_lens_os_material_code")).toBe("30");
+    expect(fields.get("rx_os_sphere")).toBe("-2.25");
+  });
+
   it("derives an uncut diameter instead of frame measurements for a surface-only job", () => {
     const submission = rxSubmission();
     submission.payload.frame = { ...submission.payload.frame, is_uncut: true, job_scope: "surface_only", ed_mm: 54.2 } as any;

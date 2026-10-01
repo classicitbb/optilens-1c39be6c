@@ -1,63 +1,46 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuotes } from "@/hooks/useQuotes";
-import { useToast } from "@/hooks/use-toast";
 import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
+import { savedRxPayload } from "@/features/rx-order/embed/rx-order-adapter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FlaskConical } from "lucide-react";
 import "./rx-order-form-page.css";
 
-// Admin surface for the ported prototype Rx order form. Fast-path entry
-// (/admin/orders/quotations/new-rx) creates a blank RX quote and drops
-// straight into the form; /admin/orders/quotations/rx/:id re-opens one.
+// Admin surface for the ported prototype Rx order form. /new-rx opens a blank
+// form WITHOUT creating anything: the quote comes into being on the first real
+// save (save_rx_order), so opening and abandoning the page leaves no orphan
+// quote behind. /quotations/rx/:id re-opens a saved one.
 // The form itself is the verbatim prototype (see features/rx-order/embed).
 const RxOrderFormPage = () => {
   const { id: routeQuoteId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { createMutation } = useQuotes();
-  const [quoteId, setQuoteId] = useState<string | null>(routeQuoteId ?? null);
-  const creatingRef = useRef(false);
+  // A saved quote's number, once the first save has created it.
+  const [created, setCreated] = useState<{ id: string; number: string | null } | null>(null);
+  // Bumped by "Another" to give the form a fresh, quote-less start.
+  const [formKey, setFormKey] = useState(0);
 
-  // Both routes render this same component, so React Router does not remount
-  // it when navigating from /quotations/rx/:id to /quotations/new-rx (same
-  // element type, same slot in the tree). Re-sync local state to the URL so
-  // that navigation — not just the initial mount — can trigger a fresh quote.
-  useEffect(() => {
-    setQuoteId(routeQuoteId ?? null);
-    creatingRef.current = false;
-  }, [routeQuoteId]);
+  // /quotations/rx/:id and /quotations/new-rx render this same component, so
+  // React Router does not remount it between them. The embed's key follows the
+  // route id, so it remounts; this clears the "saved as" label with it.
+  useEffect(() => { setCreated(null); }, [routeQuoteId]);
 
-  const { data: quote } = useQuery({
+  const quoteId = routeQuoteId ?? null;
+  const { data: quote, isFetched: quoteFetched } = useQuery({
     queryKey: ["rx-order-quote-header", quoteId],
     enabled: !!quoteId,
     queryFn: async () => {
       const { data, error } = await (supabase.from("quotes") as any)
-        .select("id, quote_number").eq("id", quoteId).single();
+        .select("id, quote_number, rx_payload, notes_internal").eq("id", quoteId).single();
       if (error) throw error;
       return data;
     },
   });
-
-  useEffect(() => {
-    if (quoteId || creatingRef.current) return;
-    creatingRef.current = true;
-    createMutation.mutate(
-      { quote_type: "RX" },
-      {
-        onSuccess: (q) => {
-          setQuoteId(q.id);
-          navigate(`/admin/orders/quotations/rx/${q.id}`, { replace: true });
-        },
-        onError: (e: any) => {
-          toast({ title: "Could not start an Rx order", description: e.message, variant: "destructive" });
-          navigate("/admin/orders/quotations");
-        },
-      },
-    );
-  }, [quoteId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const quoteNumber = quote?.quote_number ?? created?.number ?? null;
+  // A saved quote reopens with its order replayed into the form; without this
+  // the form would open blank and the next autosave would overwrite the quote.
+  const prefill = useMemo(() => savedRxPayload(quote), [quote]);
 
   return (
     <div className="min-h-0 rx-order-admin-shell">
@@ -65,24 +48,37 @@ const RxOrderFormPage = () => {
         <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => navigate("/admin/orders/quotations")}>
           <ArrowLeft className="h-3.5 w-3.5" /> Quotations
         </Button>
-        {quote?.quote_number && (
-          <span className="text-[11px] text-muted-foreground">Saved as quote <span className="font-mono">{quote.quote_number}</span></span>
+        {quoteNumber && (
+          <span className="text-[11px] text-muted-foreground">Saved as quote <span className="font-mono">{quoteNumber}</span></span>
         )}
         <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 ml-auto" onClick={() => navigate("/admin/orders/rx-test")}>
           <FlaskConical className="h-3.5 w-3.5" /> Test bench
         </Button>
       </div>
-      {quoteId ? (
-        <RxOrderEmbed
-          quoteId={quoteId}
-          quoteNumber={quote?.quote_number}
-          surface="admin"
-          checkoutPath="/checkout"
-          storePath="/store"
-          onStartAnother={() => navigate("/admin/orders/quotations/new-rx")}
-        />
+      {quoteId && !quoteFetched ? (
+        <div className="text-xs text-muted-foreground p-6">Opening order…</div>
       ) : (
-        <div className="text-xs text-muted-foreground p-6">Creating order…</div>
+      <RxOrderEmbed
+        key={`${routeQuoteId ?? "new"}:${formKey}`}
+        quoteId={quoteId}
+        quoteNumber={quote?.quote_number}
+        prefill={prefill ?? undefined}
+        prefillBanner={prefill && quote ? `Reopened saved order <b>${quote.quote_number}</b>.` : undefined}
+        surface="admin"
+        checkoutPath="/checkout"
+        storePath="/store"
+        onQuoteCreated={({ quoteId: id, quoteNumber: number }) => {
+          setCreated({ id, number });
+          // Point the address bar at the saved quote WITHOUT a router
+          // navigation: that would remount the form mid-entry.
+          window.history.replaceState(window.history.state, "", `/admin/orders/quotations/rx/${id}`);
+        }}
+        onStartAnother={() => {
+          setCreated(null);
+          window.history.replaceState(window.history.state, "", "/admin/orders/quotations/new-rx");
+          setFormKey((k) => k + 1);
+        }}
+      />
       )}
     </div>
   );
