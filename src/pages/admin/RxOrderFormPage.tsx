@@ -71,11 +71,11 @@ const RxOrderFormPage = () => {
           setCreated({ id, number });
           // Point the address bar at the saved quote WITHOUT a router
           // navigation: that would remount the form mid-entry.
-          window.history.replaceState(window.history.state, "", `/admin/orders/quotations/rx/${id}`);
+          window.history.replaceState(window.history.state, "", `/admin/orders/rx-legacy/${id}`);
         }}
         onStartAnother={() => {
           setCreated(null);
-          window.history.replaceState(window.history.state, "", "/admin/orders/quotations/new-rx");
+          window.history.replaceState(window.history.state, "", "/admin/orders/rx-legacy/new");
           setFormKey((k) => k + 1);
         }}
       />

@@ -95,7 +95,7 @@ const QuoteEditorPage = () => {
   // STOCK uses the Stock Order Builder so this legacy URL cannot revive the
   // retired flat stock editor.
   useEffect(() => {
-    if (quote?.quote_type === "RX") navigate(`/admin/orders/quotations/rx/${quote.id}`, { replace: true });
+    if (quote?.quote_type === "RX") navigate(`/admin/orders/rx/${quote.id}/edit`, { replace: true });
     if (quote?.quote_type === "STOCK") navigate(`/admin/orders/stock-orders?quote=${encodeURIComponent(quote.id)}`, { replace: true });
   }, [quote?.id, quote?.quote_type, navigate]);
 

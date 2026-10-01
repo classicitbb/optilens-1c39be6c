@@ -201,9 +201,9 @@ export const PLATFORM_ROUTES: PlatformRoute[] = [
     "module": "Orders"
   },
   {
-    "slug": "orders/quotations/new-rx",
+    "slug": "orders/rx/new",
     "label": "Rx Order Form",
-    "path": "/admin/orders/quotations/new-rx",
+    "path": "/admin/orders/rx/new",
     "module": "Orders"
   },
   {

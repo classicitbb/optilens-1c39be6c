@@ -43,6 +43,6 @@ describe("admin Rx order route accessibility", () => {
     expect(navigation).toContain('shortcutKey: "activities"');
     expect(navigation).toContain('shortcutKey: "rx-order"');
     expect(launcher).toContain('defaultRoute: "/admin/crm/activities"');
-    expect(launcher).toContain('defaultRoute: "/admin/orders/quotations/new-rx"');
+    expect(launcher).toContain('defaultRoute: "/admin/orders/rx/new"');
   });
 });

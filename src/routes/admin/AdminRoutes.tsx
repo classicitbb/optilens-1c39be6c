@@ -123,6 +123,13 @@ const HelpdeskTicketRedirect = () => {
   return <Navigate to={`/admin/helpdesk/tickets${ticketHref(id ?? "")}`} replace />;
 };
 
+// The React Rx form is the Rx order form. The old prototype form stays reachable at
+// /admin/orders/rx-legacy/* (for reference) and these old URLs land on the new one.
+const RxQuoteRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/admin/orders/rx/${id ?? ""}/edit`} replace />;
+};
+
 // Order handling moved from /admin/website/* to /admin/orders/*; keep old links
 // (bookmarks, stored notification hrefs) working, including sub-paths and query.
 const LegacyWebsiteOrdersRedirect = () => {
@@ -272,8 +279,10 @@ const AdminRoutes = () => (
       <Route path="orders" element={<OrdersPage />} />
       <Route path="orders/quotations" element={<QuotationsListPage />} />
       <Route path="orders/stock-orders" element={<StockOrderBuilderPage />} />
-      <Route path="orders/quotations/new-rx" element={<RxOrderFormPage />} />
-      <Route path="orders/quotations/rx/:id" element={<RxOrderFormPage />} />
+      <Route path="orders/quotations/new-rx" element={<Navigate to="/admin/orders/rx/new" replace />} />
+      <Route path="orders/quotations/rx/:id" element={<RxQuoteRedirect />} />
+      <Route path="orders/rx-legacy/new" element={<RxOrderFormPage />} />
+      <Route path="orders/rx-legacy/:id" element={<RxOrderFormPage />} />
       <Route path="orders/quotations/:id" element={<QuoteEditorPage />} />
       <Route
         path="orders/quotations/:id/print-preview"

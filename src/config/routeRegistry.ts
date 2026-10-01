@@ -103,6 +103,8 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.orders.quotation", path: "/admin/orders/quotations/:id", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.quotation.print-preview", path: "/admin/orders/quotations/:id/print-preview", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.rx-submissions", path: "/admin/orders/rx-submissions", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.orders.rx-legacy.new", path: "/admin/orders/rx-legacy/new", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "admin.orders.rx-legacy", path: "/admin/orders/rx-legacy/:id", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.rx", path: "/admin/orders/rx", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.rx.settings", path: "/admin/orders/rx/settings", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.rx.new", path: "/admin/orders/rx/new", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },

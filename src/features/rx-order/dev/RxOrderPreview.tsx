@@ -162,7 +162,7 @@ const RxOrderPreview = ({ allowLive = false }: { allowLive?: boolean }) => {
         }}
       >
         {/* the way out: the admin bench returns to the regular Rx order form, the dev bench to the site */}
-        <button type="button" onClick={() => navigate(allowLive ? "/admin/orders/quotations/new-rx" : "/")}>
+        <button type="button" onClick={() => navigate(allowLive ? "/admin/orders/rx/new" : "/")}>
           ← {allowLive ? "Rx order form" : "Back"}
         </button>
         <strong style={{ fontSize: 13 }}>Rx form bench</strong>
