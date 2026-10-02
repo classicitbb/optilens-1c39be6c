@@ -1505,6 +1505,8 @@ export type Database = {
       cart_drafts: {
         Row: {
           created_at: string
+          created_by_name: string | null
+          customer_id: number | null
           id: string
           items: Json
           name: string
@@ -1516,6 +1518,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by_name?: string | null
+          customer_id?: number | null
           id?: string
           items?: Json
           name: string
@@ -1527,6 +1531,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by_name?: string | null
+          customer_id?: number | null
           id?: string
           items?: Json
           name?: string
@@ -1536,7 +1542,29 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cart_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "cart_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
       }
       cart_items: {
         Row: {
@@ -9467,6 +9495,8 @@ export type Database = {
       rx_order_drafts: {
         Row: {
           created_at: string
+          created_by_name: string | null
+          customer_id: number | null
           id: string
           input_payload: Json
           name: string
@@ -9479,6 +9509,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by_name?: string | null
+          customer_id?: number | null
           id?: string
           input_payload?: Json
           name: string
@@ -9491,6 +9523,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by_name?: string | null
+          customer_id?: number | null
           id?: string
           input_payload?: Json
           name?: string
@@ -9502,6 +9536,27 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rx_order_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "rx_order_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rx_order_drafts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
           {
             foreignKeyName: "rx_order_drafts_rule_set_id_fkey"
             columns: ["rule_set_id"]
@@ -12847,6 +12902,10 @@ export type Database = {
         Args: { p_actor_user_id?: string; p_auth_token: string }
         Returns: undefined
       }
+      can_access_account_draft: {
+        Args: { p_customer_id: number; p_write: boolean }
+        Returns: boolean
+      }
       can_access_customer_lab_pricing: {
         Args: { p_customer_id?: number; p_user_id?: string }
         Returns: boolean
@@ -12992,6 +13051,7 @@ export type Database = {
         Args: { p_actor_user_id?: string; p_provider: string }
         Returns: undefined
       }
+      draft_person_name: { Args: { p_user_id: string }; Returns: string }
       effective_price: {
         Args: { p_customer_id: number; p_item_ref: string }
         Returns: number
