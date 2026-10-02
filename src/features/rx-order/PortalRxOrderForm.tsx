@@ -40,6 +40,8 @@ const PortalRxOrderForm = () => {
     : editId ? `Editing Rx order <b>${source.rx_order_number != null ? `#${source.rx_order_number}` : ""}</b>. You can change it until Classic Visions releases it to the lab.`
     : fromKind === "remake" ? `Remake / warranty of Rx order <b>${source.rx_order_number != null ? `#${source.rx_order_number}` : ""}</b>. Check the frame details before sending.`
     : `Reorder of Rx order <b>${source.rx_order_number != null ? `#${source.rx_order_number}` : ""}</b>: same prescription, lens and coatings. Choose the new frame.`;
+  // A draft made from an order that was in the cart keeps its quote, so resubmitting re-uses it.
+  const draftQuoteId = typeof (draft?.input_payload as any)?.quoteId === "string" ? (draft!.input_payload as any).quoteId as string : undefined;
   const isEmbeddedDraft = isEmbeddedRxOrderPayload(draft?.input_payload);
   const prefill = useMemo(() => (
     !draft ? undefined : isEmbeddedDraft ? draft.input_payload : buildRxPrefillPayload(draft)
@@ -83,7 +85,7 @@ const PortalRxOrderForm = () => {
   return ready ? (
     <RxForm
       key={formKey}
-      quoteId={editId ?? null}
+      quoteId={editId ?? draftQuoteId ?? null}
       editFromCart={editFromCart}
       surface="portal"
       lockedAccountId={lockedAccountId}

@@ -8,7 +8,7 @@ import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useSaveEmbeddedRxOrderDraft, useRxDrafts } from "@/features/lens-assistant/api";
+import { useSaveEmbeddedRxOrderDraft, useRxDrafts, useDeleteRxDraft } from "@/features/lens-assistant/api";
 import { useCartDrafts } from "@/hooks/useCartDrafts";
 import { isRxOrderableAddon, isRxOrderableLens, usePricelistScope } from "./hooks/useOrderableCatalog";
 import { useInnovationsCatalogAliases, useRxCurrencies, useRxMatrixPrices } from "./hooks/useInnovationsCatalog";
@@ -113,6 +113,7 @@ export const RxOrderEmbed = ({
   const { data: accounts = [], isLoading: accountsLoading } = useCustomerAccounts();
   const { addToCart } = useCart();
   const saveEmbeddedRxDraft = useSaveEmbeddedRxOrderDraft();
+  const deleteRxDraft = useDeleteRxDraft();
   const { isAdmin } = useUserRole();
   // Only the customer portal has a "Saved Drafts" page to send an empty,
   // never-touched order to instead of saving it as a useless blank draft.
@@ -305,6 +306,8 @@ export const RxOrderEmbed = ({
       // isn't the draft it used to be — the next save should create its own
       // row rather than overwrite the one this form no longer represents.
       onFormCleared: () => { draftIdRef.current = undefined; },
+      // "Discard draft" also removes the saved row, not just the form contents.
+      onDraftDiscarded: () => { if (draftIdRef.current) deleteRxDraft.mutate(draftIdRef.current); },
       onSubmitted: async (payload: any) => {
         const { totalBBD, quoteId: savedId, quoteNumber: savedNumber } = await persist(payload);
         if (isTest) {

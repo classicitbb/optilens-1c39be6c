@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import type { CartItem } from "@/hooks/useCart";
 
 export interface CartDraftRow {
@@ -8,6 +9,9 @@ export interface CartDraftRow {
   user_id: string;
   name: string;
   note: string | null;
+  /** Account the draft belongs to and who started it. */
+  customer_id?: number | null;
+  created_by_name?: string | null;
   items: CartItem[];
   total_items: number;
   total_amount: number;
@@ -32,20 +36,21 @@ const stripDbFields = (item: CartItem) => ({
 
 export const useCartDrafts = (targetUserId?: string) => {
   const { user } = useAuth();
+  const customerId = usePortalIdentity().activeMembership?.customerId ?? null;
   const queryClient = useQueryClient();
   // Admin portal emulation passes the emulated account's id; RLS decides who
   // may actually read foreign drafts.
   const effectiveUserId = targetUserId ?? user?.id ?? null;
 
   const query = useQuery({
-    queryKey: [...QUERY_KEY, effectiveUserId],
+    queryKey: [...QUERY_KEY, effectiveUserId, customerId],
     enabled: !!user && !!effectiveUserId,
     queryFn: async () => {
       if (!effectiveUserId) return [] as CartDraftRow[];
       const { data, error } = await (supabase as any)
         .from("cart_drafts")
         .select("*")
-        .eq("user_id", effectiveUserId)
+        .or(customerId ? `user_id.eq.${effectiveUserId},customer_id.eq.${customerId}` : `user_id.eq.${effectiveUserId}`)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as CartDraftRow[];
@@ -62,6 +67,7 @@ export const useCartDrafts = (targetUserId?: string) => {
         .from("cart_drafts")
         .insert([{
           user_id: user.id,
+          customer_id: customerId,
           name: payload.name,
           note: payload.note ?? null,
           items: snapshotItems,

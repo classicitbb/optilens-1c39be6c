@@ -17,6 +17,7 @@ vi.mock("@/hooks/useCartDrafts", () => ({ useCartDrafts: () => ({ drafts: [] }) 
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/features/lens-assistant/api", () => ({
   useRxDrafts: () => ({ data: [] }), useSaveEmbeddedRxOrderDraft: () => ({ mutateAsync: vi.fn().mockResolvedValue({ id: "d" }) }),
+  useDeleteRxDraft: () => ({ mutateAsync: vi.fn().mockResolvedValue(undefined), mutate: vi.fn() }),
 }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn(), from: vi.fn() } }));
 

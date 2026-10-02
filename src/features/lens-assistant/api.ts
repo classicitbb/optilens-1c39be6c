@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import type {
   LensRecommendationInput,
   LensRecommendationResult,
@@ -36,18 +37,24 @@ export const recommendLenses = async (input: LensRecommendationInput): Promise<L
   return data as LensRecommendationResult;
 };
 
+/** The account the signed-in person is working in; new drafts are filed under it. */
+const useActiveDraftAccountId = () => usePortalIdentity().activeMembership?.customerId ?? null;
+
 export const useRxDrafts = (targetUserId?: string) => {
   const { user } = useAuth();
+  const customerId = useActiveDraftAccountId();
   const effectiveUserId = targetUserId ?? user?.id;
   return useQuery<RxOrderDraft[]>({
-    queryKey: [...RX_DRAFTS_QUERY_KEY, effectiveUserId],
+    queryKey: [...RX_DRAFTS_QUERY_KEY, effectiveUserId, customerId],
     enabled: Boolean(user && effectiveUserId),
     queryFn: async () => {
       if (!effectiveUserId) return [];
+      // Own drafts plus every draft filed under the active account (RLS limits
+      // the latter to accounts the person is a member of).
       const { data, error } = await (supabase as any)
         .from("rx_order_drafts")
         .select("*")
-        .eq("user_id", effectiveUserId)
+        .or(customerId ? `user_id.eq.${effectiveUserId},customer_id.eq.${customerId}` : `user_id.eq.${effectiveUserId}`)
         .order("updated_at", { ascending: false });
       if (error) {
         if (isMissingFeatureError(error)) return [];
@@ -95,6 +102,7 @@ export const buildEmbeddedRxOrderDraftFields = (payload: EmbeddedRxOrderPayload)
 // already created one — every later save updates that same row instead.
 export const useSaveEmbeddedRxOrderDraft = () => {
   const { user } = useAuth();
+  const customerId = useActiveDraftAccountId();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ payload, id }: { payload: EmbeddedRxOrderPayload; id?: string }) => {
@@ -114,8 +122,8 @@ export const useSaveEmbeddedRxOrderDraft = () => {
         targetId = existing?.id;
       }
       const query = targetId
-        ? (supabase as any).from("rx_order_drafts").update(fields).eq("id", targetId).eq("user_id", user.id)
-        : (supabase as any).from("rx_order_drafts").insert({ user_id: user.id, ...fields });
+        ? (supabase as any).from("rx_order_drafts").update(fields).eq("id", targetId)
+        : (supabase as any).from("rx_order_drafts").insert({ user_id: user.id, customer_id: customerId, ...fields });
       const { data, error } = await query.select("*").single();
       if (error) throw error;
       return data as RxOrderDraft;
@@ -135,7 +143,6 @@ export const useRxDraft = (draftId: string | undefined) => {
         .from("rx_order_drafts")
         .select("*")
         .eq("id", draftId)
-        .eq("user_id", user.id)
         .maybeSingle();
       if (error) {
         if (isMissingFeatureError(error)) return null;
@@ -162,6 +169,7 @@ export const useDeleteRxDraft = () => {
 
 export const useSaveRxDraft = () => {
   const { user } = useAuth();
+  const customerId = useActiveDraftAccountId();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -180,6 +188,7 @@ export const useSaveRxDraft = () => {
       if (!user) throw new Error("Sign in to save an Rx draft.");
       const payload = {
         user_id: user.id,
+        customer_id: customerId,
         name,
         status,
         patient_reference: input.patientReference.trim() || null,
@@ -188,7 +197,7 @@ export const useSaveRxDraft = () => {
         rule_set_id: recommendation?.ruleSetId ?? null,
       };
       const query = id
-        ? (supabase as any).from("rx_order_drafts").update(payload).eq("id", id).eq("user_id", user.id)
+        ? (supabase as any).from("rx_order_drafts").update(payload).eq("id", id)
         : (supabase as any).from("rx_order_drafts").insert(payload);
       const { data, error } = await query.select("*").single();
       if (error) throw error;

@@ -15,7 +15,7 @@ import { useCart } from "@/hooks/useCart";
 import { useCartDrafts } from "@/hooks/useCartDrafts";
 import { useToast } from "@/hooks/use-toast";
 import { captureJobs } from "@/features/rx-capture/api";
-import { useRxDrafts, useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
+import { useDeleteRxDraft, useRxDrafts, useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -48,6 +48,8 @@ export interface RxFormProps {
   lockedAccountId?: number | null;
   checkoutPath?: string;
   storePath?: string;
+  /** Where "Continue shopping" goes: this surface's own Rx order form. */
+  formPath?: string;
   onStartAnother?: () => void;
   /** A saved order (v1 or v2) to replay into the form. */
   prefill?: unknown;
@@ -166,6 +168,7 @@ function LoadedForm({
   const { toast } = useToast();
   const { addToCart } = useCart();
   const saveDraft = useSaveEmbeddedRxOrderDraft();
+  const deleteDraft = useDeleteRxDraft();
   const { drafts: cartDrafts } = useCartDrafts();
   const { data: rxDrafts = [] } = useRxDrafts();
   const hasSavedDrafts = props.surface === "portal" && cartDrafts.length + rxDrafts.length > 0;
@@ -187,6 +190,8 @@ function LoadedForm({
   const draftIdRef = useRef<string | undefined>(props.resumedDraftId);
   const chainRef = useRef<Promise<unknown>>(Promise.resolve());
   const submitting = useRef(false);
+  // Set once the order is in the cart / placed: it is no longer a draft, so a pending autosave must not recreate one.
+  const carted = useRef(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [saving, setSaving] = useState(false);
   const [orderNo, setOrderNo] = useState<number | null>(null);
@@ -232,7 +237,8 @@ function LoadedForm({
     const v1 = downgradeToV1(order());
     const saved = await persist(v1);
     if (!isTest) {
-      const row = await saveDraft.mutateAsync({ payload: v1 as any, id: draftIdRef.current });
+      // quoteId ties the draft to its quote, so resuming it (e.g. after it was removed from the cart) re-saves that same order.
+      const row = await saveDraft.mutateAsync({ payload: { ...v1, quoteId: quoteIdRef.current } as any, id: draftIdRef.current });
       draftIdRef.current = row.id;
     }
     setSavedAt(new Date());
@@ -242,8 +248,10 @@ function LoadedForm({
   // Autosave, debounced; never on a pristine form and never blocks typing.
   const valuesKey = JSON.stringify(values);
   useEffect(() => {
+    carted.current = false;
     if (api.isEmpty || submitting.current) return;
     const timer = setTimeout(async () => {
+      if (carted.current) return;
       setSaving(true);
       try { await save(); } catch { /* the next change retries; the person is not interrupted */ } finally { setSaving(false); }
     }, 1500);
@@ -258,6 +266,15 @@ function LoadedForm({
 
   const cartName = (num: string | null, v1: any) =>
     `Rx Order ${num ?? ""} — ${[v1.patient?.first, v1.patient?.last].filter(Boolean).join(" ") || v1.account?.name || ""}`.trim();
+
+  // An order in the cart (or placed) leaves the drafts list; removing it from the cart brings it back as a draft.
+  const retireDraft = async () => {
+    carted.current = true;
+    const id = draftIdRef.current;
+    draftIdRef.current = undefined;
+    if (!id) return;
+    try { await deleteDraft.mutateAsync(id); } catch { /* a stale draft row is harmless */ }
+  };
 
   const submit = async () => {
     if (submitting.current || !derived.canSubmit) return;
@@ -282,6 +299,7 @@ function LoadedForm({
         });
         if (error) throw new Error(error.message);
         if (!data) throw new Error("The order could not be placed.");
+        await retireDraft();
         setDone({ kind: "direct", label: "Order placed on your account", total: saved.totalBBD, v1 });
       } else if (props.editFromCart && await updateCartItem(saved, v1)) {
         // handled: the existing cart item now carries the re-saved order and its current price
@@ -291,6 +309,7 @@ function LoadedForm({
           productType: "lens", priceUnit: "job", variantMetadata: { rx_quote_id: saved.quoteId, kind: "rx_order" }, quantity: 1,
         });
         if (!added) throw new Error("The order could not be added to the cart.");
+        await retireDraft();
         setDone({ kind: "cart", label: "Added to your cart", total: saved.totalBBD, v1 });
       }
     } catch (e: any) {
@@ -316,6 +335,7 @@ function LoadedForm({
     if (Math.abs(was - saved.totalBBD) > 0.004) {
       toast({ title: "The price changed", description: `This order was $${was.toFixed(2)} in your cart and is now $${saved.totalBBD.toFixed(2)}.` });
     }
+    await retireDraft();
     setDone({ kind: "cart", label: "Cart updated", total: saved.totalBBD, v1 });
     return true;
   };
@@ -364,6 +384,17 @@ function LoadedForm({
     if (api.isEmpty) { notify("Nothing to save yet"); return; }
     try { await save(); notify(isTest ? "Test draft saved" : "Draft saved"); }
     catch (e: any) { toast({ title: "Could not save the draft", description: e?.message, variant: "destructive" }); }
+  };
+
+  const onDiscardDraft = async () => {
+    if (!window.confirm("Discard this draft and clear the form?")) return;
+    try {
+      if (draftIdRef.current) await deleteDraft.mutateAsync(draftIdRef.current);
+      draftIdRef.current = undefined;
+      api.reset();
+      setSavedAt(null);
+      notify("Draft discarded");
+    } catch (e: any) { toast({ title: "Could not discard the draft", description: e?.message, variant: "destructive" }); }
   };
 
   // ── folding & disclosure ──────────────────────────────────────────────────
@@ -478,6 +509,9 @@ function LoadedForm({
           <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={onSaveDraft}>
             {hasSavedDrafts && api.isEmpty ? "Go to saved drafts" : "Save draft"}
           </Button>
+          <Button type="button" variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive" disabled={api.isEmpty && !draftIdRef.current} onClick={onDiscardDraft}>
+            Discard draft
+          </Button>
           {locked ? (
             <span className="rounded-md border px-2 py-1 text-xs">Ordering for <b>{account?.name ?? "—"}</b></span>
           ) : (
@@ -566,7 +600,7 @@ function LoadedForm({
             )}
             <Button variant="outline" onClick={duplicate}>Duplicate this order</Button>
             <Button variant="outline" onClick={() => { setDone(null); props.onStartAnother?.(); }}>Start another Rx order</Button>
-            {!isTest && <Button variant="ghost" onClick={() => navigate(props.storePath ?? "/store")}>Continue shopping</Button>}
+            {!isTest && <Button variant="ghost" onClick={() => { setDone(null); props.onStartAnother?.(); navigate(props.formPath ?? (props.surface === "admin" ? "/admin/orders/rx/new" : "/profile/rx-order"), { replace: true }); }}>Continue shopping</Button>}
           </div>
         </DialogContent>
       </Dialog>

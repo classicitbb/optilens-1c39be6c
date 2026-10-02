@@ -3760,7 +3760,7 @@ $('#btnTraceDemo').addEventListener('click',()=>{
   toast('Loaded 1471.oma trace sample — shape & dimensions auto-populated');
 });
 $('#btnClearAll').addEventListener('click',()=>{ if(confirm('Clear the whole form?')) { clearAll(); toast('Form cleared'); } });
-$('#discardDraft').addEventListener('click',()=>{ if(confirm('Discard this draft and clear the form?')){ clearAll(); toast('Draft discarded'); } });
+$('#discardDraft').addEventListener('click',()=>{ if(confirm('Discard this draft and clear the form?')){ ADAPTER.onDraftDiscarded?.(); clearAll(); toast('Draft discarded'); } });
 function fillDemo(quiet){
   S.vision='mf'; $$('#visionSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vision==='mf'));
   applyLens('1.60','pg-enh','clear');

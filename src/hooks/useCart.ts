@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { safeError } from "@/lib/safeLog";
+import { useSaveEmbeddedRxOrderDraft } from "@/features/lens-assistant/api";
 import { CartPriceUnit, normalizeCartAddition } from "@/lib/cartUnits";
 
 export interface CartItem {
@@ -212,6 +213,20 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     }
   };
 
+  const saveRxDraft = useSaveEmbeddedRxOrderDraft();
+  const moveRxOrderToDrafts = async (quoteId: string) => {
+    try {
+      const { data, error } = await (supabase.rpc as any)("get_my_rx_order_status", { p_quote_id: quoteId });
+      const payload = data?.payload;
+      if (error || payload?.schema !== "cv.rxorder/1") return false;
+      await saveRxDraft.mutateAsync({ payload: { ...payload, quoteId } });
+      return true;
+    } catch (error) {
+      safeError("Error saving removed Rx order to drafts:", error);
+      return false;
+    }
+  };
+
   const removeFromCart = async (itemId: string) => {
     if (!user) {
       toast({
@@ -223,6 +238,11 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
     }
 
     try {
+      // An Rx order taken out of the cart is not thrown away: it goes back to the saved drafts.
+      const removing = items.find((item) => item.id === itemId);
+      const rxQuoteId = removing?.variant_metadata?.kind === "rx_order" ? removing.variant_metadata.rx_quote_id : null;
+      const savedToDrafts = typeof rxQuoteId === "string" ? await moveRxOrderToDrafts(rxQuoteId) : false;
+
       const { error } = await (supabase.from("cart_items") as any).delete().eq("id", itemId).eq("user_id", user.id);
 
       if (error) throw error;
@@ -231,7 +251,7 @@ export const useCart = ({ enabled = getDefaultCartEnabled() }: UseCartOptions = 
 
       toast({
         title: "Removed from cart",
-        description: "Item has been removed from your cart.",
+        description: savedToDrafts ? "The Rx order was saved to your drafts." : "Item has been removed from your cart.",
       });
     } catch (error) {
       safeError("Error removing from cart:", error);
