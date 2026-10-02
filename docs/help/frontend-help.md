@@ -68,7 +68,7 @@ Choose Gold rule, Teal rule or No rule above document type. Comfortable is recom
 
 ## 2026-08-18 — Downloading a statement PDF
 
-- Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose OneDrive credentials.
+- Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose private storage credentials.
 
 ## 2026-08-15 — Saving a stock quotation
 

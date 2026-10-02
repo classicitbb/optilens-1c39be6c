@@ -48,14 +48,14 @@ Deno.serve(async (req) => {
   const discovered = (statements ?? []).filter((row) => row.innovations_statement_id != null);
   const ids = discovered.map((row) => row.innovations_statement_id as number);
   const { data: existing, error: jobError } = ids.length
-    ? await auth.supabaseAdminClient.from("statement_document_jobs").select("id,innovations_statement_id,status,email_status,one_drive_item_id,skip_reason").in("innovations_statement_id", ids)
+    ? await auth.supabaseAdminClient.from("statement_document_jobs").select("id,innovations_statement_id,status,email_status,storage_path,skip_reason").in("innovations_statement_id", ids)
     : { data: [], error: null };
   if (jobError) return json({ error: jobError.message }, 500, headers);
 
   const byStatement = new Map((existing ?? []).map((job) => [String(job.innovations_statement_id), job]));
   const missing = discovered.filter((row) => !byStatement.has(String(row.innovations_statement_id)));
   const resettable = (existing ?? []).filter((job) =>
-    job.status === "skipped" || (job.status === "failed" && !job.one_drive_item_id)
+    job.status === "skipped" || (job.status === "failed" && !job.storage_path)
   );
   const preserved = (existing ?? []).filter((job) => !resettable.includes(job));
 

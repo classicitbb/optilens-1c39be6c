@@ -18,10 +18,8 @@ CREATE TABLE IF NOT EXISTS public.statement_document_jobs (
   pdf_template_version text NOT NULL DEFAULT 'statement-print-v2',
   pdf_filename text,
   pdf_bytes integer,
-  one_drive_drive_id text,
-  one_drive_item_id text,
-  one_drive_path text,
-  one_drive_url text,
+  storage_bucket text NOT NULL DEFAULT 'statement-pdfs',
+  storage_path text,
   upload_status text NOT NULL DEFAULT 'pending',
   email_status text NOT NULL DEFAULT 'not_sent'
     CHECK (email_status IN ('not_sent', 'awaiting_approval', 'approved', 'queued', 'sent', 'suppressed', 'failed')),
@@ -49,9 +47,9 @@ ALTER TABLE public.statement_document_jobs
 
 CREATE INDEX IF NOT EXISTS statement_document_jobs_claim_idx
   ON public.statement_document_jobs (status, next_retry_at, discovered_at);
-CREATE INDEX IF NOT EXISTS statement_document_jobs_drive_idx
-  ON public.statement_document_jobs (one_drive_item_id)
-  WHERE one_drive_item_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS statement_document_jobs_storage_idx
+  ON public.statement_document_jobs (storage_bucket, storage_path)
+  WHERE storage_path IS NOT NULL;
 
 ALTER TABLE public.statement_document_jobs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins manage statement document jobs" ON public.statement_document_jobs;
@@ -85,5 +83,9 @@ WHERE NOT EXISTS (
   WHERE j.innovations_statement_id = s.innovations_statement_id
 );
 
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('statement-pdfs', 'statement-pdfs', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
 COMMENT ON TABLE public.statement_document_jobs IS
-  'Idempotent PDF, OneDrive upload, staff approval, and canonical email lifecycle for newly discovered Innovations statements.';
+  'Idempotent website PDF, staff approval, and canonical email lifecycle for newly discovered Innovations statements.';

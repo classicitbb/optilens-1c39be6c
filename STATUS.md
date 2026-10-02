@@ -15,8 +15,11 @@ Last updated: 2026-10-02
   bulk approval controls. A protected, dry-run-first
   `statement-document-prepare-period` function is supplied for the one-time
   September 2026 rehearsal; it has not been run against hosted data. Normal
-  October discovery remains baseline-gated. Lovable migration/function
-  deployment, Microsoft Graph setup, scheduling, and live email remain
+  October discovery remains baseline-gated. PDFs are stored in private
+  website-managed Supabase Storage; Microsoft Graph and OneDrive are no longer
+  part of this delivery. The worker prioritizes the oldest statement periods.
+  The website-storage migration and updated functions are now source-only and
+  still require hosted redeployment; scheduling and live email remain
   approval-gated. See `docs/statement-document-automation-runbook.md` and
   `docs/agent/HANDOFF.md`.
 
