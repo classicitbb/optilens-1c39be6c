@@ -45,7 +45,7 @@ export const useRxDrafts = (targetUserId?: string) => {
   const customerId = useActiveDraftAccountId();
   const effectiveUserId = targetUserId ?? user?.id;
   return useQuery<RxOrderDraft[]>({
-    queryKey: [...RX_DRAFTS_QUERY_KEY, effectiveUserId, customerId],
+    queryKey: [...RX_DRAFTS_QUERY_KEY, "list", effectiveUserId, customerId],
     enabled: Boolean(user && effectiveUserId),
     queryFn: async () => {
       if (!effectiveUserId) return [];
@@ -135,7 +135,7 @@ export const useSaveEmbeddedRxOrderDraft = () => {
 export const useRxDraft = (draftId: string | undefined) => {
   const { user } = useAuth();
   return useQuery<RxOrderDraft | null>({
-    queryKey: [...RX_DRAFTS_QUERY_KEY, user?.id, draftId],
+    queryKey: [...RX_DRAFTS_QUERY_KEY, "one", user?.id, draftId],
     enabled: Boolean(user && draftId),
     queryFn: async () => {
       if (!user || !draftId) return null;

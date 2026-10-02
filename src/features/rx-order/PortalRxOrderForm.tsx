@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
@@ -50,8 +50,11 @@ const PortalRxOrderForm = () => {
     !draft ? undefined : isEmbeddedDraft ? `Resuming saved Rx order for <b>${draft.name}</b>.` : buildPrefillBanner(draft)
   ), [draft, isEmbeddedDraft]);
 
+  // Submitting to the cart retires the draft on purpose; that is not "no longer exists".
+  const draftSeen = useRef<string | null>(null);
+  if (draft) draftSeen.current = draftId ?? null;
   useEffect(() => {
-    if (draftId && draftFetched && !draft) {
+    if (draftId && draftFetched && !draft && draftSeen.current !== draftId) {
       toast({
         title: "Saved Rx not loaded",
         description: draftError
@@ -84,7 +87,7 @@ const PortalRxOrderForm = () => {
 
   return ready ? (
     <RxForm
-      key={formKey}
+      key={`${formKey}:${editId ?? fromId ?? draftId ?? "new"}`}
       quoteId={editId ?? draftQuoteId ?? null}
       editFromCart={editFromCart}
       surface="portal"
