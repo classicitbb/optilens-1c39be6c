@@ -2,7 +2,8 @@
 
 ## 2026-10-02 — Statement delivery all-customer view
 
-Status: Local source updated; no deployment, migration, or email occurred.
+Status: Frontend published through Lovable from main; no migration, Edge
+Function, schedule, secret, or email action occurred.
 
 `src/pages/admin/StatementDeliveryPreviewPage.tsx` now reads every non-void
 `statement_document_jobs` row in paged batches, resolves statement/customer
@@ -14,13 +15,15 @@ compatible with the current pre-website-storage local schema; stored PDF
 download needs the already-staged website-storage migration and redeployed
 functions.
 
-Verified: local authenticated browser showed 1,000 initial rows including
-non-Retail customers and 275 missing-email rows; pagination was then added to
-remove the Supabase 1,000-row cap. `npx tsc --noEmit --pretty false`,
-`npm run build`, and `git diff --check` pass. The local build has not sent an
-email or changed source data. Next action: review the all-customer/missing-
-email behavior, then deploy only after explicit approval and run the hosted
-schema/function verification.
+Verified: the Lovable published preview showed 63 September rows and 17
+missing-email warnings. The local authenticated browser previously showed
+1,000 initial rows including non-Retail customers and 275 missing-email rows;
+pagination was then added to remove the Supabase 1,000-row cap. `npx tsc
+--noEmit --pretty false`, `npm run build`, and `git diff --check` pass. The
+local build has not sent an email or changed source data. Lovable reported and
+fixed a typecheck issue in the page before publishing. Next action: deploy the
+website-storage migration and updated functions only after explicit approval,
+then run hosted schema/function verification.
 
 ## 2026-10-02 — Automatic Innovations statement documents
 
