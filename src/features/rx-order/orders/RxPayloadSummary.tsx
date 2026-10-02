@@ -1,7 +1,14 @@
-// Read-only summary of a saved Rx order payload (cv.rxorder/1): patient, lens, Rx table, frame,
-// shape, notes and price lines. Shared by the Saved Drafts preview and the Rx order detail page.
-
-const EYE_LABEL: Record<string, string> = { od: "Right (OD)", os: "Left (OS)" };
+// Read-only summary of a saved Rx (cv.rxorder/1 or /2 payload, or a Lens Assistant draft): the
+// prescription table, lens and coatings, frame and shape, notes, review flags and price lines.
+// Shared by the Saved Drafts preview, the Rx order detail page and the Lens Assistant draft page.
+// What to show is worked out in rxSummaryModel.ts; this file only lays it out.
+import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { STD_SHAPES } from "../domain/standardShapes";
+import { buildRxSummary, EYE_NAME, type EyeKey } from "./rxSummaryModel";
 
 const toSentenceCase = (value: string) => {
   const trimmed = (value ?? "").trim();
@@ -11,6 +18,25 @@ const toSentenceCase = (value: string) => {
       : `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
   )) : trimmed;
 };
+
+/** Quote lines are saved as "OD Super AR" / "OD · Plastic · Clear"; under an eye heading the prefix is noise. */
+const stripEye = (value: string) => value.replace(/^(OD|OS)\b\s*[·-]?\s*/, "");
+
+const money = (quote: any, n: unknown) =>
+  [quote.symbol, Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })].filter(Boolean).join(" ");
+
+/** Coating names for the ids a payload carries. Withdrawn coatings are not in the public list and read "Unavailable". */
+const useCoatingNames = (ids: string[]) =>
+  useQuery({
+    queryKey: ["rx-coating-names"],
+    enabled: ids.length > 0,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("get_addons_safe");
+      if (error) throw error;
+      return new Map<string, string>(((data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name]));
+    },
+  }).data;
 
 /** Polar radii (+ optional angles) for the right lens → a scaled, centred SVG outline. Mirrors the
  * radiiToXY/scaleOutline maths in rx-order-engine.js, simplified to a single static preview. */
@@ -53,115 +79,181 @@ const buildShapeOutline = (shape: any) => {
   };
 };
 
+const shapeLabel = (shape: any): string => {
+  if (!shape) return "No shape provided";
+  if (shape.source === "standard") return `${STD_SHAPES.find((s) => s.id === shape.standardId)?.n ?? "Standard"} — standard shape`;
+  return shape.file ? `Uploaded trace · ${shape.file}` : "Traced shape";
+};
+
+const Section = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section className="rounded-lg border bg-card p-4">
+    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+    <div className="mt-2.5">{children}</div>
+  </section>
+);
+
+const Field = ({ label, value }: { label: string; value: string }) => (
+  <div className="min-w-0">
+    <dt className="text-[11px] text-muted-foreground">{label}</dt>
+    <dd className="text-sm font-medium [overflow-wrap:anywhere]">{value}</dd>
+  </div>
+);
+
 export const RxPayloadSummary = ({ payload, patientFallback }: { payload: any; patientFallback: string }) => {
-  const patient = [payload.patient?.first, payload.patient?.last].filter(Boolean).join(" ");
-  const frame = payload.frame ?? {};
-  const shape = payload.shape ?? null;
-  const rx = payload.rx ?? {};
-  const rxEyes = ["od", "os"].filter((eye) => rx[eye]);
-  const quote = payload.quote ?? null;
+  const m = buildRxSummary(payload, patientFallback);
+  const coatingNames = useCoatingNames(m.treatmentIds);
+  const shape = payload?.shape ?? null;
   const shapeOutline = shape ? buildShapeOutline(shape) : null;
+  const quote = payload?.quote ?? null;
+  const quoteLines: any[] = Array.isArray(quote?.lines) ? quote.lines : [];
 
   return (
-    <div className="space-y-5">
-      <dl className="grid gap-3 rounded-lg border bg-muted/15 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div><dt className="text-xs text-muted-foreground">Patient</dt><dd className="font-medium">{patient || patientFallback}</dd></div>
-        <div><dt className="text-xs text-muted-foreground">Lens</dt><dd className="font-medium">{[payload.lens?.material, payload.lens?.design, payload.lens?.colour].filter(Boolean).join(" · ") || "Not selected"}</dd></div>
-        <div><dt className="text-xs text-muted-foreground">Treatments</dt><dd className="font-medium">{Array.isArray(payload.treatments) ? `${payload.treatments.length} selected` : "None selected"}</dd></div>
-        <div><dt className="text-xs text-muted-foreground">Order</dt><dd className="font-medium">{payload.job?.scope || "Rx draft"}</dd></div>
-      </dl>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+        <div className="min-w-0">
+          <p className="text-lg font-semibold leading-tight [overflow-wrap:anywhere]">{m.patient}</p>
+          {m.reference || m.orderNo ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">{[m.reference && `Your reference: ${m.reference}`, m.orderNo && `Order ${m.orderNo}`].filter(Boolean).join(" · ")}</p>
+          ) : null}
+        </div>
+        {m.facts.length ? <div className="flex flex-wrap gap-1.5">{m.facts.map((f) => <Badge key={f} variant="outline" className="font-normal">{f}</Badge>)}</div> : null}
+      </div>
 
-      {rxEyes.length ? (
-        <div className="rounded-lg border bg-background/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prescription</p>
-          <div className="mt-1 overflow-x-auto">
-            <table className="w-full min-w-[560px] text-xs">
-              <thead className="text-muted-foreground"><tr><th className="py-1 text-left font-medium">Eye</th><th className="py-1 text-left font-medium">SPH</th><th className="py-1 text-left font-medium">CYL</th><th className="py-1 text-left font-medium">AXIS</th><th className="py-1 text-left font-medium">ADD</th><th className="py-1 text-left font-medium">PRISM</th><th className="py-1 text-left font-medium">PD</th><th className="py-1 text-left font-medium">NPD</th><th className="py-1 text-left font-medium">HT</th></tr></thead>
+      {m.flags.length ? (
+        <div role="note" className="flex gap-2.5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <div>
+            <p className="font-medium">Check before sending</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs">{m.flags.map((f, i) => <li key={i}><span className="font-medium">{f.field}:</span> {f.reason}</li>)}</ul>
+          </div>
+        </div>
+      ) : null}
+
+      <Section title="Prescription">
+        {m.rows.length ? (
+          <div className="-mx-1 overflow-x-auto px-1">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <th scope="col" className="sticky left-0 bg-card py-1.5 pr-3 text-left font-medium"><span className="sr-only">Eye</span></th>
+                  {m.columns.map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-center font-medium sm:px-3">{c}</th>)}
+                </tr>
+              </thead>
               <tbody>
-                {rxEyes.map((eye) => { const row = rx[eye] ?? {}; return (
-                  <tr key={eye} className="border-t"><td className="py-1 font-medium">{EYE_LABEL[eye] ?? eye}</td><td className="py-1">{row.sph ?? "—"}</td><td className="py-1">{row.cyl ?? "—"}</td><td className="py-1">{row.axis ?? "—"}</td><td className="py-1">{row.add ?? "—"}</td><td className="py-1">{row.prism ? `${row.prism} ${row.base ?? ""}`.trim() : "—"}</td><td className="py-1">{row.pd ?? "—"}</td><td className="py-1">{row.npd ?? "—"}</td><td className="py-1">{row.ht ?? "—"}</td></tr>
-                ); })}
+                {m.rows.map((row) => (
+                  <tr key={row.eye} className="border-t">
+                    <th scope="row" className="sticky left-0 bg-card py-2.5 pr-3 text-left font-normal">
+                      <span className="block text-sm font-semibold leading-none">{EYE_NAME[row.eye].code}</span>
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{EYE_NAME[row.eye].side}</span>
+                    </th>
+                    {row.cells.map((cell, i) => <td key={i} className={`whitespace-nowrap px-2 py-2.5 text-center tabular-nums sm:px-3 ${cell === "—" ? "text-muted-foreground" : "font-medium"}`}>{cell}</td>)}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
-      ) : null}
+        ) : <p className="text-sm text-muted-foreground">No prescription entered yet.</p>}
+      </Section>
 
-      <div className="grid gap-3 rounded-lg border bg-background/60 p-4 text-sm sm:grid-cols-2">
-        <div className="rounded-lg border bg-background/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Frame</p>
-          <p className="font-medium">{frame.name || "Not entered"}</p>
-          <p className="text-xs text-muted-foreground">{[frame.mount, frame.source].filter(Boolean).join(" · ") || "No mount or source recorded"}</p>
-        </div>
-        <div className="flex items-start gap-3">
+      {m.kind === "order" ? (
+        <Section title="Lens & coatings">
+          <div className="space-y-4">
+            {m.lenses.length ? m.lenses.map((l, i) => (
+              <div key={i}>
+                {l.heading ? <p className="mb-1.5 text-xs font-semibold">{l.heading}</p> : null}
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">{l.fields.map((f) => <Field key={f.label} {...f} />)}</dl>
+              </div>
+            )) : <p className="text-sm text-muted-foreground">No lens selected yet.</p>}
+            {m.lensExtras.length ? <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3">{m.lensExtras.map((f) => <Field key={f.label} {...f} />)}</dl> : null}
+            <div>
+              <p className="text-[11px] text-muted-foreground">Coatings &amp; treatments</p>
+              {m.treatmentIds.length === 0 ? <p className="text-sm font-medium">None selected</p> : coatingNames ? (
+                <ul className="mt-1 flex flex-wrap gap-1.5">{m.treatmentIds.map((id) => coatingNames.has(id)
+                  ? <li key={id}><Badge variant="secondary" className="font-normal">{coatingNames.get(id)}</Badge></li>
+                  : <li key={id}><Badge variant="outline" className="font-normal text-muted-foreground">Coating no longer listed</Badge></li>)}</ul>
+              ) : <p className="text-sm font-medium">{m.treatmentIds.length} selected</p>}
+            </div>
+            {m.tint ? <dl><Field label="Tint" value={m.tint} /></dl> : null}
+            {m.clips.length ? <div><p className="text-[11px] text-muted-foreground">Chemistrie clips (lab instructions)</p><ul className="mt-0.5 space-y-0.5 text-sm font-medium">{m.clips.map((c) => <li key={c}>{c}</li>)}</ul></div> : null}
+          </div>
+        </Section>
+      ) : (
+        <p className="text-xs text-muted-foreground">Lens and coatings are chosen when you open this in the Rx order form.</p>
+      )}
+
+      <Section title="Frame & shape">
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-4">
           {shapeOutline ? (
-            <svg viewBox={shapeOutline.viewBox} className="h-16 w-16 shrink-0 rounded border bg-muted/30 text-foreground/70">
+            <svg viewBox={shapeOutline.viewBox} className="h-20 w-24 shrink-0 rounded border bg-muted/30 text-foreground/70" role="img" aria-label={shapeLabel(shape)}>
               <path d={shapeOutline.path} fill="currentColor" fillOpacity={0.08} stroke="currentColor" strokeWidth={shapeOutline.strokeWidth} strokeLinejoin="round" />
             </svg>
           ) : null}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Shape</p>
-            <p className="font-medium">{shape ? (shape.source === "standard" ? `Standard shape${shape.standardId ? ` · ${shape.standardId}` : ""}` : shape.file ? `Uploaded trace · ${shape.file}` : "Traced shape") : "No shape provided"}</p>
-            {shape ? <p className="text-xs text-muted-foreground">{shape.confirmed ? "Confirmed by optician" : "Not yet confirmed"}</p> : null}
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Measurements (mm)</p>
-        <dl className="mt-1 grid grid-cols-3 gap-3 text-sm sm:grid-cols-5">
-          <div><dt className="text-xs text-muted-foreground">A</dt><dd className="font-medium">{frame.a ?? "—"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">B</dt><dd className="font-medium">{frame.b ?? "—"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">ED</dt><dd className="font-medium">{frame.ed ?? "—"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">DBL</dt><dd className="font-medium">{frame.dbl ?? "—"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Temple</dt><dd className="font-medium">{frame.temple ?? "—"}</dd></div>
-        </dl>
-      </div>
-
-      {payload.delivery?.notes ? (
-        <div className="rounded-lg border bg-background/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Order notes</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm">{payload.delivery.notes}</p>
-        </div>
-      ) : null}
-
-      {quote ? (
-        <div className="rounded-lg border bg-background/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Order total</p>
-          {quote.hidden ? (
-            <p className="mt-1 font-medium">Pricing not shown on this account</p>
-          ) : (
-            <>
-              <div className="mt-2 space-y-3">
-                {(["od", "os"] as const).map((eye) => {
-                  const eyeLines = (Array.isArray(quote.lines) ? quote.lines : []).filter((line: any) => line.eye === eye);
-                  if (!eyeLines.length) return null;
-                  return <div key={eye} className="space-y-1.5 rounded-md border border-border/60 bg-muted/20 p-2.5"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{eye === "od" ? "Right lens (OD)" : "Left lens (OS)"}</p>{eyeLines.map((line: any, index: number) => (
-                    <div key={`${eye}-${index}`} className="flex items-baseline justify-between gap-4 text-sm">
-                      <span><span className="font-medium">{toSentenceCase(line.label)}</span>{line.detail ? <span className="text-xs text-muted-foreground"> · {toSentenceCase(line.detail)}</span> : null}</span>
-                      <span className="shrink-0 font-medium">{quote.symbol ?? ""} {Number(line.amount ?? 0).toFixed(2)}</span>
-                    </div>
-                  ))}</div>;
-                })}
-                {(Array.isArray(quote.lines) ? quote.lines : []).filter((line: any) => !line.eye).map((line: any, index: number) => (
-                  <div key={index} className="flex items-baseline justify-between gap-4 text-sm">
-                    <span>
-                      <span className="font-medium">{toSentenceCase(line.label)}</span>
-                      {line.detail ? <span className="text-xs text-muted-foreground"> · {toSentenceCase(line.detail)}</span> : null}
-                    </span>
-                    <span className="shrink-0 font-medium">{quote.symbol ?? ""} {Number(line.amount ?? 0).toFixed(2)}</span>
+          <div className="min-w-[10rem] flex-1 space-y-3">
+            <div>
+              <p className="text-sm font-medium">{m.frameName || "Frame not entered"}</p>
+              {m.frameDetail ? <p className="text-xs text-muted-foreground">{m.frameDetail}</p> : null}
+            </div>
+            {m.kind === "order" ? (
+              <div>
+                <p className="text-sm font-medium">{shapeLabel(shape)}</p>
+                {shape ? <p className="text-xs text-muted-foreground">{shape.confirmed ? "Confirmed by the dispenser" : "Not yet confirmed"}</p> : null}
+              </div>
+            ) : null}
+            <div>
+              <p className="text-[11px] text-muted-foreground">Measurements (mm)</p>
+              <dl className="mt-1 flex flex-wrap gap-2">
+                {m.measurements.map((x) => (
+                  <div key={x.label} className="min-w-[3.5rem] rounded-md border bg-muted/20 px-2.5 py-1 text-center">
+                    <dt className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{x.label}</dt>
+                    <dd className={`text-sm tabular-nums ${x.value === "—" ? "text-muted-foreground" : "font-semibold"}`}>{x.value}</dd>
                   </div>
                 ))}
+              </dl>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {m.notes ? <Section title="Order notes"><p className="whitespace-pre-wrap text-sm">{m.notes}</p></Section> : null}
+
+      {quote ? (
+        <Section title="Order total">
+          {quote.hidden ? (
+            <p className="text-sm font-medium">Pricing not shown on this account</p>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {(["od", "os"] as EyeKey[]).map((eye) => {
+                  const eyeLines = quoteLines.filter((line) => line.eye === eye);
+                  if (!eyeLines.length) return null;
+                  return (
+                    <div key={eye} className="space-y-1.5 rounded-md border border-border/60 bg-muted/20 p-2.5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{EYE_NAME[eye].side} lens ({EYE_NAME[eye].code})</p>
+                      {eyeLines.map((line, index) => <QuoteLine key={`${eye}-${index}`} quote={quote} line={line} stripEyePrefix />)}
+                    </div>
+                  );
+                })}
+                {quoteLines.filter((line) => !line.eye).map((line, index) => <QuoteLine key={index} quote={quote} line={line} />)}
               </div>
-              <div className="mt-2 flex justify-between border-t pt-2 font-semibold">
+              <div className="mt-3 flex justify-between border-t pt-2 text-sm font-semibold">
                 <span>Total</span>
-                <span>{quote.symbol ?? ""} {Number(quote.total ?? 0).toFixed(2)}</span>
+                <span className="tabular-nums">{money(quote, quote.total)}</span>
               </div>
             </>
           )}
-        </div>
+        </Section>
       ) : null}
     </div>
   );
 };
 
+const QuoteLine = ({ quote, line, stripEyePrefix }: { quote: any; line: any; stripEyePrefix?: boolean }) => {
+  const clean = (s: unknown) => toSentenceCase(stripEyePrefix ? stripEye(String(s ?? "")) : String(s ?? ""));
+  const detail = clean(line.detail);
+  return (
+    <div className="flex items-baseline justify-between gap-4 text-sm">
+      <span><span className="font-medium">{clean(line.label)}</span>{detail ? <span className="text-xs text-muted-foreground"> · {detail}</span> : null}</span>
+      <span className="shrink-0 font-medium tabular-nums">{money(quote, line.amount)}</span>
+    </div>
+  );
+};
