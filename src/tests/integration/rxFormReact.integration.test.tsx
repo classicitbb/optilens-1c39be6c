@@ -106,7 +106,7 @@ describe("RxForm", () => {
     // focus moves into the new card → the finished one folds into a summary
     fireEvent.focus(screen.getByLabelText(/Frame name/));
     expect(screen.queryByLabelText(/Patient first name/)).not.toBeInTheDocument();
-    expect(screen.getByText("Ann Lee")).toBeInTheDocument();
+    expect(screen.getByText("ANN LEE")).toBeInTheDocument();
     // and Edit brings it back
     fireEvent.click(screen.getByRole("button", { name: "Edit Patient & order" }));
     expect(screen.getByLabelText(/Patient first name/)).toBeInTheDocument();

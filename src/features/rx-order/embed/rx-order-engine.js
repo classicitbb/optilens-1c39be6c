@@ -4033,7 +4033,7 @@ $('#notesConfirmed').addEventListener('change',e=>{
   S.notesConfirmed=e.target.checked; render();
 });
 /* patient and frame names print on lab tickets — the lab standardises on caps. */
-['pfirst','plast','fname'].forEach(id=>{
+['pfirst','plast','ref','fname','notes'].forEach(id=>{
   const el=$('#'+id);
   el.addEventListener('input',()=>{
     const pos=el.selectionStart;

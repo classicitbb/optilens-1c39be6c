@@ -9,6 +9,7 @@ import { FLAG_RING, flagAttrs, flagOf } from "../flags";
 import { SectionSummary } from "../Summary";
 import { ShapePreview, StandardShapePicker, TraceDrop } from "./ShapeBlock";
 import type { CardProps } from "./types";
+import { upperCaseInput } from "@/lib/upperCaseInput";
 
 const MOUNTS = [
   { value: "plastic", label: "Plastic" },
@@ -33,13 +34,13 @@ export function PatientCard({ api, catalog, step }: CardProps) {
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Patient first name" required htmlFor="rx-pfirst">
-          <Input className={cn(CONTROL, flagOf(values.flags, "patient.first") && FLAG_RING)} {...flagAttrs(values.flags, "patient.first")} id="rx-pfirst" placeholder="Marcus" autoComplete="off" value={values.patient.first} onChange={(e) => api.set("patient.first", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "patient.first") && FLAG_RING)} {...flagAttrs(values.flags, "patient.first")} id="rx-pfirst" placeholder="Marcus" autoComplete="off" value={values.patient.first} onChange={(e) => upperCaseInput(e, (v) => api.set("patient.first", v))} />
         </Field>
         <Field label="Patient last name" required htmlFor="rx-plast">
-          <Input className={cn(CONTROL, flagOf(values.flags, "patient.last") && FLAG_RING)} {...flagAttrs(values.flags, "patient.last")} id="rx-plast" placeholder="Grant" autoComplete="off" value={values.patient.last} onChange={(e) => api.set("patient.last", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "patient.last") && FLAG_RING)} {...flagAttrs(values.flags, "patient.last")} id="rx-plast" placeholder="Grant" autoComplete="off" value={values.patient.last} onChange={(e) => upperCaseInput(e, (v) => api.set("patient.last", v))} />
         </Field>
         <Field label="Your order reference" optional htmlFor="rx-ref" hint="Appears on your invoice if supplied.">
-          <Input className={cn(CONTROL, flagOf(values.flags, "reference") && FLAG_RING)} {...flagAttrs(values.flags, "reference")} id="rx-ref" placeholder="e.g. JOB-2291" autoComplete="off" value={values.reference} onChange={(e) => api.set("reference", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "reference") && FLAG_RING)} {...flagAttrs(values.flags, "reference")} id="rx-ref" placeholder="e.g. JOB-2291" autoComplete="off" value={values.reference} onChange={(e) => upperCaseInput(e, (v) => api.set("reference", v))} />
         </Field>
       </div>
     </StepCard>
@@ -100,7 +101,7 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Frame name / model" required htmlFor="rx-fname">
-          <Input className={cn(CONTROL, flagOf(values.flags, "frame.name") && FLAG_RING)} {...flagAttrs(values.flags, "frame.name")} id="rx-fname" placeholder="e.g. Ray-Ban RB5154" autoComplete="off" value={f.name} onChange={(e) => api.setFrame("name", e.target.value)} />
+          <Input className={cn(CONTROL, flagOf(values.flags, "frame.name") && FLAG_RING)} {...flagAttrs(values.flags, "frame.name")} id="rx-fname" placeholder="e.g. Ray-Ban RB5154" autoComplete="off" value={f.name} onChange={(e) => upperCaseInput(e, (v) => api.setFrame("name", v))} />
         </Field>
         <Field label="Mount type" required>
           <Select value={f.mount || undefined} onValueChange={(v) => api.setFrame("mount", v)}>

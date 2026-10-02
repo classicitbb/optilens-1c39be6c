@@ -2,6 +2,7 @@
 // Coatings: popular choices first, every treatment in a drawer, clashes explained
 // where they happen. An empty selection is a valid answer — there is no "Done"
 // click to make.
+import { upperCaseInput } from "@/lib/upperCaseInput";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -152,7 +153,7 @@ export function DeliveryCard({ api, catalog, step }: CardProps) {
       <Field label="Notes to the lab" htmlFor="rx-notes">
         <Textarea
           id="rx-notes" rows={3} placeholder="e.g. Patient is a previous progressive wearer — match old fitting height."
-          value={values.delivery.notes} onChange={(e) => api.setDelivery({ notes: e.target.value })}
+          value={values.delivery.notes} onChange={(e) => upperCaseInput(e, (v) => api.setDelivery({ notes: v }))}
         />
       </Field>
     </StepCard>

@@ -1,3 +1,4 @@
+import { upperCaseInput } from "@/lib/upperCaseInput";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -648,12 +649,12 @@ const StockOrderBuilderPage = () => {
               <div className="field stock-order-detail-field stock-order-detail-field-po">
                 <label htmlFor="stock-order-po-number">PO number <span className="opt-tag">optional</span></label>
                 <p id="stock-order-po-number-hint" className="stock-order-field-hint">Your purchase order or internal tracking number.</p>
-                <input ref={poNumberRef} id="stock-order-po-number" name="poNumber" autoComplete="off" spellCheck={false} aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="e.g. PO-1048…" />
+                <input ref={poNumberRef} id="stock-order-po-number" name="poNumber" autoComplete="off" spellCheck={false} aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => upperCaseInput(e, setPoNumber)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="e.g. PO-1048…" />
               </div>
               <div className="field stock-order-detail-field stock-order-detail-field-reference">
                 <label htmlFor="stock-order-reference">Order reference</label>
                 <p id="stock-order-reference-hint" className="stock-order-field-hint">A customer-facing or staff note that identifies this order.</p>
-                <input ref={orderReferenceRef} id="stock-order-reference" name="orderReference" autoComplete="off" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale or phone order…" />
+                <input ref={orderReferenceRef} id="stock-order-reference" name="orderReference" autoComplete="off" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => upperCaseInput(e, setOrderReference)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale or phone order…" />
               </div>
             </div>
           </div>}
@@ -685,7 +686,7 @@ const StockOrderBuilderPage = () => {
                       <th scope="row">{index + 1}</th>
                       <td className="stock-order-line-sku">{line.sku}</td>
                       <td className="stock-order-line-description"><span>{line.description}</span></td>
-                      <td><input name={`line-${index + 1}-reference`} autoComplete="off" aria-label={`Reference for line ${index + 1}`} placeholder="Optional…" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} /></td>
+                      <td><input name={`line-${index + 1}-reference`} autoComplete="off" aria-label={`Reference for line ${index + 1}`} placeholder="Optional…" value={line.customerRef} onChange={(e) => upperCaseInput(e, (v) => updateLine(line.key, { customerRef: v }))} /></td>
                       <td><input name={`line-${index + 1}-quantity`} autoComplete="off" aria-label={`Quantity for line ${index + 1}`} type="number" inputMode="numeric" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} /></td>
                       <td className="stock-order-money">
                         <span>{money(line.unitPrice)}</span>
