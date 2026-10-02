@@ -7,7 +7,6 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
 import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 import { sendManagedEmail } from "../_shared/email/managed-send.ts";
-import { ensureOneDriveFolderPath, uploadOneDrivePdf } from "../_shared/microsoft/graphOneDrive.ts";
 import { money, paginateStatementLines, statementTransactionDetail, STATEMENT_PDF_TEMPLATE_VERSION } from "../_shared/statements/statementDocumentModel.ts";
 // jspdf-autotable ships a namespace-shaped type under Deno's npm resolution, so
 // the callable has to be unwrapped explicitly or `deno check` rejects every call.
@@ -18,6 +17,7 @@ const autoTable: AutoTableFn =
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const maxBatch = 5;
+const candidateBatch = maxBatch * 20;
 const automaticEmailMode = () => Deno.env.get("STATEMENT_EMAIL_MODE") === "automatic";
 
 function b64(bytes: Uint8Array): string {
@@ -168,26 +168,23 @@ async function processJob(supabase: any, job: any) {
     ]);
     let pdf: Uint8Array;
     const filename = current.pdf_filename ?? `Statement-${statement.innovations_statement_id}.pdf`;
-    let folder: { driveId: string; itemId: string; path: string } | null = null;
-    let uploaded: any = { id: current.one_drive_item_id, webUrl: current.one_drive_url };
-    if (current.one_drive_item_id && current.upload_status === "uploaded") {
-      const existingFile = await (await import("../_shared/microsoft/graphOneDrive.ts")).downloadOneDrivePdf(current.one_drive_item_id);
-      if (!existingFile.ok) throw new Error(`Existing OneDrive PDF could not be re-read (${existingFile.status}).`);
-      pdf = new Uint8Array(await existingFile.arrayBuffer());
+    const storageBucket = current.storage_bucket ?? "statement-pdfs";
+    const storagePath = current.storage_path ?? `statements/${statement.innovations_statement_id}/${filename}`;
+    if (current.storage_path && current.upload_status === "uploaded") {
+      const existingFile = await supabase.storage.from(storageBucket).download(storagePath);
+      if (existingFile.error || !existingFile.data) throw new Error(`Existing statement PDF could not be re-read (${existingFile.error?.message ?? "missing object"}).`);
+      pdf = new Uint8Array(await existingFile.data.arrayBuffer());
     } else {
       pdf = buildPdf(statement, lines ?? [], customer);
-      const when = new Date(statement.to_date ?? statement.statement_date ?? new Date());
-      const year = when.getUTCFullYear();
-      const month = String(when.getUTCMonth() + 1).padStart(2, "0");
-      folder = await ensureOneDriveFolderPath(["CLASSIC ACCOUNTS FILES", "INNOVATIONS DOCUMENTS", "Innovations Statement Prints", String(year), month]);
-      uploaded = await uploadOneDrivePdf(folder, filename, pdf);
+      const uploaded = await supabase.storage.from(storageBucket).upload(storagePath, pdf, { contentType: "application/pdf", upsert: true });
+      if (uploaded.error) throw uploaded.error;
     }
     if (!automaticEmailMode() && current.email_status !== "approved") {
-      await supabase.from("statement_document_jobs").update({ status: "uploaded", statement_id: statement.id, pdf_template_version: STATEMENT_PDF_TEMPLATE_VERSION, pdf_filename: filename, pdf_bytes: pdf.byteLength, ...(folder ? { one_drive_drive_id: folder.driveId, one_drive_path: `${folder.path}/${filename}` } : {}), one_drive_item_id: uploaded.id, one_drive_url: uploaded.webUrl ?? current.one_drive_url ?? null, upload_status: "uploaded", email_status: "awaiting_approval", error_message: null, uploaded_at: current.uploaded_at ?? new Date().toISOString(), completed_at: null }).eq("id", current.id);
+      await supabase.from("statement_document_jobs").update({ status: "uploaded", statement_id: statement.id, storage_bucket: storageBucket, storage_path: storagePath, pdf_template_version: STATEMENT_PDF_TEMPLATE_VERSION, pdf_filename: filename, pdf_bytes: pdf.byteLength, upload_status: "uploaded", email_status: "awaiting_approval", error_message: null, uploaded_at: current.uploaded_at ?? new Date().toISOString(), completed_at: null }).eq("id", current.id);
       return { status: "awaiting_approval" };
     }
     const email = await queueEmail(supabase, current, statement, customer, pdf);
-    await supabase.from("statement_document_jobs").update({ status: email.status === "failed" ? "failed" : "uploaded", statement_id: statement.id, pdf_template_version: STATEMENT_PDF_TEMPLATE_VERSION, pdf_filename: filename, pdf_bytes: pdf.byteLength, ...(folder ? { one_drive_drive_id: folder.driveId, one_drive_path: `${folder.path}/${filename}` } : {}), one_drive_item_id: uploaded.id, one_drive_url: uploaded.webUrl ?? current.one_drive_url ?? null, upload_status: "uploaded", email_status: email.status, email_message_id: email.messageId ?? null, error_message: email.error ?? null, uploaded_at: current.uploaded_at ?? new Date().toISOString(), emailed_at: email.status === "sent" ? new Date().toISOString() : null, completed_at: email.status === "failed" ? null : new Date().toISOString() }).eq("id", current.id);
+    await supabase.from("statement_document_jobs").update({ status: email.status === "failed" ? "failed" : "uploaded", statement_id: statement.id, storage_bucket: storageBucket, storage_path: storagePath, pdf_template_version: STATEMENT_PDF_TEMPLATE_VERSION, pdf_filename: filename, pdf_bytes: pdf.byteLength, upload_status: "uploaded", email_status: email.status, email_message_id: email.messageId ?? null, error_message: email.error ?? null, uploaded_at: current.uploaded_at ?? new Date().toISOString(), emailed_at: email.status === "sent" ? new Date().toISOString() : null, completed_at: email.status === "failed" ? null : new Date().toISOString() }).eq("id", current.id);
     return { status: email.status === "failed" ? "failed" : "uploaded", email: email.status };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -197,12 +194,20 @@ async function processJob(supabase: any, job: any) {
   }
 }
 
+async function oldestFirst(supabase: any, jobs: any[]): Promise<any[]> {
+  const innovationsIds = jobs.map((job) => job.innovations_statement_id).filter((id) => id != null);
+  if (!innovationsIds.length) return jobs.slice(0, maxBatch);
+  const { data: statements } = await supabase.from("statements").select("innovations_statement_id,to_date,statement_date").in("innovations_statement_id", innovationsIds);
+  const dates = new Map((statements ?? []).map((statement: any) => [String(statement.innovations_statement_id), statement.to_date ?? statement.statement_date ?? "9999-12-31"]));
+  return jobs.sort((a, b) => String(dates.get(String(a.innovations_statement_id)) ?? "9999-12-31").localeCompare(String(dates.get(String(b.innovations_statement_id)) ?? "9999-12-31")) || String(a.discovered_at).localeCompare(String(b.discovered_at))).slice(0, maxBatch);
+}
+
 Deno.serve(async (req) => {
   const secret = Deno.env.get("STATEMENT_DOCUMENT_WORKER_SECRET");
   if (!secret || req.headers.get("x-statement-worker-secret") !== secret) return json({ error: "Unauthorized" }, 401);
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-  const { data: jobs, error } = await supabase.from("statement_document_jobs").select("*").or("status.in.(pending,failed),and(status.eq.uploaded,email_status.eq.approved)").lte("next_retry_at", new Date().toISOString()).order("discovered_at", { ascending: true }).limit(maxBatch);
+  const { data: jobs, error } = await supabase.from("statement_document_jobs").select("*").or("status.in.(pending,failed),and(status.eq.uploaded,email_status.eq.approved)").lte("next_retry_at", new Date().toISOString()).order("discovered_at", { ascending: true }).limit(candidateBatch);
   if (error) return json({ error: error.message }, 500);
-  const results = []; for (const job of jobs ?? []) results.push(await processJob(supabase, job));
+  const results = []; for (const job of await oldestFirst(supabase, jobs ?? [])) results.push(await processJob(supabase, job));
   return json({ processed: results.length, results });
 });

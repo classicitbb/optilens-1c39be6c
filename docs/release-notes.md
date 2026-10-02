@@ -57,7 +57,7 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-08-18 — Statement document automation
 
 ### Release Notes
-- New Innovations statements can be rendered as Letter PDFs, stored in the governed OneDrive folder hierarchy, and downloaded through the authenticated portal.
+- New Innovations statements can be rendered as Letter PDFs, stored in private website-managed storage, and downloaded through authenticated staff or customer portal access.
 
 ## 2026-08-15 — Canonical stock quotations
 
