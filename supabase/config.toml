@@ -80,6 +80,13 @@ verify_jwt = false
 verify_jwt = false
 # Customer session authorization is performed inside the function so the portal
 # can call it with its Supabase bearer token.
+[functions.statement-document-approve]
+verify_jwt = false
+# Staff/admin authorization is performed in-function; approval only queues the
+# already-uploaded PDF for the protected worker and never sends from the browser.
+[functions.statement-document-prepare-period]
+verify_jwt = false
+# Admin/operator authorization is performed in-function; dry_run defaults to true.
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
   # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).

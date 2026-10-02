@@ -2,7 +2,7 @@ import {
   DollarSign, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
   Package, Eye, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
   ListChecks, Camera,
-  FileEdit,
+  FileEdit, FileCheck2,
   Contact, Tags,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
   Kanban, CalendarCheck, Inbox,
@@ -120,6 +120,7 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Import Costings', route: '/admin/finance/costings', icon: Ship },
       { label: 'Costing Reports', route: '/admin/finance/costings/reports', icon: BarChart3 },
+      { label: 'Statement Delivery', route: '/admin/finance/statements', icon: FileCheck2 },
       { label: 'Payment Activity', route: '/admin/finance/payment-activity', icon: CreditCard },
       { label: 'Walk-in Payments', route: '/admin/finance/walk-in-payments', icon: Landmark },
       { label: 'Bank Payment Portals', route: '/admin/finance/bank-payment-portals', icon: Landmark },

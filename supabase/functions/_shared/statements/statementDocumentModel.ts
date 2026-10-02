@@ -1,4 +1,4 @@
-export const STATEMENT_PDF_TEMPLATE_VERSION = "statement-print-v1";
+export const STATEMENT_PDF_TEMPLATE_VERSION = "statement-print-v2";
 export const STATEMENT_PAGE_ROWS = { first: 14, continuation: 30, final: 18 } as const;
 
 export type StatementDocumentStatement = {
