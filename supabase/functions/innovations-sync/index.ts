@@ -321,7 +321,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-09-11.1-lens-alias-tombstones";
+const VERSION = "2026-10-01.1-rx-captures-ingest";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
