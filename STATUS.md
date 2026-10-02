@@ -26,7 +26,10 @@ Last updated: 2026-10-02
   missing email, and keeps preview/print available while excluding those rows
   from approval selection. The frontend was published through Lovable from
   main after its typecheck repair; no migration, Edge Function, schedule,
-  secret, or email action occurred.
+  secret, or email action occurred. The admin PDF preview now uses the same
+  `StatementPrintDocument` as Profile > Statements and loads the selected
+  statement summary and transaction rows. Page styling keeps variable-height
+  transaction rows intact and repeats table headings across print pages.
 
 - **Rx order rebuild** — Step 0 and Phase 0 are merged (PR #587) and their migrations are live: customers cannot reach the form (`rx-order` opt-in), the form saves through the atomic `save_rx_order` RPC and creates its quote on first save, surcharges are data (`rx_surcharge_rules`), orders have an event log, and the admin test bench can preview as a customer in test mode. Phase 1a (pure domain modules `parse/normalise/validate/catalog/price/payload` + `cv.rxorder/2` schema, each characterised against the engine) is on branch `rx-phase1a-domain`. Phase 1b first cut (React form: six cards, live quote, atomic save, test mode; on the test bench behind a Form switch) is on branch `rx-phase1b-react-form`; the trace/shape picker is ported too; Chemistrie clips are ported as well; advice tips, flags and print are still to port. Edge functions importing `_shared/orders/hashref.ts` need a manual redeploy for the lab-file fixes (then `npm run qa:edge-smoke`). See `src/features/rx-order/CONTEXT.md`.
 

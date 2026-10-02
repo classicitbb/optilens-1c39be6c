@@ -25,6 +25,17 @@ fixed a typecheck issue in the page before publishing. Next action: deploy the
 website-storage migration and updated functions only after explicit approval,
 then run hosted schema/function verification.
 
+Local source follow-up: the Finance PDF preview now renders the shared
+`StatementPrintDocument` used by Profile > Statements, using the selected
+statement's own summary and `statement_lines_public` rows. Print styling no
+longer clips overflow from variable-height statement content, avoids breaking
+rows and summary blocks, and repeats the transaction table heading on print
+continuation pages. The admin preview reads statement data only; it does not
+write financial data or send mail. Updated files: `src/pages/admin/StatementDeliveryPreviewPage.tsx`,
+`src/components/account/sections/StatementPrintDocument.tsx`, and `STATUS.md`.
+No tests or builds have been run for this follow-up. The existing operational
+approval requirements above remain. Exact next action: `npx tsc --noEmit --pretty false`.
+
 ## 2026-10-02 — Automatic Innovations statement documents
 
 Status: Source implementation updated to remove OneDrive/Graph and prioritize oldest statement periods; the hosted project still runs the previous storage version until the new migration/functions are deployed.

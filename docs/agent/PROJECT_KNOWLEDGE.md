@@ -71,6 +71,11 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 
 - Doc Studio's preview toolbar uses inline SVG action icons and shared `public/ds/preview-toolbar.css`, loaded by both `studio.html` and the native mount. Keep labels, status and action groups wrapping; do not restore fixed toolbar height or font ligatures for its icons.
 
+- Profile statements and Admin > Finance > Statement Delivery share
+  `StatementPrintDocument` for their statement layout. Keep the admin preview
+  bound to the selected statement and its `statement_lines_public` rows; keep
+  transaction rows and closing blocks intact across print page breaks.
+
 - Doc Studio mounts natively through `DocStudioEmbed.tsx`. Admin grid styles must not reach its presentation tables. Letter header/footer builders serve preview and Word; `ltRule` and `ltSpacing` belong in Studio and Copilot content keys. Letter typography stays fixed while spacing is selectable. Focused command: `npx vitest run --coverage=false src/tests/unit/docStudioLetterhead.test.ts src/tests/unit/managedEmailPayload.test.ts`.
 
 - Native ordering direction (plan only): custom prescription lenses enter at
