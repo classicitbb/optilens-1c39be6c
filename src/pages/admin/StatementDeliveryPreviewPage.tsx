@@ -42,9 +42,9 @@ async function loadStatementDeliveryRows(): Promise<DeliveryRow[]> {
   }
   const contactIds = [...new Set(customerRows.map((customer) => customer.contact_id).filter((id) => id != null))];
   const { data: contacts } = contactIds.length ? await (supabase.from("contacts") as any).select("id,email").in("id", contactIds) : { data: [] };
-  const statementsByInnovation = new Map(statementRows.map((statement) => [statement.innovations_statement_id, statement]));
-  const customersById = new Map(customerRows.map((customer) => [customer.id, customer]));
-  const contactsById = new Map((contacts ?? []).map((contact: any) => [contact.id, contact]));
+  const statementsByInnovation = new Map<number, any>(statementRows.map((statement): [number, any] => [statement.innovations_statement_id, statement]));
+  const customersById = new Map<string, any>(customerRows.map((customer): [string, any] => [customer.id, customer]));
+  const contactsById = new Map<string, any>((contacts ?? []).map((contact: any): [string, any] => [contact.id, contact]));
   return jobRows.map((job) => {
     const statement = statementsByInnovation.get(job.innovations_statement_id);
     const customer = statement ? customersById.get(statement.customer_id) : null;
