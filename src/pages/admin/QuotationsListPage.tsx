@@ -67,9 +67,9 @@ const QuotationsListPage = () => {
   };
 
   const handleDelete = (quote: Quote) => {
-    if (!confirm(`Delete draft ${quote.quote_number}? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${quote.status} quote ${quote.quote_number}? This cannot be undone.`)) return;
     deleteMutation.mutate(quote.id, {
-      onSuccess: () => toast({ title: "Draft deleted" }),
+      onSuccess: () => toast({ title: "Quote deleted" }),
       onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
     });
   };
@@ -235,11 +235,11 @@ const QuotationsListPage = () => {
                         <Copy className="h-3.5 w-3.5" style={{ color: "hsl(215 15% 50%)" }} />
                       </button>
                     )}
-                    {canEdit && q.status === "Draft" && (
+                    {canEdit && (
                       <button
                         onClick={() => handleDelete(q)}
                         className="p-1 rounded hover:bg-red-50"
-                        title="Delete draft"
+                        title="Delete quote"
                       >
                         <Trash2 className="h-3.5 w-3.5" style={{ color: "hsl(0 60% 50%)" }} />
                       </button>
