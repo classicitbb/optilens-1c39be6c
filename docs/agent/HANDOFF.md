@@ -1,5 +1,27 @@
 # Work Handoff
 
+## 2026-10-02 — Statement delivery all-customer view
+
+Status: Local source updated; no deployment, migration, or email occurred.
+
+`src/pages/admin/StatementDeliveryPreviewPage.tsx` now reads every non-void
+`statement_document_jobs` row in paged batches, resolves statement/customer
+and synchronized contact email, and shows all customer accounts rather than
+Retail fixtures. Missing-email statements produce a page warning, a filter,
+an Open Contacts link, and a row-level blocked-email label. They remain
+previewable/printable and are excluded from approval selection. The query is
+compatible with the current pre-website-storage local schema; stored PDF
+download needs the already-staged website-storage migration and redeployed
+functions.
+
+Verified: local authenticated browser showed 1,000 initial rows including
+non-Retail customers and 275 missing-email rows; pagination was then added to
+remove the Supabase 1,000-row cap. `npx tsc --noEmit --pretty false`,
+`npm run build`, and `git diff --check` pass. The local build has not sent an
+email or changed source data. Next action: review the all-customer/missing-
+email behavior, then deploy only after explicit approval and run the hosted
+schema/function verification.
+
 ## 2026-10-02 — Automatic Innovations statement documents
 
 Status: Source implementation updated to remove OneDrive/Graph and prioritize oldest statement periods; the hosted project still runs the previous storage version until the new migration/functions are deployed.
