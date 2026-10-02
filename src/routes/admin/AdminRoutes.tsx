@@ -85,6 +85,7 @@ const BankPaymentPortalsPage = lazyWithRetry(() => import("@/pages/admin/setting
 );
 const PaymentActivityPage = lazyWithRetry(() => import("@/pages/admin/settings/PaymentActivityPage"));
 const WalkInPaymentsPage = lazyWithRetry(() => import("@/pages/admin/WalkInPaymentsPage"));
+const StatementDeliveryPreviewPage = lazyWithRetry(() => import("@/pages/admin/StatementDeliveryPreviewPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
 );
@@ -370,6 +371,7 @@ const AdminRoutes = () => (
         path="finance/costings/reports"
         element={<CostingsReportsPage />}
       />
+      <Route path="finance/statements" element={<StatementDeliveryPreviewPage />} />
       <Route
         path="finance/payment-activity"
         element={
