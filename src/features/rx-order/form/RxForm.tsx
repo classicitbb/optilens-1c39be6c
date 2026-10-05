@@ -597,7 +597,7 @@ function LoadedForm({
             <DialogDescription>
               {done?.kind === "test"
                 ? "Nothing was sent. The test order is saved so you can look at it."
-                : done?.kind === "cart" ? "Price is now locked at this quote and will be honoured through checkout." : "The lab has the order."}
+                : done?.kind === "cart" ? "Price is now locked at this quote and will be honoured through checkout." : props.submitToQueue ? "It has left Needs review. Release it from Ready to release to send it to the lab." : "The lab has the order."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
