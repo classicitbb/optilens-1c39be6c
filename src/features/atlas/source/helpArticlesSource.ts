@@ -111,16 +111,21 @@ const stripHtml = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g
 export interface HelpArticlesSourceOptions {
   /** Wiki-space rows are only readable where the caller may view one of their contexts. */
   canViewContext: (slug: string) => boolean;
+  /** Whether a context maps to a permission at all. A page whose contexts are all unknown is not hidden by them. */
+  isKnownContext?: (slug: string) => boolean;
 }
 
-export const createHelpArticlesSource = ({ canViewContext }: HelpArticlesSourceOptions): AtlasSource => {
+export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: HelpArticlesSourceOptions): AtlasSource => {
   let drafts = false;
   let spaceColumn = false;
 
   const readable = (row: Row): boolean => {
     if (deriveStoredSpace(row) !== "wiki") return true;
     const slugs: string[] = (row.help_article_contexts ?? []).map((c: Row) => c.context_slug).filter(Boolean);
-    return (slugs.length > 0 ? slugs : [row.page_slug || "all"]).some(canViewContext);
+    const contexts = slugs.length > 0 ? slugs : [row.page_slug || "all"];
+    // Hidden only when a context the user cannot view is the page's say; pages whose contexts name
+    // no known permission (for example a help/... slug) stay visible to anyone who can view the space.
+    return contexts.some(canViewContext) || (isKnownContext ? contexts.every((slug) => !isKnownContext(slug)) : false);
   };
 
   const snapshot = async (id: string, title: string, doc: AtlasPage["doc"], version: number, note?: string) => {

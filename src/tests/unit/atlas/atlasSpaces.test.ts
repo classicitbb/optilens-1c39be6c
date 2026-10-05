@@ -77,3 +77,22 @@ describe("atlas spaces", () => {
     expect(pageInSpace(getAtlasSpace("imported")!, makePage({ spaceId: "imported" }))).toBe(true);
   });
 });
+
+describe("wiki visibility by context", () => {
+  it("keeps a page whose only context names no known permission (the missing procedure page)", async () => {
+    const { vi } = await import("vitest");
+    const rows = [
+      { id: "a", title: "Unmapped context", content_type: "wiki", help_article_contexts: [{ context_slug: "help/some-procedure" }], page_slug: "x" },
+      { id: "b", title: "Known and viewable", content_type: "wiki", help_article_contexts: [{ context_slug: "knowledge/wiki" }], page_slug: "x" },
+      { id: "c", title: "Known and hidden", content_type: "wiki", help_article_contexts: [{ context_slug: "pricing" }], page_slug: "x" },
+    ];
+    vi.doMock("@/integrations/supabase/client", () => ({
+      supabase: { from: () => ({ select: () => ({ order: () => Promise.resolve({ data: rows, error: null }) }) }) },
+    }));
+    vi.resetModules();
+    const { createHelpArticlesSource: fresh } = await import("@/features/atlas/source/helpArticlesSource");
+    const source = fresh({ canViewContext: (slug) => slug === "knowledge/wiki", isKnownContext: (slug) => slug === "knowledge/wiki" || slug === "pricing" });
+    const { pages } = await source.listPages();
+    expect(pages.map((page) => page.title)).toEqual(["Unmapped context", "Known and viewable"]);
+  });
+});

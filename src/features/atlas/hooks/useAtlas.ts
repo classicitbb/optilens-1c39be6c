@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
 import { useRolePermissions, type Feature } from "@/hooks/useRolePermissions";
-import { canViewContextSlug } from "@/lib/wikiPermissions";
+import { canViewContextSlug, contextSlugToFeature } from "@/lib/wikiPermissions";
 import { useToast } from "@/hooks/use-toast";
 import { resolveCapabilities, NO_CAPABILITIES, type AtlasCapabilities, type AtlasPermissionContext } from "../capabilities";
 import { getAtlasSpace, listAtlasSpaces, pageInSpace, type AtlasSpaceDef } from "../spaces";
@@ -38,7 +38,7 @@ export const useAtlasCapabilities = () => {
 export const useAtlasSource = (): AtlasSource => {
   const { canView } = useRolePermissions();
   return useMemo(
-    () => createHelpArticlesSource({ canViewContext: (slug) => canViewContextSlug(slug, canView) }),
+    () => createHelpArticlesSource({ canViewContext: (slug) => canViewContextSlug(slug, canView), isKnownContext: (slug) => contextSlugToFeature(slug) !== null }),
     [canView],
   );
 };
