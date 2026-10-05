@@ -2,7 +2,7 @@ import { lazy } from "react";
 import { registerAtlasHost } from "@/features/atlas/host";
 import { atlasIrisProvider } from "./atlasIris";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
-import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
+import { ASSIGNABLE_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import { CONTENT_TYPE_OPTIONS, VISIBILITY_OPTIONS } from "@/hooks/useContentArticles";
 
 /**
@@ -42,7 +42,7 @@ export const registerAtlasHostOnce = () => {
   registerAtlasHost({
     iris: atlasIrisProvider,
     useWorkspaceName: useCompanyName,
-    contextOptions: ADMIN_CONTEXT_OPTIONS,
+    contextOptions: ASSIGNABLE_CONTEXT_OPTIONS,
     optionSets: {
       contentTypes: CONTENT_TYPE_OPTIONS.filter((option) => option.value !== "wiki").map(({ value, label }) => ({ value, label })),
       visibility: VISIBILITY_OPTIONS.map(({ value, label }) => ({ value, label })),
