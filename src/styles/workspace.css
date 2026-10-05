@@ -290,3 +290,11 @@ body.ws-admin {
   .ws-bg-pink   { background-color: hsl(var(--ws-c-pink) / 0.14); }
   .ws-bg-red    { background-color: hsl(var(--ws-c-red) / 0.14); }
 }
+
+/* Inline page title: the admin input rules force a filled, bordered field. */
+.admin-tool textarea.ws-bare-input,
+.admin-tool input.ws-bare-input {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  padding: 0;
+}
