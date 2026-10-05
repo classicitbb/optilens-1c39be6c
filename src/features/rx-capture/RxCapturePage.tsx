@@ -144,7 +144,7 @@ export default function RxCapturePage() {
               <b className="block truncate">{accounts.find((a) => a.id === j.account_id)?.name ?? "—"}</b>
               <span className="text-muted-foreground">{new Date(j.created_at).toLocaleString()} · {j.source === "local_capture" ? "From the office capture" : j.file_name ?? "pasted image"}</span>
               {j.status === "failed" && <span className="block text-destructive">{j.error}</span>}
-              {j.quote_id && <span className="block text-emerald-700">Saved as a draft order</span>}
+              {j.quote_id && <span className="block text-emerald-700">{j.submitted ? "Sent for submission — still editable until released" : "Saved as a draft order"}</span>}
             </div>
             {(j.status === "queued" || j.status === "processing") && <span className="flex items-center gap-1 text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Reading…</span>}
             {j.status === "ready" && <Button size="sm" className="h-7 text-xs" onClick={() => setReviewing(j)}>{j.quote_id ? "Open" : "Review"}</Button>}
