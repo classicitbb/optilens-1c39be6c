@@ -17,6 +17,7 @@ import { ACCEPT, isAcceptedFile, filesFromClipboard } from "./files";
 
 interface Job {
   id: string;
+  submitted?: boolean;
   account_id: number | null;
   storage_path: string | null;
   extra_paths: string[];
@@ -54,7 +55,12 @@ export default function RxCapturePage() {
     queryFn: async () => {
       const { data, error } = await jobs().select("*").order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
-      return data as Job[];
+      const ids = (data as Job[]).map((j) => j.quote_id).filter(Boolean);
+      const { data: sent } = ids.length
+        ? await (supabase.from("quotes") as any).select("id").in("id", ids).eq("status", "Sent")
+        : { data: [] };
+      const sentIds = new Set((sent ?? []).map((q: { id: string }) => q.id));
+      return (data as Job[]).map((j) => ({ ...j, submitted: !!j.quote_id && sentIds.has(j.quote_id) }));
     },
     // keep polling only while something is still being read
     refetchInterval: (q) => ((q.state.data as Job[] | undefined)?.some((j) => j.status === "queued" || j.status === "processing") ? 3000 : false),
@@ -144,7 +150,7 @@ export default function RxCapturePage() {
               <b className="block truncate">{accounts.find((a) => a.id === j.account_id)?.name ?? "—"}</b>
               <span className="text-muted-foreground">{new Date(j.created_at).toLocaleString()} · {j.source === "local_capture" ? "From the office capture" : j.file_name ?? "pasted image"}</span>
               {j.status === "failed" && <span className="block text-destructive">{j.error}</span>}
-              {j.quote_id && <span className="block text-emerald-700">Saved as a draft order</span>}
+              {j.quote_id && <span className="block text-emerald-700">{j.submitted ? "Sent for submission — still editable until released" : "Saved as a draft order"}</span>}
             </div>
             {(j.status === "queued" || j.status === "processing") && <span className="flex items-center gap-1 text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Reading…</span>}
             {j.status === "ready" && <Button size="sm" className="h-7 text-xs" onClick={() => setReviewing(j)}>{j.quote_id ? "Open" : "Review"}</Button>}
@@ -225,7 +231,7 @@ function Review({ job, accountName, onBack }: { job: Job; accountName?: string; 
           />
         )}
       </div>
-      {quoteId && <p className="mt-2 text-[11px] text-muted-foreground">Saved as a draft order — it autosaves as you correct it.</p>}
+      {quoteId && <p className="mt-2 text-[11px] text-muted-foreground">{job.submitted ? "Sent for submission — you can still correct it until it is released; changes autosave." : "Saved as a draft order — it autosaves as you correct it."}</p>}
     </div>
   );
 }
