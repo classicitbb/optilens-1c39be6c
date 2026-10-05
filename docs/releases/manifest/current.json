@@ -1,30 +1,49 @@
 {
-  "semanticVersion": "0.3.0",
-  "sourceEntry": "2026-09-17 — Customer-device walk-in payments",
-  "releaseDateTimeUtc": "2026-09-17T00:00:00.000Z",
+  "semanticVersion": "0.4.0",
+  "sourceEntry": "2026-10-05 — Admin workspace theme, wiki workspace and block editor",
+  "releaseDateTimeUtc": "2026-10-05T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "**Settings → Walk-in Payments** now offers three ways to take a payment: **Take card now** (unchanged, uses the shop device), **Publish link** (the customer scans the counter QR code and types a short code the cashier reads out) and **Request by email** (the customer gets a one-time pay link, valid 72 hours, and can pay from anywhere).",
-    "The staff screen updates by itself the moment the customer's payment goes through, so the cashier knows when to hand over the glasses.",
-    "A walk-in can also pay with no staff involvement by scanning the counter QR code and entering their own amount, between BBD $20 and BBD $500. These appear in a **needs matching** list on the same page so they can be attached to an order.",
-    "Walk-in payment amounts are now recorded in Barbados dollars, which is what the bank has always charged; receipts previously showed the raw code `840`.",
-    "The self-service option is available only once Cloudflare Turnstile keys are configured. Until then it is hidden and refuses to start payments; the assisted and email options do not depend on it."
+    "Every admin screen now shares one workspace look: off-white paper and navy in dark mode, teal accents, Plus Jakarta Sans for text and JetBrains Mono for labels, codes and SKUs. The old brown and gold admin palette is gone. Scrollbars stay hidden until you scroll.",
+    "**Knowledge → Wiki** is now a three-pane workspace: a resizable page tree (drag to reorder or nest), favorites, trash, a Ctrl+K search over titles, page text and website content, and a right panel for page history.",
+    "Pages are edited as blocks. Type `/` for headings, lists, to-dos, toggles, quotes, callouts, code, tables, images and page links; type `@` to mention a page, person or date; select text for bold, italic, underline, strikethrough, code, link and colour. Drag the grip beside any block to move it.",
+    "Pages save themselves 800 ms after you stop typing. On a published page your edits go to an unpublished draft: visitors keep seeing the published version until you choose **Update**, and **Discard changes** drops the draft. Page settings (summary, link target, section, parent, order, contexts) apply straight away; the slug is locked while a page is published. Lists can be nested with Tab and Shift+Tab. Version history and unpublished drafts are now live on the hosted project."
   ],
   "moduleImpact": [
     {
-      "module": "pay/result",
+      "module": "src/styles/workspace.css",
       "impact": "medium",
-      "notes": "Updated as part of Customer-device walk-in payments."
+      "notes": "Updated as part of Admin workspace theme, wiki workspace and block editor."
     },
     {
-      "module": "src/lib/payments",
+      "module": "src/components/workspace",
       "impact": "medium",
-      "notes": "Updated as part of Customer-device walk-in payments."
+      "notes": "Updated as part of Admin workspace theme, wiki workspace and block editor."
     },
     {
-      "module": ", hashed link/claim-code columns, expiry, single-use and matching state to ",
+      "module": " and its editor/ folder) on Tiptap. New dependencies: ",
       "impact": "medium",
-      "notes": "Updated as part of Customer-device walk-in payments."
+      "notes": "Updated as part of Admin workspace theme, wiki workspace and block editor."
+    },
+    {
+      "module": "@tiptap/suggestion",
+      "impact": "medium",
+      "notes": "Updated as part of Admin workspace theme, wiki workspace and block editor."
+    },
+    {
+      "module": " / ",
+      "impact": "medium",
+      "notes": "Updated as part of Admin workspace theme, wiki workspace and block editor."
+    },
+    {
+      "module": "src/lib/listDepth.ts",
+      "impact": "medium",
+      "notes": "Updated as part of Admin workspace theme, wiki workspace and block editor."
+    },
+    {
+      "module": "src/lib/stableJson.ts",
+      "impact": "medium",
+      "notes": "Updated as part of Admin workspace theme, wiki workspace and block editor."
     }
   ],
   "migrationNotes": [
