@@ -1,4 +1,5 @@
 import type { BlogBlockNode, BlogCanonicalContent, BlogInlineNode } from "@/components/blog/BlogPostRenderer";
+import { nestByDepth, type DepthNode } from "@/lib/listDepth";
 
 const inlineToMarkdown = (nodes: BlogInlineNode[]): string =>
   (Array.isArray(nodes) ? nodes : [])
@@ -39,10 +40,14 @@ const blockToMarkdown = (block: BlogBlockNode): string => {
       return inlineToMarkdown(block.children);
     case "blockquote":
       return `> ${inlineToMarkdown(block.children)}`;
-    case "list":
-      return block.items
-        .map((item, index) => `${block.ordered ? `${index + 1}.` : "-"} ${inlineToMarkdown(item)}`)
-        .join("\n");
+    case "list": {
+      const lines = (nodes: DepthNode<BlogInlineNode[]>[], level: number): string[] =>
+        nodes.flatMap((node, position) => [
+          `${"  ".repeat(level)}${block.ordered ? `${position + 1}.` : "-"} ${inlineToMarkdown(node.item)}`,
+          ...lines(node.children, level + 1),
+        ]);
+      return lines(nestByDepth(block.items, block.depths), 0).join("\n");
+    }
     case "image":
       return `![${block.alt ?? ""}](${block.src})`;
     case "callout":
@@ -52,7 +57,9 @@ const blockToMarkdown = (block: BlogBlockNode): string => {
       return `<details>\n<summary>${inlineToMarkdown(block.summary)}</summary>\n\n${body}\n\n</details>`;
     }
     case "todo":
-      return block.items.map((item) => `- [${item.checked ? "x" : " "}] ${inlineToMarkdown(item.children)}`).join("\n");
+      return block.items
+        .map((item) => `${"  ".repeat(item.depth ?? 0)}- [${item.checked ? "x" : " "}] ${inlineToMarkdown(item.children)}`)
+        .join("\n");
     case "code":
       return `\`\`\`${block.language ?? ""}\n${block.text}\n\`\`\``;
     case "divider":

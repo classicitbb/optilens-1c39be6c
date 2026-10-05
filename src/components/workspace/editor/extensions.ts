@@ -28,13 +28,12 @@ const colorOrNull = (value: unknown) => (isBlogColorName(value) ? value : null);
 
 // ── Blocks ─────────────────────────────────────────────────────────────────
 
-/** Canonical list items hold one line of inline content, so items are a single paragraph and Tab does not nest. */
-const FlatListItem = ListItem.extend({
-  content: "paragraph",
-  addKeyboardShortcuts() {
-    return { Enter: () => this.editor.commands.splitListItem(this.name) };
-  },
-});
+/**
+ * List items hold one line plus nested lists of the same kind. Canonical lists are flat with a
+ * depth per item, so item bodies are limited to a paragraph and nested lists. Tab / Shift+Tab nest.
+ */
+const NestedListItem = ListItem.extend({ content: "paragraph (bulletList | orderedList)*" });
+const NestedTaskItem = TaskItem.extend({ content: "paragraph taskList*" });
 
 /** Canonical quotes hold one line of inline content. `"` + space makes one; `> ` makes a toggle. */
 const QuoteBlock = Blockquote.extend({
@@ -403,10 +402,10 @@ export const buildBaseExtensions = (options: { onAskIris?: (request: AskIrisRequ
     listItem: false,
     blockquote: false,
   }),
-  FlatListItem,
+  NestedListItem,
   QuoteBlock,
   TaskList,
-  TaskItem.configure({ nested: false }),
+  NestedTaskItem.configure({ nested: true }),
   Callout,
   Toggle,
   ImageBlock,

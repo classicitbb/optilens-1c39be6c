@@ -178,3 +178,36 @@ describe("WikiArticleRenderer parity", () => {
     }
   });
 });
+
+describe("nested lists", () => {
+  const nested: BlogCanonicalContent = {
+    blocks: [
+      { type: "list", ordered: false, items: [[t("A")], [t("A1")], [t("A1a")], [t("B")]], depths: [0, 1, 2, 0] },
+      {
+        type: "todo",
+        items: [
+          { checked: false, children: [t("Parent")] },
+          { checked: true, children: [t("Child")], depth: 1 },
+        ],
+      },
+    ],
+  };
+
+  it("round-trips through Tiptap with depths intact", () => {
+    const tiptap = canonicalToTiptapDoc(nested);
+    expect(tiptap.content?.[0].content?.[0].content?.[1].type).toBe("bulletList");
+    expect(tiptapDocToCanonical(tiptap)).toEqual(nested);
+  });
+
+  it("clamps impossible depths instead of dropping items", () => {
+    const skewed = { blocks: [{ type: "list", ordered: true, items: [[t("x")], [t("y")]], depths: [3, 5] }] } as unknown as BlogCanonicalContent;
+    const back = tiptapDocToCanonical(canonicalToTiptapDoc(skewed));
+    expect(back.blocks[0]).toMatchObject({ type: "list", items: [[t("x")], [t("y")]], depths: [0, 1] });
+  });
+
+  it("renders nested lists as nested markup", () => {
+    const html = renderToStaticMarkup(<BlogPostRenderer content={nested} />);
+    expect(html).toMatch(/<li[^>]*>.*A1.*<ul[^>]*>.*A1a/s);
+    expect(canonicalToHtml(nested)).toContain("<li>A<ul><li>A1<ul><li>A1a</li></ul></li></ul></li>");
+  });
+});

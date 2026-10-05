@@ -1,4 +1,5 @@
 import { isBlogColorName } from "@/components/blog/BlogPostRenderer";
+import { depthsToStore, nestByDepth, type DepthNode } from "@/lib/listDepth";
 import type { BlogBlockNode, BlogCanonicalContent, BlogInlineNode } from "@/components/blog/BlogPostRenderer";
 
 const isHtmlLike = (value: string) => /<[a-z][\s\S]*>/i.test(value);
@@ -128,7 +129,9 @@ const blockToHtml = (block: BlogBlockNode): string => {
       return `<blockquote>${inline(block.children)}</blockquote>`;
     case "list": {
       const tag = block.ordered ? "ol" : "ul";
-      return `<${tag}>${block.items.map((item) => `<li>${inline(item)}</li>`).join("")}</${tag}>`;
+      const html = (nodes: DepthNode<BlogInlineNode[]>[]): string =>
+        `<${tag}>${nodes.map((node) => `<li>${inline(node.item)}${node.children.length ? html(node.children) : ""}</li>`).join("")}</${tag}>`;
+      return html(nestByDepth(block.items, block.depths));
     }
     case "image":
       return `<img src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt ?? "")}" />`;
@@ -136,8 +139,13 @@ const blockToHtml = (block: BlogBlockNode): string => {
       return `<aside data-callout="${isBlogColorName(block.color) ? block.color : ""}"><span>${escapeHtml(block.icon ?? "")}</span> ${inline(block.children)}</aside>`;
     case "toggle":
       return `<details><summary>${inline(block.summary)}</summary>${(block.children ?? []).map(blockToHtml).join("")}</details>`;
-    case "todo":
-      return `<ul data-todo>${block.items.map((item) => `<li data-checked="${item.checked ? "true" : "false"}">${inline(item.children)}</li>`).join("")}</ul>`;
+    case "todo": {
+      const html = (nodes: DepthNode<(typeof block.items)[number]>[], root: boolean): string =>
+        `<ul${root ? " data-todo" : ""}>${nodes
+          .map((node) => `<li data-checked="${node.item.checked ? "true" : "false"}">${inline(node.item.children)}${node.children.length ? html(node.children, false) : ""}</li>`)
+          .join("")}</ul>`;
+      return html(nestByDepth(block.items, block.items.map((item) => item.depth ?? 0)), true);
+    }
     case "code":
       return `<pre><code${block.language ? ` class="language-${escapeHtml(block.language)}"` : ""}>${escapeHtml(block.text)}</code></pre>`;
     case "divider":
@@ -409,6 +417,22 @@ const joinParagraphs = (paragraphs: TiptapJson[]): BlogInlineNode[] =>
 const textOf = (node: TiptapJson): string =>
   node.text ?? (node.content ?? []).map(textOf).join("");
 
+const LIST_TYPES = ["bulletList", "orderedList", "taskList"];
+
+/**
+ * Nested Tiptap lists flatten into one canonical list with a depth per item. A nested list
+ * takes the type of the list it sits in (the editor only nests lists of the same type).
+ */
+const flattenTiptapList = (list: TiptapJson, depth = 0): { inline: BlogInlineNode[]; checked: boolean; depth: number }[] =>
+  (list.content ?? []).flatMap((item) => [
+    {
+      inline: joinParagraphs((item.content ?? []).filter((child) => child.type === "paragraph")),
+      checked: Boolean(item.attrs?.checked),
+      depth,
+    },
+    ...(item.content ?? []).filter((child) => LIST_TYPES.includes(child.type ?? "")).flatMap((nested) => flattenTiptapList(nested, depth + 1)),
+  ]);
+
 const tiptapBlockToCanonical = (node: TiptapJson): BlogBlockNode[] => {
   const kids = node.content ?? [];
   switch (node.type) {
@@ -419,21 +443,19 @@ const tiptapBlockToCanonical = (node: TiptapJson): BlogBlockNode[] => {
       return [{ type: "heading", level, children: tiptapInlineToCanonical(kids) }];
     }
     case "bulletList":
-    case "orderedList":
-      return [
-        {
-          type: "list",
-          ordered: node.type === "orderedList",
-          items: kids.map((item) => joinParagraphs((item.content ?? []).filter((child) => child.type === "paragraph"))),
-        },
-      ];
+    case "orderedList": {
+      const flat = flattenTiptapList(node);
+      const depths = depthsToStore(flat.map((entry) => entry.depth));
+      return [{ type: "list", ordered: node.type === "orderedList", items: flat.map((entry) => entry.inline), ...(depths ? { depths } : {}) }];
+    }
     case "taskList":
       return [
         {
           type: "todo",
-          items: kids.map((item) => ({
-            checked: Boolean(item.attrs?.checked),
-            children: joinParagraphs((item.content ?? []).filter((child) => child.type === "paragraph")),
+          items: flattenTiptapList(node).map((entry) => ({
+            checked: entry.checked,
+            children: entry.inline,
+            ...(entry.depth > 0 ? { depth: entry.depth } : {}),
           })),
         },
       ];
@@ -551,20 +573,28 @@ const canonicalBlockToTiptap = (block: BlogBlockNode): TiptapJson[] => {
     }
     case "blockquote":
       return [{ type: "blockquote", content: [paragraphOf(block.children)] }];
-    case "list":
-      return [
-        {
-          type: block.ordered ? "orderedList" : "bulletList",
-          content: block.items.map((item) => ({ type: "listItem", content: [paragraphOf(item)] })),
-        },
-      ];
-    case "todo":
-      return [
-        {
-          type: "taskList",
-          content: block.items.map((item) => ({ type: "taskItem", attrs: { checked: Boolean(item.checked) }, content: [paragraphOf(item.children)] })),
-        },
-      ];
+    case "list": {
+      const type = block.ordered ? "orderedList" : "bulletList";
+      const build = (nodes: DepthNode<BlogInlineNode[]>[]): TiptapJson => ({
+        type,
+        content: nodes.map((node) => ({
+          type: "listItem",
+          content: [paragraphOf(node.item), ...(node.children.length ? [build(node.children)] : [])],
+        })),
+      });
+      return [build(nestByDepth(block.items, block.depths))];
+    }
+    case "todo": {
+      const build = (nodes: DepthNode<(typeof block.items)[number]>[]): TiptapJson => ({
+        type: "taskList",
+        content: nodes.map((node) => ({
+          type: "taskItem",
+          attrs: { checked: Boolean(node.item.checked) },
+          content: [paragraphOf(node.item.children), ...(node.children.length ? [build(node.children)] : [])],
+        })),
+      });
+      return [build(nestByDepth(block.items, block.items.map((item) => item.depth ?? 0)))];
+    }
     case "image":
       return [{ type: "image", attrs: { src: block.src, alt: block.alt ?? null } }];
     case "callout": {

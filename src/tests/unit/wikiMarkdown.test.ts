@@ -74,3 +74,17 @@ describe("canonicalToMarkdown: workspace blocks", () => {
     expect(md).toContain("~~old~~ `x` @Ada");
   });
 });
+
+describe("canonicalToMarkdown: nested lists", () => {
+  it("indents nested items and restarts numbering per level", () => {
+    const t = (text: string) => ({ type: "text" as const, text });
+    const md = canonicalToMarkdown("T", {
+      blocks: [
+        { type: "list", ordered: true, items: [[t("one")], [t("one-a")], [t("one-b")], [t("two")]], depths: [0, 1, 1, 0] },
+        { type: "todo", items: [{ checked: false, children: [t("p")] }, { checked: true, children: [t("c")], depth: 1 }] },
+      ],
+    });
+    expect(md).toContain("1. one\n  1. one-a\n  2. one-b\n2. two");
+    expect(md).toContain("- [ ] p\n  - [x] c");
+  });
+});

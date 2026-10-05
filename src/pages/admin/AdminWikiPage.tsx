@@ -26,7 +26,7 @@ import {
   type DropPosition,
   type TreePage,
 } from "@/components/workspace/pageTreeLogic";
-import { useHelpArticles, type HelpArticle } from "@/hooks/useHelpArticles";
+import { uniqueSlug, useHelpArticles, type AutosaveMeta, type HelpArticle } from "@/hooks/useHelpArticles";
 import { useContentArticles } from "@/hooks/useContentArticles";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
 import {
@@ -85,12 +85,12 @@ const buildDraftFromArticle = (article: HelpArticle): DraftForm => {
   const meta = parseHelpEntrySummary(article.summary);
   return {
     id: article.id,
-    title: article.title,
+    title: article.draft_title ?? article.title,
     slug: article.slug ?? slugifyHelpValue(article.title),
     summary: meta.summary,
     kind: meta.kind,
     href: meta.href ?? "",
-    doc: article.body_json ?? toCanonicalDocument(article.content),
+    doc: article.draft_body_json ?? article.body_json ?? toCanonicalDocument(article.content),
     sectionId: article.section_id ?? "",
     parentId: article.parent_id ?? "none",
     sortOrder: String(article.sort_order ?? 0),
@@ -128,6 +128,9 @@ const AdminWikiPage = () => {
     moveArticles,
     patchArticle,
     autosaveDraft,
+    discardDraft,
+    saveContexts,
+    supportsDrafts,
     refetchAll,
     allArticles,
   } = useHelpArticles("knowledge/wiki");
@@ -194,7 +197,7 @@ const AdminWikiPage = () => {
     loadedRef.current = {
       id: selectedArticle.id,
       version: selectedArticle.version_number,
-      title: selectedArticle.title,
+      title: selectedArticle.draft_title ?? selectedArticle.title,
       status: selectedArticle.status,
       section: selectedArticle.section_id ?? null,
       parent: selectedArticle.parent_id ?? null,
@@ -211,7 +214,7 @@ const AdminWikiPage = () => {
 
     setDraft((current) => ({
       ...current,
-      title: current.title === prev.title ? selectedArticle.title : current.title,
+      title: current.title === prev.title ? (selectedArticle.draft_title ?? selectedArticle.title) : current.title,
       status: prev.status !== selectedArticle.status ? (selectedArticle.status ?? current.status) : current.status,
       sectionId: prev.section !== (selectedArticle.section_id ?? null) ? (selectedArticle.section_id ?? "") : current.sectionId,
       parentId: prev.parent !== (selectedArticle.parent_id ?? null) ? (selectedArticle.parent_id ?? "none") : current.parentId,
@@ -235,54 +238,134 @@ const AdminWikiPage = () => {
     [draft, selectedArticle],
   );
 
-  // Autosave: 800 ms after typing stops, only for pages that are not published. It writes the
-  // title and body to help_articles with no version row; Publish is what records a version.
-  // (Published pages keep edits local until Update, because the schema has no separate draft copy.)
-  const unsavedBody = useMemo(
-    () =>
-      selectedArticle
-        ? draft.title !== selectedArticle.title ||
-          JSON.stringify(draft.doc) !== JSON.stringify(buildDraftFromArticle(selectedArticle).doc)
-        : false,
-    [draft.doc, draft.title, selectedArticle],
-  );
-  const autosaveEligible =
-    Boolean(selectedArticle) && draft.kind === "article" && selectedArticle?.status !== "published" && editorMode === "edit";
+  // Autosave, 800 ms after the last change. What it writes depends on the page:
+  //  - settings (summary, link target, section, parent, order, contexts) apply to the live page
+  //    straight away, like a tree move; the slug too while the page is not published;
+  //  - the body and title go to the live page for pages that are not published, and to the
+  //    draft copy for published pages (so the public page only changes on Update);
+  //  - a published page whose project has no draft-copy columns keeps body edits local.
+  const saved = useMemo(() => (selectedArticle ? buildDraftFromArticle(selectedArticle) : null), [selectedArticle]);
+  const isPublished = selectedArticle?.status === "published";
+  const bodyRoute: "live" | "draft" | "local" = isPublished ? (supportsDrafts ? "draft" : "local") : "live";
+  const bodyChanged = Boolean(saved) && draft.id === selectedArticle?.id && (draft.title !== saved!.title || JSON.stringify(draft.doc) !== JSON.stringify(saved!.doc));
+  const metaChanged =
+    Boolean(saved) &&
+    (draft.summary !== saved!.summary ||
+      draft.kind !== saved!.kind ||
+      draft.href !== saved!.href ||
+      draft.sectionId !== saved!.sectionId ||
+      draft.parentId !== saved!.parentId ||
+      draft.sortOrder !== saved!.sortOrder ||
+      (!isPublished && draft.slug !== saved!.slug));
+  const contextsChanged = Boolean(saved) && JSON.stringify(draft.contextSlugs) !== JSON.stringify(saved!.contextSlugs);
+  // On the first render after opening a page the draft state is still empty; never compare or write then.
+  const draftLoaded = draft.id !== undefined && draft.id === selectedArticle?.id;
+  const writable = draftLoaded && ((bodyChanged && bodyRoute !== "local") || metaChanged || contextsChanged);
+  const pendingAutosave = useRef<null | (() => Promise<void>)>(null);
 
   useEffect(() => {
-    if (!autosaveEligible || !unsavedBody || !selectedArticle) return;
-    setSaveState("pending");
+    if (!selectedArticle || !writable) {
+      pendingAutosave.current = null;
+      setSaveState((state) => (state === "pending" ? "idle" : state));
+      return;
+    }
     const { id } = selectedArticle;
-    const title = draft.title.trim() || "Untitled";
-    const doc = draft.doc;
-    const timer = window.setTimeout(async () => {
+    const routeSlug = articleSlug;
+    const run = async () => {
       setSaveState("saving");
       try {
-        await autosaveDraft({ id, title, doc });
+        const writeBody = bodyChanged && bodyRoute !== "local";
+        let meta: AutosaveMeta | undefined;
+        let nextSlug: string | undefined;
+        if (metaChanged) {
+          meta = {
+            summary: composeHelpEntrySummary({ kind: draft.kind, href: draft.href, summary: draft.summary }),
+            section_id: draft.sectionId || null,
+            parent_id: draft.parentId === "none" ? null : draft.parentId,
+            sort_order: Number.parseInt(draft.sortOrder || "0", 10) || 0,
+          };
+          if (!isPublished) {
+            nextSlug = uniqueSlug(
+              slugifyHelpValue(draft.slug) || slugifyHelpValue(draft.title),
+              articles.filter((article) => article.id !== id).map((article) => article.slug),
+            );
+            meta.slug = nextSlug;
+          }
+        }
+        await autosaveDraft({
+          id,
+          ...(writeBody ? { title: draft.title.trim() || "Untitled", doc: draft.doc, asDraft: bodyRoute === "draft" } : {}),
+          meta,
+        });
+        if (contextsChanged) await saveContexts({ id, slugs: draft.contextSlugs });
         setSaveState("saved");
+        if (nextSlug && nextSlug !== draft.slug) setDraft((current) => ({ ...current, slug: nextSlug as string }));
+        if (nextSlug && routeSlug && routeSlug !== nextSlug) {
+          navigate(toAdminWikiArticlePath({ id, title: draft.title, slug: nextSlug }) + window.location.search, { replace: true });
+        }
       } catch {
         setSaveState("error");
       }
+    };
+    setSaveState("pending");
+    pendingAutosave.current = run;
+    const timer = window.setTimeout(() => {
+      pendingAutosave.current = null;
+      void run();
     }, 800);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autosaveEligible, unsavedBody, draft.title, draft.doc, selectedArticle?.id]);
+  }, [draft, writable, selectedArticle?.id]);
 
+  // Leaving the page (or this screen) with a change still waiting out its 800 ms writes it now.
+  useEffect(
+    () => () => {
+      const flush = pendingAutosave.current;
+      pendingAutosave.current = null;
+      if (flush) void flush();
+    },
+    [selectedArticle?.id],
+  );
+
+  // Body edits that cannot be saved anywhere yet (published page, no draft copy): warn before leaving.
+  const localOnlyEdits = bodyChanged && bodyRoute === "local";
+  useEffect(() => {
+    if (!localOnlyEdits) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [localOnlyEdits]);
+
+  const hasUnpublishedDraft = Boolean(selectedArticle && isPublished && selectedArticle.draft_body_json);
   const saveLabel = !selectedArticle
     ? null
-    : selectedArticle.status === "published"
-      ? dirty
-        ? "Unsaved changes"
-        : null
-      : saveState === "saving" || saveState === "pending"
-        ? "Saving…"
-        : saveState === "error"
-          ? "Autosave failed"
-          : dirty
-            ? "Unsaved changes"
+    : saveState === "saving" || saveState === "pending"
+      ? "Saving…"
+      : saveState === "error"
+        ? "Autosave failed"
+        : dirty
+          ? "Unsaved changes"
+          : hasUnpublishedDraft
+            ? "Unpublished changes"
             : saveState === "saved"
               ? "Saved"
               : null;
+
+  const discardUnpublished = async () => {
+    if (!selectedArticle) return;
+    try {
+      await discardDraft(selectedArticle.id);
+      setDraft(buildDraftFromArticle({ ...selectedArticle, draft_title: null, draft_body_json: null }));
+      setEditorEpoch((epoch) => epoch + 1);
+      setSaveState("idle");
+      toast({ title: "Unpublished changes discarded" });
+    } catch (error) {
+      toast({ title: "Could not discard changes", description: error instanceof Error ? error.message : undefined, variant: "destructive" });
+    }
+  };
 
   const setPanel = useCallback(
     (tab: PanelTab | null) =>
@@ -478,7 +561,7 @@ const AdminWikiPage = () => {
     setIsSaving(true);
     try {
       const slug = draft.slug.trim() || slugifyHelpValue(draft.title);
-      await upsertArticle({
+      const result = await upsertArticle({
         id: draft.id,
         version_number: selectedArticle?.version_number,
         title: draft.title.trim(),
@@ -495,6 +578,13 @@ const AdminWikiPage = () => {
       });
       await refetchAll();
       toast({ title: nextStatus === "published" ? "Article published" : "Article saved" });
+      if (result && result.historyRecorded === false) {
+        toast({
+          title: "Saved, but no version was recorded",
+          description: "The version history table is missing on this project, so this change cannot be restored later.",
+          variant: "destructive",
+        });
+      }
       setEditorMode("view");
       navigate(toAdminWikiArticlePath({ id: draft.id ?? "article", title: draft.title.trim(), slug }));
     } catch (error) {
@@ -636,9 +726,11 @@ const AdminWikiPage = () => {
         <FieldLabel>Slug</FieldLabel>
         <Input
           value={draft.slug}
+          disabled={isPublished}
           onChange={(event) => setDraft((current) => ({ ...current, slug: slugifyHelpValue(event.target.value) }))}
           className="ws-mono h-9"
         />
+        {isPublished ? <p className="text-[12px] text-ws-ink-3">Locked while published so existing links keep working.</p> : null}
       </div>
       <div className="space-y-1">
         <FieldLabel>Summary</FieldLabel>
@@ -771,7 +863,6 @@ const AdminWikiPage = () => {
           fullWidth={fullWidth}
           isFavorite={selectedArticle ? isFavorite(selectedArticle.id) : false}
           onToggleEdit={() => setEditorMode(editing ? "view" : "edit")}
-          onSaveDraft={() => void saveArticle("draft")}
           onPublish={() => void saveArticle("published")}
           onShare={() => void sharePage()}
           onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
@@ -807,7 +898,8 @@ const AdminWikiPage = () => {
                   ...current,
                   title,
                   slug:
-                    current.slug === "" || current.slug === slugifyHelpValue(current.title) || current.slug.startsWith("untitled-")
+                    // Only brand-new pages follow their title; an existing slug is never rewritten silently.
+                    current.status !== "published" && (current.slug === "" || current.slug.startsWith("untitled-"))
                       ? slugifyHelpValue(title)
                       : current.slug,
                 }));
@@ -819,6 +911,22 @@ const AdminWikiPage = () => {
               settings={settings}
             />
             <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-12 ${fullWidth ? "max-w-none" : "max-w-[720px]"}`}>
+              {hasUnpublishedDraft ? (
+                <div role="status" className="mb-4 flex flex-wrap items-center gap-2 rounded-[4px] border border-ws-line bg-ws-accent-tint px-3 py-2 text-[14px]">
+                  <span className="flex-1">This page has unpublished changes. Visitors still see the published version.</span>
+                  <button type="button" onClick={() => void saveArticle("published")} disabled={isSaving || !canPublish} className="rounded-[6px] bg-ws-accent px-3 py-1 text-[13px] font-semibold text-[hsl(var(--ws-accent-fg))] disabled:opacity-40">
+                    Update
+                  </button>
+                  <button type="button" onClick={() => void discardUnpublished()} className="rounded-[6px] px-3 py-1 text-[13px] hover:bg-[var(--ws-hover)]">
+                    Discard changes
+                  </button>
+                </div>
+              ) : null}
+              {isPublished && !supportsDrafts && bodyChanged ? (
+                <div role="status" className="mb-4 rounded-[4px] border border-ws-line bg-ws-side px-3 py-2 text-[13px] text-ws-ink-2">
+                  Edits to a published page stay in this browser until you choose Update. Saving them as a draft needs the draft-copy migration on this project.
+                </div>
+              ) : null}
               {draft.kind === "link" ? (
                 <div className="space-y-2 border border-ws-line bg-ws-paper p-4">
                   <p className="ws-label text-ws-ink-3">Linked page</p>

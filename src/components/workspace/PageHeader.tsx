@@ -66,7 +66,6 @@ interface PageTopBarProps {
   fullWidth: boolean;
   isFavorite: boolean;
   onToggleEdit: () => void;
-  onSaveDraft: () => void;
   onPublish: () => void;
   onShare: () => void;
   onToggleIris: () => void;
@@ -177,16 +176,6 @@ export const PageTopBar = (props: PageTopBarProps) => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {editing && dirty && !props.isPublished ? (
-        <button
-          type="button"
-          onClick={props.onSaveDraft}
-          disabled={isSaving}
-          className="h-8 rounded-[6px] border border-ws-line px-3 text-[14px] text-ws-ink hover:bg-[var(--ws-hover)] disabled:opacity-50"
-        >
-          Save draft
-        </button>
-      ) : null}
       <button
         type="button"
         onClick={props.onPublish}

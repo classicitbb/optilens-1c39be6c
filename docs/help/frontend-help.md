@@ -5,7 +5,7 @@
 - Open **Knowledge → Wiki**. Use the sidebar to open, add (+), rename, duplicate, move or archive pages; drag a page onto another to nest it, or between two pages to reorder. Archived pages are in **Trash**, where **Restore** brings them back.
 - Press Ctrl+K to search page titles, text and website content. Ctrl+J opens the Iris panel and Ctrl+\\ hides the sidebar.
 - Choose **Edit**, then type `/` to insert a block, `@` to mention a page, person or date, or select text for formatting and colour. Use the grip beside a block to drag it, or click it for Turn into, Colour, Duplicate and Delete.
-- Draft pages save automatically a moment after you stop typing (the top bar shows Saving…, Saved or Autosave failed). A published page shows **Unsaved changes** until you choose **Update**. Publishing is blocked while the page has an unsupported block or a placeholder build version.
+- Pages save automatically a moment after you stop typing (the top bar shows Saving…, Saved or Autosave failed). Edits to a published page are kept as an unpublished draft; the page shows **Unpublished changes** with **Update** and **Discard changes**, and visitors keep seeing the published version until you update. Page settings apply straight away. The slug is locked while a page is published so links keep working. Tab and Shift+Tab nest and un-nest list items. Publishing is blocked while the page has an unsupported block or a placeholder build version.
 - Favorites, page icons, covers and full width are remembered in this browser only.
 
 ## Dismiss the Doc Studio email status bar
