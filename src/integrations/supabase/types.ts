@@ -11091,6 +11091,7 @@ export type Database = {
           lab_status_at: string | null
           lab_status_detail: string | null
           last_error: string | null
+          order_id: string | null
           order_reference: string | null
           payload: Json
           po_number: string | null
@@ -11118,6 +11119,7 @@ export type Database = {
           lab_status_at?: string | null
           lab_status_detail?: string | null
           last_error?: string | null
+          order_id?: string | null
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
@@ -11145,6 +11147,7 @@ export type Database = {
           lab_status_at?: string | null
           lab_status_detail?: string | null
           last_error?: string | null
+          order_id?: string | null
           order_reference?: string | null
           payload?: Json
           po_number?: string | null
@@ -11182,6 +11185,13 @@ export type Database = {
             columns: ["docstudio_document_id"]
             isOneToOne: false
             referencedRelation: "docstudio_billing_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_order_submissions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
           {
@@ -13120,6 +13130,10 @@ export type Database = {
         }[]
       }
       enqueue_due_odoo_sync_jobs: { Args: never; Returns: number }
+      enqueue_stock_submission_for_order: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       find_customer_by_account_number: {
         Args: { p_account_number: string }
         Returns: {
