@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { nestByDepth, type DepthNode } from "@/lib/listDepth";
 
 export const BLOG_COLOR_NAMES = ["gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red"] as const;
 export type BlogColorName = (typeof BLOG_COLOR_NAMES)[number];
@@ -20,12 +21,14 @@ export type BlogInlineNode =
 export interface BlogTodoItem {
   checked: boolean;
   children: BlogInlineNode[];
+  /** Nesting level, 0 = top level. Omitted when the list is not nested. */
+  depth?: number;
 }
 
 export type BlogBlockNode =
   | { type: "heading"; level: 1 | 2 | 3 | 4; children: BlogInlineNode[] }
   | { type: "paragraph"; children: BlogInlineNode[] }
-  | { type: "list"; ordered: boolean; items: BlogInlineNode[][] }
+  | { type: "list"; ordered: boolean; items: BlogInlineNode[][]; /** Nesting level per item, parallel to `items`. */ depths?: number[] }
   | { type: "blockquote"; children: BlogInlineNode[] }
   | { type: "image"; src: string; alt?: string }
   | { type: "callout"; icon?: string; color?: BlogColorName; children: BlogInlineNode[] }
@@ -296,15 +299,17 @@ const renderBlockNode = (block: BlogBlockNode, key: string, resolve: ResolveHref
       return <blockquote key={key} className="my-4 border-l-2 border-primary/30 pl-4 italic text-muted-foreground">{inline(block.children)}</blockquote>;
     case "list": {
       const ListTag = block.ordered ? "ol" : "ul";
-      return (
-        <ListTag key={key} className={cn("my-3 pl-5 space-y-1 text-muted-foreground", block.ordered ? "list-decimal" : "list-disc")}>
-          {block.items.map((item, index) => (
-            <li key={`${key}-${index}`} className="leading-relaxed marker:text-primary">
-              {item.map((child, childIndex) => renderInlineNode(child, `${key}-${index}-${childIndex}`, resolve))}
+      const renderNodes = (nodes: DepthNode<BlogInlineNode[]>[], root: boolean): ReactNode => (
+        <ListTag key={root ? key : undefined} className={cn(root ? "my-3" : "mt-1", "pl-5 space-y-1 text-muted-foreground", block.ordered ? "list-decimal" : "list-disc")}>
+          {nodes.map((node) => (
+            <li key={`${key}-${node.index}`} className="leading-relaxed marker:text-primary">
+              {node.item.map((child, childIndex) => renderInlineNode(child, `${key}-${node.index}-${childIndex}`, resolve))}
+              {node.children.length > 0 ? renderNodes(node.children, false) : null}
             </li>
           ))}
         </ListTag>
       );
+      return renderNodes(nestByDepth(block.items, block.depths), true);
     }
     case "image":
       return (
@@ -329,19 +334,25 @@ const renderBlockNode = (block: BlogBlockNode, key: string, resolve: ResolveHref
           </div>
         </details>
       );
-    case "todo":
-      return (
-        <ul key={key} data-block="todo" className="ws-todo my-3 space-y-1 text-muted-foreground">
-          {block.items.map((item, index) => (
-            <li key={`${key}-${index}`} className="flex items-start gap-2 leading-relaxed">
-              <input type="checkbox" checked={Boolean(item.checked)} readOnly disabled aria-label={item.checked ? "Done" : "Not done"} className="mt-1.5" />
-              <span className={cn(item.checked && "line-through opacity-70")}>
-                {item.children.map((child, childIndex) => renderInlineNode(child, `${key}-${index}-${childIndex}`, resolve))}
-              </span>
+    case "todo": {
+      const nodes = nestByDepth(block.items, block.items.map((item) => item.depth ?? 0));
+      const renderNodes = (list: typeof nodes, root: boolean): ReactNode => (
+        <ul key={root ? key : undefined} {...(root ? { "data-block": "todo" } : {})} className={cn("ws-todo space-y-1 text-muted-foreground", root ? "my-3" : "mt-1 pl-6")}>
+          {list.map((node) => (
+            <li key={`${key}-${node.index}`} className="leading-relaxed">
+              <div className="flex items-start gap-2">
+                <input type="checkbox" checked={Boolean(node.item.checked)} readOnly disabled aria-label={node.item.checked ? "Done" : "Not done"} className="mt-1.5" />
+                <span className={cn(node.item.checked && "line-through opacity-70")}>
+                  {node.item.children.map((child, childIndex) => renderInlineNode(child, `${key}-${node.index}-${childIndex}`, resolve))}
+                </span>
+              </div>
+              {node.children.length > 0 ? renderNodes(node.children, false) : null}
             </li>
           ))}
         </ul>
       );
+      return renderNodes(nodes, true);
+    }
     case "code":
       return (
         <pre key={key} data-block="code" data-language={block.language || undefined} className="ws-code my-3 overflow-x-auto rounded-[4px] border border-border bg-muted/40 p-3 text-[13px] leading-relaxed">

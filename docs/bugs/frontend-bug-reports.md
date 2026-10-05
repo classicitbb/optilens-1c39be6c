@@ -4,7 +4,7 @@
 - Area: Knowledge → Wiki.
 - Impact: opening an article URL on a fresh load could be redirected to the wiki home before articles had loaded; the publish build-version check ran against HTML and never matched `- **Build version:**` lines; saving a page failed (after the article itself was updated) when `help_article_versions` was missing on the hosted project.
 - Resolution: the unknown-slug redirect waits for the article query to succeed; the check runs against the block text as Markdown; a missing history table is logged and the save completes. Move, rename and status changes no longer create versions.
-- Regression prevention: unit tests cover the canonical/Tiptap round trip, validation, Markdown export and renderer parity for every block type. Known gap: the hosted project still lacks `help_article_versions`, so the History tab shows an error until migration `20260308193000` is applied.
+- Regression prevention: unit tests cover the canonical/Tiptap round trip (including nested lists), validation, Markdown export, the autosave row builder and renderer parity for every block type; the renderer parity test now runs under Vitest. Applied to the hosted project on 2026-10-05: `20261005121000_help_article_versions_table.sql` (the structure from `20260308193000` without its slug and baseline rewrites, which would change 39 existing URLs) and `20261005120000_help_articles_draft_copy.sql`. A save still says when no version was recorded, for projects without the table. Autosave compares documents with `stableStringify`, because jsonb reorders keys and a plain `JSON.stringify` comparison re-saved every 800 ms.
 
 ## 2026-09-30 — Doc Studio email bar could not be dismissed
 
