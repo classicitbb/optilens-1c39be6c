@@ -152,6 +152,10 @@ export interface AtlasSource {
   listPages(): Promise<AtlasListing>;
   listSections(): Promise<AtlasSection[]>;
   createSection(title: string): Promise<void>;
+  /** Renames a section; its slug (used for categories and links) is left alone. */
+  renameSection(id: string, title: string): Promise<void>;
+  /** Retires a section. Its pages are untouched and show at the top level; nothing is hard-deleted. */
+  deleteSection(id: string): Promise<void>;
   createPage(input: NewPageInput): Promise<{ id: string; historyRecorded: boolean }>;
   /** Draft/live autosave: never bumps the version, never changes status. */
   autosave(input: AutosaveInput): Promise<void>;

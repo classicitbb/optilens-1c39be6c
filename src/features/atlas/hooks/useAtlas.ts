@@ -72,6 +72,8 @@ export const useAtlasData = () => {
     toast({ title, description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
 
   const createPage = useMutation({ mutationFn: (input: NewPageInput) => source.createPage(input), onSuccess: refresh });
+  const renameSection = useMutation({ mutationFn: ({ id, title }: { id: string; title: string }) => source.renameSection(id, title), onSuccess: refresh, onError: failure("Could not rename the section") });
+  const deleteSection = useMutation({ mutationFn: (id: string) => source.deleteSection(id), onSuccess: refresh, onError: failure("Could not delete the section") });
   const createSection = useMutation({ mutationFn: (title: string) => source.createSection(title), onSuccess: refresh });
   const autosave = useMutation({ mutationFn: (input: AutosaveInput) => source.autosave(input), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["atlas", source.id, "pages"] }) });
   const saveVersion = useMutation({ mutationFn: (input: PublishInput) => source.saveVersion(input), onSuccess: refresh });
@@ -97,9 +99,12 @@ export const useAtlasData = () => {
     isLoading: pagesQuery.isLoading,
     /** True once the first listing has returned (queries wait for permissions, so `isLoading` alone can read false early). */
     isLoaded: pagesQuery.isSuccess,
+    isFetching: pagesQuery.isFetching,
     refresh,
     createPage: createPage.mutateAsync,
     createSection: createSection.mutateAsync,
+    renameSection: renameSection.mutateAsync,
+    deleteSection: deleteSection.mutateAsync,
     autosave: autosave.mutateAsync,
     saveVersion: saveVersion.mutateAsync,
     discardDraft: discardDraft.mutateAsync,

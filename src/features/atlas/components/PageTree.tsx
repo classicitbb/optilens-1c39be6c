@@ -27,6 +27,8 @@ export interface PageTreeProps {
   onDuplicate: (id: string) => void;
   onMoveTo: (id: string) => void;
   onArchive: (id: string) => void;
+  /** Sections can be renamed (through onRename) and deleted. */
+  onDeleteSection: (id: string) => void;
   onMove: (dragId: string, targetId: string, position: DropPosition) => void;
   canEdit: boolean;
 }
@@ -95,6 +97,7 @@ const TreeRow = (props: RowProps) => {
     onDuplicate,
     onMoveTo,
     onArchive,
+    onDeleteSection,
     onMove,
     canEdit,
     dragId,
@@ -202,7 +205,7 @@ const TreeRow = (props: RowProps) => {
               }
             }}
             className="h-6 min-w-0 flex-1 border border-ws-accent bg-ws-paper px-1 text-[14px] text-ws-ink outline-none"
-            aria-label="Page title"
+            aria-label={isSection ? "Section name" : "Page title"}
           />
         ) : (
           <button
@@ -224,6 +227,28 @@ const TreeRow = (props: RowProps) => {
 
         {canEdit && !renaming ? (
           <span className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+            {isSection ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={`Actions for ${node.title}`}
+                    className="flex h-5 w-5 items-center justify-center rounded-[4px] text-ws-ink-3 hover:bg-[var(--ws-press)]"
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem onSelect={() => setRenaming(true)}>
+                    <Pencil className="mr-2 h-3.5 w-3.5" /> Rename section
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => onDeleteSection(node.id)}>
+                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete section
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
             {!isSection ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

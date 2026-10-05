@@ -87,6 +87,27 @@ const scoreContext = (query: string, text: string) => {
   return queryWords.reduce((score, word) => score + (normalizedText.includes(word) ? 2 : 0), 0);
 };
 
+const STAFF_ROLES = ["admin", "operator", "viewer"];
+
+/**
+ * Atlas (the staff workspace) sends the pages the signed-in user is reading as evidence. That is
+ * trusted only for an authenticated staff user; everyone else, including any caller who merely
+ * claims this task kind, is grounded on the public knowledge base as before.
+ */
+const isAtlasStaffRequest = async (request: Request, payload: CompanionRequest): Promise<boolean> => {
+  if (payload.taskContext?.kind !== "atlas") return false;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) return false;
+  const db = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: request.headers.get("Authorization") ?? "" } },
+  });
+  const { data: authData } = await db.auth.getUser();
+  if (!authData.user) return false;
+  const { data: roles } = await (db.from("user_roles") as any).select("role").eq("user_id", authData.user.id);
+  return ((roles ?? []) as { role: string }[]).some((row) => STAFF_ROLES.includes(row.role));
+};
+
 const retrieveServerContext = async (request: Request, payload: CompanionRequest): Promise<ContextLink[]> => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
@@ -320,7 +341,8 @@ serve(async (req) => {
 
   try {
     const payload = (await req.json()) as CompanionRequest & { stream?: boolean };
-    const serverLinks = await retrieveServerContext(req, payload).catch(() => []);
+    const atlasStaff = await isAtlasStaffRequest(req, payload).catch(() => false);
+    const serverLinks = atlasStaff ? [] : await retrieveServerContext(req, payload).catch(() => []);
     const groundedPayload = serverLinks.length > 0 ? { ...payload, topLinks: serverLinks } : payload;
 
     const gatewayKey = Deno.env.get("LOVABLE_API_KEY");

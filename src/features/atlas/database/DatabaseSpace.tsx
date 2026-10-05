@@ -344,7 +344,10 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
           onClose={() => setParam("peek", null)}
           onOpenFull={() => navigate(atlasPath(space.id, toPageSlug(peekPage)))}
           onAskIris={onAskIris}
-          onSlugChanged={(slug) => setParam("peek", slug)}
+          onSlugChanged={async (slug) => {
+            await data.refresh();
+            setParam("peek", slug);
+          }}
           onStatus={(next) => {
             void setStatusFor([peekPage], next);
             if (next === "archived") setParam("peek", null);
