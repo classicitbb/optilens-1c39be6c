@@ -1,5 +1,5 @@
 import BlogPostRenderer from "@/components/blog/BlogPostRenderer";
-import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
+import type { BlogCanonicalContent, BlogPageRef } from "@/components/blog/BlogPostRenderer";
 import { toCanonicalDocument } from "@/lib/wikiCanonical";
 import { composeWikiArticleReleaseMetadata } from "@/lib/wikiReleaseMetadata";
 
@@ -13,6 +13,7 @@ interface WikiArticleRendererProps {
   legacyContent?: string;
   className?: string;
   emptyMessage?: string;
+  resolvePageHref?: (page: BlogPageRef) => string | undefined;
 }
 
 /**
@@ -26,9 +27,9 @@ export const toWikiRendererDocument = ({ bodyJson, legacyContent }: WikiRenderer
   return toCanonicalDocument(undefined);
 };
 
-const WikiArticleRenderer = ({ bodyJson, legacyContent = "", className, emptyMessage }: WikiArticleRendererProps) => {
+const WikiArticleRenderer = ({ bodyJson, legacyContent = "", className, emptyMessage, resolvePageHref }: WikiArticleRendererProps) => {
   const canonical = toWikiRendererDocument({ bodyJson, legacyContent });
-  return <BlogPostRenderer content={canonical} className={className} emptyMessage={emptyMessage} />;
+  return <BlogPostRenderer content={canonical} className={className} emptyMessage={emptyMessage} resolvePageHref={resolvePageHref} />;
 };
 
 export default WikiArticleRenderer;

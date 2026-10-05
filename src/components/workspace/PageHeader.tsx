@@ -56,6 +56,9 @@ interface PageTopBarProps {
   insetLeft: boolean;
   editing: boolean;
   dirty: boolean;
+  /** "Saving…", "Saved", "Unsaved changes"… */
+  saveLabel?: string | null;
+  isPublished: boolean;
   isSaving: boolean;
   canPublish: boolean;
   hasPage: boolean;
@@ -100,7 +103,11 @@ export const PageTopBar = (props: PageTopBarProps) => {
         ))}
       </nav>
 
-      {hasPage && editedAt ? (
+      {hasPage && props.saveLabel ? (
+        <span role="status" className="shrink-0 text-[13px] text-ws-ink-3">
+          {props.saveLabel}
+        </span>
+      ) : hasPage && editedAt ? (
         <span className="hidden shrink-0 text-[13px] text-ws-ink-3 lg:inline">Edited {formatRelative(editedAt)}</span>
       ) : null}
 
@@ -170,7 +177,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {editing && dirty ? (
+      {editing && dirty && !props.isPublished ? (
         <button
           type="button"
           onClick={props.onSaveDraft}
@@ -187,7 +194,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
         title={canPublish ? undefined : "Publishing requires wiki publish permission"}
         className="flex h-8 items-center gap-1.5 rounded-[6px] bg-ws-accent px-3 text-[14px] font-semibold text-[hsl(var(--ws-accent-fg))] hover:opacity-90 disabled:opacity-40"
       >
-        <Upload className="h-3.5 w-3.5" /> Publish
+        <Upload className="h-3.5 w-3.5" /> {props.isPublished ? "Update" : "Publish"}
       </button>
     </div>
   );

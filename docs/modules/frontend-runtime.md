@@ -1,5 +1,13 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-05 — Admin workspace theme and wiki block editor
+
+- **Theme:** `src/styles/workspace.css` defines the `--ws-*` tokens on `.admin-tool` and `body.ws-admin` (light and dark). `AdminLayout`, `AdminDocsLayout` and `CopilotWorkspacePage` mount `useScrollingClass` and `useAdminBodyClass`. The colour-option tokens (`--ws-c-*`, `--ws-t-*`) are also defined on `:root` so page content renders colour marks on `/knowledge`.
+- **Wiki workspace:** `/admin/knowledge/wiki[/:articleSlug]` renders `AdminWikiPage` inside `WorkspaceShell`. Tree moves are planned by `planPageMove`; favorites, page icon, cover and full width live in `localStorage` (`useWikiWorkspacePrefs`).
+- **Editor:** `BlockEditor` holds a canonical `BlogCanonicalContent` and emits one on every change via `tiptapDocToCanonical`; remount it (change `key`) to load a different document. `RichTextEditor` is unchanged and still serves Doc Studio, the blog manager and helpdesk config.
+- **Save path:** autosave (`autosaveDraft`, 800 ms) runs only for pages whose status is not `published` and writes `title`, `body_json`, `content`, `body_html`. `upsertArticle` (Save draft / Publish / Update) still bumps `version_number` and writes `help_article_versions`; a missing history table (PGRST205 / 42P01) is logged and no longer fails the save.
+- **Shared renderer:** `WikiArticleRenderer` → `BlogPostRenderer` renders every block type; an unknown block renders a visible `data-unknown-block` fallback. Admin passes `ws-prose` for the workspace typography; the public `/knowledge` typography is unchanged.
+
 ## Doc Studio email status dismissal
 
 `EmailDeliveryHealthBanner` retains the shared health query while hidden. The `docstudio-email-health-dismissed` sessionStorage key remembers the dismissed status, latest attempt identity/time/status and rate-limit expiry. A changed identity shows the bar again. Storage denial still allows dismissal until the component remounts. No recipient or provider error text is persisted.

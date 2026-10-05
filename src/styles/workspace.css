@@ -35,18 +35,6 @@ body.ws-admin {
   --ws-press: hsl(var(--ws-ink) / 0.09);
   --ws-selection: hsl(var(--ws-accent) / 0.2);
 
-  /* Colour options: text colour (triplet) and an opaque tint that matches the
-     12–17% alpha background over paper. For alpha use, hsl(var(--ws-c-x) / .14). */
-  --ws-c-gray: 220 5% 49%;     --ws-t-gray: 220 5% 93%;
-  --ws-c-brown: 20 30% 46%;    --ws-t-brown: 20 26% 93%;
-  --ws-c-orange: 28 89% 42%;   --ws-t-orange: 28 64% 92%;
-  --ws-c-yellow: 46 91% 36%;   --ws-t-yellow: 46 52% 91%;
-  --ws-c-green: 152 49% 36%;   --ws-t-green: 152 28% 91%;
-  --ws-c-blue: 209 62% 45%;    --ws-t-blue: 209 51% 92%;
-  --ws-c-purple: 275 32% 50%;  --ws-t-purple: 275 32% 93%;
-  --ws-c-pink: 329 47% 49%;    --ws-t-pink: 329 45% 93%;
-  --ws-c-red: 2 56% 51%;       --ws-t-red: 2 56% 93%;
-
   /* Shape */
   --ws-radius-block: 4px;   /* blocks, pills, inputs, table cells */
   --ws-radius-control: 6px; /* buttons, menu items */
@@ -76,7 +64,28 @@ body.ws-admin {
   --ws-thumb: 188 53% 51%;
 
   --ws-selection: hsl(var(--ws-accent) / 0.28);
+}
 
+/* Colour options: text colour (triplet) and an opaque tint that matches the 12–17% alpha
+   background over paper. For alpha use, hsl(var(--ws-c-x) / .14). Defined globally (new names
+   only) because page content with colour marks also renders outside admin, on /knowledge. */
+:root,
+.admin-tool,
+body.ws-admin {
+  --ws-c-gray: 220 5% 49%;     --ws-t-gray: 220 5% 93%;
+  --ws-c-brown: 20 30% 46%;    --ws-t-brown: 20 26% 93%;
+  --ws-c-orange: 28 89% 42%;   --ws-t-orange: 28 64% 92%;
+  --ws-c-yellow: 46 91% 36%;   --ws-t-yellow: 46 52% 91%;
+  --ws-c-green: 152 49% 36%;   --ws-t-green: 152 28% 91%;
+  --ws-c-blue: 209 62% 45%;    --ws-t-blue: 209 51% 92%;
+  --ws-c-purple: 275 32% 50%;  --ws-t-purple: 275 32% 93%;
+  --ws-c-pink: 329 47% 49%;    --ws-t-pink: 329 45% 93%;
+  --ws-c-red: 2 56% 51%;       --ws-t-red: 2 56% 93%;
+}
+
+.dark,
+.dark .admin-tool,
+.dark body.ws-admin {
   --ws-c-gray: 214 7% 63%;     --ws-t-gray: 214 15% 18%;
   --ws-c-brown: 188 53% 51%;   --ws-t-brown: 188 40% 17%;
   --ws-c-orange: 27 79% 57%;   --ws-t-orange: 27 40% 17%;

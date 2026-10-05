@@ -2,6 +2,14 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-05 — Admin workspace theme, wiki workspace and block editor
+
+### Release Notes
+- Every admin screen now shares one workspace look: off-white paper and navy in dark mode, teal accents, Plus Jakarta Sans for text and JetBrains Mono for labels, codes and SKUs. The old brown and gold admin palette is gone. Scrollbars stay hidden until you scroll.
+- **Knowledge → Wiki** is now a three-pane workspace: a resizable page tree (drag to reorder or nest), favorites, trash, a Ctrl+K search over titles, page text and website content, and a right panel for page history.
+- Pages are edited as blocks. Type `/` for headings, lists, to-dos, toggles, quotes, callouts, code, tables, images and page links; type `@` to mention a page, person or date; select text for bold, italic, underline, strikethrough, code, link and colour. Drag the grip beside any block to move it.
+- Pages that are not yet published save themselves 800 ms after you stop typing. A published page keeps your edits on screen until you choose **Update**.
+
 ## 2026-09-17 — Customer-device walk-in payments
 
 ### Release Notes

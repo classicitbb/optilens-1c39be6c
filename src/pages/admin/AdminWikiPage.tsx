@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FilePlus2, LayoutTemplate } from "lucide-react";
@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
-import RichTextEditor from "@/components/admin/RichTextEditor";
+import BlockEditor from "@/components/workspace/BlockEditor";
+import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
 import WikiAssignmentsPanel from "@/components/admin/WikiAssignmentsPanel";
 import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 import WorkspaceSidebar from "@/components/workspace/WorkspaceSidebar";
@@ -37,15 +38,14 @@ import {
 import {
   buildAdminHelpCenterTree,
   composeHelpEntrySummary,
-  extractCanonicalPlainText,
   parseHelpEntrySummary,
   slugifyHelpValue,
   type HelpCenterNode,
 } from "@/lib/helpCenter";
-import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
-import { toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
+import { toAdminWikiArticlePath, toWikiArticleSlug } from "@/lib/wikiArticleRouting";
+import { canonicalToSearchText, toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
 import { validateWikiBuildVersionForPublish } from "@/lib/wikiReleaseMetadata";
-import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
+import { canonicalBodyToMarkdown, canonicalToMarkdown } from "@/lib/wikiMarkdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +57,7 @@ type DraftForm = {
   summary: string;
   kind: "article" | "link";
   href: string;
-  content: string;
+  doc: BlogCanonicalContent;
   sectionId: string;
   parentId: string;
   sortOrder: string;
@@ -73,7 +73,7 @@ const EMPTY_FORM: DraftForm = {
   summary: "",
   kind: "article",
   href: "",
-  content: "",
+  doc: { blocks: [] },
   sectionId: "",
   parentId: "none",
   sortOrder: "0",
@@ -90,7 +90,7 @@ const buildDraftFromArticle = (article: HelpArticle): DraftForm => {
     summary: meta.summary,
     kind: meta.kind,
     href: meta.href ?? "",
-    content: article.content ?? "",
+    doc: article.body_json ?? toCanonicalDocument(article.content),
     sectionId: article.section_id ?? "",
     parentId: article.parent_id ?? "none",
     sortOrder: String(article.sort_order ?? 0),
@@ -127,6 +127,7 @@ const AdminWikiPage = () => {
     canPublish,
     moveArticles,
     patchArticle,
+    autosaveDraft,
     refetchAll,
     allArticles,
   } = useHelpArticles("knowledge/wiki");
@@ -141,6 +142,18 @@ const AdminWikiPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "pending" | "saving" | "saved" | "error">("idle");
+  // Bumped whenever the draft is (re)loaded from the server so the block editor remounts with it.
+  const [editorEpoch, setEditorEpoch] = useState(0);
+  const loadedRef = useRef<{
+    id?: string;
+    version?: number;
+    title?: string;
+    status?: string;
+    section?: string | null;
+    parent?: string | null;
+    sort?: number;
+  }>({});
 
   const panelTab = parsePanelTab(searchParams.get("panel"));
   const showAssignments = searchParams.get("view") === "assignments";
@@ -164,25 +177,112 @@ const AdminWikiPage = () => {
     if (articleSlug && isLoaded && !selectedNode) navigate(WIKI_HOME, { replace: true });
   }, [articleSlug, isLoaded, navigate, selectedNode]);
 
-  // Reset the draft when the page, or its saved version, changes. A background
-  // refetch with the same version must not wipe unsaved edits.
+  // Load the draft when the page or its saved version changes. When the server copy changes
+  // under the same version (autosave, rename, status, move) only the metadata that changed is
+  // merged in, so a background refetch never wipes unsaved edits.
   useEffect(() => {
     if (!selectedArticle) {
+      loadedRef.current = {};
       if (!articleSlug) {
         setEditorMode("view");
         setDraft(EMPTY_FORM);
       }
       return;
     }
-    setDraft(buildDraftFromArticle(selectedArticle));
-    setEditorMode("view");
+    const prev = loadedRef.current;
+    const samePage = prev.id === selectedArticle.id;
+    loadedRef.current = {
+      id: selectedArticle.id,
+      version: selectedArticle.version_number,
+      title: selectedArticle.title,
+      status: selectedArticle.status,
+      section: selectedArticle.section_id ?? null,
+      parent: selectedArticle.parent_id ?? null,
+      sort: selectedArticle.sort_order ?? 0,
+    };
+
+    if (!samePage || prev.version !== selectedArticle.version_number) {
+      setDraft(buildDraftFromArticle(selectedArticle));
+      if (!samePage) setEditorMode("view");
+      setEditorEpoch((epoch) => epoch + 1);
+      setSaveState("idle");
+      return;
+    }
+
+    setDraft((current) => ({
+      ...current,
+      title: current.title === prev.title ? selectedArticle.title : current.title,
+      status: prev.status !== selectedArticle.status ? (selectedArticle.status ?? current.status) : current.status,
+      sectionId: prev.section !== (selectedArticle.section_id ?? null) ? (selectedArticle.section_id ?? "") : current.sectionId,
+      parentId: prev.parent !== (selectedArticle.parent_id ?? null) ? (selectedArticle.parent_id ?? "none") : current.parentId,
+      sortOrder: prev.sort !== (selectedArticle.sort_order ?? 0) ? String(selectedArticle.sort_order ?? 0) : current.sortOrder,
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleSlug, selectedArticle?.id, selectedArticle?.updated_at, selectedArticle?.version_number]);
+  }, [
+    articleSlug,
+    selectedArticle?.id,
+    selectedArticle?.version_number,
+    selectedArticle?.updated_at,
+    selectedArticle?.title,
+    selectedArticle?.status,
+    selectedArticle?.section_id,
+    selectedArticle?.parent_id,
+    selectedArticle?.sort_order,
+  ]);
 
   const dirty = useMemo(
     () => Boolean(selectedArticle) && JSON.stringify(draft) !== JSON.stringify(buildDraftFromArticle(selectedArticle as HelpArticle)),
     [draft, selectedArticle],
   );
+
+  // Autosave: 800 ms after typing stops, only for pages that are not published. It writes the
+  // title and body to help_articles with no version row; Publish is what records a version.
+  // (Published pages keep edits local until Update, because the schema has no separate draft copy.)
+  const unsavedBody = useMemo(
+    () =>
+      selectedArticle
+        ? draft.title !== selectedArticle.title ||
+          JSON.stringify(draft.doc) !== JSON.stringify(buildDraftFromArticle(selectedArticle).doc)
+        : false,
+    [draft.doc, draft.title, selectedArticle],
+  );
+  const autosaveEligible =
+    Boolean(selectedArticle) && draft.kind === "article" && selectedArticle?.status !== "published" && editorMode === "edit";
+
+  useEffect(() => {
+    if (!autosaveEligible || !unsavedBody || !selectedArticle) return;
+    setSaveState("pending");
+    const { id } = selectedArticle;
+    const title = draft.title.trim() || "Untitled";
+    const doc = draft.doc;
+    const timer = window.setTimeout(async () => {
+      setSaveState("saving");
+      try {
+        await autosaveDraft({ id, title, doc });
+        setSaveState("saved");
+      } catch {
+        setSaveState("error");
+      }
+    }, 800);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autosaveEligible, unsavedBody, draft.title, draft.doc, selectedArticle?.id]);
+
+  const saveLabel = !selectedArticle
+    ? null
+    : selectedArticle.status === "published"
+      ? dirty
+        ? "Unsaved changes"
+        : null
+      : saveState === "saving" || saveState === "pending"
+        ? "Saving…"
+        : saveState === "error"
+          ? "Autosave failed"
+          : dirty
+            ? "Unsaved changes"
+            : saveState === "saved"
+              ? "Saved"
+              : null;
 
   const setPanel = useCallback(
     (tab: PanelTab | null) =>
@@ -301,7 +401,7 @@ const AdminWikiPage = () => {
         title,
         slug,
         summary: source.summary ?? "",
-        content: source.content,
+        content: JSON.stringify(source.body_json ?? toCanonicalDocument(source.content)),
         category: source.category,
         page_slug: "knowledge/wiki",
         section_id: source.section_id ?? null,
@@ -355,15 +455,14 @@ const AdminWikiPage = () => {
     }
 
     if (draft.kind === "article") {
-      const canonical = toCanonicalDocument(draft.content);
-      const validation = validateCanonicalDocument(canonical);
+      const validation = validateCanonicalDocument(draft.doc);
       if (!validation.valid) {
         toast({ title: "Cannot save article", description: validation.message, variant: "destructive" });
         return;
       }
 
       if (nextStatus === "published") {
-        const buildValidation = validateWikiBuildVersionForPublish(draft.content);
+        const buildValidation = validateWikiBuildVersionForPublish(canonicalBodyToMarkdown(draft.doc));
         if (!buildValidation.valid) {
           toast({ title: "Cannot publish", description: buildValidation.message, variant: "destructive" });
           return;
@@ -385,7 +484,7 @@ const AdminWikiPage = () => {
         title: draft.title.trim(),
         slug,
         summary: composeHelpEntrySummary({ kind: draft.kind, href: draft.href, summary: draft.summary }),
-        content: draft.content,
+        content: JSON.stringify(draft.doc),
         category: headings.find((heading) => heading.id === draft.sectionId)?.slug ?? "general",
         page_slug: "knowledge/wiki",
         section_id: draft.sectionId || null,
@@ -420,7 +519,7 @@ const AdminWikiPage = () => {
   };
 
   const exportMarkdown = () => {
-    const markdown = canonicalToMarkdown(draft.title, toCanonicalDocument(draft.content));
+    const markdown = canonicalToMarkdown(draft.title, draft.doc);
     const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
@@ -456,7 +555,7 @@ const AdminWikiPage = () => {
     const pages: SearchDoc[] = visibleArticles.map((article) => ({
       id: article.id,
       title: article.title,
-      body: extractCanonicalPlainText(article.body_json) || article.summary || "",
+      body: canonicalToSearchText(article.body_json) || article.summary || "",
       kind: "page",
       meta: article.status,
     }));
@@ -484,6 +583,26 @@ const AdminWikiPage = () => {
   }, [headings, moveTargetId, treePages, visibleArticles]);
 
   const moveTargetPage = articles.find((article) => article.id === moveTargetId);
+  const editorPages = useMemo(
+    () => visibleArticles.filter((article) => article.id !== selectedArticle?.id).map((article) => ({ id: article.id, title: article.title, slug: toWikiArticleSlug(article) })),
+    [selectedArticle?.id, visibleArticles],
+  );
+  const searchPeople = useCallback(async (query: string) => {
+    const term = query.replace(/[,()%*]/g, " ").trim();
+    if (!term) return [];
+    const { data } = await (supabase.from("profiles") as any)
+      .select("id, full_name, display_name")
+      .or(`full_name.ilike.%${term}%,display_name.ilike.%${term}%`)
+      .limit(5);
+    return ((data ?? []) as { id: string; full_name: string | null; display_name: string | null }[])
+      .map((person) => ({ id: person.id, name: person.full_name || person.display_name || "" }))
+      .filter((person) => person.name);
+  }, []);
+  const resolvePageHref = useCallback(
+    (page: { id?: string; slug?: string; title: string }) =>
+      page.slug ? toAdminWikiArticlePath({ id: page.id ?? "", title: page.title, slug: page.slug }) : undefined,
+    [],
+  );
   const meta = selectedArticle ? pageMeta[selectedArticle.id] : undefined;
   const fullWidth = meta?.fullWidth ?? false;
   const editing = editorMode === "edit";
@@ -643,6 +762,8 @@ const AdminWikiPage = () => {
           insetLeft={sidebar.collapsed}
           editing={editing}
           dirty={dirty}
+          saveLabel={saveLabel}
+          isPublished={selectedArticle?.status === "published"}
           isSaving={isSaving}
           canPublish={canPublish}
           hasPage={Boolean(selectedArticle) && !showAssignments}
@@ -704,14 +825,21 @@ const AdminWikiPage = () => {
                   <p className="break-all text-[14px] text-ws-ink-2">{draft.href || "Add a link target in Page settings."}</p>
                 </div>
               ) : editing ? (
-                <RichTextEditor
-                  content={draft.content}
-                  onChange={(content) => setDraft((current) => ({ ...current, content }))}
-                  placeholder="Write the page using headings, lists, and links."
-                  minHeight="420px"
+                <BlockEditor
+                  key={`${selectedArticle.id}:${editorEpoch}`}
+                  value={draft.doc}
+                  onChange={(doc) => setDraft((current) => ({ ...current, doc }))}
+                  pages={editorPages}
+                  searchPeople={searchPeople}
+                  onAskIris={() => setPanel("iris")}
                 />
               ) : (
-                <WikiArticleRenderer legacyContent={draft.content} className="mx-auto" emptyMessage="This page is empty. Choose Edit to start writing." />
+                <WikiArticleRenderer
+                  bodyJson={draft.doc}
+                  className="ws-prose mx-auto"
+                  resolvePageHref={resolvePageHref}
+                  emptyMessage="This page is empty. Choose Edit to start writing."
+                />
               )}
             </div>
           </>
