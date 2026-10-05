@@ -259,7 +259,7 @@ const IrisPanel = ({ request, page, search, pageText, pagePath, route, canEdit, 
                   </button>
                 </div>
               ) : turn.text ? (
-                <p className="whitespace-pre-wrap">{turn.text}</p>
+                <WikiArticleRenderer bodyJson={{ blocks: turn.proposal?.value.blocks ?? textToBlocks(turn.text) }} className="ws-prose text-[14px]" emptyMessage="" />
               ) : null}
               {turn.sources.length > 0 && turn.status === "done" ? (
                 <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Sources">

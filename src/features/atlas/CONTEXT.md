@@ -40,3 +40,7 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
 - Favorites, page icon, cover and full width are `localStorage` only; comments are disabled.
 - Importing for real (a hosted write) needs explicit approval and is not implemented.
 - `companion-assistant` trusts Atlas evidence only for staff after its source change is deployed.
+
+## Iris formatting contract
+
+Replies and proposal previews use WikiArticleRenderer. irisBlocks converts Markdown via unified / remark-parse / remark-gfm into canonical blocks before acceptance; selection replacement inserts Tiptap nodes and marks. Never flatten accepted rich content to a plain string. Existing stored drafts are not rewritten automatically.

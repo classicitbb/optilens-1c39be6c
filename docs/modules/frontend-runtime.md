@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## Iris wiki content conversion
+
+Atlas converts Iris Markdown with unified, remark-parse and remark-gfm into canonical blocks. Replies and proposals share WikiArticleRenderer; acceptance inserts canonical Tiptap content, including marks for inline selection replacements. Stored plain-text drafts are not automatically rewritten.
+
 ## 2026-10-05 — Atlas
 
 - **Where:** `src/features/atlas/` (read its `CONTEXT.md`). Routes `/atlas/:space/:articleSlug?` are mounted in `App.tsx` behind `AdminProtectedRoute` and registered in `routeRegistry.ts` (`standalone-shell`). The old admin URLs are redirect-only.

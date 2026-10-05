@@ -5,6 +5,7 @@ import IrisPanel from "@/features/atlas/iris/IrisPanel";
 import { registerAtlasHost } from "@/features/atlas/host";
 import { textToBlocks, toInlineText } from "@/features/atlas/iris/irisBlocks";
 import { IRIS_ACTIONS } from "@/features/atlas/iris/irisActions";
+import { canonicalToTiptapDoc, tiptapDocToCanonical } from "@/lib/wikiCanonical";
 
 const page = { id: "p1", title: "Returns process", text: "Pack the item. Print the label. Send it back." };
 
@@ -108,6 +109,28 @@ describe("Iris panel", () => {
 });
 
 describe("Iris reply conversion", () => {
+  it("preserves document formatting through the editor round trip", () => {
+    const blocks = textToBlocks("# Procedure\n\n**Check** the *frame* and `ID`.\n\n- Main\n  - Nested\n\n| Step | Result |\n| --- | --- |\n| **One** | Ready |\n\n- [x] **Verified**\n\n---\n\n```text\n# literal code\n- [ ] literal task\n```");
+    expect(blocks.map((block) => block.type)).toEqual(["heading", "paragraph", "list", "table", "todo", "divider", "code"]);
+    expect(blocks[2]).toMatchObject({ depths: [0, 1] });
+    expect(blocks[4]).toMatchObject({ items: [{ checked: true, children: [{ type: "strong" }] }] });
+    expect(blocks[6]).toMatchObject({ text: "# literal code\n- [ ] literal task" });
+    const restored = tiptapDocToCanonical(canonicalToTiptapDoc({ blocks }));
+    expect(restored.blocks.map((block) => block.type)).toEqual(blocks.map((block) => block.type));
+    expect(restored.blocks[1]).toMatchObject({ children: expect.arrayContaining([{ type: "strong", children: [{ type: "text", text: "Check" }] }]) });
+  });
+
+  it("renders replies and proposals as rich text and accepts the same formatted blocks", async () => {
+    registerAtlasHost({ iris: { ask: vi.fn().mockResolvedValue({ text: "## Check frame\n\n**Inspect** carefully.\n\n- Verify fit", citations: [] }) } });
+    const props = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Summarize" }));
+    await screen.findByText("Proposed addition to this page");
+    expect(screen.getAllByRole("heading", { name: "Check frame" })).toHaveLength(2);
+    expect(screen.getAllByText("Inspect").every((node) => node.closest("strong"))).toBe(true);
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Accept" }));
+    expect(props.onAccept).toHaveBeenCalledWith(expect.objectContaining({ blocks: textToBlocks("## Check frame\n\n**Inspect** carefully.\n\n- Verify fit") }));
+  });
   it("turns checklist lines into a to-do block and the rest into canonical blocks", () => {
     const blocks = textToBlocks("Intro line\n\n- [ ] One\n- [x] Two");
     expect(blocks.map((block) => block.type)).toEqual(["paragraph", "todo"]);

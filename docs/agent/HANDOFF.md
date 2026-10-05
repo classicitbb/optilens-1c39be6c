@@ -1,5 +1,15 @@
 # Work Handoff
 
+## 2026-10-05 — Iris wiki formatting
+
+Status: Local implementation complete; production publication pending approval.
+
+Affected files: Atlas Iris panel/converter, AtlasWorkspace selection acceptance, Iris regression tests, npm dependencies, Atlas CONTEXT and frontend release/continuity docs. Replies, proposal previews and editor insertions preserve rich content. The existing hosted article draft remains unchanged. Browser proof used an isolated local fixture with the real IrisPanel, BlockEditor and a mock assistant; no live assistant generation, hosted save or publishing was performed.
+
+Validation: TypeScript, 12 Iris tests, lint (warnings only), build and local browser formatting check pass. All 1,318 tests and PR checks pass. Regenerating platform facts/search index resolved Windows line-ending-only drift without semantic source changes. Release ledger is synchronized.
+
+Approval required: production frontend publication and any repair to the already-stored hosted draft. Exact next executable action: `git diff -- src/features/atlas/AtlasWorkspace.tsx src/features/atlas/iris/irisBlocks.ts src/features/atlas/iris/IrisPanel.tsx`. Review that concrete change before approving publication; do not auto-rewrite stored articles.
+
 ## 2026-10-05 — Open branch integration review
 
 Status: Complete — no active handoff

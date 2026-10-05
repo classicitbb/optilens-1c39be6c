@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-05 — Iris wiki formatting
+
+### Release Notes
+- Iris replies, proposal previews and accepted editor content preserve headings, emphasis, lists, checklists, tables and code. Selection replacements retain rich text. Local source change only; production publication requires approval.
+
+### Technical Changelog
+- `src/features/atlas/iris/irisBlocks.ts` converts Markdown with unified, remark-parse and remark-gfm; the reply uses WikiArticleRenderer and selection acceptance inserts canonical Tiptap nodes and marks.
+
 > Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
 
 ## 2026-10-05 — Atlas: one workspace for the wiki, procedures and website content

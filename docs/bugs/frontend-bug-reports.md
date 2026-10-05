@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-05 — Iris wiki Markdown displayed literally
+
+The reply bubble rendered raw text, and selection acceptance flattened formatted proposals into a plain string, collapsing line breaks. Replies now use the shared wiki renderer, Markdown converts to canonical blocks through remark, and replacement inserts structured Tiptap content. Regression coverage checks rendered replies, accepted blocks and the editor round trip. Existing stored drafts are left untouched.
+
 ## 2026-10-05 — Atlas: slug rename bounce, hidden sidebar button, mixed wiki tree
 - Area: Atlas (formerly Knowledge → Wiki / SOPs / Website → Content).
 - Impact: (1) renaming a brand-new page changed its slug and the page vanished into the wiki home, because the URL moved before the page list knew the new slug (and the old URL was already unknown); (2) the "open sidebar" button sat under the sticky top bar, so a collapsed sidebar had no usable way back; (3) new pages did not open in edit mode; (4) the wiki tree listed public website articles alongside internal pages; (5) saving a page whose row had no stored slug wrote a slug derived from its title, changing its URL; (6) the Content Manager wrote `content` without `body_json` or history, diverging from the wiki.

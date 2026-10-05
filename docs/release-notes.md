@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-05 — Iris wiki formatting
+
+### Release Notes
+- Iris replies, proposal previews and accepted editor content preserve headings, emphasis, lists, checklists, tables and code. Selection replacements retain rich text. Local source change only; production publication requires approval.
+
 ## 2026-10-05 — Atlas: one workspace for the wiki, procedures and website content
 
 ### Release Notes

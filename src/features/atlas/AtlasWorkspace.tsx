@@ -483,7 +483,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     if (live) {
       try {
         if (proposal.apply === "replace" && proposal.range) {
-          live.chain().focus().insertContentAt(proposal.range, proposal.inline).run();
+          const replacement = content.length === 1 && content[0].type === "paragraph" ? content[0].content ?? [] : content;
+          live.chain().focus().insertContentAt(proposal.range, replacement).run();
           return true;
         }
         if (proposal.apply === "insertAfter" && proposal.range) {

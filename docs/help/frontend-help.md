@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## Iris wiki formatting
+
+Iris replies and proposals show formatted text. Accept preserves headings, bold, bullets, checklists, tables and code in the page draft. Update remains a separate publishing step. Existing drafts that already contain literal Markdown need to be regenerated or reformatted.
+
 ## 2026-10-05 — Using Atlas
 
 - Open **Atlas** from the launcher (or `/atlas`). Pick a space in the sidebar header: **Wiki**, **SOPs** or **Website**. Ctrl+K searches every page by title and text; it also exports the space (zip of Markdown and JSON) and runs an import dry run.

@@ -123,3 +123,7 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
   assistant handoffs must emit only the current values.
 
 - Doc Studio email-health dismissal is local to a tab session (`docstudio-email-health-dismissed`). Polling continues while hidden; status/latest-attempt/rate-limit changes show the banner again. Only attempt identity is stored, without recipient/error text.
+
+## Iris wiki formatting
+
+Atlas parses generated Markdown with unified / remark-parse / remark-gfm into canonical wiki blocks. Iris replies and proposal previews use WikiArticleRenderer; accepting a selection inserts structured Tiptap content and retains marks. Never flatten accepted proposals into a plain string. Existing malformed drafts require a separate approved hosted edit. On Windows, regenerating platform facts and the public search index can resolve CRLF-only drift without a semantic Git diff.
