@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { History, MessageSquare, Sparkles, Undo2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,8 @@ interface WorkspaceRightPanelProps {
   loadVersions: (articleId: string) => Promise<AtlasVersion[]>;
   onRestore: (version: AtlasVersion) => void;
   canRestore: boolean;
+  /** The Iris panel, rendered by the workspace (it needs the open page and editor). */
+  iris: ReactNode;
 }
 
 const Empty = ({ title, body }: { title: string; body: string }) => (
@@ -79,7 +82,7 @@ const HistoryList = ({
   );
 };
 
-const WorkspaceRightPanel = ({ tab, onTabChange, onClose, ...history }: WorkspaceRightPanelProps) => (
+const WorkspaceRightPanel = ({ tab, onTabChange, onClose, iris, ...history }: WorkspaceRightPanelProps) => (
   <>
     <div className="flex items-center border-b border-ws-line pr-2">
       <div role="tablist" aria-label="Page panel" className="flex flex-1">
@@ -108,10 +111,8 @@ const WorkspaceRightPanel = ({ tab, onTabChange, onClose, ...history }: Workspac
         <X className="h-4 w-4" />
       </button>
     </div>
-    <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
-      {tab === "iris" ? (
-        <Empty title="Iris isn't connected yet" body="Asking Iris about this page arrives with the Iris integration phase." />
-      ) : null}
+    <div role="tabpanel" className={cn("min-h-0 flex-1", tab === "iris" ? "overflow-hidden" : "overflow-y-auto")}>
+      {tab === "iris" ? iris : null}
       {tab === "comments" ? <Empty title="Comments aren't available yet" body="Page comments need their own storage and aren't part of this release." /> : null}
       {tab === "history" ? <HistoryList {...history} /> : null}
     </div>

@@ -1,3 +1,4 @@
+import type { Editor } from "@tiptap/core";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import BlockEditor, { type EditorPage, type EditorPerson } from "./BlockEditor";
 import type { AskIrisRequest } from "./editor/extensions";
@@ -15,10 +16,11 @@ interface PageBodyProps {
   resolvePageHref: (page: { id?: string; slug?: string; title: string }) => string | undefined;
   onAskIris: (request?: AskIrisRequest) => void;
   onUpdate: () => void;
+  onEditor?: (editor: Editor | null) => void;
 }
 
 /** The body of one page, shared by the full page and the database peek: banners plus editor or reader. */
-const PageBody = ({ page, editor, editing, canPublish, supportsDrafts, pages, searchPeople, resolvePageHref, onAskIris, onUpdate }: PageBodyProps) => {
+const PageBody = ({ page, editor, editing, canPublish, supportsDrafts, pages, searchPeople, resolvePageHref, onAskIris, onUpdate, onEditor }: PageBodyProps) => {
   const { draft, setDraft } = editor;
   return (
     <>
@@ -56,6 +58,7 @@ const PageBody = ({ page, editor, editing, canPublish, supportsDrafts, pages, se
           pages={pages}
           searchPeople={searchPeople}
           onAskIris={onAskIris}
+          onEditor={onEditor}
         />
       ) : (
         <WikiArticleRenderer

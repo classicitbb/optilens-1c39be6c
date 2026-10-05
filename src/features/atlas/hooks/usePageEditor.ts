@@ -323,9 +323,16 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
     [canPublish, data, draft, onSaved, page, toast],
   );
 
+  /** Replace the document (an accepted Iris proposal): the editor remounts with it and autosave takes over. */
+  const applyDoc = useCallback((doc: AtlasDoc) => {
+    setDraft((current) => ({ ...current, doc }));
+    setEditorEpoch((epoch) => epoch + 1);
+  }, []);
+
   return {
     mode,
     setMode,
+    applyDoc,
     draft,
     setDraft,
     isSaving,

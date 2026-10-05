@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import { registerAtlasHost } from "@/features/atlas/host";
+import { atlasIrisProvider } from "./atlasIris";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import { CONTENT_TYPE_OPTIONS, VISIBILITY_OPTIONS } from "@/hooks/useContentArticles";
@@ -39,6 +40,7 @@ export const registerAtlasHostOnce = () => {
   if (registered) return;
   registered = true;
   registerAtlasHost({
+    iris: atlasIrisProvider,
     useWorkspaceName: useCompanyName,
     contextOptions: ADMIN_CONTEXT_OPTIONS,
     optionSets: {

@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { FileText, User, CalendarDays } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -45,6 +46,8 @@ interface BlockEditorProps {
   pages: EditorPage[];
   searchPeople?: (query: string) => Promise<EditorPerson[]>;
   onAskIris?: (request: AskIrisRequest) => void;
+  /** Hands the live editor to the page (and null on unmount) so Iris proposals can be applied. */
+  onEditor?: (editor: Editor | null) => void;
   className?: string;
 }
 
@@ -60,7 +63,7 @@ const dateOptions = (): MentionItem[] => {
   ];
 };
 
-const BlockEditor = ({ value, onChange, pages, searchPeople, onAskIris, className }: BlockEditorProps) => {
+const BlockEditor = ({ value, onChange, pages, searchPeople, onAskIris, onEditor, className }: BlockEditorProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [imageOpen, setImageOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
@@ -196,6 +199,12 @@ const BlockEditor = ({ value, onChange, pages, searchPeople, onAskIris, classNam
       },
     },
   });
+
+  useEffect(() => {
+    onEditor?.(editor);
+    return () => onEditor?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
 
   if (!editor) return null;
 

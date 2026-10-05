@@ -84,6 +84,8 @@ export interface AtlasSpaceDef {
   derivedDefaults?: { when: Record<string, AtlasPropValue>; set: Record<string, AtlasPropValue> }[];
   /** Heading above a database view. Defaults to the label. */
   title?: string;
+  /** Where an accepted Iris draft goes, by Iris action id (a new draft page in another space). */
+  draftTargets?: Record<string, { spaceId: string; savedViewId?: string }>;
 }
 
 const STATUS_OPTIONS: AtlasOption[] = [
@@ -141,6 +143,7 @@ export const BUILT_IN_SPACES: AtlasSpaceDef[] = [
     savedViews: [],
     properties: wikiProperties,
     allowCreate: true,
+    draftTargets: { faq: { spaceId: "website", savedViewId: "faq" } },
     capability: {
       view: ruleFeature("wiki", "view"),
       edit: ruleFeature("wiki", "edit"),
@@ -161,6 +164,7 @@ export const BUILT_IN_SPACES: AtlasSpaceDef[] = [
     savedViews: [],
     properties: wikiProperties,
     allowCreate: false,
+    draftTargets: { faq: { spaceId: "website", savedViewId: "faq" } },
     capability: {
       view: ruleFeature("wiki", "view"),
       edit: ruleFeature("wiki", "edit"),
