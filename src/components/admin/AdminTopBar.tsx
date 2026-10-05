@@ -27,6 +27,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const ROUTE_LABELS: [string, string][] = [
+["/atlas", "Atlas"],
 ["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
 ["/admin/pricing/catalog", "Pricing · Product Catalog"],
 ["/admin/pricing/pricelists", "Pricing · Pricelists"],
