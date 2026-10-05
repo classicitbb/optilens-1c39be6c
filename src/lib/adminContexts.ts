@@ -17,11 +17,6 @@ const buildContextOptions = (): AdminContextOption[] => {
   const bySlug = new Map<string, AdminContextOption>();
 
   bySlug.set("all", { value: "all", label: "All Pages", path: "/atlas/wiki" });
-  // Context slugs stored on existing pages keep their values; they now open in Atlas.
-  bySlug.set("knowledge/wiki", { value: "knowledge/wiki", label: "Wiki", path: "/atlas/wiki" });
-  bySlug.set("knowledge/sops", { value: "knowledge/sops", label: "SOPs", path: "/atlas/sops" });
-  bySlug.set("website/content", { value: "website/content", label: "Pages / Content", path: "/atlas/website" });
-  bySlug.set("knowledge", { value: "knowledge", label: "Knowledge", path: "/atlas/wiki" });
 
   Object.values(ADMIN_APPS).forEach((app) => {
     app.sidebarItems.forEach((item) => {
@@ -47,11 +42,30 @@ const buildContextOptions = (): AdminContextOption[] => {
 
 export const ADMIN_CONTEXT_OPTIONS = buildContextOptions();
 
+/**
+ * Context slugs already stored on pages for surfaces that now live in Atlas. They are still valid
+ * assignments (and keep their labels) but are not pages the Copilot widget can be on, so they stay
+ * out of ADMIN_CONTEXT_OPTIONS.
+ */
+const RETIRED_SURFACE_CONTEXTS: AdminContextOption[] = [
+  { value: "knowledge/wiki", label: "Wiki", path: "/atlas/wiki" },
+  { value: "knowledge/sops", label: "SOPs", path: "/atlas/sops" },
+  { value: "website/content", label: "Pages / Content", path: "/atlas/website" },
+  { value: "knowledge", label: "Knowledge", path: "/atlas/wiki" },
+];
+
+/** Every context a page can be assigned to: the admin pages plus the retired surfaces above. */
+export const ASSIGNABLE_CONTEXT_OPTIONS: AdminContextOption[] = [...ADMIN_CONTEXT_OPTIONS, ...RETIRED_SURFACE_CONTEXTS].sort((a, b) => {
+  if (a.value === "all") return -1;
+  if (b.value === "all") return 1;
+  return a.label.localeCompare(b.label);
+});
+
 export const getContextLabel = (slug: string) =>
-  ADMIN_CONTEXT_OPTIONS.find((option) => option.value === slug)?.label ?? titleize(slug);
+  ASSIGNABLE_CONTEXT_OPTIONS.find((option) => option.value === slug)?.label ?? titleize(slug);
 
 export const contextSlugToPath = (slug: string) =>
-  ADMIN_CONTEXT_OPTIONS.find((option) => option.value === slug)?.path ?? `/admin/${slug}`;
+  ASSIGNABLE_CONTEXT_OPTIONS.find((option) => option.value === slug)?.path ?? `/admin/${slug}`;
 
 export const pathnameToContextSlug = (pathname: string): string => {
   const normalized = pathname.replace(/\/$/, "");

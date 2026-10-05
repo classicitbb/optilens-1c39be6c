@@ -2,6 +2,17 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-05 — Atlas: one workspace for the wiki, procedures and website content
+
+### Release Notes
+- **Atlas** is a new full-screen workspace at `/atlas` that replaces Knowledge → Wiki, Knowledge → SOPs and Website → Pages / Content. It has three spaces: **Wiki**, **SOPs** (the published wiki pages, read-only until you choose Edit) and **Website** (knowledge-base articles, FAQs and legal pages). Old links keep working and open the same page in Atlas.
+- **Website** is a database: switch between **Table**, **Board** and **Gallery**, use the All articles / Knowledge Base / FAQ / Legal / Blog tabs, filter by status, sort and search titles. Tick rows to **Publish**, **Move to draft** or **Archive** them in bulk; a page that fails the publish checks is named and left alone. Drag a card to **Published** on the Board (it stays put if the checks fail). Click a row to open a side peek with the same editor as a full page. Legal pages stay locked to their fixed slots and keep appearing on the site.
+- Sections in the wiki sidebar can now be **renamed** and **deleted** (a deleted section's pages stay, at the top level).
+- Atlas can be **installed** from Chrome or Edge as its own window, and appears in the app launcher with *New page* and *Website content* shortcuts. Admin search finds pages by title **and** by text inside them, and opens the result in Atlas.
+- **Iris** has a panel (Ctrl+J, the sidebar, the selection toolbar, the block menu, `/`): summarize a page, turn steps into a checklist, find related pages, draft an FAQ entry, improve or shorten a selection, or ask a question. Iris only proposes: nothing reaches the page until you press **Accept**. Offline, Iris pauses and the page stays editable.
+- **Export** a space (Ctrl+K → Export) as a zip of Markdown and JSON files laid out by section and parent. **Import dry run** (Ctrl+K) reads a ClickUp export and reports what an import would create and lose; it imports nothing.
+- New pages open ready to type in, and renaming a new page no longer drops you back to the wiki home.
+
 ## 2026-10-05 — Admin workspace theme, wiki workspace and block editor
 
 ### Release Notes

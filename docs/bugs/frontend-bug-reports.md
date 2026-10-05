@@ -1,5 +1,11 @@
 # Frontend Bug Reports
 
+## 2026-10-05 — Atlas: slug rename bounce, hidden sidebar button, mixed wiki tree
+- Area: Atlas (formerly Knowledge → Wiki / SOPs / Website → Content).
+- Impact: (1) renaming a brand-new page changed its slug and the page vanished into the wiki home, because the URL moved before the page list knew the new slug (and the old URL was already unknown); (2) the "open sidebar" button sat under the sticky top bar, so a collapsed sidebar had no usable way back; (3) new pages did not open in edit mode; (4) the wiki tree listed public website articles alongside internal pages; (5) saving a page whose row had no stored slug wrote a slug derived from its title, changing its URL; (6) the Content Manager wrote `content` without `body_json` or history, diverging from the wiki.
+- Resolution: the page stays pinned by id during a slug change and the list is refreshed before navigating; the button is raised and bordered; new pages open in edit mode; each space reads only its own rows; a `null` slug is left untouched; one editor and one write path serve all spaces and `ContentManagerPage` is deleted.
+- Regression prevention: unit tests for space scopes and capabilities (a user who could not edit/publish website content before still cannot), the page tree, database view model, bulk publish validation, Iris proposals, import dry run, export and the manifest; a route accessibility test; and a guard that Atlas code has no business vocabulary and no database client outside the source adapter. Not verified: the install prompt and service worker (the in-app browser cannot register one), and a live Iris reply (the function enforces same-origin CORS and the deployed version grounds only on public articles until the source change is deployed).
+
 ## 2026-10-05 — Wiki deep links, publish metadata check and history-table failures
 - Area: Knowledge → Wiki.
 - Impact: opening an article URL on a fresh load could be redirected to the wiki home before articles had loaded; the publish build-version check ran against HTML and never matched `- **Build version:**` lines; saving a page failed (after the article itself was updated) when `help_article_versions` was missing on the hosted project.

@@ -27,3 +27,12 @@ Tension is created through the interplay of circular geometry (optical diagrams,
 ## Visual Hierarchy
 
 Information is communicated through designed objects, not prose. Product names become monuments. Technology features become medallions in a ruled grid. Performance ratings appear as color-coded badges with military precision. Body descriptions are contained, quiet, subordinate — never fighting for attention. The page breathes through negative space, and the viewer's eye is guided not by size alone but by weight, color, and spatial placement working in concert. This hierarchy is so refined, so obviously the result of deep expertise and painstaking attention, that the information feels inevitable — as though there could be no other arrangement.
+
+## Admin workspace theme
+
+Every admin screen, including Atlas, shares one workspace look defined in `src/styles/workspace.css`:
+`--ws-*` tokens (off-white paper in light mode, navy with a teal accent in dark mode), Plus Jakarta Sans
+for text and JetBrains Mono for labels and codes, no serif, 6px controls and 8px floating layers, and
+scrollbars that stay hidden until you scroll. The public site tokens and the print previews are
+separate and unchanged. New admin UI uses `ws-*` classes and `hsl(var(--ws-x))`, so a rebrand is a
+token change.

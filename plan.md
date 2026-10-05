@@ -171,13 +171,13 @@ Establish a single, production-grade routing strategy for the entire frontend (`
 - Config → `/admin/helpdesk/config`
 
 ### Website
-- Pages/Content → `/admin/website/content`
+- Pages/Content → `/atlas/website` (Atlas; `/admin/website/content` redirects)
 - Feature Pages → `/admin/website/features`
 - Patient Portals → `/admin/website/portals`
 - Store/Products → `/admin/website/store`
 
 ### Knowledge
-- Wiki → `/admin/knowledge/wiki`
+- Wiki and SOPs → `/atlas/wiki`, `/atlas/sops` (Atlas; `/admin/knowledge/*` redirect)
 
 ### Settings
 - Company → `/admin/settings/company`

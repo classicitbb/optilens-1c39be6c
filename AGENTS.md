@@ -100,5 +100,5 @@ relevant to your work area — do not load everything upfront.
 - Keep privileged areas (`/admin/**`, `/admin/moonshot/**`, `/ops/**`) behind explicit admin authorization guards.
 - Keep `src/features/admin/core/config/apps.ts` synchronized with admin route assignments (no dead sidebar links).
 - Do not run parallel active route systems for the same runtime surface without a migration plan and deprecation path.
-- Keep website content management (`/admin/website/content`) and website product/store operations (`/admin/website/store`) as separate admin surfaces.
+- Keep website content management (Atlas, `/atlas/website`; `/admin/website/content` only redirects) and website product/store operations (`/admin/website/store`) as separate surfaces. Atlas rules live in `src/features/atlas/CONTEXT.md`.
 - New routes must ship with: route registration, navigation placement, auth decision, and route accessibility tests.

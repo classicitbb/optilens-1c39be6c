@@ -1,5 +1,16 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-05 — Atlas
+
+- **Where:** `src/features/atlas/` (read its `CONTEXT.md`). Routes `/atlas/:space/:articleSlug?` are mounted in `App.tsx` behind `AdminProtectedRoute` and registered in `routeRegistry.ts` (`standalone-shell`). The old admin URLs are redirect-only.
+- **One shell, data-driven spaces:** `spaces.ts` defines Wiki, SOPs (a published-only filter over the wiki's stored pages) and Website; `registerAtlasSpace` / `registerAtlasHost` add more. A space declares scope, layout (`tree` or `database`), saved views, properties and capability rules. Nothing else switches on a space id.
+- **Capabilities:** `resolveCapabilities` maps each space's rules onto the host permission system (`wiki` feature for Wiki/SOPs; the admin role's access/edit/admin for Website). Edit, publish and remove all require view.
+- **Storage:** UI code uses `AtlasSource`; `createHelpArticlesSource` maps pages to `help_articles` (`space` column, falling back to `content_type`). Business-specific data (option lists, contexts, company name, the Iris provider) is registered by `src/config/atlasHost.ts`.
+- **Write path:** `usePageEditor` (autosave 800 ms; published pages edit the draft copy; Update/Publish call `saveVersion` and record history). `validateForSave` gates every publish (editor, bulk, board). Slugs are never backfilled (`null` slug leaves the stored value alone) and are refreshed into the list before the URL changes.
+- **Database views:** URL state `?tab=`, `?view=`, `?status=`, `?sort=`, `?q=`, `?peek=`. Blog is an interim embed (`blog-posts`) until a blog adapter exists.
+- **Install:** manifest and icons come from `config.ts` via `npm run atlas:assets`; `atlas-sw.js` caches the shell only.
+- **Iris:** `IrisPanel` asks the host provider and renders a proposal; `acceptProposal` applies it to the draft. Import (`import/`) and export (`exportSpace.ts`) are storage-independent.
+
 ## 2026-10-05 — Admin workspace theme and wiki block editor
 
 - **Theme:** `src/styles/workspace.css` defines the `--ws-*` tokens on `.admin-tool` and `body.ws-admin` (light and dark). `AdminLayout`, `AdminDocsLayout` and `CopilotWorkspacePage` mount `useScrollingClass` and `useAdminBodyClass`. The colour-option tokens (`--ws-c-*`, `--ws-t-*`) are also defined on `:root` so page content renders colour marks on `/knowledge`.
