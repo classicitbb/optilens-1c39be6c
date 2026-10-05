@@ -220,8 +220,9 @@ async function authenticate(environment: "staging" | "production", jwtKey: strin
   url.searchParams.set("jwt_secret", jwtSecret);
   const { response, body } = await gatekeeperFetch(log, "auth_user", url.toString(), { method: "POST" }, { environment, jwt_key: "[redacted]" });
   if (!response.ok || !text(body?.auth_token)) {
+    const server = environment === "production" ? "live" : "test";
     throw new GatekeeperPreSendError(
-      `Gatekeeper authentication failed (HTTP ${response.status}).`,
+      `Gatekeeper's ${server} server rejected the saved login details. This usually means Ocuco has reset or expired your lab's access. Ask Ocuco for a new single-use PIN, then reconnect from the Integrations page. Further sign-in attempts are paused to protect your lab from being blocked. (HTTP ${response.status})`,
       "authentication",
       response.status,
     );
@@ -458,7 +459,8 @@ Deno.serve(async (req) => {
       const { response: pinResponse, body: pinBody } = await gatekeeperFetch(log, "lab_access_with_pin", pinUrl.toString(), {}, { environment, webrx_lab_id: originLabId, pin_code: "[redacted]" });
       const lab = pinBody?.message?.lab ?? pinBody?.lab ?? {};
       if (!pinResponse.ok || !text(lab.jwt_key) || !text(lab.jwt_secret)) {
-        throw new Error(`Gatekeeper did not accept the PIN (HTTP ${pinResponse.status}).`);
+        const server = environment === "production" ? "live" : "test";
+        throw new Error(`Gatekeeper's ${server} server did not accept that PIN. Each PIN works only once and must match the lab ID it was issued for. Check the lab ID and server choice, or ask Ocuco for a fresh PIN. Do not retry the same PIN — repeated attempts can get the lab blocked. (HTTP ${pinResponse.status})`);
       }
       const authToken = await authenticate(environment, String(lab.jwt_key), String(lab.jwt_secret), log);
 
