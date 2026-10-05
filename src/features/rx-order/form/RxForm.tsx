@@ -57,6 +57,8 @@ export interface RxFormProps {
   resumedDraftId?: string;
   pricesVisible?: boolean;
   allowDirectSubmit?: boolean;
+  /** Staff review of a photo capture: submit sends the saved quote straight to the Rx submissions queue, skipping the cart. */
+  submitToQueue?: (quoteId: string) => Promise<void>;
   /** Opened from the cart's edit pencil: saving updates that cart item (and its price) instead of adding another. */
   editFromCart?: boolean;
   blockUnpricedOrders?: boolean;
@@ -286,6 +288,10 @@ function LoadedForm({
         const what = direct ? "Would be placed on the account and sent to the lab" : "Would be added to the cart";
         props.onTestSubmitted?.(what, { quoteId: saved.quoteId, quoteNumber: saved.quoteNumber, totalBBD: saved.totalBBD });
         setDone({ kind: "test", label: what, total: saved.totalBBD, v1 });
+      } else if (props.submitToQueue) {
+        await props.submitToQueue(saved.quoteId);
+        await retireDraft();
+        setDone({ kind: "direct", label: "Sent for submission — now in Ready to release", total: saved.totalBBD, v1 });
       } else if (direct) {
         // Bypasses the cart: one order_item carrying rx_quote_id, which the order_items
         // enqueue trigger hands to the lab. The existing cart is left exactly as it was.
@@ -457,7 +463,7 @@ function LoadedForm({
     notes: <DeliveryCard {...cardProps("notes")} />,
   };
 
-  const submitLabel = direct ? "Place order now" : "Submit to cart";
+  const submitLabel = props.submitToQueue ? "Send for submission" : direct ? "Place order now" : "Submit to cart";
   const submitDisabled = !derived.canSubmit || submitting.current;
   const locked = props.lockedAccountId != null;
 
