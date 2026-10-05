@@ -10755,15 +10755,13 @@ export type Database = {
           locked_by: string | null
           max_retries: number
           next_retry_at: string
-          one_drive_drive_id: string | null
-          one_drive_item_id: string | null
-          one_drive_path: string | null
-          one_drive_url: string | null
           pdf_bytes: number | null
           pdf_filename: string | null
           pdf_template_version: string
           retry_count: number
           skip_reason: string | null
+          storage_bucket: string
+          storage_path: string | null
           statement_id: number | null
           status: string
           updated_at: string
@@ -10788,15 +10786,13 @@ export type Database = {
           locked_by?: string | null
           max_retries?: number
           next_retry_at?: string
-          one_drive_drive_id?: string | null
-          one_drive_item_id?: string | null
-          one_drive_path?: string | null
-          one_drive_url?: string | null
           pdf_bytes?: number | null
           pdf_filename?: string | null
           pdf_template_version?: string
           retry_count?: number
           skip_reason?: string | null
+          storage_bucket?: string
+          storage_path?: string | null
           statement_id?: number | null
           status?: string
           updated_at?: string
@@ -10821,15 +10817,13 @@ export type Database = {
           locked_by?: string | null
           max_retries?: number
           next_retry_at?: string
-          one_drive_drive_id?: string | null
-          one_drive_item_id?: string | null
-          one_drive_path?: string | null
-          one_drive_url?: string | null
           pdf_bytes?: number | null
           pdf_filename?: string | null
           pdf_template_version?: string
           retry_count?: number
           skip_reason?: string | null
+          storage_bucket?: string
+          storage_path?: string | null
           statement_id?: number | null
           status?: string
           updated_at?: string
