@@ -1,5 +1,11 @@
 # Automation Bug Reports
 
+## 2026-10-05 — Stale smoke assertions and Windows cleanup
+
+- The harness checked admin routes in the old monolithic App file, superseded CRM paths and obsolete UI strings. Assertions now target current route ownership and controls while preserving route/guard checks.
+- Killing npm alone on Windows left Vite holding output pipes open after a successful run. Cleanup now terminates the harness's own process tree. Strict port binding prevents validation against a leftover server.
+- Verified with `npm run qa:smoke` (exit zero) and focused lint. Application routes, copy and permissions are unchanged.
+
 ## 2026-08-27
 - Script(s): `scripts/generate_copilot_platform_facts.mjs`
 - Impact: the Copilot gained CRM enrichment tools but its always-on context still listed only the read-only lookups, so it would not volunteer enrichment when an admin asked how to complete a contact's details.

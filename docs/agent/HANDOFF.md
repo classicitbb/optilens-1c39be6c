@@ -1,5 +1,13 @@
 # Work Handoff
 
+## 2026-10-05 — Open branch integration review
+
+Status: Local integration validated; remote main publication pending production frontend approval.
+
+`codex/review-open-branches` contains the reviewed non-excluded heads and current main. Smart Customer Journey is excluded. Affected source: statement-job types, direct Rx shipping-address migration, two CRLF test helpers and the repaired smoke script. Review and continuity docs record conflict resolutions and existing security/rollout findings. All 1,316 tests, lint, TypeScript, build, PR checks and smoke pass; the local built Atlas deep link redirects to sign-in correctly. No hosted write, migration, function deploy, order or email occurred.
+
+Approval required: production frontend publication when advancing origin/main. The final source delta changes no Edge Function or function configuration. Before publishing, refresh remote heads and review any new delta. Exact next executable action: `git fetch origin`. After approval and revalidation, push the integration without force, verify PR #607/#608/#609 and main CI/hosting, then set this section to `Status: Complete — no active handoff`. Full evidence: `docs/agent/OPEN_BRANCH_REVIEW.md`.
+
 ## 2026-10-02 — Direct Rx submission shipping address
 
 Status: The corrected function is live and verified. The user authorized a test
@@ -113,7 +121,6 @@ Approval required: frontend/affected Edge Function release; separately one named
 - Status: Document AI source integration ready — Google IAM configuration blocked
 - Last synchronized: 2026-09-27
 
-<<<<<<< Updated upstream
 ## Homepage hero browser feedback
 
 Status: Complete — no active handoff.
@@ -136,7 +143,6 @@ made; a production deployment still requires approval. `qa:pr-checks` passes
 lockfile policy and the documented source-only symmetry exception, then stops
 at pre-existing Copilot platform-facts drift; that generated file was left
 untouched because this hero change has no Copilot dependency.
-=======
 ## Native website ordering plan
 
 Status: Planning complete; implementation not started.
@@ -151,7 +157,6 @@ Approval required before an authentication/authorization change or production
 release. Exact next action: inspect the plan, approve the customer-access
 contract, then implement its first work package by updating the ordering CTA
 map and the corresponding route/navigation tests.
->>>>>>> Stashed changes
 
 ## AI spend monitoring
 

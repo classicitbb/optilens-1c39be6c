@@ -16,6 +16,8 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 
 ## Operating rules
 
+- Advancing GitHub main can publish the production frontend. `.github/workflows/edge-function-release.yml` additionally redeploys all functions and runs a real email smoke submission when its watched paths change. Review the final tree delta and obtain the applicable production/email approval before a push that triggers those actions.
+
 - App email uses Lovable managed email through `_shared/email/managed-send.ts`; compatibility `smtp.ts` sends log as `raw`. The provider requires nonblank `text`, even for image-only HTML. `LOVABLE_API_KEY` and optional `LOVABLE_SEND_URL` stay server-only. A Lovable source read does not prove active Edge deployment; deployed-code inspection was permission-denied in the September 30 review.
 
 - Verify each connector in the current session with a harmless read.

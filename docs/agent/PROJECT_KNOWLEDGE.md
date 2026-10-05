@@ -69,6 +69,8 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 
 ## Durable constraints
 
+- Branch reviews must distinguish merge-base diffs from the actual resulting tree: several October feature heads contain equivalent commits already on main. Preserve newer schema/function configuration when reconciling ancestry. `qa:smoke` reads the modular admin router; its Windows server cleanup must terminate only the spawned process tree.
+
 - Doc Studio's preview toolbar uses inline SVG action icons and shared `public/ds/preview-toolbar.css`, loaded by both `studio.html` and the native mount. Keep labels, status and action groups wrapping; do not restore fixed toolbar height or font ligatures for its icons.
 
 - Profile statements and Admin > Finance > Statement Delivery share

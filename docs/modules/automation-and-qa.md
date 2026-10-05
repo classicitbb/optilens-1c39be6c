@@ -1,5 +1,9 @@
 # Automation and QA Module Docs
 
+## 2026-10-05 — Branch integration smoke verification
+
+The admin smoke harness reads route declarations from `src/routes/admin/AdminRoutes.tsx` and separately checks the protected shell in `src/App.tsx`. Canonical CRM pages, compatibility redirects, runtime logging and role guards remain asserted. JSX assertions ignore layout whitespace. Windows cleanup terminates only the spawned server tree; `--strictPort` prevents a leftover process from substituting for the build under review.
+
 ## 2026-08-27 — Enrichment capability in the generated platform facts
 
 - `scripts/generate_copilot_platform_facts.mjs` also reads the tool names in `supabase/functions/_shared/copilot/enrichmentTools.ts` and advertises them in the always-on tier-1 context, separately from the read-only lookups because they write.
