@@ -6,6 +6,8 @@ import AdminTopBar from "./AdminTopBar";
 import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
+import { useScrollingClass } from "@/hooks/useScrollingClass";
+import { useAdminBodyClass } from "@/hooks/useAdminBodyClass";
 import CrmActivityDialog from "./CrmActivityDialog";
 import HelpdeskTicketDialog from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
 import OperatorAttentionAlert from "./OperatorAttentionAlert";
@@ -17,6 +19,8 @@ const AdminLayout = () => {
   const location = useLocation();
   usePresenceHeartbeat("admin");
   useLiveHelpdeskInboxUpdates();
+  useScrollingClass();
+  useAdminBodyClass();
   const contextSlug = pathnameToContextSlug(location.pathname);
   const isDocStudio = location.pathname === "/admin/docs/studio";
   const hideSidebar =

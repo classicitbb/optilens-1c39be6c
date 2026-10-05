@@ -1,0 +1,292 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Admin workspace theme
+   One theme for every /admin screen and every new admin app. The public site
+   (:root / .dark site tokens) and .print-preview-container are not touched.
+
+   Scope: `.admin-tool` (the AdminLayout shell, and dialogs that opt in) plus
+   `body.ws-admin`, a class AdminLayout sets on <body> while mounted so portaled
+   popovers, menus and dialogs resolve the same tokens.
+
+   All --ws-* colour tokens are HSL triplets so hsl(var(--ws-x)) and
+   hsl(var(--ws-x) / a) both work. Legacy --admin-* names are re-pointed to
+   these tokens in index.css; do not delete them.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.admin-tool,
+body.ws-admin {
+  --ws-paper: 0 0% 100%;
+  --ws-bg: 43 28% 95%;
+  --ws-side: 45 25% 94%;
+  --ws-side-hover: 44 20% 89%;
+  --ws-ink: 214 46% 16%;
+  --ws-ink-2: 215 17% 37%;
+  --ws-ink-3: 215 12% 59%;
+  --ws-line: 40 23% 87%;
+  --ws-input-border: 41 16% 80%;
+  --ws-accent: 188 71% 36%;
+  --ws-accent-fg: 0 0% 100%;
+  --ws-accent-tint: 188 40% 92%;
+  --ws-accent-line: 38 61% 49%;
+  --ws-navy: 213 66% 13%;
+  --ws-thumb: 215 9% 58%;
+
+  /* Hover / press fills and selection (full colours, not triplets) */
+  --ws-hover: hsl(var(--ws-ink) / 0.055);
+  --ws-press: hsl(var(--ws-ink) / 0.09);
+  --ws-selection: hsl(var(--ws-accent) / 0.2);
+
+  /* Colour options: text colour (triplet) and an opaque tint that matches the
+     12–17% alpha background over paper. For alpha use, hsl(var(--ws-c-x) / .14). */
+  --ws-c-gray: 220 5% 49%;     --ws-t-gray: 220 5% 93%;
+  --ws-c-brown: 20 30% 46%;    --ws-t-brown: 20 26% 93%;
+  --ws-c-orange: 28 89% 42%;   --ws-t-orange: 28 64% 92%;
+  --ws-c-yellow: 46 91% 36%;   --ws-t-yellow: 46 52% 91%;
+  --ws-c-green: 152 49% 36%;   --ws-t-green: 152 28% 91%;
+  --ws-c-blue: 209 62% 45%;    --ws-t-blue: 209 51% 92%;
+  --ws-c-purple: 275 32% 50%;  --ws-t-purple: 275 32% 93%;
+  --ws-c-pink: 329 47% 49%;    --ws-t-pink: 329 45% 93%;
+  --ws-c-red: 2 56% 51%;       --ws-t-red: 2 56% 93%;
+
+  /* Shape */
+  --ws-radius-block: 4px;   /* blocks, pills, inputs, table cells */
+  --ws-radius-control: 6px; /* buttons, menu items */
+  --ws-radius-float: 8px;   /* popovers, cards */
+
+  /* Type */
+  --ws-font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --ws-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.dark .admin-tool,
+.dark body.ws-admin {
+  --ws-paper: 212 48% 11%;
+  --ws-bg: 211 57% 7%;
+  --ws-side: 211 51% 9%;
+  --ws-side-hover: 210 38% 13%;
+  --ws-ink: 213 26% 92%;
+  --ws-ink-2: 214 17% 71%;
+  --ws-ink-3: 213 13% 48%;
+  --ws-line: 213 34% 18%;
+  --ws-input-border: 213 29% 23%;
+  --ws-accent: 188 53% 51%;
+  --ws-accent-fg: 206 66% 7%;
+  --ws-accent-tint: 197 54% 15%;
+  --ws-accent-line: 188 53% 51%;
+  --ws-navy: 213 66% 13%;
+  --ws-thumb: 188 53% 51%;
+
+  --ws-selection: hsl(var(--ws-accent) / 0.28);
+
+  --ws-c-gray: 214 7% 63%;     --ws-t-gray: 214 15% 18%;
+  --ws-c-brown: 188 53% 51%;   --ws-t-brown: 188 40% 17%;
+  --ws-c-orange: 27 79% 57%;   --ws-t-orange: 27 40% 17%;
+  --ws-c-yellow: 45 67% 55%;   --ws-t-yellow: 45 38% 17%;
+  --ws-c-green: 150 43% 55%;   --ws-t-green: 150 32% 16%;
+  --ws-c-blue: 209 69% 64%;    --ws-t-blue: 209 40% 19%;
+  --ws-c-purple: 274 43% 69%;  --ws-t-purple: 274 28% 21%;
+  --ws-c-pink: 329 62% 68%;    --ws-t-pink: 329 30% 21%;
+  --ws-c-red: 3 76% 69%;       --ws-t-red: 3 38% 20%;
+}
+
+/* Selection */
+:is(.admin-tool, body.ws-admin) ::selection {
+  background: var(--ws-selection);
+}
+
+/* ── Shape ─────────────────────────────────────────────────────────────────
+   Unlayered, so these beat Tailwind radius utilities inside admin (same as the
+   existing `.admin-tool *` radius rule). */
+.admin-tool button,
+.admin-tool [role="menuitem"],
+.admin-tool [role="menuitemcheckbox"],
+.admin-tool [role="menuitemradio"],
+.admin-tool [role="option"],
+.admin-tool [role="tab"] {
+  border-radius: var(--ws-radius-control);
+}
+
+.admin-tool button[role="combobox"],
+.admin-tool [data-radix-select-trigger] {
+  border-radius: var(--ws-radius-block);
+}
+
+.admin-tool [role="dialog"],
+.admin-tool [role="alertdialog"],
+.admin-tool [role="menu"],
+.admin-tool [role="listbox"],
+.admin-tool [data-radix-popper-content-wrapper] > *,
+.admin-tool .admin-overlay-surface,
+.admin-tool [data-ws-card] {
+  border-radius: var(--ws-radius-float);
+}
+
+/* Shadows only on floating layers: flatten shadow utilities everywhere else.
+   Focus rings share box-shadow, so focused elements are left alone. */
+.admin-tool
+  :is(.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, .shadow-soft, .shadow-medium, .shadow-fab, .shadow-glow):not(
+    :focus-visible,
+    [role="dialog"],
+    [role="alertdialog"],
+    [role="menu"],
+    [role="tooltip"],
+    [data-radix-popper-content-wrapper] *
+  ) {
+  box-shadow: none;
+}
+
+/* Floating layers carry the only shadows. */
+.admin-tool [role="dialog"],
+.admin-tool [role="alertdialog"],
+.admin-tool [role="menu"],
+.admin-tool [data-radix-popper-content-wrapper] > * {
+  box-shadow: 0 8px 24px -8px hsl(var(--ws-ink) / 0.18), 0 0 0 1px hsl(var(--ws-line));
+}
+
+/* ── Scrollbars ────────────────────────────────────────────────────────────
+   6px rail, no track/arrows/corner. The handle is invisible at rest and shows
+   only while that element scrolls (.is-scrolling, toggled by useScrollingClass
+   in AdminLayout; removed 900 ms after scrolling stops). */
+:is(.admin-tool, body.ws-admin),
+:is(.admin-tool, body.ws-admin) * {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+:is(.admin-tool, body.ws-admin) .is-scrolling,
+:is(.admin-tool, body.ws-admin).is-scrolling {
+  scrollbar-color: hsl(var(--ws-thumb) / 0.5) transparent;
+}
+
+:is(.admin-tool, body.ws-admin) .is-scrolling:hover {
+  scrollbar-color: hsl(var(--ws-thumb) / 0.8) transparent;
+}
+
+:is(.admin-tool, body.ws-admin) ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+
+:is(.admin-tool, body.ws-admin) ::-webkit-scrollbar-track,
+:is(.admin-tool, body.ws-admin) ::-webkit-scrollbar-track-piece,
+:is(.admin-tool, body.ws-admin) ::-webkit-scrollbar-corner {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:is(.admin-tool, body.ws-admin) ::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+:is(.admin-tool, body.ws-admin) ::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  background-clip: padding-box;
+  border: 0;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+:is(.admin-tool, body.ws-admin) .is-scrolling::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--ws-thumb) / 0.5);
+}
+
+:is(.admin-tool, body.ws-admin) .is-scrolling::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--ws-thumb) / 0.8);
+}
+
+:is(.admin-tool, body.ws-admin) .is-scrolling::-webkit-scrollbar-thumb:active {
+  background-color: hsl(var(--ws-accent-line));
+}
+
+/* ── Type ──────────────────────────────────────────────────────────────────
+   Plus Jakarta Sans for everything; JetBrains Mono for labels, kbd, code, IDs,
+   SKUs and location codes. Dense admin screens stay at 13px / 1.4. */
+:is(.admin-tool, body.ws-admin) :is(kbd, code, pre, samp) {
+  font-family: var(--ws-font-mono);
+}
+
+@layer components {
+  .ws-ui {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .ws-body {
+    font-size: 16px;
+    line-height: 1.65;
+  }
+
+  .ws-page-title {
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .ws-h1 {
+    font-size: 28px;
+    line-height: 1.25;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .ws-h2 {
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .ws-h3 {
+    font-size: 18px;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Mono label: 11px uppercase +0.1em */
+  .ws-label {
+    font-family: var(--ws-font-mono);
+    font-size: 11px;
+    line-height: 1.3;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .ws-mono {
+    font-family: var(--ws-font-mono);
+  }
+
+  .ws-hover-fill:hover {
+    background: var(--ws-hover);
+  }
+
+  .ws-hover-fill:active {
+    background: var(--ws-press);
+  }
+
+  /* Colour options: text, and background at ~14% alpha */
+  .ws-color-gray   { color: hsl(var(--ws-c-gray)); }
+  .ws-color-brown  { color: hsl(var(--ws-c-brown)); }
+  .ws-color-orange { color: hsl(var(--ws-c-orange)); }
+  .ws-color-yellow { color: hsl(var(--ws-c-yellow)); }
+  .ws-color-green  { color: hsl(var(--ws-c-green)); }
+  .ws-color-blue   { color: hsl(var(--ws-c-blue)); }
+  .ws-color-purple { color: hsl(var(--ws-c-purple)); }
+  .ws-color-pink   { color: hsl(var(--ws-c-pink)); }
+  .ws-color-red    { color: hsl(var(--ws-c-red)); }
+
+  .ws-bg-gray   { background-color: hsl(var(--ws-c-gray) / 0.14); }
+  .ws-bg-brown  { background-color: hsl(var(--ws-c-brown) / 0.14); }
+  .ws-bg-orange { background-color: hsl(var(--ws-c-orange) / 0.14); }
+  .ws-bg-yellow { background-color: hsl(var(--ws-c-yellow) / 0.14); }
+  .ws-bg-green  { background-color: hsl(var(--ws-c-green) / 0.14); }
+  .ws-bg-blue   { background-color: hsl(var(--ws-c-blue) / 0.14); }
+  .ws-bg-purple { background-color: hsl(var(--ws-c-purple) / 0.14); }
+  .ws-bg-pink   { background-color: hsl(var(--ws-c-pink) / 0.14); }
+  .ws-bg-red    { background-color: hsl(var(--ws-c-red) / 0.14); }
+}
