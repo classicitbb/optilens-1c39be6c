@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { History, MessageSquare, Sparkles, Undo2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { listArticleVersions, type HelpArticleVersion } from "@/hooks/useHelpArticles";
+import type { AtlasVersion } from "../source/types";
 
 export type PanelTab = "iris" | "comments" | "history";
 export const PANEL_TABS: { id: PanelTab; label: string; icon: typeof Sparkles }[] = [
@@ -18,7 +18,8 @@ interface WorkspaceRightPanelProps {
   onTabChange: (tab: PanelTab) => void;
   onClose: () => void;
   articleId: string | null;
-  onRestore: (version: HelpArticleVersion) => void;
+  loadVersions: (articleId: string) => Promise<AtlasVersion[]>;
+  onRestore: (version: AtlasVersion) => void;
   canRestore: boolean;
 }
 
@@ -33,10 +34,11 @@ const HistoryList = ({
   articleId,
   onRestore,
   canRestore,
-}: Pick<WorkspaceRightPanelProps, "articleId" | "onRestore" | "canRestore">) => {
+  loadVersions,
+}: Pick<WorkspaceRightPanelProps, "articleId" | "onRestore" | "canRestore" | "loadVersions">) => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["help_article_versions", articleId],
-    queryFn: () => listArticleVersions(articleId as string),
+    queryFn: () => loadVersions(articleId as string),
     enabled: Boolean(articleId),
   });
 
@@ -51,16 +53,16 @@ const HistoryList = ({
   return (
     <ul className="divide-y divide-ws-line">
       {data.map((version, index) => (
-        <li key={version.version_id} className="flex items-start gap-2 px-4 py-3">
+        <li key={version.id} className="flex items-start gap-2 px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-[14px] font-medium text-ws-ink">
-              Version {version.version_number}
+              Version {version.number}
               {index === 0 ? <span className="ws-label ml-2 text-[10px] text-ws-accent">Current</span> : null}
             </p>
             <p className="text-[12px] text-ws-ink-3">
-              {new Date(version.saved_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+              {new Date(version.savedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
             </p>
-            {version.change_note ? <p className="mt-0.5 truncate text-[13px] text-ws-ink-2">{version.change_note}</p> : null}
+            {version.note ? <p className="mt-0.5 truncate text-[13px] text-ws-ink-2">{version.note}</p> : null}
           </div>
           {index > 0 && canRestore ? (
             <button
@@ -108,7 +110,7 @@ const WorkspaceRightPanel = ({ tab, onTabChange, onClose, ...history }: Workspac
     </div>
     <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
       {tab === "iris" ? (
-        <Empty title="Iris isn't connected to the wiki yet" body="Asking Iris about this page arrives with the Iris integration phase." />
+        <Empty title="Iris isn't connected yet" body="Asking Iris about this page arrives with the Iris integration phase." />
       ) : null}
       {tab === "comments" ? <Empty title="Comments aren't available yet" body="Page comments need their own storage and aren't part of this release." /> : null}
       {tab === "history" ? <HistoryList {...history} /> : null}

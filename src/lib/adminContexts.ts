@@ -16,10 +16,16 @@ const titleize = (slug: string) =>
 const buildContextOptions = (): AdminContextOption[] => {
   const bySlug = new Map<string, AdminContextOption>();
 
-  bySlug.set("all", { value: "all", label: "All Pages", path: "/admin/knowledge/wiki" });
+  bySlug.set("all", { value: "all", label: "All Pages", path: "/atlas/wiki" });
+  // Context slugs stored on existing pages keep their values; they now open in Atlas.
+  bySlug.set("knowledge/wiki", { value: "knowledge/wiki", label: "Wiki", path: "/atlas/wiki" });
+  bySlug.set("knowledge/sops", { value: "knowledge/sops", label: "SOPs", path: "/atlas/sops" });
+  bySlug.set("website/content", { value: "website/content", label: "Pages / Content", path: "/atlas/website" });
+  bySlug.set("knowledge", { value: "knowledge", label: "Knowledge", path: "/atlas/wiki" });
 
   Object.values(ADMIN_APPS).forEach((app) => {
     app.sidebarItems.forEach((item) => {
+      if (item.route.startsWith("/atlas")) return;
       const slug = item.route.replace(/^\/admin\//, "");
       if (!bySlug.has(slug)) {
         bySlug.set(slug, { value: slug, label: item.label, path: item.route });
@@ -27,7 +33,7 @@ const buildContextOptions = (): AdminContextOption[] => {
     });
 
     const appSlug = app.baseRoute.replace(/^\/admin\//, "");
-    if (!bySlug.has(appSlug)) {
+    if (!app.baseRoute.startsWith("/atlas") && !bySlug.has(appSlug)) {
       bySlug.set(appSlug, { value: appSlug, label: app.title, path: app.defaultRoute });
     }
   });

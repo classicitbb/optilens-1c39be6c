@@ -100,6 +100,11 @@ export const PATH_FEATURE_MAP: Record<string, Feature> = {
   // Knowledge
   "/admin/knowledge/wiki": "wiki",
   "/admin/knowledge/sops": "wiki",
+  // Atlas: the wiki and SOP spaces follow the wiki feature, website content follows content.
+  "/atlas": "wiki",
+  "/atlas/wiki": "wiki",
+  "/atlas/sops": "wiki",
+  "/atlas/website": "content",
   // Settings
   "/admin/settings/company": "parameters",
   "/admin/settings/users": "users",

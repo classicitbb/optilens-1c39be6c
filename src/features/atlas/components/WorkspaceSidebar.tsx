@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Bell, BookOpen, ChevronsUpDown, FilePlus2, FileText, Globe, ListChecks, PanelLeftClose, Search, Sparkles, Star, Trash2, Undo2 } from "lucide-react";
+import { Bell, ChevronsUpDown, FilePlus2, FileText, ListChecks, PanelLeftClose, Search, Sparkles, Star, Trash2, Undo2, type LucideIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
@@ -8,26 +8,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { HelpArticle } from "@/hooks/useHelpArticles";
-import type { HelpCenterNode } from "@/lib/helpCenter";
 import { useState } from "react";
-import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
-import { useWikiUpdatesSeen } from "@/hooks/useWikiWorkspacePrefs";
+import { useAtlasUpdatesSeen } from "../hooks/useAtlasPrefs";
+import type { AtlasPage } from "../source/types";
+import type { TreeNode } from "../pageTree";
 import PageTree, { type PageTreeProps } from "./PageTree";
 
-const SPACES = [
-  { label: "Internal wiki", to: "/admin/knowledge/wiki", icon: BookOpen },
-  { label: "SOPs", to: "/admin/knowledge/sops", icon: ListChecks },
-  { label: "Website content", to: "/admin/website/content", icon: Globe },
-] as const;
+export interface SidebarSpace {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+}
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface WorkspaceSidebarProps {
   tree: PageTreeProps;
-  articles: HelpArticle[];
-  archived: HelpArticle[];
+  articles: AtlasPage[];
+  archived: AtlasPage[];
   userId: string | null;
+  /** Product and organisation names, from config / the host. */
+  brand: { productName: string; workspaceName: string };
+  space: SidebarSpace;
+  spaces: SidebarSpace[];
+  onSelectSpace: (id: string) => void;
+  /** Pages and sections can be created here by this user. */
+  canCreate: boolean;
+  canEdit: boolean;
+  pagePath: (page: AtlasPage) => string;
+  showAssignments: boolean;
+  /** Tree spaces list pages; database spaces browse them in the main view instead. */
+  showTree: boolean;
   onSearch: () => void;
   onAskIris: () => void;
   onNewPage: () => void;
@@ -69,6 +80,15 @@ const WorkspaceSidebar = ({
   articles,
   archived,
   userId,
+  brand,
+  space,
+  spaces,
+  onSelectSpace,
+  canCreate,
+  canEdit,
+  pagePath,
+  showAssignments,
+  showTree,
   onSearch,
   onAskIris,
   onNewPage,
@@ -79,28 +99,28 @@ const WorkspaceSidebar = ({
 }: WorkspaceSidebarProps) => {
   const [sectionTitle, setSectionTitle] = useState("");
   const navigate = useNavigate();
-  const { seenAt, markSeen } = useWikiUpdatesSeen();
+  const { seenAt, markSeen } = useAtlasUpdatesSeen();
 
   const updates = useMemo(() => {
     const cutoff = Math.max(seenAt, Date.now() - WEEK_MS);
     return articles
-      .filter((article) => article.status !== "archived" && new Date(article.updated_at).getTime() > cutoff)
-      .filter((article) => !userId || (article.last_edited_by ?? article.author_id) !== userId)
-      .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      .filter((article) => article.status !== "archived" && new Date(article.updatedAt).getTime() > cutoff)
+      .filter((article) => !userId || (article.lastEditedBy ?? article.authorId) !== userId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }, [articles, seenAt, userId]);
 
   const recent = useMemo(
     () =>
       articles
         .filter((article) => article.status !== "archived")
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .slice(0, 8),
     [articles],
   );
 
   const nodeById = useMemo(() => {
-    const map = new Map<string, HelpCenterNode>();
-    const walk = (nodes: HelpCenterNode[]) =>
+    const map = new Map<string, TreeNode>();
+    const walk = (nodes: TreeNode[]) =>
       nodes.forEach((node) => {
         map.set(node.id, node);
         walk(node.children);
@@ -109,7 +129,7 @@ const WorkspaceSidebar = ({
     return map;
   }, [tree.nodes]);
 
-  const favorites = tree.favoriteIds.map((id) => nodeById.get(id)).filter((node): node is HelpCenterNode => Boolean(node));
+  const favorites = tree.favoriteIds.map((id) => nodeById.get(id)).filter((node): node is TreeNode => Boolean(node));
 
   return (
     <>
@@ -120,14 +140,17 @@ const WorkspaceSidebar = ({
               type="button"
               className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-[6px] px-2 text-left text-[14px] font-semibold text-ws-ink hover:bg-[var(--ws-hover)]"
             >
-              <BookOpen className="h-4 w-4 shrink-0 text-ws-accent" />
-              <span className="flex-1 truncate">Internal wiki</span>
+              <space.icon className="h-4 w-4 shrink-0 text-ws-accent" />
+              <span className="flex-1 truncate">{space.label}</span>
               <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-ws-ink-3" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
-            {SPACES.map(({ label, to, icon: Icon }) => (
-              <DropdownMenuItem key={to} onSelect={() => navigate(to)}>
+            <p className="ws-label px-2 py-1.5 text-ws-ink-3">
+              {brand.productName} · {brand.workspaceName}
+            </p>
+            {spaces.map(({ id, label, icon: Icon }) => (
+              <DropdownMenuItem key={id} onSelect={() => onSelectSpace(id)}>
                 <Icon className="mr-2 h-3.5 w-3.5" /> {label}
               </DropdownMenuItem>
             ))}
@@ -159,13 +182,13 @@ const WorkspaceSidebar = ({
               <button
                 key={article.id}
                 type="button"
-                onClick={() => navigate(toAdminWikiArticlePath({ id: article.id, title: article.title, slug: article.slug }))}
+                onClick={() => navigate(pagePath(article))}
                 className="flex w-full items-center gap-2 rounded-[4px] px-2 py-1.5 text-left text-[14px] hover:bg-[var(--ws-hover)]"
               >
                 <FileText className="h-3.5 w-3.5 shrink-0 text-ws-ink-3" />
                 <span className="min-w-0 flex-1 truncate">{article.title}</span>
                 <span className="shrink-0 text-[11px] text-ws-ink-3">
-                  {new Date(article.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  {new Date(article.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                 </span>
               </button>
             ))}
@@ -192,9 +215,11 @@ const WorkspaceSidebar = ({
           </section>
         ) : null}
 
+        {showTree ? (
+        <>
         <div className="flex items-center justify-between pr-3">
           <p className="ws-label px-4 py-1.5 text-ws-ink-3">Pages</p>
-          <Popover>
+          {canCreate ? <Popover>
             <PopoverTrigger asChild>
               <button type="button" className="rounded-[4px] px-1.5 text-[12px] text-ws-ink-3 hover:bg-[var(--ws-hover)]">
                 New section
@@ -219,31 +244,37 @@ const WorkspaceSidebar = ({
                 />
               </form>
             </PopoverContent>
-          </Popover>
+          </Popover> : null}
         </div>
         {tree.nodes.length > 0 ? (
           <PageTree {...tree} />
         ) : (
-          <p className="px-4 py-2 text-[13px] text-ws-ink-3">No pages yet. Create the first one below.</p>
+          <p className="px-4 py-2 text-[13px] text-ws-ink-3">{canCreate ? "No pages yet. Create the first one below." : "No pages to show."}</p>
         )}
+        </>
+        ) : null}
       </div>
 
       <div className="space-y-px border-t border-ws-line p-2">
-        <button
-          type="button"
-          onClick={onNewPage}
-          className="flex h-7 w-full min-w-0 items-center gap-2 rounded-[4px] px-2 text-left text-[14px] text-ws-ink-2 hover:bg-[var(--ws-hover)]"
-        >
-          <FilePlus2 className="h-3.5 w-3.5 shrink-0" /> New page
-        </button>
+        {canCreate ? (
+          <button
+            type="button"
+            onClick={onNewPage}
+            className="flex h-7 w-full min-w-0 items-center gap-2 rounded-[4px] px-2 text-left text-[14px] text-ws-ink-2 hover:bg-[var(--ws-hover)]"
+          >
+            <FilePlus2 className="h-3.5 w-3.5 shrink-0" /> New page
+          </button>
+        ) : null}
         <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onOpenAssignments}
-          className="flex h-7 min-w-0 flex-1 items-center gap-2 rounded-[4px] px-2 text-[14px] text-ws-ink-2 hover:bg-[var(--ws-hover)]"
-        >
-          <ListChecks className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Assignments</span>
-        </button>
+        {showAssignments ? (
+          <button
+            type="button"
+            onClick={onOpenAssignments}
+            className="flex h-7 min-w-0 flex-1 items-center gap-2 rounded-[4px] px-2 text-[14px] text-ws-ink-2 hover:bg-[var(--ws-hover)]"
+          >
+            <ListChecks className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Assignments</span>
+          </button>
+        ) : null}
         <Popover>
           <PopoverTrigger asChild>
             <button
@@ -260,13 +291,15 @@ const WorkspaceSidebar = ({
             {archived.map((article) => (
               <div key={article.id} className="flex items-center gap-2 rounded-[4px] px-2 py-1.5 hover:bg-[var(--ws-hover)]">
                 <span className="min-w-0 flex-1 truncate text-[14px]">{article.title}</span>
-                <button
-                  type="button"
-                  onClick={() => onRestore(article.id)}
-                  className="flex shrink-0 items-center gap-1 text-[13px] text-ws-accent hover:underline"
-                >
-                  <Undo2 className="h-3.5 w-3.5" /> Restore
-                </button>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => onRestore(article.id)}
+                    className="flex shrink-0 items-center gap-1 text-[13px] text-ws-accent hover:underline"
+                  >
+                    <Undo2 className="h-3.5 w-3.5" /> Restore
+                  </button>
+                ) : null}
               </div>
             ))}
           </PopoverContent>

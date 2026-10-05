@@ -22,10 +22,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { turnInto, type TurnIntoKind } from "./blockOps";
+import { ATLAS_TEMPLATES } from "../../templates";
 import type { AskIrisRequest } from "./extensions";
 
-export type SlashGroup = "Basic" | "Classic Visions" | "Iris";
-export const SLASH_GROUPS: SlashGroup[] = ["Basic", "Classic Visions", "Iris"];
+export type SlashGroup = "Basic" | "Templates" | "Iris";
+export const SLASH_GROUPS: SlashGroup[] = ["Basic", "Templates", "Iris"];
 
 export interface SlashContext {
   editor: Editor;
@@ -57,8 +58,6 @@ const insertBlocks = (content: unknown[]) => (context: SlashContext) => {
   const { editor, range } = context;
   editor.chain().focus().deleteRange(range).insertContent(content).run();
 };
-
-const paragraph = (text: string) => ({ type: "paragraph", content: [{ type: "text", text }] });
 
 export const SLASH_ITEMS: SlashItem[] = [
   { id: "text", group: "Basic", title: "Text", hint: "Plain paragraph", keywords: ["paragraph", "plain"], icon: Type, run: convert("paragraph") },
@@ -107,37 +106,17 @@ export const SLASH_ITEMS: SlashItem[] = [
     },
   },
 
-  {
-    id: "cv-sop-steps",
-    group: "Classic Visions",
-    title: "SOP steps",
-    hint: "Numbered procedure",
-    keywords: ["procedure", "steps", "process", "sop"],
-    icon: ListOrdered,
-    run: insertBlocks([
-      { type: "orderedList", content: [1, 2, 3].map((n) => ({ type: "listItem", content: [paragraph(`Step ${n}`)] })) },
-    ]),
-  },
-  {
-    id: "cv-warning",
-    group: "Classic Visions",
-    title: "Warning callout",
-    hint: "Orange ⚠️ note",
-    keywords: ["warning", "caution", "important"],
-    icon: TriangleAlert,
-    run: insertBlocks([{ type: "callout", attrs: { icon: "⚠️", color: "orange" }, content: [{ type: "text", text: "Warning: " }] }]),
-  },
-  {
-    id: "cv-checklist",
-    group: "Classic Visions",
-    title: "Checklist",
-    hint: "Before you finish",
-    keywords: ["checklist", "verify", "qa"],
-    icon: ListChecks,
-    run: insertBlocks([
-      { type: "taskList", content: ["Check the order reference", "Confirm the customer", "Record the outcome"].map((text) => ({ type: "taskItem", attrs: { checked: false }, content: [paragraph(text)] })) },
-    ]),
-  },
+  ...ATLAS_TEMPLATES.map(
+    (template): SlashItem => ({
+      id: `template-${template.id}`,
+      group: "Templates",
+      title: template.title,
+      hint: template.hint,
+      keywords: template.keywords,
+      icon: template.id === "warning" ? TriangleAlert : template.id === "checklist" ? ListChecks : ListOrdered,
+      run: insertBlocks(template.content),
+    }),
+  ),
 
   {
     id: "iris-ask",

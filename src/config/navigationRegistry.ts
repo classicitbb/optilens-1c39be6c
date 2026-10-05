@@ -7,7 +7,7 @@ export interface NavigationDefinition {
   context: "public-site" | "customer-portal" | "operations-console" | "admin-console";
   group: string;
   appKey?: AppKey;
-  shortcutKey?: "activities" | "rx-order" | "stock-order" | "walk-in-payments";
+  shortcutKey?: "activities" | "rx-order" | "stock-order" | "walk-in-payments" | "atlas-new-page" | "atlas-website";
   order: number;
   status: "active" | "hidden";
 }
@@ -25,7 +25,9 @@ export const NAVIGATION_REGISTRY: NavigationDefinition[] = [
   { id: "admin.orders.quotations.new-rx", routeId: "admin.orders.quotations.new-rx", label: "Rx Order Form", context: "admin-console", group: "launcher", appKey: "orders", shortcutKey: "rx-order", order: 8, status: "active" },
   { id: "admin.orders.stock-orders", routeId: "admin.orders.stock-orders", label: "Stock Order Builder", context: "admin-console", group: "launcher", appKey: "orders", shortcutKey: "stock-order", order: 9, status: "active" },
   { id: "admin.docstudio", routeId: "admin.docstudio", label: "Doc Studio", context: "admin-console", group: "launcher", appKey: "docstudio", order: 9, status: "active" },
-  { id: "admin.knowledge", routeId: "admin.knowledge", label: "Knowledge", context: "admin-console", group: "launcher", appKey: "knowledge", order: 10, status: "active" },
+  { id: "atlas", routeId: "atlas", label: "Atlas", context: "admin-console", group: "launcher", appKey: "atlas", order: 10, status: "active" },
+  { id: "atlas.new-page", routeId: "atlas", label: "New page", context: "admin-console", group: "launcher", appKey: "atlas", shortcutKey: "atlas-new-page", order: 10.1, status: "active" },
+  { id: "atlas.website", routeId: "atlas.space", label: "Website content", context: "admin-console", group: "launcher", appKey: "atlas", shortcutKey: "atlas-website", order: 10.2, status: "active" },
   { id: "admin.settings", routeId: "admin.settings", label: "Settings", context: "admin-console", group: "launcher", appKey: "settings", order: 11, status: "active" },
   { id: "admin.finance.walk-in-payments", routeId: "admin.finance.walk-in-payments", label: "Walk-in Payments", context: "admin-console", group: "launcher", appKey: "finance", shortcutKey: "walk-in-payments", order: 12, status: "active" },
 ];

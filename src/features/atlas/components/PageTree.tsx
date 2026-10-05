@@ -8,21 +8,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { HelpCenterNode } from "@/lib/helpCenter";
-import type { WikiPageMeta } from "@/hooks/useWikiWorkspacePrefs";
+import type { TreeNode } from "../pageTree";
+import type { AtlasPageMeta } from "../hooks/useAtlasPrefs";
 import type { DropPosition } from "./pageTreeLogic";
 
 export interface PageTreeProps {
-  nodes: HelpCenterNode[];
+  nodes: TreeNode[];
   activeId: string | null;
   /** Ids whose open state differs from the default (sections open, pages closed). */
   toggled: Set<string>;
   onToggle: (id: string) => void;
-  pageMeta: Record<string, WikiPageMeta>;
+  pageMeta: Record<string, AtlasPageMeta>;
   favoriteIds: string[];
   onToggleFavorite: (id: string) => void;
-  onOpen: (node: HelpCenterNode) => void;
-  onAddChild: (node: HelpCenterNode) => void;
+  onOpen: (node: TreeNode) => void;
+  onAddChild: (node: TreeNode) => void;
   onRename: (id: string, title: string) => void;
   onDuplicate: (id: string) => void;
   onMoveTo: (id: string) => void;
@@ -31,9 +31,9 @@ export interface PageTreeProps {
   canEdit: boolean;
 }
 
-const bySort = (a: HelpCenterNode, b: HelpCenterNode) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
+const bySort = (a: TreeNode, b: TreeNode) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
 
-const containsId = (node: HelpCenterNode, id: string): boolean =>
+const containsId = (node: TreeNode, id: string): boolean =>
   node.children.some((child) => child.id === id || containsId(child, id));
 
 const dropPositionFor = (event: DragEvent<HTMLElement>, isSection: boolean): DropPosition => {
@@ -71,7 +71,7 @@ const PageTree = (props: PageTreeProps) => {
 };
 
 type RowProps = PageTreeProps & {
-  node: HelpCenterNode;
+  node: TreeNode;
   depth: number;
   dragId: string | null;
   setDragId: (id: string | null) => void;

@@ -94,12 +94,12 @@ const appTiles = [
     appKey: "copilot" as AppKey,
   },
   {
-    title: "Knowledge Base",
-    description: "Internal wiki, process docs, and shared references.",
-    route: "/admin/knowledge/wiki",
+    title: "Atlas",
+    description: "Wiki, procedures and website content in one workspace.",
+    route: "/atlas/wiki",
     icon: BookOpen,
-    featurePrefix: "knowledge",
-    appKey: "knowledge" as AppKey,
+    featurePrefix: "wiki",
+    appKey: "atlas" as AppKey,
   },
   {
     title: "Settings",

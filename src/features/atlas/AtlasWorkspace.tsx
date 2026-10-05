@@ -1,0 +1,613 @@
+import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useNavigate, useSearchParams } from "react-router";
+import { useQuery } from "@tanstack/react-query";
+import { FilePlus2, LayoutTemplate } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
+import { slugifyHelpValue } from "@/lib/helpCenter";
+import { ATLAS_CONFIG, atlasPath } from "./config";
+import { useAtlasWorkspaceName } from "./host";
+import { defaultPropsFor, homeSpaceFor, listAtlasSpaces, type AtlasSpaceDef } from "./spaces";
+import { buildTree, toPageSlug } from "./pageTree";
+import { useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
+import { usePageEditor } from "./hooks/usePageEditor";
+import { useAtlasExpanded, useAtlasFavorites, useAtlasPageMeta, useAtlasSidebarState } from "./hooks/useAtlasPrefs";
+import WorkspaceShell from "./components/WorkspaceShell";
+import WorkspaceSidebar from "./components/WorkspaceSidebar";
+import WorkspaceRightPanel, { parsePanelTab, type PanelTab } from "./components/WorkspaceRightPanel";
+import { PageIdentity, PageTopBar, type Crumb } from "./components/PageHeader";
+import CommandPalette, { type PaletteAction } from "./components/CommandPalette";
+import MoveToDialog, { type MoveTarget } from "./components/MoveToDialog";
+import AssignmentsPanel from "./components/AssignmentsPanel";
+import PageBody from "./components/PageBody";
+import PropertiesForm from "./components/PropertiesForm";
+import {
+  ancestorsOf,
+  descendantsOf,
+  planPageMove,
+  sectionIdOf,
+  SECTION_PREFIX,
+  isSectionId,
+  type DropPosition,
+  type TreePage,
+} from "./components/pageTreeLogic";
+import type { TreeNode } from "./pageTree";
+import type { AtlasPage } from "./source/types";
+
+const DatabaseSpace = lazy(() => import("./database/DatabaseSpace"));
+
+const toTreePage = (page: AtlasPage): TreePage => ({
+  id: page.id,
+  title: page.title,
+  parent_id: page.parentId,
+  section_id: page.sectionId,
+  sort_order: page.sortOrder,
+  status: page.status,
+});
+
+interface AtlasWorkspaceProps {
+  space: AtlasSpaceDef;
+  articleSlug?: string;
+}
+
+/**
+ * One shell for every space. A tree space (Wiki, SOPs) shows a page tree; a database space
+ * (Website) shows saved views and Table / Board / Gallery. Both open pages in the same editor.
+ */
+const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const workspaceName = useAtlasWorkspaceName();
+  const data = useAtlasData();
+  const { bySpace } = useAtlasCapabilities();
+  const caps = bySpace[space.id];
+  const { pages: allPages, sections, isLoading, isLoaded } = data;
+
+  const { favoriteIds, isFavorite, toggleFavorite } = useAtlasFavorites();
+  const { pageMeta, patchPageMeta } = useAtlasPageMeta();
+  const { expanded: toggled, toggleExpanded } = useAtlasExpanded();
+  const sidebar = useAtlasSidebarState();
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+
+  const panelTab = parsePanelTab(searchParams.get("panel"));
+  const showAssignments = searchParams.get("view") === "assignments" && space.layout === "tree";
+  const isTree = space.layout === "tree";
+  const base = (...rest: string[]) => atlasPath(space.id, ...rest);
+
+  const spacePages = usePagesInSpace(space, allPages);
+  const visiblePages = useMemo(() => spacePages.filter((page) => page.status !== "archived"), [spacePages]);
+  const archivedPages = useMemo(() => (space.scope.statuses ? [] : spacePages.filter((page) => page.status === "archived")), [space.scope.statuses, spacePages]);
+  const visibleTree = useMemo(() => buildTree(sections, visiblePages), [sections, visiblePages]);
+  // Deep links must keep working for archived pages, so lookups use every page in the space.
+  const fullTree = useMemo(() => buildTree(sections, spacePages), [sections, spacePages]);
+  const treePages = useMemo(() => spacePages.map(toTreePage), [spacePages]);
+
+  const selectedNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? null) : null;
+  const selectedPage = useMemo(() => spacePages.find((page) => page.id === selectedNode?.id) ?? null, [spacePages, selectedNode?.id]);
+
+  const spaces = useMemo(() => listAtlasSpaces().filter((candidate) => bySpace[candidate.id]?.view), [bySpace]);
+
+  // A slug that is not in this space but is in another one the user can read (an old wiki URL for
+  // a website page, an SOP URL for a draft) goes to where the page lives. Unknown slugs go to the
+  // space home. Only once pages have actually loaded, so deep links are not bounced.
+  useEffect(() => {
+    if (!articleSlug || !isLoaded || selectedNode) return;
+    const elsewhere = allPages.find((page) => toPageSlug(page) === articleSlug);
+    const home = elsewhere ? homeSpaceFor(elsewhere.spaceId) : undefined;
+    if (elsewhere && home && home.id !== space.id && bySpace[home.id]?.view) {
+      navigate(atlasPath(home.id, articleSlug) + window.location.search, { replace: true });
+      return;
+    }
+    navigate(base(), { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articleSlug, isLoaded, selectedNode, allPages]);
+
+  // Old links that carry only an id (the site's "Edit" buttons) resolve to a slug URL here.
+  const legacyId = searchParams.get("articleId");
+  useEffect(() => {
+    if (!legacyId || !isLoaded) return;
+    const match = allPages.find((page) => page.id === legacyId);
+    const home = match ? homeSpaceFor(match.spaceId) : undefined;
+    if (match && home) navigate(atlasPath(home.id, toPageSlug(match)), { replace: true });
+    else
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.delete("articleId");
+          return next;
+        },
+        { replace: true },
+      );
+  }, [allPages, isLoaded, legacyId, navigate, setSearchParams]);
+
+  const canEdit = Boolean(caps?.edit);
+  const canPublish = Boolean(caps?.publish);
+  const canCreate = canEdit && space.allowCreate;
+
+  const editor = usePageEditor({
+    page: selectedPage,
+    pages: allPages,
+    data,
+    canEdit,
+    canPublish,
+    routeSlug: articleSlug,
+    onSlugChanged: (slug) => navigate(base(slug) + window.location.search, { replace: true }),
+    onSaved: (slug) => navigate(base(slug) + window.location.search, { replace: true }),
+  });
+  const { draft, setDraft, mode, setMode } = editor;
+
+  const setPanel = useCallback(
+    (tab: PanelTab | null) =>
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (tab) next.set("panel", tab);
+          else next.delete("panel");
+          return next;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
+
+  // Ctrl/⌘ K opens the palette, Ctrl/⌘ J opens Iris. Capture phase on window so another shell's own
+  // Ctrl+K handler (on document) does not also fire.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "k") {
+        event.preventDefault();
+        event.stopPropagation();
+        setPaletteOpen((open) => !open);
+      } else if (key === "j") {
+        event.preventDefault();
+        event.stopPropagation();
+        setPanel("iris");
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [setPanel]);
+
+  const ownerId = selectedPage?.authorId ?? null;
+  const { data: ownerName = null } = useQuery({
+    queryKey: ["atlas", "owner", ownerId],
+    enabled: Boolean(ownerId),
+    staleTime: 5 * 60 * 1000,
+    queryFn: () => data.source.personName(ownerId as string),
+  });
+
+  const pagePath = useCallback((page: Pick<AtlasPage, "id" | "title" | "slug">) => base(toPageSlug(page)), [space.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openNode = useCallback((node: Pick<TreeNode, "slug">) => navigate(base(node.slug)), [space.id, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sectionSlug = (sectionId: string | null) => sections.find((section) => section.id === sectionId)?.slug ?? "general";
+
+  const createPage = useCallback(
+    async (placement: { parentId: string | null; sectionId: string | null }) => {
+      if (!canCreate) return;
+      const siblings = spacePages.filter(
+        (page) => page.parentId === placement.parentId && (placement.parentId !== null || page.sectionId === placement.sectionId),
+      );
+      const slug = `untitled-${Date.now().toString(36)}`;
+      try {
+        await data.createPage({
+          spaceId: space.scope.storeSpace,
+          title: "Untitled",
+          slug,
+          sectionId: placement.sectionId,
+          parentId: placement.parentId,
+          sortOrder: siblings.reduce((max, page) => Math.max(max, page.sortOrder), -1) + 1,
+          status: "draft",
+          props: isTree ? { category: sectionSlug(placement.sectionId) } : defaultPropsFor(space),
+        });
+        if (placement.parentId) toggleExpanded(placement.parentId);
+        navigate(base(slug));
+        setMode("edit");
+      } catch (error) {
+        toast({ title: "Could not create page", description: error instanceof Error ? error.message : "Try again in a moment.", variant: "destructive" });
+      }
+    },
+    [canCreate, data, isTree, navigate, setMode, space, spacePages, toast, toggleExpanded], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const newPageDefault = useCallback(() => createPage({ parentId: null, sectionId: isTree ? (sections[0]?.id ?? null) : null }), [createPage, isTree, sections]);
+
+  // Launcher shortcuts and links: ?new=1 starts a page, ?search=1 opens the palette.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const wantsNew = searchParams.get("new") === "1";
+    const wantsSearch = searchParams.get("search") === "1";
+    if (!wantsNew && !wantsSearch) return;
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("new");
+        next.delete("search");
+        return next;
+      },
+      { replace: true },
+    );
+    if (wantsSearch) setPaletteOpen(true);
+    if (wantsNew) void newPageDefault();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, searchParams]);
+
+  const addChildOf = (node: TreeNode) => {
+    if (isSectionId(node.id)) return createPage({ parentId: null, sectionId: sectionIdOf(node.id) });
+    const page = spacePages.find((item) => item.id === node.id);
+    return createPage({ parentId: node.id, sectionId: page?.sectionId ?? null });
+  };
+
+  const handleCreateSection = async (title: string) => {
+    try {
+      await data.createSection(title);
+      toast({ title: "Section created" });
+    } catch (error) {
+      toast({ title: "Could not create section", description: error instanceof Error ? error.message : "Try again in a moment.", variant: "destructive" });
+    }
+  };
+
+  const duplicatePage = async (id: string) => {
+    const source = spacePages.find((page) => page.id === id);
+    if (!source || !canCreate) return;
+    const title = `Copy of ${source.title}`;
+    const slug = `${slugifyHelpValue(title)}-${Date.now().toString(36)}`;
+    try {
+      await data.createPage({
+        spaceId: source.spaceId,
+        title,
+        slug,
+        summary: source.summary,
+        entryKind: source.entryKind,
+        href: source.href,
+        doc: source.doc,
+        sectionId: source.sectionId,
+        parentId: source.parentId,
+        sortOrder: source.sortOrder + 1,
+        status: "draft",
+        contexts: source.contexts,
+        props: { ...source.props },
+        changeNote: `Duplicated from ${source.title}`,
+      });
+      navigate(base(slug));
+    } catch (error) {
+      toast({ title: "Could not duplicate page", description: error instanceof Error ? error.message : "Try again in a moment.", variant: "destructive" });
+    }
+  };
+
+  const movePage = async (dragId: string, targetId: string, position: DropPosition) => {
+    if (!canEdit) return;
+    const updates = planPageMove(treePages, dragId, targetId, position);
+    if (updates === null) {
+      toast({ title: "Can't move there", description: "A page can't be moved inside itself.", variant: "destructive" });
+      return;
+    }
+    if (updates.length === 0) return;
+    if (position === "inside") toggleExpanded(targetId, true);
+    await data.movePages(updates).catch(() => undefined);
+  };
+
+  const archivePage = async (id: string) => {
+    if (!canEdit) return;
+    const page = spacePages.find((item) => item.id === id);
+    await data.patchPage({ id, status: "archived" });
+    toast({ title: "Moved to trash", description: page?.title });
+    if (id === selectedPage?.id) navigate(base());
+  };
+
+  const changeStatus = async (status: "draft" | "archived") => {
+    if (!selectedPage) return;
+    if (status === "archived") {
+      await archivePage(selectedPage.id);
+      return;
+    }
+    await data.patchPage({ id: selectedPage.id, status });
+    toast({ title: "Moved to draft" });
+  };
+
+  const exportMarkdown = () => {
+    const markdown = canonicalToMarkdown(draft.title, draft.doc);
+    const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${draft.slug || slugifyHelpValue(draft.title) || "page"}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const sharePage = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}`);
+      toast({ title: "Link copied" });
+    } catch {
+      toast({ title: "Could not copy the link", variant: "destructive" });
+    }
+  };
+
+  const crumbs = useMemo<Crumb[]>(() => {
+    const list: Crumb[] = [{ label: space.label, to: base() }];
+    if (!selectedPage) return list;
+    const section = sections.find((item) => item.id === selectedPage.sectionId);
+    if (section) list.push({ label: section.title });
+    for (const ancestor of ancestorsOf(treePages, selectedPage.id)) {
+      list.push({ label: ancestor.title || "Untitled", to: base(toPageSlug(spacePages.find((page) => page.id === ancestor.id) ?? { id: ancestor.id, title: ancestor.title, slug: null })) });
+    }
+    list.push({ label: draft.title || "Untitled" });
+    return list;
+  }, [draft.title, sections, selectedPage, space.id, space.label, spacePages, treePages]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const moveTargets = useMemo<MoveTarget[]>(() => {
+    if (!moveTargetId) return [];
+    const blocked = new Set([moveTargetId, ...descendantsOf(treePages, moveTargetId).map((page) => page.id)]);
+    return [
+      ...sections.map((section) => ({ id: `${SECTION_PREFIX}${section.id}`, label: section.title, kind: "section" as const })),
+      ...visiblePages.filter((page) => !blocked.has(page.id)).map((page) => ({ id: page.id, label: page.title || "Untitled", kind: "page" as const })),
+    ];
+  }, [moveTargetId, sections, treePages, visiblePages]);
+  const moveTargetPage = spacePages.find((page) => page.id === moveTargetId);
+
+  const editorPages = useMemo(
+    () => visiblePages.filter((page) => page.id !== selectedPage?.id).map((page) => ({ id: page.id, title: page.title, slug: toPageSlug(page) })),
+    [selectedPage?.id, visiblePages],
+  );
+  const searchPeople = useCallback((query: string) => data.source.searchPeople(query), [data.source]);
+  const resolvePageHref = useCallback(
+    (page: { id?: string; slug?: string; title: string }) => (page.slug ? base(page.slug) : undefined),
+    [space.id], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const meta = selectedPage ? pageMeta[selectedPage.id] : undefined;
+  const fullWidth = meta?.fullWidth ?? false;
+  const editing = mode === "edit" && canEdit;
+
+  const dynamicOptions = useMemo(
+    () => ({
+      sections: sections.map((section) => ({ value: section.id, label: section.title })),
+      pages: spacePages.filter((page) => page.id !== selectedPage?.id).map((page) => ({ value: page.id, label: page.title })),
+    }),
+    [sections, selectedPage?.id, spacePages],
+  );
+
+  const settings = (
+    <PropertiesForm
+      properties={space.properties.filter((property) => property.type !== "contexts")}
+      draft={draft}
+      onChange={setDraft}
+      published={editor.isPublished}
+      disabled={!canEdit}
+      dynamicOptions={dynamicOptions}
+    />
+  );
+
+  const paletteActions = useMemo<PaletteAction[]>(
+    () => [
+      ...(canCreate ? [{ id: "new", label: "New page", icon: <FilePlus2 className="h-4 w-4" />, run: () => void newPageDefault() }] : []),
+      ...spaces
+        .filter((candidate) => candidate.id !== space.id)
+        .map((candidate) => ({ id: `open-${candidate.id}`, label: `Open ${candidate.label}`, icon: <candidate.icon className="h-4 w-4" />, run: () => navigate(atlasPath(candidate.id)) })),
+      { id: "iris", label: "Ask Iris", icon: <span aria-hidden>✦</span>, run: () => setPanel("iris") },
+    ],
+    [canCreate, navigate, newPageDefault, setPanel, space.id, spaces],
+  );
+
+  const visibleSpaceIds = useMemo(() => [...new Set(spaces.map((candidate) => candidate.scope.storeSpace))], [spaces]);
+
+  const showList = space.layout === "database" && !articleSlug;
+
+  return (
+    <>
+      <WorkspaceShell
+        sidebarWidth={sidebar.width}
+        onSidebarWidthChange={sidebar.setWidth}
+        sidebarCollapsed={sidebar.collapsed}
+        onSidebarCollapsedChange={sidebar.setCollapsed}
+        sidebar={
+          <WorkspaceSidebar
+            tree={{
+              nodes: visibleTree.roots,
+              activeId: selectedNode?.id ?? null,
+              toggled,
+              onToggle: (id) => toggleExpanded(id),
+              pageMeta,
+              favoriteIds,
+              onToggleFavorite: toggleFavorite,
+              onOpen: openNode,
+              onAddChild: (node) => void addChildOf(node),
+              onRename: (id, title) => void data.patchPage({ id, title }),
+              onDuplicate: (id) => void duplicatePage(id),
+              onMoveTo: setMoveTargetId,
+              onArchive: (id) => void archivePage(id),
+              onMove: (dragId, targetId, position) => void movePage(dragId, targetId, position),
+              canEdit,
+            }}
+            articles={spacePages}
+            archived={archivedPages}
+            userId={user?.id ?? null}
+            brand={{ productName: ATLAS_CONFIG.productName, workspaceName }}
+            space={space}
+            spaces={spaces}
+            onSelectSpace={(id) => navigate(atlasPath(id))}
+            canCreate={canCreate}
+            canEdit={canEdit}
+            pagePath={pagePath}
+            showAssignments={isTree}
+            showTree={isTree}
+            onSearch={() => setPaletteOpen(true)}
+            onAskIris={() => setPanel("iris")}
+            onNewPage={() => void newPageDefault()}
+            onRestore={(id) => void data.patchPage({ id, status: "draft" })}
+            onCollapse={() => sidebar.setCollapsed(true)}
+            onCreateSection={handleCreateSection}
+            onOpenAssignments={() => navigate(`${base()}?view=assignments`)}
+          />
+        }
+        panel={
+          panelTab ? (
+            <WorkspaceRightPanel
+              tab={panelTab}
+              onTabChange={setPanel}
+              onClose={() => setPanel(null)}
+              articleId={selectedPage?.id ?? null}
+              canRestore={canPublish}
+              loadVersions={(id) => data.source.listVersions(id)}
+              onRestore={async (version) => {
+                if (!selectedPage) return;
+                await data.restoreVersion({ id: selectedPage.id, version });
+                toast({ title: `Restored v${version.number}` });
+              }}
+            />
+          ) : null
+        }
+      >
+        <PageTopBar
+          crumbs={showAssignments ? [{ label: space.label, to: base() }, { label: "Assignments" }] : crumbs}
+          editedAt={selectedPage?.updatedAt}
+          insetLeft={sidebar.collapsed}
+          editing={editing}
+          dirty={editor.dirty}
+          saveLabel={editor.saveLabel}
+          isPublished={selectedPage?.status === "published"}
+          isSaving={editor.isSaving}
+          canPublish={canPublish}
+          canEdit={canEdit}
+          hasPage={Boolean(selectedPage) && !showAssignments}
+          irisOpen={panelTab === "iris"}
+          fullWidth={fullWidth}
+          isFavorite={selectedPage ? isFavorite(selectedPage.id) : false}
+          onToggleEdit={() => setMode(editing ? "view" : "edit")}
+          onPublish={() => void editor.saveAs("published")}
+          onShare={() => void sharePage()}
+          onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
+          onToggleFullWidth={() => selectedPage && patchPageMeta(selectedPage.id, { fullWidth: !fullWidth })}
+          onToggleFavorite={() => selectedPage && toggleFavorite(selectedPage.id)}
+          onDuplicate={() => selectedPage && void duplicatePage(selectedPage.id)}
+          onExportMarkdown={exportMarkdown}
+          onOpenHistory={() => setPanel("history")}
+          onTrash={() => selectedPage && void archivePage(selectedPage.id)}
+        />
+
+        {showAssignments ? (
+          <div className="h-[calc(100%-2.75rem)] min-h-0 px-4 pb-4">
+            <AssignmentsPanel articles={spacePages} isLoading={isLoading} />
+          </div>
+        ) : showList ? (
+          <Suspense fallback={<p className="px-6 py-8 text-[14px] text-ws-ink-3">Loading…</p>}>
+            <DatabaseSpace
+              space={space}
+              data={data}
+              spacePages={spacePages}
+              capabilities={caps}
+              onAskIris={() => setPanel("iris")}
+              dynamicOptions={dynamicOptions}
+              editorPages={editorPages}
+              searchPeople={searchPeople}
+              resolvePageHref={resolvePageHref}
+              supportsDrafts={data.supportsDrafts}
+            />
+          </Suspense>
+        ) : selectedPage ? (
+          <>
+            <PageIdentity
+              icon={meta?.icon}
+              cover={meta?.cover ?? false}
+              title={draft.title}
+              editable={canEdit}
+              fullWidth={fullWidth}
+              status={draft.status}
+              kind={draft.entryKind}
+              ownerName={ownerName}
+              contextSlugs={draft.contexts}
+              updatedAt={selectedPage.updatedAt}
+              versionNumber={selectedPage.version}
+              onTitleChange={(title) => {
+                setMode("edit");
+                setDraft((current) => ({
+                  ...current,
+                  title,
+                  slug:
+                    // Only brand-new pages follow their title; an existing slug is never rewritten silently.
+                    current.status !== "published" && current.slug.startsWith("untitled-") ? slugifyHelpValue(title) : current.slug,
+                }));
+              }}
+              onIconChange={(icon) => patchPageMeta(selectedPage.id, { icon })}
+              onToggleCover={() => patchPageMeta(selectedPage.id, { cover: !meta?.cover })}
+              onStatusChange={(status) => void changeStatus(status)}
+              onContextsChange={(contexts) => setDraft((current) => ({ ...current, contexts }))}
+              settings={settings}
+            />
+            <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-12 ${fullWidth ? "max-w-none" : "max-w-[720px]"}`}>
+              <PageBody
+                page={selectedPage}
+                editor={editor}
+                editing={editing}
+                canPublish={canPublish}
+                supportsDrafts={data.supportsDrafts}
+                pages={editorPages}
+                searchPeople={searchPeople}
+                resolvePageHref={resolvePageHref}
+                onAskIris={() => setPanel("iris")}
+                onUpdate={() => void editor.saveAs("published")}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="mx-auto flex max-w-[560px] flex-col items-start gap-4 px-6 py-24 sm:px-12">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-ws-accent-tint text-ws-accent">
+              <LayoutTemplate className="h-6 w-6" />
+            </div>
+            <h1 className="ws-h1">{space.label}</h1>
+            <p className="ws-body text-ws-ink-2">
+              {space.description} {canCreate ? "Pick a page from the sidebar, or start a new one." : "Pick a page from the sidebar."}
+            </p>
+            {canCreate ? (
+              <button
+                type="button"
+                onClick={() => void newPageDefault()}
+                className="flex h-9 items-center gap-2 rounded-[6px] bg-ws-accent px-4 text-[14px] font-semibold text-[hsl(var(--ws-accent-fg))] hover:opacity-90"
+              >
+                <FilePlus2 className="h-4 w-4" /> New page
+              </button>
+            ) : null}
+          </div>
+        )}
+      </WorkspaceShell>
+
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        search={async (query) => {
+          const hits = await data.source.search(query, { spaceIds: visibleSpaceIds });
+          return hits;
+        }}
+        spaceLabel={(storeSpace) => homeSpaceFor(storeSpace)?.label ?? storeSpace}
+        onOpenHit={(hit) => {
+          const home = homeSpaceFor(hit.spaceId);
+          const page = allPages.find((candidate) => candidate.id === hit.pageId);
+          const slug = page ? toPageSlug(page) : hit.slug;
+          if (home && slug) navigate(atlasPath(home.id, slug));
+        }}
+        actions={paletteActions}
+        placeholder="Search pages and text…"
+      />
+
+      <MoveToDialog
+        open={Boolean(moveTargetId)}
+        pageTitle={moveTargetPage?.title || "page"}
+        targets={moveTargets}
+        onOpenChange={(open) => !open && setMoveTargetId(null)}
+        onPick={(target) => {
+          if (moveTargetId) void movePage(moveTargetId, target.id, "inside");
+          setMoveTargetId(null);
+        }}
+      />
+    </>
+  );
+};
+
+export default AtlasWorkspace;
