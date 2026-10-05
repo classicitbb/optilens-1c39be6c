@@ -18,6 +18,19 @@ Last updated: 2026-10-05 (Atlas)
 
 - **Admin workspace theme (Phase 1)** — branch `admin-workspace-theme-phase1`. `src/styles/workspace.css` defines the `--ws-*` tokens for every admin screen; all 67 `--admin-*` variables and the shadcn overrides in `.admin-tool .admin-content` now point at them, so the brown/gold admin palette is retired and dark mode is navy + teal. Adds JetBrains Mono (labels, code, IDs), the 6px auto-hiding scrollbar (`useScrollingClass`) and `body.ws-admin` (`useAdminBodyClass`) so portaled popovers and dialogs resolve the theme. Public tokens and print previews are untouched. Not changed: hard-coded gold in individual components (for example the Doc Studio Download button and `appColors.ts`). Phases 2–5 (wiki workspace, block editor, website content database, Iris) have not started.
 
+- **Direct Rx order shipping address** — the live CVO Rx draft showed a
+  complete default shipping address, while the direct credit-account submit
+  failed with “A shipping address is required to place an order.” The Rx form
+  calls `place_rx_order_direct`, which omitted the address when delegating to
+  `place_customer_order`. Source migration
+  `20261002180000_rx_direct_submission_shipping_address.sql` now resolves the
+  authenticated account's default saved address (then legacy profile address)
+  before delegation. The migration SQL was applied through the connected
+  Lovable database MCP; the live function and grants were verified. No order was
+  submitted. The Supabase MCP could not access this project to record migration
+  history. See `docs/agent/HANDOFF.md`; the user must perform the final order
+  submission.
+
 - **Innovations statement document rehearsal** — approval-gated statement PDF
   automation has a local Finance preview with PDF preview, select-all, and
   bulk approval controls. A protected, dry-run-first
