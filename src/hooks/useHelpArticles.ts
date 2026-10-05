@@ -123,7 +123,15 @@ export const useHelpArticles = (pageSlug?: string) => {
       change_note: changeNote ?? null,
       version_number: versionNumber,
     });
-    if (error) throw error;
+    if (error) {
+      // The hosted project may not have the history table yet. The article itself is already saved,
+      // so a missing table must not report the whole save as failed.
+      if ((error as { code?: string }).code === "PGRST205" || (error as { code?: string }).code === "42P01") {
+        console.warn("help_article_versions is not available; version history was not recorded.", error);
+        return;
+      }
+      throw error;
+    }
   };
 
   const upsertMutation = useMutation({
@@ -231,6 +239,20 @@ export const useHelpArticles = (pageSlug?: string) => {
     },
   });
 
+  // Autosave writes the draft body and title only: no version bump, no snapshot, no status change.
+  const autosaveMutation = useMutation({
+    mutationFn: async ({ id, title, doc }: { id: string; title: string; doc: BlogCanonicalContent }) => {
+      const html = canonicalToHtml(doc);
+      const { error } = await (supabase.from("help_articles") as any)
+        .update({ title, body_json: doc, content: html, body_html: html })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["help_articles"] });
+    },
+  });
+
   // Moves, renames and status flips touch metadata only: no version bump, no snapshot.
   const moveMutation = useMutation({
     mutationFn: async (
@@ -295,6 +317,7 @@ export const useHelpArticles = (pageSlug?: string) => {
     deleteArticle: deleteMutation.mutateAsync,
     moveArticles: moveMutation.mutateAsync,
     patchArticle: patchMutation.mutateAsync,
+    autosaveDraft: autosaveMutation.mutateAsync,
     refetchAll: allArticlesQuery.refetch,
     allArticles: allArticlesQuery.data ?? EMPTY_ARTICLES,
     fetchVersions: versionsQuery.mutateAsync,

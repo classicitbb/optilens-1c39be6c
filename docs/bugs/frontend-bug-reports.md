@@ -1,5 +1,11 @@
 # Frontend Bug Reports
 
+## 2026-10-05 — Wiki deep links, publish metadata check and history-table failures
+- Area: Knowledge → Wiki.
+- Impact: opening an article URL on a fresh load could be redirected to the wiki home before articles had loaded; the publish build-version check ran against HTML and never matched `- **Build version:**` lines; saving a page failed (after the article itself was updated) when `help_article_versions` was missing on the hosted project.
+- Resolution: the unknown-slug redirect waits for the article query to succeed; the check runs against the block text as Markdown; a missing history table is logged and the save completes. Move, rename and status changes no longer create versions.
+- Regression prevention: unit tests cover the canonical/Tiptap round trip, validation, Markdown export and renderer parity for every block type. Known gap: the hosted project still lacks `help_article_versions`, so the History tab shows an error until migration `20260308193000` is applied.
+
 ## 2026-09-30 — Doc Studio email bar could not be dismissed
 
 Fixed in local source: added a labelled SVG close control and tab-session dismissal. Dismissal leaves delivery polling/audit data intact and does not hide a newer attempt or status. Production release remains pending approval.

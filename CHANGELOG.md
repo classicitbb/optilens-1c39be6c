@@ -2,6 +2,20 @@
 
 > Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
 
+## 2026-10-05 — Admin workspace theme, wiki workspace and block editor
+
+### Release Notes
+- Every admin screen now shares one workspace look: off-white paper and navy in dark mode, teal accents, Plus Jakarta Sans for text and JetBrains Mono for labels, codes and SKUs. The old brown and gold admin palette is gone. Scrollbars stay hidden until you scroll.
+- **Knowledge → Wiki** is now a three-pane workspace: a resizable page tree (drag to reorder or nest), favorites, trash, a Ctrl+K search over titles, page text and website content, and a right panel for page history.
+- Pages are edited as blocks. Type `/` for headings, lists, to-dos, toggles, quotes, callouts, code, tables, images and page links; type `@` to mention a page, person or date; select text for bold, italic, underline, strikethrough, code, link and colour. Drag the grip beside any block to move it.
+- Pages that are not yet published save themselves 800 ms after you stop typing. A published page keeps your edits on screen until you choose **Update**.
+
+### Technical Changelog
+- Added `src/styles/workspace.css` (`--ws-*` tokens) and re-pointed every `--admin-*` variable and the shadcn overrides to them. `body.ws-admin` carries the tokens to portaled popovers and dialogs; `useScrollingClass` toggles `.is-scrolling` for the auto-hiding scrollbar.
+- Added `src/components/workspace/*` (shell, page tree, palette, right panel, `BlockEditor` and its editor/ folder) on Tiptap. New dependencies: `@tiptap/extension-table` and `@tiptap/suggestion`, pinned to the installed 3.31.3.
+- Extended the canonical document (`BlogBlockNode` / `BlogInlineNode`) with callout, toggle, todo, code, divider, table and pageLink blocks and code, strike, underline, colour and mention inlines. `tiptapDocToCanonical` / `canonicalToTiptapDoc` in `wikiCanonical.ts` are the only bridge; unknown blocks round-trip through an `unknownBlock` node and render a visible fallback. `validateCanonicalDocument` now rejects unknown block types.
+- Page moves, renames and status changes use `patchArticle` / `moveArticles` (no version row). Autosave writes title and body only. Publish still runs `validateCanonicalDocument` and `validateWikiBuildVersionForPublish`, now against the block text as Markdown.
+
 ## 2026-09-17 — Customer-device walk-in payments
 
 ### Release Notes

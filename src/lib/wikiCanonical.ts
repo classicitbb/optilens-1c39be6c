@@ -1,3 +1,4 @@
+import { isBlogColorName } from "@/components/blog/BlogPostRenderer";
 import type { BlogBlockNode, BlogCanonicalContent, BlogInlineNode } from "@/components/blog/BlogPostRenderer";
 
 const isHtmlLike = (value: string) => /<[a-z][\s\S]*>/i.test(value);
@@ -23,6 +24,9 @@ const parseInlineNode = (node: Node): BlogInlineNode[] => {
     return [{ type: "link", href, children: children.length ? children : [asText(href)] }];
   }
   if (tag === "br") return [asText("\n")];
+  if (tag === "code") return [{ type: "code", children }];
+  if (tag === "s" || tag === "del" || tag === "strike") return [{ type: "strike", children }];
+  if (tag === "u") return [{ type: "underline", children }];
 
   return children;
 };
@@ -62,6 +66,12 @@ const parseHtmlToBlocks = (raw: string): BlogBlockNode[] => {
       const src = node.getAttribute("src") ?? "";
       return src ? [{ type: "image", src, alt: node.getAttribute("alt") ?? "" }] : [];
     }
+    if (tag === "hr") return [{ type: "divider" }];
+    if (tag === "pre") {
+      const codeEl = node.querySelector("code");
+      const language = codeEl?.className.match(/language-([\w-]+)/)?.[1];
+      return [{ type: "code", ...(language ? { language } : {}), text: node.textContent ?? "" }];
+    }
 
     const fallback = toInline(Array.from(node.childNodes));
     return fallback.length ? [{ type: "paragraph", children: fallback }] : [];
@@ -77,40 +87,76 @@ const escapeHtml = (value: string) =>
     .replace(/'/g, "&#39;");
 
 const inlineToHtml = (node: BlogInlineNode): string => {
-  switch (node.type) {
+  const kids = (children: BlogInlineNode[]) => (Array.isArray(children) ? children : []).map(inlineToHtml).join("");
+  switch (node?.type) {
     case "text":
       return escapeHtml(node.text).replace(/\n/g, "<br />");
     case "strong":
-      return `<strong>${node.children.map(inlineToHtml).join("")}</strong>`;
+      return `<strong>${kids(node.children)}</strong>`;
     case "emphasis":
-      return `<em>${node.children.map(inlineToHtml).join("")}</em>`;
+      return `<em>${kids(node.children)}</em>`;
     case "link":
-      return `<a href="${escapeHtml(node.href)}">${node.children.map(inlineToHtml).join("")}</a>`;
+      return `<a href="${escapeHtml(node.href)}">${kids(node.children)}</a>`;
+    case "code":
+      return `<code>${kids(node.children)}</code>`;
+    case "strike":
+      return `<s>${kids(node.children)}</s>`;
+    case "underline":
+      return `<u>${kids(node.children)}</u>`;
+    case "color": {
+      const attrs = [
+        isBlogColorName(node.color) ? ` data-color="${node.color}"` : "",
+        isBlogColorName(node.background) ? ` data-background="${node.background}"` : "",
+      ].join("");
+      return `<span${attrs}>${kids(node.children)}</span>`;
+    }
+    case "mention":
+      return `<span data-mention="${escapeHtml(node.kind)}">${escapeHtml(node.label)}</span>`;
+    default:
+      return "";
   }
 };
 
-export const canonicalToHtml = (doc: BlogCanonicalContent): string => {
-  return doc.blocks
-    .map((block) => {
-      switch (block.type) {
-        case "heading":
-          return `<h${block.level}>${block.children.map(inlineToHtml).join("")}</h${block.level}>`;
-        case "paragraph":
-          return `<p>${block.children.map(inlineToHtml).join("")}</p>`;
-        case "blockquote":
-          return `<blockquote>${block.children.map(inlineToHtml).join("")}</blockquote>`;
-        case "list": {
-          const tag = block.ordered ? "ol" : "ul";
-          return `<${tag}>${block.items
-            .map((item) => `<li>${item.map(inlineToHtml).join("")}</li>`)
-            .join("")}</${tag}>`;
-        }
-        case "image":
-          return `<img src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt ?? "")}" />`;
-      }
-    })
-    .join("\n");
+const blockToHtml = (block: BlogBlockNode): string => {
+  const inline = (children: BlogInlineNode[]) => (Array.isArray(children) ? children : []).map(inlineToHtml).join("");
+  switch (block?.type) {
+    case "heading":
+      return `<h${block.level}>${inline(block.children)}</h${block.level}>`;
+    case "paragraph":
+      return `<p>${inline(block.children)}</p>`;
+    case "blockquote":
+      return `<blockquote>${inline(block.children)}</blockquote>`;
+    case "list": {
+      const tag = block.ordered ? "ol" : "ul";
+      return `<${tag}>${block.items.map((item) => `<li>${inline(item)}</li>`).join("")}</${tag}>`;
+    }
+    case "image":
+      return `<img src="${escapeHtml(block.src)}" alt="${escapeHtml(block.alt ?? "")}" />`;
+    case "callout":
+      return `<aside data-callout="${isBlogColorName(block.color) ? block.color : ""}"><span>${escapeHtml(block.icon ?? "")}</span> ${inline(block.children)}</aside>`;
+    case "toggle":
+      return `<details><summary>${inline(block.summary)}</summary>${(block.children ?? []).map(blockToHtml).join("")}</details>`;
+    case "todo":
+      return `<ul data-todo>${block.items.map((item) => `<li data-checked="${item.checked ? "true" : "false"}">${inline(item.children)}</li>`).join("")}</ul>`;
+    case "code":
+      return `<pre><code${block.language ? ` class="language-${escapeHtml(block.language)}"` : ""}>${escapeHtml(block.text)}</code></pre>`;
+    case "divider":
+      return "<hr />";
+    case "table":
+      return `<table>${block.rows
+        .map((row, rowIndex) => {
+          const cellTag = block.header && rowIndex === 0 ? "th" : "td";
+          return `<tr>${row.map((cell) => `<${cellTag}>${inline(cell)}</${cellTag}>`).join("")}</tr>`;
+        })
+        .join("")}</table>`;
+    case "pageLink":
+      return `<p><a href="${escapeHtml(block.slug ? `/knowledge/${block.slug}` : "#")}" data-page-link="${escapeHtml(block.articleId)}">${escapeHtml(block.title)}</a></p>`;
+    default:
+      return "";
+  }
 };
+
+export const canonicalToHtml = (doc: BlogCanonicalContent): string => doc.blocks.map(blockToHtml).filter(Boolean).join("\n");
 
 /** Parse inline markdown: **bold**, *italic*, [link](url) */
 const parseInlineMarkdown = (text: string): BlogInlineNode[] => {
@@ -232,11 +278,379 @@ export const toCanonicalDocument = (value?: unknown): BlogCanonicalContent => {
   return { blocks };
 };
 
+const KNOWN_BLOCK_TYPES = new Set([
+  "heading",
+  "paragraph",
+  "list",
+  "blockquote",
+  "image",
+  "callout",
+  "toggle",
+  "todo",
+  "code",
+  "divider",
+  "table",
+  "pageLink",
+]);
+
+const validateBlock = (block: unknown): string | null => {
+  if (!block || typeof block !== "object" || !("type" in block)) return "Invalid block detected.";
+  const node = block as BlogBlockNode;
+  if (!KNOWN_BLOCK_TYPES.has(node.type)) return `Unsupported block type "${String(node.type)}".`;
+  switch (node.type) {
+    case "image":
+      return node.src ? null : "Image blocks need a source URL.";
+    case "code":
+      return typeof node.text === "string" ? null : "Code blocks need text.";
+    case "table":
+      return Array.isArray(node.rows) && node.rows.every(Array.isArray) ? null : "Table blocks need rows.";
+    case "todo":
+      return Array.isArray(node.items) ? null : "To-do blocks need items.";
+    case "pageLink":
+      return node.articleId && node.title ? null : "Page links need a page.";
+    case "toggle": {
+      if (!Array.isArray(node.children)) return "Toggle blocks need content.";
+      for (const child of node.children) {
+        const problem = validateBlock(child);
+        if (problem) return problem;
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
+};
+
 export const validateCanonicalDocument = (doc: BlogCanonicalContent): { valid: boolean; message?: string } => {
   if (!doc || !Array.isArray(doc.blocks)) return { valid: false, message: "Invalid document structure." };
   for (const block of doc.blocks) {
-    if (!block || typeof block !== "object" || !('type' in block)) return { valid: false, message: "Invalid block detected." };
-    if (block.type === "image" && !block.src) return { valid: false, message: "Image blocks need a source URL." };
+    const problem = validateBlock(block);
+    if (problem) return { valid: false, message: problem };
   }
   return { valid: true };
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tiptap JSON <-> canonical JSON
+//
+// The workspace block editor edits Tiptap JSON; the canonical document is what
+// is stored (help_articles.body_json) and rendered. These two functions are the
+// only bridge. Blocks the editor does not know are carried through
+// "unknownBlock" nodes, so opening and saving a page never drops them.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TiptapJson {
+  type?: string;
+  attrs?: Record<string, unknown>;
+  content?: TiptapJson[];
+  marks?: { type: string; attrs?: Record<string, unknown> }[];
+  text?: string;
+}
+
+const str = (value: unknown): string | undefined => (typeof value === "string" && value !== "" ? value : undefined);
+
+// Innermost first: a bold link becomes strong(link(...)) reading outward-in.
+const MARK_WRAP_ORDER = ["code", "strike", "underline", "italic", "bold", "wsColor", "link"] as const;
+
+const wrapWithMark = (node: BlogInlineNode, mark: { type: string; attrs?: Record<string, unknown> }): BlogInlineNode => {
+  switch (mark.type) {
+    case "code":
+      return { type: "code", children: [node] };
+    case "strike":
+      return { type: "strike", children: [node] };
+    case "underline":
+      return { type: "underline", children: [node] };
+    case "italic":
+      return { type: "emphasis", children: [node] };
+    case "bold":
+      return { type: "strong", children: [node] };
+    case "wsColor": {
+      const color = isBlogColorName(mark.attrs?.color) ? mark.attrs?.color : undefined;
+      const background = isBlogColorName(mark.attrs?.background) ? mark.attrs?.background : undefined;
+      return color || background ? { type: "color", ...(color ? { color } : {}), ...(background ? { background } : {}), children: [node] } : node;
+    }
+    case "link":
+      return { type: "link", href: str(mark.attrs?.href) ?? "#", children: [node] };
+    default:
+      return node;
+  }
+};
+
+const tiptapInlineToCanonical = (nodes: TiptapJson[] = []): BlogInlineNode[] =>
+  nodes.flatMap((node): BlogInlineNode[] => {
+    if (node.type === "hardBreak") return [asText("\n")];
+    if (node.type === "mention") {
+      const kind = node.attrs?.kind === "person" || node.attrs?.kind === "date" ? node.attrs.kind : "page";
+      return [
+        {
+          type: "mention",
+          kind,
+          label: str(node.attrs?.label) ?? "",
+          ...(str(node.attrs?.id) ? { id: str(node.attrs?.id) } : {}),
+          ...(str(node.attrs?.slug) ? { slug: str(node.attrs?.slug) } : {}),
+        },
+      ];
+    }
+    if (node.type !== "text" || !node.text) return [];
+    let out: BlogInlineNode = asText(node.text);
+    const marks = node.marks ?? [];
+    for (const type of MARK_WRAP_ORDER) {
+      const mark = marks.find((candidate) => candidate.type === type);
+      if (mark) out = wrapWithMark(out, mark);
+    }
+    return [out];
+  });
+
+const paragraphInline = (node?: TiptapJson): BlogInlineNode[] => tiptapInlineToCanonical(node?.content);
+
+const joinParagraphs = (paragraphs: TiptapJson[]): BlogInlineNode[] =>
+  paragraphs.flatMap((paragraph, index) => (index === 0 ? paragraphInline(paragraph) : [asText("\n"), ...paragraphInline(paragraph)]));
+
+const textOf = (node: TiptapJson): string =>
+  node.text ?? (node.content ?? []).map(textOf).join("");
+
+const tiptapBlockToCanonical = (node: TiptapJson): BlogBlockNode[] => {
+  const kids = node.content ?? [];
+  switch (node.type) {
+    case "paragraph":
+      return [{ type: "paragraph", children: tiptapInlineToCanonical(kids) }];
+    case "heading": {
+      const level = Math.min(4, Math.max(1, Number(node.attrs?.level) || 1)) as 1 | 2 | 3 | 4;
+      return [{ type: "heading", level, children: tiptapInlineToCanonical(kids) }];
+    }
+    case "bulletList":
+    case "orderedList":
+      return [
+        {
+          type: "list",
+          ordered: node.type === "orderedList",
+          items: kids.map((item) => joinParagraphs((item.content ?? []).filter((child) => child.type === "paragraph"))),
+        },
+      ];
+    case "taskList":
+      return [
+        {
+          type: "todo",
+          items: kids.map((item) => ({
+            checked: Boolean(item.attrs?.checked),
+            children: joinParagraphs((item.content ?? []).filter((child) => child.type === "paragraph")),
+          })),
+        },
+      ];
+    case "blockquote": {
+      const paragraphs = kids.filter((child) => child.type === "paragraph");
+      return paragraphs.length > 0
+        ? paragraphs.map((paragraph) => ({ type: "blockquote" as const, children: paragraphInline(paragraph) }))
+        : [{ type: "blockquote", children: [] }];
+    }
+    case "codeBlock": {
+      const language = str(node.attrs?.language);
+      return [{ type: "code", ...(language ? { language } : {}), text: kids.map(textOf).join("") }];
+    }
+    case "horizontalRule":
+      return [{ type: "divider" }];
+    case "image": {
+      const src = str(node.attrs?.src);
+      return src ? [{ type: "image", src, alt: str(node.attrs?.alt) ?? "" }] : [];
+    }
+    case "callout": {
+      const icon = str(node.attrs?.icon);
+      const color = isBlogColorName(node.attrs?.color) ? node.attrs?.color : undefined;
+      return [{ type: "callout", ...(icon ? { icon } : {}), ...(color ? { color } : {}), children: tiptapInlineToCanonical(kids) }];
+    }
+    case "toggle": {
+      const [summary, ...rest] = kids;
+      return [{ type: "toggle", summary: paragraphInline(summary), children: rest.flatMap(tiptapBlockToCanonical) }];
+    }
+    case "table": {
+      const rows = kids.map((row) => (row.content ?? []).map((cell) => joinParagraphs((cell.content ?? []).filter((child) => child.type === "paragraph"))));
+      const header = kids.length > 0 && (kids[0].content ?? []).length > 0 && (kids[0].content ?? []).every((cell) => cell.type === "tableHeader");
+      return [{ type: "table", header, rows }];
+    }
+    case "pageLink": {
+      const articleId = str(node.attrs?.articleId);
+      return articleId
+        ? [{ type: "pageLink", articleId, title: str(node.attrs?.title) ?? "Untitled", ...(str(node.attrs?.slug) ? { slug: str(node.attrs?.slug) } : {}) }]
+        : [];
+    }
+    case "unknownBlock": {
+      try {
+        const raw = JSON.parse(String(node.attrs?.raw ?? "null"));
+        return raw && typeof raw === "object" ? [raw as BlogBlockNode] : [];
+      } catch {
+        return [];
+      }
+    }
+    default:
+      return [];
+  }
+};
+
+const isEmptyParagraph = (block: BlogBlockNode) => block.type === "paragraph" && block.children.length === 0;
+
+export const tiptapDocToCanonical = (doc: TiptapJson | null | undefined): BlogCanonicalContent => {
+  const blocks = (doc?.content ?? []).flatMap(tiptapBlockToCanonical);
+  while (blocks.length > 0 && isEmptyParagraph(blocks[blocks.length - 1])) blocks.pop();
+  return { blocks };
+};
+
+const canonicalInlineToTiptap = (nodes: BlogInlineNode[] = [], marks: NonNullable<TiptapJson["marks"]> = []): TiptapJson[] =>
+  (Array.isArray(nodes) ? nodes : []).flatMap((node): TiptapJson[] => {
+    switch (node?.type) {
+      case "text": {
+        const parts = node.text.split("\n");
+        return parts.flatMap((part, index): TiptapJson[] => {
+          const out: TiptapJson[] = [];
+          if (index > 0) out.push({ type: "hardBreak" });
+          if (part) out.push({ type: "text", text: part, ...(marks.length ? { marks } : {}) });
+          return out;
+        });
+      }
+      case "strong":
+        return canonicalInlineToTiptap(node.children, [...marks, { type: "bold" }]);
+      case "emphasis":
+        return canonicalInlineToTiptap(node.children, [...marks, { type: "italic" }]);
+      case "underline":
+        return canonicalInlineToTiptap(node.children, [...marks, { type: "underline" }]);
+      case "strike":
+        return canonicalInlineToTiptap(node.children, [...marks, { type: "strike" }]);
+      case "code":
+        return canonicalInlineToTiptap(node.children, [...marks, { type: "code" }]);
+      case "link":
+        return canonicalInlineToTiptap(node.children, [...marks, { type: "link", attrs: { href: node.href } }]);
+      case "color":
+        return canonicalInlineToTiptap(node.children, [
+          ...marks,
+          {
+            type: "wsColor",
+            attrs: {
+              color: isBlogColorName(node.color) ? node.color : null,
+              background: isBlogColorName(node.background) ? node.background : null,
+            },
+          },
+        ]);
+      case "mention":
+        return [{ type: "mention", attrs: { kind: node.kind, label: node.label, id: node.id ?? null, slug: node.slug ?? null } }];
+      default:
+        return [];
+    }
+  });
+
+const paragraphOf = (children: BlogInlineNode[]): TiptapJson => {
+  const content = canonicalInlineToTiptap(children);
+  return content.length > 0 ? { type: "paragraph", content } : { type: "paragraph" };
+};
+
+const canonicalBlockToTiptap = (block: BlogBlockNode): TiptapJson[] => {
+  switch (block?.type) {
+    case "paragraph":
+      return [paragraphOf(block.children)];
+    case "heading": {
+      const content = canonicalInlineToTiptap(block.children);
+      return [{ type: "heading", attrs: { level: block.level }, ...(content.length ? { content } : {}) }];
+    }
+    case "blockquote":
+      return [{ type: "blockquote", content: [paragraphOf(block.children)] }];
+    case "list":
+      return [
+        {
+          type: block.ordered ? "orderedList" : "bulletList",
+          content: block.items.map((item) => ({ type: "listItem", content: [paragraphOf(item)] })),
+        },
+      ];
+    case "todo":
+      return [
+        {
+          type: "taskList",
+          content: block.items.map((item) => ({ type: "taskItem", attrs: { checked: Boolean(item.checked) }, content: [paragraphOf(item.children)] })),
+        },
+      ];
+    case "image":
+      return [{ type: "image", attrs: { src: block.src, alt: block.alt ?? null } }];
+    case "callout": {
+      const content = canonicalInlineToTiptap(block.children);
+      return [{ type: "callout", attrs: { icon: block.icon ?? null, color: isBlogColorName(block.color) ? block.color : null }, ...(content.length ? { content } : {}) }];
+    }
+    case "toggle":
+      return [
+        {
+          type: "toggle",
+          attrs: { open: true },
+          content: [paragraphOf(block.summary), ...(Array.isArray(block.children) ? block.children : []).flatMap(canonicalBlockToTiptap)],
+        },
+      ];
+    case "code":
+      return [{ type: "codeBlock", attrs: { language: block.language ?? null }, ...(block.text ? { content: [{ type: "text", text: block.text }] } : {}) }];
+    case "divider":
+      return [{ type: "horizontalRule" }];
+    case "table": {
+      const columns = Math.max(1, ...block.rows.map((row) => row.length));
+      if (block.rows.length === 0) return [{ type: "paragraph" }];
+      return [
+        {
+          type: "table",
+          content: block.rows.map((row, rowIndex) => ({
+            type: "tableRow",
+            content: Array.from({ length: columns }, (_, column) => ({
+              type: block.header && rowIndex === 0 ? "tableHeader" : "tableCell",
+              content: [paragraphOf(row[column] ?? [])],
+            })),
+          })),
+        },
+      ];
+    }
+    case "pageLink":
+      return [{ type: "pageLink", attrs: { articleId: block.articleId, title: block.title, slug: block.slug ?? null } }];
+    default:
+      return block && typeof block === "object" ? [{ type: "unknownBlock", attrs: { raw: JSON.stringify(block) } }] : [];
+  }
+};
+
+export const canonicalToTiptapDoc = (doc: BlogCanonicalContent | null | undefined): TiptapJson => {
+  const content = (doc?.blocks ?? []).flatMap(canonicalBlockToTiptap);
+  return { type: "doc", content: content.length > 0 ? content : [{ type: "paragraph" }] };
+};
+
+const inlineSearchText = (nodes: BlogInlineNode[] = []): string =>
+  (Array.isArray(nodes) ? nodes : [])
+    .map((node) => {
+      if (node?.type === "text") return node.text;
+      if (node?.type === "mention") return node.label;
+      return node && "children" in node ? inlineSearchText(node.children) : "";
+    })
+    .join("");
+
+const blockSearchText = (block: BlogBlockNode): string => {
+  switch (block?.type) {
+    case "heading":
+    case "paragraph":
+    case "blockquote":
+    case "callout":
+      return inlineSearchText(block.children);
+    case "list":
+      return block.items.map(inlineSearchText).join(" ");
+    case "todo":
+      return block.items.map((item) => inlineSearchText(item.children)).join(" ");
+    case "toggle":
+      return [inlineSearchText(block.summary), ...(block.children ?? []).map(blockSearchText)].join(" ");
+    case "code":
+      return block.text;
+    case "table":
+      return block.rows.map((row) => row.map(inlineSearchText).join(" ")).join(" ");
+    case "pageLink":
+      return block.title;
+    case "image":
+      return block.alt ?? "";
+    default:
+      return "";
+  }
+};
+
+/** Every block's text, headings and code included, for search. */
+export const canonicalToSearchText = (doc?: BlogCanonicalContent | null): string =>
+  (doc?.blocks ?? [])
+    .map(blockSearchText)
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
