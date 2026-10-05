@@ -197,7 +197,7 @@ const AdminSidebar = () => {
             collapsed={!showLabels}
             className="space-y-0.5"
             itemClassName={linkBase}
-            activeItemClassName="font-medium bg-[hsl(var(--admin-sidebar-active))]/20 text-[hsl(var(--admin-sidebar-active-fg))]"
+            activeItemClassName="font-semibold bg-[hsl(var(--admin-sidebar-active))] text-[hsl(var(--admin-sidebar-active-fg))]"
             inactiveItemClassName="text-[hsl(var(--admin-sidebar-fg))] hover:bg-[hsl(var(--admin-sidebar-hover))]"
             labelClassName="text-[hsl(var(--admin-sidebar-fg))]"
             wrapItem={(item, node) => (

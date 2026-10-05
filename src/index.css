@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
+@import "./styles/workspace.css";
 
 @layer base {
   :root {
@@ -184,37 +185,38 @@
     min-height: 100vh;
   }
 
-  /* Sitewide unified interactive scrollbars:
+  /* Sitewide unified interactive scrollbars (public site and portals outside admin):
      - Minimal & slender (4px visible thumb) when resting / no mouse near
      - Completely transparent scrollbar track background (no background on sliding area)
      - Ultra-subtle, nearly transparent glass thumb (15% opacity) that smoothly grows on hover
-  */
-  * {
+     /admin uses the workspace scrollbar in styles/workspace.css instead, so every
+     rule here skips .admin-tool and body.ws-admin descendants. */
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *) {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--foreground) / 0.15) transparent !important;
   }
 
-  *:hover {
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *):hover {
     scrollbar-color: hsl(var(--foreground) / 0.4) transparent !important;
   }
 
-  ::-webkit-scrollbar {
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar {
     width: 8px;
     height: 8px;
     background: transparent !important;
     background-color: transparent !important;
   }
 
-  ::-webkit-scrollbar-track,
-  ::-webkit-scrollbar-track-piece,
-  ::-webkit-scrollbar-corner {
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-track,
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-track-piece,
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-corner {
     background: transparent !important;
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
   }
 
-  ::-webkit-scrollbar-thumb {
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-thumb {
     background-color: hsl(var(--foreground) / 0.15);
     background-clip: padding-box;
     border: 2px solid transparent;
@@ -223,36 +225,36 @@
     transition: background-color 0.2s ease, border-width 0.2s ease;
   }
 
-  *:hover::-webkit-scrollbar-thumb,
-  ::-webkit-scrollbar-thumb:hover {
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *):hover::-webkit-scrollbar-thumb,
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--foreground) / 0.4);
     border: 0px solid transparent;
   }
 
-  ::-webkit-scrollbar-thumb:active {
+  *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-thumb:active {
     background-color: hsl(var(--accent));
     border: 0px solid transparent;
   }
 
-  .dark * {
+  .dark *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *) {
     scrollbar-color: hsl(var(--foreground) / 0.18) transparent !important;
   }
 
-  .dark *:hover {
+  .dark *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *):hover {
     scrollbar-color: hsl(var(--foreground) / 0.45) transparent !important;
   }
 
-  .dark ::-webkit-scrollbar-thumb {
+  .dark *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-thumb {
     background-color: hsl(var(--foreground) / 0.18);
   }
 
-  .dark *:hover::-webkit-scrollbar-thumb,
-  .dark ::-webkit-scrollbar-thumb:hover {
+  .dark *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *):hover::-webkit-scrollbar-thumb,
+  .dark *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--foreground) / 0.45);
     border: 0px solid transparent;
   }
 
-  .dark ::-webkit-scrollbar-thumb:active {
+  .dark *:not(.admin-tool, .admin-tool *, body.ws-admin, body.ws-admin *)::-webkit-scrollbar-thumb:active {
     background-color: hsl(var(--accent));
     border: 0px solid transparent;
   }
@@ -432,174 +434,111 @@
   animation: operator-attention-flash 1.1s ease-in-out infinite;
 }
 
-/* Admin Tool Design Tokens */
+/* Admin Tool Design Tokens
+   Every --admin-* name still exists (27+ components read them) but each one now
+   resolves to a --ws-* token from styles/workspace.css. Tokens flip with
+   .dark, so the dark block only holds values that are not plain re-points. */
 .admin-tool {
-  --admin-topbar-bg: 0 0% 100%;
-  --admin-sidebar-bg: 30 22% 12%;
-  --admin-sidebar-fg: 30 15% 85%;
-  --admin-sidebar-active: 35 65% 45%;
-  --admin-sidebar-active-fg: 30 35% 96%;
-  --admin-sidebar-hover: 30 18% 18%;
-  --admin-content-bg: 210 20% 97%;
-  --admin-content-fg: 30 25% 15%;
-  --admin-border: 30 12% 85%;
-  --admin-accent: 35 65% 45%;
-  --admin-accent-fg: 0 0% 100%;
-  --admin-muted: 215 10% 92%;
-  --admin-muted-fg: 30 12% 38%;
-  --admin-card: 0 0% 100%;
-  --admin-table-surface: 0 0% 100%;
-  --admin-table-fg: 30 25% 15%;
-  --admin-table-muted-fg: 30 12% 45%;
-  --admin-table-border: 30 12% 85%;
+  /* Surfaces */
+  --admin-topbar-bg: var(--ws-paper);
+  --admin-content-bg: var(--ws-bg);
+  --admin-card: var(--ws-paper);
+  --admin-table-surface: var(--ws-paper);
+  --admin-table-bg: var(--ws-paper);
+  --admin-table-row-even: var(--ws-paper);
+  --admin-table-row-odd: var(--ws-paper);
+  --admin-table-row-alt: var(--ws-paper);
+  --admin-overlay-surface-bg: var(--ws-paper);
+  --admin-input-bg: var(--ws-paper);
+
+  /* Sidebar */
+  --admin-sidebar-bg: var(--ws-side);
+  --admin-overlay-sidebar-surface-bg: var(--ws-side);
+  --admin-sidebar-fg: var(--ws-ink-2);
+  --admin-overlay-sidebar-surface-fg: var(--ws-ink-2);
+  --admin-sidebar-hover: var(--ws-side-hover);
+  --admin-sidebar-active: var(--ws-side-hover);
+  --admin-sidebar-active-fg: var(--ws-ink);
+
+  /* Text */
+  --admin-content-fg: var(--ws-ink);
+  --admin-table-fg: var(--ws-ink);
+  --admin-overlay-surface-fg: var(--ws-ink);
+  --admin-input-fg: var(--ws-ink);
+  --admin-muted-fg: var(--ws-ink-2);
+  --admin-table-muted-fg: var(--ws-ink-2);
+  --admin-table-supplier-fg: var(--ws-ink-2);
+  --admin-table-subheader-fg: var(--ws-ink-2);
+  --admin-table-addon-header-fg: var(--ws-ink-2);
+  --admin-table-matrix-fg: var(--ws-ink-3);
+  --admin-table-label-fg: var(--ws-ink-3);
+  --admin-input-placeholder: var(--ws-ink-3);
+
+  /* Lines */
+  --admin-border: var(--ws-line);
+  --admin-table-border: var(--ws-line);
+  --admin-overlay-surface-border: var(--ws-line);
+  --admin-input-border: var(--ws-input-border);
+
+  /* Accent */
+  --admin-accent: var(--ws-accent);
+  --admin-table-link-fg: var(--ws-accent);
+  --admin-table-category-fg: var(--ws-accent);
+  --admin-accent-fg: var(--ws-accent-fg);
+  --admin-table-category-bg: var(--ws-accent-tint);
+
+  /* Muted fills */
+  --admin-muted: var(--ws-side);
+  --admin-overlay-surface-muted: var(--ws-side);
+  --admin-table-header-bg: var(--ws-side);
+  --admin-table-subheader: var(--ws-side);
+  --admin-table-addon-header: var(--ws-side);
+  --admin-table-group-header: var(--ws-side);
+  --admin-input-disabled-bg: var(--ws-side);
+  --admin-input-disabled-fg: var(--ws-ink-3);
+
+  /* Column tints */
+  --admin-table-col-bbd: var(--ws-t-blue);
+  --admin-table-col-bbd-fg: var(--ws-c-blue);
+  --admin-table-col-usd: var(--ws-t-green);
+  --admin-table-col-usd-fg: var(--ws-c-green);
+  --admin-table-col-override: var(--ws-t-orange);
+  --admin-table-col-override-fg: var(--ws-c-orange);
+  --admin-table-col-margin: var(--ws-t-purple);
+  --admin-table-col-margin-fg: var(--ws-c-purple);
+  --admin-table-link-supply-fg: var(--ws-c-green);
+
+  /* Row states stay semantic */
+  --admin-table-row-risk: var(--ws-t-red);
+  --admin-table-row-loss: var(--ws-t-red);
+  --admin-table-row-pending: var(--ws-t-red);
+  --admin-table-row-warning: var(--ws-t-yellow);
+  --admin-table-row-best: var(--ws-t-green);
   --admin-destructive: 0 72% 51%;
   --admin-success: 142 71% 35%;
   --admin-warning: 35 90% 40%;
-  --admin-table-bg: 0 0% 100%;
-  --admin-table-header-bg: 30 25% 96%;
-  --admin-table-row-alt: 30 15% 97%;
-  --admin-table-row-risk: 0 70% 96%;
-  --admin-table-row-loss: 0 70% 95%;
-  --admin-table-row-warning: 45 80% 94%;
-  --admin-table-row-best: 140 65% 92%;
-  --admin-table-group-header: 215 20% 93%;
-  --admin-table-row-even: 0 0% 100%;
-  --admin-table-row-odd: 30 15% 98%;
-  --admin-table-row-pending: 0 80% 97%;
-  --admin-table-col-bbd: 35 55% 97%;
-  --admin-table-col-bbd-fg: 35 55% 30%;
-  --admin-table-col-usd: 140 60% 97%;
-  --admin-table-col-usd-fg: 140 50% 22%;
-  --admin-table-col-override: 35 90% 95%;
-  --admin-table-col-override-fg: 35 80% 30%;
-  --admin-table-col-margin: 280 30% 93%;
-  --admin-table-col-margin-fg: 280 40% 30%;
-  --admin-table-subheader: 30 12% 93%;
-  --admin-table-subheader-fg: 30 25% 35%;
-  --admin-table-category-bg: 35 50% 93%;
-  --admin-table-category-fg: 35 60% 28%;
-  --admin-table-addon-header: 30 12% 94%;
-  --admin-table-addon-header-fg: 30 25% 20%;
-  --admin-table-matrix-fg: 30 25% 55%;
-  --admin-table-supplier-fg: 35 45% 40%;
-  --admin-table-link-fg: 35 60% 45%;
-  --admin-table-link-supply-fg: 130 55% 40%;
-  --admin-table-label-fg: 30 12% 40%;
-  --admin-scrollbar-track: 30 20% 92%;
-  --admin-scrollbar-thumb: 30 20% 70%;
-  --admin-scrollbar-thumb-hover: 30 24% 58%;
-  --admin-radius: 4px;
-  --admin-overlay-surface-bg: 0 0% 100%;
-  --admin-overlay-surface-fg: 30 25% 15%;
-  --admin-overlay-surface-border: 30 12% 85%;
-  --admin-overlay-surface-muted: 30 25% 96%;
-  --admin-overlay-sidebar-surface-bg: 30 22% 12%;
-  --admin-overlay-sidebar-surface-fg: 30 15% 85%;
 
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* Scrollbar (the workspace scrollbar reads --ws-thumb directly) */
+  --admin-scrollbar-thumb: var(--ws-thumb);
+  --admin-scrollbar-thumb-hover: var(--ws-thumb);
+  --admin-scrollbar-track: 0 0% 0% / 0;
+
+  --admin-radius: 4px;
+
+  font-family: var(--ws-font-sans);
   font-size: 13px;
   line-height: 1.4;
 }
 
 .dark .admin-tool {
-  --admin-topbar-bg: 30 20% 9%;
-  --admin-sidebar-bg: 30 22% 11%;
-  --admin-sidebar-fg: 30 15% 88%;
-  --admin-sidebar-active: 35 65% 58%;
-  --admin-sidebar-active-fg: 30 30% 10%;
-  --admin-sidebar-hover: 30 18% 18%;
-  --admin-content-bg: 30 18% 8%;
-  --admin-content-fg: 30 20% 96%;
-  --admin-border: 30 16% 19%;
-  --admin-accent: 35 65% 58%;
-  --admin-accent-fg: 30 30% 10%;
-  --admin-muted: 30 16% 16%;
-  --admin-muted-fg: 30 10% 70%;
-  --admin-card: 30 20% 12%;
-  --admin-table-surface: 30 20% 12%;
-  --admin-table-fg: 30 20% 96%;
-  --admin-table-muted-fg: 30 10% 70%;
-  --admin-table-border: 30 16% 19%;
-  --admin-destructive: 0 72% 51%;
+  /* Semantic values that are not plain re-points */
   --admin-success: 145 70% 62%;
-  --admin-warning: 43 92% 62%;
-  --admin-table-bg: 30 20% 12%;
-  --admin-table-header-bg: 30 18% 16%;
-  --admin-table-row-alt: 30 18% 14%;
-  --admin-table-row-risk: 0 40% 22%;
-  --admin-table-row-loss: 0 45% 20%;
-  --admin-table-row-warning: 40 45% 22%;
-  --admin-table-row-best: 140 50% 18%;
-  --admin-table-group-header: 215 30% 18%;
-  --admin-table-row-even: 30 20% 12%;
-  --admin-table-row-odd: 30 18% 14%;
-  --admin-table-row-pending: 0 40% 18%;
-  --admin-table-col-bbd: 30 28% 18%;
-  --admin-table-col-bbd-fg: 35 55% 75%;
-  --admin-table-col-usd: 140 30% 16%;
-  --admin-table-col-usd-fg: 140 50% 70%;
-  --admin-table-col-override: 35 40% 18%;
-  --admin-table-col-override-fg: 35 80% 70%;
-  --admin-table-col-margin: 280 25% 18%;
-  --admin-table-col-margin-fg: 280 40% 75%;
-  --admin-table-subheader: 30 18% 16%;
-  --admin-table-subheader-fg: 30 15% 75%;
-  --admin-table-category-bg: 30 22% 18%;
-  --admin-table-category-fg: 35 45% 78%;
-  --admin-table-addon-header: 30 18% 16%;
-  --admin-table-addon-header-fg: 30 15% 80%;
-  --admin-table-matrix-fg: 30 15% 60%;
-  --admin-table-supplier-fg: 30 22% 65%;
-  --admin-table-link-fg: 35 55% 65%;
-  --admin-table-link-supply-fg: 130 40% 60%;
-  --admin-table-label-fg: 30 10% 65%;
-  --admin-scrollbar-track: 30 16% 14%;
-  --admin-scrollbar-thumb: 30 14% 34%;
-  --admin-scrollbar-thumb-hover: 30 16% 44%;
-  --admin-overlay-surface-bg: 30 20% 12%;
-  --admin-overlay-surface-fg: 30 20% 96%;
-  --admin-overlay-surface-border: 30 16% 19%;
-  --admin-overlay-surface-muted: 30 18% 16%;
-  --admin-overlay-sidebar-surface-bg: 30 22% 11%;
-  --admin-overlay-sidebar-surface-fg: 30 15% 88%;
+  --admin-warning: 27 79% 57%;
+  --admin-table-row-warning: var(--ws-t-orange);
 }
 
 .admin-tool * {
   border-radius: var(--admin-radius);
-}
-
-.admin-tool,
-.admin-tool * {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--admin-scrollbar-thumb)) transparent;
-}
-
-.admin-tool ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-  background: transparent !important;
-}
-
-.admin-tool ::-webkit-scrollbar-track,
-.admin-tool ::-webkit-scrollbar-track-piece,
-.admin-tool ::-webkit-scrollbar-corner {
-  background: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.admin-tool ::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--admin-scrollbar-thumb));
-  background-clip: padding-box;
-  border: 2px solid transparent;
-  border-radius: 9999px;
-  transition: background-color 0.2s ease, border-width 0.2s ease;
-}
-
-.admin-tool ::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--admin-scrollbar-thumb-hover));
-  border: 0px solid transparent;
 }
 
 /* Print/PDF preview areas must have no rounded corners */
@@ -644,25 +583,7 @@
   border-color: #e2e8f0 !important;
 }
 
-/* Admin input/select token-based overrides (light) */
-.admin-tool {
-  --admin-input-bg: 0 0% 100%;
-  --admin-input-fg: 30 25% 15%;
-  --admin-input-border: 30 12% 75%;
-  --admin-input-placeholder: 30 10% 55%;
-  --admin-input-disabled-bg: 30 12% 95%;
-  --admin-input-disabled-fg: 30 10% 45%;
-}
-
-.dark .admin-tool {
-  --admin-input-bg: 30 20% 14%;
-  --admin-input-fg: 30 20% 96%;
-  --admin-input-border: 30 16% 22%;
-  --admin-input-placeholder: 30 10% 55%;
-  --admin-input-disabled-bg: 30 16% 16%;
-  --admin-input-disabled-fg: 30 10% 55%;
-}
-
+/* Admin input/select token-based overrides (values live in the .admin-tool token block) */
 .admin-tool input,
 .admin-tool textarea,
 .admin-tool select,
@@ -696,24 +617,46 @@
 .admin-tool .admin-content {
   background: hsl(var(--admin-content-bg));
   color: hsl(var(--admin-content-fg));
+}
 
-  /* Override global tokens so shadcn components inherit admin theme */
-  --background: var(--admin-content-bg);
-  --foreground: var(--admin-content-fg);
-  --card: var(--admin-card);
-  --card-foreground: var(--admin-content-fg);
-  --popover: var(--admin-card);
-  --popover-foreground: var(--admin-content-fg);
-  --primary: var(--admin-accent);
-  --primary-foreground: var(--admin-accent-fg);
-  --destructive: var(--admin-destructive);
-  --muted: var(--admin-muted);
-  --muted-foreground: var(--admin-muted-fg);
-  --border: var(--admin-border);
-  --input: var(--admin-border);
-  --accent: var(--admin-accent);
-  --accent-foreground: var(--admin-accent-fg);
-  --ring: var(--admin-accent);
+/* Override global shadcn tokens so components inherit the workspace theme.
+   body.ws-admin (set by AdminLayout) extends this to portaled popovers, menus
+   and dialogs, which render outside .admin-tool. */
+.admin-tool .admin-content,
+body.ws-admin {
+  --background: var(--ws-bg);
+  --foreground: var(--ws-ink);
+  --card: var(--ws-paper);
+  --card-foreground: var(--ws-ink);
+  --popover: var(--ws-paper);
+  --popover-foreground: var(--ws-ink);
+  --primary: var(--ws-accent);
+  --primary-foreground: var(--ws-accent-fg);
+  --secondary: var(--ws-side);
+  --secondary-foreground: var(--ws-ink);
+  --muted: var(--ws-side);
+  --muted-foreground: var(--ws-ink-2);
+  --accent: var(--ws-side-hover);
+  --accent-foreground: var(--ws-ink);
+  --border: var(--ws-line);
+  --input: var(--ws-line);
+  --ring: var(--ws-accent);
+  --sidebar-background: var(--ws-side);
+  --sidebar-foreground: var(--ws-ink-2);
+  --sidebar-primary: var(--ws-accent);
+  --sidebar-primary-foreground: var(--ws-accent-fg);
+  --sidebar-accent: var(--ws-side-hover);
+  --sidebar-accent-foreground: var(--ws-ink);
+  --sidebar-border: var(--ws-line);
+  --sidebar-ring: var(--ws-accent);
+
+  /* Overlay surfaces (the :root values are the public-site defaults) */
+  --admin-overlay-surface-bg: var(--ws-paper);
+  --admin-overlay-surface-fg: var(--ws-ink);
+  --admin-overlay-surface-border: var(--ws-line);
+  --admin-overlay-surface-muted: var(--ws-side);
+  --admin-overlay-sidebar-surface-bg: var(--ws-side);
+  --admin-overlay-sidebar-surface-fg: var(--ws-ink-2);
 }
 
 /* Ensure popovers/dropdowns on the admin surface (topbar) inherit admin tokens */
@@ -730,10 +673,11 @@
 }
 
 .admin-tool table th {
+  font-family: var(--ws-font-mono);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   color: hsl(var(--admin-table-muted-fg));
   background: hsl(var(--admin-table-surface));
   padding: 6px 12px;
@@ -748,7 +692,7 @@
 }
 
 .admin-tool table tr:hover td {
-  background: hsl(var(--admin-muted));
+  background: var(--ws-hover);
 }
 
 .admin-overlay-surface {

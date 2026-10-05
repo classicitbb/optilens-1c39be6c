@@ -28,7 +28,7 @@ export default {
   				'Segoe UI Symbol',
   				'Noto Color Emoji'
   			],
-  			/* Plus Jakarta Sans everywhere — no serif, no mono per brand direction */
+  			/* Plus Jakarta Sans everywhere (no serif). JetBrains Mono for labels, code, IDs, SKUs. */
   			serif: [
   				'Plus Jakarta Sans',
   				'ui-sans-serif',
@@ -36,13 +36,27 @@ export default {
   				'sans-serif'
   			],
   			mono: [
-  				'Plus Jakarta Sans',
-  				'ui-sans-serif',
-  				'system-ui',
-  				'sans-serif'
+  				'JetBrains Mono',
+  				'ui-monospace',
+  				'SFMono-Regular',
+  				'Menlo',
+  				'Consolas',
+  				'monospace'
   			]
   		},
   		colors: {
+  			/* Admin workspace theme tokens (src/styles/workspace.css). Only defined under .admin-tool / body.ws-admin. */
+  			ws: {
+  				paper: 'hsl(var(--ws-paper))',
+  				bg: 'hsl(var(--ws-bg))',
+  				side: 'hsl(var(--ws-side))',
+  				ink: 'hsl(var(--ws-ink))',
+  				ink2: 'hsl(var(--ws-ink-2))',
+  				ink3: 'hsl(var(--ws-ink-3))',
+  				line: 'hsl(var(--ws-line))',
+  				accent: 'hsl(var(--ws-accent))',
+  				accentTint: 'hsl(var(--ws-accent-tint))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

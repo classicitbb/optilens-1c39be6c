@@ -4,11 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-02
+Last updated: 2026-10-04
 
 ---
 
 ## Active work
+
+- **Admin workspace theme (Phase 1)** — branch `admin-workspace-theme-phase1`. `src/styles/workspace.css` defines the `--ws-*` tokens for every admin screen; all 67 `--admin-*` variables and the shadcn overrides in `.admin-tool .admin-content` now point at them, so the brown/gold admin palette is retired and dark mode is navy + teal. Adds JetBrains Mono (labels, code, IDs), the 6px auto-hiding scrollbar (`useScrollingClass`) and `body.ws-admin` (`useAdminBodyClass`) so portaled popovers and dialogs resolve the theme. Public tokens and print previews are untouched. Not changed: hard-coded gold in individual components (for example the Doc Studio Download button and `appColors.ts`). Phases 2–5 (wiki workspace, block editor, website content database, Iris) have not started.
 
 - **Innovations statement document rehearsal** — approval-gated statement PDF
   automation has a local Finance preview with PDF preview, select-all, and
