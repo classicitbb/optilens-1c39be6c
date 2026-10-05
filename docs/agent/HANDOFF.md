@@ -2,11 +2,11 @@
 
 ## 2026-10-05 — Open branch integration review
 
-Status: Local integration validated; remote main publication pending production frontend approval.
+Status: Complete — no active handoff
 
 `codex/review-open-branches` contains the reviewed non-excluded heads and current main. Smart Customer Journey is excluded. Affected source: statement-job types, direct Rx shipping-address migration, two CRLF test helpers and the repaired smoke script. Review and continuity docs record conflict resolutions and existing security/rollout findings. All 1,316 tests, lint, TypeScript, build, PR checks and smoke pass; the local built Atlas deep link redirects to sign-in correctly. No hosted write, migration, function deploy, order or email occurred.
 
-Approval required: production frontend publication when advancing origin/main. The final source delta changes no Edge Function or function configuration. Before publishing, refresh remote heads and review any new delta. Exact next executable action: `git fetch origin`. After approval and revalidation, push the integration without force, verify PR #607/#608/#609 and main CI/hosting, then set this section to `Status: Complete — no active handoff`. Full evidence: `docs/agent/OPEN_BRANCH_REVIEW.md`.
+The user approved frontend publication. Integration `566077c5` was pushed to main without force after a remote refresh. PR #607/#608/#609 are merged; GitHub validation passed on Node 20 and Node 22, and Pages plus both Vercel deployments succeeded. The production sign-in page returned HTTP 200. No Edge Function or function configuration changed. Full evidence and existing findings: `docs/agent/OPEN_BRANCH_REVIEW.md`. No continuation action remains for this branch integration.
 
 ## 2026-10-02 — Direct Rx submission shipping address
 

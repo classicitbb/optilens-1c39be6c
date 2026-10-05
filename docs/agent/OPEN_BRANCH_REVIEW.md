@@ -1,6 +1,6 @@
 # Open branch review — 2026-10-05
 
-Status: Local integration validated; remote main publication requires approval.
+Status: Complete — reviewed integration merged and frontend publication verified.
 
 ## Scope and integration
 
@@ -43,4 +43,4 @@ These findings already exist on main; the ancestry merges introduce none of them
 
 ## Remaining action
 
-Obtain production frontend publication approval before advancing origin/main. Re-fetch and review any new delta immediately before a non-force push. Verify PR #607/#608/#609 merge states and main CI/hosting results, then mark this continuation complete. Migration applies, workers, permissions, orders, and email remain outside this source integration.
+The user approved the automatic production frontend publication. After refreshing remote main, integration commit `566077c5` was pushed without force. GitHub confirms PR #607/#608/#609 merged. PR Validation passed on Node 20 and Node 22, Lockfile Policy and Pages deployment passed, and both linked Vercel deployments reported success. The production sign-in page returned HTTP 200; authenticated workflows were not exercised. Migration applies, workers, permissions, orders, and email remain outside this source integration.
