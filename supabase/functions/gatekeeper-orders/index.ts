@@ -378,6 +378,7 @@ async function validAuthToken(authContext: any, config: Pick<GatekeeperCredentia
       "authentication",
     );
   }
+  await assertNoRecentAuthRejection(authContext.supabaseAdminClient, config.environment);
   const token = await authenticate(config.environment, config.jwt_key, config.jwt_secret, log);
   const { error } = await authContext.supabaseAdminClient.rpc("cache_gatekeeper_auth_token", {
     p_auth_token: token,
