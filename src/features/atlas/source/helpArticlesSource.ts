@@ -181,6 +181,18 @@ export const createHelpArticlesSource = ({ canViewContext }: HelpArticlesSourceO
       if (error) throw error;
     },
 
+    async renameSection(id, title) {
+      const trimmed = title.trim();
+      if (!trimmed) throw new Error("Section title is required");
+      const { error } = await (supabase as any).from("wiki_headings").update({ title: trimmed }).eq("id", id);
+      if (error) throw error;
+    },
+
+    async deleteSection(id) {
+      const { error } = await (supabase as any).from("wiki_headings").update({ is_active: false }).eq("id", id);
+      if (error) throw error;
+    },
+
     async createPage(input: NewPageInput) {
       const defaults = storeDefaults(input.spaceId);
       const doc = input.doc ?? { blocks: [] };

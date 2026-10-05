@@ -70,7 +70,7 @@ interface Options {
   canEdit: boolean;
   canPublish: boolean;
   /** Called when autosave settles a new slug for an unpublished page. */
-  onSlugChanged?: (slug: string) => void;
+  onSlugChanged?: (slug: string) => void | Promise<void>;
   /** Called after a successful Publish/Update/Save with the page's final slug. */
   onSaved?: (slug: string) => void;
   initialMode?: "view" | "edit";
@@ -198,7 +198,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
         if (contextsChanged) await data.setContexts({ id, slugs: draft.contexts });
         setSaveState("saved");
         if (nextSlug && nextSlug !== draft.slug) setDraft((current) => ({ ...current, slug: nextSlug as string }));
-        if (nextSlug && routeSlug && routeSlug !== nextSlug) onSlugChanged?.(nextSlug);
+        if (nextSlug && routeSlug && routeSlug !== nextSlug) await onSlugChanged?.(nextSlug);
       } catch {
         setSaveState("error");
       }

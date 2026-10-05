@@ -51,7 +51,7 @@ export type AssistantOutgoingAttachment = { name: string; previewUrl: string; mi
 
 export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request" | "trade_signup";
 
-export type AssistantTaskKind = "contact" | "support" | "quote" | "policy_help";
+export type AssistantTaskKind = "contact" | "support" | "quote" | "policy_help" | "atlas";
 
 export interface AssistantTaskContext {
   kind: AssistantTaskKind;

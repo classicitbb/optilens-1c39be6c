@@ -91,7 +91,14 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const fullTree = useMemo(() => buildTree(sections, spacePages), [sections, spacePages]);
   const treePages = useMemo(() => spacePages.map(toTreePage), [spacePages]);
 
-  const selectedNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? null) : null;
+  // While a page's slug is being renamed, the URL and the page list briefly disagree about it. The
+  // page stays pinned by id until they agree again, so it is never mistaken for an unknown page.
+  const [transition, setTransition] = useState<{ id: string; slug: string } | null>(null);
+  const bySlugNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? null) : null;
+  const selectedNode = bySlugNode ?? (articleSlug && transition ? (fullTree.nodeById.get(transition.id) ?? null) : null);
+  useEffect(() => {
+    if (transition && bySlugNode?.id === transition.id) setTransition(null);
+  }, [bySlugNode?.id, transition]);
   const selectedPage = useMemo(() => spacePages.find((page) => page.id === selectedNode?.id) ?? null, [spacePages, selectedNode?.id]);
 
   const spaces = useMemo(() => listAtlasSpaces().filter((candidate) => bySpace[candidate.id]?.view), [bySpace]);
@@ -100,7 +107,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   // a website page, an SOP URL for a draft) goes to where the page lives. Unknown slugs go to the
   // space home. Only once pages have actually loaded, so deep links are not bounced.
   useEffect(() => {
-    if (!articleSlug || !isLoaded || selectedNode) return;
+    if (!articleSlug || !isLoaded || selectedNode || data.isFetching) return;
     const elsewhere = allPages.find((page) => toPageSlug(page) === articleSlug);
     const home = elsewhere ? homeSpaceFor(elsewhere.spaceId) : undefined;
     if (elsewhere && home && home.id !== space.id && bySpace[home.id]?.view) {
@@ -109,7 +116,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     }
     navigate(base(), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleSlug, isLoaded, selectedNode, allPages]);
+  }, [articleSlug, isLoaded, selectedNode, allPages, data.isFetching]);
 
   // Old links that carry only an id (the site's "Edit" buttons) resolve to a slug URL here.
   const legacyId = searchParams.get("articleId");
@@ -133,6 +140,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const canPublish = Boolean(caps?.publish);
   const canCreate = canEdit && space.allowCreate;
 
+  // A page the user just created opens ready to type in.
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const editor = usePageEditor({
     page: selectedPage,
     pages: allPages,
@@ -140,7 +149,13 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     canEdit,
     canPublish,
     routeSlug: articleSlug,
-    onSlugChanged: (slug) => navigate(base(slug) + window.location.search, { replace: true }),
+    initialMode: articleSlug && articleSlug === createdSlug ? "edit" : "view",
+    // The page list must know the new slug before the URL does, or the page looks unknown and the user is bounced home.
+    onSlugChanged: async (slug) => {
+      if (selectedPage) setTransition({ id: selectedPage.id, slug });
+      await data.refresh();
+      navigate(base(slug) + window.location.search, { replace: true });
+    },
     onSaved: (slug) => navigate(base(slug) + window.location.search, { replace: true }),
   });
   const { draft, setDraft, mode, setMode } = editor;
@@ -222,8 +237,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           props: isTree ? { category: sectionSlug(placement.sectionId) } : defaultPropsFor(space),
         });
         if (placement.parentId) toggleExpanded(placement.parentId);
+        setCreatedSlug(slug);
         navigate(base(slug));
-        setMode("edit");
       } catch (error) {
         toast({ title: "Could not create page", description: error instanceof Error ? error.message : "Try again in a moment.", variant: "destructive" });
       }
@@ -257,6 +272,20 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     if (isSectionId(node.id)) return createPage({ parentId: null, sectionId: sectionIdOf(node.id) });
     const page = spacePages.find((item) => item.id === node.id);
     return createPage({ parentId: node.id, sectionId: page?.sectionId ?? null });
+  };
+
+  const deleteSection = async (nodeId: string) => {
+    if (!canEdit) return;
+    const section = sections.find((item) => item.id === sectionIdOf(nodeId));
+    const count = spacePages.filter((page) => page.sectionId === section?.id).length;
+    const detail = count > 0 ? ` Its ${count} ${count === 1 ? "page stays" : "pages stay"} and move to the top level.` : "";
+    if (!window.confirm(`Delete the section “${section?.title ?? "section"}”?${detail}`)) return;
+    try {
+      await data.deleteSection(sectionIdOf(nodeId));
+      toast({ title: "Section deleted", description: section?.title });
+    } catch {
+      /* the mutation already reported the failure */
+    }
   };
 
   const handleCreateSection = async (title: string) => {
@@ -500,7 +529,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onToggleFavorite: toggleFavorite,
               onOpen: openNode,
               onAddChild: (node) => void addChildOf(node),
-              onRename: (id, title) => void data.patchPage({ id, title }),
+              onRename: (id, title) => (isSectionId(id) ? void data.renameSection({ id: sectionIdOf(id), title }) : void data.patchPage({ id, title })),
+              onDeleteSection: (id) => void deleteSection(id),
               onDuplicate: (id) => void duplicatePage(id),
               onMoveTo: setMoveTargetId,
               onArchive: (id) => void archivePage(id),

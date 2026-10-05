@@ -60,6 +60,8 @@ export const atlasIrisProvider: AtlasIrisProvider = {
       result,
       conversation: [...conversation, { role: "user", text: question }],
       anonymousSessionId: sessionId,
+      // Tells the function to ground on the Atlas pages sent here (staff only) instead of the public knowledge base.
+      taskContext: { kind: "atlas", label: "Atlas", sourceRoute: route },
       onDelta,
     });
     if (!generated) return null;
