@@ -23,6 +23,8 @@ export interface HelpArticle {
   summary?: string;
   parent_id?: string | null;
   section_id?: string | null;
+  author_id?: string | null;
+  last_edited_by?: string | null;
   version_number?: number;
   published_at?: string | null;
   created_at: string;
@@ -62,6 +64,17 @@ const normalizeArticle = (row: HelpArticleRow): HelpArticle => {
     body_json: canonical,
     context_slugs: deduped,
   };
+};
+
+/** Plain version listing (newest first) for query-driven UI such as the history panel. */
+export const listArticleVersions = async (articleId: string): Promise<HelpArticleVersion[]> => {
+  const { data, error } = await (supabase as any)
+    .from("help_article_versions")
+    .select("*")
+    .eq("article_id", articleId)
+    .order("version_number", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as HelpArticleVersion[];
 };
 
 export const useHelpArticles = (pageSlug?: string) => {
@@ -218,6 +231,51 @@ export const useHelpArticles = (pageSlug?: string) => {
     },
   });
 
+  // Moves, renames and status flips touch metadata only: no version bump, no snapshot.
+  const moveMutation = useMutation({
+    mutationFn: async (
+      updates: { id: string; parent_id: string | null; section_id: string | null; sort_order: number }[],
+    ) => {
+      const results = await Promise.all(
+        updates.map(({ id, ...placement }) =>
+          (supabase.from("help_articles") as any).update(placement).eq("id", id),
+        ),
+      );
+      const failed = results.find((result: { error: unknown }) => result.error);
+      if (failed) throw failed.error;
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["help_articles"] });
+      qc.invalidateQueries({ queryKey: ["help_articles_all"] });
+    },
+    onError: (error: unknown) => {
+      const description = error instanceof Error ? error.message : "Could not move the page. Please try again.";
+      toast({ title: "Move failed", description, variant: "destructive" });
+    },
+  });
+
+  const patchMutation = useMutation({
+    mutationFn: async ({
+      id,
+      ...patch
+    }: {
+      id: string;
+      status?: "draft" | "published" | "archived";
+      title?: string;
+    }) => {
+      const { error } = await (supabase.from("help_articles") as any).update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["help_articles"] });
+      qc.invalidateQueries({ queryKey: ["help_articles_all"] });
+    },
+    onError: (error: unknown) => {
+      const description = error instanceof Error ? error.message : "Could not update the page. Please try again.";
+      toast({ title: "Update failed", description, variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase.from("help_articles") as any).delete().eq("id", id);
@@ -232,8 +290,11 @@ export const useHelpArticles = (pageSlug?: string) => {
   return {
     articles: query.data ?? EMPTY_ARTICLES,
     isLoading: query.isLoading,
+    isLoaded: query.isSuccess,
     upsertArticle: upsertMutation.mutateAsync,
     deleteArticle: deleteMutation.mutateAsync,
+    moveArticles: moveMutation.mutateAsync,
+    patchArticle: patchMutation.mutateAsync,
     refetchAll: allArticlesQuery.refetch,
     allArticles: allArticlesQuery.data ?? EMPTY_ARTICLES,
     fetchVersions: versionsQuery.mutateAsync,

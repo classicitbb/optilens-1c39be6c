@@ -1,52 +1,54 @@
-import { useEffect, useMemo, useState, type ReactElement } from "react";
-import { useNavigate, useParams } from "react-router";
-import {
-  ArrowUpRight,
-  BookOpen,
-  ChevronRight,
-  Eye,
-  FilePlus2,
-  FolderPlus,
-  LayoutTemplate,
-  ListTree,
-  RefreshCw,
-  Save,
-  Search,
-  Undo2,
-  Upload,
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FilePlus2, LayoutTemplate } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import WikiAssignmentsPanel from "@/components/admin/WikiAssignmentsPanel";
+import WorkspaceShell from "@/components/workspace/WorkspaceShell";
+import WorkspaceSidebar from "@/components/workspace/WorkspaceSidebar";
+import WorkspaceRightPanel, { parsePanelTab, type PanelTab } from "@/components/workspace/WorkspaceRightPanel";
+import { PageIdentity, PageTopBar, type Crumb } from "@/components/workspace/PageHeader";
+import CommandPalette from "@/components/workspace/CommandPalette";
+import MoveToDialog, { type MoveTarget } from "@/components/workspace/MoveToDialog";
+import type { SearchDoc } from "@/components/workspace/paletteSearch";
+import {
+  ancestorsOf,
+  descendantsOf,
+  planPageMove,
+  sectionIdOf,
+  SECTION_PREFIX,
+  isSectionId,
+  type DropPosition,
+  type TreePage,
+} from "@/components/workspace/pageTreeLogic";
 import { useHelpArticles, type HelpArticle } from "@/hooks/useHelpArticles";
+import { useContentArticles } from "@/hooks/useContentArticles";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
+import {
+  useWikiExpanded,
+  useWikiFavorites,
+  useWikiPageMeta,
+  useWikiSidebarState,
+} from "@/hooks/useWikiWorkspacePrefs";
 import {
   buildAdminHelpCenterTree,
   composeHelpEntrySummary,
+  extractCanonicalPlainText,
   parseHelpEntrySummary,
   slugifyHelpValue,
-  toKnowledgeArticlePath,
-  toSopArticlePath,
   type HelpCenterNode,
 } from "@/lib/helpCenter";
 import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
 import { toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
 import { validateWikiBuildVersionForPublish } from "@/lib/wikiReleaseMetadata";
-import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
+import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-type EditorMode = "view" | "edit";
 
 type DraftForm = {
   id?: string;
@@ -62,6 +64,8 @@ type DraftForm = {
   status: "draft" | "published" | "archived";
   contextSlugs: string[];
 };
+
+const WIKI_HOME = "/admin/knowledge/wiki";
 
 const EMPTY_FORM: DraftForm = {
   title: "",
@@ -95,109 +99,189 @@ const buildDraftFromArticle = (article: HelpArticle): DraftForm => {
   };
 };
 
+const toTreePage = (article: HelpArticle): TreePage => ({
+  id: article.id,
+  title: article.title,
+  parent_id: article.parent_id ?? null,
+  section_id: article.section_id ?? null,
+  sort_order: article.sort_order ?? 0,
+  status: article.status ?? "draft",
+});
+
+const FieldLabel = ({ children }: { children: string }) => <label className="ws-label block text-ws-ink-3">{children}</label>;
+
 const AdminWikiPage = () => {
   const { articleSlug } = useParams<{ articleSlug?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   const { headings, createHeading } = useWikiHeadings();
   const {
     articles,
     isLoading,
+    isLoaded,
     upsertArticle,
-    fetchVersions,
     restoreVersion,
     canPublish,
+    moveArticles,
+    patchArticle,
     refetchAll,
     allArticles,
-    isFetchingVersions,
   } = useHelpArticles("knowledge/wiki");
+  const { articles: contentArticles } = useContentArticles();
+  const { favoriteIds, isFavorite, toggleFavorite } = useWikiFavorites();
+  const { pageMeta, patchPageMeta } = useWikiPageMeta();
+  const { expanded: toggled, toggleExpanded } = useWikiExpanded();
+  const sidebar = useWikiSidebarState();
 
-  const [tab, setTab] = useState("docs");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [editorMode, setEditorMode] = useState<EditorMode>("view");
+  const [editorMode, setEditorMode] = useState<"view" | "edit">("view");
   const [draft, setDraft] = useState<DraftForm>(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
-  const [creatingHeading, setCreatingHeading] = useState("");
-  const [previewPublic, setPreviewPublic] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
 
-  const tree = useMemo(() => buildAdminHelpCenterTree(headings, articles), [articles, headings]);
-  const selectedNode = useMemo(
-    () => (articleSlug ? tree.nodeBySlug.get(articleSlug) ?? null : null),
-    [articleSlug, tree.nodeBySlug],
-  );
+  const panelTab = parsePanelTab(searchParams.get("panel"));
+  const showAssignments = searchParams.get("view") === "assignments";
+
+  const visibleArticles = useMemo(() => articles.filter((article) => article.status !== "archived"), [articles]);
+  const archivedArticles = useMemo(() => articles.filter((article) => article.status === "archived"), [articles]);
+  const sidebarTree = useMemo(() => buildAdminHelpCenterTree(headings, visibleArticles), [headings, visibleArticles]);
+  // Deep links must keep working for archived pages, so lookups use every article.
+  const fullTree = useMemo(() => buildAdminHelpCenterTree(headings, articles), [articles, headings]);
+  const treePages = useMemo(() => articles.map(toTreePage), [articles]);
+
+  const selectedNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? null) : null;
   const selectedArticle = useMemo(
     () => articles.find((article) => article.id === selectedNode?.id) ?? null,
     [articles, selectedNode?.id],
   );
 
+  // Unknown slug -> wiki home. Only once articles have actually loaded (the query
+  // is disabled until permissions resolve), so deep links aren't bounced.
   useEffect(() => {
-    if (!articleSlug) return;
-    if (!selectedNode) {
-      navigate("/admin/knowledge/wiki", { replace: true });
-    }
-  }, [articleSlug, navigate, selectedNode]);
+    if (articleSlug && isLoaded && !selectedNode) navigate(WIKI_HOME, { replace: true });
+  }, [articleSlug, isLoaded, navigate, selectedNode]);
 
+  // Reset the draft when the page, or its saved version, changes. A background
+  // refetch with the same version must not wipe unsaved edits.
   useEffect(() => {
     if (!selectedArticle) {
       if (!articleSlug) {
         setEditorMode("view");
-        setDraft((prev) => ({ ...EMPTY_FORM, sectionId: headings[0]?.id ?? prev.sectionId }));
+        setDraft(EMPTY_FORM);
       }
       return;
     }
-
     setDraft(buildDraftFromArticle(selectedArticle));
     setEditorMode("view");
-    setPreviewPublic(false);
-  }, [articleSlug, headings, selectedArticle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articleSlug, selectedArticle?.id, selectedArticle?.updated_at, selectedArticle?.version_number]);
 
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredSections = useMemo(() => {
-    if (!normalizedSearch) return tree.sections;
-
-    const filterNode = (node: HelpCenterNode): HelpCenterNode | null => {
-      const matchesSelf = [node.title, node.summary, node.slug]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedSearch);
-      const filteredChildren = node.children
-        .map(filterNode)
-        .filter((child): child is HelpCenterNode => Boolean(child));
-
-      if (matchesSelf || filteredChildren.length > 0) {
-        return { ...node, children: filteredChildren };
-      }
-
-      return null;
-    };
-
-    return tree.sections
-      .map(filterNode)
-      .filter((section): section is HelpCenterNode => Boolean(section));
-  }, [normalizedSearch, tree.sections]);
-
-  const parentCandidates = useMemo(
-    () => articles.filter((article) => !draft.id || article.id !== draft.id),
-    [articles, draft.id],
+  const dirty = useMemo(
+    () => Boolean(selectedArticle) && JSON.stringify(draft) !== JSON.stringify(buildDraftFromArticle(selectedArticle as HelpArticle)),
+    [draft, selectedArticle],
   );
 
-  const beginNewArticle = () => {
-    setDraft({
-      ...EMPTY_FORM,
-      sectionId: headings[0]?.id ?? "",
-    });
-    setEditorMode("edit");
-    setPreviewPublic(false);
-    navigate("/admin/knowledge/wiki", { replace: false });
+  const setPanel = useCallback(
+    (tab: PanelTab | null) =>
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (tab) next.set("panel", tab);
+          else next.delete("panel");
+          return next;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
+
+  // Ctrl/⌘ K opens the palette, Ctrl/⌘ J opens Iris. Capture phase on window so
+  // the admin top bar's own Ctrl+K handler (on document) does not also fire.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
+      const key = event.key.toLowerCase();
+      if (key === "k") {
+        event.preventDefault();
+        event.stopPropagation();
+        setPaletteOpen((open) => !open);
+      } else if (key === "j") {
+        event.preventDefault();
+        event.stopPropagation();
+        setPanel("iris");
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [setPanel]);
+
+  const ownerId = selectedArticle?.author_id ?? null;
+  const { data: ownerName = null } = useQuery({
+    queryKey: ["wiki_page_owner", ownerId],
+    enabled: Boolean(ownerId),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await (supabase.from("profiles") as any).select("full_name, display_name, email").eq("id", ownerId).maybeSingle();
+      return (data?.full_name || data?.display_name || data?.email || null) as string | null;
+    },
+  });
+
+  const openArticle = useCallback(
+    (node: Pick<HelpCenterNode, "id" | "title" | "slug">) => navigate(toAdminWikiArticlePath(node)),
+    [navigate],
+  );
+
+  const refreshAndOpen = async (slug: string, title: string) => {
+    await queryClient.refetchQueries({ queryKey: ["help_articles"] });
+    navigate(toAdminWikiArticlePath({ id: "article", title, slug }));
   };
 
-  const handleCreateHeading = async () => {
-    if (!creatingHeading.trim()) return;
+  const createPage = async (placement: { parentId: string | null; sectionId: string | null }) => {
+    const siblings = articles.filter(
+      (article) =>
+        (article.parent_id ?? null) === placement.parentId &&
+        (placement.parentId !== null || (article.section_id ?? null) === placement.sectionId),
+    );
+    const slug = `untitled-${Date.now().toString(36)}`;
     try {
-      await createHeading(creatingHeading);
+      await upsertArticle({
+        title: "Untitled",
+        slug,
+        summary: composeHelpEntrySummary({ kind: "article", href: "", summary: "" }),
+        content: "",
+        category: headings.find((heading) => heading.id === placement.sectionId)?.slug ?? "general",
+        page_slug: "knowledge/wiki",
+        section_id: placement.sectionId,
+        parent_id: placement.parentId,
+        sort_order: siblings.reduce((max, article) => Math.max(max, article.sort_order ?? 0), -1) + 1,
+        status: "draft",
+        context_slugs: ["knowledge/wiki"],
+      });
+      if (placement.parentId) toggleExpanded(placement.parentId);
+      await refreshAndOpen(slug, "Untitled");
+      setEditorMode("edit");
+    } catch (error) {
+      toast({
+        title: "Could not create page",
+        description: error instanceof Error ? error.message : "Try again in a moment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addChildOf = (node: HelpCenterNode) => {
+    if (isSectionId(node.id)) return createPage({ parentId: null, sectionId: sectionIdOf(node.id) });
+    const article = articles.find((item) => item.id === node.id);
+    return createPage({ parentId: node.id, sectionId: article?.section_id ?? null });
+  };
+
+  const handleCreateSection = async (title: string) => {
+    try {
+      await createHeading(title);
       toast({ title: "Section created" });
-      setCreatingHeading("");
     } catch (error) {
       toast({
         title: "Could not create section",
@@ -205,6 +289,58 @@ const AdminWikiPage = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const duplicatePage = async (id: string) => {
+    const source = articles.find((article) => article.id === id);
+    if (!source) return;
+    const title = `Copy of ${source.title}`;
+    const slug = `${slugifyHelpValue(title)}-${Date.now().toString(36)}`;
+    try {
+      await upsertArticle({
+        title,
+        slug,
+        summary: source.summary ?? "",
+        content: source.content,
+        category: source.category,
+        page_slug: "knowledge/wiki",
+        section_id: source.section_id ?? null,
+        parent_id: source.parent_id ?? null,
+        sort_order: (source.sort_order ?? 0) + 1,
+        status: "draft",
+        context_slugs: source.context_slugs,
+        change_note: `Duplicated from ${source.title}`,
+      });
+      await refreshAndOpen(slug, title);
+    } catch (error) {
+      toast({
+        title: "Could not duplicate page",
+        description: error instanceof Error ? error.message : "Try again in a moment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const movePage = async (dragId: string, targetId: string, position: DropPosition) => {
+    const updates = planPageMove(treePages, dragId, targetId, position);
+    if (updates === null) {
+      toast({ title: "Can't move there", description: "A page can't be moved inside itself.", variant: "destructive" });
+      return;
+    }
+    if (updates.length === 0) return;
+    if (position === "inside") toggleExpanded(targetId, true);
+    await moveArticles(updates).catch(() => undefined);
+  };
+
+  const archivePage = async (id: string) => {
+    const page = articles.find((article) => article.id === id);
+    await patchArticle({ id, status: "archived" });
+    toast({ title: "Moved to trash", description: page?.title });
+    if (id === selectedArticle?.id) navigate(WIKI_HOME);
+  };
+
+  const renamePage = async (id: string, title: string) => {
+    await patchArticle({ id, title });
   };
 
   const saveArticle = async (nextStatus: DraftForm["status"]) => {
@@ -242,15 +378,13 @@ const AdminWikiPage = () => {
 
     setIsSaving(true);
     try {
+      const slug = draft.slug.trim() || slugifyHelpValue(draft.title);
       await upsertArticle({
         id: draft.id,
+        version_number: selectedArticle?.version_number,
         title: draft.title.trim(),
-        slug: draft.slug.trim() || slugifyHelpValue(draft.title),
-        summary: composeHelpEntrySummary({
-          kind: draft.kind,
-          href: draft.href,
-          summary: draft.summary,
-        }),
+        slug,
+        summary: composeHelpEntrySummary({ kind: draft.kind, href: draft.href, summary: draft.summary }),
         content: draft.content,
         category: headings.find((heading) => heading.id === draft.sectionId)?.slug ?? "general",
         page_slug: "knowledge/wiki",
@@ -262,699 +396,373 @@ const AdminWikiPage = () => {
       });
       await refetchAll();
       toast({ title: nextStatus === "published" ? "Article published" : "Article saved" });
-      setDraft((current) => ({ ...current, status: nextStatus }));
       setEditorMode("view");
-      setPreviewPublic(false);
-      navigate(
-        toAdminWikiArticlePath({
-          id: draft.id ?? "article",
-          title: draft.title.trim(),
-          slug: draft.slug.trim() || slugifyHelpValue(draft.title),
-        }),
-        { replace: false },
-      );
+      navigate(toAdminWikiArticlePath({ id: draft.id ?? "article", title: draft.title.trim(), slug }));
     } catch (error) {
-      const description =
-        error instanceof Error ? error.message : "Something went wrong while saving. Please try again.";
-      toast({ title: "Save failed", description, variant: "destructive" });
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Something went wrong while saving. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleRollback = async () => {
-    if (!draft.id) return;
-    const versions = await fetchVersions(draft.id);
-    const target = versions[1];
-    if (!target) {
-      toast({ title: "No previous version available" });
+  const changeStatus = async (status: "draft" | "archived") => {
+    if (!selectedArticle) return;
+    if (status === "archived") {
+      await archivePage(selectedArticle.id);
       return;
     }
-    await restoreVersion({ articleId: draft.id, version: target });
-    toast({ title: `Restored v${target.version_number}` });
+    await patchArticle({ id: selectedArticle.id, status });
+    toast({ title: "Moved to draft" });
   };
 
-  const renderTreeNode = (node: HelpCenterNode, depth = 0): ReactElement => {
-    const isArticle = node.kind !== "section";
-    const isActive = selectedNode?.id === node.id;
-    const paddingLeft = 12 + depth * 14;
+  const exportMarkdown = () => {
+    const markdown = canonicalToMarkdown(draft.title, toCanonicalDocument(draft.content));
+    const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${draft.slug || slugifyHelpValue(draft.title) || "page"}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
-    return (
-      <div key={node.id} className="space-y-1">
-        {isArticle ? (
-          <button
-            type="button"
-            onClick={() => navigate(toAdminWikiArticlePath({ id: node.id, title: node.title, slug: node.slug }))}
-            className="flex w-full items-center gap-2 rounded-xl py-2 pr-3 text-left transition-colors"
-            style={{ paddingLeft }}
-          >
-            <span className={isActive ? "min-w-0 flex-1 truncate text-sm font-semibold text-foreground" : "min-w-0 flex-1 truncate text-sm text-muted-foreground"}>
-              {node.title}
-            </span>
-            <Badge variant="outline" className="shrink-0">
-              {node.kind === "link" ? "Link" : node.status}
-            </Badge>
-          </button>
-        ) : (
-          <div
-            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-            style={{ paddingLeft }}
-          >
-            <ListTree className="h-3.5 w-3.5" />
-            <span>{node.title}</span>
-          </div>
-        )}
+  const sharePage = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}`);
+      toast({ title: "Link copied" });
+    } catch {
+      toast({ title: "Could not copy the link", variant: "destructive" });
+    }
+  };
 
-        {node.children.length > 0 ? (
-          <div className="space-y-1">
-            {node.children.map((child) => renderTreeNode(child, depth + 1))}
-          </div>
-        ) : null}
+  // Breadcrumbs: wiki > section > parents > page
+  const crumbs = useMemo<Crumb[]>(() => {
+    const list: Crumb[] = [{ label: "Internal wiki", to: WIKI_HOME }];
+    if (!selectedArticle) return list;
+    const section = headings.find((heading) => heading.id === selectedArticle.section_id);
+    if (section) list.push({ label: section.title });
+    for (const ancestor of ancestorsOf(treePages, selectedArticle.id)) {
+      list.push({ label: ancestor.title || "Untitled", to: toAdminWikiArticlePath({ id: ancestor.id, title: ancestor.title, slug: articles.find((a) => a.id === ancestor.id)?.slug }) });
+    }
+    list.push({ label: draft.title || "Untitled" });
+    return list;
+  }, [articles, draft.title, headings, selectedArticle, treePages]);
+
+  const paletteDocs = useMemo<SearchDoc[]>(() => {
+    const pageIds = new Set(visibleArticles.map((article) => article.id));
+    const pages: SearchDoc[] = visibleArticles.map((article) => ({
+      id: article.id,
+      title: article.title,
+      body: extractCanonicalPlainText(article.body_json) || article.summary || "",
+      kind: "page",
+      meta: article.status,
+    }));
+    const website: SearchDoc[] = contentArticles
+      .filter((article) => !pageIds.has(article.id) && article.is_active !== false)
+      .map((article) => ({
+        id: article.id,
+        title: article.title,
+        body: article.summary || article.description || "",
+        kind: "website",
+        meta: article.content_type,
+      }));
+    return [...pages, ...website];
+  }, [contentArticles, visibleArticles]);
+
+  const moveTargets = useMemo<MoveTarget[]>(() => {
+    if (!moveTargetId) return [];
+    const blocked = new Set([moveTargetId, ...descendantsOf(treePages, moveTargetId).map((page) => page.id)]);
+    return [
+      ...headings.map((heading) => ({ id: `${SECTION_PREFIX}${heading.id}`, label: heading.title, kind: "section" as const })),
+      ...visibleArticles
+        .filter((article) => !blocked.has(article.id))
+        .map((article) => ({ id: article.id, label: article.title || "Untitled", kind: "page" as const })),
+    ];
+  }, [headings, moveTargetId, treePages, visibleArticles]);
+
+  const moveTargetPage = articles.find((article) => article.id === moveTargetId);
+  const meta = selectedArticle ? pageMeta[selectedArticle.id] : undefined;
+  const fullWidth = meta?.fullWidth ?? false;
+  const editing = editorMode === "edit";
+
+  const settings = (
+    <>
+      <div className="space-y-1">
+        <FieldLabel>Entry type</FieldLabel>
+        <Select value={draft.kind} onValueChange={(value: DraftForm["kind"]) => setDraft((current) => ({ ...current, kind: value }))}>
+          <SelectTrigger className="h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="article">Rendered article</SelectItem>
+            <SelectItem value="link">Linked page</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-    );
-  };
-
-  // Internal wiki articles (the DB default for new entries) are read in SOPs, not on /knowledge.
-  const isInternalArticle = !selectedArticle || selectedArticle.visibility === "internal";
-  const readerSlug = selectedNode?.slug ?? (draft.slug.trim() || slugifyHelpValue(draft.title));
-  const publicArticleHref = isInternalArticle
-    ? readerSlug
-      ? toSopArticlePath(readerSlug)
-      : "/admin/knowledge/sops"
-    : draft.slug.trim()
-      ? toKnowledgeArticlePath(draft.slug.trim())
-      : draft.title.trim()
-        ? toKnowledgeArticlePath(slugifyHelpValue(draft.title))
-        : "/knowledge";
-
-  const selectedSection = headings.find((heading) => heading.id === draft.sectionId) ?? null;
-  const assignmentArticles = allArticles.length > 0 ? allArticles : articles;
-  const previewTitle = draft.title.trim() || "Untitled article";
-  const previewSummary = draft.summary.trim();
+      {draft.kind === "link" ? (
+        <div className="space-y-1">
+          <FieldLabel>Link target</FieldLabel>
+          <Input
+            value={draft.href}
+            onChange={(event) => setDraft((current) => ({ ...current, href: event.target.value }))}
+            placeholder="/patients/progressive-lenses"
+            className="h-9"
+          />
+        </div>
+      ) : null}
+      <div className="space-y-1">
+        <FieldLabel>Slug</FieldLabel>
+        <Input
+          value={draft.slug}
+          onChange={(event) => setDraft((current) => ({ ...current, slug: slugifyHelpValue(event.target.value) }))}
+          className="ws-mono h-9"
+        />
+      </div>
+      <div className="space-y-1">
+        <FieldLabel>Summary</FieldLabel>
+        <Textarea
+          value={draft.summary}
+          onChange={(event) => setDraft((current) => ({ ...current, summary: event.target.value }))}
+          placeholder="Short description shown in search and category lists."
+          className="min-h-20"
+        />
+      </div>
+      <div className="space-y-1">
+        <FieldLabel>Section</FieldLabel>
+        <Select
+          value={draft.sectionId || "none"}
+          onValueChange={(value) => setDraft((current) => ({ ...current, sectionId: value === "none" ? "" : value }))}
+        >
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder="Choose a section" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No section</SelectItem>
+            {headings.map((heading) => (
+              <SelectItem key={heading.id} value={heading.id}>
+                {heading.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <FieldLabel>Parent page</FieldLabel>
+        <Select value={draft.parentId} onValueChange={(value) => setDraft((current) => ({ ...current, parentId: value }))}>
+          <SelectTrigger className="h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Top level</SelectItem>
+            {articles
+              .filter((article) => article.id !== draft.id)
+              .map((article) => (
+                <SelectItem key={article.id} value={article.id}>
+                  {article.title}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <FieldLabel>Sort order</FieldLabel>
+        <Input
+          type="number"
+          value={draft.sortOrder}
+          onChange={(event) => setDraft((current) => ({ ...current, sortOrder: event.target.value }))}
+          className="h-9"
+        />
+      </div>
+    </>
+  );
 
   return (
-    <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col">
-      <div className="border-b border-border bg-muted/20 px-4 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <BookOpen className="h-4 w-4 text-primary" />
-            <div>
-              <p className="text-sm font-semibold tracking-tight">Knowledge CMS</p>
-              <p className="text-xs text-muted-foreground">
-                Write and publish internal articles and SOPs. Published articles appear in Knowledge → SOPs.
-              </p>
-            </div>
+    <>
+      <WorkspaceShell
+        sidebarWidth={sidebar.width}
+        onSidebarWidthChange={sidebar.setWidth}
+        sidebarCollapsed={sidebar.collapsed}
+        onSidebarCollapsedChange={sidebar.setCollapsed}
+        sidebar={
+          <WorkspaceSidebar
+            tree={{
+              nodes: sidebarTree.sections,
+              activeId: selectedNode?.id ?? null,
+              toggled,
+              onToggle: (id) => toggleExpanded(id),
+              pageMeta,
+              favoriteIds,
+              onToggleFavorite: toggleFavorite,
+              onOpen: openArticle,
+              onAddChild: (node) => void addChildOf(node),
+              onRename: (id, title) => void renamePage(id, title),
+              onDuplicate: (id) => void duplicatePage(id),
+              onMoveTo: setMoveTargetId,
+              onArchive: (id) => void archivePage(id),
+              onMove: (dragId, targetId, position) => void movePage(dragId, targetId, position),
+              canEdit: true,
+            }}
+            articles={articles}
+            archived={archivedArticles}
+            userId={user?.id ?? null}
+            onSearch={() => setPaletteOpen(true)}
+            onAskIris={() => setPanel("iris")}
+            onNewPage={() => void createPage({ parentId: null, sectionId: headings[0]?.id ?? null })}
+            onRestore={(id) => void patchArticle({ id, status: "draft" })}
+            onCollapse={() => sidebar.setCollapsed(true)}
+            onCreateSection={handleCreateSection}
+            onOpenAssignments={() => {
+              setSearchParams({ view: "assignments" });
+              if (articleSlug) navigate(`${WIKI_HOME}?view=assignments`);
+            }}
+          />
+        }
+        panel={
+          panelTab ? (
+            <WorkspaceRightPanel
+              tab={panelTab}
+              onTabChange={setPanel}
+              onClose={() => setPanel(null)}
+              articleId={selectedArticle?.id ?? null}
+              canRestore={canPublish}
+              onRestore={async (version) => {
+                if (!selectedArticle) return;
+                await restoreVersion({ articleId: selectedArticle.id, version });
+                toast({ title: `Restored v${version.version_number}` });
+              }}
+            />
+          ) : null
+        }
+      >
+        <PageTopBar
+          crumbs={showAssignments ? [{ label: "Internal wiki", to: WIKI_HOME }, { label: "Help assignments" }] : crumbs}
+          editedAt={selectedArticle?.updated_at}
+          insetLeft={sidebar.collapsed}
+          editing={editing}
+          dirty={dirty}
+          isSaving={isSaving}
+          canPublish={canPublish}
+          hasPage={Boolean(selectedArticle) && !showAssignments}
+          irisOpen={panelTab === "iris"}
+          fullWidth={fullWidth}
+          isFavorite={selectedArticle ? isFavorite(selectedArticle.id) : false}
+          onToggleEdit={() => setEditorMode(editing ? "view" : "edit")}
+          onSaveDraft={() => void saveArticle("draft")}
+          onPublish={() => void saveArticle("published")}
+          onShare={() => void sharePage()}
+          onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
+          onToggleFullWidth={() => selectedArticle && patchPageMeta(selectedArticle.id, { fullWidth: !fullWidth })}
+          onToggleFavorite={() => selectedArticle && toggleFavorite(selectedArticle.id)}
+          onDuplicate={() => selectedArticle && void duplicatePage(selectedArticle.id)}
+          onExportMarkdown={exportMarkdown}
+          onOpenHistory={() => setPanel("history")}
+          onTrash={() => selectedArticle && void archivePage(selectedArticle.id)}
+        />
+
+        {showAssignments ? (
+          <div className="h-[calc(100%-2.75rem)] min-h-0 px-4 pb-4">
+            <WikiAssignmentsPanel articles={allArticles.length > 0 ? allArticles : articles} isLoading={isLoading} />
           </div>
-          <TabsList className="h-9">
-            <TabsTrigger value="docs">Docs CMS</TabsTrigger>
-            <TabsTrigger value="assignments">Help Assignments</TabsTrigger>
-          </TabsList>
-        </div>
-      </div>
-
-      <TabsContent value="docs" className="mt-0 min-h-0 flex-1">
-        <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[22rem_minmax(0,1fr)_22rem]">
-          <aside className="min-h-0 rounded-[1.5rem] border border-border/60 bg-card/80">
-            <div className="border-b border-border/60 p-4">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Search docs or sections"
-                  className="h-11 rounded-xl pl-9"
-                />
-              </div>
-              <div className="mt-3 flex gap-2">
-                <Button size="sm" className="flex-1" onClick={beginNewArticle}>
-                  <FilePlus2 data-icon="inline-start" />
-                  New article
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCreateHeading}>
-                  <FolderPlus data-icon="inline-start" />
-                  Section
-                </Button>
-              </div>
-              <Input
-                value={creatingHeading}
-                onChange={(event) => setCreatingHeading(event.target.value)}
-                placeholder="Create a section heading"
-                className="mt-2 h-9"
-              />
-            </div>
-            <ScrollArea className="h-[calc(100%-10.5rem)]">
-              <div className="space-y-3 p-3">
-                {filteredSections.map((node) => renderTreeNode(node))}
-              </div>
-            </ScrollArea>
-          </aside>
-
-          <main className="min-h-0 rounded-[1.5rem] border border-border/60 bg-card/80">
-            <ScrollArea className="h-full">
-              <div className="mx-auto max-w-4xl space-y-6 p-6">
-                {!selectedArticle && editorMode === "view" ? (
-                  <Card className="overflow-hidden border-border/60 bg-background/70 shadow-sm">
-                    <CardContent className="space-y-6 p-8">
-                      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <LayoutTemplate className="h-6 w-6" />
-                      </div>
-                      <div className="space-y-3">
-                        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                          Write your team's SOPs in one place
-                        </h1>
-                        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                          Organize sections, connect related articles, and publish procedures for staff.
-                          Published articles show up in Knowledge → SOPs for everyone with wiki access.
-                        </p>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-3">
-                        <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Editorial IA
-                          </p>
-                          <p className="mt-2 text-sm text-foreground">
-                            Sections group articles in the SOPs sidebar and overview.
-                          </p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Shared renderer
-                          </p>
-                          <p className="mt-2 text-sm text-foreground">
-                            Preview and published help articles both use the same canonical wiki renderer.
-                          </p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Staff ready
-                          </p>
-                          <p className="mt-2 text-sm text-foreground">
-                            Linked pages and rich articles appear together in SOP search and navigation.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <Button onClick={beginNewArticle}>
-                          <FilePlus2 data-icon="inline-start" />
-                          Start a new article
-                        </Button>
-                        <Button variant="outline" onClick={() => setEditorMode("edit")}>
-                          <Eye data-icon="inline-start" />
-                          Open editor
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                          <span>Knowledge</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                          <span>{selectedSection?.title ?? "Drafts"}</span>
-                          {draft.parentId !== "none" ? (
-                            <>
-                              <ChevronRight className="h-3.5 w-3.5" />
-                              <span>
-                                {articles.find((article) => article.id === draft.parentId)?.title ?? "Parent"}
-                              </span>
-                            </>
-                          ) : null}
-                        </div>
-                        <div>
-                          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                            {previewTitle}
-                          </h1>
-                          {previewSummary ? (
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                              {previewSummary}
-                            </p>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">{draft.kind === "link" ? "Linked page" : draft.status}</Badge>
-                          <Badge variant="secondary">
-                            {selectedSection?.title ?? "Unassigned section"}
-                          </Badge>
-                          <Badge variant="secondary">
-                            {draft.contextSlugs.length} context{draft.contextSlugs.length === 1 ? "" : "s"}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          variant={editorMode === "view" ? "secondary" : "outline"}
-                          onClick={() => setEditorMode("view")}
-                        >
-                          <Eye data-icon="inline-start" />
-                          Preview
-                        </Button>
-                        <Button
-                          variant={editorMode === "edit" ? "secondary" : "outline"}
-                          onClick={() => setEditorMode("edit")}
-                        >
-                          <Save data-icon="inline-start" />
-                          Edit
-                        </Button>
-                        <Button variant="outline" asChild>
-                          <a href={publicArticleHref} target="_blank" rel="noreferrer">
-                            <ArrowUpRight data-icon="inline-start" />
-                            {isInternalArticle ? "Open in SOPs" : "Open public"}
-                          </a>
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {editorMode === "edit" ? (
-                      <div className="space-y-6">
-                        <Card className="border-border/60 shadow-none">
-                          <CardContent className="space-y-5 p-5">
-                            <div className="grid gap-4 md:grid-cols-2">
-                              <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Title</label>
-                                <Input
-                                  value={draft.title}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      title: event.target.value,
-                                      slug:
-                                        current.slug === "" ||
-                                        current.slug === slugifyHelpValue(current.title)
-                                          ? slugifyHelpValue(event.target.value)
-                                          : current.slug,
-                                    }))
-                                  }
-                                  placeholder="e.g. Understanding AR coatings"
-                                  className="h-11 rounded-xl"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Slug</label>
-                                <Input
-                                  value={draft.slug}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      slug: slugifyHelpValue(event.target.value),
-                                    }))
-                                  }
-                                  placeholder="understanding-ar-coatings"
-                                  className="h-11 rounded-xl"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-foreground">Summary</label>
-                              <Textarea
-                                value={draft.summary}
-                                onChange={(event) =>
-                                  setDraft((current) => ({ ...current, summary: event.target.value }))
-                                }
-                                placeholder="Short description shown in search, category lists, and article headers."
-                                className="min-h-24 rounded-2xl"
-                              />
-                            </div>
-
-                            {draft.kind === "article" ? (
-                              <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Article body</label>
-                                <RichTextEditor
-                                  content={draft.content}
-                                  onChange={(content) =>
-                                    setDraft((current) => ({ ...current, content }))
-                                  }
-                                  placeholder="Write the help article using headings, lists, and links."
-                                  minHeight="420px"
-                                />
-                              </div>
-                            ) : (
-                              <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Linked page notes</label>
-                                <Textarea
-                                  value={draft.content}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({ ...current, content: event.target.value }))
-                                  }
-                                  placeholder="Optional internal notes about why this page is linked from the help center."
-                                  className="min-h-40 rounded-2xl"
-                                />
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                          <Button onClick={() => void saveArticle("draft")} disabled={isSaving}>
-                            <Save data-icon="inline-start" />
-                            Save draft
-                          </Button>
-                          <Button
-                            onClick={() => void saveArticle("published")}
-                            disabled={isSaving || !canPublish}
-                          >
-                            <Upload data-icon="inline-start" />
-                            Publish
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => void handleRollback()}
-                            disabled={!draft.id || isFetchingVersions}
-                          >
-                            <Undo2 data-icon="inline-start" />
-                            Roll back
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              if (!selectedArticle) {
-                                beginNewArticle();
-                                return;
-                              }
-                              setDraft(buildDraftFromArticle(selectedArticle));
-                              setEditorMode("view");
-                              setPreviewPublic(false);
-                            }}
-                          >
-                            <RefreshCw data-icon="inline-start" />
-                            Reset changes
-                          </Button>
-                        </div>
-                      </div>
-                    ) : draft.kind === "article" ? (
-                      <Card className="border-border/60 shadow-none">
-                        <CardContent className="p-0">
-                          <div className="border-b border-border/60 px-6 py-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                                  {previewPublic ? "Public help preview" : "Editorial preview"}
-                                </p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                  This preview uses the shared wiki renderer contract.
-                                </p>
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPreviewPublic((current) => !current)}
-                              >
-                                <Eye data-icon="inline-start" />
-                                {previewPublic ? "Show editor preview" : "Show public framing"}
-                              </Button>
-                            </div>
-                          </div>
-                          <div className={previewPublic ? "bg-[#fbfaf6] px-6 py-8" : "px-6 py-8"}>
-                            <WikiArticleRenderer
-                              legacyContent={draft.content}
-                              className="mx-auto max-w-3xl"
-                              emptyMessage="This article is empty."
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <Card className="border-border/60 shadow-none">
-                        <CardContent className="space-y-4 p-6">
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                            Linked page preview
-                          </p>
-                          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                            {previewTitle}
-                          </h2>
-                          {previewSummary ? (
-                            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                              {previewSummary}
-                            </p>
-                          ) : null}
-                          <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                            <p className="text-sm font-medium text-foreground">Destination</p>
-                            <p className="mt-1 break-all text-sm text-muted-foreground">
-                              {draft.href || "Add a target URL in the inspector."}
-                            </p>
-                          </div>
-                          {draft.content ? (
-                            <div className="rounded-2xl border border-border/60 bg-background p-4">
-                              <p className="text-sm font-medium text-foreground">Internal notes</p>
-                              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                                {draft.content}
-                              </p>
-                            </div>
-                          ) : null}
-                        </CardContent>
-                      </Card>
-                    )}
-                  </>
-                )}
-              </div>
-            </ScrollArea>
-          </main>
-
-          <aside className="min-h-0 rounded-[1.5rem] border border-border/60 bg-card/80">
-            <ScrollArea className="h-full">
-              <div className="space-y-5 p-5">
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold tracking-tight text-foreground">Inspector</p>
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    Control the article type, section, summary, status, and help contexts from here.
-                  </p>
+        ) : selectedArticle ? (
+          <>
+            <PageIdentity
+              icon={meta?.icon}
+              cover={meta?.cover ?? false}
+              title={draft.title}
+              editable
+              fullWidth={fullWidth}
+              status={draft.status}
+              kind={draft.kind}
+              ownerName={ownerName}
+              contextSlugs={draft.contextSlugs}
+              updatedAt={selectedArticle.updated_at}
+              versionNumber={selectedArticle.version_number}
+              onTitleChange={(title) => {
+                setEditorMode("edit");
+                setDraft((current) => ({
+                  ...current,
+                  title,
+                  slug:
+                    current.slug === "" || current.slug === slugifyHelpValue(current.title) || current.slug.startsWith("untitled-")
+                      ? slugifyHelpValue(title)
+                      : current.slug,
+                }));
+              }}
+              onIconChange={(icon) => patchPageMeta(selectedArticle.id, { icon })}
+              onToggleCover={() => patchPageMeta(selectedArticle.id, { cover: !meta?.cover })}
+              onStatusChange={(status) => void changeStatus(status)}
+              onContextsChange={(contextSlugs) => setDraft((current) => ({ ...current, contextSlugs }))}
+              settings={settings}
+            />
+            <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-12 ${fullWidth ? "max-w-none" : "max-w-[720px]"}`}>
+              {draft.kind === "link" ? (
+                <div className="space-y-2 border border-ws-line bg-ws-paper p-4">
+                  <p className="ws-label text-ws-ink-3">Linked page</p>
+                  <p className="break-all text-[14px] text-ws-ink-2">{draft.href || "Add a link target in Page settings."}</p>
                 </div>
+              ) : editing ? (
+                <RichTextEditor
+                  content={draft.content}
+                  onChange={(content) => setDraft((current) => ({ ...current, content }))}
+                  placeholder="Write the page using headings, lists, and links."
+                  minHeight="420px"
+                />
+              ) : (
+                <WikiArticleRenderer legacyContent={draft.content} className="mx-auto" emptyMessage="This page is empty. Choose Edit to start writing." />
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="mx-auto flex max-w-[560px] flex-col items-start gap-4 px-6 py-24 sm:px-12">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-ws-accent-tint text-ws-accent">
+              <LayoutTemplate className="h-6 w-6" />
+            </div>
+            <h1 className="ws-h1">Write your team's SOPs in one place</h1>
+            <p className="ws-body text-ws-ink-2">
+              Pick a page from the sidebar, or start a new one. Published pages appear in Knowledge → SOPs.
+            </p>
+            <button
+              type="button"
+              onClick={() => void createPage({ parentId: null, sectionId: headings[0]?.id ?? null })}
+              className="flex h-9 items-center gap-2 rounded-[6px] bg-ws-accent px-4 text-[14px] font-semibold text-[hsl(var(--ws-accent-fg))] hover:opacity-90"
+            >
+              <FilePlus2 className="h-4 w-4" /> New page
+            </button>
+          </div>
+        )}
+      </WorkspaceShell>
 
-                <Card className="border-border/60 shadow-none">
-                  <CardContent className="space-y-4 p-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Entry type
-                      </label>
-                      <Select
-                        value={draft.kind}
-                        onValueChange={(value: DraftForm["kind"]) =>
-                          setDraft((current) => ({ ...current, kind: value }))
-                        }
-                      >
-                        <SelectTrigger className="h-10 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="article">Rendered article</SelectItem>
-                          <SelectItem value="link">Linked page</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        docs={paletteDocs}
+        onOpenDoc={(doc) => {
+          if (doc.kind === "website") {
+            navigate("/admin/website/content");
+            return;
+          }
+          const article = articles.find((item) => item.id === doc.id);
+          if (article) openArticle({ id: article.id, title: article.title, slug: article.slug });
+        }}
+        onNewPage={() => void createPage({ parentId: null, sectionId: headings[0]?.id ?? null })}
+        onOpenWebsiteContent={() => navigate("/admin/website/content")}
+        onAskIris={() => setPanel("iris")}
+      />
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Canonical route
-                      </label>
-                      <Input
-                        value={publicArticleHref}
-                        readOnly
-                        className="h-10 rounded-xl bg-muted/30 text-xs"
-                      />
-                    </div>
-
-                    {draft.kind === "link" ? (
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                          Link target
-                        </label>
-                        <Input
-                          value={draft.href}
-                          onChange={(event) =>
-                            setDraft((current) => ({ ...current, href: event.target.value }))
-                          }
-                          placeholder="/patients/progressive-lenses"
-                          className="h-10 rounded-xl"
-                        />
-                      </div>
-                    ) : null}
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Section
-                      </label>
-                      <Select
-                        value={draft.sectionId || "none"}
-                        onValueChange={(value) =>
-                          setDraft((current) => ({
-                            ...current,
-                            sectionId: value === "none" ? "" : value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="h-10 rounded-xl">
-                          <SelectValue placeholder="Choose a section" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No section</SelectItem>
-                          {headings.map((heading) => (
-                            <SelectItem key={heading.id} value={heading.id}>
-                              {heading.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Parent article
-                      </label>
-                      <Select
-                        value={draft.parentId}
-                        onValueChange={(value) =>
-                          setDraft((current) => ({ ...current, parentId: value }))
-                        }
-                      >
-                        <SelectTrigger className="h-10 rounded-xl">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Top-level entry</SelectItem>
-                          {parentCandidates.map((article) => (
-                            <SelectItem key={article.id} value={article.id}>
-                              {article.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                          Sort order
-                        </label>
-                        <Input
-                          type="number"
-                          value={draft.sortOrder}
-                          onChange={(event) =>
-                            setDraft((current) => ({ ...current, sortOrder: event.target.value }))
-                          }
-                          className="h-10 rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                          Status
-                        </label>
-                        <Select
-                          value={draft.status}
-                          onValueChange={(value: DraftForm["status"]) =>
-                            setDraft((current) => ({ ...current, status: value }))
-                          }
-                        >
-                          <SelectTrigger className="h-10 rounded-xl">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="draft">Draft</SelectItem>
-                            <SelectItem value="published">Published</SelectItem>
-                            <SelectItem value="archived">Archived</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-border/60 shadow-none">
-                  <CardContent className="space-y-4 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Visibility and contexts</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          Choose where this entry participates in wiki navigation and help surfaces.
-                        </p>
-                      </div>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            Contexts
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-72 rounded-2xl p-3" align="end">
-                          <div className="space-y-3">
-                            {ADMIN_CONTEXT_OPTIONS.map((option) => {
-                              const checked = draft.contextSlugs.includes(option.value);
-                              return (
-                                <label
-                                  key={option.value}
-                                  className="flex items-start gap-3 rounded-xl px-2 py-2 hover:bg-muted/40"
-                                >
-                                  <Checkbox
-                                    checked={checked}
-                                    onCheckedChange={(nextChecked) =>
-                                      setDraft((current) => ({
-                                        ...current,
-                                        contextSlugs: nextChecked
-                                          ? [...new Set([...current.contextSlugs, option.value])]
-                                          : current.contextSlugs.filter((value) => value !== option.value),
-                                      }))
-                                    }
-                                  />
-                                  <div>
-                                    <p className="text-sm font-medium text-foreground">{option.label}</p>
-                                    <p className="text-xs text-muted-foreground">{option.path}</p>
-                                  </div>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {draft.contextSlugs.length > 0 ? (
-                        draft.contextSlugs.map((slug) => {
-                          const option = ADMIN_CONTEXT_OPTIONS.find((entry) => entry.value === slug);
-                          return (
-                            <Badge key={slug} variant="secondary">
-                              {option?.label ?? slug}
-                            </Badge>
-                          );
-                        })
-                      ) : (
-                        <Badge variant="outline">No contexts selected</Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-border/60 shadow-none">
-                  <CardContent className="space-y-4 p-4">
-                    <p className="text-sm font-medium text-foreground">Publishing guardrails</p>
-                    <div className="space-y-3 text-xs leading-5 text-muted-foreground">
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
-                        Article content is validated through the canonical wiki renderer before publish.
-                      </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
-                        Only published articles appear in SOPs. Drafts and archived articles stay in this editor.
-                      </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
-                        {canPublish
-                          ? "You can publish directly from this workspace."
-                          : "You can save drafts here, but publishing still requires wiki publish permission."}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </ScrollArea>
-          </aside>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="assignments" className="mt-0 min-h-0 flex-1">
-        <WikiAssignmentsPanel articles={assignmentArticles} isLoading={isLoading} />
-      </TabsContent>
-    </Tabs>
+      <MoveToDialog
+        open={Boolean(moveTargetId)}
+        pageTitle={moveTargetPage?.title || "page"}
+        targets={moveTargets}
+        onOpenChange={(open) => !open && setMoveTargetId(null)}
+        onPick={(target) => {
+          if (moveTargetId) void movePage(moveTargetId, target.id, "inside");
+          setMoveTargetId(null);
+        }}
+      />
+    </>
   );
 };
 
