@@ -46,6 +46,7 @@ import { toAdminWikiArticlePath, toWikiArticleSlug } from "@/lib/wikiArticleRout
 import { canonicalToSearchText, toCanonicalDocument, validateCanonicalDocument } from "@/lib/wikiCanonical";
 import { validateWikiBuildVersionForPublish } from "@/lib/wikiReleaseMetadata";
 import { canonicalBodyToMarkdown, canonicalToMarkdown } from "@/lib/wikiMarkdown";
+import { sameJson } from "@/lib/stableJson";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -234,7 +235,7 @@ const AdminWikiPage = () => {
   ]);
 
   const dirty = useMemo(
-    () => Boolean(selectedArticle) && JSON.stringify(draft) !== JSON.stringify(buildDraftFromArticle(selectedArticle as HelpArticle)),
+    () => Boolean(selectedArticle) && !sameJson(draft, buildDraftFromArticle(selectedArticle as HelpArticle)),
     [draft, selectedArticle],
   );
 
@@ -247,7 +248,7 @@ const AdminWikiPage = () => {
   const saved = useMemo(() => (selectedArticle ? buildDraftFromArticle(selectedArticle) : null), [selectedArticle]);
   const isPublished = selectedArticle?.status === "published";
   const bodyRoute: "live" | "draft" | "local" = isPublished ? (supportsDrafts ? "draft" : "local") : "live";
-  const bodyChanged = Boolean(saved) && draft.id === selectedArticle?.id && (draft.title !== saved!.title || JSON.stringify(draft.doc) !== JSON.stringify(saved!.doc));
+  const bodyChanged = Boolean(saved) && draft.id === selectedArticle?.id && (draft.title !== saved!.title || !sameJson(draft.doc, saved!.doc));
   const metaChanged =
     Boolean(saved) &&
     (draft.summary !== saved!.summary ||
@@ -257,7 +258,7 @@ const AdminWikiPage = () => {
       draft.parentId !== saved!.parentId ||
       draft.sortOrder !== saved!.sortOrder ||
       (!isPublished && draft.slug !== saved!.slug));
-  const contextsChanged = Boolean(saved) && JSON.stringify(draft.contextSlugs) !== JSON.stringify(saved!.contextSlugs);
+  const contextsChanged = Boolean(saved) && !sameJson(draft.contextSlugs, saved!.contextSlugs);
   // On the first render after opening a page the draft state is still empty; never compare or write then.
   const draftLoaded = draft.id !== undefined && draft.id === selectedArticle?.id;
   const writable = draftLoaded && ((bodyChanged && bodyRoute !== "local") || metaChanged || contextsChanged);
