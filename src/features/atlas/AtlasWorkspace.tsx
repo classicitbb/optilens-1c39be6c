@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { FilePlus2, LayoutTemplate } from "lucide-react";
+import type { Editor } from "@tiptap/core";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
+import { canonicalToSearchText, canonicalToTiptapDoc } from "@/lib/wikiCanonical";
 import { slugifyHelpValue } from "@/lib/helpCenter";
 import { ATLAS_CONFIG, atlasPath } from "./config";
 import { useAtlasWorkspaceName } from "./host";
-import { defaultPropsFor, homeSpaceFor, listAtlasSpaces, type AtlasSpaceDef } from "./spaces";
+import { defaultPropsFor, getAtlasSpace, homeSpaceFor, listAtlasSpaces, type AtlasSpaceDef } from "./spaces";
+import IrisPanel, { type IrisProposal, type IrisRequest } from "./iris/IrisPanel";
 import { buildTree, toPageSlug } from "./pageTree";
 import { useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
 import { usePageEditor } from "./hooks/usePageEditor";
@@ -33,7 +36,8 @@ import {
   type TreePage,
 } from "./components/pageTreeLogic";
 import type { TreeNode } from "./pageTree";
-import type { AtlasPage } from "./source/types";
+import type { AtlasHit, AtlasPage } from "./source/types";
+import type { AskIrisRequest } from "./components/editor/extensions";
 
 const DatabaseSpace = lazy(() => import("./database/DatabaseSpace"));
 
@@ -155,6 +159,17 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     [setSearchParams],
   );
 
+  // Iris: any entry point (⌘J, sidebar, selection, "/" menu, block menu) opens the panel, optionally with a request.
+  const [irisRequest, setIrisRequest] = useState<IrisRequest | null>(null);
+  const editorInstance = useRef<Editor | null>(null);
+  const openIris = useCallback(
+    (request?: AskIrisRequest) => {
+      setIrisRequest(request ? { ...request, nonce: Date.now() } : null);
+      setPanel("iris");
+    },
+    [setPanel],
+  );
+
   // Ctrl/⌘ K opens the palette, Ctrl/⌘ J opens Iris. Capture phase on window so another shell's own
   // Ctrl+K handler (on document) does not also fire.
   useEffect(() => {
@@ -168,12 +183,12 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       } else if (key === "j") {
         event.preventDefault();
         event.stopPropagation();
-        setPanel("iris");
+        openIris();
       }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [setPanel]);
+  }, [openIris, setPanel]);
 
   const ownerId = selectedPage?.authorId ?? null;
   const { data: ownerName = null } = useQuery({
@@ -391,12 +406,78 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       ...spaces
         .filter((candidate) => candidate.id !== space.id)
         .map((candidate) => ({ id: `open-${candidate.id}`, label: `Open ${candidate.label}`, icon: <candidate.icon className="h-4 w-4" />, run: () => navigate(atlasPath(candidate.id)) })),
-      { id: "iris", label: "Ask Iris", icon: <span aria-hidden>✦</span>, run: () => setPanel("iris") },
+      { id: "iris", label: "Ask Iris", icon: <span aria-hidden>✦</span>, run: () => openIris() },
     ],
-    [canCreate, navigate, newPageDefault, setPanel, space.id, spaces],
+    [canCreate, navigate, newPageDefault, openIris, space.id, spaces],
   );
 
   const visibleSpaceIds = useMemo(() => [...new Set(spaces.map((candidate) => candidate.scope.storeSpace))], [spaces]);
+
+  const irisHitPath = useCallback(
+    (hit: AtlasHit) => atlasPath(homeSpaceFor(hit.spaceId)?.id ?? space.id, toPageSlug({ id: hit.pageId, title: hit.title, slug: hit.slug })),
+    [space.id],
+  );
+
+  // A drafted page from Iris starts titled after the question once the new page has loaded.
+  const [pendingTitle, setPendingTitle] = useState<string | null>(null);
+  useEffect(() => {
+    if (pendingTitle && selectedPage && draft.id === selectedPage.id && draft.title === "Untitled") {
+      setDraft((current) => ({ ...current, title: pendingTitle }));
+      setPendingTitle(null);
+    }
+  }, [draft.id, draft.title, pendingTitle, selectedPage, setDraft]);
+
+  /** Apply an accepted Iris proposal to the open page (draft only; Publish is still the user's call). */
+  const acceptProposal = (proposal: IrisProposal): boolean => {
+    if (!selectedPage || !canEdit) return false;
+    const content = canonicalToTiptapDoc({ blocks: proposal.blocks }).content ?? [];
+    const live = editing ? editorInstance.current : null;
+    if (live) {
+      try {
+        if (proposal.apply === "replace" && proposal.range) {
+          live.chain().focus().insertContentAt(proposal.range, proposal.inline).run();
+          return true;
+        }
+        if (proposal.apply === "insertAfter" && proposal.range) {
+          live.chain().focus().insertContentAt(live.state.doc.resolve(proposal.range.to).after(1), content).run();
+          return true;
+        }
+        live.chain().focus("end").insertContent(content).run();
+        return true;
+      } catch {
+        // The selection moved since Iris was asked: add the text at the end instead of losing it.
+        live.chain().focus("end").insertContent(content).run();
+        return true;
+      }
+    }
+    editor.applyDoc({ blocks: [...draft.doc.blocks, ...proposal.blocks] });
+    return true;
+  };
+
+  /** Accepting a drafted entry creates a draft page in the target space. Nothing is published. */
+  const draftEntry = async (proposal: IrisProposal) => {
+    const target = proposal.actionId ? space.draftTargets?.[proposal.actionId] : undefined;
+    const targetSpace = getAtlasSpace(target?.spaceId);
+    if (!target || !targetSpace || !bySpace[targetSpace.id]?.edit) {
+      toast({ title: "You can't create drafts there", variant: "destructive" });
+      return;
+    }
+    const view = targetSpace.savedViews.find((candidate) => candidate.id === target.savedViewId);
+    try {
+      await data.createPage({
+        spaceId: targetSpace.scope.storeSpace,
+        title: proposal.heading || "Untitled",
+        slug: `untitled-${Date.now().toString(36)}`,
+        doc: { blocks: proposal.blocks.slice(1) },
+        status: "draft",
+        props: defaultPropsFor(targetSpace, view),
+        changeNote: "Drafted with Iris",
+      });
+      toast({ title: `Draft created in ${targetSpace.label}`, description: proposal.heading });
+    } catch (error) {
+      toast({ title: "Could not create the draft", description: error instanceof Error ? error.message : undefined, variant: "destructive" });
+    }
+  };
 
   const showList = space.layout === "database" && !articleSlug;
 
@@ -439,7 +520,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
             showAssignments={isTree}
             showTree={isTree}
             onSearch={() => setPaletteOpen(true)}
-            onAskIris={() => setPanel("iris")}
+            onAskIris={() => openIris()}
             onNewPage={() => void newPageDefault()}
             onRestore={(id) => void data.patchPage({ id, status: "draft" })}
             onCollapse={() => sidebar.setCollapsed(true)}
@@ -455,6 +536,23 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onClose={() => setPanel(null)}
               articleId={selectedPage?.id ?? null}
               canRestore={canPublish}
+              iris={
+                <IrisPanel
+                  request={irisRequest}
+                  page={selectedPage ? { id: selectedPage.id, title: draft.title, text: canonicalToSearchText(draft.doc) } : null}
+                  search={(query) => data.source.search(query, { spaceIds: visibleSpaceIds, limit: 6 })}
+                  pageText={(id) => canonicalToSearchText(allPages.find((candidate) => candidate.id === id)?.doc)}
+                  pagePath={irisHitPath}
+                  route={window.location.pathname}
+                  canEdit={canEdit}
+                  onAccept={acceptProposal}
+                  onDraftEntry={draftEntry}
+                  onDraftPage={async (title) => {
+                    await createPage({ parentId: null, sectionId: isTree ? (sections[0]?.id ?? null) : null });
+                    setPendingTitle(title);
+                  }}
+                />
+              }
               loadVersions={(id) => data.source.listVersions(id)}
               onRestore={async (version) => {
                 if (!selectedPage) return;
@@ -503,7 +601,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               data={data}
               spacePages={spacePages}
               capabilities={caps}
-              onAskIris={() => setPanel("iris")}
+              onAskIris={() => openIris()}
               dynamicOptions={dynamicOptions}
               editorPages={editorPages}
               searchPeople={searchPeople}
@@ -551,7 +649,10 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
                 pages={editorPages}
                 searchPeople={searchPeople}
                 resolvePageHref={resolvePageHref}
-                onAskIris={() => setPanel("iris")}
+                onAskIris={openIris}
+                onEditor={(instance) => {
+                  editorInstance.current = instance;
+                }}
                 onUpdate={() => void editor.saveAs("published")}
               />
             </div>

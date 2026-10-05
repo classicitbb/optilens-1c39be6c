@@ -11,7 +11,38 @@ export interface AtlasEmbedProps {
   isAdmin: boolean;
 }
 
+/** One piece of evidence handed to Iris: the open page, a selection, or a search hit. */
+export interface IrisEvidence {
+  id: string;
+  title: string;
+  /** Where the source opens (an Atlas path), used for citation chips. */
+  path: string;
+  text: string;
+}
+
+export interface IrisAskInput {
+  question: string;
+  evidence: IrisEvidence[];
+  /** Earlier turns, oldest first. */
+  conversation: { role: "user" | "assistant"; text: string }[];
+  route: string;
+  onDelta?: (partial: string) => void;
+}
+
+export interface IrisAnswer {
+  text: string;
+  citations: { id: string; title: string; path: string }[];
+}
+
+/** The host's assistant. Atlas never talks to a model itself: it asks this and shows a proposal. */
+export interface AtlasIrisProvider {
+  /** Resolves null when the assistant is unreachable or returns nothing. */
+  ask(input: IrisAskInput): Promise<IrisAnswer | null>;
+}
+
 export interface AtlasHostConfig {
+  /** The assistant behind the Iris panel. Without one the panel says it is not connected. */
+  iris?: AtlasIrisProvider;
   /** Hook returning the organisation display name for the sidebar header (null while loading). */
   useWorkspaceName?: () => string | null;
   /** Named option lists referenced by space properties (`optionsRef`). */

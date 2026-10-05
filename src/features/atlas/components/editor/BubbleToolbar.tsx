@@ -97,7 +97,7 @@ const BubbleToolbar = ({ editor, onAskIris }: BubbleToolbarProps) => {
           label="Ask Iris"
           onClick={() => {
             const { from, to } = editor.state.selection;
-            onAskIris({ selection: editor.state.doc.textBetween(from, to, " ") });
+            onAskIris({ selection: editor.state.doc.textBetween(from, to, " "), range: { from, to } });
           }}
         >
           <Sparkles className="h-3.5 w-3.5 text-ws-accent" /> <span className="hidden sm:inline">Ask Iris</span>

@@ -22,6 +22,8 @@ declare module "@tiptap/core" {
 export interface AskIrisRequest {
   prompt?: string;
   selection?: string;
+  /** Where the selection sits in the document, so an accepted proposal can replace it. */
+  range?: { from: number; to: number };
 }
 
 const colorOrNull = (value: unknown) => (isBlogColorName(value) ? value : null);
