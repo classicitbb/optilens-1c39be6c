@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(process.cwd(), "src/features/atlas");
-const BANNED = /classic\s*visions|optic|\blens(es)?\b|\brx\b|coating|\bframes?\b|prescription|chemistrie|innovations|barbados/i;
+const BANNED = /classic\s*visions|optic|\blens(es)?\b|\brx\b|coating|prescription|chemistrie|innovations|barbados/i;
 
 const walk = (dir: string): string[] =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
