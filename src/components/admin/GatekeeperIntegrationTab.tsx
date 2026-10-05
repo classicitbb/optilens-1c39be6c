@@ -99,7 +99,7 @@ export function GatekeeperIntegrationTab() {
       const { data, error } = await supabase.functions.invoke("gatekeeper-orders", {
         body: { action: "connect", environment, originLabId, labName, pinCode },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(data?.error || error.message);
       if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not confirm the connection.");
     },
     onSuccess: async () => {
@@ -114,7 +114,7 @@ export function GatekeeperIntegrationTab() {
   const refreshMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("gatekeeper-orders", { body: { action: "refresh-contracts" } });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(data?.error || error.message);
       if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not return its contracts.");
     },
     onSuccess: async () => {
@@ -192,7 +192,7 @@ export function GatekeeperIntegrationTab() {
             <Badge variant="outline" className={STATUS_CLASS[status]}>{status.replace("_", " ")}</Badge>
           </div>
           {settings?.has_credentials && <p className="flex items-center gap-1 text-xs text-muted-foreground"><ShieldCheck className="h-3 w-3 text-emerald-600" /> JWT and 24-hour API token are encrypted server-side. Refresh uses the cached token and will not exceed Gatekeeper’s two-authentications-per-day limit.</p>}
-          {settings?.last_error && <p className="text-xs text-destructive">Last result: {settings.last_error}</p>}
+          {settings?.last_error && <p className="text-xs text-destructive break-words whitespace-normal">Last result: {settings.last_error}</p>}
         </CardContent>
       </Card>
 
