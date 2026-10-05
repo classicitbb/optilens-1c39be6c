@@ -23,11 +23,13 @@ const writeJson = (key: string, value: unknown) => {
   }
 };
 
-function useStoredState<T>(key: string, fallback: T) {
-  const [value, setValue] = useState<T>(() => readJson(key, fallback));
+function useStoredState<T>(key: string, fallback: T, legacyKey?: string) {
+  // Keys were `wiki-*` before Atlas; read the old value once so favorites and page settings survive.
+  const read = () => readJson(key, legacyKey ? readJson(legacyKey, fallback) : fallback);
+  const [value, setValue] = useState<T>(read);
 
   useEffect(() => {
-    setValue(readJson(key, fallback));
+    setValue(read());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
@@ -45,9 +47,9 @@ function useStoredState<T>(key: string, fallback: T) {
   return [value, update] as const;
 }
 
-export function useWikiFavorites() {
+export function useAtlasFavorites() {
   const { user } = useAuth();
-  const [ids, setIds] = useStoredState<string[]>(`wiki-favorites:${user?.id ?? "anon"}`, []);
+  const [ids, setIds] = useStoredState<string[]>(`atlas-favorites:${user?.id ?? "anon"}`, [], `wiki-favorites:${user?.id ?? "anon"}`);
 
   const toggle = useCallback(
     (id: string) => setIds((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id])),
@@ -57,17 +59,17 @@ export function useWikiFavorites() {
   return { favoriteIds: ids, isFavorite: (id: string) => ids.includes(id), toggleFavorite: toggle };
 }
 
-export interface WikiPageMeta {
+export interface AtlasPageMeta {
   icon?: string;
   cover?: boolean;
   fullWidth?: boolean;
 }
 
-export function useWikiPageMeta() {
-  const [meta, setMeta] = useStoredState<Record<string, WikiPageMeta>>("wiki-page-meta", {});
+export function useAtlasPageMeta() {
+  const [meta, setMeta] = useStoredState<Record<string, AtlasPageMeta>>("atlas-page-meta", {}, "wiki-page-meta");
 
   const patch = useCallback(
-    (id: string, next: Partial<WikiPageMeta>) => setMeta((current) => ({ ...current, [id]: { ...current[id], ...next } })),
+    (id: string, next: Partial<AtlasPageMeta>) => setMeta((current) => ({ ...current, [id]: { ...current[id], ...next } })),
     [setMeta],
   );
 
@@ -78,11 +80,12 @@ export const SIDEBAR_MIN = 200;
 export const SIDEBAR_MAX = 360;
 export const SIDEBAR_DEFAULT = 244;
 
-export function useWikiSidebarState() {
-  const [width, setWidthRaw] = useStoredState<number>("wiki-sidebar-width", SIDEBAR_DEFAULT);
+export function useAtlasSidebarState() {
+  const [width, setWidthRaw] = useStoredState<number>("atlas-sidebar-width", SIDEBAR_DEFAULT, "wiki-sidebar-width");
   const [collapsed, setCollapsed] = useStoredState<boolean>(
-    "wiki-sidebar-collapsed",
+    "atlas-sidebar-collapsed",
     typeof window !== "undefined" && window.innerWidth < 768,
+    "wiki-sidebar-collapsed",
   );
   const setWidth = useCallback(
     (next: number) => setWidthRaw(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(next)))),
@@ -92,8 +95,8 @@ export function useWikiSidebarState() {
 }
 
 /** Expanded tree rows persist per browser. */
-export function useWikiExpanded() {
-  const [ids, setIds] = useStoredState<string[]>("wiki-tree-expanded", []);
+export function useAtlasExpanded() {
+  const [ids, setIds] = useStoredState<string[]>("atlas-tree-expanded", [], "wiki-tree-expanded");
   const toggle = useCallback(
     (id: string, force?: boolean) =>
       setIds((current) => {
@@ -107,8 +110,8 @@ export function useWikiExpanded() {
 }
 
 /** "Updates" badge: pages edited by others since the user last opened the list. */
-export function useWikiUpdatesSeen() {
+export function useAtlasUpdatesSeen() {
   const { user } = useAuth();
-  const [seenAt, setSeenAt] = useStoredState<number>(`wiki-updates-seen:${user?.id ?? "anon"}`, 0);
+  const [seenAt, setSeenAt] = useStoredState<number>(`atlas-updates-seen:${user?.id ?? "anon"}`, 0, `wiki-updates-seen:${user?.id ?? "anon"}`);
   return { seenAt, markSeen: () => setSeenAt(Date.now()) };
 }

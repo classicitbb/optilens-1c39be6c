@@ -13,7 +13,8 @@ import { getContextLabel } from "@/lib/adminContexts";
 import { useWikiHeadings } from "@/hooks/useWikiHeadings";
 import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
 import { wikiCategories } from "@/data/wikiContent";
-import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
+import { toWikiArticleSlug } from "@/lib/wikiArticleRouting";
+import { atlasPath } from "@/features/atlas/config";
 
 const WikiArticleEditDialog = lazy(() => import("./WikiArticleEditDialog"));
 
@@ -214,7 +215,7 @@ const HelpPanel = ({ open, onClose, currentSlug }: HelpPanelProps) => {
                         variant="outline"
                         size="sm"
                         className="h-7 text-xs gap-1"
-                        onClick={() => navigate(toAdminWikiArticlePath({ id: article.sourceArticleId, title: article.title }))}
+                        onClick={() => navigate(atlasPath("wiki", toWikiArticleSlug({ id: article.sourceArticleId, title: article.title })))}
                       >
                         Open full documentation <ExternalLink className="h-3 w-3" />
                       </Button>

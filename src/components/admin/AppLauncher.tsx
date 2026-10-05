@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
-import { CalendarCheck, CreditCard, Glasses, HelpCircle, Home, LayoutDashboard, Package, PinOff, Search, X, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CreditCard, FilePlus2, Glasses, Globe, HelpCircle, Home, LayoutDashboard, Package, PinOff, Search, X, type LucideIcon } from "lucide-react";
+import { atlasPath } from "@/features/atlas/config";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { appColor } from "@/features/admin/core/config/appColors";
@@ -45,6 +46,20 @@ const LAUNCHER_SHORTCUTS = {
     icon: CreditCard,
     defaultRoute: "/admin/finance/walk-in-payments",
     featurePrefix: "settings",
+  },
+  "atlas-new-page": {
+    key: "atlas-new-page",
+    title: "New page",
+    icon: FilePlus2,
+    defaultRoute: `${atlasPath("wiki")}?new=1`,
+    featurePrefix: "wiki",
+  },
+  "atlas-website": {
+    key: "atlas-website",
+    title: "Website content",
+    icon: Globe,
+    defaultRoute: atlasPath("website"),
+    featurePrefix: "content",
   },
 } as const;
 
@@ -269,7 +284,7 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
       <button
         type="button"
         onClick={() => {
-          navigate("/admin/knowledge/wiki");
+          navigate(atlasPath("wiki"));
           onClose();
         }}
         className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-muted hover:text-foreground"

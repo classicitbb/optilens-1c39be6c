@@ -3,15 +3,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, FileText } from "lucide-react";
-import { getContextLabel } from "@/lib/adminContexts";
-import type { HelpArticle } from "@/hooks/useHelpArticles";
+import { getAtlasHost } from "../host";
+import type { AtlasPage } from "../source/types";
 
-interface WikiAssignmentsPanelProps {
-  articles: HelpArticle[];
+const contextLabel = (slug: string) => (getAtlasHost().contextOptions ?? []).find((option) => option.value === slug)?.label ?? slug;
+
+interface AssignmentsPanelProps {
+  articles: AtlasPage[];
   isLoading: boolean;
 }
 
-const WikiAssignmentsPanel = ({ articles, isLoading }: WikiAssignmentsPanelProps) => {
+const AssignmentsPanel = ({ articles, isLoading }: AssignmentsPanelProps) => {
   const [search, setSearch] = useState("");
   const lower = search.toLowerCase();
 
@@ -21,7 +23,7 @@ const WikiAssignmentsPanel = ({ articles, isLoading }: WikiAssignmentsPanelProps
         (a) =>
           !search ||
           a.title.toLowerCase().includes(lower) ||
-          a.context_slugs.some((s) => s.toLowerCase().includes(lower) || getContextLabel(s).toLowerCase().includes(lower))
+          a.contexts.some((s) => s.toLowerCase().includes(lower) || contextLabel(s).toLowerCase().includes(lower))
       )
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [articles, search, lower]);
@@ -75,13 +77,13 @@ const WikiAssignmentsPanel = ({ articles, isLoading }: WikiAssignmentsPanelProps
                       </div>
                     </td>
                     <td className="py-2 pr-4">
-                      <span className="text-xs text-muted-foreground">{article.category || "—"}</span>
+                      <span className="text-xs text-muted-foreground">{String(article.props.category || "") || "—"}</span>
                     </td>
                     <td className="py-2">
                       <div className="flex flex-wrap gap-1">
-                        {article.context_slugs.map((slug) => (
+                        {article.contexts.map((slug) => (
                           <Badge key={slug} variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
-                            {getContextLabel(slug)}
+                            {contextLabel(slug)}
                           </Badge>
                         ))}
                       </div>
@@ -100,4 +102,4 @@ const WikiAssignmentsPanel = ({ articles, isLoading }: WikiAssignmentsPanelProps
   );
 };
 
-export default WikiAssignmentsPanel;
+export default AssignmentsPanel;

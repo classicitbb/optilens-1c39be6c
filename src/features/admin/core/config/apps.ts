@@ -136,7 +136,7 @@ export const ADMIN_APPS = {
     sidebarItems: [
       { label: 'Website Portals', route: '/admin/website/portals', icon: UserCircle },
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
-      { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
+      { label: 'Pages / Content', route: '/atlas/website', icon: Layout },
       { label: 'Customer Feedback (NPS)', route: '/admin/website/nps', icon: Smile },
       { label: 'Feature Board', route: '/admin/website/features', icon: SlidersHorizontal },
       { label: 'Assistant Quality', route: '/admin/website/assistant/quality', icon: MessageSquare },
@@ -153,16 +153,19 @@ export const ADMIN_APPS = {
       { label: 'Studio', route: '/admin/docs/studio', icon: FileEdit },
     ] satisfies SidebarItem[],
   },
-  knowledge: {
-    key: 'knowledge' as const,
-    title: 'Knowledge',
+  // Atlas is a standalone full-screen app (like the Copilot workspace), so it has no admin-shell
+  // sidebar; these items feed search, launcher pins and permission lookups.
+  atlas: {
+    key: 'atlas' as const,
+    title: 'Atlas',
     icon: BookOpen,
-    baseRoute: '/admin/knowledge',
-    defaultRoute: '/admin/knowledge/sops',
-    featurePrefix: 'knowledge',
+    baseRoute: '/atlas',
+    defaultRoute: '/atlas/wiki',
+    featurePrefix: 'wiki',
     sidebarItems: [
-      { label: 'SOPs', route: '/admin/knowledge/sops', icon: ClipboardList },
-      { label: 'Wiki', route: '/admin/knowledge/wiki', icon: BookMarked },
+      { label: 'Wiki', route: '/atlas/wiki', icon: BookMarked },
+      { label: 'SOPs', route: '/atlas/sops', icon: ClipboardList },
+      { label: 'Website content', route: '/atlas/website', icon: Layout },
     ] satisfies SidebarItem[],
   },
   settings: {

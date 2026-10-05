@@ -1,7 +1,7 @@
 export type RouteDomain = "public-site" | "customer-portal" | "operations-console" | "admin-console";
 export type RouteAudience = "public" | "customer" | "staff" | "admin";
 export type AuthMode = "public" | "authenticated" | "admin";
-export type AppLayout = "customer-shell" | "admin-shell";
+export type AppLayout = "customer-shell" | "admin-shell" | "standalone-shell";
 export type RouteStatus = "active" | "hidden";
 
 export interface RouteDefinition {
@@ -114,10 +114,14 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "admin.orders.rx-test", path: "/admin/orders/rx-test", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders.stock-orders", path: "/admin/orders/stock-orders", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.orders", path: "/admin/orders", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
-  { id: "admin.knowledge.wiki", path: "/admin/knowledge/wiki", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
-  { id: "admin.knowledge.wiki.article", path: "/admin/knowledge/wiki/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
-  { id: "admin.knowledge.sops", path: "/admin/knowledge/sops", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
-  { id: "admin.knowledge.sops.article", path: "/admin/knowledge/sops/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
+  { id: "atlas", path: "/atlas", domain: "admin-console", audience: "staff", authMode: "admin", layout: "standalone-shell", navGroup: "admin", status: "active" },
+  { id: "atlas.space", path: "/atlas/:space", domain: "admin-console", audience: "staff", authMode: "admin", layout: "standalone-shell", navGroup: "admin", status: "active" },
+  { id: "atlas.page", path: "/atlas/:space/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "standalone-shell", navGroup: "admin", status: "active" },
+  { id: "admin.knowledge.wiki", path: "/admin/knowledge/wiki", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden", redirectTo: "/atlas/wiki" },
+  { id: "admin.knowledge.wiki.article", path: "/admin/knowledge/wiki/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden", redirectTo: "/atlas/wiki/:articleSlug" },
+  { id: "admin.knowledge.sops", path: "/admin/knowledge/sops", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden", redirectTo: "/atlas/sops" },
+  { id: "admin.knowledge.sops.article", path: "/admin/knowledge/sops/:articleSlug", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden", redirectTo: "/atlas/sops/:articleSlug" },
+  { id: "admin.website.content", path: "/admin/website/content", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "hidden", redirectTo: "/atlas/website" },
   { id: "admin.settings.releases", path: "/admin/settings/releases", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.settings.email-previews", path: "/admin/settings/email-previews", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },
   { id: "admin.website.nps", path: "/admin/website/nps", domain: "admin-console", audience: "staff", authMode: "admin", layout: "admin-shell", navGroup: "admin", status: "active" },

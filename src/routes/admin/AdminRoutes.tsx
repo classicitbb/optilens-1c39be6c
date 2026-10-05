@@ -4,6 +4,7 @@ import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 import { buildPricelistSelectionPath, type PricelistEditorSection } from "@/features/pricelists/routes";
+import AtlasLegacyRedirect from "@/features/atlas/AtlasLegacyRedirect";
 
 const AdminLayout = lazyWithRetry(() => import("@/components/admin/AdminLayout"));
 
@@ -27,10 +28,6 @@ const UsersPage = lazyWithRetry(() => import("@/pages/admin/UsersPage"));
 const CompanySettingsPage = lazyWithRetry(() => import("@/pages/admin/CompanySettingsPage"),
 );
 const RolesPermissionsPage = lazyWithRetry(() => import("@/pages/admin/RolesPermissionsPage"),
-);
-const AdminWikiPage = lazyWithRetry(() => import("@/pages/admin/AdminWikiPage"));
-const AdminSopsPage = lazyWithRetry(() => import("@/pages/admin/AdminSopsPage"));
-const ContentManagerPage = lazyWithRetry(() => import("@/pages/admin/ContentManagerPage"),
 );
 const ImportCostingsPage = lazyWithRetry(() => import("@/pages/admin/costings/ImportCostingsPage"),
 );
@@ -265,10 +262,10 @@ const AdminRoutes = () => (
         path="website"
         element={<Navigate to="/admin/website/portals" replace />}
       />
-      <Route path="website/content" element={<ContentManagerPage />} />
+      <Route path="website/content" element={<AtlasLegacyRedirect spaceId="website" />} />
       <Route
         path="website/microsites"
-        element={<Navigate to="/admin/website/content" replace />}
+        element={<Navigate to="/atlas/website" replace />}
       />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
       <Route path="website/nps" element={<NpsDashboardPage />} />
@@ -325,12 +322,12 @@ const AdminRoutes = () => (
 
       <Route
         path="knowledge"
-        element={<Navigate to="/admin/knowledge/sops" replace />}
+        element={<Navigate to="/atlas/sops" replace />}
       />
-      <Route path="knowledge/wiki" element={<AdminWikiPage />} />
-      <Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />
-      <Route path="knowledge/sops" element={<AdminSopsPage />} />
-      <Route path="knowledge/sops/:articleSlug" element={<AdminSopsPage />} />
+      <Route path="knowledge/wiki" element={<AtlasLegacyRedirect spaceId="wiki" />} />
+      <Route path="knowledge/wiki/:articleSlug" element={<AtlasLegacyRedirect spaceId="wiki" />} />
+      <Route path="knowledge/sops" element={<AtlasLegacyRedirect spaceId="sops" />} />
+      <Route path="knowledge/sops/:articleSlug" element={<AtlasLegacyRedirect spaceId="sops" />} />
 
       <Route
         path="settings"
@@ -471,11 +468,11 @@ const AdminRoutes = () => (
       />
       <Route
         path="wiki"
-        element={<Navigate to="/admin/knowledge/wiki" replace />}
+        element={<Navigate to="/atlas/wiki" replace />}
       />
       <Route
         path="content"
-        element={<Navigate to="/admin/website/content" replace />}
+        element={<Navigate to="/atlas/website" replace />}
       />
       <Route
         path="erp/contacts"
@@ -499,7 +496,7 @@ const AdminRoutes = () => (
       />
       <Route
         path="erp/website"
-        element={<Navigate to="/admin/website/content" replace />}
+        element={<Navigate to="/atlas/website" replace />}
       />
       <Route
         path="history"

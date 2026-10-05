@@ -5,11 +5,14 @@ import { Search, BookOpen, ArrowRight, PlusCircle, Ticket, User, Activity, Layou
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
-import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
+import { canViewWikiCategory } from "@/lib/wikiPermissions";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
+import { toWikiArticleSlug } from "@/lib/wikiArticleRouting";
+import { atlasPath } from "@/features/atlas/config";
+import { getAtlasSpace, homeSpaceFor } from "@/features/atlas/spaces";
+import { useAtlasCapabilities, useAtlasSource } from "@/features/atlas/hooks/useAtlas";
 import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS, NEW_RX_ORDER_SEARCH_KEYWORDS } from "./globalSearchActions";
 import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
 import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
@@ -40,6 +43,8 @@ const GlobalSearch = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { canView, canEditFeature, hasAppAccess } = useRolePermissions();
   const recentPaths = useRecentModules();
+  const atlasSource = useAtlasSource();
+  const { bySpace: atlasCapabilities } = useAtlasCapabilities();
 
   const moduleResults = useMemo<SearchResult[]>(() => {
     return Object.values(ADMIN_APPS)
@@ -213,53 +218,51 @@ const GlobalSearch = () => {
     enabled: query.trim().length >= 2,
   });
 
-  const { data: wikiResults = [] } = useQuery({
-    queryKey: ["global_search_wiki_articles"],
-    queryFn: async () => {
-      if (!canView("wiki")) return [] as SearchResult[];
+  // Static help articles (shipped with the app) open in the Atlas wiki.
+  const staticWikiResults = useMemo<SearchResult[]>(() => {
+    if (!canView("wiki")) return [];
+    return wikiCategories
+      .filter((category) => canViewWikiCategory(category.id, canView))
+      .flatMap((cat) =>
+        cat.articles.map((article) => ({
+          id: `wiki-static-${cat.id}-${article.id}`,
+          label: article.title,
+          sublabel: cat.title,
+          path: atlasPath("wiki", toWikiArticleSlug({ id: `static:${article.id}`, title: article.title })),
+          icon: BookOpen,
+          group: "Help / Wiki",
+        })),
+      );
+  }, [canView]);
 
-      const staticResults: SearchResult[] = wikiCategories
-        .filter((category) => canViewWikiCategory(category.id, canView))
-        .flatMap((cat) =>
-          cat.articles.map((article) => ({
-            id: `wiki-static-${cat.id}-${article.id}`,
-            label: article.title,
-            sublabel: cat.title,
-            path: toAdminWikiArticlePath({ id: `static:${article.id}`, title: article.title }),
+  // Every Atlas page the user can read, by title and body, from one search source (AtlasSource.search).
+  const readableStoreSpaces = useMemo(
+    () => [...new Set(Object.entries(atlasCapabilities).filter(([, caps]) => caps.view).map(([id]) => getAtlasSpace(id)?.scope.storeSpace ?? id))],
+    [atlasCapabilities],
+  );
+  const { data: atlasResults = [] } = useQuery({
+    queryKey: ["global_search_atlas", query, readableStoreSpaces.join(",")],
+    enabled: query.trim().length >= 2 && readableStoreSpaces.length > 0,
+    staleTime: 30_000,
+    queryFn: async (): Promise<SearchResult[]> => {
+      const hits = await atlasSource.search(query, { spaceIds: readableStoreSpaces, limit: 12 });
+      return hits.flatMap((hit) => {
+        const home = homeSpaceFor(hit.spaceId);
+        if (!home) return [];
+        return [
+          {
+            id: `atlas-${hit.pageId}`,
+            label: hit.title,
+            sublabel: `${home.label} · ${hit.snippet}`.slice(0, 120),
+            path: atlasPath(home.id, toWikiArticleSlug({ id: hit.pageId, title: hit.title, slug: hit.slug })),
             icon: BookOpen,
-            group: "Help / Wiki",
-          }))
-        );
-
-      const { data, error } = await (supabase.from("help_articles") as any)
-        .select("*, help_article_contexts(context_slug)")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (error) throw error;
-
-      const dbResults: SearchResult[] = ((data ?? []) as any[])
-        .map((article) => {
-          const contexts = article.help_article_contexts?.map((c: any) => c.context_slug).filter(Boolean) ?? [];
-          const effectiveContexts = contexts.length > 0 ? contexts : [article.page_slug];
-          const allowedContexts = effectiveContexts.filter((contextSlug: string) => canViewContextSlug(contextSlug, canView));
-          if (allowedContexts.length === 0) return null;
-
-          return {
-            id: `wiki-db-${article.id}`,
-            label: article.title,
-            sublabel: article.category || "Custom",
-            path: toAdminWikiArticlePath({ id: article.id, title: article.title, slug: article.slug }),
-            icon: BookOpen,
-            group: "Help / Wiki",
-          };
-        })
-        .filter((result): result is NonNullable<typeof result> => !!result) as SearchResult[];
-
-      return [...staticResults, ...dbResults];
+            group: "Atlas",
+          },
+        ];
+      });
     },
-    enabled: canView("wiki"),
   });
+  const wikiResults = staticWikiResults;
 
   const allResults = useMemo(
     () => [...moduleResults, ...registeredRouteResults, ...actionResults, ...wikiResults, ...dbSearchResults],
@@ -269,8 +272,8 @@ const GlobalSearch = () => {
   const results = useMemo(() => {
     if (!query.trim()) return recentModuleResults;
     const q = query.toLowerCase();
-    return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? [])));
-  }, [allResults, query, recentModuleResults]);
+    return [...allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? []))), ...atlasResults];
+  }, [allResults, atlasResults, query, recentModuleResults]);
 
   // Group results
   const grouped = useMemo(() => {
@@ -373,7 +376,7 @@ const GlobalSearch = () => {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search modules, wiki, settings… (Ctrl+K)"
+          placeholder="Search modules, pages, settings… (Ctrl+K)"
           className="h-7 w-full pl-8 pr-3 text-xs rounded border outline-none transition-all"
           style={{
             borderColor: open ? "hsl(215 65% 60%)" : "hsl(215 15% 82%)",

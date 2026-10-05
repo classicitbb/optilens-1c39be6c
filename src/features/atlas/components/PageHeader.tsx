@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
+import { getAtlasHost } from "../host";
 
 export const formatRelative = (iso?: string | null): string => {
   if (!iso) return "never";
@@ -62,6 +62,8 @@ interface PageTopBarProps {
   isSaving: boolean;
   canPublish: boolean;
   hasPage: boolean;
+  /** False for read-only viewers: editing, duplicating and trashing are disabled. */
+  canEdit: boolean;
   irisOpen: boolean;
   fullWidth: boolean;
   isFavorite: boolean;
@@ -78,7 +80,7 @@ interface PageTopBarProps {
 }
 
 export const PageTopBar = (props: PageTopBarProps) => {
-  const { crumbs, editedAt, insetLeft, editing, dirty, isSaving, canPublish, hasPage, irisOpen, fullWidth, isFavorite } = props;
+  const { crumbs, editedAt, insetLeft, editing, dirty, isSaving, canPublish, canEdit, hasPage, irisOpen, fullWidth, isFavorite } = props;
 
   return (
     <div
@@ -134,7 +136,8 @@ export const PageTopBar = (props: PageTopBarProps) => {
       <button
         type="button"
         onClick={props.onToggleEdit}
-        disabled={!hasPage}
+        disabled={!hasPage || !canEdit}
+        title={canEdit ? undefined : "You have read-only access here"}
         className="flex h-8 items-center gap-1.5 rounded-[6px] px-2 text-[14px] text-ws-ink-2 hover:bg-[var(--ws-hover)] disabled:opacity-40"
       >
         {editing ? <Eye className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
@@ -160,7 +163,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
             {isFavorite ? <StarOff className="mr-2 h-3.5 w-3.5" /> : <Star className="mr-2 h-3.5 w-3.5" />}
             {isFavorite ? "Remove from favorites" : "Add to favorites"}
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={props.onDuplicate}>
+          <DropdownMenuItem disabled={!canEdit} onSelect={props.onDuplicate}>
             <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={props.onExportMarkdown}>
@@ -170,7 +173,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
             <History className="mr-2 h-3.5 w-3.5" /> Page history
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={props.onTrash}>
+          <DropdownMenuItem disabled={!canEdit} onSelect={props.onTrash}>
             <Trash2 className="mr-2 h-3.5 w-3.5" /> Move to trash
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -180,7 +183,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
         type="button"
         onClick={props.onPublish}
         disabled={!hasPage || isSaving || !canPublish}
-        title={canPublish ? undefined : "Publishing requires wiki publish permission"}
+        title={canPublish ? undefined : "You do not have permission to publish here"}
         className="flex h-8 items-center gap-1.5 rounded-[6px] bg-ws-accent px-3 text-[14px] font-semibold text-[hsl(var(--ws-accent-fg))] hover:opacity-90 disabled:opacity-40"
       >
         <Upload className="h-3.5 w-3.5" /> {props.isPublished ? "Update" : "Publish"}
@@ -189,7 +192,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
   );
 };
 
-const EMOJI = ["📄", "📘", "📋", "✅", "🛠️", "📦", "🚚", "💳", "🧾", "👓", "🔬", "📐", "📊", "🧭", "🔒", "💡", "⚠️", "📞", "🗂️", "🏷️"];
+const EMOJI = ["📄", "📘", "📋", "✅", "🛠️", "📦", "🚚", "💳", "🧾", "🧩", "🔬", "📐", "📊", "🧭", "🔒", "💡", "⚠️", "📞", "🗂️", "🏷️"];
 
 const Cover = () => (
   <div className="relative h-36 w-full overflow-hidden bg-ws-navy" aria-hidden>
@@ -330,7 +333,7 @@ export const PageIdentity = (props: IdentityProps) => {
             {props.contextSlugs.length === 0 ? <span className="text-ws-ink-3">None</span> : null}
             {props.contextSlugs.map((slug) => (
               <span key={slug} className="rounded-[4px] bg-ws-side-hover px-2 py-0.5 text-[13px]">
-                {ADMIN_CONTEXT_OPTIONS.find((option) => option.value === slug)?.label ?? slug}
+                {(getAtlasHost().contextOptions ?? []).find((option) => option.value === slug)?.label ?? slug}
               </span>
             ))}
             {editable ? (
@@ -341,7 +344,7 @@ export const PageIdentity = (props: IdentityProps) => {
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="max-h-80 w-72 overflow-y-auto p-2">
-                  {ADMIN_CONTEXT_OPTIONS.map((option) => {
+                  {(getAtlasHost().contextOptions ?? []).map((option) => {
                     const checked = props.contextSlugs.includes(option.value);
                     return (
                       <label key={option.value} className="flex cursor-pointer items-start gap-2 rounded-[4px] px-2 py-1.5 hover:bg-[var(--ws-hover)]">

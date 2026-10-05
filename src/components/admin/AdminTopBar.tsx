@@ -39,8 +39,6 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/orders", "Orders"],
 ["/admin/settings/users", "Settings · Users"],
 ["/admin/settings/company", "Settings · Company"],
-["/admin/knowledge/wiki", "Knowledge · Wiki"],
-["/admin/website/content", "Website · Content"],
 ["/admin/crm/contacts", "CRM · Contacts"],
 ["/admin/crm/leads", "CRM · Leads"],
 ["/admin/crm/settings", "CRM · Settings"],
@@ -242,8 +240,8 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={() => navigate("/admin/website/content")}
-                  data-navigation-target="/admin/website/content"
+                  onClick={() => navigate("/atlas/website")}
+                  data-navigation-target="/atlas/website"
                   aria-label="Edit website content"
                 >
                   <Pencil className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />

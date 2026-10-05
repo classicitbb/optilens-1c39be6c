@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { PanelLeftOpen } from "lucide-react";
-import { SIDEBAR_MAX, SIDEBAR_MIN } from "@/hooks/useWikiWorkspacePrefs";
+import { SIDEBAR_MAX, SIDEBAR_MIN } from "../hooks/useAtlasPrefs";
 
 interface WorkspaceShellProps {
   sidebar: ReactNode;
@@ -88,7 +88,7 @@ const WorkspaceShell = ({
             onClick={() => onSidebarCollapsedChange(true)}
           />
           <aside
-            aria-label="Wiki pages"
+            aria-label="Pages"
             style={{ width: sidebarWidth }}
             className="relative z-30 flex min-h-0 shrink-0 flex-col border-r border-ws-line bg-ws-side max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:max-w-[85vw]"
           >

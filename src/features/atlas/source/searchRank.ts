@@ -3,7 +3,9 @@ export interface SearchDoc {
   title: string;
   /** Plain block text. */
   body: string;
-  kind: "page" | "website";
+  spaceId: string;
+  status?: string;
+  slug?: string | null;
   /** Secondary label shown on the result row (type, section, status). */
   meta?: string;
 }

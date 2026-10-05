@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { VISIBILITY_SCOPES } from "@/domain/statuses";
 import { toKnowledgeDocumentEntity } from "@/domain/services/recordMappers";
@@ -42,107 +42,6 @@ export const CONTENT_TYPE_OPTIONS: { value: ContentType; label: string }[] = [
   { value: "legal", label: "Legal Page" },
 ];
 
-const EMPTY_ARTICLES: ContentArticle[] = [];
-
-const normalizeRow = (row: any): ContentArticle => {
-  const contextRows = row.help_article_contexts ?? [];
-  const slugs = contextRows.map((c: any) => c.context_slug).filter(Boolean);
-  return {
-    ...row,
-    context_slugs: slugs.length > 0 ? [...new Set(slugs)] : [row.page_slug || "all"],
-    help_article_contexts: undefined,
-  } as ContentArticle;
-};
-
-export const useContentArticles = (contentType?: ContentType) => {
-  const qc = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ["content_articles", contentType],
-    queryFn: async () => {
-      let q = (supabase.from("help_articles") as any)
-        .select("*, help_article_contexts(context_slug)")
-        .order("category")
-        .order("sort_order");
-
-      if (contentType) {
-        q = q.eq("content_type", contentType);
-      }
-
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data as any[]).map(normalizeRow);
-    },
-  });
-
-  const upsertMutation = useMutation({
-    mutationFn: async (
-      article: Partial<ContentArticle> & { title: string; content: string; page_slug: string }
-    ) => {
-      const payload = {
-        title: article.title,
-        content: article.content,
-        page_slug: article.page_slug,
-        sort_order: article.sort_order ?? 0,
-        description: article.description ?? "",
-        category: article.category ?? "",
-        content_type: article.content_type ?? "wiki",
-        visibility: article.visibility ?? "internal",
-        is_active: article.is_active ?? true,
-      };
-
-      const contexts = [...new Set((article.context_slugs ?? [article.page_slug ?? "all"]).filter(Boolean))];
-
-      if (article.id) {
-        const { error } = await (supabase.from("help_articles") as any)
-          .update(payload)
-          .eq("id", article.id);
-        if (error) throw error;
-
-        // Sync context slugs
-        await (supabase.from("help_article_contexts") as any).delete().eq("article_id", article.id);
-        if (contexts.length > 0) {
-          const { error: ctxError } = await (supabase.from("help_article_contexts") as any)
-            .insert(contexts.map((slug) => ({ article_id: article.id, context_slug: slug })));
-          if (ctxError) throw ctxError;
-        }
-      } else {
-        const { data, error } = await (supabase.from("help_articles") as any).insert(payload).select("id").single();
-        if (error) throw error;
-
-        if (contexts.length > 0) {
-          const { error: ctxError } = await (supabase.from("help_article_contexts") as any)
-            .insert(contexts.map((slug) => ({ article_id: data.id, context_slug: slug })));
-          if (ctxError) throw ctxError;
-        }
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["content_articles"] });
-      qc.invalidateQueries({ queryKey: ["help_articles"] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase.from("help_articles") as any).delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["content_articles"] });
-      qc.invalidateQueries({ queryKey: ["help_articles"] });
-    },
-  });
-
-  return {
-    articles: query.data ?? EMPTY_ARTICLES,
-    isLoading: query.isLoading,
-    upsertArticle: upsertMutation.mutateAsync,
-    deleteArticle: deleteMutation.mutateAsync,
-    isSaving: upsertMutation.isPending,
-  };
-};
-
 /** Fetch only public articles for the website knowledge base */
 export const usePublicKnowledge = () => {
   return useQuery({
@@ -165,26 +64,6 @@ export const usePublicKnowledge = () => {
 
       return visible;
     },
-  });
-};
-
-/** Fetch published internal wiki articles for the staff SOP reader */
-export const useSopArticles = (enabled: boolean) => {
-  return useQuery({
-    queryKey: ["sop_articles"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("help_articles") as any)
-        .select("*")
-        .eq("content_type", "wiki")
-        .eq("visibility", "internal")
-        .eq("status", "published")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (error) throw error;
-      return (data || []) as ContentArticle[];
-    },
-    enabled,
   });
 };
 
