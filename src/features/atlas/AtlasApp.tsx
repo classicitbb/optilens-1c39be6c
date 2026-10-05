@@ -10,16 +10,25 @@ import { getAtlasSpace, listAtlasSpaces } from "./spaces";
 
 const MANIFEST_ID = "atlas-manifest";
 
-/** Atlas is installable: its manifest is linked only while an Atlas route is mounted. */
-const useAtlasManifest = () => {
+/**
+ * Atlas is installable: its manifest is linked only while an Atlas route is mounted, and a minimal
+ * service worker (app shell only, scoped to /atlas/) is registered. Registration failures are
+ * ignored: the app works the same without it.
+ */
+const useAtlasInstall = () => {
   useEffect(() => {
-    if (document.getElementById(MANIFEST_ID)) return;
-    const link = document.createElement("link");
-    link.id = MANIFEST_ID;
-    link.rel = "manifest";
-    link.href = `${ATLAS_CONFIG.basePath}.webmanifest`;
-    document.head.appendChild(link);
-    return () => link.remove();
+    let link: HTMLLinkElement | null = null;
+    if (!document.getElementById(MANIFEST_ID)) {
+      link = document.createElement("link");
+      link.id = MANIFEST_ID;
+      link.rel = "manifest";
+      link.href = `${ATLAS_CONFIG.basePath}.webmanifest`;
+      document.head.appendChild(link);
+    }
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register(`${ATLAS_CONFIG.basePath}-sw.js`, { scope: `${ATLAS_CONFIG.basePath}/` }).catch(() => undefined);
+    }
+    return () => link?.remove();
   }, []);
 };
 
@@ -54,7 +63,7 @@ const AtlasGate = () => {
 const AtlasApp = () => {
   useAdminBodyClass();
   useScrollingClass();
-  useAtlasManifest();
+  useAtlasInstall();
   return (
     <AdminRoleProvider>
       <div className="admin-tool h-screen w-full overflow-hidden rounded-none">

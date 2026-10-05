@@ -113,7 +113,7 @@ const WorkspaceShell = ({
           onClick={() => onSidebarCollapsedChange(false)}
           aria-label="Open sidebar (Ctrl+\)"
           title="Open sidebar"
-          className="absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-[6px] text-ws-ink-2 hover:bg-[var(--ws-hover)]"
+          className="absolute left-2 top-1.5 z-40 flex h-8 w-8 items-center justify-center rounded-[6px] border border-ws-line bg-ws-paper text-ws-ink hover:bg-[var(--ws-hover)]"
         >
           <PanelLeftOpen className="h-4 w-4" />
         </button>

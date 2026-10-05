@@ -37,3 +37,22 @@ export const ATLAS_CONFIG = {
 
 export const atlasPath = (...segments: (string | null | undefined)[]): string =>
   [ATLAS_CONFIG.basePath, ...segments.filter((segment): segment is string => Boolean(segment))].join("/");
+
+/** The install manifest, built from this config so name, scope and colours never drift from the app. */
+export const buildAtlasManifest = () => ({
+  id: `${ATLAS_CONFIG.basePath}/`,
+  name: ATLAS_CONFIG.productName,
+  short_name: ATLAS_CONFIG.shortName,
+  description: ATLAS_CONFIG.description,
+  start_url: `${ATLAS_CONFIG.basePath}/`,
+  scope: `${ATLAS_CONFIG.basePath}/`,
+  display: "standalone",
+  theme_color: ATLAS_CONFIG.manifest.themeColor,
+  background_color: ATLAS_CONFIG.manifest.backgroundColor,
+  icons: ATLAS_CONFIG.manifest.icons.map((icon) => ({ ...icon })),
+  shortcuts: ATLAS_CONFIG.shortcuts.map((shortcut) => ({
+    name: shortcut.name,
+    short_name: shortcut.name,
+    url: `${ATLAS_CONFIG.basePath}/${shortcut.spaceId}${shortcut.query}`,
+  })),
+});
