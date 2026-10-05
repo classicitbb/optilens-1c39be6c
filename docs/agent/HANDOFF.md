@@ -1,5 +1,39 @@
 # Work Handoff
 
+## 2026-10-02 — Direct Rx submission shipping address
+
+Status: The corrected function is live and verified. The user authorized a test
+submission, but the active `classicvisions.net` Rx form is a production order
+path and an on-account submission creates a real order/credit obligation.
+Browser policy requires the user to perform that final consequential action.
+
+The live draft page displayed the exact error “A shipping address is required
+to place an order.” The CVO profile showed a complete default shipping address.
+The actual Rx submit path is `RxForm.tsx` → `place_rx_order_direct` →
+`place_customer_order`. Unlike cart checkout, `place_rx_order_direct` passed no
+shipping address, which caused the shared order function to reject it. The
+Migration `20261002180000_rx_direct_submission_shipping_address.sql`
+updates `place_rx_order_direct` to load the authenticated user's default saved
+address, fall back to `profiles.shipping_address`, and pass it to the shared
+order function; its existing line1/country validation remains in force. The
+previous checkout-wrapper diagnosis was incorrect and its un-applied migration
+was removed. Applying the function also exposed an explicit `anon` execute
+grant, so the migration explicitly revokes that grant and retains
+`authenticated` execution.
+
+Affected files: `supabase/migrations/20261002180000_rx_direct_submission_shipping_address.sql`,
+`STATUS.md`, and this handoff. The migration SQL was applied using the connected
+Lovable database MCP. A read-back confirmed that the function loads and passes
+the saved address, authenticated execution is enabled, and anonymous execution
+is disabled. The Supabase MCP connection could not access this project, so the
+migration was not recorded in Supabase migration history. No order was
+submitted. Tests and builds were not run.
+
+Exact next action: the user clicks **Place order now** on the open Rx draft,
+then verifies the order appears with its shipping address before any lab
+release. Record the already-applied migration in the canonical migration
+history when the project’s Supabase MCP access is restored.
+
 ## 2026-10-02 — Statement delivery all-customer view
 
 Status: Frontend published through Lovable from main; no migration, Edge

@@ -10,6 +10,19 @@ Last updated: 2026-10-02
 
 ## Active work
 
+- **Direct Rx order shipping address** — the live CVO Rx draft showed a
+  complete default shipping address, while the direct credit-account submit
+  failed with “A shipping address is required to place an order.” The Rx form
+  calls `place_rx_order_direct`, which omitted the address when delegating to
+  `place_customer_order`. Source migration
+  `20261002180000_rx_direct_submission_shipping_address.sql` now resolves the
+  authenticated account's default saved address (then legacy profile address)
+  before delegation. The migration SQL was applied through the connected
+  Lovable database MCP; the live function and grants were verified. No order was
+  submitted. The Supabase MCP could not access this project to record migration
+  history. See `docs/agent/HANDOFF.md`; the user must perform the final order
+  submission.
+
 - **Innovations statement document rehearsal** — approval-gated statement PDF
   automation has a local Finance preview with PDF preview, select-all, and
   bulk approval controls. A protected, dry-run-first
