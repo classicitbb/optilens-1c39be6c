@@ -17,6 +17,7 @@ import { ACCEPT, isAcceptedFile, filesFromClipboard } from "./files";
 
 interface Job {
   id: string;
+  submitted?: boolean;
   account_id: number | null;
   storage_path: string | null;
   extra_paths: string[];
@@ -54,7 +55,12 @@ export default function RxCapturePage() {
     queryFn: async () => {
       const { data, error } = await jobs().select("*").order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
-      return data as Job[];
+      const ids = (data as Job[]).map((j) => j.quote_id).filter(Boolean);
+      const { data: sent } = ids.length
+        ? await (supabase.from("quotes") as any).select("id").in("id", ids).eq("status", "Sent")
+        : { data: [] };
+      const sentIds = new Set((sent ?? []).map((q: { id: string }) => q.id));
+      return (data as Job[]).map((j) => ({ ...j, submitted: !!j.quote_id && sentIds.has(j.quote_id) }));
     },
     // keep polling only while something is still being read
     refetchInterval: (q) => ((q.state.data as Job[] | undefined)?.some((j) => j.status === "queued" || j.status === "processing") ? 3000 : false),
@@ -225,7 +231,7 @@ function Review({ job, accountName, onBack }: { job: Job; accountName?: string; 
           />
         )}
       </div>
-      {quoteId && <p className="mt-2 text-[11px] text-muted-foreground">Saved as a draft order — it autosaves as you correct it.</p>}
+      {quoteId && <p className="mt-2 text-[11px] text-muted-foreground">{job.submitted ? "Sent for submission — you can still correct it until it is released; changes autosave." : "Saved as a draft order — it autosaves as you correct it."}</p>}
     </div>
   );
 }
