@@ -9,7 +9,8 @@ import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
 import { canonicalToSearchText, canonicalToTiptapDoc } from "@/lib/wikiCanonical";
 import { slugifyHelpValue } from "@/lib/helpCenter";
 import { ATLAS_CONFIG, atlasPath } from "./config";
-import { useAtlasWorkspaceName } from "./host";
+import { getAtlasHost, useAtlasWorkspaceName } from "./host";
+import { useStandaloneDisplay } from "./hooks/useStandaloneDisplay";
 import { defaultPropsFor, getAtlasSpace, homeSpaceFor, listAtlasSpaces, type AtlasSpaceDef } from "./spaces";
 import IrisPanel, { type IrisProposal, type IrisRequest } from "./iris/IrisPanel";
 import ImportDryRunDialog from "./import/ImportDryRunDialog";
@@ -67,6 +68,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const workspaceName = useAtlasWorkspaceName();
+  const standalone = useStandaloneDisplay();
   const data = useAtlasData();
   const { bySpace } = useAtlasCapabilities();
   const caps = bySpace[space.id];
@@ -566,6 +568,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
             pagePath={pagePath}
             showAssignments={isTree}
             showTree={isTree}
+            appLinks={standalone ? getAtlasHost().appLinks : undefined}
             onSearch={() => setPaletteOpen(true)}
             onAskIris={() => openIris()}
             onNewPage={() => void newPageDefault()}

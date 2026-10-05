@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
@@ -39,6 +40,8 @@ interface WorkspaceSidebarProps {
   showAssignments: boolean;
   /** Tree spaces list pages; database spaces browse them in the main view instead. */
   showTree: boolean;
+  /** Links back into the host app, shown when Atlas has no site header (installed window). */
+  appLinks?: { label: string; href: string }[];
   onSearch: () => void;
   onAskIris: () => void;
   onNewPage: () => void;
@@ -89,6 +92,7 @@ const WorkspaceSidebar = ({
   pagePath,
   showAssignments,
   showTree,
+  appLinks,
   onSearch,
   onAskIris,
   onNewPage,
@@ -154,6 +158,16 @@ const WorkspaceSidebar = ({
                 <Icon className="mr-2 h-3.5 w-3.5" /> {label}
               </DropdownMenuItem>
             ))}
+            {appLinks && appLinks.length > 0 ? (
+              <>
+                <DropdownMenuSeparator />
+                {appLinks.map((link) => (
+                  <DropdownMenuItem key={link.href} onSelect={() => window.open(link.href, "_blank", "noopener")}>
+                    {link.label} ↗
+                  </DropdownMenuItem>
+                ))}
+              </>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
         <button

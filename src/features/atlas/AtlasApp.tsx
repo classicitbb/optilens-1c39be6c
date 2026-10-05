@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { Navigate, useParams } from "react-router";
 import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
 import { useAdminBodyClass } from "@/hooks/useAdminBodyClass";
@@ -6,6 +7,8 @@ import { useScrollingClass } from "@/hooks/useScrollingClass";
 import AtlasWorkspace from "./AtlasWorkspace";
 import { ATLAS_CONFIG, atlasPath } from "./config";
 import { useAtlasCapabilities } from "./hooks/useAtlas";
+import { getAtlasHost } from "./host";
+import { useStandaloneDisplay } from "./hooks/useStandaloneDisplay";
 import { getAtlasSpace, listAtlasSpaces } from "./spaces";
 
 const MANIFEST_ID = "atlas-manifest";
@@ -60,16 +63,24 @@ const AtlasGate = () => {
 };
 
 /** The standalone, full-screen Atlas app: no admin chrome, its own theme scope and permission context. */
+const Passthrough = ({ children }: { children: ReactNode }) => <>{children}</>;
+
 const AtlasApp = () => {
   useAdminBodyClass();
   useScrollingClass();
   useAtlasInstall();
+  // In a browser tab the host's chrome (site header, launcher, search, profile, help) frames Atlas;
+  // as an installed window Atlas is the whole window and the chrome is skipped.
+  const standalone = useStandaloneDisplay();
+  const Frame = standalone ? Passthrough : (getAtlasHost().Frame ?? Passthrough);
   return (
     <AdminRoleProvider>
-      <div className="admin-tool h-screen w-full overflow-hidden rounded-none">
-        <main className="admin-content h-full min-h-0 w-full overflow-hidden p-0">
-          <AtlasGate />
-        </main>
+      <div className="admin-tool flex h-screen w-full flex-col overflow-hidden rounded-none">
+        <Frame>
+          <main className="admin-content h-full min-h-0 w-full flex-1 overflow-hidden p-0">
+            <AtlasGate />
+          </main>
+        </Frame>
       </div>
     </AdminRoleProvider>
   );

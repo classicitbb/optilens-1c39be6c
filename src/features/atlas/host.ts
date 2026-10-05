@@ -1,4 +1,4 @@
-import type { ComponentType, LazyExoticComponent } from "react";
+import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
 import { ATLAS_CONFIG } from "./config";
 import { registerAtlasSpace, type AtlasOption, type AtlasSpaceDef } from "./spaces";
 
@@ -41,6 +41,13 @@ export interface AtlasIrisProvider {
 }
 
 export interface AtlasHostConfig {
+  /**
+   * Wraps Atlas in the host app's own chrome (site header, help panel). Rendered in a normal browser
+   * tab and skipped when Atlas runs as an installed window, which brings its own frame.
+   */
+  Frame?: ComponentType<{ children: ReactNode }>;
+  /** Links back into the rest of the host app, offered in the sidebar when the Frame is not shown. */
+  appLinks?: { label: string; href: string }[];
   /** The assistant behind the Iris panel. Without one the panel says it is not connected. */
   iris?: AtlasIrisProvider;
   /** Hook returning the organisation display name for the sidebar header (null while loading). */

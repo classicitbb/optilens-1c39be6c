@@ -33,3 +33,12 @@ describe("atlas install manifest", () => {
     expect(source).not.toMatch(/\/rest\/|supabase/);
   });
 });
+
+describe("atlas frame", () => {
+  it("shows the host header in a browser tab and drops it when installed", async () => {
+    const source = (await import("node:fs")).readFileSync(path.resolve(process.cwd(), "src/features/atlas/AtlasApp.tsx"), "utf8");
+    expect(source).toContain("standalone ? Passthrough : (getAtlasHost().Frame ?? Passthrough)");
+    const hook = (await import("node:fs")).readFileSync(path.resolve(process.cwd(), "src/features/atlas/hooks/useStandaloneDisplay.ts"), "utf8");
+    expect(hook).toContain("(display-mode: standalone)");
+  });
+});
