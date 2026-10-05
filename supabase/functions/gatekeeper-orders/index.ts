@@ -317,6 +317,36 @@ function sanitizeContracts(contracts: GatekeeperContract[]) {
   }));
 }
 
+// Gatekeeper blacklists callers that sign in more than ~twice a day, and
+// failed sign-ins count. Once the stored JWT pair has been rejected (401),
+// retrying it cannot succeed, so refuse to contact Gatekeeper again until a
+// successful sign-in (e.g. reconnecting with a fresh PIN) supersedes it or the
+// cool-down lapses.
+const FAILED_AUTH_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+
+async function assertNoRecentAuthRejection(admin: any, environment: "staging" | "production") {
+  const since = new Date(Date.now() - FAILED_AUTH_COOLDOWN_MS).toISOString();
+  const endpoint = `${baseUrl(environment)}/api/v2/auth_user`;
+  const { data, error } = await admin
+    .from("gatekeeper_dispatch_logs")
+    .select("success,http_status,created_at")
+    .eq("phase", "auth_user")
+    .eq("endpoint", endpoint)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error || !Array.isArray(data) || data.length === 0) return;
+  const latest = data[0];
+  if (latest.success === false && (latest.http_status === 401 || latest.http_status === 403)) {
+    const retryAt = new Date(Date.parse(latest.created_at) + FAILED_AUTH_COOLDOWN_MS);
+    throw new GatekeeperPreSendError(
+      `Gatekeeper rejected the saved login (HTTP ${latest.http_status}). To avoid being blocked, sign-in is paused until ${retryAt.toISOString().slice(0, 16).replace("T", " ")} UTC. Reconnect with a new PIN from Ocuco to resume sooner.`,
+      "authentication",
+      latest.http_status,
+    );
+  }
+}
+
 async function credentialsFor(authContext: any): Promise<GatekeeperCredentials> {
   const { data, error } = await authContext.supabaseAdminClient.rpc("get_gatekeeper_credentials");
   const config = (Array.isArray(data) ? data[0] : data) as GatekeeperCredentials | null;
