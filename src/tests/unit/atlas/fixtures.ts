@@ -1,0 +1,28 @@
+import type { AtlasPage } from "@/features/atlas/source/types";
+
+export const makePage = (overrides: Partial<AtlasPage> = {}): AtlasPage => ({
+  id: "page-1",
+  title: "A page",
+  slug: "a-page",
+  spaceId: "wiki",
+  status: "published",
+  entryKind: "article",
+  href: "",
+  summary: "",
+  doc: { blocks: [{ type: "paragraph", children: [{ type: "text", text: "Hello" }] }] },
+  draftTitle: null,
+  draftDoc: null,
+  draftSavedAt: null,
+  parentId: null,
+  sectionId: null,
+  sortOrder: 0,
+  contexts: ["knowledge/wiki"],
+  props: { visibility: "internal", contentType: "wiki", category: "", description: "", pageSlug: "", active: true },
+  authorId: null,
+  lastEditedBy: null,
+  version: 1,
+  publishedAt: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-02T00:00:00.000Z",
+  ...overrides,
+});

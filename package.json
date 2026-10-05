@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "packageManager": "npm@10",
   "scripts": {
@@ -9,6 +9,7 @@
     "build": "vite build",
     "mcp:generate": "node scripts/generate_mcp_function.mjs",
     "copilot:facts": "node scripts/generate_copilot_platform_facts.mjs",
+    "atlas:assets": "node scripts/generate_atlas_assets.mjs",
     "qa:copilot-facts": "node scripts/generate_copilot_platform_facts.mjs --check",
     "search:index": "node scripts/generate_public_content_index.mjs",
     "qa:search-index": "node scripts/generate_public_content_index.mjs --check",

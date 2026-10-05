@@ -1,5 +1,13 @@
 # Frontend Help Docs
 
+## 2026-10-05 — Using Atlas
+
+- Open **Atlas** from the launcher (or `/atlas`). Pick a space in the sidebar header: **Wiki**, **SOPs** or **Website**. Ctrl+K searches every page by title and text; it also exports the space (zip of Markdown and JSON) and runs an import dry run.
+- **Website** shows a table of entries. Use the tabs, the **Table / Board / Gallery** switch, the status filter, sort and search. Click a row to open the side peek; **Open as full page** gives the full editor. Tick rows for bulk **Publish**, **Move to draft** or **Archive**; a page that fails the publish checks is listed by title and not published. On the Board, drag a card to **Published** (it snaps back if it fails the checks).
+- In the Wiki sidebar, hover a section to rename or delete it, or add a page. Deleting a section keeps its pages, which move to the top level.
+- **Ask Iris** (Ctrl+J, the sparkle in the top bar, or the selection toolbar) to summarize, make a checklist, find related pages, draft an FAQ entry, improve or shorten selected text, or ask a question. Iris shows a proposal: **Accept** adds it to the page draft, **Discard** drops it, **Try again** asks again. Offline, Iris pauses and you can keep writing.
+- To install Atlas as its own window, use the install icon in Chrome or Edge's address bar while on an Atlas page.
+
 ## 2026-10-05 — Writing in the wiki workspace
 
 - Open **Knowledge → Wiki**. Use the sidebar to open, add (+), rename, duplicate, move or archive pages; drag a page onto another to nest it, or between two pages to reorder. Archived pages are in **Trash**, where **Restore** brings them back.

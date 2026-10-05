@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { searchDocs, type SearchDoc } from "@/components/workspace/paletteSearch";
+import { searchDocs, type SearchDoc } from "@/features/atlas/source/searchRank";
 
 const docs: SearchDoc[] = [
-  { id: "1", title: "Frame returns", body: "How to pack a frame for return shipping.", kind: "page" },
-  { id: "2", title: "Shipping rates", body: "Carrier tables for Caribbean freight and frame returns.", kind: "page" },
-  { id: "3", title: "Returns FAQ", body: "Customer-facing answers.", kind: "website", meta: "FAQ" },
+  { id: "1", title: "Frame returns", body: "How to pack a frame for return shipping.", spaceId: "wiki" },
+  { id: "2", title: "Shipping rates", body: "Carrier tables for Caribbean freight and frame returns.", spaceId: "wiki" },
+  { id: "3", title: "Returns FAQ", body: "Customer-facing answers.", spaceId: "website", meta: "FAQ" },
 ];
 
 describe("searchDocs", () => {

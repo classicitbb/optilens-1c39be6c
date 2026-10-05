@@ -23,12 +23,7 @@ const AdminLayout = () => {
   useAdminBodyClass();
   const contextSlug = pathnameToContextSlug(location.pathname);
   const isDocStudio = location.pathname === "/admin/docs/studio";
-  // The wiki workspace is full-bleed: it brings its own sidebar and scroll panes.
-  const isWorkspaceRoute = location.pathname.startsWith("/admin/knowledge/wiki");
-  const hideSidebar =
-    location.pathname === "/admin/dashboard" ||
-    location.pathname.startsWith("/admin/knowledge/wiki") ||
-    isDocStudio;
+  const hideSidebar = location.pathname === "/admin/dashboard" || isDocStudio;
 
   return (
     <AdminRoleProvider>
@@ -39,9 +34,9 @@ const AdminLayout = () => {
           {!hideSidebar && <AdminSidebar />}
           <div className="flex flex-1 min-w-0 min-h-0">
             <main
-              className={`admin-content flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden ${isDocStudio || isWorkspaceRoute ? "p-0" : "p-4"}`}
+              className={`admin-content flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden ${isDocStudio ? "p-0" : "p-4"}`}
             >
-              <div className={`flex min-h-0 flex-1 flex-col ${isWorkspaceRoute ? "overflow-hidden" : "overflow-y-auto"}`}>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
                 <Outlet />
               </div>
             </main>

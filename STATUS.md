@@ -4,11 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-05
+Last updated: 2026-10-05 (Atlas)
 
 ---
 
 ## Active work
+
+- **Atlas** — branch `atlas` (stacked on PR #601's branch). One standalone workspace at `/atlas/:space/:articleSlug?` replaces Knowledge → Wiki, Knowledge → SOPs and Website → Pages / Content (`ContentManagerPage`, `AdminSopsPage` deleted; old URLs redirect and keep slugs). Spaces are data (`src/features/atlas/spaces.ts`): Wiki, SOPs (published-only view of the wiki) and Website (Table / Board / Gallery, saved views, bulk publish with per-row validation, 560px peek using the same editor). Storage is behind `AtlasSource`; per-space capability map (no one gains a right); installable (manifest + app-shell service worker, launcher entry, admin search over title and body); Iris panel with proposals only; Export space; ClickUp import **dry run only** (no write path). Read `src/features/atlas/CONTEXT.md`. Applied to the hosted project: nullable `help_articles.space` (`20261005130000_help_articles_space.sql`; its UPDATE bumped `updated_at` on all 51 rows). **Not verified:** PWA install prompt and service worker (in-app browser cannot register one), a live Iris reply (the function enforces same-origin CORS; the deployed `companion-assistant` grounds only on public articles until the staff-Atlas source change is **deployed**), live drag-to-publish and bulk publish on hosted data, and section delete. Blog is an embed until a blog adapter exists. Remaining separate write paths on `help_articles`: the help-panel `WikiArticleEditDialog` and `HelpArticleEditor`.
 
 - **Wiki block editor (Phase 3)** — branch `admin-workspace-phase3-editor` (PR #600). New `BlockEditor` (Tiptap) replaces `RichTextEditor` on `/admin/knowledge/wiki` only; `RichTextEditor` is untouched for its other callers. The canonical schema gains callout, toggle, to-do, code, divider, table and page-link blocks, code/strike/underline/colour/mention inlines, and nested lists (`depths` / `depth`); `tiptapDocToCanonical` / `canonicalToTiptapDoc` bridge them and unknown blocks round-trip. Autosave (800 ms, flushed on leaving) applies settings to the live row and sends published-page body edits to a draft copy (`draft_title`, `draft_body_json`, `draft_saved_at`); Update promotes it and writes a version row. **Applied to the hosted project on 2026-10-05 through the Lovable MCP (`query_database`):** `20261005121000_help_article_versions_table.sql` (table, RLS, indexes) and `20261005120000_help_articles_draft_copy.sql`. The original `20260308193000_wiki_rich_editor_workflow.sql` was deliberately **not** run: it assigns slugs to the 39 articles that have none (changing their URLs; two share a title and would break the unique index) and backfills baseline versions from raw content. These applies are not recorded in `supabase_migrations.schema_migrations` (that table holds Lovable-generated versions). Verified live on a published page: autosave writes only the draft columns, the live row is untouched, the draft survives a reload and Discard clears it. A version row has not been exercised yet (that needs an Update on a real page). Iris actions only open the placeholder panel (Phase 5); comments are disabled (no storage). Saving, publishing and drag-drop were not exercised against hosted data. Parity tests run under Vitest (`src/components/**/*.test.node.ts` is now included). `qa:copilot-facts` reports `platformFacts.generated.ts` as stale only because the Windows checkout has CRLF; the generated content is identical.
 
@@ -297,7 +299,7 @@ Last updated: 2026-10-05
 
 ## Recently stabilized (safe to build on)
 
-- Wiki article renderer — shared renderer in place; preview and published views both use it
+- Wiki article renderer — shared renderer in place; preview and published views both use it (Atlas uses the same one)
 - Customer assignment — list-page assign dialog is correct and stable
 - Auth guards — `/admin/**`, `/admin/moonshot/**`, `/ops/**` all behind `AdminProtectedRoute`
 - Portal Lab pricelist access — `Is Lab` resolves through person, parent, customer contact, or `contacts.linked_customer_id`; follow-up migration must be deployed before production verification

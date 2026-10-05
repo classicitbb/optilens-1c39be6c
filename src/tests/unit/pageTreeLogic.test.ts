@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ancestorsOf, descendantsOf, planPageMove, type TreePage } from "@/components/workspace/pageTreeLogic";
+import { ancestorsOf, descendantsOf, planPageMove, type TreePage } from "@/features/atlas/components/pageTreeLogic";
 
 const page = (id: string, over: Partial<TreePage> = {}): TreePage => ({
   id,

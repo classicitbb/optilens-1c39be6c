@@ -12,7 +12,7 @@ const WEBSITE_CONTENT: RetrievalDocument[] = [
     excerpt: "Approved internal and site documentation must be used before any external fallback.",
     source: "website_content",
     confidence: 0.98,
-    url: "/admin/knowledge/wiki",
+    url: "/atlas/wiki",
   },
 ];
 

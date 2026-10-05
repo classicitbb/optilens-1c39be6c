@@ -40,7 +40,7 @@ const AdminContentEditLink = (props: AdminContentEditLinkProps) => {
       asChild
       className={props.className ?? "h-8 gap-1.5 rounded-full border-border/70 bg-background/90 text-xs"}
     >
-      <Link to={`/admin/website/content?${search.toString()}`}>
+      <Link to={`/atlas/website?${search.toString()}`}>
         <Pencil className="h-3.5 w-3.5" />
         Edit
       </Link>
