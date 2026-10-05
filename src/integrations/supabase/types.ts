@@ -4092,6 +4092,47 @@ export type Database = {
           },
         ]
       }
+      help_article_versions: {
+        Row: {
+          article_id: string
+          body_snapshot: Json
+          change_note: string | null
+          saved_at: string
+          saved_by: string | null
+          title_snapshot: string
+          version_id: string
+          version_number: number
+        }
+        Insert: {
+          article_id: string
+          body_snapshot: Json
+          change_note?: string | null
+          saved_at?: string
+          saved_by?: string | null
+          title_snapshot: string
+          version_id?: string
+          version_number: number
+        }
+        Update: {
+          article_id?: string
+          body_snapshot?: Json
+          change_note?: string | null
+          saved_at?: string
+          saved_by?: string | null
+          title_snapshot?: string
+          version_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_article_versions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_articles: {
         Row: {
           author_id: string | null
@@ -4102,6 +4143,9 @@ export type Database = {
           content_type: string
           created_at: string
           description: string
+          draft_body_json: Json | null
+          draft_saved_at: string | null
+          draft_title: string | null
           id: string
           is_active: boolean
           is_public: boolean | null
@@ -4112,6 +4156,7 @@ export type Database = {
           section_id: string | null
           slug: string | null
           sort_order: number
+          space: string | null
           status: string
           summary: string
           title: string
@@ -4128,6 +4173,9 @@ export type Database = {
           content_type?: string
           created_at?: string
           description?: string
+          draft_body_json?: Json | null
+          draft_saved_at?: string | null
+          draft_title?: string | null
           id?: string
           is_active?: boolean
           is_public?: boolean | null
@@ -4138,6 +4186,7 @@ export type Database = {
           section_id?: string | null
           slug?: string | null
           sort_order?: number
+          space?: string | null
           status?: string
           summary?: string
           title: string
@@ -4154,6 +4203,9 @@ export type Database = {
           content_type?: string
           created_at?: string
           description?: string
+          draft_body_json?: Json | null
+          draft_saved_at?: string | null
+          draft_title?: string | null
           id?: string
           is_active?: boolean
           is_public?: boolean | null
@@ -4164,6 +4216,7 @@ export type Database = {
           section_id?: string | null
           slug?: string | null
           sort_order?: number
+          space?: string | null
           status?: string
           summary?: string
           title?: string
@@ -10755,13 +10808,15 @@ export type Database = {
           locked_by: string | null
           max_retries: number
           next_retry_at: string
+          one_drive_drive_id: string | null
+          one_drive_item_id: string | null
+          one_drive_path: string | null
+          one_drive_url: string | null
           pdf_bytes: number | null
           pdf_filename: string | null
           pdf_template_version: string
           retry_count: number
           skip_reason: string | null
-          storage_bucket: string
-          storage_path: string | null
           statement_id: number | null
           status: string
           updated_at: string
@@ -10786,13 +10841,15 @@ export type Database = {
           locked_by?: string | null
           max_retries?: number
           next_retry_at?: string
+          one_drive_drive_id?: string | null
+          one_drive_item_id?: string | null
+          one_drive_path?: string | null
+          one_drive_url?: string | null
           pdf_bytes?: number | null
           pdf_filename?: string | null
           pdf_template_version?: string
           retry_count?: number
           skip_reason?: string | null
-          storage_bucket?: string
-          storage_path?: string | null
           statement_id?: number | null
           status?: string
           updated_at?: string
@@ -10817,13 +10874,15 @@ export type Database = {
           locked_by?: string | null
           max_retries?: number
           next_retry_at?: string
+          one_drive_drive_id?: string | null
+          one_drive_item_id?: string | null
+          one_drive_path?: string | null
+          one_drive_url?: string | null
           pdf_bytes?: number | null
           pdf_filename?: string | null
           pdf_template_version?: string
           retry_count?: number
           skip_reason?: string | null
-          storage_bucket?: string
-          storage_path?: string | null
           statement_id?: number | null
           status?: string
           updated_at?: string
@@ -14057,6 +14116,14 @@ export type Database = {
           ticket_id: string
           ticket_number: string
         }[]
+      }
+      submit_reviewed_rx_capture: {
+        Args: { p_job_id: string }
+        Returns: string
+      }
+      sweep_stale_order_claims: {
+        Args: { p_older_than?: string }
+        Returns: number
       }
       sync_customer_portal_identity: {
         Args: { p_user_id?: string }

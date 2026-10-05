@@ -24,7 +24,7 @@ const listBlocks = (list: List): BlogBlockNode[] => {
   const visit = (current: List, depth: number) => {
     for (const item of current.children) {
       const children = item.children.flatMap((child) => child.type === "paragraph" ? inline(child.children) : []);
-      const previous = blocks.at(-1);
+      const previous = blocks[blocks.length - 1];
       if (typeof item.checked === "boolean") {
         const todo: BlogTodoItem = { checked: item.checked, children, ...(depth ? { depth } : {}) };
         if (previous?.type === "todo") previous.items.push(todo);

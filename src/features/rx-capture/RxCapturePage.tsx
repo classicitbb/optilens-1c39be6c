@@ -216,6 +216,11 @@ function Review({ job, accountName, onBack }: { job: Job; accountName?: string; 
               setQuoteId(id);
               await jobs().update({ quote_id: id }).eq("id", job.id);
             }}
+            submitToQueue={async (id) => {
+              await jobs().update({ quote_id: id }).eq("id", job.id);
+              const { error } = await (supabase.rpc as any)("submit_reviewed_rx_capture", { p_job_id: job.id });
+              if (error) throw new Error(error.message);
+            }}
             onStartAnother={onBack}
           />
         )}
