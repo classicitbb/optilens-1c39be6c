@@ -13,6 +13,7 @@ import { useAtlasWorkspaceName } from "./host";
 import { defaultPropsFor, getAtlasSpace, homeSpaceFor, listAtlasSpaces, type AtlasSpaceDef } from "./spaces";
 import IrisPanel, { type IrisProposal, type IrisRequest } from "./iris/IrisPanel";
 import ImportDryRunDialog from "./import/ImportDryRunDialog";
+import { buildSpaceExport, zipFiles } from "./exportSpace";
 import { buildTree, toPageSlug } from "./pageTree";
 import { useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
 import { usePageEditor } from "./hooks/usePageEditor";
@@ -367,6 +368,18 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     URL.revokeObjectURL(url);
   };
 
+  /** Every page of this space as Markdown and canonical JSON in one zip, so content can always leave Atlas. */
+  const exportSpace = () => {
+    const files = buildSpaceExport(space.label, spacePages, sections);
+    const url = URL.createObjectURL(new Blob([zipFiles(files) as BlobPart], { type: "application/zip" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${space.id}-export.zip`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export ready", description: `${spacePages.length} pages` });
+  };
+
   const sharePage = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}`);
@@ -438,6 +451,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
         .filter((candidate) => candidate.id !== space.id)
         .map((candidate) => ({ id: `open-${candidate.id}`, label: `Open ${candidate.label}`, icon: <candidate.icon className="h-4 w-4" />, run: () => navigate(atlasPath(candidate.id)) })),
       { id: "iris", label: "Ask Iris", icon: <span aria-hidden>✦</span>, run: () => openIris() },
+      { id: "export", label: `Export ${space.label} (.zip)`, icon: <span aria-hidden>⇩</span>, run: exportSpace },
       ...(canEdit ? [{ id: "import", label: "Import dry run…", icon: <span aria-hidden>⇪</span>, run: () => setImportOpen(true) }] : []),
     ],
     [canCreate, canEdit, navigate, newPageDefault, openIris, space.id, spaces],
