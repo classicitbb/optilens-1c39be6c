@@ -277,3 +277,11 @@ describe("routing field constraints", () => {
     expect(fields.get("cust_num")).toBe("<cust_num>");
   });
 });
+
+describe("OptiLens office route placeholders", () => {
+  it("renders {{lab_num}} / {{cust_num}} without Gatekeeper lab validation", () => {
+    const file = buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), { labNum: "{{lab_num}}", custNum: "{{cust_num}}" });
+    expect(file).toContain("lab_num:{{lab_num}}");
+    expect(file).toContain("cust_num:{{cust_num}}");
+  });
+});

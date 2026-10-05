@@ -351,9 +351,10 @@ export function buildOrderHashref(order: CanonicalOrder, routing: HashrefRouting
   // Gatekeeper spec constraints: agent_name is lowercase, lab_num is a
   // three-digit 001-999 value, and cust_seq_num is a three-digit integer.
   const agentName = (routing.agentName ?? "optilens").toLowerCase();
-  // Previews render before a contract is attached and pass a visible
-  // placeholder, which is left as-is instead of being validated.
-  const isPlaceholderLab = text(routing.labNum).startsWith("<");
+  // Previews ("<lab_num>") and the OptiLens/Innovations office route
+  // ("{{lab_num}}", filled in by optilens-local) pass placeholders. Only real
+  // Gatekeeper sends carry a contract lab number, so only those are validated.
+  const isPlaceholderLab = /^(<|\{\{)/.test(text(routing.labNum));
   const labNumRaw = text(routing.labNum).replace(/\D/g, "");
   const labNumValue = Number(labNumRaw);
   if (!isPlaceholderLab && (!labNumRaw || !Number.isFinite(labNumValue) || labNumValue < 1)) {
