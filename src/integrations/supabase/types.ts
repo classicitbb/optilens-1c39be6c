@@ -14117,6 +14117,10 @@ export type Database = {
           ticket_number: string
         }[]
       }
+      submit_reviewed_rx_capture: {
+        Args: { p_job_id: string }
+        Returns: string
+      }
       sweep_stale_order_claims: {
         Args: { p_older_than?: string }
         Returns: number
