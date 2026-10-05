@@ -12,6 +12,7 @@ import { ATLAS_CONFIG, atlasPath } from "./config";
 import { useAtlasWorkspaceName } from "./host";
 import { defaultPropsFor, getAtlasSpace, homeSpaceFor, listAtlasSpaces, type AtlasSpaceDef } from "./spaces";
 import IrisPanel, { type IrisProposal, type IrisRequest } from "./iris/IrisPanel";
+import ImportDryRunDialog from "./import/ImportDryRunDialog";
 import { buildTree, toPageSlug } from "./pageTree";
 import { useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
 import { usePageEditor } from "./hooks/usePageEditor";
@@ -76,6 +77,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const sidebar = useAtlasSidebarState();
 
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
 
   const panelTab = parsePanelTab(searchParams.get("panel"));
@@ -436,8 +438,9 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
         .filter((candidate) => candidate.id !== space.id)
         .map((candidate) => ({ id: `open-${candidate.id}`, label: `Open ${candidate.label}`, icon: <candidate.icon className="h-4 w-4" />, run: () => navigate(atlasPath(candidate.id)) })),
       { id: "iris", label: "Ask Iris", icon: <span aria-hidden>✦</span>, run: () => openIris() },
+      ...(canEdit ? [{ id: "import", label: "Import dry run…", icon: <span aria-hidden>⇪</span>, run: () => setImportOpen(true) }] : []),
     ],
-    [canCreate, navigate, newPageDefault, openIris, space.id, spaces],
+    [canCreate, canEdit, navigate, newPageDefault, openIris, space.id, spaces],
   );
 
   const visibleSpaceIds = useMemo(() => [...new Set(spaces.map((candidate) => candidate.scope.storeSpace))], [spaces]);
@@ -726,6 +729,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
         actions={paletteActions}
         placeholder="Search pages and text…"
       />
+
+      <ImportDryRunDialog open={importOpen} onOpenChange={setImportOpen} existingSlugs={allPages.map((page) => page.slug)} />
 
       <MoveToDialog
         open={Boolean(moveTargetId)}
