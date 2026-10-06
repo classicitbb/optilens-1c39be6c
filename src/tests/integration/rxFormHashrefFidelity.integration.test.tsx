@@ -166,8 +166,9 @@ describe("the React form's order, as the lab receives it", () => {
     uncutValues.lens.diameter = "70";
     const uncut = await sendToLab(uncutValues);
     expect(uncut.fields.get("frame_edge")).toBe("UNCUT");
-    expect(uncut.fields.get("frame_status")).toBe("LENSES ONLY");
-    expect(uncut.fields.has("frame_a")).toBe(false);
+    expect(uncut.fields.get("frame_status")).toBe("UNCUT");
+    expect(uncut.fields.get("frame_source")).toBe("NO TRACE - UNCUT");
+    expect(uncut.fields.get("frame_model")?.length).toBeGreaterThan(0);
   });
 
   it("names the confirmed lens on both eyes so the lab does not have to map it", async () => {

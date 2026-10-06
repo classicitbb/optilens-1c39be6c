@@ -287,28 +287,50 @@ function renderLensAndRx(order: CanonicalOrder): string[] {
 function renderFrame(order: CanonicalOrder): string[] {
   const frame = order.frame;
   if (!frame) throw new Error("Frame details are required for a prescription order.");
-  const lines = [
-    line("frame_status", frame.isUncut ? "LENSES ONLY" : "SUPPLIED"),
-    line("frame_tracing", "NO TRACE"),
-    line("frame_mounting", "STANDARD"),
-    line("frame_edge", frame.isUncut ? "UNCUT" : "EDGED"),
-    line("frame_vendor", frame.brand),
-    line("frame_model", frame.model),
-  ];
-
   if (frame.isUncut) {
     if (frame.edMm == null) throw new Error("Frame ED is required to derive the uncut diameter.");
     const diameter = Math.ceil(Number(frame.edMm));
     if (!Number.isFinite(diameter) || diameter < 30 || diameter > 80) {
       throw new Error("Frame ED must yield an uncut diameter between 30 and 80 mm.");
     }
+    // Innovations' Job Manager parks an uncut order as "Bad Frame Data - Uncut
+    // Lenses" unless its frame block looks like a real uncut export (observed
+    // 2026-10-06 on five Gatekeeper test orders that carried `LENSES ONLY`, an
+    // empty frame_model and no A/B/DBL). This mirrors the one real accepted
+    // sample, templates/rx-samples/sample-sv-distance-uncut.rx in optilens-local:
+    // frame_status UNCUT, a non-empty frame_model, the form's A/B/DBL, numeric
+    // mounting and dress. The spec's x_uncut_by_diam trio is kept after it.
+    const model = text(frame.model) || text(frame.brand) || "UNKNOWN";
+    const lines = [
+      line("frame_source", "NO TRACE - UNCUT"),
+      line("frame_status", "UNCUT"),
+      line("frame_tracing", "NO TRACE"),
+      line("frame_vendor", frame.brand),
+      line("frame_model", model),
+    ];
+    if (frame.aMm != null) lines.push(line("frame_a", numberText(frame.aMm, "Frame A")));
+    if (frame.bMm != null) lines.push(line("frame_b", numberText(frame.bMm, "Frame B")));
+    if (frame.dblMm != null) lines.push(line("frame_dbl", numberText(frame.dblMm, "Frame DBL")));
     lines.push(
+      line("frame_rad_angle", "45.0"),
+      line("frame_mounting", "1"),
+      line("frame_dress", "DRESS"),
+      line("frame_edge", "UNCUT"),
       line("x_uncut_by_diam", "Y"),
       line("x_od_uncut_diam", diameter),
       line("x_os_uncut_diam", diameter),
     );
     return lines;
   }
+
+  const lines = [
+    line("frame_status", "SUPPLIED"),
+    line("frame_tracing", "NO TRACE"),
+    line("frame_mounting", "STANDARD"),
+    line("frame_edge", "EDGED"),
+    line("frame_vendor", frame.brand),
+    line("frame_model", frame.model),
+  ];
 
   if (frame.aMm == null || frame.bMm == null || frame.edMm == null) {
     throw new Error("Frame A, B, and ED measurements are required for an edged order.");

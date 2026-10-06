@@ -144,14 +144,20 @@ describe("prescription orders", () => {
     expect(fields.get("rx_os_sphere")).toBe("-2.25");
   });
 
-  it("derives an uncut diameter instead of frame measurements for a surface-only job", () => {
+  it("writes a surface-only job as a real uncut export: UNCUT status, a model, the A/B/DBL box and the derived diameter", () => {
     const submission = rxSubmission();
-    submission.payload.frame = { ...submission.payload.frame, is_uncut: true, job_scope: "surface_only", ed_mm: 54.2 } as any;
+    submission.payload.frame = { ...submission.payload.frame, is_uncut: true, job_scope: "surface_only", ed_mm: 54.2, model_colour: null, brand: "ZZ TEST FRAME" } as any;
     const fields = fieldsOf(buildOrderHashref(canonicalOrderFromRxSubmission(submission), ROUTING));
+    // Innovations parks anything else as "Bad Frame Data - Uncut Lenses".
+    expect(fields.get("frame_source")).toBe("NO TRACE - UNCUT");
+    expect(fields.get("frame_status")).toBe("UNCUT");
     expect(fields.get("frame_edge")).toBe("UNCUT");
+    expect(fields.get("frame_model")).toBe("ZZ TEST FRAME");
+    expect(fields.get("frame_mounting")).toBe("1");
+    expect(fields.get("frame_dress")).toBe("DRESS");
+    expect(fields.has("frame_a")).toBe(true);
     expect(fields.get("x_uncut_by_diam")).toBe("Y");
     expect(fields.get("x_od_uncut_diam")).toBe("55");
-    expect(fields.has("frame_a")).toBe(false);
   });
 
   it("carries coatings and tints as order items so the lab gets the whole job", () => {
