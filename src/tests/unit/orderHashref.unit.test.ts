@@ -169,27 +169,54 @@ describe("prescription orders", () => {
 });
 
 describe("stock orders", () => {
-  it("uses rx_eye 5 and the no-frame descriptors", () => {
-    const fields = fieldsOf(buildOrderHashref(canonicalOrderFromStockSubmission(stockSubmission()), ROUTING));
+  it("uses the Innovations stock layout: file_version before start_order, rx_eye 5, no frame block", () => {
+    const hashref = buildOrderHashref(canonicalOrderFromStockSubmission(stockSubmission()), ROUTING);
+    const lines = hashref.split("\r\n");
+    expect(lines.slice(0, 5)).toEqual(["file_version:1.0", "start_order", "agent_name:LL", "agent_version:3", "lab_num:005"]);
+    expect(lines.slice(-3)).toEqual(["x_rx_balance:true", "x_rx_seg_height_qual:1", "end_order"]);
+    const fields = fieldsOf(hashref);
     expect(fields.get("rx_eye")).toBe("5");
-    expect(fields.get("frame_status")).toBe("LENSES ONLY");
-    expect(fields.get("frame_edge")).toBe("UNCUT");
+    expect(fields.get("x_standard_shape_trace")).toBe("false");
+    expect(fields.get("frame_tracing")).toBe("NO TRACE");
+    expect(fields.get("cust_seq_num")).toBe("1");
+    expect(fields.get("date_ordered")).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(fields.has("frame_status")).toBe(false);
     expect(fields.has("rx_od_sphere")).toBe(false);
   });
 
-  it("writes each SKU as an item block with a padded quantity and its price", () => {
+  it("writes each SKU as a bare item block: unpadded quantity, item_comment, no side or price", () => {
     const hashref = buildOrderHashref(canonicalOrderFromStockSubmission(stockSubmission()), ROUTING);
-    expect(hashref).toContain("sku:5110102893");
-    expect(hashref).toContain("item_quantity:02");
-    expect(hashref).toContain("x_misc_item_price:18.50");
-    expect(hashref).toContain("item_source:SFLENS");
+    expect(hashref).toContain(
+      "item_start\r\nsku:5110102893\r\nitem_source:FLENS\r\nitem_description:CV Stock 1.59 -2.00/-1.00\r\n" +
+      "item_quantity:2\r\nitem_comment:shelf A\r\nitem_part_rx:Y\r\nitem_end",
+    );
+    expect(hashref).toContain("item_source:SLENS");
+    expect(hashref).not.toContain("item_side");
+    expect(hashref).not.toContain("x_misc_item_price");
     expect(hashref.match(/item_start/g)).toHaveLength(2);
   });
 
-  it("falls back to the order reference for the mandatory patient name", () => {
+  it("keeps the whole item_description, power included", () => {
+    const submission = stockSubmission();
+    submission.payload.items = [{ sku: "0095006615", source: "FLENS", description: "CR-39 SV CLEAR 70.0 0.0/-4.75/Either", quantity: 2 }] as any;
+    const hashref = buildOrderHashref(canonicalOrderFromStockSubmission(submission), ROUTING);
+    expect(hashref).toContain("item_description:CR-39 SV CLEAR 70.0 0.0/-4.75/Either");
+  });
+
+  it("falls back to the order reference for the mandatory patient name and ship_name", () => {
     const fields = fieldsOf(buildOrderHashref(canonicalOrderFromStockSubmission(stockSubmission()), ROUTING));
     expect(fields.get("patient_name")).toBe("Counter sale");
+    expect(fields.get("ship_name")).toBe("Counter sale");
     expect(fields.get("customer_po_num")).toBe("PO-77");
+  });
+
+  it("uses the account name as ship_name and never invents a customer_po_num", () => {
+    const submission = stockSubmission();
+    (submission.payload as any).account = { name: "Star Pupils" };
+    (submission.payload as any).po_number = "";
+    const fields = fieldsOf(buildOrderHashref(canonicalOrderFromStockSubmission(submission), ROUTING));
+    expect(fields.get("ship_name")).toBe("Star Pupils");
+    expect(fields.get("customer_po_num")).toBe("");
   });
 
   it("refuses an item with no SKU rather than sending an unorderable line", () => {
@@ -233,8 +260,14 @@ describe("routing field constraints", () => {
         expect(fields.get("lab_num")).toMatch(/^\d{3,}$/);
 
         expect(fields.get("cust_num")).toBe(receiver.routing.custNum);
-        expect(fields.get("cust_seq_num")).toMatch(/^\d{3}$/);
-        expect(fields.get("agent_name")).toBe("optilens");
+        // Stock orders use Innovations' own layout (seq 1, agent LL); Rx keeps Gatekeeper's.
+        if (orderKind.kind === "stock") {
+          expect(fields.get("cust_seq_num")).toBe("1");
+          expect(fields.get("agent_name")).toBe("LL");
+        } else {
+          expect(fields.get("cust_seq_num")).toMatch(/^\d{3}$/);
+          expect(fields.get("agent_name")).toBe("optilens");
+        }
       });
     }
   }
@@ -243,7 +276,7 @@ describe("routing field constraints", () => {
     const fields = fieldsOf(buildOrderHashref(canonicalOrderFromRxSubmission(rxSubmission()), ROUTING));
     expect(fields.get("cust_seq_num")).toBe("558"); // gatekeeper_order_id 362558
     const stockFields = fieldsOf(buildOrderHashref(canonicalOrderFromStockSubmission(stockSubmission()), ROUTING));
-    expect(stockFields.get("cust_seq_num")).toBe("001"); // gatekeeper_order_id 900001
+    expect(stockFields.get("cust_seq_num")).toBe("1"); // stock orders always send 1, as Innovations does
     expect(stockFields.get("order_id")).toBe("900001");
   });
 

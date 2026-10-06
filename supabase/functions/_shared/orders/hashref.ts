@@ -77,6 +77,8 @@ export interface CanonicalOrder {
   submissionId: string;
   patientName: string;
   poNumber?: string;
+  /** Stock orders only: the ship-to name shown to the lab (ship_name). */
+  shipName?: string;
   instructions?: string;
   /** "YYYY-MM-DD-HH-MM-SS". */
   dateOrdered: string;
@@ -283,18 +285,6 @@ function renderLensAndRx(order: CanonicalOrder): string[] {
 }
 
 function renderFrame(order: CanonicalOrder): string[] {
-  // A stock order has no job to glaze: rx_eye 5 already says "stock order
-  // only", and the mandatory frame descriptors carry the values that mean
-  // "no frame involved" rather than being omitted.
-  if (order.kind === "stock") {
-    return [
-      line("frame_status", "LENSES ONLY"),
-      line("frame_tracing", "NO TRACE"),
-      line("frame_mounting", "STANDARD"),
-      line("frame_edge", "UNCUT"),
-    ];
-  }
-
   const frame = order.frame;
   if (!frame) throw new Error("Frame details are required for a prescription order.");
   const lines = [
@@ -333,6 +323,69 @@ function renderFrame(order: CanonicalOrder): string[] {
   return lines;
 }
 
+/** Innovations' stock-order layout ("2026-09-21 14:44:43"), unlike the
+ *  dash-separated Hashref date the Rx writer uses. */
+export function innovationsDate(now: Date = new Date()): string {
+  return hashrefDate(now).replace(/^(\d{4}-\d{2}-\d{2})-(\d{2})-(\d{2})-(\d{2})$/, "$1 $2:$3:$4");
+}
+
+// Stock/SKU orders use the exact layout Innovations itself accepts (reference:
+// optilens-local docs/innova-stockhashref-format.md, templates/stock-order-
+// template.txt, and a real LL order): file_version sits *before* start_order,
+// the header carries x_standard_shape_trace/ship_name/frame_rad_angle, items
+// are bare SKU blocks with no side/price (Innovations prices from its own
+// catalogue; every web item exists there), and the file ends with the
+// x_rx_balance / x_rx_seg_height_qual trailer. customer_po_num carries only a
+// real customer PO: Innovations rejected a file whose PO was a generated number.
+function buildStockHashref(order: CanonicalOrder, routing: HashrefRouting, labNum: string, patientName: string): string {
+  if (!order.items.length) throw new Error("A stock order needs at least one item.");
+  const lines: string[] = [
+    line("file_version", "1.0"),
+    "start_order",
+    line("agent_name", routing.agentName ?? "LL"),
+    line("agent_version", routing.agentVersion ?? "3"),
+    line("lab_num", labNum),
+    line("cust_num", routing.custNum),
+    line("cust_seq_num", "1"),
+    // Innovations' date has colons in its value; the first colon is still the
+    // separator, so it is written as-is rather than through line()'s escaping.
+    `date_ordered:${order.dateOrdered}`,
+    line("instructions", order.instructions ?? ""),
+    line("x_standard_shape_trace", "false"),
+    line("order_id", order.orderId),
+    line("x_gk_order", order.orderId),
+    line("x_gk_guid", order.submissionId),
+    line("customer_po_num", order.poNumber ?? ""),
+    line("patient_name", patientName),
+    line("ship_name", order.shipName || patientName),
+    line("rx_eye", "5"),
+    line("frame_tracing", "NO TRACE"),
+    line("frame_rad_angle", "45.0"),
+  ];
+  for (const item of order.items) {
+    const sku = text(item.sku, 15);
+    if (!sku) throw new Error(`Order item "${item.description}" has no SKU to send.`);
+    const quantity = Number(item.quantity ?? 1);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      throw new Error(`Order item "${item.description}" needs a quantity between 1 and 99.`);
+    }
+    // Innovations confirmed SLENS for a semi-finished lens in this layout.
+    const source = normalizeItemSource(item.source);
+    lines.push(
+      "item_start",
+      line("sku", sku),
+      line("item_source", source === "SFLENS" ? "SLENS" : source),
+      line("item_description", text(item.description, 200)),
+      line("item_quantity", String(quantity)),
+      line("item_comment", text(item.comment, 200)),
+      line("item_part_rx", item.partRx === "N" ? "N" : "Y"),
+      "item_end",
+    );
+  }
+  lines.push(line("x_rx_balance", "true"), line("x_rx_seg_height_qual", "1"), "end_order");
+  return lines.join("\r\n");
+}
+
 /** Render a CanonicalOrder as a Hashref v2.5 order file. */
 export function buildOrderHashref(order: CanonicalOrder, routing: HashrefRouting): string {
   if (!order.orderId) throw new Error("An order number has not been allocated yet.");
@@ -364,6 +417,8 @@ export function buildOrderHashref(order: CanonicalOrder, routing: HashrefRouting
   // so only pad short values and send longer ones through unchanged.
   const labNum = isPlaceholderLab ? text(routing.labNum) : String(labNumValue).padStart(3, "0");
 
+  if (order.kind === "stock") return buildStockHashref(order, routing, labNum, patientName);
+
   const orderDigits = String(order.orderId).replace(/\D/g, "");
   const custSeqNum = String(Number(orderDigits.slice(-3) || "0")).padStart(3, "0");
 
@@ -386,12 +441,7 @@ export function buildOrderHashref(order: CanonicalOrder, routing: HashrefRouting
     ...renderFrame(order),
   ];
 
-  if (order.kind === "stock") {
-    lines.push(line("rx_eye", "5"));
-    if (!order.items.length) throw new Error("A stock order needs at least one item.");
-  } else {
-    lines.push(...renderLensAndRx(order));
-  }
+  lines.push(...renderLensAndRx(order));
 
   for (const item of order.items) lines.push(...renderItem(item));
   lines.push("end_order");
@@ -509,9 +559,10 @@ export function canonicalOrderFromStockSubmission(submission: SubmissionLike, no
     // A stock order has no patient, but patient_name is mandatory — the
     // customer's own order reference is the useful thing to show the lab.
     patientName: payload.order_reference || payload.po_number || "Stock Order",
-    poNumber: payload.po_number || String(orderId),
+    poNumber: payload.po_number || "",
+    shipName: payload.account?.name || "",
     instructions: payload.instructions || "",
-    dateOrdered: hashrefDate(now),
+    dateOrdered: innovationsDate(now),
     items: rawItems.map((item: any) => ({
       sku: String(item.sku ?? ""),
       source: item.source,
