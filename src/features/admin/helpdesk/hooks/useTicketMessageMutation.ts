@@ -35,11 +35,14 @@ export const useTicketMessageMutation = () => {
         p_internal_note: direction === "internal_note",
       });
       if (error) throw error;
-      return Array.isArray(data) ? data[0] : data;
+      const message = Array.isArray(data) ? data[0] : data;
+      if (files.length) await uploadHelpdeskFiles(ticketId, files, message?.id ?? null);
+      return message;
     },
-    onSuccess: (_data, variables) => {
+    onSettled: (_data, _err, variables) => {
       qc.invalidateQueries({ queryKey: helpdeskMessageQueryKeys.list(variables.ticketId) });
       qc.invalidateQueries({ queryKey: helpdeskTicketQueryKeys.detail(variables.ticketId) });
+      qc.invalidateQueries({ queryKey: helpdeskAttachmentQueryKeys.list(variables.ticketId) });
     },
     onError: (err: Error) => {
       toast({ title: "Failed to send", description: err.message, variant: "destructive" });
