@@ -18,6 +18,9 @@ import { uploadHelpdeskFiles, type HelpdeskAttachment, validateHelpdeskFiles } f
 import { RichMarkdown } from "@/components/content/RichMarkdown";
 import { HelpdeskMessageAuthorControls, RETRACTED_MESSAGE_LABEL } from "@/components/account/HelpdeskMessageActions";
 
+// Mirrors the 15 minutes enforced by lock_own_helpdesk_message; the database is the authority.
+const CUSTOMER_EDIT_WINDOW_MS = 15 * 60 * 1000;
+
 const HelpdeskTicketDetailSection = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
   const navigate = useNavigate();
@@ -177,7 +180,8 @@ const HelpdeskTicketDetailSection = () => {
             messages.map((msg) => {
               const isCustomer = msg.direction === "inbound";
               const retracted = !!msg.retracted_at;
-              const canChange = !isClosed && !retracted && !!user && msg.sender_user_id === user.id;
+              const withinWindow = Date.now() - new Date(msg.sent_at).getTime() <= CUSTOMER_EDIT_WINDOW_MS;
+              const canChange = !isClosed && !retracted && withinWindow && !!user && msg.sender_user_id === user.id;
               const msgAttachments = retracted ? [] : attachments.filter((attachment) => attachment.message_id === msg.id);
               return (
                 <HelpdeskMessageAuthorControls key={msg.id} ticketId={ticket.id} messageId={msg.id} body={msg.body} audience="support">
