@@ -4643,14 +4643,51 @@ export type Database = {
           },
         ]
       }
+      helpdesk_ticket_message_revisions: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          message_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          message_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_ticket_message_revisions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "helpdesk_ticket_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpdesk_ticket_messages: {
         Row: {
           body: string
           client_message_id: string
           created_at: string
           direction: string
+          edited_at: string | null
           id: string
           is_automated: boolean
+          retracted_at: string | null
           sender_email: string | null
           sender_name: string | null
           sender_user_id: string | null
@@ -4662,8 +4699,10 @@ export type Database = {
           client_message_id: string
           created_at?: string
           direction: string
+          edited_at?: string | null
           id?: string
           is_automated?: boolean
+          retracted_at?: string | null
           sender_email?: string | null
           sender_name?: string | null
           sender_user_id?: string | null
@@ -4675,8 +4714,10 @@ export type Database = {
           client_message_id?: string
           created_at?: string
           direction?: string
+          edited_at?: string | null
           id?: string
           is_automated?: boolean
+          retracted_at?: string | null
           sender_email?: string | null
           sender_name?: string | null
           sender_user_id?: string | null
@@ -13115,6 +13156,10 @@ export type Database = {
         Returns: undefined
       }
       draft_person_name: { Args: { p_user_id: string }; Returns: string }
+      edit_helpdesk_ticket_message: {
+        Args: { p_body: string; p_message_id: string }
+        Returns: boolean
+      }
       effective_price: {
         Args: { p_customer_id: number; p_item_ref: string }
         Returns: number
@@ -13549,6 +13594,30 @@ export type Database = {
           user_id: string
         }[]
       }
+      lock_own_helpdesk_message: {
+        Args: { p_message_id: string }
+        Returns: {
+          body: string
+          client_message_id: string
+          created_at: string
+          direction: string
+          edited_at: string | null
+          id: string
+          is_automated: boolean
+          retracted_at: string | null
+          sender_email: string | null
+          sender_name: string | null
+          sender_user_id: string | null
+          sent_at: string
+          ticket_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "helpdesk_ticket_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       log_gatekeeper_dispatch: {
         Args: {
           p_action: string
@@ -13973,6 +14042,10 @@ export type Database = {
           payment_reference: string
           reason: string
         }[]
+      }
+      retract_helpdesk_ticket_message: {
+        Args: { p_message_id: string }
+        Returns: boolean
       }
       revert_account_to_master: {
         Args: { p_customer_id: number }
