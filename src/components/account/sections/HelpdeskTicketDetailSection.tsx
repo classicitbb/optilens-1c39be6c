@@ -16,6 +16,7 @@ import NpsPrompt from "@/components/feedback/NpsPrompt";
 import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
 import { uploadHelpdeskFiles, type HelpdeskAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 import { RichMarkdown } from "@/components/content/RichMarkdown";
+import { HelpdeskMessageAuthorControls, RETRACTED_MESSAGE_LABEL } from "@/components/account/HelpdeskMessageActions";
 
 const HelpdeskTicketDetailSection = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
@@ -53,14 +54,15 @@ const HelpdeskTicketDetailSection = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_ticket_messages")
-        .select("id,direction,body,sender_name,sender_email,sent_at")
+        .select("id,direction,body,sender_user_id,sender_name,sender_email,sent_at,edited_at,retracted_at")
         .eq("ticket_id", ticketId)
         .in("direction", ["inbound", "outbound"])
         .order("sent_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as Array<{
         id: string; direction: "inbound" | "outbound";
-        body: string; sender_name: string | null; sender_email: string | null; sent_at: string;
+        body: string; sender_user_id: string | null; sender_name: string | null; sender_email: string | null; sent_at: string;
+        edited_at: string | null; retracted_at: string | null;
       }>;
     },
   });
@@ -174,26 +176,38 @@ const HelpdeskTicketDetailSection = () => {
           ) : (
             messages.map((msg) => {
               const isCustomer = msg.direction === "inbound";
+              const retracted = !!msg.retracted_at;
+              const canChange = !isClosed && !retracted && !!user && msg.sender_user_id === user.id;
+              const msgAttachments = retracted ? [] : attachments.filter((attachment) => attachment.message_id === msg.id);
               return (
-                <div
-                  key={msg.id}
-                  ref={msg.id === latestMessage?.id ? latestMessageRef : undefined}
-                  className={`flex w-full flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
-                      isCustomer
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground border border-border"
-                    }`}
-                  >
-                    {msg.body}
-                  </div>
-                  {attachments.filter((attachment) => attachment.message_id === msg.id).length ? <HelpdeskImageAttachments ticketId={ticket.id} attachments={attachments.filter((attachment) => attachment.message_id === msg.id)} onFilesChange={() => undefined} disabled readOnly /> : null}
-                  <span className="text-xs text-muted-foreground px-1">
-                    {isCustomer ? "You" : "Support"} · {format(new Date(msg.sent_at), "MMM d, h:mm a")}
-                  </span>
-                </div>
+                <HelpdeskMessageAuthorControls key={msg.id} ticketId={ticket.id} messageId={msg.id} body={msg.body} audience="support">
+                  {({ editor, actions }) => (
+                    <div
+                      ref={msg.id === latestMessage?.id ? latestMessageRef : undefined}
+                      className={`flex w-full flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}
+                    >
+                      {canChange && editor ? editor : (
+                        <div
+                          className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                            isCustomer
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-foreground border border-border"
+                          }`}
+                        >
+                          {retracted ? <span className="italic opacity-70">{RETRACTED_MESSAGE_LABEL}</span> : msg.body}
+                        </div>
+                      )}
+                      {msgAttachments.length ? <HelpdeskImageAttachments ticketId={ticket.id} attachments={msgAttachments} onFilesChange={() => undefined} disabled readOnly /> : null}
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
+                        <span>
+                          {isCustomer ? "You" : "Support"} · {format(new Date(msg.sent_at), "MMM d, h:mm a")}
+                          {msg.edited_at && !retracted ? " · edited" : ""}
+                        </span>
+                        {canChange ? <><span>·</span>{actions}</> : null}
+                      </span>
+                    </div>
+                  )}
+                </HelpdeskMessageAuthorControls>
               );
             })
           )}

@@ -4,11 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-05 (open branch integration review)
+Last updated: 2026-10-06 (Helpdesk message edit/retract)
 
 ---
 
 ## Active work
+
+- **Helpdesk message edit / retract** — authors can edit or retract their own messages: staff replies, internal notes and customer portal replies. `edit_helpdesk_ticket_message` / `retract_helpdesk_ticket_message` are the only write path (table writes stay revoked); a customer is blocked once the ticket is closed, and automated or emailed-in messages (no `sender_user_id`) cannot be changed. Retract clears the text and the thread shows "This message was retracted"; replaced and withdrawn text is kept in staff-only `helpdesk_ticket_message_revisions` (no UI yet) and every change adds a `message_edited` / `message_retracted` timeline event. Messages show "edited". Migration `20261006120000_helpdesk_message_edit_retract.sql` **applied to the live project** via the Lovable MCP and exercised in a rolled-back transaction (non-author rejected, edit, retract, edit-after-retract rejected). Not covered: the `mcp` / `mcp-staging` edge functions read `body` directly and will show a retracted message as empty; attachments uploaded with a retracted message are hidden but remain in storage. No browser pass on an authenticated ticket.
 
 - **Iris wiki formatting** — local replies and proposals share the wiki renderer; canonical Markdown conversion preserves tables, checklist marks and nested lists. Accepted selection replacements insert rich editor content. TypeScript, lint (warnings only), all 1,318 tests, build, PR checks and an isolated browser acceptance check pass. Existing stored plain-Markdown drafts remain unchanged. Production publication requires approval.
 

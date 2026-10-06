@@ -39,6 +39,10 @@ const humanizeEvent = (
       return "Reply sent to customer";
     case "customer_reply":
       return "Customer replied";
+    case "message_edited":
+      return "A message was edited";
+    case "message_retracted":
+      return "A message was retracted";
     default:
       return event.event_type.replace(/_/g, " ");
   }
