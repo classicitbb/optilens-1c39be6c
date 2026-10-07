@@ -2,6 +2,10 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-07 — Admin attention dropdown
+
+### Release Notes
+
 ## 2026-10-05 — Iris wiki formatting
 
 ### Release Notes

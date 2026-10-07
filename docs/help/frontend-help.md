@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-07 — Admin attention dropdown
+
+Click the amber attention count beside the notification bell to see items needing attention. Click an item or Open Help Desk to open the work. Close the panel with X, Escape or a click outside it; the count remains until work is handled. Use Snooze for the existing timed pause.
+
 ## Iris wiki formatting
 
 Iris replies and proposals show formatted text. Accept preserves headings, bold, bullets, checklists, tables and code in the page draft. Update remains a separate publishing step. Existing drafts that already contain literal Markdown need to be regenerated or reformatted.

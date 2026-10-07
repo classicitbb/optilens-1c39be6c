@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-07 — Admin attention dropdown
+
+OperatorAttentionAlert mounts once inside AdminTopBar, shared by AdminLayout and AtlasAdminFrame. The controlled Radix popover starts closed, aligns to the trigger end and scrolls all items. Dismissal changes local presentation state only; the existing attention hook owns polling, sound, qualification and Snooze.
+
 ## Iris wiki content conversion
 
 Atlas converts Iris Markdown with unified, remark-parse and remark-gfm into canonical blocks. Replies and proposals share WikiArticleRenderer; acceptance inserts canonical Tiptap content, including marks for inline selection replacements. Stored plain-text drafts are not automatically rewritten.

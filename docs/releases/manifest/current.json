@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.6.0",
-  "sourceEntry": "2026-10-05 — Iris wiki formatting",
-  "releaseDateTimeUtc": "2026-10-05T00:00:00.000Z",
+  "semanticVersion": "0.7.0",
+  "sourceEntry": "2026-10-07 — Admin attention dropdown",
+  "releaseDateTimeUtc": "2026-10-07T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Iris replies, proposal previews and accepted editor content preserve headings, emphasis, lists, checklists, tables and code. Selection replacements retain rich text. Local source change only; production publication requires approval."
+    "Admin attention dropdown"
   ],
   "moduleImpact": [
     {
-      "module": "src/features/atlas",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Iris wiki formatting."
+      "notes": "Updated as part of Admin attention dropdown."
     }
   ],
   "migrationNotes": [
