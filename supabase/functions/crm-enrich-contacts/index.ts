@@ -18,6 +18,7 @@ import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sendSmtpEmail, getSmtpConfig } from "../_shared/email/smtp.ts";
 import { enrichContact, type EnrichableContact, type TriggerSource } from "../_shared/enrichment/contactEnrichment.ts";
+import { buildResearchQuery, researchPublicWeb } from "../_shared/enrichment/publicWebResearch.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-scheduler-secret, x-client-info, apikey, content-type",
@@ -99,8 +100,12 @@ Deno.serve(async (req) => {
     triggerSource = "manual";
   }
 
-  const apiKey = await resolvePlacesKey(db);
-  if (!apiKey) return reply(503, { error: "Google Places is not configured. Add a google_places credential in Lead Settings." });
+  const research = body.mode === "research";
+  if (research && triggerSource !== "manual") return reply(400, { error: "Public web research requires an administrator request." });
+  const apiKey = research ? (Deno.env.get("FIRECRAWL_API_KEY") ?? "").trim() : await resolvePlacesKey(db);
+  if (!apiKey) return reply(503, { error: research
+    ? "Public web research is not configured. FIRECRAWL_API_KEY is required on the server."
+    : "Google Places is not configured. Add a google_places credential in Lead Settings." });
 
   // Spend guard. Counts every attempt, including no-match and error ones,
   // because each of those still cost a Text Search call.
@@ -116,6 +121,28 @@ Deno.serve(async (req) => {
 
   // ------------------------------------------------------- select the work
   const requestedContactId = typeof body.contactId === "string" ? body.contactId.trim() : "";
+  if (research) {
+    if (!requestedContactId) return reply(400, { error: "Choose a saved contact to research." });
+    const { data: contact, error } = await db.from("contacts")
+      .select("id,name,business_name,city,country_code").eq("id", requestedContactId).maybeSingle();
+    if (error) return reply(500, { error: error.message });
+    if (!contact) return reply(404, { error: "Contact not found" });
+    // Reserve an auditable attempt before the billable call; failures count too.
+    const { data: attempt, error: attemptError } = await db.from("contact_enrichment_attempts")
+      .insert({ contact_id: contact.id, trigger_source: "manual", provider: "firecrawl_search", outcome: "skipped" })
+      .select("id").single();
+    if (attemptError) return reply(500, { error: attemptError.message });
+    try {
+      const query = buildResearchQuery(contact);
+      const sources = await researchPublicWeb(apiKey, query);
+      await db.from("contact_enrichment_attempts").update({ outcome: sources.length ? "matched" : "no_match" }).eq("id", attempt.id);
+      return reply(200, { ok: true, mode: "research", contactId: contact.id, query, sources, retrievedAt: new Date().toISOString() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Public web research failed.";
+      await db.from("contact_enrichment_attempts").update({ outcome: "error", error: message }).eq("id", attempt.id);
+      return reply(502, { error: message });
+    }
+  }
   let contacts: EnrichableContact[] = [];
 
   if (requestedContactId) {

@@ -10,6 +10,7 @@ type EnrichmentResponse = {
   applied?: number;
   pendingReview?: number;
   failed?: number;
+  results?: { outcome: string; detail?: string | null }[];
 };
 
 /**
@@ -41,11 +42,14 @@ export const useContactEnrichment = () => {
       }
       const applied = result.applied ?? 0;
       const pending = result.pendingReview ?? 0;
+      const failed = result.failed ?? 0;
+      const detail = result.results?.find((item) => item.detail)?.detail;
       toast({
-        title: applied || pending ? "Enrichment finished" : "Nothing new found",
+        title: failed ? "Some lookups failed" : applied || pending ? "Enrichment finished" : "Nothing new found",
+        variant: failed ? "destructive" : "default",
         description: applied || pending
           ? `Filled ${applied} blank field${applied === 1 ? "" : "s"} across ${result.processed ?? 0} contact${result.processed === 1 ? "" : "s"}. ${pending} finding${pending === 1 ? "" : "s"} conflict with existing values and need approval in the Copilot.`
-          : `Checked ${result.processed ?? 0} contact${result.processed === 1 ? "" : "s"}; no public details were missing.`,
+          : detail || `Checked ${result.processed ?? 0} contact${result.processed === 1 ? "" : "s"} on Google Places; no new public business details were found.`,
       });
       void queryClient.invalidateQueries({ queryKey: ["contacts"] });
       void queryClient.invalidateQueries({ queryKey: ["leads"] });

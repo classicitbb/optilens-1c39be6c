@@ -88,6 +88,7 @@ const ENTITIES: Record<string, EntityConfig> = {
       "innovations_parent_customer_id",
       "name",
       "business_name",
+      "salesperson",
       "email",
       "phone",
       "street",

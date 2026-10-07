@@ -42,6 +42,9 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 
 ## Hosted ↔ Local boundary
 
+- CRM contact address sync remains office-to-cloud only. Website saves do not update Innovations. The receiver accepts `salesperson`, but the office mapping must be verified and extended before it supplies values. See `docs/crm-contact-editor-follow-up.md` for the required revision-checked writeback contract.
+- CRM manual public-web research uses server-only `FIRECRAWL_API_KEY` through `crm-enrich-contacts` (`mode: research`), shares the daily enrichment attempt cap and returns source suggestions without automatic contact writes. Existing Google Places enrichment remains a separate business-details action.
+
 - Hosted OptiLens exposes customer-safe cloud behavior.
 - OptiLens Local owns private operational and legacy-system access.
 - Use authenticated, scoped, audited APIs or durable synchronization.
