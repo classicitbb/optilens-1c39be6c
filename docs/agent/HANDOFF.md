@@ -1,5 +1,31 @@
 # Work Handoff
 
+## 2026-10-07 — Doc Studio recipient picker, signatures and labels
+
+Status: Local implementation complete; production publication and actual email-client verification pending.
+
+Affected files: public/ds/studio-logic.js, studio.html, assets/signature-logo.png, Doc Studio CONTEXT, docStudioRecipientSignatureLabel tests, docs/doc-studio-signature-compatibility.md and frontend release/continuity documents. The established runtime remains active; generated support.js and native v2 are untouched. New shiplabel mode/headings preserve legacy defaults. Existing Save / Save person / Share flows remain in place.
+
+Validation: full `npm run test -- --runInBand` passed 210 files / 1388 tests. Final focused Doc Studio suite passed 3 files / 12 tests. `npm run lint` passed with 0 errors / 2416 warnings; production build passed. PR checks passed after required release-ledger sync and lockfile root-version alignment to 0.9.0. Version is source metadata, not deployment evidence. Other concurrent Atlas/blog and CRM changes were preserved.
+
+Browser: authenticated port 8081 verified name/email filtering, checkbox selection into To, outside-click/focus-loss/Escape dismissal with To retained and send dialog preserved; customer label mode renders without sender/courier fields. Captured square-label preview after explicitly resetting inherited descendant radii. Signature HTML tile renders with the local PNG and live telephone/email/web links; Copy signature reported success. Automation's clipboard bridge returned no OS clipboard data, so cross-client paste is not verified. Waiting for the PNG download caused a browser/CDP timeout; no download completion was claimed. The exact signaturePngBlob method was rendered with a local canvas runtime into a 1260px PNG and visually inspected. Temporary sample recipient name was cleared in the browser; no server-side Save or Send was clicked.
+
+Blocker/approval: new hosted PNG must be published with the app before external HTML signatures can load it. Real Outlook/Gmail/Apple Mail received-message and dark-mode behavior remain unverified. Production deployment/public publishing require user approval under AGENTS.md. No email, hosted data write, sharing change, push or deployment occurred.
+
+Exact next executable action: `git diff -- public/ds/studio-logic.js public/ds/studio.html package.json package-lock.json docs/releases/manifest/current.json`. Review with `docs/doc-studio-signature-compatibility.md`, obtain production publication approval if requested, and verify an authorized received test email in the target clients. Browser screenshots and local signature export are under this chat's visualization artifact directory.
+
+## 2026-10-07 — CRM contact editor comments
+
+Status: Local editor/research implementation validated; Innovations salesperson mapping/writeback and deployment incomplete.
+
+Affected files: ContactsPage, CompanyCombobox, PublicWebResearch, contactEmails, useContactEnrichment, crm-enrich-contacts, publicWebResearch shared helper, innovations-sync receiver allowlist, three focused test files, CRM CONTEXT and `docs/crm-contact-editor-follow-up.md`. Save stays open; Save & Close closes after the full pipeline. Newly inserted IDs and persisted account links survive subsequent edits. Email lists use the existing text column. Public-web results suggest candidate emails and expose sources, never automatically modify contacts.
+
+Validation: initial TypeScript/build and lint (0 errors, 2411 warnings) passed; full suite passed 205 files / 1356 tests; subsequent focused suite passed 8 tests. Real Edge typing in an isolated local fixture verified filtering `vision` to Beta Vision and Enter selecting `beta`; fixture files were removed. The user identified port 8081 as the current checkout. The authenticated real contact dialog there shows Email addresses, Research public web, Save and Save & Close; typing `20/20 Opt` filters to one result and Enter selects 20/20 Optical. Port 8080 serves a different checkout. No hosted save or billable provider call occurred. The checkout was concurrently committed at `2de1aea3` and merged at `0bc38cdd` by another process; this chat did not commit, push or deploy. The follow-up account-link correction passes TypeScript, focused component lint, final production build and PR checks. Required release-ledger sync generated version 0.8.0 and npm lockfile metadata was synchronized; this is source metadata, not deployment proof. Other ongoing Atlas/blog edits in the shared checkout were preserved.
+
+Blockers: actual Innovations salesperson metadata/sample must be verified; address writeback needs an office-owned durable, idempotent, revision-checked worker. Existing outbound email consumers require a recipient-list audit before release. Existing office address mapping already sends the requested fields; blank rows need a mapped dry-run and preservation-trigger investigation, not guessed SQL.
+
+Approval required: production publishing/function deployment, billable live research if requested, production migration/writeback/scheduling. Exact next executable action: `git diff -- src/pages/admin/erp/ContactsPage.tsx src/features/admin/crm/hooks/useContactEnrichment.ts STATUS.md docs/agent/HANDOFF.md docs/agent/PROJECT_KNOWLEDGE.md`. Review current deltas and `docs/crm-contact-editor-follow-up.md` before planning the office implementation; do not deploy as complete bidirectional sync.
+
 ## 2026-10-07 — Admin attention dropdown
 
 Status: Complete — no active handoff

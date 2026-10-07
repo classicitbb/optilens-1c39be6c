@@ -68,6 +68,16 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 
+export const isPageUnlocked = (pageId: string, lock: PageLock | undefined): boolean => !lock || unlocked.has(keyOf(pageId, lock));
+
+let unlockVersion = 0;
+listeners.add(() => {
+  unlockVersion += 1;
+});
+
+/** Re-renders when any page is locked or unlocked, for views that call isPageUnlocked over many pages. */
+export const useUnlockVersion = (): number => useSyncExternalStore(subscribe, () => unlockVersion);
+
 /** True when the page has no lock, or has been unlocked in this tab. */
 export const usePageUnlocked = (pageId: string | undefined, lock: PageLock | undefined): boolean =>
   useSyncExternalStore(subscribe, () => !lock || !pageId || unlocked.has(keyOf(pageId, lock)));

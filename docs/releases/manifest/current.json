@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.7.0",
-  "sourceEntry": "2026-10-07 — Admin attention dropdown",
+  "semanticVersion": "0.9.0",
+  "sourceEntry": "2026-10-07 — Doc Studio recipients, signatures and labels (local source)",
   "releaseDateTimeUtc": "2026-10-07T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Admin attention dropdown"
+    "Search and dismiss the recipient picker without losing To. Edit/copy/download a signature tile or insert it in an email draft. Switch square labels between shipping and customer layouts and edit their headings. Deployment and email-client proof remain pending."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Admin attention dropdown."
+      "notes": "Updated as part of Doc Studio recipients, signatures and labels (local source)."
     }
   ],
   "migrationNotes": [

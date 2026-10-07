@@ -359,6 +359,13 @@
           <span style="font:600 13px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Show logo</span>
         </label>
 
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button onClick="{{ insertSignatureInEmail }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Add to email draft</button>
+          <button onClick="{{ copySignatureImage }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Copy image</button>
+          <button onClick="{{ downloadSignatureImage }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Download PNG</button>
+          <button onClick="{{ downloadSignatureHtml }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Download HTML</button>
+        </div>
+        <p style="font:12px/1.5 Arial;color:#8fa3b8;margin:0">Copy signature keeps links editable. Paste into your email client's signature settings or any rich text editor. Copy image keeps the tile's appearance; links are not clickable. Save a person to reuse it here.</p>
         <div style="border-top:1px solid #efece3;padding-top:18px;margin-top:6px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
             <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Saved signatures</span>
@@ -460,16 +467,22 @@
       <!-- ---------- SHIPPING LABEL ---------- -->
       <sc-if value="{{ isShiplabel }}" hint-placeholder-val="{{ false }}">
       <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
+        <label style="color:#1A8A9C;font:700 12px Arial">Label type<select class="cv-in" aria-label="Label type" value="{{ slMode }}" onChange="{{ setLabelMode }}" style="display:block;width:100%;padding:9px;margin-top:7px;background:#fff;color:#0B1E35"><option value="shipping">Shipping label</option><option value="customer">Customer label</option></select></label>
+        <label style="color:#1A8A9C;font:700 12px Arial">Recipient heading<input class="cv-in" aria-label="Recipient heading" value="{{ f.slToCaption.v }}" onChange="{{ f.slToCaption.on }}" style="display:block;width:100%;box-sizing:border-box;padding:9px;margin-top:7px;background:#fff;color:#0B1E35"></label>
+        <sc-if value="{{ isShippingMode }}" hint-placeholder-val="{{ false }}">
+        <label style="color:#1A8A9C;font:700 12px Arial">Sender heading<input class="cv-in" aria-label="Sender heading" value="{{ f.slFromCaption.v }}" onChange="{{ f.slFromCaption.on }}" style="display:block;width:100%;box-sizing:border-box;padding:9px;margin-top:7px;background:#fff;color:#0B1E35"></label>
         <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">From</div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Name</div><input class="cv-in" value="{{ f.slFromName.v }}" onChange="{{ f.slFromName.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Address</div><textarea class="cv-in" value="{{ f.slFromAddr.v }}" onChange="{{ f.slFromAddr.on }}" rows="2" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Phone</div><input class="cv-in" value="{{ f.slFromPhone.v }}" onChange="{{ f.slFromPhone.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
-        <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Ship to</div>
+        </sc-if>
+        <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">{{ labelRecipientCaption }}</div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Fill from company</div><select class="cv-in" value="{{ selectedShipCustomer }}" onChange="{{ applyCustomerToShipLabel }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"><option value="">Select customer</option><sc-for list="{{ customerOptions }}" as="c" hint-placeholder-count="0"><option value="{{ c.account }}">{{ c.label }}</option></sc-for></select></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Recipient name</div><input class="cv-in" value="{{ f.slToName.v }}" onChange="{{ f.slToName.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Company</div><input class="cv-in" value="{{ f.slToCompany.v }}" onChange="{{ f.slToCompany.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Address</div><textarea class="cv-in" value="{{ f.slToAddr.v }}" onChange="{{ f.slToAddr.on }}" rows="2" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Phone</div><input class="cv-in" value="{{ f.slToPhone.v }}" onChange="{{ f.slToPhone.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <sc-if value="{{ isShippingMode }}" hint-placeholder-val="{{ false }}">
         <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Courier</div>
         <div style="display:flex;gap:11px">
           <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Carrier</div><input class="cv-in" value="{{ f.slCarrier.v }}" onChange="{{ f.slCarrier.on }}" placeholder="e.g. FedEx" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
@@ -480,6 +493,7 @@
           <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Weight</div><input class="cv-in" value="{{ f.slWeight.v }}" onChange="{{ f.slWeight.on }}" placeholder="e.g. 2.3 kg" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
           <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Dims (L×W×H)</div><input class="cv-in" value="{{ f.slDims.v }}" onChange="{{ f.slDims.on }}" placeholder="e.g. 30×20×10 cm" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         </div>
+        </sc-if>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Special instructions</div><input class="cv-in" value="{{ f.slNote.v }}" onChange="{{ f.slNote.on }}" placeholder="e.g. Fragile — handle with care" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
       </div>
       </sc-if>
@@ -1028,11 +1042,12 @@
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
               <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C">To</div>
-              <button onClick="{{ toggleEmailContacts }}" style="background:none;border:0;color:#0B1E35;font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Contacts</button>
+              <button id="ds-contact-toggle" aria-expanded="{{ emailContactsExpanded }}" aria-controls="ds-contact-picker" onClick="{{ toggleEmailContacts }}" style="background:none;border:0;color:#0B1E35;font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Contacts</button>
             </div>
             <textarea class="cv-in" value="{{ emailTo }}" onChange="{{ setEmailTo }}" placeholder="name@example.com, second@example.com" rows="3" style="width:100%;box-sizing:border-box;resize:vertical;min-height:74px;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.45 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></textarea>
             <sc-if value="{{ emailContactsOpen }}" hint-placeholder-val="{{ false }}">
-              <div style="margin-top:8px;border:1px solid #e7e4db;border-radius:10px;background:#fff;box-shadow:0 14px 36px -18px rgba(11,30,53,.35);max-height:190px;overflow:auto">
+              <div id="ds-contact-picker" role="group" aria-label="Choose email recipients" style="margin-top:8px;border:1px solid #e7e4db;border-radius:10px;background:#fff;box-shadow:0 14px 36px -18px rgba(11,30,53,.35);max-height:240px;overflow:auto">
+                <div style="position:sticky;top:0;background:#fff;padding:8px;z-index:1"><input id="ds-contact-search" type="search" aria-label="Search contacts by name or email" value="{{ emailContactSearch }}" onChange="{{ setEmailContactSearch }}" placeholder="Search name or email…" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9d7cf;border-radius:6px;color:#0B1E35;background:#fff"></div>
                 <sc-for list="{{ emailContactOptions }}" as="c" hint-placeholder-count="0">
                   <label style="display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-bottom:1px solid #f4f1ea;cursor:pointer">
                     <input type="checkbox" checked="{{ c.checked }}" onChange="{{ c.toggle }}" style="width:15px;height:15px;margin-top:1px;accent-color:#1A8A9C;flex:none">
@@ -1042,7 +1057,7 @@
                     </span>
                   </label>
                 </sc-for>
-                <sc-if value="{{ noEmailContacts }}" hint-placeholder-val="{{ false }}"><div style="padding:12px;font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0">No contacts with email addresses loaded.</div></sc-if>
+                <sc-if value="{{ noEmailContacts }}" hint-placeholder-val="{{ false }}"><div role="status" style="padding:12px;font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">No matching contacts with email addresses.</div></sc-if>
               </div>
             </sc-if>
           </div>

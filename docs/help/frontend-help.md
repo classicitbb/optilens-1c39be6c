@@ -1,5 +1,14 @@
 # Frontend Help Docs
 
+
+## 2026-10-07 — Doc Studio recipients, signatures and labels
+
+In Send email, open Contacts and search a name or address. Selection updates To immediately; outside click, focus loss and Escape close the list. In Signature, Copy signature retains links, Copy image preserves appearance, Download PNG/HTML supplies a fallback, and Add to email draft appends it to your draft. Save person reuses the file manager. In Ship Label, select Customer label to omit shipping information; headings remain editable. See docs/doc-studio-signature-compatibility.md for client setup and publication limits.
+
+## 2026-10-07 — CRM contact editor
+
+Type a company name in Parent Company; Enter selects the first filtered result and arrow keys move the highlight. Escape cancels the search. Separate email addresses with commas, semicolons or colons; put the primary first. Save keeps the editor open, while Save & Close closes after persistence succeeds. Save before Research public web: it uses stored contact details. Check the linked source and identity before adding a suggested email, then Save the draft. Find business details remains the Google Places action. Website edits currently do not write back to Innovations.
+
 ## 2026-10-07 — Admin attention dropdown
 
 Click the amber attention count beside the notification bell to see items needing attention. Click an item or Open Help Desk to open the work. Close the panel with X, Escape or a click outside it; the count remains until work is handled. Use Snooze for the existing timed pause.

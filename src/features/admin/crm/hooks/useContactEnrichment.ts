@@ -48,7 +48,7 @@ export const useContactEnrichment = () => {
         title: failed ? "Some lookups failed" : applied || pending ? "Enrichment finished" : "Nothing new found",
         variant: failed ? "destructive" : "default",
         description: applied || pending
-          ? `Filled ${applied} blank field${applied === 1 ? "" : "s"} across ${result.processed ?? 0} contact${result.processed === 1 ? "" : "s"}. ${pending} finding${pending === 1 ? "" : "s"} conflict with existing values and need approval in the Copilot.`
+          ? `Filled ${applied} blank field${applied === 1 ? "" : "s"} across ${result.processed ?? 0} contact${result.processed === 1 ? "" : "s"}. ${pending} finding${pending === 1 ? "" : "s"} need approval in the Copilot.${failed ? ` ${failed} lookup${failed === 1 ? "" : "s"} failed.` : ""}`
           : detail || `Checked ${result.processed ?? 0} contact${result.processed === 1 ? "" : "s"} on Google Places; no new public business details were found.`,
       });
       void queryClient.invalidateQueries({ queryKey: ["contacts"] });

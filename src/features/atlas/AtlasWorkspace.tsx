@@ -28,7 +28,7 @@ import MoveToDialog, { type MoveTarget } from "./components/MoveToDialog";
 import AssignmentsPanel from "./components/AssignmentsPanel";
 import PageBody from "./components/PageBody";
 import PagePasswordSetting from "./components/PagePasswordSetting";
-import { usePageUnlocked } from "./lock";
+import { isPageUnlocked, usePageUnlocked, useUnlockVersion } from "./lock";
 import PropertiesForm from "./components/PropertiesForm";
 import {
   ancestorsOf,
@@ -94,6 +94,17 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const visiblePages = useMemo(() => spacePages.filter((page) => page.status !== "archived"), [spacePages]);
   const archivedPages = useMemo(() => (space.scope.statuses ? [] : spacePages.filter((page) => page.status === "archived")), [space.scope.statuses, spacePages]);
   const visibleTree = useMemo(() => buildTree(sections, visiblePages), [sections, visiblePages]);
+  // A password-protected page that is still locked in this tab hides its subpages from the sidebar.
+  const unlockVersion = useUnlockVersion();
+  const lockedIds = useMemo(
+    () => new Set(spacePages.filter((page) => !isPageUnlocked(page.id, page.doc.lock)).map((page) => page.id)),
+    [spacePages, unlockVersion], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const sidebarNodes = useMemo(() => {
+    const prune = (nodes: TreeNode[]): TreeNode[] =>
+      nodes.map((node) => (lockedIds.has(node.id) ? { ...node, children: [] } : { ...node, children: prune(node.children) }));
+    return prune(visibleTree.roots);
+  }, [lockedIds, visibleTree.roots]);
   // Deep links must keep working for archived pages, so lookups use every page in the space.
   const fullTree = useMemo(() => buildTree(sections, spacePages), [sections, spacePages]);
   const treePages = useMemo(() => spacePages.map(toTreePage), [spacePages]);
@@ -334,6 +345,10 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
 
   const movePage = async (dragId: string, targetId: string, position: DropPosition) => {
     if (!canEdit) return;
+    if (position === "inside" && lockedIds.has(targetId)) {
+      toast({ title: "Unlock the page first", description: "Enter its password before moving a page inside it.", variant: "destructive" });
+      return;
+    }
     const updates = planPageMove(treePages, dragId, targetId, position);
     if (updates === null) {
       toast({ title: "Can't move there", description: "A page can't be moved inside itself.", variant: "destructive" });
@@ -558,7 +573,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
         sidebar={
           <WorkspaceSidebar
             tree={{
-              nodes: visibleTree.roots,
+              nodes: sidebarNodes,
               activeId: selectedNode?.id ?? null,
               toggled,
               onToggle: (id) => toggleExpanded(id),

@@ -2,6 +2,15 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-07 — Doc Studio recipients, signatures and labels (local source)
+
+### Release Notes
+- Search and dismiss the recipient picker without losing To. Edit/copy/download a signature tile or insert it in an email draft. Switch square labels between shipping and customer layouts and edit their headings. Deployment and email-client proof remain pending.
+
+## 2026-10-07 — CRM contact editor (local source)
+
+### Release Notes
+
 ## 2026-10-07 — Admin attention dropdown
 
 ### Release Notes

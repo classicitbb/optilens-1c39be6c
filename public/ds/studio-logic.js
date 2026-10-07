@@ -65,6 +65,7 @@
     smFormat: 'instagram', smStyle: 'navy', smHeadline: 'Vision starts here.', smHeadlineAlign: 'left', smHeadlineItalic: false, smBody: '', smSub: '', smHandle: '@classicvisions', smPostLib: [],
     copied: '', libraryDelete: null,
     // Shipping label
+    slMode: 'shipping', slFromCaption: 'From', slToCaption: 'Ship to',
     slFromName: 'Classic Visions', slFromAddr: 'Worthing, Christ Church\nBarbados', slFromPhone: '+1 246 433-4928',
     slToName: '', slToCompany: '', slToAddr: '', slToPhone: '', slCarrier: '', slService: '', slTracking: '', slWeight: '', slDims: '', slNote: '',
     // Customer statement
@@ -99,12 +100,15 @@
     fileSaveState: 'DB save ready', fileSaveDialogOpen: false, fileSaveDialogKind: '', fileSaveDialogMode: 'save', fileSaveDialogType: '', fileSaveDialogName: '', fileSaveDialogError: '', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
     emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
     emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
-    emailContacts: [], staffInviteDraft: false,
+    emailContacts: [], emailContactSearch: '', staffInviteDraft: false,
     dsCustomers: [],
     selectedStatementCustomer: '', selectedShipCustomer: '', selectedBillingCustomer: ''
   };
 
   componentDidMount() {
+    document.addEventListener('pointerdown', this.dismissEmailContacts, true);
+    document.addEventListener('focusin', this.dismissEmailContacts, true);
+    document.addEventListener('keydown', this.emailContactsKey, true);
     this.loadLogos();
     try {
       const raw = localStorage.getItem(this.KEY);
@@ -144,6 +148,14 @@
   componentDidUpdate() {
     this.scheduleControlMetadata();
     this.focusLibraryDeleteDialog();
+  }
+
+  componentWillUnmount() {
+    super.componentWillUnmount?.();
+    document.removeEventListener('pointerdown', this.dismissEmailContacts, true);
+    document.removeEventListener('focusin', this.dismissEmailContacts, true);
+    document.removeEventListener('keydown', this.emailContactsKey, true);
+    cancelAnimationFrame(this._controlMetadataFrame);
   }
 
   scheduleControlMetadata = () => {
@@ -195,7 +207,7 @@
     };
 
     root.querySelectorAll('input.cv-in, textarea.cv-in, select.cv-in').forEach((control) => {
-      const label = labelFor(control);
+      const label = control.getAttribute('aria-label') || labelFor(control);
       const key = this.slug(label);
       const occurrence = (names.get(key) || 0) + 1;
       names.set(key, occurrence);
@@ -223,7 +235,7 @@
   };
 
   // ---------- persistence ----------
-  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailContactSearch, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); if (this.isCurrentFileField(k)) this.scheduleFileAutosave(); if (this.isIssuerField(k)) this.saveDocStudioSettingsSoon(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -314,8 +326,26 @@
       emailSubject: s.emailSubject || this.emailSubjectLine()
     }));
   };
-  closeEmailSend = () => this.setState({ emailSendOpen: false, emailSendError: '', emailSending: false });
-  toggleEmailContacts = () => this.setState(s => ({ emailContactsOpen: !s.emailContactsOpen }));
+  closeEmailSend = () => this.setState({ emailSendOpen: false, emailContactsOpen: false, emailContactSearch: '', emailSendError: '', emailSending: false });
+  toggleEmailContacts = () => this.setState(s => ({ emailContactsOpen: !s.emailContactsOpen, emailContactSearch: '' }), () => {
+    if (this.state.emailContactsOpen) requestAnimationFrame(() => document.getElementById('ds-contact-search')?.focus());
+  });
+  dismissEmailContacts = (event) => {
+    if (!this.state.emailContactsOpen) return;
+    if (event.target?.closest?.('#ds-contact-picker, #ds-contact-toggle')) return;
+    this.setState({ emailContactsOpen: false });
+  };
+  emailContactsKey = (event) => {
+    if (!this.state.emailContactsOpen || event.key !== 'Escape') return;
+    event.preventDefault(); event.stopPropagation();
+    this.setState({ emailContactsOpen: false }, () => document.getElementById('ds-contact-toggle')?.focus());
+  };
+  setEmailContactSearch = (event) => this.setState({ emailContactSearch: event.target.value });
+  filteredEmailContacts = () => {
+    const query = String(this.state.emailContactSearch || '').trim().toLowerCase();
+    return (this.state.emailContacts || []).filter(c => c?.email && `${c.name || ''} ${c.email}`.toLowerCase().includes(query))
+      .slice().sort((a, b) => String(a.name || a.email).localeCompare(String(b.name || b.email)));
+  };
   showEmailCc = () => this.setState({ emailCcOpen: true });
   showEmailBcc = () => this.setState({ emailBccOpen: true });
   setEmailTo = (e) => this.setState({ emailTo: e.target.value, emailSendError: '' });
@@ -924,34 +954,96 @@
 
   // ---------- SIGNATURE ----------
   buildSignature = () => {
-    const d = this.state, esc = this.esc;
-    const fit = this.fitScale([d.sgName, d.sgTitle, d.sgPhone, d.sgEmail, d.sgWeb, d.sgTagline].join(' '), 160, .68);
-    const nameSz = this.fitFont(16, fit, 11), bodySz = this.fitFont(12, fit, 9), labelSz = this.fitFont(10, fit, 8);
-    const mono = d.sgLogo ? `<td style="vertical-align:top;padding-right:18px"><img src="${this.logoPng('navy')}" width="56" height="56" alt="Classic Visions" style="display:block;width:56px;height:56px;border:0"></td>` : '';
-    return `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:'Plus Jakarta Sans',Arial,sans-serif;max-width:520px;table-layout:fixed"><tr>
-      ${mono}
-      <td style="vertical-align:top;border-left:2px solid #C89130;padding-left:18px;max-width:430px">
-        <div style="font:800 ${nameSz}px/1.16 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.sgName)}</div>
-        <div style="font:600 ${bodySz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#1A8A9C;margin-top:2px;${this.clampTextStyle()}">${esc(d.sgTitle)}</div>
-        <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#0B1E35;margin:${Math.round(10*fit)}px 0">CLASSIC VISIONS</div>
-        <div style="font:400 ${bodySz}px/1.55 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">
-          ${d.sgPhone ? `${esc(d.sgPhone)}<br>` : ''}
-          ${d.sgEmail ? `<a href="mailto:${esc(d.sgEmail)}" style="color:#1A8A9C;text-decoration:none">${esc(d.sgEmail)}</a><br>` : ''}
-          ${d.sgWeb ? `<a href="https://${esc(d.sgWeb)}" style="color:#1A8A9C;text-decoration:none">${esc(d.sgWeb)}</a>` : ''}
-        </div>
-        ${d.sgTagline ? `<div style="font:italic 400 ${this.fitFont(11, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;margin-top:${Math.round(9*fit)}px;${this.clampTextStyle()}">${esc(d.sgTagline)}</div>` : ''}
-      </td>
+    const d = this.state, esc = (value) => this.esc(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    // A public HTTPS raster survives more email clients than SVG/data URIs.
+    const logo = 'https://www.classicvisions.net/ds/assets/signature-logo.png';
+    const website = String(d.sgWeb || '').trim();
+    const url = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+    const link = (href, label) => `<a href="${esc(href)}" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#176d7a;text-decoration:underline">${esc(label)}</a>`;
+    const row = (html, style = '') => `<tr><td bgcolor="#ffffff" style="padding:0;background-color:#ffffff;color:#0B1E35;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;word-break:break-word;${style}">${html}</td></tr>`;
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-collapse:collapse;border:1px solid #d9d7cf;background-color:#ffffff;color:#0B1E35;font-family:Arial,Helvetica,sans-serif;width:420px;max-width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt"><tr>
+      ${d.sgLogo ? `<td width="80" bgcolor="#ffffff" valign="top" style="padding:16px 12px;background-color:#ffffff;border:0"><img src="${logo}" width="56" height="56" alt="Classic Visions" style="display:block;width:56px;height:56px;border:0;background-color:#ffffff"></td>` : ''}
+      <td bgcolor="#ffffff" valign="top" style="padding:16px;border:0;border-left:2px solid #C89130;background-color:#ffffff"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%">
+        ${row(esc(d.sgName), 'font-size:16px;font-weight:bold;line-height:22px;')}
+        ${d.sgTitle ? row(esc(d.sgTitle), 'color:#176d7a;') : ''}
+        ${row('CLASSIC VISIONS', 'padding-top:8px;padding-bottom:6px;font-size:11px;font-weight:bold;letter-spacing:1px;')}
+        ${d.sgPhone ? row(link(`tel:${String(d.sgPhone).replace(/[^+\d]/g, '')}`, d.sgPhone)) : ''}
+        ${d.sgEmail ? row(link(`mailto:${d.sgEmail}`, d.sgEmail)) : ''}
+        ${website ? row(link(url, website)) : ''}
+        ${d.sgTagline ? row(esc(d.sgTagline), 'padding-top:8px;color:#41525f;font-style:italic;font-size:12px;') : ''}
+      </table></td>
     </tr></table>`;
   };
-  buildSignatureBoard = () => `<div style="background:#fff;border:1px solid #e7e4db;border-radius:12px;padding:36px 40px;box-shadow:0 10px 40px -10px rgba(11,30,53,.12)">${this.buildSignature()}</div>`;
+  buildSignatureBoard = () => this.buildSignature().replace('https://www.classicvisions.net/ds/assets/signature-logo.png', '/ds/assets/signature-logo.png');
+  downloadSignatureHtml = () => this.downloadFile(this.slug(this.state.sgName || 'signature') + '-signature.html', `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email signature</title></head><body>${this.buildSignature()}</body></html>`, 'text/html;charset=utf-8');
+  insertSignatureInEmail = () => {
+    this.syncActive();
+    this.set('emBody', this.state.emBody + '<p><br></p>' + this.buildSignature());
+    this.switchTab('email');
+    this.toast('Signature added to the email draft');
+  };
+  signaturePngBlob = async () => {
+    const d = this.state, canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const x = d.sgLogo ? 108 : 18, width = 420, textWidth = width - x - 18;
+    const lines = [];
+    const add = (text, font, color, gap = 0) => {
+      if (!text) return;
+      ctx.font = font;
+      let line = '';
+      // Character wrapping also preserves very long addresses without clipping.
+      for (const ch of String(text)) {
+        if (ctx.measureText(line + ch).width > textWidth && line) { lines.push({ text: line, font, color, gap }); line = ''; gap = 0; }
+        line += ch;
+      }
+      lines.push({ text: line, font, color, gap });
+    };
+    add(d.sgName, 'bold 16px Arial', '#0B1E35');
+    add(d.sgTitle, '13px Arial', '#176d7a');
+    add('CLASSIC VISIONS', 'bold 11px Arial', '#0B1E35', 8);
+    [d.sgPhone, d.sgEmail, d.sgWeb].forEach(text => add(text, '13px Arial', '#176d7a'));
+    add(d.sgTagline, 'italic 12px Arial', '#41525f', 8);
+    const height = Math.max(96, 32 + lines.reduce((sum, line) => sum + 22 + line.gap, 0));
+    canvas.width = width * 3; canvas.height = height * 3;
+    ctx.scale(3, 3); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#d9d7cf'; ctx.strokeRect(.5, .5, width - 1, height - 1);
+    ctx.fillStyle = '#C89130'; ctx.fillRect(x - 16, 0, 2, height);
+    if (d.sgLogo) {
+      const logo = new Image();
+      await new Promise((resolve, reject) => { logo.onload = resolve; logo.onerror = reject; logo.src = '/ds/assets/signature-logo.png'; });
+      ctx.drawImage(logo, 12, 16, 56, 56);
+    }
+    let y = 16;
+    ctx.textBaseline = 'top';
+    lines.forEach(line => { y += line.gap; ctx.font = line.font; ctx.fillStyle = line.color; ctx.fillText(line.text, x, y); y += 22; });
+    return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed')), 'image/png'));
+  };
+  downloadSignatureImage = async () => {
+    try { this.downloadFile(this.slug(this.state.sgName || 'signature') + '-signature.png', await this.signaturePngBlob(), 'image/png'); }
+    catch (error) { this.toast('Image export failed. Try downloading HTML instead.'); }
+  };
+  copySignatureImage = async () => {
+    try {
+      if (!navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': this.signaturePngBlob() })]);
+      this.toast('Signature image copied — paste into your email');
+    } catch (error) { this.toast('Image copy was blocked. Use Download PNG, then insert the image in your email.'); }
+  };
+  setLabelMode = (event) => {
+    const mode = event.target.value === 'customer' ? 'customer' : 'shipping';
+    const oldCaption = this.state.slMode === 'customer' ? 'Customer' : 'Ship to';
+    this.setState({ slMode: mode, slToCaption: this.state.slToCaption === oldCaption ? (mode === 'customer' ? 'Customer' : 'Ship to') : this.state.slToCaption }, this.persist);
+  };
 
   // ---------- copy / print ----------
   copyRich = async (html) => {
+    const plain = document.createElement('div');
+    plain.innerHTML = html.replace(/<br\s*\/?\s*>|<\/tr>|<\/p>/gi, '\n');
     try {
       if (navigator.clipboard && window.ClipboardItem) {
         await navigator.clipboard.write([new ClipboardItem({
           'text/html': new Blob([html], { type: 'text/html' }),
-          'text/plain': new Blob([html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()], { type: 'text/plain' })
+          'text/plain': new Blob([(plain.textContent || '').replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').replace(/\n\s*\n/g, '\n').trim()], { type: 'text/plain' })
         })]);
       } else throw new Error('no-clip');
     } catch (e) {
@@ -960,16 +1052,19 @@
       tmp.innerHTML = html; document.body.appendChild(tmp);
       const r = document.createRange(); r.selectNode(tmp);
       const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
-      try { document.execCommand('copy'); } catch (er) {}
+      let copied = false;
+      try { copied = document.execCommand('copy'); } catch (er) {}
       sel.removeAllRanges(); tmp.remove();
+      if (!copied) { this.toast('Copy was blocked. Download HTML, open it, then select and copy the signature.'); return false; }
     }
     this.toast('Copied — paste into your email or doc');
+    return true;
   };
   copyNow = () => {
     const t = this.state.tab;
     if (t === 'files') { this.toast('Open a file to preview it'); return; }
     if (t === 'social') { this.openSmFull(); return; }
-    if (t === 'shiplabel') { this.printDoc(this.buildShippingLabel(), 'Shipping Label'); return; }
+    if (t === 'shiplabel') { this.printDoc(this.buildShippingLabel(), this.state.slMode === 'customer' ? 'Customer Label' : 'Shipping Label'); return; }
     if (t === 'statement') { this.printDoc(this.state.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement(), 'Customer Statement'); return; }
     if (t === 'billing') { this.printDoc(this.buildBilling(), this.billMeta().title, this.state.billPaperSize || 'letter'); return; }
     this.copyRich(t === 'email' ? this.buildEmail() : t === 'letter' ? this.buildLetter() : this.buildSignature());
@@ -1269,33 +1364,34 @@
   // ---------- SHIPPING LABEL build ----------
   buildShippingLabel = () => {
     const d = this.state, esc = this.esc;
+    const customer = d.slMode === 'customer';
     const total = [d.slFromName,d.slFromAddr,d.slFromPhone,d.slToName,d.slToCompany,d.slToAddr,d.slToPhone,d.slCarrier,d.slService,d.slTracking,d.slWeight,d.slDims,d.slNote].join(' ');
     const fit = this.fitScale(total, 520, .58);
     const labelSz = this.fitFont(9, fit, 7), bodySz = this.fitFont(12, fit, 8), nameSz = this.fitFont(14, fit, 9), pad = this.fitFont(16, fit, 9);
-    const box = (label, val) => val ? `<div style="margin-bottom:${Math.max(2, Math.round(4*fit))}px"><span style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">${label}: </span><span style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(val)}</span></div>` : '';
-    return `<div style="width:432px;max-width:432px;font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#fff;border:2px solid #0B1E35;border-radius:10px;overflow:visible;box-shadow:0 6px 24px -8px rgba(11,30,53,.25);box-sizing:border-box">
-      <div style="background:#0B1E35;padding:${Math.round(14*fit)}px 20px;display:flex;align-items:center;gap:12px">
+    const box = (label, val) => val ? `<div style="border-radius:0;margin-bottom:${Math.max(2, Math.round(4*fit))}px"><span style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">${label}: </span><span style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(val)}</span></div>` : '';
+    return `<div style="border-radius:0;width:432px;max-width:432px;font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#fff;border:2px solid #0B1E35;border-radius:0;overflow:visible;box-shadow:0 6px 24px -8px rgba(11,30,53,.25);box-sizing:border-box">
+      <div style="border-radius:0;background:#0B1E35;padding:${Math.round(14*fit)}px 20px;display:flex;align-items:center;gap:12px">
         <img src="/ds/assets/logo_linen.svg" width="36" height="36" alt="" style="display:block;width:36px;height:36px">
-        <div><div style="font:800 ${this.fitFont(13, fit, 9)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.06em;color:#F4F2ED">CLASSIC VISIONS</div><div style="font:700 ${this.fitFont(8, fit, 6)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.22em;color:#C89130;margin-top:4px">OPTICAL · BARBADOS</div></div>
-        ${d.slCarrier || d.slService ? `<div style="margin-left:auto;text-align:right;max-width:145px"><div style="font:700 ${this.fitFont(13, fit, 8)}px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#F4F2ED;${this.clampTextStyle()}">${esc(d.slCarrier)}</div><div style="font:400 ${this.fitFont(11, fit, 7)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#8fa3b8;${this.clampTextStyle()}">${esc(d.slService)}</div></div>` : ''}
+        <div><div style="border-radius:0;font:800 ${this.fitFont(13, fit, 9)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.06em;color:#F4F2ED">CLASSIC VISIONS</div><div style="border-radius:0;font:700 ${this.fitFont(8, fit, 6)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.22em;color:#C89130;margin-top:4px">OPTICAL · BARBADOS</div></div>
+        ${!customer && (d.slCarrier || d.slService) ? `<div style="border-radius:0;margin-left:auto;text-align:right;max-width:145px"><div style="border-radius:0;font:700 ${this.fitFont(13, fit, 8)}px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#F4F2ED;${this.clampTextStyle()}">${esc(d.slCarrier)}</div><div style="border-radius:0;font:400 ${this.fitFont(11, fit, 7)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#8fa3b8;${this.clampTextStyle()}">${esc(d.slService)}</div></div>` : ''}
       </div>
-      <div style="display:flex">
-        <div style="flex:1;min-width:0;padding:${pad}px 20px;border-right:1px solid #e7e4db">
-          <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:${Math.round(8*fit)}px">From</div>
-          <div style="font:600 ${this.fitFont(13, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slFromName)}</div>
-          <div style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slFromAddr)}</div>
+      <div style="border-radius:0;display:flex">
+        ${!customer ? `<div style="border-radius:0;flex:1;min-width:0;padding:${pad}px 20px;border-right:1px solid #e7e4db">
+          <div style="border-radius:0;font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:${Math.round(8*fit)}px">${esc(d.slFromCaption || 'From')}</div>
+          <div style="border-radius:0;font:600 ${this.fitFont(13, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slFromName)}</div>
+          <div style="border-radius:0;font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slFromAddr)}</div>
           ${box('Tel', d.slFromPhone)}
-        </div>
-        <div style="flex:1;min-width:0;padding:${pad}px 20px">
-          <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#0B1E35;margin-bottom:${Math.round(8*fit)}px">Ship to</div>
-          <div style="font:700 ${nameSz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slToName)}</div>
-          ${d.slToCompany ? `<div style="font:600 ${this.fitFont(12.5, fit, 8)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">${esc(d.slToCompany)}</div>` : ''}
-          <div style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slToAddr)}</div>
+        </div>` : ''}
+        <div style="border-radius:0;flex:1;min-width:0;padding:${pad}px 20px">
+          <div style="border-radius:0;font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#0B1E35;margin-bottom:${Math.round(8*fit)}px">${esc(d.slToCaption || (customer ? 'Customer' : 'Ship to'))}</div>
+          <div style="border-radius:0;font:700 ${nameSz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slToName)}</div>
+          ${d.slToCompany ? `<div style="border-radius:0;font:600 ${this.fitFont(12.5, fit, 8)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">${esc(d.slToCompany)}</div>` : ''}
+          <div style="border-radius:0;font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slToAddr)}</div>
           ${box('Tel', d.slToPhone)}
         </div>
       </div>
-      ${d.slTracking ? `<div style="padding:${Math.round(10*fit)}px 20px;background:#f7f5ef;border-top:1px solid #e7e4db;display:flex;align-items:center;gap:12px"><div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">Tracking</div><div style="font:700 ${this.fitFont(14, fit, 9)}px/1.15 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;letter-spacing:.03em;${this.clampTextStyle()}">${esc(d.slTracking)}</div></div>` : ''}
-      ${d.slWeight || d.slDims || d.slNote ? `<div style="padding:${Math.round(10*fit)}px 20px;border-top:1px solid #e7e4db;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">${box('Weight', d.slWeight)}${box('Dims', d.slDims)}${d.slNote?`<div style="margin-left:auto;max-width:100%;font:600 ${this.fitFont(11, fit, 7)}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#C89130;font-style:italic;${this.clampTextStyle()}">${esc(d.slNote)}</div>`:''}</div>` : ''}
+      ${!customer && d.slTracking ? `<div style="border-radius:0;padding:${Math.round(10*fit)}px 20px;background:#f7f5ef;border-top:1px solid #e7e4db;display:flex;align-items:center;gap:12px"><div style="border-radius:0;font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">Tracking</div><div style="border-radius:0;font:700 ${this.fitFont(14, fit, 9)}px/1.15 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;letter-spacing:.03em;${this.clampTextStyle()}">${esc(d.slTracking)}</div></div>` : ''}
+      ${(!customer && (d.slWeight || d.slDims)) || d.slNote ? `<div style="border-radius:0;padding:${Math.round(10*fit)}px 20px;border-top:1px solid #e7e4db;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">${!customer ? box('Weight', d.slWeight) + box('Dims', d.slDims) : ''}${d.slNote?`<div style="border-radius:0;margin-left:auto;max-width:100%;font:600 ${this.fitFont(11, fit, 7)}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#C89130;font-style:italic;${this.clampTextStyle()}">${esc(d.slNote)}</div>`:''}</div>` : ''}
     </div>`;
   };
 
@@ -1747,7 +1843,7 @@
     letter: ['docType', 'ltRule', 'ltSpacing', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe', 'ltBody'],
     signature: ['sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'sgLogo'],
     social: ['smFormat', 'smStyle', 'smHeadline', 'smHeadlineAlign', 'smHeadlineItalic', 'smBody', 'smSub', 'smHandle'],
-    shiplabel: ['slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
+    shiplabel: ['slMode', 'slFromCaption', 'slToCaption', 'slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
     statement: ['stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stCurrency', 'stOpenBal', 'stRows', 'stNote', 'selectedStatementCustomer']
   };
   isCurrentFileField = (key) => this.state.currentFileKind === 'file' && this.state.currentFileId && this.FILE_KEYS[this.state.currentFileType]?.includes(key);
@@ -1844,7 +1940,7 @@
     if (type === 'letter') return d.ltSubject || this.TYPE_LABELS.letter;
     if (type === 'signature') return d.sgName || 'Email signature';
     if (type === 'social') return d.smHeadline || 'Social post';
-    if (type === 'shiplabel') return d.slToCompany || d.slToName ? 'Ship label - ' + (d.slToCompany || d.slToName) : 'Ship label';
+    if (type === 'shiplabel') return d.slToCompany || d.slToName ? (d.slMode === 'customer' ? 'Customer label - ' : 'Ship label - ') + (d.slToCompany || d.slToName) : (d.slMode === 'customer' ? 'Customer label' : 'Ship label');
     if (type === 'statement') return d.stCustomer ? 'Statement - ' + d.stCustomer : 'Statement';
     return 'Doc Studio file';
   };
@@ -1926,7 +2022,7 @@
 
   applyFile = (file) => {
     const type = file.fileType;
-    const fields = file.content || {};
+    const fields = file.fileType === 'shiplabel' ? { slMode: 'shipping', slFromCaption: 'From', slToCaption: 'Ship to', ...file.content } : (file.content || {});
     const cur = this.state.tab;
     this.syncTiny(cur);
     this.destroyTiny(cur);
@@ -2450,7 +2546,7 @@
   renderVals() {
     const d = this.state;
     const f = {};
-    ['emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltTo', 'ltFrom', 'ltRe', 'ltEyebrow', 'ltAmount', 'sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'smHeadline', 'smSub', 'smHandle', 'plCustomer', 'plAttn', 'plDate', 'plValidity', 'plNote', 'slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stOpenBal', 'stNote',
+    ['emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltTo', 'ltFrom', 'ltRe', 'ltEyebrow', 'ltAmount', 'sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'smHeadline', 'smSub', 'smHandle', 'plCustomer', 'plAttn', 'plDate', 'plValidity', 'plNote', 'slFromCaption', 'slToCaption', 'slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stOpenBal', 'stNote',
       'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blVatRate', 'blDiscount', 'blShipping', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes',
       'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote',
       'stStatementDate', 'stStatementNo', 'stCurrentDue', 'stAging1', 'stAging2', 'stAging3', 'stAging4', 'stNewBalance',
@@ -2535,10 +2631,7 @@
       .sort((a, b) => this.customerLabel(a).localeCompare(this.customerLabel(b)))
       .map(c => ({ account: c.account || '', label: this.customerLabel(c) }));
     const selectedEmailSet = new Set(this.splitEmails(d.emailTo).map(v => v.toLowerCase()));
-    const emailContactOptions = (d.emailContacts || [])
-      .filter(c => c && c.email)
-      .slice()
-      .sort((a, b) => String(a.name || a.email || '').localeCompare(String(b.name || b.email || '')))
+    const emailContactOptions = this.filteredEmailContacts()
       .map(c => ({
         name: c.name || c.email,
         email: c.email,
@@ -2612,18 +2705,21 @@
       isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
       f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
       showPreviewHeader: tab !== 'files',
-      previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
+      previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? (d.slMode === 'customer' ? 'Customer label preview' : 'Shipping label preview') : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
       showEmailFileIdentity: tab === 'email',
       activeEmailFileName: d.currentFileKind === 'file' && d.currentFileType === 'email' ? (d.currentFileName || 'Untitled email') : 'Unsaved email',
       activeEmailFileStatus: d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? 'Unsaved' : d.currentFileIsTemplate ? 'Template' : 'File',
       activeEmailFileBadgeStyle: `padding:4px 7px;border-radius:999px;background:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#f1ede5' : d.currentFileIsTemplate ? '#dceef0' : '#e7edf5'};color:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#7a715f' : d.currentFileIsTemplate ? '#176d7a' : '#415b7a'};font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap`,
       copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
+      downloadSignatureHtml: this.downloadSignatureHtml, downloadSignatureImage: this.downloadSignatureImage, copySignatureImage: this.copySignatureImage, insertSignatureInEmail: this.insertSignatureInEmail,
+      slMode: d.slMode || 'shipping', isShippingMode: d.slMode !== 'customer', setLabelMode: this.setLabelMode, labelRecipientCaption: d.slMode === 'customer' ? 'Customer' : 'Ship to',
       copyNow: this.copyNow, printLetter: this.printLetter,
       composeNewEmail: this.composeNewEmail, openEmailSend: this.openEmailSend,
       emailSendOpen: d.emailSendOpen, closeEmailSend: this.closeEmailSend,
       emailFromLabel: d.emailFromLabel || 'Classic Visions <support@classicvisions.net>',
       emailReplyTo: d.emailReplyTo || '', emailTo: d.emailTo || '', emailCc: d.emailCc || '', emailBcc: d.emailBcc || '', emailSubject: d.emailSubject || this.emailSubjectLine(),
       setEmailReplyTo: this.setEmailReplyTo, setEmailTo: this.setEmailTo, setEmailCc: this.setEmailCc, setEmailBcc: this.setEmailBcc, setEmailSubject: this.setEmailSubject,
+      emailContactSearch: d.emailContactSearch, setEmailContactSearch: this.setEmailContactSearch, emailContactsExpanded: d.emailContactsOpen ? 'true' : 'false',
       emailContactsOpen: d.emailContactsOpen, toggleEmailContacts: this.toggleEmailContacts, emailContactOptions, noEmailContacts: emailContactOptions.length === 0,
       emailCcOpen: d.emailCcOpen, emailBccOpen: d.emailBccOpen, showEmailCc: this.showEmailCc, showEmailBcc: this.showEmailBcc,
       emailCcBtnStyle: `height:30px;padding:0 13px;border:1px solid ${d.emailCcOpen ? '#0B1E35' : '#d9d7cf'};border-radius:8px;background:${d.emailCcOpen ? '#0B1E35' : '#fff'};color:${d.emailCcOpen ? '#fff' : '#0B1E35'};font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer`,

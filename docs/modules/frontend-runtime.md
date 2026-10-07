@@ -1,5 +1,14 @@
 # Frontend Runtime Module Docs
 
+
+## 2026-10-07 — Doc Studio recipients, signatures and labels
+
+The established runtime lives in public/ds/studio-logic.js and studio.html, mounted by DocStudioEmbed. Picker listeners clean up on unmount and retain To during dismissal. Signatures use inline tables and hosted PNG plus 3x canvas alternatives; clipboard failures are surfaced. shiplabel payloads preserve slMode/slFromCaption/slToCaption with legacy shipping defaults. Generated support.js and the native v2 gateway remain untouched. See Doc Studio CONTEXT and docs/doc-studio-signature-compatibility.md.
+
+## 2026-10-07 — CRM contact editor
+
+ContactsPage uses CompanyCombobox, contactEmails and PublicWebResearch. Full-pipeline save guards prevent duplicate inserts; retained link fields avoid reverting a newly selected ERP customer on the next save. Research calls existing admin-only crm-enrich-contacts with mode: research, reads saved context and returns source evidence without automatically changing CRM fields. See `docs/crm-contact-editor-follow-up.md` for office integration and recipient-audit limits.
+
 ## 2026-10-07 — Admin attention dropdown
 
 OperatorAttentionAlert mounts once inside AdminTopBar, shared by AdminLayout and AtlasAdminFrame. The controlled Radix popover starts closed, aligns to the trigger end and scrolls all items. Dismissal changes local presentation state only; the existing attention hook owns polling, sound, qualification and Snooze.

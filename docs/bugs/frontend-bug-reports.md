@@ -1,5 +1,14 @@
 # Frontend Bug Reports
 
+
+## 2026-10-07 — Doc Studio recipient picker, signature portability and label layout
+
+Local source repair: picker searches and dismisses without dropping selected addresses; signature no longer depends on SVG/data-URI logo or web fonts and has explicit copy/export fallbacks; square shipping/customer label layouts and editable headings are available. Email-client paste/delivery and publication are pending verification. No email was sent.
+
+## 2026-10-07 — CRM contact editor comments
+
+Replaced the unsearchable company picker, added validated email lists and distinct Save / Save & Close actions, and exposed broader public-web source suggestions separately from Google Places. Eight focused tests pass; authenticated browser verification on port 8081 confirms typing/filtering and Enter selection with the real dialog. The office contact query omits salesperson; inbound address fields already exist. Actual source metadata, blank-row dry-run evidence, revision-checked reverse integration, recipient audit and deployment verification remain outstanding. Port 8080 belongs to a different checkout.
+
 ## 2026-10-07 — Admin attention dropdown
 
 The centered attention banner obscured dashboard content and had no direct close control. It is now a right-aligned vertical popover beside the bell, with explicit X and keyboard/outside dismissal. Eight focused tests pass; isolated browser checks confirm placement and dismissal. The full suite hit an untouched Rx domain timeout; authenticated dashboard inspection was blocked by browser URL policy.

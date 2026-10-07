@@ -1,5 +1,22 @@
 # Changelog
 
+
+## 2026-10-07 — Doc Studio recipients, signatures and labels (local source)
+
+### Release Notes
+- Search recipients and dismiss the list with outside click, focus loss or Escape while retaining To. Signatures have editable HTML tiles, image copy/download and direct email insertion. Labels have square corners and shipping/customer modes with editable headings.
+
+### Technical Changelog
+- Added cleaned-up picker listeners, dual clipboard formats, a 224px PNG logo, dependency-free 3x image export, and legacy-safe label payload fields. Public logo deployment and actual email-client validation remain pending. See docs/doc-studio-signature-compatibility.md.
+
+## 2026-10-07 — CRM contact editor (local source)
+
+### Release Notes
+- Company search accepts typing and Enter; contact email lists are validated; Save stays open and Save & Close closes after successful persistence. Public-web research presents sources and candidate emails for review.
+
+### Technical Changelog
+- Added editable combobox and shared email parser; guarded the complete save pipeline and retained persisted account links. Manual research uses existing enrichment auth and server-only Firecrawl configuration. Innovations salesperson producer mapping/writeback and recipient-consumer audit remain pending; no production release verified.
+
 ## 2026-10-07 — Admin attention dropdown
 
 ### Release Notes

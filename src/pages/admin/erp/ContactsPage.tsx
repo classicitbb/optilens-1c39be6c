@@ -1489,6 +1489,7 @@ const ContactsPage = ({
     }
 
     let nextParentId = editContact.parent_id ?? null;
+    let persistedLinks: Partial<Contact> = {};
     try {
       const email = normalizeContactEmails(editContact.email ?? "");
       savingContactRef.current = true;
@@ -1617,6 +1618,7 @@ const ContactsPage = ({
             .update(updatePayload)
             .eq("id", contactId as any);
           if (linkError) throw linkError;
+          persistedLinks = updatePayload as Partial<Contact>;
         }
       }
 
@@ -1631,7 +1633,7 @@ const ContactsPage = ({
         closeEditDialog();
         setInitialParentId(null);
       } else {
-        setEditContact((current) => current ? { ...current, id: contactId, parent_id: nextParentId, email } : current);
+        setEditContact((current) => current ? { ...current, ...persistedLinks, id: contactId, parent_id: nextParentId, email } : current);
         setInitialParentId(nextParentId);
       }
       setBusinessCardFile(null);

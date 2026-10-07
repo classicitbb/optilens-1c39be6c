@@ -1,5 +1,14 @@
 # Project Knowledge
 
+
+## Doc Studio established runtime — 2026-10-07
+
+The exact established layout is public/ds/studio.html + precompiled studio-logic.js mounted by DocStudioEmbed, separate from the native v2 gateway. Generic shell div radii affect label children, so square labels must explicitly reset descendants. Signatures use inline email tables, hosted signature-logo.png, dual clipboard formats and dependency-free 3x canvas exports. Publish the new PNG asset with the app before external HTML use; clients may block remote images. No new service/connector/environment variable. Port 8081 serves this checkout. See src/features/admin/doc-studio/CONTEXT.md and docs/doc-studio-signature-compatibility.md.
+
+## CRM editor additions (2026-10-07, local source)
+
+Editable company selection and email-list normalization live in `src/features/admin/crm/CompanyCombobox.tsx` and `src/lib/contactEmails.ts`. Save preserves the editor and persisted ERP links; Save & Close closes after the whole pipeline. `PublicWebResearch.tsx` calls manual `mode: research` on `crm-enrich-contacts`, with server-only `FIRECRAWL_API_KEY` and source suggestions. No automatic person-profile writes occur. Innovations remains one-way; salesperson producer mapping and reverse writes are pending. See `docs/crm-contact-editor-follow-up.md` before release or integration changes.
+
 - Repository: `classicitbb/optilens-1c39be6c`
 - Default branch: `main`
 - Last verified: 2026-09-11

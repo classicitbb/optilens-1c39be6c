@@ -4,11 +4,15 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-07 (Admin attention dropdown)
+Last updated: 2026-10-07 (Admin attention dropdown; CRM contact editor; Doc Studio improvements)
 
 ---
 
 ## Active work
+
+- **Doc Studio recipients/signatures/labels** — local port 8081 improvements implemented; recipient search/dismissal retains To, signature supports HTML/image copy/export and draft insertion, labels support square shipping/customer layouts and editable headings. Public logo deployment and actual email-client validation remain pending. See Doc Studio CONTEXT and docs/doc-studio-signature-compatibility.md.
+
+- **CRM contact editor** — local searchable company field (typing, filtering, Enter/arrows/Escape), validated email lists, Save / Save & Close, and source-backed public-web research suggestions through the existing enrichment endpoint. Salesperson receiver compatibility is prepared; office producer mapping and Innovations writeback remain incomplete pending actual source metadata and an office-side revision/conflict contract. Mail recipient consumers require audit before releasing list storage. No production contact edits, billable lookup or deployment from this chat. See `docs/crm-contact-editor-follow-up.md` and HANDOFF.md for checks and blockers.
 
 - **Admin attention dropdown** — local source moves the attention count beside the notification bell in the shared AdminTopBar (including Atlas). A right-aligned 320px vertical Radix popover starts closed; X, Escape and outside click dismiss the panel while retaining unresolved work. All attention items are scrollable; Help Desk and existing Snooze remain available. TypeScript, lint (warnings only), build and 8 focused tests pass. Local isolated browser fixture confirms placement and all three dismissal paths. Full test run hit a 120-second timeout in the untouched Rx domain seeded-scenario test and was stopped; authenticated full-dashboard browser inspection was blocked by browser URL security policy. The user authorized committing and pushing this change to main on 2026-10-07; deployed behavior is not yet verified.
 

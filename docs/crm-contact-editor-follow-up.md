@@ -27,4 +27,4 @@ Website Save currently writes the website database only. Bidirectional address/s
 
 ## Validation
 
-TypeScript, five focused parsing/research tests and production build passed initially. Full repository checks and browser verification are recorded in HANDOFF.md. Provider tests use mocked fetch; they do not prove deployed configuration or real person matching. Browser inspection of localhost timed out; no hosted contact was saved.
+TypeScript, lint (warnings only), production build and the initial full suite (1356 tests) pass. Eight focused tests cover parsing, provider response handling and company keyboard selection. Final build and PR checks pass after the retained-link correction. Real typing and Enter selection passed in an isolated Edge fixture and subsequently in the authenticated contact dialog on port 8081. The real dialog shows the email-list field, research action and both save buttons; no contact was saved. Port 8080 serves a different checkout. Provider tests use mocked fetch; they do not prove deployed configuration or real person matching. See HANDOFF.md for remaining integration work.
