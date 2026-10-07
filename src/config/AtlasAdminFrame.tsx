@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import HelpPanel from "@/components/admin/HelpPanel";
-import OperatorAttentionAlert from "@/components/admin/OperatorAttentionAlert";
 import CrmActivityDialog from "@/components/admin/CrmActivityDialog";
 import HelpdeskTicketDialog from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
 
@@ -14,7 +13,6 @@ const AtlasAdminFrame = ({ children }: { children: ReactNode }) => {
   return (
     <>
       <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((open) => !open)} />
-      <OperatorAttentionAlert />
       <div className="relative flex min-h-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1">{children}</div>
         <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentSlug="all" />

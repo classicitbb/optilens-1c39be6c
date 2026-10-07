@@ -10,7 +10,6 @@ import { useScrollingClass } from "@/hooks/useScrollingClass";
 import { useAdminBodyClass } from "@/hooks/useAdminBodyClass";
 import CrmActivityDialog from "./CrmActivityDialog";
 import HelpdeskTicketDialog from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
-import OperatorAttentionAlert from "./OperatorAttentionAlert";
 import AdminCopilotAssistant from "./copilot/AdminCopilotAssistant";
 import { useLiveHelpdeskInboxUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
 
@@ -29,7 +28,6 @@ const AdminLayout = () => {
     <AdminRoleProvider>
       <div className="admin-tool flex flex-col h-screen w-full overflow-hidden rounded-none">
         <AdminTopBar helpOpen={helpOpen} onHelpToggle={() => setHelpOpen((prev) => !prev)} />
-        <OperatorAttentionAlert />
         <div className="relative flex flex-1 min-h-0">
           {!hideSidebar && <AdminSidebar />}
           <div className="flex flex-1 min-w-0 min-h-0">

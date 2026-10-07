@@ -19,6 +19,8 @@ All admin-only business logic and UI. Each subfolder is a discrete feature:
 
 ## Hard rules for this area
 
+- Operator attention is a shared top-bar count beside the bell, with a closed-by-default vertical popover. Closing the panel must not mark work handled or invoke persisted Snooze. AdminLayout and AtlasAdminFrame must not mount a second alert.
+
 - All routes under `/admin/**` must be behind `AdminProtectedRoute` — no exceptions.
 - The admin sidebar links are driven by `src/features/admin/core/config/apps.ts`. If you add a route, update that file or the link will be dead.
 - Do not add business logic to `core/` — it is layout and config only.

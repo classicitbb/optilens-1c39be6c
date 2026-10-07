@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import GlobalSearch from "./GlobalSearch";
 import AppLauncher from "./AppLauncher";
 import NotificationBell from "./NotificationBell";
+import OperatorAttentionAlert from "./OperatorAttentionAlert";
 import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
 import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
@@ -234,6 +235,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
 
             {/* Notifications Bell */}
             <NotificationBell />
+            <OperatorAttentionAlert />
 
             <Tooltip>
               <TooltipTrigger asChild>

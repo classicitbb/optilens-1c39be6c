@@ -1,5 +1,15 @@
 # Work Handoff
 
+## 2026-10-07 — Admin attention dropdown
+
+Status: Complete — no active handoff
+
+Affected files: `OperatorAttentionAlert.tsx`, `AdminTopBar.tsx`, `AdminLayout.tsx`, `AtlasAdminFrame.tsx`, attention unit tests, admin CONTEXT, STATUS and PROJECT_KNOWLEDGE. Shared header owns the single alert beside the bell. Its 320px right-aligned vertical popover starts closed; X, Escape and outside click close presentation without altering work or Snooze. All items scroll vertically and navigation closes the panel.
+
+Validation: `npx tsc --noEmit --pretty false`, `npm run lint` (warnings only), `npm run build`, and 8 focused attention tests pass. An isolated local browser fixture with 9 sample items confirmed vertical placement, X, Escape and outside-click dismissal. Temporary fixture files were removed and the normal Vite app restarted on port 5178. Full `npm run test -- --runInBand` encountered a 120-second timeout in `rxOrderDomain.integration.test.ts` seeded scenarios; the broad run was stopped, not passed. Full authenticated local-dashboard inspection was rejected by the browser URL security policy; no workaround was attempted. Dependency installation initially failed with Windows ENOTEMPTY; preserving the old dependency directory outside the checkout and a clean `npm ci` restored the locked toolchain without manifest edits.
+
+The user explicitly authorized committing and pushing this frontend change to main on 2026-10-07. Source implementation is complete; deployment completion and authenticated production behavior have not been verified. No hosted data write or Edge Function change is included. The full-suite Rx timeout remains a validation limitation.
+
 ## 2026-10-05 — Iris wiki formatting
 
 Status: Local implementation complete; production publication pending approval.

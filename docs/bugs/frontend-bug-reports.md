@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-07 — Admin attention dropdown
+
+The centered attention banner obscured dashboard content and had no direct close control. It is now a right-aligned vertical popover beside the bell, with explicit X and keyboard/outside dismissal. Eight focused tests pass; isolated browser checks confirm placement and dismissal. The full suite hit an untouched Rx domain timeout; authenticated dashboard inspection was blocked by browser URL policy.
+
 ## 2026-10-05 — Iris wiki Markdown displayed literally
 
 The reply bubble rendered raw text, and selection acceptance flattened formatted proposals into a plain string, collapsing line breaks. Replies now use the shared wiki renderer, Markdown converts to canonical blocks through remark, and replacement inserts structured Tiptap content. Regression coverage checks rendered replies, accepted blocks and the editor round trip. Existing stored drafts are left untouched.

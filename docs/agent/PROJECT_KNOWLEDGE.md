@@ -54,6 +54,8 @@ port is needed.
 
 ## Sources of truth
 
+- Admin attention alerts mount once inside `AdminTopBar`, beside `NotificationBell`, for both AdminLayout and AtlasAdminFrame. The compact count opens a right-aligned Radix popover; dismissal only closes local presentation state. Existing alert qualification, polling, sound and persisted Snooze are owned by `useOperatorAttentionAlerts`.
+
 - Work status and unfinished functionality: `STATUS.md`.
 - Router: `src/App.tsx`; route modules: `src/routes/**`.
 - Route metadata: `src/config/routeRegistry.ts`.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-07 — Admin attention dropdown
+
+### Release Notes
+- Admin attention count moves beside the bell and opens a right-aligned vertical dropdown. Close with X, Escape or outside click; unresolved items remain available.
+
+### Technical Changelog
+- Shared AdminTopBar mounts one Radix attention popover for Admin and Atlas; all items scroll vertically and existing Snooze behavior remains.
+
 ## 2026-10-05 — Iris wiki formatting
 
 ### Release Notes

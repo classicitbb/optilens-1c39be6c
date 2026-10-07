@@ -4,11 +4,13 @@
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-06 (Helpdesk message edit/retract)
+Last updated: 2026-10-07 (Admin attention dropdown)
 
 ---
 
 ## Active work
+
+- **Admin attention dropdown** — local source moves the attention count beside the notification bell in the shared AdminTopBar (including Atlas). A right-aligned 320px vertical Radix popover starts closed; X, Escape and outside click dismiss the panel while retaining unresolved work. All attention items are scrollable; Help Desk and existing Snooze remain available. TypeScript, lint (warnings only), build and 8 focused tests pass. Local isolated browser fixture confirms placement and all three dismissal paths. Full test run hit a 120-second timeout in the untouched Rx domain seeded-scenario test and was stopped; authenticated full-dashboard browser inspection was blocked by browser URL security policy. The user authorized committing and pushing this change to main on 2026-10-07; deployed behavior is not yet verified.
 
 - **Helpdesk message edit / retract** — authors can edit or retract their own messages: staff replies, internal notes and customer portal replies. `edit_helpdesk_ticket_message` / `retract_helpdesk_ticket_message` are the only write path (table writes stay revoked); a customer is blocked once the ticket is closed or 15 minutes after sending (edit and retract; staff are unlimited; `20261006130000_helpdesk_customer_edit_window.sql`, applied live and tested both sides of the window), and automated or emailed-in messages (no `sender_user_id`) cannot be changed. Retract clears the text and the thread shows "This message was retracted"; replaced and withdrawn text is kept in staff-only `helpdesk_ticket_message_revisions` (no UI yet) and every change adds a `message_edited` / `message_retracted` timeline event. Messages show "edited". Migration `20261006120000_helpdesk_message_edit_retract.sql` **applied to the live project** via the Lovable MCP and exercised in a rolled-back transaction (non-author rejected, edit, retract, edit-after-retract rejected). Not covered: the `mcp` / `mcp-staging` edge functions read `body` directly and will show a retracted message as empty; attachments uploaded with a retracted message are hidden but remain in storage. No browser pass on an authenticated ticket.
 
