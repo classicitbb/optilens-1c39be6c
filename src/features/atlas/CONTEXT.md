@@ -41,6 +41,8 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
   `spacing` field on the canonical `table` block (omitted when comfortable).
 - Drag a column border to resize. Widths are pixels on each cell's `colwidth` and an optional `colWidths` array on the canonical
   block (`null` = share leftover space); readers emit a `<colgroup>`. "Autofit" measures an off-screen clone of the table.
+- Tables have no merged cells. Pasted HTML is run through `unmergeTableCells` (`pasteTables.ts`), which splits every colspan/rowspan
+  into plain cells that repeat the content, so nothing shifts column on save.
 
 ## Layout
 

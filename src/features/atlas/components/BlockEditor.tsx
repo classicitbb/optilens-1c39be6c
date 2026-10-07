@@ -10,6 +10,7 @@ import BlockGutter from "./editor/BlockGutter";
 import BubbleToolbar from "./editor/BubbleToolbar";
 import TableContextMenu from "./editor/TableContextMenu";
 import { SuggestionPopup, useSuggestionBridge } from "./editor/SuggestionPopup";
+import { unmergeTableCells } from "./editor/pasteTables";
 import {
   buildBaseExtensions,
   createSuggestionExtension,
@@ -182,6 +183,7 @@ const BlockEditor = ({ value, onChange, pages, searchPeople, onAskIris, onEditor
         class: "ws-prose ws-editor focus:outline-none",
         "aria-label": "Page content",
       },
+      transformPastedHTML: unmergeTableCells,
       handlePaste(view, event) {
         const images = Array.from(event.clipboardData?.items ?? []).filter((item) => item.type.startsWith("image/"));
         if (images.length === 0) return false;
