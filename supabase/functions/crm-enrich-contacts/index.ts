@@ -18,7 +18,8 @@ import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sendSmtpEmail, getSmtpConfig } from "../_shared/email/smtp.ts";
 import { enrichContact, type EnrichableContact, type TriggerSource } from "../_shared/enrichment/contactEnrichment.ts";
-import { buildResearchQuery, researchPublicWeb } from "../_shared/enrichment/publicWebResearch.ts";
+import { buildResearchQuery, type PublicWebSource } from "../_shared/enrichment/publicWebResearch.ts";
+import { researchProvider, type ResearchProvider } from "../_shared/enrichment/combinedResearch.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-scheduler-secret, x-client-info, apikey, content-type",
@@ -102,18 +103,20 @@ Deno.serve(async (req) => {
 
   const research = body.mode === "research";
   if (research && triggerSource !== "manual") return reply(400, { error: "Public web research requires an administrator request." });
-  const apiKey = research ? (Deno.env.get("FIRECRAWL_API_KEY") ?? "").trim() : await resolvePlacesKey(db);
-  if (!apiKey) return reply(503, { error: research
-    ? "Public web research is not configured. FIRECRAWL_API_KEY is required on the server."
+  const apiKey = research ? (Deno.env.get("OPENAI_API_KEY") ?? "").trim() : await resolvePlacesKey(db);
+  const researchPlacesKey = research ? await resolvePlacesKey(db) : "";
+  if (!apiKey && !researchPlacesKey) return reply(503, { error: research
+    ? "Public research needs OPENAI_API_KEY or a Google Places credential configured on the server."
     : "Google Places is not configured. Add a google_places credential in Lead Settings." });
 
   // Spend guard. Counts every attempt, including no-match and error ones,
   // because each of those still cost a Text Search call.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: attemptsToday } = await db
+  const { count: attemptsToday, error: capError } = await db
     .from("contact_enrichment_attempts")
     .select("id", { count: "exact", head: true })
     .gte("attempted_at", since);
+  if (capError) return reply(503, { error: "Unable to check the daily lookup limit. Try again later." });
   if ((attemptsToday ?? 0) >= DAILY_ATTEMPT_CAP) {
     return reply(200, { ok: true, skipped: "daily_cap", attemptsToday, cap: DAILY_ATTEMPT_CAP });
   }
@@ -127,21 +130,35 @@ Deno.serve(async (req) => {
       .select("id,name,business_name,city,country_code").eq("id", requestedContactId).maybeSingle();
     if (error) return reply(500, { error: error.message });
     if (!contact) return reply(404, { error: "Contact not found" });
-    // Reserve an auditable attempt before the billable call; failures count too.
-    const { data: attempt, error: attemptError } = await db.from("contact_enrichment_attempts")
-      .insert({ contact_id: contact.id, trigger_source: "manual", provider: "firecrawl_search", outcome: "skipped" })
-      .select("id").single();
-    if (attemptError) return reply(500, { error: attemptError.message });
-    try {
-      const query = buildResearchQuery(contact);
-      const sources = await researchPublicWeb(apiKey, query);
-      await db.from("contact_enrichment_attempts").update({ outcome: sources.length ? "matched" : "no_match" }).eq("id", attempt.id);
-      return reply(200, { ok: true, mode: "research", contactId: contact.id, query, sources, retrievedAt: new Date().toISOString() });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Public web research failed.";
-      await db.from("contact_enrichment_attempts").update({ outcome: "error", error: message }).eq("id", attempt.id);
-      return reply(502, { error: message });
+    const query = buildResearchQuery(contact);
+    const model = (Deno.env.get("CRM_RESEARCH_OPENAI_MODEL") ?? "").trim() || "gpt-5.5";
+    const providers: { provider: ResearchProvider; key: string }[] = [];
+    const warnings: string[] = [];
+    if (researchPlacesKey) providers.push({ provider: "google_places", key: researchPlacesKey });
+    else warnings.push("Google Places is not configured; only web research is available.");
+    if (apiKey) providers.push({ provider: "openai_web_search", key: apiKey });
+    else warnings.push("OpenAI web research is not configured; only Google Places is available.");
+    const sources: PublicWebSource[] = [];
+    let completed = 0;
+    // Each provider gets its own auditable attempt, including errors and no-match.
+    for (const { provider, key } of providers.slice(0, remainingToday)) {
+      const { data: attempt, error: attemptError } = await db.from("contact_enrichment_attempts")
+        .insert({ contact_id: contact.id, trigger_source: "manual", provider, outcome: "skipped" }).select("id").single();
+      if (attemptError) return reply(500, { error: attemptError.message });
+      try {
+        const findings = await researchProvider(provider, key, query, contact.business_name || contact.name, model);
+        sources.push(...findings);
+        completed++;
+        await db.from("contact_enrichment_attempts").update({ outcome: findings.length ? "matched" : "no_match" }).eq("id", attempt.id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Public research failed.";
+        warnings.push(`${provider}: ${message}`);
+        await db.from("contact_enrichment_attempts").update({ outcome: "error", error: message }).eq("id", attempt.id);
+      }
     }
+    if (providers.length > remainingToday) warnings.push("The daily limit prevented checking every provider.");
+    if (!completed) return reply(502, { error: warnings.join(" ") || "All research providers failed." });
+    return reply(200, { ok: true, mode: "research", provider: "combined", model, contactId: contact.id, query, sources, warnings, retrievedAt: new Date().toISOString() });
   }
   let contacts: EnrichableContact[] = [];
 
@@ -182,6 +199,7 @@ Deno.serve(async (req) => {
       const result = await enrichContact(db, apiKey, contact, triggerSource, { batchId, dryRun });
       applied += result.applied.length;
       pendingReview += result.pendingReview.length;
+      if (result.outcome === "error") failures.push(`${contact.id}: ${result.detail ?? "lookup failed"}`);
       results.push({
         contactId: result.contactId,
         contactLabel: result.contactLabel,
