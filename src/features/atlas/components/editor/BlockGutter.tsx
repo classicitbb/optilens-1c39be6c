@@ -141,11 +141,12 @@ const BlockGutter = ({ editor, wrapperRef, onAskIris }: BlockGutterProps) => {
                   <button
                     key={kind}
                     type="button"
+                    disabled={kind === "secret" && !(block.node.isTextblock && block.node.type.name !== "codeBlock")}
                     onClick={act(() => {
                       editor.chain().focus().setTextSelection(blockTextRange(editor, block)).run();
                       turnInto(editor, kind);
                     })}
-                    className="rounded-[4px] px-2 py-1 text-left text-[13px] hover:bg-[var(--ws-hover)]"
+                    className="rounded-[4px] px-2 py-1 text-left text-[13px] hover:bg-[var(--ws-hover)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                   >
                     {label}
                   </button>

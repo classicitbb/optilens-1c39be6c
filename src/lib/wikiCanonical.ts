@@ -488,7 +488,13 @@ const tiptapBlockToCanonical = (node: TiptapJson): BlogBlockNode[] => {
     case "table": {
       const rows = kids.map((row) => (row.content ?? []).map((cell) => joinParagraphs((cell.content ?? []).filter((child) => child.type === "paragraph"))));
       const header = kids.length > 0 && (kids[0].content ?? []).length > 0 && (kids[0].content ?? []).every((cell) => cell.type === "tableHeader");
-      return [{ type: "table", header, rows }];
+      const spacing = node.attrs?.spacing === "compact" || node.attrs?.spacing === "spacious" ? node.attrs.spacing : undefined;
+      const firstRow = kids[0]?.content ?? [];
+      const widths = firstRow.map((cell) => {
+        const width = Array.isArray(cell.attrs?.colwidth) ? Number(cell.attrs.colwidth[0]) : 0;
+        return width > 0 ? Math.round(width) : null;
+      });
+      return [{ type: "table", header, ...(spacing ? { spacing } : {}), ...(widths.some(Boolean) ? { colWidths: widths } : {}), rows }];
     }
     case "pageLink": {
       const articleId = str(node.attrs?.articleId);
@@ -622,10 +628,12 @@ const canonicalBlockToTiptap = (block: BlogBlockNode): TiptapJson[] => {
       return [
         {
           type: "table",
+          attrs: { spacing: block.spacing ?? "normal" },
           content: block.rows.map((row, rowIndex) => ({
             type: "tableRow",
             content: Array.from({ length: columns }, (_, column) => ({
               type: block.header && rowIndex === 0 ? "tableHeader" : "tableCell",
+              ...(block.colWidths?.[column] ? { attrs: { colwidth: [block.colWidths[column]] } } : {}),
               content: [paragraphOf(row[column] ?? [])],
             })),
           })),

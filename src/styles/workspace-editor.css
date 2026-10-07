@@ -176,6 +176,10 @@
   background: hsl(var(--muted));
   font-weight: 600;
 }
+.ws-prose table[data-spacing='compact'] th,
+.ws-prose table[data-spacing='compact'] td { padding: 2px 6px; }
+.ws-prose table[data-spacing='spacious'] th,
+.ws-prose table[data-spacing='spacious'] td { padding: 14px 16px; }
 
 /* ── Editor-only ─────────────────────────────────────────────────────────── */
 
@@ -258,6 +262,18 @@
 .ws-editor ul[data-type='taskList'] li[data-checked='true'] > div { text-decoration: line-through; opacity: 0.65; }
 
 .ws-editor .tableWrapper { overflow-x: auto; }
+.ws-editor .tableWrapper td,
+.ws-editor .tableWrapper th { position: relative; }
+.ws-editor .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -1px;
+  width: 4px;
+  background: hsl(var(--primary));
+  pointer-events: none;
+}
+.ws-editor.resize-cursor { cursor: col-resize; }
 .ws-editor .selectedCell { background: hsl(var(--primary) / 0.12); }
 .ws-editor td > p,
 .ws-editor th > p { margin: 0; }

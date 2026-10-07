@@ -32,6 +32,15 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
   and Iris never see it.
 - Any new code that rebuilds a doc from editor output must carry `doc.lock` over (see `PageBody`, `applyDoc`).
 - Pages with a lock or a secret cannot be published when `visibility` is `public` (`validateForSave`).
+- "Turn into → Secret" (bubble toolbar and block menu) moves the selected text of one text block into a `secret` field.
+
+## Tables
+
+- Right-clicking a cell opens `TableContextMenu`: insert/delete row and column, header row, autofit/reset widths, delete table,
+  and per-table cell spacing (`compact` / comfortable / `spacious`). Spacing is a `spacing` attribute on the table node and an optional
+  `spacing` field on the canonical `table` block (omitted when comfortable).
+- Drag a column border to resize. Widths are pixels on each cell's `colwidth` and an optional `colWidths` array on the canonical
+  block (`null` = share leftover space); readers emit a `<colgroup>`. "Autofit" measures an off-screen clone of the table.
 
 ## Layout
 

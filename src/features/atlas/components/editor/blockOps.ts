@@ -14,7 +14,8 @@ export type TurnIntoKind =
   | "toggle"
   | "quote"
   | "callout"
-  | "code";
+  | "code"
+  | "secret";
 
 export const TURN_INTO: { kind: TurnIntoKind; label: string }[] = [
   { kind: "paragraph", label: "Text" },
@@ -28,10 +29,30 @@ export const TURN_INTO: { kind: TurnIntoKind; label: string }[] = [
   { kind: "quote", label: "Quote" },
   { kind: "callout", label: "Callout" },
   { kind: "code", label: "Code" },
+  { kind: "secret", label: "Secret" },
 ];
+
+/** A secret replaces text inside one text block, so a selection that spans blocks or sits in code can't become one. */
+export const canTurnIntoSecret = (editor: Editor) => {
+  const { $from, $to } = editor.state.selection;
+  return $from.sameParent($to) && $from.parent.isTextblock && $from.parent.type.name !== "codeBlock";
+};
+
+/** The selected text becomes a masked secret field (the text moves into the field's value). */
+const turnIntoSecret = (editor: Editor) => {
+  if (!canTurnIntoSecret(editor)) return false;
+  const { from, to } = editor.state.selection;
+  const value = editor.state.doc.textBetween(from, to, " ");
+  return editor
+    .chain()
+    .focus()
+    .insertContentAt({ from, to }, { type: "secret", attrs: { value } })
+    .run();
+};
 
 /** Convert the block holding the selection. `clearNodes` first lifts it out of any list or quote. */
 export const turnInto = (editor: Editor, kind: TurnIntoKind) => {
+  if (kind === "secret") return turnIntoSecret(editor);
   const chain = editor.chain().focus().clearNodes();
   switch (kind) {
     case "paragraph":
@@ -126,4 +147,61 @@ export const setCalloutIcon = (editor: Editor, block: BlockRef, icon: string | n
   if (block.node.type.name !== "callout") return false;
   editor.view.dispatch(editor.state.tr.setNodeMarkup(block.pos, undefined, { ...block.node.attrs, icon }));
   return true;
+};
+
+/** The table around the caret, if any. */
+export const findTable = (editor: Editor): BlockRef | null => {
+  const { $from } = editor.state.selection;
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    if ($from.node(depth).type.name === "table") return { pos: $from.before(depth), node: $from.node(depth) };
+  }
+  return null;
+};
+
+/** Store a pixel width per column (null = share the leftover space). Column widths live on every cell of the column. */
+export const setTableColumnWidths = (editor: Editor, widths: (number | null)[]) => {
+  const table = findTable(editor);
+  if (!table) return false;
+  const tr = editor.state.tr;
+  table.node.forEach((row, rowOffset) =>
+    row.forEach((cell, cellOffset, column) => {
+      const width = widths[column];
+      tr.setNodeMarkup(table.pos + 1 + rowOffset + 1 + cellOffset, undefined, { ...cell.attrs, colwidth: width ? [width] : null });
+    }),
+  );
+  editor.view.dispatch(tr);
+  return true;
+};
+
+const AUTOFIT_MIN = 60;
+const AUTOFIT_MAX = 480;
+
+/**
+ * Size every column to its widest cell. The table is cloned off-screen with no wrapping and automatic layout so the
+ * browser reports the natural widths; very long text is capped and wraps once the widths are stored.
+ */
+export const autofitTableColumns = (editor: Editor) => {
+  const table = findTable(editor);
+  const wrapper = table ? editor.view.nodeDOM(table.pos) : null;
+  const source = wrapper instanceof HTMLElement ? (wrapper.matches("table") ? wrapper : wrapper.querySelector("table")) : null;
+  if (!table || !source) return false;
+
+  const probe = document.createElement("div");
+  probe.className = editor.view.dom.className;
+  probe.style.cssText = "position:absolute;visibility:hidden;left:-99999px;top:0;width:max-content;max-width:none;padding:0;min-height:0";
+  const copy = source.cloneNode(true) as HTMLTableElement;
+  copy.querySelector("colgroup")?.remove();
+  copy.style.cssText = "table-layout:auto;width:auto;min-width:0;max-width:none";
+  copy.querySelectorAll("td, th").forEach((cell) => ((cell as HTMLElement).style.whiteSpace = "nowrap"));
+  probe.appendChild(copy);
+  document.body.appendChild(probe);
+  const widths = Array.from(copy.rows[0]?.cells ?? []).map((cell) => Math.min(AUTOFIT_MAX, Math.max(AUTOFIT_MIN, Math.ceil(cell.getBoundingClientRect().width) + 1)));
+  probe.remove();
+
+  return setTableColumnWidths(editor, widths);
+};
+
+export const resetTableColumnWidths = (editor: Editor) => {
+  const table = findTable(editor);
+  return table ? setTableColumnWidths(editor, Array.from({ length: table.node.firstChild?.childCount ?? 0 }, () => null)) : false;
 };

@@ -5,7 +5,7 @@ import { Blockquote } from "@tiptap/extension-blockquote";
 import Link from "@tiptap/extension-link";
 import { ListItem, TaskItem, TaskList } from "@tiptap/extension-list";
 import Placeholder from "@tiptap/extension-placeholder";
-import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
+import { Table, TableCell, TableHeader, TableRow, TableView } from "@tiptap/extension-table";
 import Suggestion, { type SuggestionOptions, type SuggestionProps } from "@tiptap/suggestion";
 import StarterKit from "@tiptap/starter-kit";
 import { isBlogColorName } from "@/components/blog/BlogPostRenderer";
@@ -193,6 +193,44 @@ const UnknownBlock = Node.create({
       /* keep "unknown" */
     }
     return ["div", { "data-unknown-block-node": "", class: "ws-unknown-block-node" }, `Unsupported block “${type}”. It is kept and will be saved unchanged.`];
+  },
+});
+
+/** Cell padding for one table: stored on the table node and carried into the canonical block. */
+export type TableSpacing = "compact" | "normal" | "spacious";
+export const TABLE_SPACINGS: { value: TableSpacing; label: string }[] = [
+  { value: "compact", label: "Compact" },
+  { value: "normal", label: "Comfortable" },
+  { value: "spacious", label: "Spacious" },
+];
+
+/**
+ * The column-resizing plugin builds this view without the node's rendered attributes, and the stock view
+ * only copies attributes at construction, so spacing is applied here and again on every update.
+ */
+class SpacedTableView extends TableView {
+  constructor(node: ConstructorParameters<typeof TableView>[0], cellMinWidth: number, view?: ConstructorParameters<typeof TableView>[2]) {
+    super(node, cellMinWidth, view);
+    this.table.setAttribute("data-spacing", String(node.attrs.spacing ?? "normal"));
+  }
+
+  update(node: Parameters<TableView["update"]>[0]) {
+    const same = super.update(node);
+    if (same) this.table.setAttribute("data-spacing", String(node.attrs.spacing ?? "normal"));
+    return same;
+  }
+}
+
+const SpacedTable = Table.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      spacing: {
+        default: "normal",
+        parseHTML: (element) => element.getAttribute("data-spacing") ?? "normal",
+        renderHTML: (attributes) => ({ "data-spacing": String(attributes.spacing ?? "normal") }),
+      },
+    };
   },
 });
 
@@ -521,7 +559,7 @@ export const buildBaseExtensions = (options: { onAskIris?: (request: AskIrisRequ
   ImageBlock,
   PageLink,
   UnknownBlock,
-  Table.configure({ resizable: false }),
+  SpacedTable.configure({ resizable: true, cellMinWidth: 48, View: SpacedTableView }),
   TableRow,
   TableHeader.extend({ content: "paragraph" }),
   TableCell.extend({ content: "paragraph" }),

@@ -39,7 +39,7 @@ export type BlogBlockNode =
   | { type: "todo"; items: BlogTodoItem[] }
   | { type: "code"; language?: string; text: string }
   | { type: "divider" }
-  | { type: "table"; header: boolean; rows: BlogInlineNode[][][] }
+  | { type: "table"; header: boolean; spacing?: "compact" | "spacious"; colWidths?: (number | null)[]; rows: BlogInlineNode[][][] }
   | { type: "pageLink"; articleId: string; title: string; slug?: string };
 
 export interface BlogPageRef {
@@ -242,6 +242,10 @@ const defaultResolvePageHref: ResolveHref = (page) => (page.slug ? `/knowledge/$
 const colorClasses = (color?: unknown, background?: unknown) =>
   cn(isBlogColorName(color) && `ws-color-${color}`, isBlogColorName(background) && `ws-bg-${background}`);
 
+/** Like the editor, a table whose every column has a width is exactly that wide; otherwise it fills the page. */
+const fixedTableWidth = (colWidths?: (number | null)[]) =>
+  colWidths && colWidths.length > 0 && colWidths.every((width) => typeof width === "number" && width > 0) ? `${colWidths.reduce<number>((sum, width) => sum + (width ?? 0), 0)}px` : undefined;
+
 const renderInlineNode = (node: BlogInlineNode, key: string, resolve: ResolveHref): ReactNode => {
   const kids = (children: BlogInlineNode[]) =>
     (Array.isArray(children) ? children : []).map((child, index) => renderInlineNode(child, `${key}-${index}`, resolve));
@@ -376,14 +380,25 @@ const renderBlockNode = (block: BlogBlockNode, key: string, resolve: ResolveHref
     case "table":
       return (
         <div key={key} data-block="table" className="my-4 overflow-x-auto">
-          <table className="ws-table w-full border-collapse text-sm">
+          <table
+            className="ws-table w-full border-collapse text-sm"
+            data-spacing={block.spacing}
+            style={fixedTableWidth(block.colWidths) ? { width: fixedTableWidth(block.colWidths) } : undefined}
+          >
+            {block.colWidths?.some((width) => width) ? (
+              <colgroup>
+                {block.colWidths.map((width, index) => (
+                  <col key={`${key}-col-${index}`} style={width ? { width: `${width}px` } : undefined} />
+                ))}
+              </colgroup>
+            ) : null}
             <tbody>
               {block.rows.map((row, rowIndex) => {
                 const Cell = block.header && rowIndex === 0 ? "th" : "td";
                 return (
                   <tr key={`${key}-${rowIndex}`}>
                     {row.map((cell, cellIndex) => (
-                      <Cell key={`${key}-${rowIndex}-${cellIndex}`} className="border border-border px-3 py-2 text-left align-top">
+                      <Cell key={`${key}-${rowIndex}-${cellIndex}`} className={`border border-border text-left align-top ${block.spacing === "compact" ? "px-2 py-1" : block.spacing === "spacious" ? "px-4 py-4" : "px-3 py-2"}`}>
                         {cell.map((child, childIndex) => renderInlineNode(child, `${key}-${rowIndex}-${cellIndex}-${childIndex}`, resolve))}
                       </Cell>
                     ))}

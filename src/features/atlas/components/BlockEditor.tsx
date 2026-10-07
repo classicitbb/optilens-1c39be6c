@@ -8,6 +8,7 @@ import { canonicalToTiptapDoc, tiptapDocToCanonical } from "@/lib/wikiCanonical"
 import { cn } from "@/lib/utils";
 import BlockGutter from "./editor/BlockGutter";
 import BubbleToolbar from "./editor/BubbleToolbar";
+import TableContextMenu from "./editor/TableContextMenu";
 import { SuggestionPopup, useSuggestionBridge } from "./editor/SuggestionPopup";
 import {
   buildBaseExtensions,
@@ -221,7 +222,9 @@ const BlockEditor = ({ value, onChange, pages, searchPeople, onAskIris, onEditor
     <div ref={wrapperRef} className={cn("ws-editor-wrap relative", className)}>
       <BlockGutter editor={editor} wrapperRef={wrapperRef} onAskIris={askIris} />
       <BubbleToolbar editor={editor} onAskIris={askIris} />
-      <EditorContent editor={editor} />
+      <TableContextMenu editor={editor}>
+        <EditorContent editor={editor} />
+      </TableContextMenu>
 
       <SuggestionPopup
         state={slash.state}

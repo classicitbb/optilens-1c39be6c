@@ -4,7 +4,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { Bold, ChevronDown, Code, Italic, Link as LinkIcon, MessageSquare, Palette, Sparkles, Strikethrough, Underline } from "lucide-react";
 import { BLOG_COLOR_NAMES } from "@/components/blog/BlogPostRenderer";
 import { cn } from "@/lib/utils";
-import { TURN_INTO, turnInto } from "./blockOps";
+import { TURN_INTO, canTurnIntoSecret, turnInto } from "./blockOps";
 import type { AskIrisRequest } from "./extensions";
 
 type Panel = "turn" | "color" | "link" | null;
@@ -140,12 +140,13 @@ const BubbleToolbar = ({ editor, onAskIris }: BubbleToolbarProps) => {
             <button
               key={kind}
               type="button"
+              disabled={kind === "secret" && !canTurnIntoSecret(editor)}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
                 turnInto(editor, kind);
                 setPanel(null);
               }}
-              className="rounded-[4px] px-2 py-1 text-left text-[13px] hover:bg-[var(--ws-hover)]"
+              className="rounded-[4px] px-2 py-1 text-left text-[13px] hover:bg-[var(--ws-hover)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             >
               {label}
             </button>
