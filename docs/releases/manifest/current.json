@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.9.0",
-  "sourceEntry": "2026-10-07 — Doc Studio recipients, signatures and labels (local source)",
+  "semanticVersion": "0.10.0",
+  "sourceEntry": "2026-10-07 — CRM research provider (local source)",
   "releaseDateTimeUtc": "2026-10-07T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Search and dismiss the recipient picker without losing To. Edit/copy/download a signature tile or insert it in an email draft. Switch square labels between shipping and customer layouts and edit their headings. Deployment and email-client proof remain pending."
+    "Research public web uses OpenAI web search with source links and candidate email suggestions. Review the cited pages before adding details and Save to persist draft changes. Function deployment and live verification are pending."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Doc Studio recipients, signatures and labels (local source)."
+      "notes": "Updated as part of CRM research provider (local source)."
     }
   ],
   "migrationNotes": [

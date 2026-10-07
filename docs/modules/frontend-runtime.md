@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-07 — CRM research provider
+
+PublicWebResearch retains its existing response contract and draft-only actions. The administrator-only crm-enrich-contacts research mode now returns citation-derived sources from OpenAI Responses web_search; no client key or frontend API integration is introduced. See docs/crm-contact-editor-follow-up.md for server configuration and release limitations.
+
 
 ## 2026-10-07 — Doc Studio recipients, signatures and labels
 

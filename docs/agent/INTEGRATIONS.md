@@ -1,5 +1,7 @@
 # Integrations and Cross-Repository Contract
 
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
 ## Service inventory
 
 | Service | Purpose | Evidence |
@@ -43,7 +45,7 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 ## Hosted ↔ Local boundary
 
 - CRM contact address sync remains office-to-cloud only. Website saves do not update Innovations. The receiver accepts `salesperson`, but the office mapping must be verified and extended before it supplies values. See `docs/crm-contact-editor-follow-up.md` for the required revision-checked writeback contract.
-- CRM manual public-web research uses server-only `FIRECRAWL_API_KEY` through `crm-enrich-contacts` (`mode: research`), shares the daily enrichment attempt cap and returns source suggestions without automatic contact writes. Existing Google Places enrichment remains a separate business-details action.
+- CRM manual public-web research uses server-only `OPENAI_API_KEY` through `crm-enrich-contacts` (`mode: research`), with optional `CRM_RESEARCH_OPENAI_MODEL` (default `gpt-5.5`). OpenAI Responses `web_search` supplies citation metadata; model prose remains a reviewable suggestion. It shares the daily enrichment attempt cap and never automatically writes contacts. Existing Google Places enrichment remains a separate business-details action. This provider replacement is local source pending deployment and live verification.
 
 - Hosted OptiLens exposes customer-safe cloud behavior.
 - OptiLens Local owns private operational and legacy-system access.

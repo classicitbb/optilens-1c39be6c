@@ -1,5 +1,11 @@
 # Frontend Bug Reports
 
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-07 — CRM research provider replacement
+
+Manual research depended on Firecrawl configuration. Local source now uses OpenAI Responses web_search with citation metadata, bounded calls and no automatic contact writes. Mocked tests cover unsafe/missing citations, incomplete and ungrounded responses, no-match, source bounds and private provider-error handling. Live configuration and deployed research behavior remain unverified.
+
 
 ## 2026-10-07 — Doc Studio recipient picker, signature portability and label layout
 

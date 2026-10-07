@@ -1,5 +1,11 @@
 # Frontend Help Docs
 
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-07 — Contact public research
+
+Save the contact's name/company/location before selecting Research public web. Once the updated function is deployed, results come from OpenAI web search. Open each source to review its match; AI suggestions may refer to similarly named businesses. Add email changes only the editor draft. Save persists it. Missing server configuration and the shared daily limit are surfaced as errors.
+
 
 ## 2026-10-07 — Doc Studio recipients, signatures and labels
 

@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-07 — CRM research provider (local source)
+
+### Release Notes
+- Research public web uses OpenAI web search with source links and candidate email suggestions. Review the cited pages before adding details and Save to persist draft changes. Function deployment and live verification are pending.
+
 ## 2026-10-07 — Doc Studio recipients, signatures and labels (local source)
 
 ### Release Notes

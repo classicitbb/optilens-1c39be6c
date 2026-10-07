@@ -1,5 +1,7 @@
 # Project Knowledge
 
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
 
 ## Doc Studio established runtime — 2026-10-07
 
@@ -7,7 +9,7 @@ The exact established layout is public/ds/studio.html + precompiled studio-logic
 
 ## CRM editor additions (2026-10-07, local source)
 
-Editable company selection and email-list normalization live in `src/features/admin/crm/CompanyCombobox.tsx` and `src/lib/contactEmails.ts`. Save preserves the editor and persisted ERP links; Save & Close closes after the whole pipeline. `PublicWebResearch.tsx` calls manual `mode: research` on `crm-enrich-contacts`, with server-only `FIRECRAWL_API_KEY` and source suggestions. No automatic person-profile writes occur. Innovations remains one-way; salesperson producer mapping and reverse writes are pending. See `docs/crm-contact-editor-follow-up.md` before release or integration changes.
+Editable company selection and email-list normalization live in `src/features/admin/crm/CompanyCombobox.tsx` and `src/lib/contactEmails.ts`. Save preserves the editor and persisted ERP links; Save & Close closes after the whole pipeline. `PublicWebResearch.tsx` calls manual `mode: research` on `crm-enrich-contacts`, with server-only `OPENAI_API_KEY` and source suggestions. No automatic person-profile writes occur. Innovations remains one-way; salesperson producer mapping and reverse writes are pending. See `docs/crm-contact-editor-follow-up.md` before release or integration changes.
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Default branch: `main`
