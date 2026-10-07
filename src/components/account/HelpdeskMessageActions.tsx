@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { clearStoredDraft, hasStoredDraft, usePersistentDraft } from "@/hooks/usePersistentDraft";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,15 +66,18 @@ interface HelpdeskMessageAuthorControlsProps {
 /** Wrap a message the signed-in user wrote to give it Edit and Retract. */
 export const HelpdeskMessageAuthorControls = ({ ticketId, messageId, body, audience, children }: HelpdeskMessageAuthorControlsProps) => {
   const { edit, retract } = useHelpdeskMessageChange(ticketId);
-  const [editing, setEditing] = useState(false);
+  const draftKey = `helpdesk-edit:${messageId}`;
+  // An unsaved edit reopens in edit mode after a tab switch or refresh.
+  const [editing, setEditing] = useState(() => hasStoredDraft(draftKey));
   const [confirmRetract, setConfirmRetract] = useState(false);
 
   const editor = editing ? (
     <MessageEditor
       initial={body}
+      draftKey={draftKey}
       saving={edit.isPending}
-      onCancel={() => setEditing(false)}
-      onSave={(next) => edit.mutate({ messageId, body: next }, { onSuccess: () => setEditing(false) })}
+      onCancel={() => { clearStoredDraft(draftKey); setEditing(false); }}
+      onSave={(next) => edit.mutate({ messageId, body: next }, { onSuccess: () => { clearStoredDraft(draftKey); setEditing(false); } })}
     />
   ) : null;
 
@@ -107,10 +111,10 @@ export const HelpdeskMessageAuthorControls = ({ ticketId, messageId, body, audie
   return <>{children({ editor, actions })}</>;
 };
 
-const MessageEditor = ({ initial, saving, onSave, onCancel }: {
-  initial: string; saving: boolean; onSave: (body: string) => void; onCancel: () => void;
+const MessageEditor = ({ initial, draftKey, saving, onSave, onCancel }: {
+  initial: string; draftKey: string; saving: boolean; onSave: (body: string) => void; onCancel: () => void;
 }) => {
-  const [draft, setDraft] = useState(initial);
+  const [draft, setDraft] = usePersistentDraft(draftKey, initial);
   const unchanged = draft.trim() === initial.trim();
   return (
     <div className="w-full max-w-[80%] space-y-2 text-foreground">

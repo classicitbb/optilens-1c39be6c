@@ -30,6 +30,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useOpenTicket } from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
 import InlineDictationButton from "@/components/admin/InlineDictationButton";
+import TidySuggestionChip from "@/components/admin/TidySuggestionChip";
 
 
 interface TeamOption { id: string; name: string; }
@@ -91,6 +92,10 @@ const HelpdeskTicketsPage = () => {
   const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "", dueDate: "" });
   const applyTicketDescriptionDictation = useCallback((nextValue: string) => {
     setForm((current) => ({ ...current, description: nextValue }));
+  }, []);
+
+  const applyTicketTitleDictation = useCallback((nextValue: string) => {
+    setForm((current) => ({ ...current, title: nextValue }));
   }, []);
 
   // Edit dialog state
@@ -308,14 +313,18 @@ const HelpdeskTicketsPage = () => {
                   {/* 1: Title */}
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">Title *</Label>
-                    <Input
-                      ref={setFieldRef(1) as any}
-                      value={form.title}
-                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                      placeholder="Ticket title"
-                      className="h-8 text-xs"
-                      onKeyDown={handleFieldKeyDown(1) as any}
-                    />
+                    <div className="relative">
+                      <Input
+                        ref={setFieldRef(1) as any}
+                        value={form.title}
+                        onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                        placeholder="Ticket title"
+                        className="h-8 pr-10 text-xs"
+                        onKeyDown={handleFieldKeyDown(1) as any}
+                      />
+                      <InlineDictationButton ariaLabel="Dictate ticket title" position="center" trimTrailingPeriod onValueChange={applyTicketTitleDictation} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+                    </div>
+                    <TidySuggestionChip kind="title" value={form.title} onApply={applyTicketTitleDictation} />
                   </div>
 
                   {/* 2: Contact */}
@@ -335,10 +344,11 @@ const HelpdeskTicketsPage = () => {
                         value={form.description}
                         onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                         placeholder="Brief description"
-                        className="min-h-[96px] pr-11 text-xs"
+                        className="min-h-[96px] pb-9 pr-11 text-xs"
                         onKeyDown={handleFieldKeyDown(3) as any}
                       />
                       <InlineDictationButton ariaLabel="Dictate ticket description" onValueChange={applyTicketDescriptionDictation} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+                      <TidySuggestionChip value={form.description} onApply={applyTicketDescriptionDictation} className="absolute bottom-1.5 left-2 z-10" />
                     </div>
                   </div>
 

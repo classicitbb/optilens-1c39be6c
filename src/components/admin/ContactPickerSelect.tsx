@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface ContactOption {
@@ -31,9 +30,10 @@ const contactLabel = (c: ContactOption) =>
   c.is_company ? `🏢 ${c.name}` : `${c.name}${c.business_name ? ` — ${c.business_name}` : ""}`;
 
 /**
- * Searchable contact picker (popover combobox). Searches the whole contacts table
- * server-side, so any company or individual can be found, not just the first page.
- * Shows companies first, then individuals.
+ * Searchable contact picker (combobox). The field itself is the search box: click
+ * or tab into it and start typing. Searches the whole contacts table server-side,
+ * so any company or individual can be found, not just the first page.
+ * Shows companies first, then individuals. Arrow keys + Enter pick from the list.
  */
 const ContactPickerSelect = ({
   value,
@@ -45,6 +45,11 @@ const ContactPickerSelect = ({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
+  // Index into [“No contact”, ...results]; -1 means nothing highlighted yet.
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 250);
@@ -78,7 +83,7 @@ const ContactPickerSelect = ({
     },
   });
 
-  // The selected contact may not be in the current result page; load it for the trigger label.
+  // The selected contact may not be in the current result page; load it for the field label.
   const { data: selected } = useQuery({
     queryKey: ["helpdesk-contact-picker-selected", value],
     enabled: !!value,
@@ -93,57 +98,133 @@ const ContactPickerSelect = ({
     onValueChange(id);
     setOpen(false);
     setSearch("");
+    setActiveIndex(-1);
   };
 
   const companies = contacts.filter((c) => c.is_company);
   const individuals = contacts.filter((c) => !c.is_company);
+  // Same order the list renders in: “No contact”, companies, then individuals.
+  const optionIds = ["", ...companies.map((c) => c.id), ...individuals.map((c) => c.id)];
 
-  const renderItem = (c: ContactOption) => (
-    <button
-      key={c.id}
-      type="button"
-      onClick={() => pick(c.id)}
-      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none"
-    >
-      <Check className={cn("h-3 w-3 shrink-0", value === c.id ? "opacity-100" : "opacity-0")} />
-      <span className="truncate">{contactLabel(c)}</span>
-    </button>
-  );
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-option-index="${activeIndex}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      setActiveIndex((index) => (index < 0 ? (optionIds.length > 1 ? 1 : 0) : Math.min(index + 1, optionIds.length - 1)));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (open) setActiveIndex((index) => Math.max(index - 1, 0));
+    } else if (e.key === "Enter" && open) {
+      // Typed a search and pressed Enter without arrowing: take the top result.
+      const target = activeIndex >= 0 ? optionIds[activeIndex] : search.trim() ? optionIds[1] : undefined;
+      if (target !== undefined) {
+        e.preventDefault();
+        e.stopPropagation();
+        pick(target);
+      }
+    }
+  };
+
+  const renderItem = (c: ContactOption) => {
+    const index = optionIds.indexOf(c.id);
+    return (
+      <button
+        key={c.id}
+        type="button"
+        data-option-index={index}
+        onClick={() => pick(c.id)}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:outline-none",
+          activeIndex === index && "bg-accent text-accent-foreground",
+        )}
+      >
+        <Check className={cn("h-3 w-3 shrink-0", value === c.id ? "opacity-100" : "opacity-0")} />
+        <span className="truncate">{contactLabel(c)}</span>
+      </button>
+    );
+  };
+
+  const selectedLabel = value && selected ? contactLabel(selected) : "";
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          role="combobox"
-          aria-expanded={open}
-          className={cn(
-            "flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring",
-            className,
-          )}
-        >
-          <span className={cn("truncate", !(value && selected) && "text-muted-foreground")}>
-            {value && selected ? contactLabel(selected) : placeholder}
-          </span>
-          <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[240px] p-1" align="start">
-        <div className="relative px-1 pb-1">
-          <Input
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search contacts…"
-            className="h-7 text-xs"
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        setActiveIndex(-1);
+      }}
+    >
+      <PopoverAnchor asChild>
+        <div ref={anchorRef} className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            role="combobox"
+            aria-expanded={open}
+            aria-autocomplete="list"
+            autoComplete="off"
+            value={open ? search : selectedLabel}
+            placeholder={open ? selectedLabel || "Search contacts…" : placeholder}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setActiveIndex(-1);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onClick={() => setOpen(true)}
+            onKeyDown={handleKeyDown}
+            className={cn(
+              "h-8 w-full rounded-md border border-input bg-background px-3 py-2 pr-14 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring",
+              className,
+            )}
           />
-          {isFetching && <Loader2 className="absolute right-3 top-1.5 h-4 w-4 animate-spin text-muted-foreground" />}
-        </div>
-        <div className="max-h-72 overflow-y-auto">
+          {isFetching && open && <Loader2 className="pointer-events-none absolute right-8 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
           <button
             type="button"
+            tabIndex={-1}
+            aria-label={open ? "Close contact list" : "Open contact list"}
+            // Keep focus in the field; otherwise its focus handler would reopen the list we just closed.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              if (open) {
+                setOpen(false);
+              } else {
+                inputRef.current?.focus();
+                setOpen(true);
+              }
+            }}
+            className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center"
+          >
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+          </button>
+        </div>
+      </PopoverAnchor>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] min-w-[240px] p-1"
+        align="start"
+        // Keep focus in the field so typing continues uninterrupted.
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          if (anchorRef.current?.contains(e.target as Node)) e.preventDefault();
+        }}
+      >
+        <div ref={listRef} className="max-h-72 overflow-y-auto">
+          <button
+            type="button"
+            data-option-index={0}
             onClick={() => pick("")}
-            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+            className={cn(
+              "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground",
+              activeIndex === 0 && "bg-accent text-accent-foreground",
+            )}
           >
             <Check className={cn("h-3 w-3 shrink-0", !value ? "opacity-100" : "opacity-0")} />
             No contact

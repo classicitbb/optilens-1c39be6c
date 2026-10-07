@@ -31,6 +31,18 @@ describe("voice entry surfaces", () => {
     expect(tickets).toContain('from "@/components/admin/InlineDictationButton"');
   });
 
+  it("offers dictation on the ticket title and in both Helpdesk composers, with a speech meter on the composers", () => {
+    const create = read("src/features/admin/helpdesk/components/CreateHelpdeskTicketDialog.tsx");
+    const tickets = read("src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx");
+    const composer = read("src/features/admin/helpdesk/components/TicketReplyComposer.tsx");
+
+    expect(create).toContain('ariaLabel="Dictate ticket title"');
+    expect(tickets).toContain('ariaLabel="Dictate ticket title"');
+    expect(composer).toContain('ariaLabel="Dictate reply"');
+    expect(composer).toContain('ariaLabel="Dictate note"');
+    expect(composer.match(/showLevelMeter/g)).toHaveLength(2);
+  });
+
   it("automatically finishes a quiet recording after five seconds through the shared engine", () => {
     const hook = read("src/features/admin/copilot/usePushToTalk.ts");
 

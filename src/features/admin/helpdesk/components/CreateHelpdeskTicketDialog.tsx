@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import InlineDictationButton from "@/components/admin/InlineDictationButton";
+import TidySuggestionChip from "@/components/admin/TidySuggestionChip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { useToast } from "@/hooks/use-toast";
@@ -212,7 +213,11 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
 
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Title *</Label>
-            <Input ref={titleRef} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ticket title" className="h-8 text-xs" />
+            <div className="relative">
+              <Input ref={titleRef} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ticket title" className="h-8 pr-10 text-xs" />
+              <InlineDictationButton ariaLabel="Dictate ticket title" position="center" trimTrailingPeriod onValueChange={(title) => setForm((current) => ({ ...current, title }))} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+            </div>
+            <TidySuggestionChip kind="title" value={form.title} onApply={(title) => setForm((current) => ({ ...current, title }))} />
           </div>
 
           <div className="space-y-1">
@@ -249,8 +254,9 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Description</Label>
             <div className="relative">
-              <Textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Brief description" className="min-h-[96px] pr-11 text-xs" />
+              <Textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Brief description" className="min-h-[96px] pb-9 pr-11 text-xs" />
               <InlineDictationButton ariaLabel="Dictate ticket description" onValueChange={(description) => setForm((current) => ({ ...current, description }))} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+              <TidySuggestionChip value={form.description} onApply={(description) => setForm((current) => ({ ...current, description }))} className="absolute bottom-1.5 left-2 z-10" />
             </div>
           </div>
 
