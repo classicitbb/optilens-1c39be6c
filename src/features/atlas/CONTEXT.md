@@ -22,6 +22,17 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
 - Iris only **proposes** (Accept / Discard / Try again). Content stays exportable (Markdown +
   canonical JSON, `exportSpace.ts`).
 
+## Secrets and page passwords (soft protection)
+
+- `/secret` inserts an inline `secret` node (editor: `Secret` in `extensions.ts`; reader: `SecretField`). It is masked
+  until the eye is clicked, and is never written to HTML, Markdown or search text. It is still plain text in `body_json`.
+- A page password is a salted PBKDF2 hash stored as `lock` on the document (`lock.ts`). `PageBody` shows `PageLockGate`
+  instead of the body until unlocked in this browser tab. **Nothing is encrypted**: anyone who can read the row or
+  the canonical JSON export can read the body. `canonicalToSearchText` returns nothing for a locked doc, so search
+  and Iris never see it.
+- Any new code that rebuilds a doc from editor output must carry `doc.lock` over (see `PageBody`, `applyDoc`).
+- Pages with a lock or a secret cannot be published when `visibility` is `public` (`validateForSave`).
+
 ## Layout
 
 | Path | Role |

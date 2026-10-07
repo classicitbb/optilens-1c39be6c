@@ -118,6 +118,42 @@
 }
 .ws-prose a.ws-mention:hover { background: hsl(var(--accent)); }
 
+.ws-prose .ws-secret {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  vertical-align: baseline;
+}
+.ws-prose .ws-secret-value,
+.ws-prose .ws-secret-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+.ws-prose .ws-secret-input {
+  min-width: 8ch;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  outline: none;
+}
+.ws-prose .ws-secret-eye {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1em;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+}
+.ws-prose .ws-secret-eye:hover { color: hsl(var(--foreground)); }
+
 .ws-prose .ws-callout {
   border-radius: 4px;
 }

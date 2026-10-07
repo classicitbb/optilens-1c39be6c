@@ -6,6 +6,7 @@ import {
   Heading2,
   Heading3,
   Image as ImageIcon,
+  KeyRound,
   Lightbulb,
   List,
   ListChecks,
@@ -103,6 +104,27 @@ export const SLASH_ITEMS: SlashItem[] = [
     run: (context) => {
       clear(context);
       context.startPageLink();
+    },
+  },
+  {
+    id: "secret",
+    group: "Basic",
+    title: "Secret",
+    hint: "Hidden until shown",
+    keywords: ["password", "credential", "hidden", "key", "token"],
+    icon: KeyRound,
+    run: ({ editor, range }) => {
+      const from = range.from;
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent([{ type: "secret", attrs: { value: "" } }, { type: "text", text: " " }])
+        .run();
+      requestAnimationFrame(() => {
+        const dom = editor.view.nodeDOM(from);
+        if (dom instanceof HTMLElement) dom.querySelector("input")?.focus();
+      });
     },
   },
 

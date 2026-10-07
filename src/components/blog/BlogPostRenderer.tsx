@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { nestByDepth, type DepthNode } from "@/lib/listDepth";
+import SecretField from "./SecretField";
 
 export const BLOG_COLOR_NAMES = ["gray", "brown", "orange", "yellow", "green", "blue", "purple", "pink", "red"] as const;
 export type BlogColorName = (typeof BLOG_COLOR_NAMES)[number];
@@ -16,7 +17,9 @@ export type BlogInlineNode =
   | { type: "strike"; children: BlogInlineNode[] }
   | { type: "underline"; children: BlogInlineNode[] }
   | { type: "color"; color?: BlogColorName; background?: BlogColorName; children: BlogInlineNode[] }
-  | { type: "mention"; kind: "page" | "person" | "date"; label: string; id?: string; slug?: string };
+  | { type: "mention"; kind: "page" | "person" | "date"; label: string; id?: string; slug?: string }
+  /** A value hidden behind a show/hide toggle. Never written to HTML, Markdown or search text. */
+  | { type: "secret"; value: string };
 
 export interface BlogTodoItem {
   checked: boolean;
@@ -45,7 +48,14 @@ export interface BlogPageRef {
   title: string;
 }
 
-export type BlogCanonicalContent = { blocks: BlogBlockNode[] };
+/** Salted password hash for a soft page lock. The body stays readable in storage; this only gates the UI. */
+export interface PageLock {
+  salt: string;
+  hash: string;
+  iterations: number;
+}
+
+export type BlogCanonicalContent = { blocks: BlogBlockNode[]; lock?: PageLock };
 export type BlogContentInput = BlogCanonicalContent | BlogBlockNode[] | string;
 
 interface BlogPostRendererProps {
@@ -269,6 +279,8 @@ const renderInlineNode = (node: BlogInlineNode, key: string, resolve: ResolveHre
         <span key={key} className="ws-mention">{label}</span>
       );
     }
+    case "secret":
+      return <SecretField key={key} value={node.value} />;
     default:
       return (
         <span key={key} data-unknown-inline={String((node as { type?: unknown } | null)?.type ?? "unknown")} className="ws-unknown-inline">

@@ -27,6 +27,8 @@ import CommandPalette, { type PaletteAction } from "./components/CommandPalette"
 import MoveToDialog, { type MoveTarget } from "./components/MoveToDialog";
 import AssignmentsPanel from "./components/AssignmentsPanel";
 import PageBody from "./components/PageBody";
+import PagePasswordSetting from "./components/PagePasswordSetting";
+import { usePageUnlocked } from "./lock";
 import PropertiesForm from "./components/PropertiesForm";
 import {
   ancestorsOf,
@@ -360,7 +362,13 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     toast({ title: "Moved to draft" });
   };
 
+  const pageUnlocked = usePageUnlocked(selectedPage?.id, draft.doc.lock);
+
   const exportMarkdown = () => {
+    if (!pageUnlocked) {
+      toast({ title: "Unlock the page to export it", variant: "destructive" });
+      return;
+    }
     const markdown = canonicalToMarkdown(draft.title, draft.doc);
     const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown;charset=utf-8" }));
     const link = document.createElement("a");
@@ -436,14 +444,24 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   );
 
   const settings = (
-    <PropertiesForm
-      properties={space.properties.filter((property) => property.type !== "contexts")}
-      draft={draft}
-      onChange={setDraft}
-      published={editor.isPublished}
-      disabled={!canEdit}
-      dynamicOptions={dynamicOptions}
-    />
+    <>
+      <PropertiesForm
+        properties={space.properties.filter((property) => property.type !== "contexts")}
+        draft={draft}
+        onChange={setDraft}
+        published={editor.isPublished}
+        disabled={!canEdit}
+        dynamicOptions={dynamicOptions}
+      />
+      {selectedPage ? (
+        <PagePasswordSetting
+          pageId={selectedPage.id}
+          doc={draft.doc}
+          disabled={!canEdit}
+          onDocChange={(update) => setDraft((current) => ({ ...current, doc: update(current.doc) }))}
+        />
+      ) : null}
+    </>
   );
 
   const paletteActions = useMemo<PaletteAction[]>(

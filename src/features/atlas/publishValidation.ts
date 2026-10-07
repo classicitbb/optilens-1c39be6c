@@ -1,7 +1,7 @@
-import { validateCanonicalDocument } from "@/lib/wikiCanonical";
+import { canonicalHasSecret, validateCanonicalDocument } from "@/lib/wikiCanonical";
 import { validateWikiBuildVersionForPublish } from "@/lib/wikiReleaseMetadata";
 import { canonicalBodyToMarkdown } from "@/lib/wikiMarkdown";
-import type { AtlasDoc, AtlasPage, AtlasStatus } from "./source/types";
+import type { AtlasDoc, AtlasPage, AtlasPropValue, AtlasStatus } from "./source/types";
 
 export interface Validation {
   valid: boolean;
@@ -13,10 +13,19 @@ export interface Validation {
  * drag-to-publish on the board. Publishing is blocked unless the document is structurally valid and
  * its build-version metadata is not a placeholder.
  */
-export const validateForSave = (entryKind: AtlasPage["entryKind"], doc: AtlasDoc, nextStatus: AtlasStatus): Validation => {
+export const validateForSave = (
+  entryKind: AtlasPage["entryKind"],
+  doc: AtlasDoc,
+  nextStatus: AtlasStatus,
+  visibility?: AtlasPropValue,
+): Validation => {
   if (entryKind === "link") return { valid: true };
   const structure = validateCanonicalDocument(doc);
   if (!structure.valid) return structure;
+  // Locks and secrets only hide content inside Atlas; a public page is served as plain text.
+  if (nextStatus === "published" && visibility === "public" && (doc.lock || canonicalHasSecret(doc))) {
+    return { valid: false, message: "Pages with a password or a secret field cannot be published to the public site. Remove them first." };
+  }
   if (nextStatus === "published") return validateWikiBuildVersionForPublish(canonicalBodyToMarkdown(doc));
   return { valid: true };
 };
@@ -34,7 +43,7 @@ export interface BulkResult {
 export const validatePagesForPublish = (pages: AtlasPage[]): BulkResult => {
   const result: BulkResult = { ok: [], failed: [] };
   for (const page of pages) {
-    const check = validateForSave(page.entryKind, publishableDoc(page), "published");
+    const check = validateForSave(page.entryKind, publishableDoc(page), "published", page.props.visibility);
     if (check.valid) result.ok.push(page.id);
     else result.failed.push({ id: page.id, title: publishableTitle(page) || "Untitled", message: check.message ?? "Failed validation." });
   }

@@ -275,7 +275,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
         toast({ title: "Link target required", description: "Linked entries need a target URL.", variant: "destructive" });
         return;
       }
-      const check = validateForSave(draft.entryKind, draft.doc, nextStatus);
+      const check = validateForSave(draft.entryKind, draft.doc, nextStatus, draft.props.visibility);
       if (!check.valid) {
         toast({ title: nextStatus === "published" ? "Cannot publish" : "Cannot save", description: check.message, variant: "destructive" });
         return;
@@ -325,7 +325,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
 
   /** Replace the document (an accepted Iris proposal): the editor remounts with it and autosave takes over. */
   const applyDoc = useCallback((doc: AtlasDoc) => {
-    setDraft((current) => ({ ...current, doc }));
+    setDraft((current) => ({ ...current, doc: current.doc.lock ? { ...doc, lock: current.doc.lock } : doc }));
     setEditorEpoch((epoch) => epoch + 1);
   }, []);
 

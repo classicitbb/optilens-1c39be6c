@@ -399,6 +399,7 @@ const tiptapInlineToCanonical = (nodes: TiptapJson[] = []): BlogInlineNode[] =>
         },
       ];
     }
+    if (node.type === "secret") return [{ type: "secret", value: typeof node.attrs?.value === "string" ? node.attrs.value : "" }];
     if (node.type !== "text" || !node.text) return [];
     let out: BlogInlineNode = asText(node.text);
     const marks = node.marks ?? [];
@@ -553,6 +554,8 @@ const canonicalInlineToTiptap = (nodes: BlogInlineNode[] = [], marks: NonNullabl
         ]);
       case "mention":
         return [{ type: "mention", attrs: { kind: node.kind, label: node.label, id: node.id ?? null, slug: node.slug ?? null } }];
+      case "secret":
+        return [{ type: "secret", attrs: { value: typeof node.value === "string" ? node.value : "" } }];
       default:
         return [];
     }
@@ -676,9 +679,12 @@ const blockSearchText = (block: BlogBlockNode): string => {
   }
 };
 
-/** Every block's text, headings and code included, for search. */
+/** True when any inline `secret` field is in the document. Secrets are the only nodes with this exact type tag. */
+export const canonicalHasSecret = (doc?: BlogCanonicalContent | null): boolean => JSON.stringify(doc?.blocks ?? []).includes('"type":"secret"');
+
+/** Every block's text, headings and code included, for search. A password-locked page has none, so search and Iris never see its body. */
 export const canonicalToSearchText = (doc?: BlogCanonicalContent | null): string =>
-  (doc?.blocks ?? [])
+  (doc?.lock ? [] : (doc?.blocks ?? []))
     .map(blockSearchText)
     .filter(Boolean)
     .join(" ")

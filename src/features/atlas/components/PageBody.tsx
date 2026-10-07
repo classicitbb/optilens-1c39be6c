@@ -1,7 +1,9 @@
 import type { Editor } from "@tiptap/core";
 import WikiArticleRenderer from "@/components/admin/WikiArticleRenderer";
 import BlockEditor, { type EditorPage, type EditorPerson } from "./BlockEditor";
+import PageLockGate from "./PageLockGate";
 import type { AskIrisRequest } from "./editor/extensions";
+import { unlockPage, usePageUnlocked } from "../lock";
 import type { usePageEditor } from "../hooks/usePageEditor";
 import type { AtlasPage } from "../source/types";
 
@@ -22,6 +24,9 @@ interface PageBodyProps {
 /** The body of one page, shared by the full page and the database peek: banners plus editor or reader. */
 const PageBody = ({ page, editor, editing, canPublish, supportsDrafts, pages, searchPeople, resolvePageHref, onAskIris, onUpdate, onEditor }: PageBodyProps) => {
   const { draft, setDraft } = editor;
+  const lock = draft.doc.lock;
+  const unlocked = usePageUnlocked(page.id, lock);
+  if (lock && !unlocked) return <PageLockGate lock={lock} onUnlock={() => unlockPage(page.id, lock)} />;
   return (
     <>
       {editor.hasUnpublishedDraft ? (
@@ -54,7 +59,8 @@ const PageBody = ({ page, editor, editing, canPublish, supportsDrafts, pages, se
         <BlockEditor
           key={`${page.id}:${editor.editorEpoch}`}
           value={draft.doc}
-          onChange={(doc) => setDraft((current) => ({ ...current, doc }))}
+          // The editor only knows blocks; the page lock rides on the document and must survive its edits.
+          onChange={(doc) => setDraft((current) => ({ ...current, doc: current.doc.lock ? { ...doc, lock: current.doc.lock } : doc }))}
           pages={pages}
           searchPeople={searchPeople}
           onAskIris={onAskIris}

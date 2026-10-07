@@ -265,6 +265,114 @@ const Mention = Node.create({
   },
 });
 
+const SVG_ATTRS = 'xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+const EYE_ICON = `<svg ${SVG_ATTRS}><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_OFF_ICON = `<svg ${SVG_ATTRS}><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>`;
+
+/**
+ * A value hidden behind a show/hide toggle, for passwords typed into a paragraph, list or table.
+ * The value lives in the attribute, so it is kept out of the plain-text serialization (copy, search).
+ */
+const Secret = Node.create({
+  name: "secret",
+  group: "inline",
+  inline: true,
+  atom: true,
+  selectable: true,
+  addAttributes() {
+    return {
+      value: {
+        default: "",
+        parseHTML: (element) => element.getAttribute("data-secret-value") ?? "",
+        renderHTML: (attributes) => ({ "data-secret-value": String(attributes.value ?? "") }),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "span[data-secret-node]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["span", mergeAttributes(HTMLAttributes, { "data-secret-node": "", class: "ws-secret" }), "••••••••"];
+  },
+  renderText() {
+    return "";
+  },
+  addNodeView() {
+    return ({ node, getPos, editor }) => {
+      let current = node;
+      let hidden = true;
+
+      const dom = document.createElement("span");
+      dom.className = "ws-secret";
+      dom.contentEditable = "false";
+
+      const input = document.createElement("input");
+      input.type = "password";
+      input.className = "ws-secret-input";
+      input.placeholder = "Secret";
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.readOnly = !editor.isEditable;
+      input.setAttribute("aria-label", "Secret value");
+      input.setAttribute("data-lpignore", "true");
+      input.setAttribute("data-1p-ignore", "true");
+      input.value = String(node.attrs.value ?? "");
+
+      const eye = document.createElement("button");
+      eye.type = "button";
+      eye.className = "ws-secret-eye";
+      eye.setAttribute("aria-label", "Show secret");
+      eye.setAttribute("aria-pressed", "false");
+      eye.innerHTML = EYE_ICON;
+
+      const fit = () => {
+        input.style.width = `${Math.min(40, Math.max(8, input.value.length + 1))}ch`;
+      };
+      fit();
+
+      eye.addEventListener("mousedown", (event) => event.preventDefault());
+      eye.addEventListener("click", () => {
+        hidden = !hidden;
+        input.type = hidden ? "password" : "text";
+        eye.innerHTML = hidden ? EYE_ICON : EYE_OFF_ICON;
+        eye.setAttribute("aria-label", hidden ? "Show secret" : "Hide secret");
+        eye.setAttribute("aria-pressed", String(!hidden));
+      });
+
+      input.addEventListener("input", () => {
+        fit();
+        const pos = getPos();
+        if (typeof pos !== "number") return;
+        editor.view.dispatch(editor.state.tr.setNodeMarkup(pos, undefined, { ...current.attrs, value: input.value }));
+      });
+      input.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== "Escape") return;
+        event.preventDefault();
+        const pos = getPos();
+        if (typeof pos === "number") editor.chain().focus(pos + current.nodeSize).run();
+      });
+
+      dom.append(input, eye);
+
+      return {
+        dom,
+        stopEvent: (event) => event.target === input || eye.contains(event.target as globalThis.Node),
+        ignoreMutation: () => true,
+        update(updated) {
+          if (updated.type.name !== "secret") return false;
+          current = updated;
+          const next = String(updated.attrs.value ?? "");
+          if (input.value !== next) {
+            input.value = next;
+            fit();
+          }
+          return true;
+        },
+      };
+    };
+  },
+});
+
 // ── Keys and behaviours ────────────────────────────────────────────────────
 
 /**
@@ -420,6 +528,7 @@ export const buildBaseExtensions = (options: { onAskIris?: (request: AskIrisRequ
   Link.configure({ openOnClick: false, HTMLAttributes: { class: "ws-link" } }),
   WsColor,
   Mention,
+  Secret,
   BlockKeys,
   IrisSpace.configure({ onAskIris: options.onAskIris }),
   Placeholder.configure({
