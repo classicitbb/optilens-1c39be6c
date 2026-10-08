@@ -20,7 +20,7 @@ import { DOC_STUDIO_TOOLS, DOC_STUDIO_TOOL_NAMES, dispatchDocStudioTool } from "
 import { PLATFORM_TOOLS, PLATFORM_TOOL_NAMES, dispatchPlatformTool } from "../_shared/copilot/platformTools.ts";
 import { ENRICHMENT_TOOLS, ENRICHMENT_TOOL_NAMES, dispatchEnrichmentTool } from "../_shared/copilot/enrichmentTools.ts";
 import { HELPDESK_TOOLS, HELPDESK_TOOL_NAMES, dispatchHelpdeskTool } from "../_shared/copilot/helpdeskTools.ts";
-import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
+import { resolveClaudeCredentials, resolveProviderCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 import { identityPreamble } from "../_shared/aiIdentity.ts";
 import { recordAiSpend } from "../_shared/aiSpend.ts";
 import { ADMIN_COPILOT_SYSTEM_PROMPT } from "../_shared/copilot/prompts.ts";
