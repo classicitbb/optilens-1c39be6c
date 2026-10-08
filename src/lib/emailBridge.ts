@@ -61,6 +61,7 @@ export type EmailAddress = { address: string; name: string | null };
 
 export type EmailFolder = {
   folder_id: number;
+  account_code: string;
   path: string;
   display_name: string;
   special_use: string | null;
@@ -87,6 +88,8 @@ export type EmailAttachment = { attachment_id: number; filename: string; content
 
 export type EmailMessage = EmailSummary & {
   cc: EmailAddress[];
+  account_code: string;
+  account_address: string;
   body_text: string | null;
   body_html: string | null;
   folder_name: string;
@@ -94,13 +97,25 @@ export type EmailMessage = EmailSummary & {
   attachments: EmailAttachment[];
 };
 
-export type EmailHistoryItem = EmailSummary & { folder_name: string; direction: "received" | "sent" };
+export type EmailHistoryItem = EmailSummary & { folder_name: string; account_address: string; direction: "received" | "sent" };
+
+export type EmailAccount = {
+  code: string;
+  address: string;
+  displayName: string;
+  isShared: boolean;
+  canSend: boolean;
+  canManage: boolean;
+  members: { email: string; role: "owner" | "member" }[];
+  isEnabled: boolean;
+  lastSyncAt: string | null;
+  lastError: string | null;
+  syncing: boolean;
+};
 
 export type EmailStatus = {
-  configured: boolean;
-  reason: string | null;
-  account: { code: string; address: string; canSend: boolean } | null;
-  sync: { running: boolean; lastCompletedAt: string | null; lastError: string | null };
+  accounts: EmailAccount[];
+  user: { email: string; isAdmin: boolean };
 };
 
 export type OutgoingAttachment = { filename: string; contentType: string; base64: string };
@@ -108,7 +123,14 @@ export type OutgoingAttachment = { filename: string; contentType: string; base64
 export const emailBridge = {
   status: () => json<EmailStatus>("status"),
   syncNow: () => json<EmailStatus>("sync", { method: "POST" }),
-  folders: () => json<{ folders: EmailFolder[] }>("folders").then((r) => r.folders),
+  folders: (account: string) => json<{ folders: EmailFolder[] }>(`folders?account=${encodeURIComponent(account)}`).then((r) => r.folders),
+  connectAccount: (body: { address: string; password: string; display_name: string; is_shared?: boolean }) =>
+    json<{ code: string }>("accounts", { method: "POST", body: JSON.stringify(body) }),
+  shareAccount: (code: string, email: string) =>
+    json<EmailAccount[]>(`accounts/${encodeURIComponent(code)}/members`, { method: "POST", body: JSON.stringify({ email }) }),
+  unshareAccount: (code: string, email: string) =>
+    json<EmailAccount[]>(`accounts/${encodeURIComponent(code)}/members/remove`, { method: "POST", body: JSON.stringify({ email }) }),
+  disconnectAccount: (code: string) => json<EmailAccount[]>(`accounts/${encodeURIComponent(code)}/disconnect`, { method: "POST" }),
   messages: (folderId: number, q?: string) => {
     const params = new URLSearchParams({ folder_id: String(folderId), limit: "100" });
     if (q) params.set("q", q);
@@ -124,7 +146,7 @@ export const emailBridge = {
     for (const address of addresses) params.append("address", address);
     return json<{ messages: EmailHistoryItem[] }>(`history?${params}`).then((r) => r.messages);
   },
-  send: (body: { to: string; cc?: string; subject: string; text: string; reply_to_message_id?: number; attachments: OutgoingAttachment[] }) =>
+  send: (body: { account: string; to: string; cc?: string; subject: string; text: string; reply_to_message_id?: number; attachments: OutgoingAttachment[] }) =>
     json<{ ok: true; savedToSent: boolean }>("send", { method: "POST", body: JSON.stringify(body) }),
   downloadAttachment: async (attachment: EmailAttachment) => {
     const blob = await (await request(`attachments/${attachment.attachment_id}`)).blob();

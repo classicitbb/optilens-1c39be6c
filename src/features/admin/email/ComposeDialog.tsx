@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { fileToAttachment, type OutgoingAttachment } from "@/lib/emailBridge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fileToAttachment, type EmailAccount, type OutgoingAttachment } from "@/lib/emailBridge";
 import { useSendEmail } from "./useEmail";
 import { EMPTY_DRAFT, formatBytes, type ComposeDraft } from "./format";
 
@@ -13,13 +14,11 @@ const MAX_BYTES = 20 * 1024 * 1024;
 
 export function ComposeDialog({
   draft,
-  fromAddress,
-  canSend,
+  accounts,
   onClose,
 }: {
   draft: ComposeDraft | null;
-  fromAddress: string;
-  canSend: boolean;
+  accounts: EmailAccount[];
   onClose: () => void;
 }) {
   const { toast } = useToast();
@@ -27,6 +26,8 @@ export function ComposeDialog({
   // The page remounts this dialog (key) for every new draft.
   const [form, setForm] = useState<ComposeDraft>(draft ?? EMPTY_DRAFT);
   const fileInput = useRef<HTMLInputElement>(null);
+  const from = accounts.find((account) => account.code === form.account) ?? accounts[0];
+  const canSend = Boolean(from?.canSend);
 
   const totalBytes = form.attachments.reduce((sum, file) => sum + file.size, 0);
   const tooLarge = totalBytes > MAX_BYTES;
@@ -35,6 +36,7 @@ export function ComposeDialog({
     try {
       const attachments: OutgoingAttachment[] = await Promise.all(form.attachments.map(fileToAttachment));
       const result = await send.mutateAsync({
+        account: from.code,
         to: form.to,
         cc: form.cc || undefined,
         subject: form.subject,
@@ -58,7 +60,12 @@ export function ComposeDialog({
         <div className="grid gap-2 text-sm">
           <div className="flex items-center gap-2 text-xs text-[hsl(var(--admin-muted-fg))]">
             <span className="w-14 shrink-0">From</span>
-            <span className="font-medium text-[hsl(var(--admin-content-fg))]">{fromAddress}</span>
+            <Select value={from?.code} onValueChange={(code) => setForm({ ...form, account: code })}>
+              <SelectTrigger id="compose-from" className="h-8 w-auto min-w-64 text-[hsl(var(--admin-content-fg))]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => <SelectItem key={account.code} value={account.code}>{account.displayName} &lt;{account.address}&gt;</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <label className="flex items-center gap-2">
             <span className="w-14 shrink-0 text-xs text-[hsl(var(--admin-muted-fg))]">To</span>
@@ -83,7 +90,7 @@ export function ComposeDialog({
             </div>
           )}
           {tooLarge && <p className="text-xs text-destructive">Attachments total {formatBytes(totalBytes)}. The limit is 20 MB.</p>}
-          {!canSend && <p className="text-xs text-destructive">This mailbox can't send yet: its outgoing (SMTP) server isn't set on the bridge.</p>}
+          {!canSend && <p className="text-xs text-destructive">{from ? `${from.address} can't send yet: its outgoing (SMTP) server isn't set on the bridge.` : "Connect a mailbox to send email."}</p>}
         </div>
         <div className="flex items-center justify-between gap-2">
           <div>

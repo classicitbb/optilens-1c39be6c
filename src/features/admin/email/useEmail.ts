@@ -14,8 +14,13 @@ export function useEmailStatus() {
   });
 }
 
-export function useEmailFolders(enabled: boolean) {
-  return useQuery({ queryKey: ["email", "folders"], queryFn: emailBridge.folders, enabled, refetchInterval: REFRESH_MS });
+export function useEmailFolders(account: string | null) {
+  return useQuery({
+    queryKey: ["email", "folders", account],
+    queryFn: () => emailBridge.folders(account as string),
+    enabled: Boolean(account),
+    refetchInterval: REFRESH_MS,
+  });
 }
 
 export function useEmailMessages(folderId: number | null, search: string) {
@@ -68,6 +73,20 @@ export function useMoveEmail() {
 export function useSendEmail() {
   const invalidate = useInvalidateEmail();
   return useMutation({ mutationFn: emailBridge.send, onSuccess: invalidate });
+}
+
+export function useConnectMailbox() {
+  const invalidate = useInvalidateEmail();
+  return useMutation({ mutationFn: emailBridge.connectAccount, onSuccess: invalidate });
+}
+
+export function useMailboxAccess() {
+  const invalidate = useInvalidateEmail();
+  return {
+    share: useMutation({ mutationFn: ({ code, email }: { code: string; email: string }) => emailBridge.shareAccount(code, email), onSuccess: invalidate }),
+    unshare: useMutation({ mutationFn: ({ code, email }: { code: string; email: string }) => emailBridge.unshareAccount(code, email), onSuccess: invalidate }),
+    disconnect: useMutation({ mutationFn: (code: string) => emailBridge.disconnectAccount(code), onSuccess: invalidate }),
+  };
 }
 
 export type CrmContactMatch = {

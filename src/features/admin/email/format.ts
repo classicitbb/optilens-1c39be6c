@@ -43,6 +43,7 @@ export function prefixSubject(prefix: "RE" | "FW", subject: string | null): stri
 }
 
 export type ComposeDraft = {
+  account: string;
   to: string;
   cc: string;
   subject: string;
@@ -51,7 +52,7 @@ export type ComposeDraft = {
   attachments: File[];
 };
 
-export const EMPTY_DRAFT: ComposeDraft = { to: "", cc: "", subject: "", text: "", attachments: [] };
+export const EMPTY_DRAFT: ComposeDraft = { account: "", to: "", cc: "", subject: "", text: "", attachments: [] };
 
 export function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
