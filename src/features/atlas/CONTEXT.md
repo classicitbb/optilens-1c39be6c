@@ -59,7 +59,7 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
 ## Not done / seams
 
 - Blog is an embed in the Website space (`blog-posts`) until a `blogPostsSource` exists.
-- Favorites, page icon, cover and full width are `localStorage` only; comments are disabled.
+- Favorites, page icon and cover are `localStorage` only; comments are disabled. Width is saved as `doc.layout.fullWidth` through the existing draft/Update/version path. Legacy browser width is a fallback until a saved width exists; explicit false overrides it. Editor body changes and Iris document replacements must preserve layout as well as lock.
 - Importing for real (a hosted write) needs explicit approval and is not implemented.
 - `companion-assistant` trusts Atlas evidence only for staff after its source change is deployed.
 

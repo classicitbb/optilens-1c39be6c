@@ -341,7 +341,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
 
   /** Replace the document (an accepted Iris proposal): the editor remounts with it and autosave takes over. */
   const applyDoc = useCallback((doc: AtlasDoc) => {
-    setDraft((current) => ({ ...current, doc: current.doc.lock ? { ...doc, lock: current.doc.lock } : doc }));
+    setDraft((current) => ({ ...current, doc: { ...doc, ...(current.doc.lock ? { lock: current.doc.lock } : {}), ...(current.doc.layout ? { layout: current.doc.layout } : {}) } }));
     setEditorEpoch((epoch) => epoch + 1);
   }, []);
 
@@ -349,6 +349,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
     mode,
     setMode,
     applyDoc,
+    setFullWidth: (fullWidth: boolean) => setDraft((current) => ({ ...current, doc: { ...current.doc, layout: { ...current.doc.layout, fullWidth } } })),
     draft,
     setDraft,
     isSaving,

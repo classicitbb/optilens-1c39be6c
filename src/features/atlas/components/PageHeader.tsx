@@ -157,7 +157,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem onSelect={props.onToggleFullWidth}>
+          <DropdownMenuItem disabled={!canEdit} onSelect={props.onToggleFullWidth}>
             <Maximize2 className="mr-2 h-3.5 w-3.5" /> {fullWidth ? "Standard width" : "Full width"}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={props.onToggleFavorite}>

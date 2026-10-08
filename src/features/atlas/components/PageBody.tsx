@@ -59,8 +59,8 @@ const PageBody = ({ page, editor, editing, canPublish, supportsDrafts, pages, se
         <BlockEditor
           key={`${page.id}:${editor.editorEpoch}`}
           value={draft.doc}
-          // The editor only knows blocks; the page lock rides on the document and must survive its edits.
-          onChange={(doc) => setDraft((current) => ({ ...current, doc: current.doc.lock ? { ...doc, lock: current.doc.lock } : doc }))}
+          // The editor only knows blocks; preserve document-level lock and layout settings.
+          onChange={(doc) => setDraft((current) => ({ ...current, doc: { ...doc, ...(current.doc.lock ? { lock: current.doc.lock } : {}), ...(current.doc.layout ? { layout: current.doc.layout } : {}) } }))}
           pages={pages}
           searchPeople={searchPeople}
           onAskIris={onAskIris}

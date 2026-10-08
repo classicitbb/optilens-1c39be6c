@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Per-browser workspace preferences. Favorites are scoped by user id so two
- * staff on one machine don't share them. Page icon, cover and full-width live
+ * staff on one machine don't share them. Page icon and cover live
  * here too until the schema has a place for them (they do not sync).
  */
 const readJson = <T,>(key: string, fallback: T): T => {
@@ -62,6 +62,7 @@ export function useAtlasFavorites() {
 export interface AtlasPageMeta {
   icon?: string;
   cover?: boolean;
+  /** Legacy fallback only; new width changes are saved on the canonical document. */
   fullWidth?: boolean;
 }
 

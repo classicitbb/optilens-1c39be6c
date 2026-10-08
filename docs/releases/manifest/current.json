@@ -1,26 +1,16 @@
 {
-  "semanticVersion": "0.11.0",
-  "sourceEntry": "2026-10-07 — Lead Finder CRM matching and follow-up (local source)",
-  "releaseDateTimeUtc": "2026-10-07T00:00:00.000Z",
+  "semanticVersion": "0.12.0",
+  "sourceEntry": "2026-10-08 — Atlas page width persistence (local source)",
+  "releaseDateTimeUtc": "2026-10-08T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Lead Finder now matches results to the CRM, excludes current customers, supports linking an existing contact (even with a different name), Connection strength and follow-up tasks. Not yet deployed."
+    "Pages retain Full width or Standard width through Update and reopening. Editor and viewer read the same saved layout. Not deployed; hosted verification remains pending."
   ],
   "moduleImpact": [
     {
-      "module": "lead-intelligence/crmMatching.ts",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Lead Finder CRM matching and follow-up (local source)."
-    },
-    {
-      "module": "lead_discovery_identities/links",
-      "impact": "medium",
-      "notes": "Updated as part of Lead Finder CRM matching and follow-up (local source)."
-    },
-    {
-      "module": "lead_finder_confirm_link/mark_customer",
-      "impact": "medium",
-      "notes": "Updated as part of Lead Finder CRM matching and follow-up (local source)."
+      "notes": "Updated as part of Atlas page width persistence (local source)."
     }
   ],
   "migrationNotes": [

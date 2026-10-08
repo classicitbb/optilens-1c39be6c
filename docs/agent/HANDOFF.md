@@ -1,3 +1,14 @@
+## 2026-10-08 — Atlas page width persistence
+
+Status: Complete — no active handoff
+
+Cause: the width action only patched localStorage; usePageEditor and AtlasSource Update never received that setting. Saved canonical JSON now carries layout.fullWidth. Both full-page editor/viewer consume it, old browser preferences remain a fallback, and explicit false retains standard width. Body edits and Iris replacements preserve layout and lock. Page width follows the existing published draft/Update semantics and version snapshots; no migration is needed. Read-only users cannot change it.
+
+Affected files: BlogPostRenderer canonical type; AtlasWorkspace; PageBody; PageHeader; usePageEditor; useAtlasPrefs comments; pageLayout; atlasPageWidth tests; Atlas CONTEXT and continuity docs.
+
+Validation: 83 Atlas tests passed before the final default/fallback assertion; final width/secret/lock rerun passed 10 tests. TypeScript and production build passed. Regression control with the width setter removed failed both save/reopen cases. Full test command reported untouched adminPortalCopilot, rxFormChemistrie, rxOrderPrefillHandoff and rxFormKeyboard failures and was stopped; no full-suite pass. Browser launch to local Atlas timed out; authenticated editor/viewer and hosted Update were not verified. Full lint passed (0 errors, 2424 warnings); final TypeScript passed. PR checks passed after documentation symmetry/release-ledger sync (source version 0.12.0) and generated facts/search-index normalization for Windows line endings. Generated files have no semantic diff.
+
+No deployment, hosted write, schema apply, credential or authorization change occurred. Production publication and hosted verification writes require approval if requested later. No active source continuation.
 # Work Handoff
 
 ## 2026-10-07 — Atlas title slugs and launcher favorites

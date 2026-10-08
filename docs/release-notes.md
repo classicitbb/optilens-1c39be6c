@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-08 — Atlas page width persistence (local source)
+
+### Release Notes
+- Pages retain Full width or Standard width through Update and reopening. Editor and viewer read the same saved layout. Not deployed; hosted verification remains pending.
+
 ## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
 
 ### Release Notes

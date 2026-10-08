@@ -1,3 +1,6 @@
+## Atlas page width persistence — 2026-10-08
+
+Local source repair: Full width previously only changed atlas-page-meta in browser storage and never entered the Update payload. Width now lives at canonical document layout.fullWidth, using the existing AtlasSource draft, Update and version JSON path. Editor and viewer share pageFullWidth; explicit standard width overrides the legacy browser fallback. Body edits and Iris replacements retain layout and lock. Only editors may change the saved setting. No schema, service, environment variable or access change.
 # Project Knowledge
 
 ## Atlas page identity and launcher favorites — 2026-10-07

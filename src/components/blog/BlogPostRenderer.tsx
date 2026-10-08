@@ -55,7 +55,7 @@ export interface PageLock {
   iterations: number;
 }
 
-export type BlogCanonicalContent = { blocks: BlogBlockNode[]; lock?: PageLock };
+export type BlogCanonicalContent = { blocks: BlogBlockNode[]; lock?: PageLock; layout?: { fullWidth?: boolean } };
 export type BlogContentInput = BlogCanonicalContent | BlogBlockNode[] | string;
 
 interface BlogPostRendererProps {

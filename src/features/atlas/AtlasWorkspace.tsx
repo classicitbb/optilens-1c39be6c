@@ -1,3 +1,4 @@
+import { pageFullWidth } from "./pageLayout";
 import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -468,7 +469,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   );
 
   const meta = selectedPage ? pageMeta[selectedPage.id] : undefined;
-  const fullWidth = meta?.fullWidth ?? false;
+  const fullWidth = pageFullWidth(draft.doc, meta?.fullWidth);
   const editing = mode === "edit" && canEdit;
 
   const dynamicOptions = useMemo(
@@ -698,7 +699,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           onPublish={() => void editor.saveAs("published")}
           onShare={() => void sharePage()}
           onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
-          onToggleFullWidth={() => selectedPage && patchPageMeta(selectedPage.id, { fullWidth: !fullWidth })}
+          onToggleFullWidth={() => selectedPage && canEdit && editor.setFullWidth(!fullWidth)}
           onToggleFavorite={() => selectedPage && toggleFavorite(selectedPage.id)}
           launcherFavorite={selectedPage && LauncherFavorite ? <LauncherFavorite page={selectedPage} /> : null}
           onDuplicate={() => selectedPage && void duplicatePage(selectedPage.id)}

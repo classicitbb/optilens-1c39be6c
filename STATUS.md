@@ -1,3 +1,6 @@
+## Atlas page width persistence — 2026-10-08
+
+Local source repair: Full width previously only changed atlas-page-meta in browser storage and never entered the Update payload. Width now lives at canonical document layout.fullWidth, using the existing AtlasSource draft, Update and version JSON path. Editor and viewer share pageFullWidth; explicit standard width overrides the legacy browser fallback. Body edits and Iris replacements retain layout and lock. Only editors may change the saved setting. No schema, service, environment variable or access change.
 # Project Status
 
 ## Atlas title slugs and launcher favorites — 2026-10-07
@@ -11,7 +14,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-07 (Atlas title slugs/favorites; Admin attention dropdown; CRM contact editor; Doc Studio improvements)
+Last updated: 2026-10-08 (Atlas page width persistence; previous work retained)
 
 ---
 
