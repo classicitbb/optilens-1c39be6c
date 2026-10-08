@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
 import { canonicalToSearchText, canonicalToTiptapDoc } from "@/lib/wikiCanonical";
 import { slugifyHelpValue } from "@/lib/helpCenter";
+import { toWikiArticleSlug } from "@/lib/wikiArticleRouting";
+import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
+import PageSharingDialog from "./components/PageSharingDialog";
 import { ATLAS_CONFIG, atlasPath } from "./config";
 import { getAtlasHost, useAtlasWorkspaceName } from "./host";
 import { useStandaloneDisplay } from "./hooks/useStandaloneDisplay";
@@ -69,6 +72,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAdmin } = useAdminRoleSafe();
+  const [sharingOpen, setSharingOpen] = useState(false);
   const workspaceName = useAtlasWorkspaceName();
   const standalone = useStandaloneDisplay();
   const LauncherFavorite = getAtlasHost().LauncherFavorite;
@@ -113,7 +118,8 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   // While a page's slug is being renamed, the URL and the page list briefly disagree about it. The
   // page stays pinned by id until they agree again, so it is never mistaken for an unknown page.
   const [transition, setTransition] = useState<{ id: string; slug: string } | null>(null);
-  const bySlugNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? null) : null;
+  const legacyPage = articleSlug ? spacePages.find((page) => !page.slug && toWikiArticleSlug(page) === articleSlug) : undefined;
+  const bySlugNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? (legacyPage ? fullTree.nodeById.get(legacyPage.id) : null) ?? null) : null;
   const requestedId = searchParams.get("articleId");
   const selectedNode = (requestedId ? fullTree.nodeById.get(requestedId) : null)
     ?? bySlugNode ?? (articleSlug && transition ? (fullTree.nodeById.get(transition.id) ?? null) : null);
@@ -263,7 +269,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       const siblings = spacePages.filter(
         (page) => page.parentId === placement.parentId && (placement.parentId !== null || page.sectionId === placement.sectionId),
       );
-      const slug = `untitled-${Date.now().toString(36)}`;
+      const slug = crypto.randomUUID();
       try {
         await data.createPage({
           spaceId: space.scope.storeSpace,
@@ -340,7 +346,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     const source = spacePages.find((page) => page.id === id);
     if (!source || !canCreate) return;
     const title = `Copy of ${source.title}`;
-    const slug = `${slugifyHelpValue(title)}-${Date.now().toString(36)}`;
+    const slug = crypto.randomUUID();
     try {
       await data.createPage({
         spaceId: source.spaceId,
@@ -427,6 +433,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   };
 
   const sharePage = async () => {
+    if (isAdmin) { setSharingOpen(true); return; }
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}${selectedPage ? `?articleId=${encodeURIComponent(selectedPage.id)}` : ""}`);
       toast({ title: "Link copied" });
@@ -468,7 +475,9 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   );
 
   const meta = selectedPage ? pageMeta[selectedPage.id] : undefined;
-  const fullWidth = meta?.fullWidth ?? false;
+  const storedFullWidth = typeof draft.props.fullWidth === "boolean" ? draft.props.fullWidth : meta?.fullWidth ?? false;
+  const fullWidth = canEdit ? storedFullWidth : meta?.fullWidth ?? storedFullWidth;
+  const savePublishedPage = () => editor.saveAs("published", selectedPage && "fullWidth" in selectedPage.props ? { fullWidth } : undefined);
   const editing = mode === "edit" && canEdit;
 
   const dynamicOptions = useMemo(
@@ -570,7 +579,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       await data.createPage({
         spaceId: targetSpace.scope.storeSpace,
         title: proposal.heading || "Untitled",
-        slug: `untitled-${Date.now().toString(36)}`,
+        slug: crypto.randomUUID(),
         doc: { blocks: proposal.blocks.slice(1) },
         status: "draft",
         props: defaultPropsFor(targetSpace, view),
@@ -695,10 +704,14 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           fullWidth={fullWidth}
           isFavorite={selectedPage ? isFavorite(selectedPage.id) : false}
           onToggleEdit={() => setMode(editing ? "view" : "edit")}
-          onPublish={() => void editor.saveAs("published")}
+          onPublish={() => void savePublishedPage()}
           onShare={() => void sharePage()}
           onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
-          onToggleFullWidth={() => selectedPage && patchPageMeta(selectedPage.id, { fullWidth: !fullWidth })}
+          onToggleFullWidth={() => {
+            if (!selectedPage) return;
+            patchPageMeta(selectedPage.id, { fullWidth: !fullWidth });
+            if (canEdit && "fullWidth" in selectedPage.props) setDraft((current) => ({ ...current, props: { ...current.props, fullWidth: !fullWidth } }));
+          }}
           onToggleFavorite={() => selectedPage && toggleFavorite(selectedPage.id)}
           launcherFavorite={selectedPage && LauncherFavorite ? <LauncherFavorite page={selectedPage} /> : null}
           onDuplicate={() => selectedPage && void duplicatePage(selectedPage.id)}
@@ -767,7 +780,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
                 onEditor={(instance) => {
                   editorInstance.current = instance;
                 }}
-                onUpdate={() => void editor.saveAs("published")}
+                onUpdate={() => void savePublishedPage()}
               />
             </div>
           </>
@@ -812,6 +825,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       />
 
       <ImportDryRunDialog open={importOpen} onOpenChange={setImportOpen} existingSlugs={allPages.map((page) => page.slug)} />
+      {selectedPage && isAdmin ? <PageSharingDialog key={`${user?.id}:${selectedPage.id}`} page={selectedPage} source={data.source} open={sharingOpen} onOpenChange={setSharingOpen} /> : null}
 
       <MoveToDialog
         open={Boolean(moveTargetId)}

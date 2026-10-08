@@ -1,5 +1,7 @@
 # Frontend Bug Reports
 
+Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.
+
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
 
 ## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)

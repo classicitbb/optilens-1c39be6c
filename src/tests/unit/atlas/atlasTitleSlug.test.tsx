@@ -27,26 +27,27 @@ describe("Atlas title slugs", () => {
     expect(hook.result.current.draft.slug).toBe("renamed");
     expect(hook.result.current.dirty).toBe(false);
   });
-  it("renames existing draft slugs and resolves collisions on autosave", async () => {
+  it("keeps the existing draft identifier during title autosave", async () => {
     const hook = setup({ status: "draft" });
     await waitFor(() => expect(hook.data.autosave).toHaveBeenCalled(), { timeout: 2000 });
-    expect(hook.data.autosave.mock.calls[0][0]).toMatchObject({ title: "New title", meta: { slug: "new-title-2" } });
-    expect(hook.onSlugChanged).toHaveBeenCalledWith("new-title-2");
+    expect(hook.data.autosave.mock.calls[0][0]).toMatchObject({ title: "New title" });
+    expect(hook.data.autosave.mock.calls[0][0].meta?.slug).toBeUndefined();
+    expect(hook.onSlugChanged).not.toHaveBeenCalled();
   });
-  it("keeps published URLs until Update, then promotes title and slug together", async () => {
+  it("keeps the published identifier through Update while promoting the title", async () => {
     const hook = setup();
     await waitFor(() => expect(hook.data.autosave).toHaveBeenCalled(), { timeout: 2000 });
     expect(hook.data.autosave.mock.calls[0][0]).toMatchObject({ title: "New title", asDraft: true });
     expect(hook.data.autosave.mock.calls[0][0].meta?.slug).toBeUndefined();
     await act(async () => hook.result.current.saveAs("published"));
-    expect(hook.data.saveVersion).toHaveBeenCalledWith(expect.objectContaining({ title: "New title", slug: "new-title-2" }));
-    expect(hook.onSaved).toHaveBeenCalledWith("new-title-2");
+    expect(hook.data.saveVersion).toHaveBeenCalledWith(expect.objectContaining({ title: "New title", slug: "a-page" }));
+    expect(hook.onSaved).toHaveBeenCalledWith("a-page");
   });
   it("leaves legacy null slugs unfilled", async () => {
     const hook = setup({ status: "draft", slug: null });
     await waitFor(() => expect(hook.data.autosave).toHaveBeenCalled(), { timeout: 2000 });
     expect(hook.data.autosave.mock.calls[0][0].meta?.slug).toBeUndefined();
-    expect(hook.onSlugChanged).toHaveBeenCalledWith("new-title-page-1");
+    expect(hook.onSlugChanged).not.toHaveBeenCalled();
     await act(async () => hook.result.current.saveAs("draft"));
     expect(hook.data.saveVersion).toHaveBeenCalledWith(expect.objectContaining({ slug: null }));
   });

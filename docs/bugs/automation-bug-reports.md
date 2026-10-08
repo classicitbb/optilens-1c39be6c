@@ -64,3 +64,5 @@ Track issues and exceptions related to QA automation and PR checks.
 - Root cause: the script built `wikiContent.ts` from `new URL(import.meta.url).pathname`, which duplicated the drive prefix on Windows and produced an invalid file path.
 - Resolution: switched the script to `fileURLToPath(import.meta.url)` before joining the repo-relative path.
 - Follow-up actions: keep path resolution for Node ESM scripts Windows-safe and rerun `npm run qa:pr-checks` after any validator changes.
+
+Atlas sharing SQL regression (local only): scripts/test_atlas_sharing_sql.mjs executes the actual migration in isolated PostgreSQL WASM (PGlite 0.5.8) with minimal auth/table/policy fixtures. Install PGlite separately and set ATLAS_SQL_TEST_MODULE_PATH to its directory package.json for module resolution; then run node scripts/test_atlas_sharing_sql.mjs. No hosted connector or data write is involved. Focused frontend command: npx.cmd vitest run --coverage=false src/tests/unit/atlas src/tests/integration/atlasRouteAccessibility.integration.test.ts. See docs/agent/HANDOFF.md for release gates and verification limits.

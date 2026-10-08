@@ -147,6 +147,9 @@ export interface PublishInput {
 }
 
 export interface AtlasSource {
+  getPageSharing(id: string): Promise<{ token: string; enabled: boolean } | null>;
+  setPageSharing(id: string, enabled: boolean): Promise<{ token: string; enabled: boolean }>;
+  listPageAccesses(id: string): Promise<{ id: string; userId: string | null; email: string | null; title: string; version: number; accessedAt: string }[]>;
   /** Stable id for cache keys. */
   readonly id: string;
   listPages(): Promise<AtlasListing>;

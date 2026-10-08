@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
@@ -6,42 +6,56 @@ import { useAuth } from "@/contexts/AuthContext";
  * staff on one machine don't share them. Page icon, cover and full-width live
  * here too until the schema has a place for them (they do not sync).
  */
-const readJson = <T,>(key: string, fallback: T): T => {
+const sessionValues = new Map<string, string>();
+const PREF_CHANGED = "atlas-preference-changed";
+const readRaw = (key: string): string | null => {
   try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    return window.localStorage.getItem(key) ?? sessionValues.get(key) ?? null;
   } catch {
-    return fallback;
+    return sessionValues.get(key) ?? null;
   }
 };
 
 const writeJson = (key: string, value: unknown) => {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    sessionValues.delete(key);
   } catch {
-    /* storage unavailable: preference is session-only */
+    sessionValues.set(key, JSON.stringify(value));
   }
+  window.dispatchEvent(new CustomEvent(PREF_CHANGED, { detail: key }));
 };
 
 function useStoredState<T>(key: string, fallback: T, legacyKey?: string) {
-  // Keys were `wiki-*` before Atlas; read the old value once so favorites and page settings survive.
-  const read = () => readJson(key, legacyKey ? readJson(legacyKey, fallback) : fallback);
-  const [value, setValue] = useState<T>(read);
-
-  useEffect(() => {
-    setValue(read());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  // Snapshot strings are stable. Every consumer sees writes in this tab and other tabs;
+  // changing accounts reads the new key during render, without exposing the previous value.
+  const fallbackRaw = JSON.stringify(fallback);
+  const snapshot = useCallback(() => readRaw(key) ?? (legacyKey ? readRaw(legacyKey) : null) ?? fallbackRaw, [key, legacyKey, fallbackRaw]);
+  const subscribe = useCallback((notify: () => void) => {
+    const changed = (event: Event) => {
+      if (event instanceof StorageEvent ? event.key === null || event.key === key || event.key === legacyKey : (event as CustomEvent).detail === key) notify();
+    };
+    window.addEventListener("storage", changed);
+    window.addEventListener(PREF_CHANGED, changed);
+    return () => {
+      window.removeEventListener("storage", changed);
+      window.removeEventListener(PREF_CHANGED, changed);
+    };
+  }, [key, legacyKey]);
+  const raw = useSyncExternalStore(subscribe, snapshot, () => fallbackRaw);
+  const parse = useCallback((input: string): T => {
+    try { return JSON.parse(input) as T; } catch { return JSON.parse(fallbackRaw) as T; }
+  }, [fallbackRaw]);
+  const value = useMemo(() => parse(raw), [raw, parse]);
 
   const update = useCallback(
     (next: T | ((current: T) => T)) => {
-      setValue((current) => {
-        const resolved = typeof next === "function" ? (next as (c: T) => T)(current) : next;
-        writeJson(key, resolved);
-        return resolved;
-      });
+      const current = parse(snapshot());
+      const resolved = typeof next === "function" ? (next as (c: T) => T)(current) : next;
+      // Persist before a save/navigation can unmount the consumer.
+      writeJson(key, resolved);
     },
-    [key],
+    [key, parse, snapshot],
   );
 
   return [value, update] as const;
@@ -81,14 +95,18 @@ export const SIDEBAR_MAX = 360;
 export const SIDEBAR_DEFAULT = 244;
 
 export function useAtlasSidebarState() {
-  const [width, setWidthRaw] = useStoredState<number>("atlas-sidebar-width", SIDEBAR_DEFAULT, "wiki-sidebar-width");
+  const { user } = useAuth();
+  const owner = user?.id ?? "anon";
+  // Shared legacy keys have no owner; importing them would leak another user's settings.
+  const [storedWidth, setWidthRaw] = useStoredState<number>(`atlas-sidebar-width:${owner}`, SIDEBAR_DEFAULT);
   const [collapsed, setCollapsed] = useStoredState<boolean>(
-    "atlas-sidebar-collapsed",
+    `atlas-sidebar-collapsed:${owner}`,
     typeof window !== "undefined" && window.innerWidth < 768,
-    "wiki-sidebar-collapsed",
   );
+  const width = typeof storedWidth === "number" && Number.isFinite(storedWidth)
+    ? Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(storedWidth))) : SIDEBAR_DEFAULT;
   const setWidth = useCallback(
-    (next: number) => setWidthRaw(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(next)))),
+    (next: number) => { if (Number.isFinite(next)) setWidthRaw(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(next)))); },
     [setWidthRaw],
   );
   return { width, setWidth, collapsed, setCollapsed };

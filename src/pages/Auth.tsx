@@ -21,6 +21,7 @@ import {
   type AuthStep,
   createAuthHref,
   getDefaultAuthStep,
+  getAuthEmailRedirect,
   getSafeAuthRedirect,
   parseAuthIntent,
   readAuthFlowState,
@@ -282,7 +283,7 @@ const Auth = () => {
         audience,
         interestIntent: intentValue,
         onboardingCompletedAt,
-      });
+      }, redirect);
 
       if (error) {
         toast({
@@ -528,7 +529,8 @@ const Auth = () => {
                     if (!successState?.email) return;
                     setResendingConfirmation(true);
                     try {
-                      const { error } = await supabase.auth.resend({ type: "signup", email: successState.email });
+                      const { error } = await supabase.auth.resend({ type: "signup", email: successState.email,
+                        options: { emailRedirectTo: getAuthEmailRedirect(window.location.origin, successState.redirect) } });
                       if (error) throw error;
                       toast({ title: "Email resent", description: `Check ${successState.email} again.` });
                     } catch {

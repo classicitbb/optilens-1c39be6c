@@ -20,8 +20,8 @@ export interface TreeModel {
   nodeBySlug: Map<string, TreeNode>;
 }
 
-/** URL slug for a page: its stored slug, or title + id suffix for legacy rows without one. */
-export const toPageSlug = (page: Pick<AtlasPage, "id" | "title" | "slug">): string => toWikiArticleSlug(page);
+/** Existing stored URLs stay intact; legacy pages use their stable opaque database ID. */
+export const toPageSlug = (page: Pick<AtlasPage, "id" | "title" | "slug">): string => page.slug ? toWikiArticleSlug(page) : page.id;
 
 const bySort = (a: TreeNode, b: TreeNode) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title);
 

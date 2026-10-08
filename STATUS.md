@@ -1,5 +1,7 @@
 # Project Status
 
+Atlas local source (2026-10-08): browser-local width preferences now merge current snapshots and refresh consumers/tabs; sidebar width/collapse are isolated by user ID. New page identifiers and shared links are generated and stable across title edits, superseding prior title-driven slug changes. Explicit administrator sharing exposes only active published content through a sign-in-only read-only website viewer, with transactional account/page/time audit and disable/revoke controls. Atlas production release is approved and in progress in an isolated release checkout based on the current production commit. Sharing migration remains unapplied pending release validation. See HANDOFF.md for checks and gates. ClickUp and broader space restrictions remain deferred.
+
 ## Atlas title slugs and launcher favorites — 2026-10-07
 
 Local source: title edits update unique slugs (draft autosave; published Update), sidebar renames update both fields, page browser titles reflect saved titles, ID-bearing shared links survive renames, and page actions expose saved per-user launcher favorites through existing pins. No production data write, schema apply or release. Old slug-only bookmarks have no redirect history. Validation and live pin-read limitations are recorded in HANDOFF.md.
@@ -11,7 +13,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-07 (Atlas title slugs/favorites; Admin attention dropdown; CRM contact editor; Doc Studio improvements)
+Last updated: 2026-10-08 (Atlas layout preferences and local authenticated sharing)
 
 ---
 

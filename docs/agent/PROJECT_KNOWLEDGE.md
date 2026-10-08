@@ -145,3 +145,11 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 ## Iris wiki formatting
 
 Atlas parses generated Markdown with unified / remark-parse / remark-gfm into canonical wiki blocks. Iris replies and proposal previews use WikiArticleRenderer; accepting a selection inserts structured Tiptap content and retains marks. Never flatten accepted proposals into a plain string. Existing malformed drafts require a separate approved hosted edit. On Windows, regenerating platform facts and the public search index can resolve CRLF-only drift without a semantic Git diff.
+
+## Atlas layout and sharing contract — 2026-10-08 (local source)
+
+Title edits no longer change page identifiers: new UUID slugs, unchanged existing slugs, stable ID fallback for null-slug rows, and separate generated shared-link tokens. AtlasSource owns explicit sharing state and administrator access history. Website route /shared/pages/:token is sign-in-only and read-only; an audited database RPC returns only active published content for an enabled token. Forwarded links work for any registered authenticated account; no recipient assignment or profile listing. Draft, inactive, locked and secret-bearing pages are denied. Existing help_articles policies remain unchanged. Sharing migration remains unapplied.
+
+Atlas browser preferences now write synchronously and merge the latest stored snapshot across consumers/tabs. Sidebar keys include user ID and never import ownerless legacy values. Sidebar settings are browser-local; page width uses the prepared nullable full_width column after migration, with browser-local fallback beforehand. Native storage events refresh other tabs. Email confirmation uses getAuthEmailRedirect, which validates same-origin destinations; Auth passes the existing requested route to signUp.
+
+SQL regression command: node scripts/test_atlas_sharing_sql.mjs, using PGlite 0.5.8 installed separately and ATLAS_SQL_TEST_MODULE_PATH for module resolution. It checks actual migration SQL in a minimal isolated PostgreSQL fixture, not the full hosted schema. No new service or credential. Production release requires migration/frontend approval and authentication redirect-allowlist verification.
