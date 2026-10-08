@@ -1,5 +1,17 @@
 # Frontend Bug Reports
 
+Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+Lead Finder previously upserted contacts by name, so a differently named existing contact produced a duplicate and customers were re-surfaced. Local source adds recognition, exclusion and an idempotent explicit save. Live behaviour of the new SQL is unverified until the migration is applied and exercised on a database.
+
+## 2026-10-07 — CRM research provider replacement
+
+Manual research depended on Firecrawl configuration. Local source now uses OpenAI Responses web_search with citation metadata, bounded calls and no automatic contact writes. Mocked tests cover unsafe/missing citations, incomplete and ungrounded responses, no-match, source bounds and private provider-error handling. Live configuration and deployed research behavior remain unverified.
+
 
 ## 2026-10-07 — Doc Studio recipient picker, signature portability and label layout
 
@@ -343,3 +355,5 @@ Track frontend regressions and customer-facing issues.
 - Surface: public `/pay`
 - Symptom: `scotia-payment` requires a JWT and a staff role, and the shared rate limiter is per-isolate memory that resets on every cold start — so exposing form signing to anonymous callers through it would have risked a card-testing oracle across order, statement and walk-in flows alike.
 - Resolution: anonymous signing lives in a separate `walkin-pay` function authenticated by hashed one-time token, with a database-backed per-IP limiter, database-enforced amount bounds, a fail-closed Turnstile check and an admin kill switch. `scotia-payment` is unchanged for existing flows.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.

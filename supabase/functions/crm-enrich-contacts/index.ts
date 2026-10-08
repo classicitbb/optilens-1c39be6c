@@ -15,6 +15,7 @@
 
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import { resolveProviderCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sendSmtpEmail, getSmtpConfig } from "../_shared/email/smtp.ts";
 import { enrichContact, type EnrichableContact, type TriggerSource } from "../_shared/enrichment/contactEnrichment.ts";

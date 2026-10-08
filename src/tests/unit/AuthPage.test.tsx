@@ -6,6 +6,7 @@ import Auth from "@/pages/Auth";
 const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signUp: vi.fn(),
+  resend: vi.fn(),
   resetPasswordForEmail: vi.fn(),
   toast: vi.fn(),
   insert: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       insert: mocks.insert,
     }),
     auth: {
+      resend: mocks.resend,
       resetPasswordForEmail: mocks.resetPasswordForEmail,
     },
   },
@@ -98,12 +100,14 @@ describe("Auth page onboarding flow", () => {
     mocks.authState.user = null;
     mocks.signIn.mockReset();
     mocks.signUp.mockReset();
+    mocks.resend.mockReset();
     mocks.resetPasswordForEmail.mockReset();
     mocks.toast.mockReset();
     mocks.insert.mockReset();
     mocks.oAuth.mockReset();
     mocks.signIn.mockResolvedValue({ error: null });
     mocks.signUp.mockResolvedValue({ error: null });
+    mocks.resend.mockResolvedValue({ error: null });
     mocks.resetPasswordForEmail.mockResolvedValue({ error: null });
     mocks.insert.mockResolvedValue({ error: null });
     mocks.oAuth.mockResolvedValue({ error: null });
@@ -117,8 +121,8 @@ describe("Auth page onboarding flow", () => {
     expect(screen.getByText("Individual visitor looking for lens guidance")).toBeInTheDocument();
   });
 
-  it("completes professional product signup and shows email confirmation panel", async () => {
-    renderAuth("/auth?mode=signup&audience=professional&redirect=%2Fstore");
+  it.each(["/store", "/shared/pages/11111111-1111-4111-8111-111111111111"])("completes signup and retains %s for email confirmation", async (destination) => {
+    renderAuth(`/auth?mode=signup&audience=professional&redirect=${encodeURIComponent(destination)}`);
 
     fireEvent.change(screen.getByLabelText("Full Name"), { target: { value: "Jordan Smith" } });
     fireEvent.change(screen.getByLabelText("Phone Number"), { target: { value: "+1 246 555 0101" } });
@@ -143,7 +147,7 @@ describe("Auth page onboarding flow", () => {
         organizationName: "Vision Center",
         audience: "professional",
         interestIntent: "products",
-      }));
+      }), destination);
     });
 
     await waitFor(() => {
@@ -152,6 +156,9 @@ describe("Auth page onboarding flow", () => {
       expect(screen.getByText(/We sent a confirmation link to jordan@example.com/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Resend confirmation email" })).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByRole("button", { name: "Resend confirmation email" }));
+    await waitFor(() => expect(mocks.resend).toHaveBeenCalledWith({ type: "signup", email: "jordan@example.com",
+      options: { emailRedirectTo: `${window.location.origin}${destination}` } }));
   });
 
   it("signs in and returns to the requested route", async () => {

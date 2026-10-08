@@ -6,6 +6,7 @@ export const APP_COLORS: Record<string, string> = {
   contacts: "hsl(168 76% 42%)",
   leads: "hsl(38 92% 50%)",
   crm: "hsl(280 60% 55%)",
+  email: "hsl(205 80% 50%)",
   helpdesk: "hsl(14 85% 55%)",
   website: "hsl(200 60% 50%)",
   orders: "hsl(340 70% 52%)",

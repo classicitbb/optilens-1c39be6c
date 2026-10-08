@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { ExternalLink, MoreHorizontal, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { slugifyHelpValue } from "@/lib/helpCenter";
+import { getAtlasHost } from "../host";
 import type { AtlasCapabilities } from "../capabilities";
 import type { EditorPage, EditorPerson } from "../components/BlockEditor";
 import PageBody from "../components/PageBody";
@@ -28,6 +28,7 @@ interface PagePeekProps {
   onOpenFull: () => void;
   onAskIris: () => void;
   onSlugChanged: (slug: string) => void;
+  onSlugChanging?: (slug: string) => void;
   onStatus: (status: "draft" | "archived") => void;
   onRemove: () => void;
 }
@@ -51,6 +52,7 @@ const PagePeek = ({
   onOpenFull,
   onAskIris,
   onSlugChanged,
+  onSlugChanging,
   onStatus,
   onRemove,
 }: PagePeekProps) => {
@@ -63,8 +65,11 @@ const PagePeek = ({
     routeSlug,
     initialMode: capabilities.edit ? "edit" : "view",
     onSlugChanged,
+    onSlugChanging,
+    onSaved: (slug) => void onSlugChanged(slug),
   });
   const { draft, setDraft } = editor;
+  const LauncherFavorite = getAtlasHost().LauncherFavorite;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -89,7 +94,7 @@ const PagePeek = ({
         <button type="button" onClick={onAskIris} className="flex h-8 items-center gap-1.5 rounded-[6px] px-2 text-[14px] text-ws-ink-2 hover:bg-[var(--ws-hover)]">
           <Sparkles className="h-3.5 w-3.5" /> Iris
         </button>
-        {capabilities.edit ? (
+        {capabilities.edit || LauncherFavorite ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" aria-label="Page actions" className="flex h-8 w-8 items-center justify-center rounded-[6px] text-ws-ink-2 hover:bg-[var(--ws-hover)]">
@@ -97,8 +102,9 @@ const PagePeek = ({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              {page.status !== "draft" ? <DropdownMenuItem onSelect={() => onStatus("draft")}>Move to draft</DropdownMenuItem> : null}
-              {page.status !== "archived" ? <DropdownMenuItem onSelect={() => onStatus("archived")}>Archive</DropdownMenuItem> : null}
+              {LauncherFavorite ? <LauncherFavorite page={page} /> : null}
+              {capabilities.edit && page.status !== "draft" ? <DropdownMenuItem onSelect={() => onStatus("draft")}>Move to draft</DropdownMenuItem> : null}
+              {capabilities.edit && page.status !== "archived" ? <DropdownMenuItem onSelect={() => onStatus("archived")}>Archive</DropdownMenuItem> : null}
               {capabilities.remove ? (
                 <>
                   <DropdownMenuSeparator />
@@ -136,8 +142,6 @@ const PagePeek = ({
             setDraft((current) => ({
               ...current,
               title,
-              // Only brand-new pages follow their title; an existing slug is never rewritten silently.
-              slug: current.status !== "published" && current.slug.startsWith("untitled-") ? slugifyHelpValue(title) : current.slug,
             }));
           }}
           onKeyDown={(event) => {

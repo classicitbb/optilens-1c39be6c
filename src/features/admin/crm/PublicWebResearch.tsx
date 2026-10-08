@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseContactEmails } from "@/lib/contactEmails";
 
 type Source = { title: string; url: string; snippet: string; emails: string[] };
-type Research = { contactId: string; retrievedAt: string; sources: Source[]; skipped?: string; error?: string };
+type Research = { contactId: string; retrievedAt: string; sources: Source[]; warnings?: string[]; skipped?: string; error?: string };
 
 export function PublicWebResearch({ contactId, emails, onEmails }: { contactId: string; emails: string; onEmails: (value: string) => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -27,7 +27,8 @@ export function PublicWebResearch({ contactId, emails, onEmails }: { contactId: 
         <Button variant="ghost" size="sm" className="h-6" onClick={() => setExpanded(false)}>Hide</Button></div>
       {research.isPending && <p role="status">Searching public pages for this contact and their company…</p>}
       {research.error && <p role="alert">{research.error.message}</p>}
-      {research.data && !research.data.sources.length && <p>No public matches found.</p>}
+      {research.data?.warnings?.map((warning) => <p key={warning} role="status" className="text-muted-foreground">{warning}</p>)}
+      {research.data && !research.data.sources.length && <p>No matches returned by the available providers.</p>}
       {research.data?.sources.map((source) => <div key={source.url} className="rounded bg-muted p-2 space-y-1">
         <a href={source.url} target="_blank" rel="noreferrer" className="underline">{source.title}</a>
         <p className="text-muted-foreground">{source.snippet}</p>

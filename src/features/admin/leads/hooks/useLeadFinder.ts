@@ -7,6 +7,8 @@ interface FinderInput {
   /** What the operator typed, in their own words. */
   brief: string;
   limit?: number;
+  /** Include businesses already recognised as current customers. */
+  showCurrentCustomers?: boolean;
 }
 
 export interface LeadFinderPlan {
@@ -43,7 +45,10 @@ export interface LeadFinderDiagnostics {
   candidatesFound: number;
   qualifiedCount: number;
   rejected: Array<{ name: string; reason: string }>;
-  emptyReason: "no_providers_configured" | "provider_failures" | "no_matches" | "no_qualified_matches" | null;
+  emptyReason: "no_providers_configured" | "provider_failures" | "no_matches" | "no_qualified_matches" | "only_current_customers" | null;
+  excludedCustomerCount?: number;
+  showCurrentCustomers?: boolean;
+  crmLookup?: { ok: boolean; error: string | null };
   searchRunId: string | null;
   fetchedAt: string;
 }
@@ -64,9 +69,9 @@ const ICP_SUMMARY = [
 
 export const useLeadFinder = () => {
   return useMutation({
-    mutationFn: async ({ brief, limit }: FinderInput): Promise<LeadFinderResult> => {
+    mutationFn: async ({ brief, limit, showCurrentCustomers }: FinderInput): Promise<LeadFinderResult> => {
       const { data, error } = await supabase.functions.invoke("lead-intelligence", {
-        body: { brief, limit, includeDiagnostics: true, icpSummary: ICP_SUMMARY },
+        body: { brief, limit, includeDiagnostics: true, icpSummary: ICP_SUMMARY, showCurrentCustomers: showCurrentCustomers === true },
       });
 
       if (error) {
@@ -102,6 +107,8 @@ export const useLeadFinder = () => {
         formatted_address: lead.formatted_address ?? null,
         notes: null,
         search_run_id: lead.search_run_id ?? data?.diagnostics?.searchRunId ?? null,
+        identity_key: lead.identity_key ?? lead.crm?.identityKey,
+        crm: lead.crm,
       })) as LeadRecord[];
 
       return {

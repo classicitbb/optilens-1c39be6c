@@ -8,6 +8,7 @@ import { appColor } from "@/features/admin/core/config/appColors";
 import { PANEL_TOP, launcherColumns, launcherPanelWidth } from "@/features/admin/core/config/launcherLayout";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useLauncherPins } from "@/features/admin/core/hooks/useLauncherPins";
+import { useAtlasLauncherItems } from "@/features/admin/core/hooks/useAtlasLauncherItems";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
 
@@ -130,6 +131,7 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
   const isMobile = useIsMobile();
   const { hasAppAccess } = useRolePermissions();
   const { pinnedRoutes, toggle: toggleLauncherPin } = useLauncherPins();
+  const atlasPins = useAtlasLauncherItems(pinnedRoutes);
   const [query, setQuery] = useState("");
 
   // Pinned sidebar pages, resolved against the current app config. Pins to pages that
@@ -163,10 +165,13 @@ const LauncherPanel = ({ onClose }: { onClose: () => void }) => {
       const app = ADMIN_APPS[item.appKey];
       if (hasAppAccess(app.featurePrefix)) appsList.push(app);
     }
-    shortcutList.push(...pinned, HOME_PAGE_SHORTCUT);
+    shortcutList.push(...pinned, ...atlasPins.map((pin): LaunchItem => ({
+      key: `pin:${pin.route}`, title: pin.title, icon: FilePlus2,
+      defaultRoute: pin.href, colorKey: "atlas", pinnedRoute: pin.route,
+    })), HOME_PAGE_SHORTCUT);
     const dedupe = (list: LaunchItem[]) => list.filter((entry, index) => list.findIndex((other) => other.key === entry.key) === index);
     return { apps: dedupe(appsList), shortcuts: dedupe(shortcutList) };
-  }, [hasAppAccess, pinned]);
+  }, [hasAppAccess, pinned, atlasPins]);
 
   const viewport = useViewport();
   // Sized from the unfiltered lists so the panel doesn't resize while typing.

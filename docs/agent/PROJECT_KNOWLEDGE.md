@@ -1,5 +1,12 @@
 # Project Knowledge
 
+## Atlas page identity and launcher favorites — 2026-10-07
+
+Title changes own the stored slug; published draft title edits defer the URL until Update. Null legacy slugs remain unfilled. Rename transitions start before refetch. The host registers LauncherFavorite; saved pins use the existing legacy admin wiki URL with articleId as stable identity, and launcher display resolves current page data through AtlasSource. Browser titles and shared ID-bearing links now track the saved page. Old slug-only links lack durable aliases. No new service, environment variable or schema.
+
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. crm-enrich-contacts was deployed through the user-authorized Lovable chat; server logs verify version 94 live. Lovable sandbox edge-smoke passed all 47 functions and 3 probes; the local command failed to connect throughout. The authenticated Specs Optical research request reached Places API (New) but returned three equally named matches and HTTP 502 without contact changes. OPENAI_API_KEY is not configured, so no OpenAI call ran. One earlier UI preparation click reached the old legacy endpoint and was denied. No further lookup, Google configuration or credential changes were made. Frontend publication and successful combined-provider verification remain pending.
+
 
 ## Doc Studio established runtime — 2026-10-07
 
@@ -7,7 +14,7 @@ The exact established layout is public/ds/studio.html + precompiled studio-logic
 
 ## CRM editor additions (2026-10-07, local source)
 
-Editable company selection and email-list normalization live in `src/features/admin/crm/CompanyCombobox.tsx` and `src/lib/contactEmails.ts`. Save preserves the editor and persisted ERP links; Save & Close closes after the whole pipeline. `PublicWebResearch.tsx` calls manual `mode: research` on `crm-enrich-contacts`, with server-only `FIRECRAWL_API_KEY` and source suggestions. No automatic person-profile writes occur. Innovations remains one-way; salesperson producer mapping and reverse writes are pending. See `docs/crm-contact-editor-follow-up.md` before release or integration changes.
+Editable company selection and email-list normalization live in `src/features/admin/crm/CompanyCombobox.tsx` and `src/lib/contactEmails.ts`. Save preserves the editor and persisted ERP links; Save & Close closes after the whole pipeline. `PublicWebResearch.tsx` calls manual `mode: research` on `crm-enrich-contacts`, with server-only `OPENAI_API_KEY` and source suggestions. No automatic person-profile writes occur. Innovations remains one-way; salesperson producer mapping and reverse writes are pending. See `docs/crm-contact-editor-follow-up.md` before release or integration changes.
 
 - Repository: `classicitbb/optilens-1c39be6c`
 - Default branch: `main`
@@ -138,3 +145,16 @@ Do not duplicate or freeze the active list here. Read and update `STATUS.md`; it
 ## Iris wiki formatting
 
 Atlas parses generated Markdown with unified / remark-parse / remark-gfm into canonical wiki blocks. Iris replies and proposal previews use WikiArticleRenderer; accepting a selection inserts structured Tiptap content and retains marks. Never flatten accepted proposals into a plain string. Existing malformed drafts require a separate approved hosted edit. On Windows, regenerating platform facts and the public search index can resolve CRLF-only drift without a semantic Git diff.
+
+## Atlas layout and sharing contract — 2026-10-08 (production release)
+
+Title edits no longer change page identifiers: new UUID slugs, unchanged existing slugs, stable ID fallback for null-slug rows, and separate generated shared-link tokens. AtlasSource owns explicit sharing state and administrator access history. Website route /shared/pages/:token is sign-in-only and read-only; an audited database RPC returns only active published content for an enabled token. Forwarded links work for any registered authenticated account; no recipient assignment or profile listing. Draft, inactive, locked and secret-bearing pages are denied. Existing help_articles policies remain unchanged. The named sharing migration is applied and hosted grants/RLS are verified.
+
+Atlas browser preferences now write synchronously and merge the latest stored snapshot across consumers/tabs. Sidebar keys include user ID and never import ownerless legacy values. Sidebar settings are browser-local; page width uses the prepared nullable full_width column after migration, with browser-local fallback beforehand. Native storage events refresh other tabs. Email confirmation uses getAuthEmailRedirect, which validates same-origin destinations; Auth passes the existing requested route to signUp.
+
+SQL regression command: node scripts/test_atlas_sharing_sql.mjs, using PGlite 0.5.8 installed separately and ATLAS_SQL_TEST_MODULE_PATH for module resolution. It checks actual migration SQL in a minimal isolated PostgreSQL fixture, not the full hosted schema. No new service or credential. The approved Atlas migration/frontend release is complete; target-specific live sharing/signup checks and provider redirect-allowlist verification remain unperformed.
+
+
+Production release (2026-10-08): Atlas-only commit 7f2b3d0a was built from the previously deployed main commit cab43199 in an isolated release checkout, preserving the original feature branch and its unrelated commits. Vercel preview and production builds reached READY; the custom-domain production alias serves the Atlas release. Only migration 20261008183727_atlas_shared_pages.sql was applied and recorded in migration history. Hosted metadata confirms nullable boolean full_width, RLS on both new tables, fixed-search-path definer functions, authenticated execution only, no anonymous table reads or direct authenticated writes, and unchanged help_articles policies. No Edge Function source/config changed, no all-functions deployment or email smoke was triggered, and no page sharing was enabled. The sharing and access tables remain empty.
+
+Hosted browser checks: the existing signed-in account opens Atlas and a published page; Share loads explicit Enable sharing and an empty Recent access table without a write. An unassigned token returns unavailable without content or an audit row. Sidebar resize from 244 to 260 pixels survives a reload; the original 244-pixel preference was restored. Local release-checkout validation passes 111 focused Atlas/routing/auth tests, 41 isolated PostgreSQL checks, TypeScript, lint (0 errors), build, qa:smoke and qa:pr-checks. Generated-file checks required CRLF normalization with no semantic source diff. The earlier full-suite snapshot has one unrelated unchanged Copilot source-string assertion failure; no full-suite pass is claimed.

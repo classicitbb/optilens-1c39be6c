@@ -60,3 +60,5 @@ When changing automation behavior, update:
 - `scripts/validate_wiki_build_versions.mjs` must resolve its own script directory through `fileURLToPath(import.meta.url)` rather than `new URL(import.meta.url).pathname`.
 - On Windows, using `.pathname` can duplicate the drive prefix and produce invalid paths such as `C:\C:\...`, which breaks `qa:wiki-build-version`.
 - Expected behavior: `npm run qa:pr-checks` should validate wiki build metadata successfully on Windows and POSIX environments without path normalization workarounds.
+
+Atlas sharing SQL regression (local only): scripts/test_atlas_sharing_sql.mjs executes the actual migration in isolated PostgreSQL WASM (PGlite 0.5.8) with minimal auth/table/policy fixtures. Install PGlite separately and set ATLAS_SQL_TEST_MODULE_PATH to its directory package.json for module resolution; then run node scripts/test_atlas_sharing_sql.mjs. No hosted connector or data write is involved. Focused frontend command: npx.cmd vitest run --coverage=false src/tests/unit/atlas src/tests/integration/atlasRouteAccessibility.integration.test.ts. See docs/agent/HANDOFF.md for release gates and verification limits.

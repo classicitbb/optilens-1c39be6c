@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import { registerAtlasHost } from "@/features/atlas/host";
 import { atlasIrisProvider } from "./atlasIris";
+import AtlasLauncherFavorite from "./AtlasLauncherFavorite";
 import AtlasAdminFrame from "./AtlasAdminFrame";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { ASSIGNABLE_CONTEXT_OPTIONS } from "@/lib/adminContexts";
@@ -43,6 +44,7 @@ export const registerAtlasHostOnce = () => {
   registerAtlasHost({
     iris: atlasIrisProvider,
     Frame: AtlasAdminFrame,
+    LauncherFavorite: AtlasLauncherFavorite,
     appLinks: [{ label: "Admin home", href: "/admin/dashboard" }],
     useWorkspaceName: useCompanyName,
     contextOptions: ASSIGNABLE_CONTEXT_OPTIONS,

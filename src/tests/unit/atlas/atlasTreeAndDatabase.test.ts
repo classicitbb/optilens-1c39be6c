@@ -18,9 +18,9 @@ describe("atlas page tree", () => {
     expect(tree.nodeBySlug.get("checklist")?.children[0].slug).toBe("tips");
   });
 
-  it("derives a URL slug for legacy rows and never needs a stored one", () => {
+  it("uses the stable ID for legacy rows without backfilling a slug", () => {
     const tree = buildTree([], [makePage({ id: "abcdef1234-xyz", title: "Old Page", slug: null })]);
-    expect([...tree.nodeBySlug.keys()]).toEqual(["old-page-abcdef1234"]);
+    expect([...tree.nodeBySlug.keys()]).toEqual(["abcdef1234-xyz"]);
   });
 
   it("puts pages without a section after the sections", () => {

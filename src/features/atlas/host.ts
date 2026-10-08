@@ -1,4 +1,5 @@
 import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
+import type { AtlasPage } from "./source/types";
 import { ATLAS_CONFIG } from "./config";
 import { registerAtlasSpace, type AtlasOption, type AtlasSpaceDef } from "./spaces";
 
@@ -41,6 +42,7 @@ export interface AtlasIrisProvider {
 }
 
 export interface AtlasHostConfig {
+  LauncherFavorite?: ComponentType<{ page: AtlasPage }>;
   /**
    * Wraps Atlas in the host app's own chrome (site header, help panel). Rendered in a normal browser
    * tab and skipped when Atlas runs as an installed window, which brings its own frame.

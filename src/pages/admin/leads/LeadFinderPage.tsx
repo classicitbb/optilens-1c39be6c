@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { Search, Sparkles, Save, ExternalLink, Star, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Search, Sparkles, ExternalLink, Star, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,8 +12,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Drawer, DrawerClose, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { useLeadFinder } from "@/features/admin/leads/hooks/useLeadFinder";
-import { useSaveLeadToCrm } from "@/features/admin/leads/hooks/useLeadActions";
-import type { LeadRecord, LeadScoreFactor } from "@/features/admin/leads/types";
+import {
+  useClearLeadLink,
+  useConfirmLeadLink,
+  useMarkCurrentCustomer,
+  useSaveLeadToCrm,
+  type ContactSearchResult,
+} from "@/features/admin/leads/hooks/useLeadActions";
+import LeadCrmPanel, { type StaffOption } from "@/features/admin/leads/components/LeadCrmPanel";
+import type { LeadCrmState, LeadRecord, LeadScoreFactor } from "@/features/admin/leads/types";
 import { useToast } from "@/hooks/use-toast";
 
 const EXAMPLE_BRIEFS = [
@@ -43,6 +52,8 @@ const EMPTY_REASON_GUIDANCE: Record<string, string> = {
     "Every configured provider failed. Check the provider trace below for the error, then verify credentials and quotas.",
   no_matches:
     "The providers returned nothing for this brief. Try naming the business type and place more plainly, or widen the area.",
+  only_current_customers:
+    "Every match is already a current customer, so they were left out. Turn on \u201cShow current customers\u201d to see them.",
   no_qualified_matches:
     "Results came back, but none were individual businesses matching your brief — mostly directories or listicles. See what was filtered out below, then try a more specific brief.",
 };
@@ -67,9 +78,32 @@ const LeadFinderPage = () => {
   const [overrideScores, setOverrideScores] = useState<Record<string, string>>({});
   const finder = useLeadFinder();
   const saveLead = useSaveLeadToCrm();
+  const confirmLink = useConfirmLeadLink();
+  const markCustomer = useMarkCurrentCustomer();
+  const clearLink = useClearLeadLink();
   const { toast } = useToast();
+  const [showCustomers, setShowCustomers] = useState(false);
+  const [lastBrief, setLastBrief] = useState("");
+  const [crmOverrides, setCrmOverrides] = useState<Record<string, LeadCrmState>>({});
+  const [savedLeads, setSavedLeads] = useState<Record<string, { createdContact: boolean; taskCreated: boolean }>>({});
+  const [busyLeadId, setBusyLeadId] = useState<string | null>(null);
 
-  const leads = finder.data?.leads ?? [];
+  const { data: staff = [] } = useQuery({
+    queryKey: ["lead-finder-staff"],
+    queryFn: async (): Promise<StaffOption[]> => {
+      const { data, error } = await (supabase as any).rpc("list_staff_names");
+      if (error) throw error;
+      return (data ?? []) as StaffOption[];
+    },
+  });
+  const { data: currentUserId = null } = useQuery({
+    queryKey: ["lead-finder-current-user"],
+    queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null,
+  });
+
+  const leads = (finder.data?.leads ?? []).map((lead) =>
+    lead.identity_key && crmOverrides[lead.identity_key] ? { ...lead, crm: crmOverrides[lead.identity_key] } : lead
+  );
   const diagnostics = finder.data?.diagnostics ?? null;
 
   const scoreForSave = (lead: LeadRecord) => {
@@ -85,11 +119,13 @@ const LeadFinderPage = () => {
     return "No leads found for this brief.";
   }, [finder.isPending, finder.data, leads.length, diagnostics?.emptyReason]);
 
-  const runSearch = async (searchBrief: string) => {
+  const runSearch = async (searchBrief: string, includeCustomers = showCustomers) => {
     const trimmed = searchBrief.trim();
     if (!trimmed) return;
     try {
-      await finder.mutateAsync({ brief: trimmed });
+      setLastBrief(trimmed);
+      setCrmOverrides({});
+      await finder.mutateAsync({ brief: trimmed, showCurrentCustomers: includeCustomers });
     } catch (e: any) {
       toast({
         title: "Search failed",
@@ -98,6 +134,79 @@ const LeadFinderPage = () => {
       });
     }
   };
+
+  const withBusy = async (lead: LeadRecord, action: () => Promise<void>, failure: string) => {
+    setBusyLeadId(lead.id);
+    try {
+      await action();
+    } catch (e: any) {
+      toast({ title: failure, description: e?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setBusyLeadId(null);
+    }
+  };
+
+  const setOverride = (lead: LeadRecord, crm: LeadCrmState) =>
+    setCrmOverrides((prev) => ({ ...prev, [lead.identity_key ?? crm.identityKey]: crm }));
+
+  const handleLink = (lead: LeadRecord, contact: ContactSearchResult) =>
+    withBusy(lead, async () => {
+      await confirmLink.mutateAsync({ lead, contactId: contact.id });
+      const isCustomer = contact.is_customer === true || contact.linked_customer_id != null;
+      setOverride(lead, {
+        ...lead.crm!,
+        status: "matched",
+        suggestions: [],
+        isCurrentCustomer: isCustomer,
+        customerSource: isCustomer ? "crm_record" : null,
+        match: {
+          contactId: contact.id,
+          contactName: contact.name ?? contact.business_name ?? "Contact",
+          businessName: contact.business_name,
+          isCustomer,
+          basis: "confirmed_link",
+          confirmed: true,
+          reason: isCustomer
+            ? "You linked this business to a current customer; future searches will leave it out."
+            : "You linked this business to this contact.",
+        },
+      });
+      toast({
+        title: "Contact linked",
+        description: isCustomer ? "Current customers are excluded from later searches." : "Future searches will recognise this business.",
+      });
+    }, "Link failed");
+
+  const handleMarkCustomer = (lead: LeadRecord) =>
+    withBusy(lead, async () => {
+      await markCustomer.mutateAsync(lead);
+      setOverride(lead, { ...lead.crm!, status: "customer_marked", match: null, isCurrentCustomer: true, customerSource: "manual_mark" });
+      toast({ title: "Marked as current customer", description: "Excluded from later searches. No contact was created." });
+    }, "Could not mark customer");
+
+  const handleClear = (lead: LeadRecord) =>
+    withBusy(lead, async () => {
+      await clearLink.mutateAsync(lead.identity_key!);
+      setOverride(lead, {
+        ...lead.crm!,
+        status: lead.crm!.suggestions.length > 0 ? "suggested" : "none",
+        match: null,
+        isCurrentCustomer: false,
+        customerSource: null,
+      });
+      toast({ title: "Link removed", description: "The contact itself was not changed." });
+    }, "Could not remove link");
+
+  const handleSave = (lead: LeadRecord, input: Parameters<ComponentProps<typeof LeadCrmPanel>["onSave"]>[0]) =>
+    withBusy(lead, async () => {
+      const result = await saveLead.mutateAsync({ lead: { ...lead, score: scoreForSave(lead) }, ...input });
+      const taskCreated = !!result.task_id && input.followUp.needsFollowUp;
+      setSavedLeads((prev) => ({ ...prev, [lead.id]: { createdContact: result.created_contact, taskCreated } }));
+      toast({
+        title: result.already_saved ? "Updated in CRM" : "Saved to CRM",
+        description: `${lead.name} ${result.created_contact ? "created as a new contact" : "saved to the existing contact"}${taskCreated ? " with a follow-up task" : ""}.`,
+      });
+    }, "Save failed");
 
   useEffect(() => {
     if (!finder.data?.warning) return;
@@ -156,6 +265,35 @@ const LeadFinderPage = () => {
           ) : null}
         </CardContent>
       </Card>
+
+      {diagnostics && diagnostics.crmLookup?.ok === false ? (
+        <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          CRM matching failed ({diagnostics.crmLookup.error ?? "unknown error"}). Current customers are not filtered and saving is paused
+          so no duplicate contact is created. Search again to retry.
+        </div>
+      ) : null}
+
+      {finder.data ? (
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <label className="inline-flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={showCustomers}
+              disabled={finder.isPending}
+              onChange={(e) => {
+                setShowCustomers(e.target.checked);
+                if (lastBrief) void runSearch(lastBrief, e.target.checked);
+              }}
+            />
+            Show current customers
+          </label>
+          {!showCustomers && (diagnostics?.excludedCustomerCount ?? 0) > 0 ? (
+            <span className="text-muted-foreground">
+              {diagnostics!.excludedCustomerCount} current customer{diagnostics!.excludedCustomerCount === 1 ? "" : "s"} excluded
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {finder.data?.warning ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -273,21 +411,20 @@ const LeadFinderPage = () => {
                       </DrawerFooter>
                     </DrawerContent>
                   </Drawer>
-                  <Button
-                    size="sm"
-                    className="h-7 text-[11px]"
-                    onClick={async () => {
-                      try {
-                        await saveLead.mutateAsync({ ...lead, score: effectiveScore });
-                        toast({ title: "Saved to CRM", description: `${lead.name} saved with opportunity + note.` });
-                      } catch (e: any) {
-                        toast({ title: "Save failed", description: e?.message || "Could not save lead.", variant: "destructive" });
-                      }
-                    }}
-                  >
-                    <Save className="h-3 w-3 mr-1" /> Save to CRM
-                  </Button>
+
                 </div>
+
+                <LeadCrmPanel
+                  lead={lead}
+                  staff={staff}
+                  currentUserId={currentUserId}
+                  busy={busyLeadId === lead.id}
+                  saved={savedLeads[lead.id] ?? null}
+                  onLinkContact={(contact) => handleLink(lead, contact)}
+                  onMarkCustomer={() => handleMarkCustomer(lead)}
+                  onClearLink={() => handleClear(lead)}
+                  onSave={(input) => handleSave(lead, input)}
+                />
               </div>
             );
           })}

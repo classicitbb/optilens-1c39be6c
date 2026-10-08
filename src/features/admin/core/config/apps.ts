@@ -79,6 +79,19 @@ export const ADMIN_APPS = {
       { label: 'CRM Settings', route: '/admin/crm/settings', icon: Wrench },
     ] satisfies SidebarItem[],
   },
+  email: {
+    key: 'email' as const,
+    title: 'Email',
+    icon: Mail,
+    baseRoute: '/admin/email',
+    defaultRoute: '/admin/email',
+    // Same gate as CRM: every staff role holds `contacts`. The mail bridge
+    // itself only serves admin and operator sessions.
+    featurePrefix: 'contacts',
+    sidebarItems: [
+      { label: 'Mail', route: '/admin/email', icon: Mail },
+    ] satisfies SidebarItem[],
+  },
   helpdesk: {
     key: 'helpdesk' as const,
     title: 'Helpdesk',

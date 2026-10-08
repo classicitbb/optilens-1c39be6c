@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { canonicalToMarkdown } from "@/lib/wikiMarkdown";
 import { canonicalToSearchText, canonicalToTiptapDoc } from "@/lib/wikiCanonical";
 import { slugifyHelpValue } from "@/lib/helpCenter";
+import { toWikiArticleSlug } from "@/lib/wikiArticleRouting";
+import { useAdminRoleSafe } from "@/contexts/AdminRoleContext";
+import PageSharingDialog from "./components/PageSharingDialog";
 import { ATLAS_CONFIG, atlasPath } from "./config";
 import { getAtlasHost, useAtlasWorkspaceName } from "./host";
 import { useStandaloneDisplay } from "./hooks/useStandaloneDisplay";
@@ -69,8 +72,11 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAdmin } = useAdminRoleSafe();
+  const [sharingOpen, setSharingOpen] = useState(false);
   const workspaceName = useAtlasWorkspaceName();
   const standalone = useStandaloneDisplay();
+  const LauncherFavorite = getAtlasHost().LauncherFavorite;
   const data = useAtlasData();
   const { bySpace } = useAtlasCapabilities();
   const caps = bySpace[space.id];
@@ -112,12 +118,20 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   // While a page's slug is being renamed, the URL and the page list briefly disagree about it. The
   // page stays pinned by id until they agree again, so it is never mistaken for an unknown page.
   const [transition, setTransition] = useState<{ id: string; slug: string } | null>(null);
-  const bySlugNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? null) : null;
-  const selectedNode = bySlugNode ?? (articleSlug && transition ? (fullTree.nodeById.get(transition.id) ?? null) : null);
+  const legacyPage = articleSlug ? spacePages.find((page) => !page.slug && toWikiArticleSlug(page) === articleSlug) : undefined;
+  const bySlugNode = articleSlug ? (fullTree.nodeBySlug.get(articleSlug) ?? (legacyPage ? fullTree.nodeById.get(legacyPage.id) : null) ?? null) : null;
+  const requestedId = searchParams.get("articleId");
+  const selectedNode = (requestedId ? fullTree.nodeById.get(requestedId) : null)
+    ?? bySlugNode ?? (articleSlug && transition ? (fullTree.nodeById.get(transition.id) ?? null) : null);
   useEffect(() => {
-    if (transition && bySlugNode?.id === transition.id) setTransition(null);
+    if (transition && bySlugNode?.id === transition.id && bySlugNode.slug === transition.slug) setTransition(null);
   }, [bySlugNode?.id, transition]);
   const selectedPage = useMemo(() => spacePages.find((page) => page.id === selectedNode?.id) ?? null, [spacePages, selectedNode?.id]);
+  useEffect(() => {
+    const previous = document.title;
+    document.title = selectedPage ? `${selectedPage.title || "Untitled"} | ${ATLAS_CONFIG.productName}` : `${space.label} | ${ATLAS_CONFIG.productName}`;
+    return () => { document.title = previous; };
+  }, [selectedPage?.title, space.label]);
 
   const spaces = useMemo(() => listAtlasSpaces().filter((candidate) => bySpace[candidate.id]?.view), [bySpace]);
 
@@ -125,7 +139,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   // a website page, an SOP URL for a draft) goes to where the page lives. Unknown slugs go to the
   // space home. Only once pages have actually loaded, so deep links are not bounced.
   useEffect(() => {
-    if (!articleSlug || !isLoaded || selectedNode || data.isFetching) return;
+    if (!articleSlug || !isLoaded || selectedNode || data.isFetching || searchParams.get("articleId")) return;
     const elsewhere = allPages.find((page) => toPageSlug(page) === articleSlug);
     const home = elsewhere ? homeSpaceFor(elsewhere.spaceId) : undefined;
     if (elsewhere && home && home.id !== space.id && bySpace[home.id]?.view) {
@@ -142,7 +156,10 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     if (!legacyId || !isLoaded) return;
     const match = allPages.find((page) => page.id === legacyId);
     const home = match ? homeSpaceFor(match.spaceId) : undefined;
-    if (match && home) navigate(atlasPath(home.id, toPageSlug(match)), { replace: true });
+    if (match && home) {
+      const target = atlasPath(home.id, toPageSlug(match));
+      if (window.location.pathname !== target) navigate(target + `?articleId=${encodeURIComponent(match.id)}`, { replace: true });
+    }
     else
       setSearchParams(
         (current) => {
@@ -168,13 +185,20 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     canPublish,
     routeSlug: articleSlug,
     initialMode: articleSlug && articleSlug === createdSlug ? "edit" : "view",
+    onSlugChanging: (slug) => selectedPage && setTransition({ id: selectedPage.id, slug }),
     // The page list must know the new slug before the URL does, or the page looks unknown and the user is bounced home.
     onSlugChanged: async (slug) => {
       if (selectedPage) setTransition({ id: selectedPage.id, slug });
       await data.refresh();
-      navigate(base(slug) + window.location.search, { replace: true });
+      const params = new URLSearchParams(window.location.search);
+      if (selectedPage) params.set("articleId", selectedPage.id);
+      navigate(base(slug) + `?${params}`, { replace: true });
     },
-    onSaved: (slug) => navigate(base(slug) + window.location.search, { replace: true }),
+    onSaved: (slug) => {
+      const params = new URLSearchParams(window.location.search);
+      if (selectedPage) params.set("articleId", selectedPage.id);
+      navigate(base(slug) + `?${params}`, { replace: true });
+    },
   });
   const { draft, setDraft, mode, setMode } = editor;
 
@@ -232,7 +256,10 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   });
 
   const pagePath = useCallback((page: Pick<AtlasPage, "id" | "title" | "slug">) => base(toPageSlug(page)), [space.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const openNode = useCallback((node: Pick<TreeNode, "slug">) => navigate(base(node.slug)), [space.id, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openNode = useCallback((node: Pick<TreeNode, "slug">) => {
+    const page = spacePages.find((candidate) => toPageSlug(candidate) === node.slug);
+    navigate(base(node.slug) + (page ? `?articleId=${encodeURIComponent(page.id)}` : ""));
+  }, [space.id, navigate, spacePages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sectionSlug = (sectionId: string | null) => sections.find((section) => section.id === sectionId)?.slug ?? "general";
 
@@ -242,7 +269,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       const siblings = spacePages.filter(
         (page) => page.parentId === placement.parentId && (placement.parentId !== null || page.sectionId === placement.sectionId),
       );
-      const slug = `untitled-${Date.now().toString(36)}`;
+      const slug = crypto.randomUUID();
       try {
         await data.createPage({
           spaceId: space.scope.storeSpace,
@@ -319,7 +346,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
     const source = spacePages.find((page) => page.id === id);
     if (!source || !canCreate) return;
     const title = `Copy of ${source.title}`;
-    const slug = `${slugifyHelpValue(title)}-${Date.now().toString(36)}`;
+    const slug = crypto.randomUUID();
     try {
       await data.createPage({
         spaceId: source.spaceId,
@@ -406,8 +433,9 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   };
 
   const sharePage = async () => {
+    if (isAdmin) { setSharingOpen(true); return; }
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}`);
+      await navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}${selectedPage ? `?articleId=${encodeURIComponent(selectedPage.id)}` : ""}`);
       toast({ title: "Link copied" });
     } catch {
       toast({ title: "Could not copy the link", variant: "destructive" });
@@ -447,7 +475,9 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   );
 
   const meta = selectedPage ? pageMeta[selectedPage.id] : undefined;
-  const fullWidth = meta?.fullWidth ?? false;
+  const storedFullWidth = typeof draft.props.fullWidth === "boolean" ? draft.props.fullWidth : meta?.fullWidth ?? false;
+  const fullWidth = canEdit ? storedFullWidth : meta?.fullWidth ?? storedFullWidth;
+  const savePublishedPage = () => editor.saveAs("published", selectedPage && "fullWidth" in selectedPage.props ? { fullWidth } : undefined);
   const editing = mode === "edit" && canEdit;
 
   const dynamicOptions = useMemo(
@@ -549,7 +579,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       await data.createPage({
         spaceId: targetSpace.scope.storeSpace,
         title: proposal.heading || "Untitled",
-        slug: `untitled-${Date.now().toString(36)}`,
+        slug: crypto.randomUUID(),
         doc: { blocks: proposal.blocks.slice(1) },
         status: "draft",
         props: defaultPropsFor(targetSpace, view),
@@ -582,7 +612,18 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onToggleFavorite: toggleFavorite,
               onOpen: openNode,
               onAddChild: (node) => void addChildOf(node),
-              onRename: (id, title) => (isSectionId(id) ? void data.renameSection({ id: sectionIdOf(id), title }) : void data.patchPage({ id, title })),
+              onRename: (id, title) => {
+                if (isSectionId(id)) { void data.renameSection({ id: sectionIdOf(id), title }); return; }
+                if (id === selectedPage?.id) setTransition({ id, slug: "" });
+                void data.patchPage({ id, title }).then(async () => {
+                  const listing = await data.source.listPages();
+                  const renamed = listing.pages.find((page) => page.id === id);
+                  if (renamed && id === selectedPage?.id) {
+                    setTransition({ id, slug: toPageSlug(renamed) });
+                    navigate(base(toPageSlug(renamed)) + `?articleId=${encodeURIComponent(id)}`, { replace: true });
+                  }
+                }).catch(() => setTransition(null));
+              },
               onDeleteSection: (id) => void deleteSection(id),
               onDuplicate: (id) => void duplicatePage(id),
               onMoveTo: setMoveTargetId,
@@ -663,11 +704,16 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           fullWidth={fullWidth}
           isFavorite={selectedPage ? isFavorite(selectedPage.id) : false}
           onToggleEdit={() => setMode(editing ? "view" : "edit")}
-          onPublish={() => void editor.saveAs("published")}
+          onPublish={() => void savePublishedPage()}
           onShare={() => void sharePage()}
           onToggleIris={() => setPanel(panelTab === "iris" ? null : "iris")}
-          onToggleFullWidth={() => selectedPage && patchPageMeta(selectedPage.id, { fullWidth: !fullWidth })}
+          onToggleFullWidth={() => {
+            if (!selectedPage) return;
+            patchPageMeta(selectedPage.id, { fullWidth: !fullWidth });
+            if (canEdit && "fullWidth" in selectedPage.props) setDraft((current) => ({ ...current, props: { ...current.props, fullWidth: !fullWidth } }));
+          }}
           onToggleFavorite={() => selectedPage && toggleFavorite(selectedPage.id)}
+          launcherFavorite={selectedPage && LauncherFavorite ? <LauncherFavorite page={selectedPage} /> : null}
           onDuplicate={() => selectedPage && void duplicatePage(selectedPage.id)}
           onExportMarkdown={exportMarkdown}
           onOpenHistory={() => setPanel("history")}
@@ -712,9 +758,6 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
                 setDraft((current) => ({
                   ...current,
                   title,
-                  slug:
-                    // Only brand-new pages follow their title; an existing slug is never rewritten silently.
-                    current.status !== "published" && current.slug.startsWith("untitled-") ? slugifyHelpValue(title) : current.slug,
                 }));
               }}
               onIconChange={(icon) => patchPageMeta(selectedPage.id, { icon })}
@@ -737,7 +780,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
                 onEditor={(instance) => {
                   editorInstance.current = instance;
                 }}
-                onUpdate={() => void editor.saveAs("published")}
+                onUpdate={() => void savePublishedPage()}
               />
             </div>
           </>
@@ -782,6 +825,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
       />
 
       <ImportDryRunDialog open={importOpen} onOpenChange={setImportOpen} existingSlugs={allPages.map((page) => page.slug)} />
+      {selectedPage && isAdmin ? <PageSharingDialog key={`${user?.id}:${selectedPage.id}`} page={selectedPage} source={data.source} open={sharingOpen} onOpenChange={setSharingOpen} /> : null}
 
       <MoveToDialog
         open={Boolean(moveTargetId)}

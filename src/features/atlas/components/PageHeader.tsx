@@ -67,6 +67,7 @@ interface PageTopBarProps {
   irisOpen: boolean;
   fullWidth: boolean;
   isFavorite: boolean;
+  launcherFavorite?: ReactNode;
   onToggleEdit: () => void;
   onPublish: () => void;
   onShare: () => void;
@@ -163,6 +164,7 @@ export const PageTopBar = (props: PageTopBarProps) => {
             {isFavorite ? <StarOff className="mr-2 h-3.5 w-3.5" /> : <Star className="mr-2 h-3.5 w-3.5" />}
             {isFavorite ? "Remove from favorites" : "Add to favorites"}
           </DropdownMenuItem>
+          {props.launcherFavorite}
           <DropdownMenuItem disabled={!canEdit} onSelect={props.onDuplicate}>
             <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
           </DropdownMenuItem>

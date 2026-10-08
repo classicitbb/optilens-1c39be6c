@@ -42,7 +42,7 @@ export const useContactEnrichment = () => {
       }
       const applied = result.applied ?? 0;
       const pending = result.pendingReview ?? 0;
-      const failed = result.failed ?? 0;
+      const failed = Math.max(result.failed ?? 0, result.results?.filter((item) => item.outcome === "error").length ?? 0, result.ok === false ? 1 : 0);
       const detail = result.results?.find((item) => item.detail)?.detail;
       toast({
         title: failed ? "Some lookups failed" : applied || pending ? "Enrichment finished" : "Nothing new found",

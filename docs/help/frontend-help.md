@@ -1,5 +1,17 @@
 # Frontend Help Docs
 
+Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+In Lead Finder each result shows its CRM match and why. Use Link existing contact when the CRM name differs, or Mark current customer for a business with no contact. Set Connection strength and, if needed, Needs follow-up (owner defaults to you) before Save to CRM. Turn on Show current customers to see excluded ones; Unlink or Unmark fixes a mistake.
+
+## 2026-10-07 — Contact public research
+
+Save the contact's name/company/location before selecting Research public web. Once the updated function is deployed, results come from OpenAI web search. Open each source to review its match; AI suggestions may refer to similarly named businesses. Add email changes only the editor draft. Save persists it. Missing server configuration and the shared daily limit are surfaced as errors.
+
 
 ## 2026-10-07 — Doc Studio recipients, signatures and labels
 
@@ -274,3 +286,5 @@ Support-facing notes for the frontend runtime.
 - If **Pay without a code** is missing from the public page, Cloudflare Turnstile is not configured (`VITE_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`) or the kill switch is off. This is deliberate: self-service refuses to run unprotected.
 - Self-service payments appear under **needs matching** on the same admin page. Attach each one to an order reference or a contact so it can be reconciled; nothing is posted against a customer automatically.
 - Amounts now display and store as Barbados dollars. If an older receipt shows `840`, that is a pre-correction record, not a USD charge — the bank has always charged BBD.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.

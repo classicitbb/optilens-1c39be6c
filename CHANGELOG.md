@@ -1,5 +1,32 @@
 # Changelog
 
+Atlas production release (2026-10-08): scoped layout, stable identifiers and authenticated sharing/audit release deployed with the named migration. No page was enabled for sharing; target-specific end-to-end and email-confirmation checks remain unperformed. See docs/agent/HANDOFF.md.
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-08 — Atlas layout and authenticated sharing (local source)
+
+### Release Notes
+- Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending.
+
+### Technical Changelog
+- Synchronized browser preference snapshots and account-scoped sidebar keys; nullable full_width persists through the single page-editor/source path and projects to the shared reader after migration. New UUID page slugs preserve existing stored URLs; null-slug rows retain ID routing and current legacy-title aliases. Sharing RPC checks enabled/live/authenticated state, withholds drafts/secrets/locks, and transactionally appends an administrator-only audit. Registration confirmation retains a safe same-origin destination. Named migration applied; hosted schema/grants verified, with isolated PostgreSQL and focused frontend regression checks.
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+### Release Notes
+- Lead Finder recognises existing CRM contacts and customers, leaves current customers out of results (with a count and a Show current customers toggle), lets you link or correct matches, records Connection strength separately from the AI score, and can create a follow-up task. Migration, function deployment and frontend publication are pending approval.
+
+### Technical Changelog
+- New pure matcher `lead-intelligence/crmMatching.ts` runs before the result limit; new tables `lead_discovery_identities/links/reviews` and RPCs `lead_finder_confirm_link/mark_customer/clear_link/save_lead` replace the name-based upsert with one advisory-locked, idempotent transaction.
+
+## 2026-10-07 — CRM research provider (local source)
+
+### Release Notes
+- Manual contact research now uses OpenAI web search and presents cited AI suggestions for review. Scheduled Google Places enrichment remains separate. Production release and live lookup verification are pending.
+
+### Technical Changelog
+- Replaced Firecrawl with Responses `web_search`, server-only `OPENAI_API_KEY` and optional `CRM_RESEARCH_OPENAI_MODEL`. Required search evidence, bounded requests and citation-only links preserve the draft review flow.
+
 
 ## 2026-10-07 — Doc Studio recipients, signatures and labels (local source)
 

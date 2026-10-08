@@ -11,9 +11,10 @@ export const useLauncherPins = () => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { toast } = useToast();
+  const queryKey = [...QUERY_KEY, user?.id];
 
   const query = useQuery<string[]>({
-    queryKey: QUERY_KEY,
+    queryKey,
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("user_launcher_pins")
@@ -34,13 +35,13 @@ export const useLauncherPins = () => {
         : await table.insert({ user_id: user.id, route });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey }),
     onError: () => toast({ title: "Couldn't update launcher pins", variant: "destructive" }),
   });
 
-  const pinnedRoutes = query.data ?? [];
+  const pinnedRoutes = user ? query.data ?? [] : [];
   const isPinned = (route: string) => pinnedRoutes.includes(route);
   const toggle = (route: string) => togglePin.mutate({ route, pinned: isPinned(route) });
 
-  return { pinnedRoutes, isPinned, toggle };
+  return { pinnedRoutes, isPinned, toggle, isPending: togglePin.isPending, isReady: !!user && query.isSuccess, error: query.error };
 };

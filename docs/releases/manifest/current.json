@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.9.0",
-  "sourceEntry": "2026-10-07 — Doc Studio recipients, signatures and labels (local source)",
-  "releaseDateTimeUtc": "2026-10-07T00:00:00.000Z",
+  "semanticVersion": "0.12.0",
+  "sourceEntry": "2026-10-08 — Atlas layout and authenticated sharing (local source)",
+  "releaseDateTimeUtc": "2026-10-08T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Search and dismiss the recipient picker without losing To. Edit/copy/download a signature tile or insert it in an email draft. Switch square labels between shipping and customer layouts and edit their headings. Deployment and email-client proof remain pending."
+    "Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Doc Studio recipients, signatures and labels (local source)."
+      "notes": "Updated as part of Atlas layout and authenticated sharing (local source)."
     }
   ],
   "migrationNotes": [

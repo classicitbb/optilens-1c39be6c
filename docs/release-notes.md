@@ -2,6 +2,21 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-08 — Atlas layout and authenticated sharing (local source)
+
+### Release Notes
+- Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending.
+
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+### Release Notes
+- Lead Finder now matches results to the CRM, excludes current customers, supports linking an existing contact (even with a different name), Connection strength and follow-up tasks. Not yet deployed.
+
+## 2026-10-07 — CRM research provider (local source)
+
+### Release Notes
+- Research public web uses OpenAI web search with source links and candidate email suggestions. Review the cited pages before adding details and Save to persist draft changes. Function deployment and live verification are pending.
+
 ## 2026-10-07 — Doc Studio recipients, signatures and labels (local source)
 
 ### Release Notes
