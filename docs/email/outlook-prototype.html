@@ -1,0 +1,457 @@
+<title>Classic Visions Mail</title>
+<style>
+/* Layout: OpticAdmin top bar → Outlook ribbon (tabs + command bar, Iris far right) → rail | folders | list | reading pane + CRM timeline */
+:root{
+  --bg:#0a0a0a;--panel:#1f1f1f;--sunk:#2b2b2b;--hdr:#141414;--line:#333;--fg:#f0f0f0;--muted:#a8a8a8;
+  --accent:#4ba0f0;--btn:#0f6cbd;--accent-soft:#1c3550;--sel:#2e3c4c;--warn:#e0a060;--ok:#6cc790;--crit:#ef8a83;--paper:#ffffff;--ink:#242424;
+  --sans:"Segoe UI",system-ui,sans-serif;--mono:Consolas,monospace;color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f0f0f0;--panel:#ffffff;--sunk:#f3f3f3;--hdr:#ffffff;--line:#e1e1e1;--fg:#242424;--muted:#616161;
+  --accent:#0f6cbd;--accent-soft:#ebf3fc;--sel:#cfe4fa;--warn:#b5651d;--ok:#2e7d4f;--crit:#b3261e;color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f0f0f0;--panel:#ffffff;--sunk:#f3f3f3;--hdr:#ffffff;--line:#e1e1e1;--fg:#242424;--muted:#616161;
+  --accent:#0f6cbd;--accent-soft:#ebf3fc;--sel:#cfe4fa;--warn:#b5651d;--ok:#2e7d4f;--crit:#b3261e;color-scheme:light}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:13.5px}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
+.app{display:grid;grid-template-rows:auto auto auto 1fr;height:100%}
+/* OpticAdmin top bar (from AdminTopBar.tsx) */
+.adm{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;background:var(--hdr);border-bottom:1px solid var(--line)}
+.adm .ib{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--muted)}
+.adm .ib:hover{background:var(--sunk)}
+.adm .name{font-weight:600;font-size:14px;letter-spacing:-.01em}
+.adm .route{font-size:11px;color:var(--muted)}
+.adm .mid{flex:1;max-width:28rem;margin:0 auto;display:flex;gap:8px;align-items:center}
+.adm input{flex:1;min-width:0;background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:5px 10px;color:var(--fg);font:inherit;font-size:12.5px}
+.adm .av{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--fg);display:grid;place-items:center;font-size:10px;font-weight:600}
+/* Ribbon */
+.tabs{display:flex;align-items:center;gap:4px;padding:4px 12px 2px;font-size:13.5px}
+.tabs .t{padding:4px 9px;border-radius:4px;position:relative}
+.tabs .t:hover{background:var(--sunk)}
+.tabs .t.on{font-weight:600}
+.tabs .t.on::after{content:"";position:absolute;left:9px;right:9px;bottom:0;height:2px;background:var(--accent);border-radius:2px}
+.tabs .right{margin-left:auto;display:flex;gap:4px}
+.tabs .right button{width:30px;height:28px;border-radius:4px;display:grid;place-items:center;color:var(--muted)}
+.tabs .right button:hover{background:var(--sunk);color:var(--fg)}
+.cmd{display:flex;align-items:center;gap:2px;margin:2px 10px 8px;padding:5px 6px;background:var(--panel);border-radius:8px;overflow-x:auto;min-height:44px}
+.cmd>button,.cmd .split>button{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:4px;white-space:nowrap}
+.cmd>button:hover,.cmd .split>button:hover{background:var(--sunk)}
+.cmd .sep{width:1px;height:24px;background:var(--line);margin:0 4px;flex:none}
+.cmd .split{display:flex;flex:none}
+.cmd .new>button{background:var(--btn);color:#fff}
+.cmd .new>button:first-child{border-radius:4px 0 0 4px;padding:6px 14px}
+.cmd .new>button:last-child{border-radius:0 4px 4px 0;border-left:1px solid rgba(255,255,255,.3)}
+.cmd .new>button:hover{background:#115ea3}
+.c-del{color:var(--muted)}.c-arch{color:#6ccb5f}.c-rep{color:#e37d80}.c-flag{color:#e37d80}.c-pin{color:#4ba0f0}
+.cmd .iris{margin-left:auto;flex:none;width:36px;height:34px;border-radius:8px;background:var(--sunk);display:grid;place-items:center}
+.cmd .iris b{width:20px;height:20px;border-radius:6px;background:conic-gradient(from 200deg,#3b82f6,#a855f7,#f43f5e,#f59e0b,#22c55e,#3b82f6);display:block}
+/* menus */
+.menu{position:fixed;z-index:30;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;min-width:200px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:5px;text-align:left;font-size:14px}
+.menu button:hover{background:var(--sunk)}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+/* panes */
+.shell{display:grid;grid-template-columns:48px 230px minmax(280px,360px) 1fr;gap:8px;padding:0 10px 10px 0;min-height:0}
+.rail{display:flex;flex-direction:column;align-items:center;gap:4px}
+.rail button{width:38px;height:38px;border-radius:6px;display:grid;place-items:center;color:var(--muted)}
+.rail button.on{background:var(--accent-soft);color:var(--accent)}
+.folders{overflow:auto;min-width:0}
+.grp{padding:12px 12px 4px;font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.tag{font-size:10px;padding:1px 6px;border-radius:3px;background:var(--sunk);color:var(--muted);font-weight:400}
+.f{display:flex;justify-content:space-between;align-items:center;width:100%;padding:6px 12px 6px 22px;border-radius:4px;text-align:left;gap:8px}
+.f span:first-child{display:flex;gap:8px;align-items:center}
+.f:hover{background:var(--sunk)}.f.on{background:var(--sel)}
+.f .n{color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums}
+.ext{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 22px;color:var(--fg);text-decoration:none;border-radius:4px}
+.ext:hover{background:var(--sunk)}.ext small{margin-left:auto;color:var(--muted)}
+.hint{font-size:11.5px;color:var(--muted);padding:2px 12px 8px 22px;line-height:1.4}
+.list{background:var(--panel);border-radius:8px;overflow:auto;min-width:0}
+.lh{display:flex;justify-content:center;gap:24px;padding:12px 14px 8px;border-bottom:1px solid var(--line)}
+.lh button{font-weight:600;color:var(--muted);font-size:14px;padding-bottom:2px}
+.lh button.on{color:var(--fg);border-bottom:2px solid var(--accent)}
+.m{display:block;width:100%;text-align:left;border-bottom:1px solid var(--line);padding:9px 14px 9px 12px;border-left:3px solid transparent}
+.m:hover{background:var(--sunk)}.m.on{background:var(--sel)}
+.m.unread{border-left-color:var(--accent)}.m.unread .s{font-weight:600}
+.m .row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.m .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m .t{color:var(--muted);font-size:11.5px;white-space:nowrap;display:flex;gap:4px;align-items:center}
+.m .sub{font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m .pv{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:9px;margin-right:4px;background:var(--accent-soft);color:var(--accent);font-weight:500}
+.chip.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.read{display:grid;grid-template-columns:1fr 290px;background:var(--panel);border-radius:8px;overflow:hidden;min-width:0;min-height:0}
+.body{overflow:auto;padding:20px 28px;min-width:0}
+.body h1{font-size:20px;font-weight:600;margin:0 0 12px;text-wrap:balance}
+.from{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+.avt{width:36px;height:36px;border-radius:50%;background:var(--btn);color:#fff;display:grid;place-items:center;font-weight:600;flex:none}
+.meta{font-size:12px;color:var(--muted)}
+.logged{display:inline-flex;gap:5px;align-items:center;font-size:11.5px;color:var(--ok);margin-left:8px}
+.txt{max-width:65ch;line-height:1.6;white-space:pre-wrap}
+.atts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.att{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:12px;background:var(--sunk);text-align:left}
+.att:hover{border-color:var(--accent)}
+.acts{display:flex;gap:6px;margin:18px 0;flex-wrap:wrap}
+.acts button{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:5px 12px}
+.acts button:hover{background:var(--sunk)}
+.crm{border-left:1px solid var(--line);background:var(--sunk);overflow:auto;padding:16px}
+.crm h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 6px}
+.crm h3:first-child{margin-top:0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px}.kv span:nth-child(odd){color:var(--muted)}
+.mono{font-family:var(--mono);font-size:12px}
+.item{border:1px solid var(--line);border-radius:4px;padding:7px 9px;margin-bottom:6px;font-size:12.5px;background:var(--panel)}
+.tl{border-left:2px solid var(--line);margin-left:6px;padding-left:12px;display:grid;gap:8px}
+.tl div{font-size:12px;position:relative}
+.tl div::before{content:"";position:absolute;left:-17px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.tl .in::before{background:var(--accent)}.tl .out::before{background:var(--ok)}
+.cbtn{display:flex;gap:6px;align-items:center;width:100%;text-align:left;border:1px dashed var(--accent);color:var(--accent);border-radius:4px;padding:6px 9px;margin-bottom:6px}
+.empty{color:var(--muted);padding:60px 20px;text-align:center}
+.view{overflow:auto;padding:20px 24px;grid-column:2/5;background:var(--panel);border-radius:8px}
+.cal{display:grid;grid-template-columns:60px repeat(5,1fr);border:1px solid var(--line);min-width:640px}
+.cal div{border-bottom:1px solid var(--line);border-left:1px solid var(--line);min-height:44px;padding:4px;font-size:12px}
+.cal .h{font-weight:600;background:var(--sunk);min-height:auto}
+.ev{background:var(--accent-soft);color:var(--accent);border-radius:3px;padding:3px 5px;font-size:11.5px}
+.ev.task{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+/* dialogs */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px;z-index:40}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:8px;width:min(640px,100%);max-height:90vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.dlg header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg header b{font-size:15px}
+.dlg .c{padding:16px 18px;display:grid;gap:12px}
+.dlg label{font-size:12px;color:var(--muted);display:grid;gap:4px}
+.dlg input,.dlg textarea,.dlg select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 9px}
+.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.btn{border:1px solid var(--line);border-radius:4px;padding:6px 14px}
+.btn.p{background:var(--btn);border-color:var(--btn);color:#fff}
+.rule{border:1px solid var(--line);border-radius:4px;padding:10px;font-size:12.5px;display:grid;gap:3px}
+.rule code{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+.json{font-family:var(--mono);font-size:11.5px;background:var(--sunk);padding:10px;border-radius:4px;white-space:pre;overflow-x:auto}
+.drop{border:2px dashed var(--line);border-radius:6px;padding:26px;text-align:center;color:var(--muted)}
+.bar{height:6px;background:var(--sunk);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.pdf{background:#fff;color:#222;border-radius:4px;padding:24px;font-size:12px;line-height:1.6;min-height:260px}
+/* compose window */
+.cw{position:fixed;inset:24px;z-index:35;background:var(--bg);border:1px solid var(--line);border-radius:8px;display:grid;grid-template-rows:auto auto auto 1fr;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.cw .ttl{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--hdr);font-size:13px}
+.cgrp{display:flex;gap:2px;margin:2px 10px 8px;padding:6px;background:var(--panel);border-radius:8px;overflow-x:auto}
+.cg{display:flex;flex-direction:column;align-items:center;padding:0 10px;border-right:1px solid var(--line);flex:none}
+.cg .r{display:flex;gap:4px;align-items:center;flex:1}
+.cg small{font-size:10.5px;color:var(--muted);margin-top:4px}
+.cg button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 6px;border-radius:4px;font-size:12px;white-space:nowrap}
+.cg button.sm{flex-direction:row;font-size:12.5px}
+.cg button:hover{background:var(--sunk)}
+.cg select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px 6px;font:inherit;font-size:12.5px}
+.sheet{background:var(--paper);color:var(--ink);overflow:auto;display:grid;align-content:start}
+.sheet .row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid #ddd}
+.sheet input{flex:1;border:0;font:inherit;font-size:14px;color:var(--ink);background:transparent;outline:0}
+.send{display:flex}.send button{background:var(--btn);color:#fff;padding:7px 16px;display:flex;gap:6px;align-items:center}
+.send button:first-child{border-radius:4px 0 0 4px}.send button:last-child{border-radius:0 4px 4px 0;border-left:1px solid rgba(255,255,255,.3);padding:7px 8px}
+.tobtn{border:1px solid #ccc;border-radius:4px;padding:5px 14px;color:var(--ink)}
+.sheet textarea{border:0;font:inherit;font-family:Calibri,"Segoe UI",sans-serif;font-size:15px;color:var(--ink);background:transparent;padding:16px 18px;min-height:220px;resize:none;outline:0}
+.hmw{display:flex;gap:8px;align-items:center;padding:12px 18px 0;color:#555;font-size:14px}.hmw button{color:#0f6cbd}
+.catts{display:flex;gap:8px;padding:8px 18px;flex-wrap:wrap}.catts span{border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-size:12px;color:var(--ink)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:4px;z-index:60}
+.note{font-size:11.5px;color:var(--muted)}
+.annot{position:fixed;inset:0;z-index:50;cursor:crosshair}
+.annot .bar2{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:flex;gap:8px;align-items:center;cursor:default}
+@media (max-width:1100px){.read{grid-template-columns:1fr}.crm{border-left:0;border-top:1px solid var(--line)}}
+@media (max-width:760px){.shell{grid-template-columns:48px 1fr}.folders,.read{display:none}.shell.reading .list{display:none}.shell.reading .read{display:grid;grid-column:2}.view{grid-column:2}.adm .route,.tabs .right{display:none}.cw{inset:0}}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="app">
+  <header class="adm">
+    <button class="ib" title="Applications" data-a="apps" id="appsBtn"></button>
+    <span class="name">OpticAdmin</span><span class="route">Email</span>
+    <div class="mid"><button class="ib" title="Go back" data-i="arrow"></button><input id="q" placeholder="Search mail, contacts, orders…  (Ctrl K)"></div>
+    <button class="ib" title="Notifications" data-i="bell"></button>
+    <button class="ib" title="Edit content" data-i="pencil"></button>
+    <button class="ib" title="Help" data-i="help"></button>
+    <button class="ib" title="Settings" data-i="gear"></button>
+    <button class="ib" title="Toggle theme" data-a="theme" data-i="moon"></button>
+    <span class="av">RC</span>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <div class="cmd" id="cmd"></div>
+  <div class="shell" id="shell">
+    <nav class="rail" id="rail"></nav>
+    <div class="folders" id="folders"></div>
+    <div class="list" id="list"></div>
+    <div class="read" id="read"></div>
+  </div>
+</div>
+<div id="layer"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const P={
+ grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+ arrow:'<path d="M19 12H5M12 19l-7-7 7-7"/>',bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+ pencil:'<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',help:'<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
+ moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+ chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+ folder:'<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+ bulb:'<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>',mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+ users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+ compose:'<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2.1 2.1 0 1 1 3 3L12 15l-4 1 1-4Z"/>',
+ chev:'<path d="m6 9 6 6 6-6"/>',trash:'<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+ archive:'<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
+ shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4M12 16h.01"/>',flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/>',
+ pin:'<path d="M12 17v5M9 10.8V5h6v5.8l2 3.2H7z"/>',clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',dots:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+ eye:'<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',zoom:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/>',
+ sync:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',layout:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>',
+ density:'<path d="M3 6h18M3 12h18M3 18h18"/>',reply:'<path d="M9 17 4 12l5-5M20 18v-2a4 4 0 0 0-4-4H4"/>',fwd:'<path d="m15 17 5-5-5-5M4 18v-2a4 4 0 0 1 4-4h12"/>',
+ clip:'<path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>',
+ user:'<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+ print:'<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+ open:'<path d="m6 14 1.5-2.9A2 2 0 0 1 9.2 10H20a2 2 0 0 1 1.9 2.5l-1.5 6A2 2 0 0 1 18.5 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.7.9l.8 1.2a2 2 0 0 0 1.7.9H18a2 2 0 0 1 2 2v2"/>',
+ tmpl:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',ext:'<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+ send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/>',
+ mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10a7 7 0 0 1-14 0M12 17v5"/>',lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+ img:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3-3-9 9"/>',link:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+ msg:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',annot:'<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',check:'<path d="M20 6 9 17l-5-5"/>',
+};
+const ic=(n,c='')=>`<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${P[n]||''}</svg>`;
+document.querySelectorAll('[data-i]').forEach(b=>b.innerHTML=ic(b.dataset.i));$('#appsBtn').innerHTML=ic('grid');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2600)}
+
+/* Company IMAP mailboxes sync into the app; personal/other accounts open in their own webmail. */
+const accounts=[
+ {id:'o',name:'orders@classicvisions.bb',folders:['Inbox','Drafts','Sent Items','Deleted Items','Junk Email','Archive','Rx Orders','Suppliers']},
+ {id:'s',name:'sales@classicvisions.bb',folders:['Inbox','Sent Items','Drafts']},
+];
+const webmail=[['Gmail','https://mail.google.com','classicvorders'],['Outlook.com','https://outlook.live.com/mail','Russell.classic']];
+const crm={
+ 'Iris Clarke':{co:'Bay Street Optical',acct:'C-1042',bal:'BBD 3,180.00',status:'Active · Wholesale',orders:[['RX-88214','In lab · AR coating']],tasks:['Follow up on progressive remake'],tl:[['in','Today 9:42','Received: Remake needed – RX-88214'],['out','2 Oct','Sent: RX-88214 confirmation'],['in','1 Oct','Received: New order – progressive'],['out','24 Sep','Sent: September statement']]},
+ 'Hoya Supply Desk':{co:'Hoya Lens (supplier)',acct:'SUP-07',bal:'—',status:'Supplier',orders:[['PO-5531','Awaiting ship']],tasks:[],tl:[['in','Today 8:15','Received: PO-5531 shipping'],['out','30 Sep','Sent: PO-5531']]},
+ 'Marcus Greaves':{co:'Greaves Eyecare',acct:'C-1187',bal:'BBD 0.00',status:'Prospect · Quote sent',orders:[],tasks:['Send revised pricelist'],tl:[['in','Yesterday','Received: Blue-light pricing']]},
+};
+let mails=[
+ {id:1,a:'o',f:'Inbox',from:'Iris Clarke',email:'iris@baystreetoptical.bb',sub:'Remake needed – RX-88214 progressive',t:'9:42',unread:1,chips:[['Rx Order',''],['Customer','ok']],body:'Hi team,\n\nThe patient came back on the progressive from RX-88214. Distance is blurry on the left. Can we remake with the corridor shortened to 14mm?\n\nSame frame, same AR. Please confirm turnaround.\n\nThanks,\nIris',att:[['rx-88214-remeasure.pdf','212 KB'],['frame-photo.jpg','1.1 MB']]},
+ {id:2,a:'o',f:'Inbox',from:'Hoya Supply Desk',email:'desk@hoya-supply.example',sub:'PO-5531 shipping confirmation',t:'8:15',unread:1,chips:[['Supplier','warn']],body:'Your PO-5531 (42 pairs, 1.67 SV blanks) is scheduled to ship Friday. Tracking will follow.',att:[['PO-5531.pdf','88 KB']]},
+ {id:3,a:'o',f:'Inbox',from:'Unknown sender',email:'info@newopticalshop.example',sub:'Do you supply to new practices?',t:'Yesterday',unread:0,chips:[],body:'Hello, we are opening in Oistins next month and are looking for a lens lab. Do you have a starter pricelist?',att:[]},
+ {id:4,a:'s',f:'Inbox',from:'Marcus Greaves',email:'marcus@greaveseyecare.bb',sub:'Question about blue-light pricing',t:'Yesterday',unread:1,chips:[['Prospect','']],body:'Hello,\n\nWe are comparing suppliers. What is your price on 1.6 blue-cut with AR for 50+ pairs a month?\n\nMarcus',att:[]},
+];
+let rules=[
+ {name:'Supplier mail to Suppliers',cond:'From domain is hoya-supply.example, essilor.example',act:'Move to Suppliers · Tag “Supplier”'},
+ {name:'Rx numbers',cond:'Subject contains RX-#####',act:'Move to Rx Orders · Link to CRM order'},
+];
+let st={a:'o',f:'Inbox',sel:1,app:'mail',tab:'focused',rib:'Home',density:'normal'};
+
+const RIB={
+ Home:()=>`<div class="split new"><button data-a="compose">${ic('compose')} New mail</button><button data-a="newmenu" aria-label="More new items">${ic('chev')}</button></div><span class="sep"></span>
+  <button data-a="del">${ic('trash','c-del')} Delete ${ic('chev')}</button><button data-a="archive">${ic('archive','c-arch')} Archive</button><button data-a="report">${ic('shield','c-rep')} Report ${ic('chev')}</button><span class="sep"></span>
+  <button data-a="flag">${ic('flag','c-flag')} Flag / Unflag ${ic('chev')}</button><button data-a="pin">${ic('pin','c-pin')} Pin / Unpin</button><button data-a="snooze">${ic('clock')} Snooze ${ic('chev')}</button><span class="sep"></span>
+  <button data-a="rules">Rules</button><button data-a="ai">${ic('spark')} Rule from a sentence</button><button data-a="more" aria-label="More">${ic('dots')}</button>`,
+ View:()=>`<button data-a="viewsettings">${ic('gear','c-pin')} View settings</button><span class="sep"></span><button data-a="msgs">${ic('mail')} Messages ${ic('chev')}</button><button data-a="zoom">${ic('zoom')} Zoom</button><button data-a="darkread">${ic('moon')} Dark Reading Pane</button><button data-a="sync">${ic('sync')} Sync</button><span class="sep"></span><button data-a="layoutm">${ic('layout')} Layout ${ic('chev')}</button><button data-a="folderpane">${ic('layout')} Folder pane ${ic('chev')}</button><button data-a="densitym">${ic('density')} Density ${ic('chev')}</button><button aria-label="More">${ic('dots')}</button>`,
+ Help:()=>`<button data-a="feedback">${ic('msg')} Send feedback</button><button data-a="annotate">${ic('annot')} Annotate this page</button>`,
+};
+function renderRibbon(){
+ $('#tabs').innerHTML=`<button class="t" aria-label="Toggle folder pane" data-a="folderpane">${ic('menu')}</button><button class="t" data-a="file" id="fileTab">File</button>`+['Home','View','Help'].map(t=>`<button class="t ${st.rib==t?'on':''}" data-rib="${t}">${t}</button>`).join('')+
+ `<div class="right"><button title="Chat" data-a="soon">${ic('chat')}</button><button title="Calendar" data-app="cal">${ic('cal')}</button><button title="Move to folder" data-a="soon">${ic('folder')}</button><button title="Notifications" data-a="soon">${ic('bell')}</button><button title="Mail settings" data-a="viewsettings">${ic('gear')}</button><button title="Tips" data-a="soon">${ic('bulb')}</button></div>`;
+ $('#cmd').innerHTML=RIB[st.rib]()+`<button class="iris" data-a="iris" title="Ask Iris" aria-label="Ask Iris"><b></b></button>`;
+}
+function menu(anchor,items){
+ const r=anchor.getBoundingClientRect();
+ $('#layer').innerHTML=`<div class="menu" style="left:${r.left}px;top:${r.bottom+4}px">${items.map(i=>i=='-'?'<hr>':`<button data-a="${i[2]}">${ic(i[0])} ${i[1]}</button>`).join('')}</div>`;
+}
+function renderFolders(){
+ const fbtn=(a,f,label)=>{const n=mails.filter(m=>m.a==a&&m.f==f&&m.unread).length;return `<button class="f ${st.a==a&&st.f==f?'on':''}" data-af="${a}|${f}"><span>${label||f}</span><span class="n">${n||''}</span></button>`};
+ $('#folders').innerHTML=`<div class="grp">⌄ Favorites</div>${fbtn('o','Inbox','Orders inbox')}${fbtn('s','Inbox','Sales inbox')}${fbtn('o','Drafts')}`+
+  accounts.map(a=>`<div class="grp"><span>⌄ ${esc(a.name)}</span><span class="tag">IMAP</span></div>`+a.folders.map(f=>fbtn(a.id,f)).join('')).join('')+
+  `<div class="grp"><span>Other mail</span><span class="tag">webmail</span></div><div class="hint">Personal accounts aren't synced here. They open in their own webmail.</div>`+
+  webmail.map(w=>`<a class="ext" href="${w[1]}" target="_blank" rel="noopener">${ic('ext')} ${w[0]}<small>${w[2]}</small></a>`).join('');
+}
+function renderList(){
+ const q=$('#q').value.toLowerCase();
+ const L=mails.filter(m=>m.a==st.a&&m.f==st.f&&(st.tab=='focused'?m.chips.length:!m.chips.length)&&(!q||(m.from+m.sub+m.body).toLowerCase().includes(q)));
+ const pad=st.density=='compact'?'style="padding-block:5px"':'';
+ $('#list').innerHTML=`<div class="lh"><button data-tab="focused" class="${st.tab=='focused'?'on':''}">Focused</button><button data-tab="other" class="${st.tab=='other'?'on':''}">Other</button></div>`+
+  (L.length?L.map(m=>`<button class="m ${m.unread?'unread':''} ${st.sel==m.id?'on':''}" data-id="${m.id}" ${pad}>
+   <div class="row"><span class="s">${esc(m.from)}</span><span class="t">${m.att.length?ic('clip'):''}${m.flag?ic('flag','c-flag'):''}${m.t}</span></div>
+   <div class="sub">${m.chips.map(c=>`<span class="chip ${c[1]}">${c[0]}</span>`).join('')}${esc(m.sub)}</div>
+   <div class="pv">${esc(m.body.split('\n').find(x=>x.trim())||'')}</div></button>`).join(''):`<div class="empty">Nothing in ${st.tab=='focused'?'Focused':'Other'}.</div>`);
+}
+function renderRead(){
+ const m=mails.find(x=>x.id==st.sel&&x.a==st.a&&x.f==st.f);
+ if(!m){$('#read').innerHTML='<div class="empty" style="grid-column:1/-1">Select an item to read</div>';return}
+ const c=crm[m.from];
+ $('#read').innerHTML=`<div class="body">
+  <h1>${esc(m.sub)}</h1>
+  <div class="from"><div class="avt">${m.from[0]}</div><div><div><b>${esc(m.from)}</b> &lt;${esc(m.email)}&gt;</div><div class="meta">To: ${esc(accounts.find(a=>a.id==m.a).name)} · ${m.t}${c?`<span class="logged">${ic('check')} Logged to CRM</span>`:''}</div></div></div>
+  <div class="txt">${esc(m.body)}</div>
+  ${m.att.length?`<div class="atts">${m.att.map((a,i)=>`<button class="att" data-att="${i}">${ic(a[0].endsWith('.jpg')?'img':'clip')}<span><b>${esc(a[0])}</b><br><span class="meta">${a[1]}</span></span></button>`).join('')}</div>`:''}
+  <div class="acts"><button data-a="reply">${ic('reply')} Reply</button><button data-a="reply">Reply all</button><button data-a="fwd">${ic('fwd')} Forward</button><button data-a="aidraft">${ic('spark')} Draft reply with Iris</button></div>
+ </div>
+ <aside class="crm">${c?`
+  <h3>CRM contact</h3>
+  <div style="font-weight:600">${esc(m.from)}</div><div class="meta">${esc(c.co)}</div>
+  <div class="kv" style="margin-top:8px"><span>Account</span><span class="mono">${c.acct}</span><span>Status</span><span>${c.status}</span><span>Balance</span><span class="mono">${c.bal}</span></div>
+  <h3>Email history</h3><div class="tl">${c.tl.map(e=>`<div class="${e[0]}"><span class="meta">${e[1]}</span><br>${esc(e[2])}</div>`).join('')}</div>
+  <h3>Open orders</h3>${c.orders.map(o=>`<div class="item"><span class="mono">${o[0]}</span><br><span class="meta">${o[1]}</span></div>`).join('')||'<div class="meta">None</div>'}
+  <h3>Tasks</h3>${c.tasks.map(t=>`<div class="item">☐ ${esc(t)}</div>`).join('')||'<div class="meta">None</div>'}
+  <h3>From this email</h3>
+  <button class="cbtn" data-a="task">+ Create CRM task</button>
+  <button class="cbtn" data-a="meet">+ Schedule in calendar</button>
+  <button class="cbtn" data-a="ticket">+ Open support ticket</button>`
+ :`<h3>Not in CRM</h3><div class="meta" style="margin-bottom:10px">${esc(m.email)} doesn't match a contact, so this email isn't logged anywhere yet.</div><button class="cbtn" data-a="addcontact">+ Add as contact and log</button>`}</aside>`;
+}
+function renderCal(){
+ const days=['Mon 5','Tue 6','Wed 7','Thu 8','Fri 9'],hrs=['9:00','10:00','11:00','12:00','14:00','15:00'];
+ const ev={'Thu 8|10:00':['ev','Call Iris – RX-88214 remake'],'Thu 8|14:00':['ev task','Task: Send revised pricelist (Greaves)'],'Fri 9|9:00':['ev','Hoya PO-5531 ships'],'Tue 6|11:00':['ev task','Task: Review Sept statements'],...(window.extraEv||{})};
+ return `<div class="view"><h2 style="margin:0 0 4px;font-size:18px">Calendar · week of 5 Oct</h2><p class="note" style="margin:0 0 12px">The existing tasks calendar. Events and tasks created from an email land here.</p><div style="overflow-x:auto"><div class="cal"><div class="h"></div>${days.map(d=>`<div class="h">${d}</div>`).join('')}${hrs.map(h=>`<div class="h">${h}</div>`+days.map(d=>{const e=ev[d+'|'+h];return `<div>${e?`<div class="${e[0]}">${esc(e[1])}</div>`:''}</div>`}).join('')).join('')}</div></div></div>`;
+}
+function renderCrm(){
+ return `<div class="view"><h2 style="margin:0 0 12px;font-size:18px">Contacts</h2>${Object.entries(crm).map(([n,c])=>`<div class="item" style="max-width:640px"><b>${esc(n)}</b> · ${esc(c.co)} <span class="mono" style="float:right">${c.acct}</span><br><span class="meta">${c.tl.length} emails logged · last: ${esc(c.tl[0][2])}</span></div>`).join('')}</div>`;
+}
+function render(){
+ renderRibbon();
+ $('#shell').querySelectorAll('.view').forEach(v=>v.remove());
+ $('#rail').innerHTML=[['mail','mail','Mail'],['cal','cal','Calendar'],['crm','users','Contacts']].map(r=>`<button class="${st.app==r[0]?'on':''}" data-app="${r[0]}" title="${r[2]}">${ic(r[1])}</button>`).join('');
+ ['#folders','#list','#read'].forEach(s=>$(s).hidden=st.app!='mail');
+ if(st.app=='mail'){renderFolders();renderList();renderRead()}
+ else $('#shell').insertAdjacentHTML('beforeend',st.app=='cal'?renderCal():renderCrm());
+}
+function dlg(title,inner,foot){
+ $('#layer').innerHTML=`<div class="scrim"><div class="dlg" role="dialog" aria-label="${esc(title)}"><header><b>${title}</b><button data-close aria-label="Close">✕</button></header><div class="c">${inner}</div><footer>${foot||'<button class="btn" data-close>Close</button>'}</footer></div></div>`;
+}
+const close=()=>$('#layer').innerHTML='';
+
+function parseRule(t){
+ const s=t.toLowerCase(),r={conditions:[],actions:[]};
+ const from=t.match(/from\s+([\w.@-]+(?:\s+(?:or|and|,)\s+[\w.@-]+)*)/i);
+ if(from)r.conditions.push({field:'from',contains:from[1].split(/\s*(?:or|and|,)\s*/)});
+ const subj=t.match(/(?:subject|mention(?:s|ing)?)\s+(?:contains\s+)?["“]?([^"”,]+?)["”]?(?:\s+(?:to|into|then|and)\b|,|$)/i);
+ if(subj)r.conditions.push({field:'subject_or_body',contains:[subj[1].trim()]});
+ if(/attachment/.test(s))r.conditions.push({field:'has_attachment',equals:true});
+ const mv=t.match(/(?:move|file|put)\s+(?:them|it)?\s*(?:to|into|in)\s+(?:the\s+)?["“]?([\w ]+?)["”]?(?:\s+folder)?(?:\s+and\b|,|\.|$)/i);
+ if(mv)r.actions.push({type:'move_to_folder',folder:mv[1].trim()});
+ const fw=t.match(/forward\s+(?:them|it)?\s*to\s+([\w.@-]+)/i);
+ if(fw)r.actions.push({type:'forward',to:fw[1]});
+ if(/task/.test(s))r.actions.push({type:'create_crm_task',due:/tomorrow/.test(s)?'+1d':'+2d'});
+ if(/flag|important|urgent/.test(s))r.actions.push({type:'flag',importance:'high'});
+ if(!r.conditions.length)r.conditions.push({field:'any',note:'needs clarification'});
+ if(!r.actions.length)r.actions.push({type:'tag',value:'AI-sorted'});
+ return r;
+}
+function rulesDlg(){
+ dlg('Rules',`<div class="note">Rules run on the server, so they apply on every device.</div>${rules.map(r=>`<div class="rule"><b>${esc(r.name)}</b><span><code>IF</code> ${esc(r.cond)}</span><span><code>THEN</code> ${esc(r.act)}</span></div>`).join('')}`,
+ `<button class="btn" data-close>Close</button><button class="btn p" data-a="ai">New rule from a sentence</button>`);
+}
+function aiDlg(){
+ dlg('Set up a rule in plain English',`
+  <label>Describe what should happen<textarea id="nl" rows="3">When anything comes from essilor.example or zeiss.example with an attachment, move it to the Suppliers folder, flag it, and create a CRM task due tomorrow</textarea></label>
+  <div class="note">Try “forward emails mentioning statement to accounts@classicvisions.bb”.</div>
+  <button class="btn p" id="parse" style="justify-self:start">Interpret</button><div id="out"></div>`,'<button class="btn" data-close>Cancel</button><button class="btn p" id="saveRule" disabled>Save rule</button>');
+ $('#parse').onclick=()=>{$('#out').innerHTML='<div class="note">Interpreting…</div>';
+  setTimeout(()=>{const r=parseRule($('#nl').value);window._r=r;
+   $('#out').innerHTML=`<div class="rule"><b>Here's what I understood</b>${r.conditions.map(c=>`<span><code>IF</code> ${c.field} ${c.contains?'contains '+c.contains.join(' or '):c.equals!==undefined?'= '+c.equals:c.note}</span>`).join('')}${r.actions.map(a=>`<span><code>THEN</code> ${a.type.replace(/_/g,' ')} ${a.folder||a.to||a.due||a.importance||a.value||''}</span>`).join('')}</div>
+   <details><summary class="note">Structured output sent to the rules engine</summary><div class="json">${esc(JSON.stringify(r,null,2))}</div></details>`;
+   $('#saveRule').disabled=false},600)};
+ $('#saveRule').onclick=()=>{const r=window._r;rules.push({name:$('#nl').value.slice(0,48)+'…',cond:r.conditions.map(c=>c.field+' '+(c.contains||[c.equals]).join('/')).join(' AND '),act:r.actions.map(a=>a.type.replace(/_/g,' ')+' '+(a.folder||a.to||a.due||'')).join(' · ')});toast('Rule saved');rulesDlg()};
+}
+function acctDlg(){
+ dlg('Account info',`<div class="note">Company mailboxes connect over IMAP and sync here, so every email to or from a CRM contact is logged against them. Personal accounts stay in their own webmail.</div>
+  ${accounts.map(a=>`<div class="item">${ic('mail')} <b>${esc(a.name)}</b> <span class="meta">· IMAP · synced 1 min ago</span></div>`).join('')}
+  <label>Add a company mailbox<input id="ia" value="accounts@classicvisions.bb"></label><label>IMAP server<input value="mail.classicvisions.bb:993 (SSL)"></label><label>SMTP server<input value="mail.classicvisions.bb:587 (STARTTLS)"></label>
+  <div class="note">The password is stored encrypted on the server, never in the browser.</div>`,
+ '<button class="btn" data-close>Close</button><button class="btn p" id="addA">Connect mailbox</button>');
+ $('#addA').onclick=()=>{accounts.push({id:'n'+accounts.length,name:$('#ia').value,folders:['Inbox','Sent Items','Drafts']});close();render();toast('Mailbox connected (simulated)')};
+}
+function importDlg(){
+ dlg('Open and export',`<div class="drop">Drop a <b>.pst</b> file here<br><br><button class="btn" id="pick">Use sample: orders-archive-2024.pst (1.8 GB)</button></div><div id="prog"></div>
+ <div class="note">Imported mail is matched against CRM contacts and logged on their history. OST files usually need exporting to PST from Outlook first.</div>`);
+ $('#pick').onclick=()=>{$('#prog').innerHTML='<div class="bar"><i id="bi"></i></div><div class="note" id="pl"></div>';
+  const steps=['Reading folder tree…','Importing 14,302 messages…','Matching senders: 96 CRM contacts found','Logging 3,410 emails to CRM history…','Done. Added folder “Imported 2024”.'];let i=0;$('#pl').textContent=steps[0];
+  const iv=setInterval(()=>{i++;$('#bi').style.width=(i*25)+'%';$('#pl').textContent=steps[i];if(i>=4){clearInterval(iv);accounts[0].folders.push('Imported 2024');renderFolders()}},650)};
+}
+function attView(i){
+ const m=mails.find(x=>x.id==st.sel),a=m.att[i];
+ dlg(a[0],a[0].endsWith('.jpg')?`<div class="pdf" style="display:grid;place-items:center;background:#ddd">[ photo preview: ${esc(a[0])} ]</div>`:`<div class="pdf"><b>${esc(a[0].replace('.pdf','').toUpperCase())}</b><br><br>Patient re-measure, left eye<br>Fitting height 18 · Corridor 14mm (requested)<br>PD 31.5 / 32.0<br><br>Signed: Iris Clarke, Bay Street Optical</div>`,
+ `<button class="btn" data-a="saveatt">Save to customer file</button><button class="btn p" data-close>Close</button>`);
+}
+function compose(pre){
+ const m=mails.find(x=>x.id==st.sel)||{};
+ const to=pre=='reply'?m.email:'',sub=pre=='reply'?'RE: '+m.sub:pre=='fwd'?'FW: '+m.sub:'';
+ const body=pre=='ai'?`Hi ${m.from?.split(' ')[0]},\n\nThanks for flagging this. We'll remake RX-88214 with the corridor shortened to 14mm, same frame and AR. Expected turnaround is 3 working days; I'll confirm once it's in the lab.\n\nBest,\nClassic Visions Orders`:'';
+ const from=accounts.find(a=>a.id==(m.a||'o')).name;
+ const g=(label,inner)=>`<div class="cg"><div class="r">${inner}</div><small>${label}</small></div>`;
+ $('#layer').innerHTML=`<div class="cw" role="dialog" aria-label="New mail"><div class="ttl"><span>${pre=='ai'?'Reply drafted by Iris':'New mail'}</span><button data-close aria-label="Close">✕</button></div>
+  <div class="tabs"><button class="t">File</button><button class="t on">Message</button><button class="t">Insert</button><button class="t">Format text</button><button class="t">Options</button></div>
+  <div class="cgrp">
+   ${g('Basic Text',`<select aria-label="Font"><option>Calibri</option><option>Segoe UI</option></select><select aria-label="Size"><option>12</option><option>11</option><option>14</option></select><button class="sm"><b>B</b></button><button class="sm"><i>I</i></button><button class="sm"><u>U</u></button><button class="sm" style="color:#e37d80">A</button>`)}
+   ${g('Paragraph',`<button class="sm">• List</button><button class="sm">1. List</button><button class="sm">≡</button>`)}
+   ${g('Insert',`<button class="sm" data-a="attach">${ic('clip')} Attach file</button><button class="sm">${ic('img')} Pictures</button><button class="sm">${ic('link')} Link</button><button class="sm">Signature</button>`)}
+   ${g('Voice',`<button>${ic('mic')} Dictate</button>`)}
+   ${g('Tags',`<button class="sm" style="color:#e37d80">! High importance</button><button class="sm">${ic('lock')} Encrypt</button>`)}
+   ${g('CRM',`<button class="sm" data-a="toggleLog" id="logBtn">${ic('check')} Log to CRM: on</button><button class="sm" data-a="tmpl">${ic('tmpl')} Template</button>`)}
+  </div>
+  <div class="sheet">
+   <div class="row"><div class="send"><button data-done="Sent from ${esc(from)} and logged to CRM">${ic('send')} Send</button><button aria-label="Send options">${ic('chev')}</button></div><span style="font-size:13.5px">From: <b>${esc(from)}</b></span></div>
+   <div class="row"><button class="tobtn">To</button><input id="to" value="${esc(to)}" placeholder=""></div>
+   <div class="row"><input id="sb" value="${esc(sub)}" placeholder="Add a subject"></div>
+   <div class="catts" id="catts"></div>
+   ${body?'':`<div class="hmw">${ic('spark')} Start typing or <button data-a="hmw">Help me write with Iris</button></div>`}
+   <textarea id="bd" aria-label="Message body">${esc(body)}</textarea>
+  </div></div>`;
+}
+function newMenu(anchor){menu(anchor,[['mail','Mail','compose'],['tmpl','Mail from template','tmpl'],['cal','Event','event'],['users','Group','group']])}
+function fileMenu(anchor){menu(anchor,[['user','Account info','account'],'-',['save','Save as','saveas'],['print','Print','printmsg'],['open','Open and export','import'],'-',['gear','Settings','viewsettings']])}
+function irisDlg(){
+ dlg('Iris',`<div class="note">Ask Iris about your mail, or tell her what to do.</div>
+  <div class="item">“Summarise what Bay Street Optical has sent this week.”</div>
+  <div class="item">“Draft replies to everything in Rx Orders that's waiting on a turnaround date.”</div>
+  <div class="item">“Move newsletters to Archive every Friday.”</div>
+  <label>Message<input id="ask" placeholder="Ask Iris…"></label>`,`<button class="btn" data-close>Close</button><button class="btn p" data-done="Iris is working on it (simulated)">Ask</button>`);
+}
+function annotate(){
+ $('#layer').innerHTML=`<div class="annot" id="an"><div class="bar2">${ic('annot')} Click anywhere to pin a note · <button class="btn p" data-done="Annotations sent with your feedback">Send</button><button class="btn" data-close>Cancel</button></div></div>`;
+ $('#an').addEventListener('click',e=>{if(e.target.id!='an')return;const d=document.createElement('div');d.style.cssText=`position:fixed;left:${e.clientX}px;top:${e.clientY}px;background:#f59e0b;color:#000;padding:4px 8px;border-radius:4px 4px 4px 0;font-size:12px`;d.textContent='Note '+($('#an').children.length);$('#an').append(d)});
+}
+
+document.addEventListener('click',e=>{
+ const t=e.target.closest('button');
+ if(!t){if(!e.target.closest('.menu'))document.querySelector('.menu')?.remove();return}
+ if(t.hasAttribute('data-close'))return close();
+ if(t.dataset.done){close();return toast(t.dataset.done)}
+ if(t.dataset.app){st.app=t.dataset.app;close();return render()}
+ if(t.dataset.rib){st.rib=t.dataset.rib;return renderRibbon()}
+ if(t.dataset.af){[st.a,st.f]=t.dataset.af.split('|');st.sel=(mails.find(m=>m.a==st.a&&m.f==st.f)||{}).id;st.app='mail';return render()}
+ if(t.dataset.tab){st.tab=t.dataset.tab;return renderList()}
+ if(t.dataset.att){return attView(+t.dataset.att)}
+ if(t.dataset.id){st.sel=+t.dataset.id;mails.find(x=>x.id==st.sel).unread=0;$('#shell').classList.add('reading');return render()}
+ const a=t.dataset.a;if(!a)return;
+ const m=mails.find(x=>x.id==st.sel);
+ if(document.querySelector('.menu'))close();
+ ({compose:()=>compose(),reply:()=>compose('reply'),fwd:()=>compose('fwd'),aidraft:()=>compose('ai'),
+  newmenu:()=>newMenu(t),file:()=>fileMenu(t),rules:rulesDlg,ai:aiDlg,account:acctDlg,import:importDlg,iris:irisDlg,annotate,
+  feedback:()=>dlg('Send feedback','<label>What would make Email better?<textarea id="fb" rows="4"></textarea></label><label><span><input type="checkbox" checked> Include a screenshot</span></label>','<button class="btn" data-close>Cancel</button><button class="btn p" data-done="Feedback sent to the Feature Board">Send</button>'),
+  tmpl:()=>dlg('Mail from template',['Rx order received','Remake confirmation','Statement attached','New-practice welcome pack'].map(x=>`<div class="item">${ic('tmpl')} ${x}</div>`).join('')),
+  event:()=>{st.app='cal';render();toast('New event opens in the calendar')},group:()=>toast('Groups map to CRM contact lists'),
+  del:()=>{if(m){m.f='Deleted Items';render();toast('Moved to Deleted Items')}},archive:()=>{if(m){m.f='Archive';render();toast('Archived')}},
+  report:()=>toast('Reported as junk'),flag:()=>{if(m){m.flag=!m.flag;renderList()}},pin:()=>toast('Pinned to top'),snooze:()=>toast('Snoozed until tomorrow 8:00'),
+  zoom:()=>{document.body.style.fontSize=document.body.style.fontSize?'':'15.5px'},darkread:()=>toast('Reading pane theme toggled'),sync:()=>toast('Synced 2 mailboxes'),
+  densitym:()=>{st.density=st.density=='compact'?'normal':'compact';renderList();toast('Density: '+st.density)},
+  folderpane:()=>{const f=$('#folders');f.hidden=!f.hidden;$('#shell').style.gridTemplateColumns=f.hidden?'48px 0 minmax(280px,360px) 1fr':''},
+  viewsettings:()=>dlg('Settings','<div class="item">Layout · Rules · Forwarding · Signatures · Accounts</div><div class="note">Forwarding: orders@ → backup@classicvisions.bb, keep a copy.</div>'),
+  theme:()=>{const r=document.documentElement,d=matchMedia('(prefers-color-scheme: dark)').matches;const cur=r.dataset.theme||(d?'dark':'light');r.dataset.theme=cur=='dark'?'light':'dark'},
+  task:()=>{crm[m.from].tasks.push('Re: '+m.sub);renderRead();toast('Task created and added to the calendar')},
+  meet:()=>{window.extraEv={'Wed 7|15:00':['ev','Meeting: '+m.from]};toast('Added Wed 3:00 pm. Open Calendar to see it')},
+  ticket:()=>toast('Support ticket opened from this email'),saveatt:()=>{close();toast('Saved to the customer’s documents')},
+  addcontact:()=>{crm[m.from]={co:'New Optical Shop',acct:'—',bal:'—',status:'Lead',orders:[],tasks:[],tl:[['in',m.t,'Received: '+m.sub]]};renderRead();toast('Contact added; email logged')},
+  attach:()=>{$('#catts').innerHTML+=`<span>${ic('clip')} RX-88214-remake.pdf</span>`},
+  toggleLog:()=>{t.innerHTML=t.innerHTML.includes(': on')?ic('check')+' Log to CRM: off':ic('check')+' Log to CRM: on'},
+  hmw:()=>{$('#bd').value='Hi,\n\nThanks for getting in touch. ';t.parentElement.remove()},
+  saveas:()=>toast('Saved as .eml'),printmsg:()=>toast('Print preview (not available in prototype)'),
+  apps:()=>toast('App launcher: Email sits beside CRM, Orders, Helpdesk…'),soon:()=>toast('Not in the prototype'),
+  msgs:()=>toast('Show as conversations / messages'),layoutm:()=>toast('Reading pane: right / bottom / off'),more:()=>toast('More actions'),
+ }[a]||(()=>{}))();
+});
+$('#q').oninput=renderList;
+render();
+</script>
