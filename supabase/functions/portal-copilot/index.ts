@@ -935,15 +935,47 @@ Deno.serve(async (req) => {
     }
 
     if (operation === "test-ai-agent") {
+      const testProvider = (body as { provider?: unknown })?.provider === "openai" ? "openai" : "anthropic";
       const recordTest = async (success: boolean, errorMessage: string | null) => {
         const { error: recordError } = await db.rpc("record_ai_agent_test", {
-          p_provider: "anthropic",
+          p_provider: testProvider,
           p_success: success,
           p_error_message: errorMessage,
         });
         // Never fail the test request just because the audit write failed.
         if (recordError) console.warn("record_ai_agent_test failed", recordError.message ?? recordError);
       };
+
+      if (testProvider === "openai") {
+        const { apiKey, model } = await resolveProviderCredentials(db, "openai");
+        if (!apiKey || !model) {
+          const message = "No API key or model is configured.";
+          await recordTest(false, message);
+          return jsonResponse(req, 200, { ok: false, error: message });
+        }
+        try {
+          // Model lookup is free: it verifies the key and that the model exists for this account.
+          const response = await fetch(`https://api.openai.com/v1/models/${encodeURIComponent(model)}`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          let errorMessage: string | null = null;
+          if (!response.ok) {
+            const payload = await response.json().catch(() => null);
+            const detail = typeof payload?.error?.message === "string" ? payload.error.message : "";
+            errorMessage = response.status === 401
+              ? "OpenAI rejected the API key."
+              : response.status === 404
+                ? `OpenAI does not offer the model "${model}" to this account.`
+                : `OpenAI returned ${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`;
+          }
+          await recordTest(response.ok, errorMessage);
+          return jsonResponse(req, 200, { ok: response.ok, error: errorMessage ?? undefined });
+        } catch (providerError) {
+          const errorMessage = providerError instanceof Error ? providerError.message : "Provider request failed";
+          await recordTest(false, errorMessage);
+          return jsonResponse(req, 200, { ok: false, error: errorMessage });
+        }
+      }
 
       const { apiKey, model } = await resolveClaudeCredentials(db);
       if (!apiKey || !model) {
