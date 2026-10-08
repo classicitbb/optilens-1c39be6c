@@ -89,6 +89,9 @@ const TicketEditor = ({ ticketId, onClose }: { ticketId: string; onClose: () => 
                   title="Open contact"
                 >
                   {ticket.partner_contact.name}
+                  {ticket.partner_contact.erp_account?.name && (
+                    <span className="ml-1.5 text-xs font-medium text-foreground">({ticket.partner_contact.erp_account.name})</span>
+                  )}
                   {ticket.partner_contact.email && (
                     <span className="ml-1.5 text-xs">· {ticket.partner_contact.email}</span>
                   )}
