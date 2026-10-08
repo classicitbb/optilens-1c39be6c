@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { canonicalToHtml, canonicalToSearchText, toCanonicalDocument } from "@/lib/wikiCanonical";
-import { composeHelpEntrySummary, parseHelpEntrySummary, slugifyHelpValue } from "@/lib/helpCenter";
-import { buildAutosaveUpdate, uniqueSlug } from "@/hooks/useHelpArticles";
+import { composeHelpEntrySummary, parseHelpEntrySummary } from "@/lib/helpCenter";
+import { buildAutosaveUpdate } from "@/hooks/useHelpArticles";
 import { searchDocs, type SearchDoc } from "./searchRank";
 import type {
   AtlasHit,
@@ -43,11 +43,13 @@ const PROP_COLUMNS: Record<string, string> = {
   description: "description",
   pageSlug: "page_slug",
   active: "is_active",
+  fullWidth: "full_width",
 };
 
 const propsToColumns = (props: AtlasProps | undefined): Record<string, unknown> => {
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(props ?? {})) {
+    if (key === "fullWidth" && typeof value !== "boolean") continue;
     const column = PROP_COLUMNS[key];
     if (column && value !== undefined) out[column] = value;
   }
@@ -91,6 +93,7 @@ const toPage = (row: Row): AtlasPage => {
       description: row.description ?? "",
       pageSlug: row.page_slug ?? "",
       active: row.is_active !== false,
+      ...("full_width" in row ? { fullWidth: row.full_width } : {}),
     },
     authorId: row.author_id ?? null,
     lastEditedBy: row.last_edited_by ?? null,
@@ -118,6 +121,12 @@ export interface HelpArticlesSourceOptions {
 export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: HelpArticlesSourceOptions): AtlasSource => {
   let drafts = false;
   let spaceColumn = false;
+  let layoutColumn = false;
+  const storedProps = (props: AtlasProps | undefined) => {
+    const columns = propsToColumns(props);
+    if (!layoutColumn) delete columns.full_width;
+    return columns;
+  };
 
   const readable = (row: Row): boolean => {
     if (deriveStoredSpace(row) !== "wiki") return true;
@@ -155,6 +164,21 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
   };
 
   return {
+    async getPageSharing(id) {
+      const { data, error } = await (supabase as any).from("atlas_page_shares").select("token, enabled").eq("page_id", id).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    async setPageSharing(id, enabled) {
+      const { data, error } = await (supabase as any).rpc("atlas_set_page_sharing", { p_page_id: id, p_enabled: enabled });
+      if (error) throw error;
+      return data;
+    },
+    async listPageAccesses(id) {
+      const { data, error } = await (supabase as any).from("atlas_page_accesses").select("id, user_id, account_email, page_title, version_number, accessed_at").eq("page_id", id).order("accessed_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      return (data ?? []).map((row: Row) => ({ id: row.id, userId: row.user_id, email: row.account_email, title: row.page_title, version: row.version_number, accessedAt: row.accessed_at }));
+    },
     id: "help_articles",
 
     async listPages(): Promise<AtlasListing> {
@@ -163,6 +187,7 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
       const rows = (data ?? []) as Row[];
       drafts = rows.some((row) => "draft_body_json" in row);
       spaceColumn = rows.some((row) => "space" in row);
+      layoutColumn = rows.some((row) => "full_width" in row);
       return { pages: rows.filter(readable).map(toPage), supportsDrafts: drafts };
     },
 
@@ -221,7 +246,7 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
         status,
         version_number: 1,
         published_at: status === "published" ? new Date().toISOString() : null,
-        ...propsToColumns(props),
+        ...storedProps(props),
         ...(spaceColumn ? { space: input.spaceId } : {}),
       };
       const { data, error } = await (supabase as any).from("help_articles").insert(payload).select("id").single();
@@ -246,7 +271,7 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
               ...(meta.parentId !== undefined ? { parent_id: meta.parentId } : {}),
               ...(meta.sortOrder !== undefined ? { sort_order: meta.sortOrder } : {}),
               ...(meta.slug !== undefined ? { slug: meta.slug } : {}),
-              ...propsToColumns(meta.props),
+              ...storedProps(meta.props),
             }
           : undefined,
       });
@@ -272,7 +297,7 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
         status: input.status,
         version_number: next,
         published_at: input.status === "published" ? new Date().toISOString() : null,
-        ...propsToColumns(input.props),
+        ...storedProps(input.props),
         // Publishing makes a page live: the legacy `is_active` switch must agree with `status`.
         ...(input.status === "published" ? { is_active: true } : {}),
         ...(drafts ? { draft_title: null, draft_body_json: null, draft_saved_at: null } : {}),
@@ -295,18 +320,11 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
     },
 
     async patchPage(id, patch) {
-      const update: Record<string, unknown> = { ...propsToColumns(patch.props) };
+      const update: Record<string, unknown> = { ...storedProps(patch.props) };
       if (patch.title !== undefined) {
         const title = patch.title.trim();
         if (!title) throw new Error("Title required");
-        const { data: rows, error: readError } = await (supabase.from("help_articles") as any).select("id, title, slug");
-        if (readError) throw readError;
-        const current = (rows as Row[]).find((row) => row.id === id);
-        if (!current) throw new Error("Page not found");
         update.title = title;
-        if (current.slug && title !== current.title) {
-          update.slug = uniqueSlug(slugifyHelpValue(title) || "untitled", (rows as Row[]).filter((row) => row.id !== id).map((row) => row.slug));
-        }
       }
       if (patch.status !== undefined) {
         update.status = patch.status;
@@ -419,3 +437,20 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
     },
   };
 };
+
+export interface SharedPageContent {
+  title: string;
+  body: AtlasPage['doc'] | null;
+  legacyContent: string;
+  version: number;
+  publishedAt: string | null;
+  fullWidth: boolean;
+}
+
+/** Only this RPC can read the narrow shared projection and append the authenticated audit. */
+export async function openSharedPage(token: string): Promise<SharedPageContent | null> {
+  if (!UUID_RE.test(token)) return null;
+  const { data, error } = await (supabase as any).rpc('atlas_open_shared_page', { p_token: token });
+  if (error) throw error;
+  return data;
+}

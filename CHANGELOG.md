@@ -1,7 +1,16 @@
 # Changelog
 
+Atlas production release (2026-10-08): scoped layout, stable identifiers and authenticated sharing/audit release deployed with the named migration. No page was enabled for sharing; target-specific end-to-end and email-confirmation checks remain unperformed. See docs/agent/HANDOFF.md.
+
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
 
+## 2026-10-08 — Atlas layout and authenticated sharing (local source)
+
+### Release Notes
+- Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending.
+
+### Technical Changelog
+- Synchronized browser preference snapshots and account-scoped sidebar keys; nullable full_width persists through the single page-editor/source path and projects to the shared reader after migration. New UUID page slugs preserve existing stored URLs; null-slug rows retain ID routing and current legacy-title aliases. Sharing RPC checks enabled/live/authenticated state, withholds drafts/secrets/locks, and transactionally appends an administrator-only audit. Registration confirmation retains a safe same-origin destination. Named migration applied; hosted schema/grants verified, with isolated PostgreSQL and focused frontend regression checks.
 ## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
 
 ### Release Notes

@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-08 — Atlas layout and authenticated sharing (local source)
+
+### Release Notes
+- Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending.
+
 ## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
 
 ### Release Notes

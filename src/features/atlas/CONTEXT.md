@@ -72,3 +72,14 @@ Replies and proposal previews use WikiArticleRenderer. irisBlocks converts Markd
 Title edits regenerate unique stored slugs on draft autosave and published Update; null legacy slugs stay derived. Sidebar page rename updates title and slug together. Rename transitions retain selection by ID before refetch. Page titles set the browser tab title; shared links and sidebar navigation carry articleId so later renames can resolve them. Old slug-only external bookmarks have no redirect history and cannot be recovered after a rename.
 
 The host supplies LauncherFavorite in page actions. It uses the existing user_launcher_pins table and its per-user policies, storing /admin/knowledge/wiki?articleId=... (the existing legacy redirect), with no new schema or access change. AppLauncher resolves current titles/slugs through AtlasSource and space capabilities, hides missing/inaccessible pages and supports unpinning. Pin query cache includes user ID. Atlas sidebar favorites remain per-user browser preferences.
+
+## Layout and shared reader (2026-10-08, production release)
+
+Supersedes title-driven slug changes above: title edits preserve stored identifiers; new pages use generated UUID slugs, legacy null slugs use IDs without backfill, and current legacy title-derived URLs still resolve. Shared links have independent server-generated tokens. Browser page metadata writes synchronously and merges current storage; all consumers and tabs receive updates. Sidebar width/collapse keys include user ID, never import unowned legacy keys, and remain browser-local.
+
+PageSharingDialog uses AtlasSource for explicit administrator sharing and recent account access history. SharedPageViewer uses only the audited allowlisted RPC and shared wiki renderer, with no editor/admin shell/page listing. The website route requires sign-in; any registered link holder can view an enabled active published page. Passwords/secrets, drafts and revoked links are denied in SQL. The named sharing migration and frontend are deployed; see HANDOFF.md for verification limits. Future space/Operations Manual restrictions and ClickUp import are separate deferred work.
+
+Page width uses nullable full_width storage in the applied sharing migration. Autosave/Update use the existing page-editor/source path; Update also promotes the browser-selected legacy width. The shared reader uses the saved column. Before migration, width remains browser-local; sidebar always remains per-user browser-local. Access audit snapshots survive page deletion.
+
+
+Hosted read-only checks confirm Share settings and empty audit load, unassigned-token denial and sidebar reload persistence. No real page sharing, page edit or signup was exercised.

@@ -137,7 +137,7 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
 
   const createRow = async () => {
     if (!capabilities.edit || !space.allowCreate) return;
-    const slug = `untitled-${Date.now().toString(36)}`;
+    const slug = crypto.randomUUID();
     try {
       await data.createPage({
         spaceId: space.scope.storeSpace,

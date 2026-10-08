@@ -20,6 +20,7 @@ const OpticalRetailWebsitesPage = lazyWithRetry(() => import("@/pages/OpticalRet
 const RxLabServicesPage = lazyWithRetry(() => import("@/pages/RxLabServicesPage"));
 const LabLinkEmbedPage = lazyWithRetry(() => import("@/pages/LabLinkEmbedPage"));
 const Knowledge = lazyWithRetry(() => import("@/pages/Knowledge"));
+const SharedPageViewer = lazyWithRetry(() => import("@/features/atlas/components/SharedPageViewer"));
 const LegalPage = lazyWithRetry(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazyWithRetry(() => import("@/pages/LensDesignGuidePage"));
 const CoatingsLandingPage = lazyWithRetry(() => import("@/pages/coatings/CoatingsLandingPage"));
@@ -115,6 +116,7 @@ const PublicRoutes = () => (
     />
     <Route path="knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+    <Route path="shared/pages/:token" element={<ProtectedRoute><SharedPageViewer /></ProtectedRoute>} />
     <Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />
     <Route path="terms" element={<LegalPage slug="terms" />} />
     <Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />

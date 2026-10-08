@@ -89,10 +89,6 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
   const [editorEpoch, setEditorEpoch] = useState(0);
   const loadedRef = useRef<{ id?: string; version?: number; title?: string; slug?: string; status?: string; section?: string | null; parent?: string | null; sort?: number }>({});
   const pendingAutosave = useRef<null | (() => Promise<void>)>(null);
-  const titleSlug = (title: string) => uniqueSlug(
-    slugifyHelpValue(title) || "untitled",
-    pages.filter((other) => other.id !== page?.id).map(toPageSlug),
-  );
 
   // Load the draft when the page or its saved version changes. When the server copy changes under
   // the same version (autosave, rename, status, move) only the metadata that changed is merged in,
@@ -179,7 +175,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
         const writeBody = bodyChanged && bodyRoute !== "local";
         let nextSlug: string | undefined;
         let meta: Parameters<Data["autosave"]>[0]["meta"];
-        if (metaChanged || (writeBody && !isPublished && draft.title !== page.title && page.slug)) {
+        if (metaChanged) {
           meta = {
             summary: draft.summary,
             entryKind: draft.entryKind,
@@ -189,10 +185,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
             sortOrder: Number.parseInt(draft.sortOrder || "0", 10) || 0,
             props: draft.props,
           };
-          if (!isPublished && page.slug && draft.title !== page.title) {
-            nextSlug = titleSlug(draft.title);
-            meta.slug = nextSlug;
-          } else if (!isPublished && draft.slug !== saved?.slug) {
+          if (!isPublished && draft.slug !== saved?.slug) {
             nextSlug = uniqueSlug(
               slugifyHelpValue(draft.slug) || slugifyHelpValue(draft.title),
               pages.filter((other) => other.id !== id).map((other) => other.slug),
@@ -200,8 +193,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
             meta.slug = nextSlug;
           }
         }
-        const nextRouteSlug = nextSlug ?? (!isPublished && !page.slug && draft.title !== page.title
-          ? toPageSlug({ id, title: draft.title.trim() || "Untitled", slug: null }) : undefined);
+        const nextRouteSlug = nextSlug;
         if (nextRouteSlug) onSlugChanging?.(nextRouteSlug);
         await data.autosave({
           id,
@@ -278,7 +270,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
 
   /** Save as a new version. Publishing is blocked unless both validators pass. */
   const saveAs = useCallback(
-    async (nextStatus: AtlasStatus) => {
+    async (nextStatus: AtlasStatus, layout?: { fullWidth: boolean }) => {
       if (!page) return;
       if (!draft.title.trim()) {
         toast({ title: "Title required", description: "Add a title before saving.", variant: "destructive" });
@@ -299,9 +291,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
       }
       setIsSaving(true);
       try {
-        const slug = page.slug && draft.title.trim() !== page.title
-          ? titleSlug(draft.title)
-          : draft.slug.trim() || null;
+        const slug = draft.slug.trim() || null;
         if (slug && slug !== page.slug) onSlugChanging?.(slug);
         const result = await data.saveVersion({
           id: page.id,
@@ -318,7 +308,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
           sortOrder: Number.parseInt(draft.sortOrder || "0", 10) || 0,
           status: nextStatus,
           contexts: draft.contexts,
-          props: draft.props,
+          props: { ...draft.props, ...layout },
         });
         toast({ title: nextStatus === "published" ? "Published" : "Saved" });
         if (result && result.historyRecorded === false) {

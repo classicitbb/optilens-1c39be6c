@@ -1,5 +1,7 @@
 # Frontend Runtime Module Docs
 
+Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.
+
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
 
 ## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
@@ -330,3 +332,5 @@ Operational notes and change context for code in `src/**`.
 - `src/features/admin/walk-in-payments/PublishedLinkPanel.tsx` renders the counter QR with the existing `qrcode.react` dependency. The QR encodes only the static `/pay` URL; no payment data is ever put in a QR payload.
 - `src/features/admin/walk-in-payments/UnmatchedPaymentsQueue.tsx` reuses `src/components/admin/ContactPickerSelect.tsx` for attaching a self-service payment to a contact.
 - `src/components/payments/TurnstileWidget.tsx` renders nothing without `VITE_TURNSTILE_SITE_KEY`; the server refuses self-service payments without its own secret regardless, so a missing key surfaces as "unavailable" rather than as an unprotected form.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.

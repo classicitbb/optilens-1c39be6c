@@ -29,6 +29,7 @@ export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
   { id: "public.blog.article", path: "/blog/:slug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.knowledge", path: "/knowledge", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.knowledge.article", path: "/knowledge/:articleSlug", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
+  { id: "public.shared-page", path: "/shared/pages/:token", domain: "public-site", audience: "public", authMode: "authenticated", layout: "customer-shell", navGroup: "none", status: "active" },
   { id: "public.professionals", path: "/professionals", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.patients", path: "/patients", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.patients.lens-differences", path: "/patients/lens-differences", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },

@@ -1,5 +1,7 @@
 # Project Status
 
+Atlas production release (2026-10-08): width persistence, per-user browser sidebar preferences, stable generated identifiers, authenticated published-page sharing and account/page/time audit are deployed. The named sharing migration is applied; hosted grants/RLS and unchanged page policies are verified. No page was enabled for sharing. See HANDOFF.md for local checks, browser proof and remaining target-specific verification. ClickUp and broader spaces remain deferred.
+
 ## Atlas title slugs and launcher favorites — 2026-10-07
 
 Local source: title edits update unique slugs (draft autosave; published Update), sidebar renames update both fields, page browser titles reflect saved titles, ID-bearing shared links survive renames, and page actions expose saved per-user launcher favorites through existing pins. No production data write, schema apply or release. Old slug-only bookmarks have no redirect history. Validation and live pin-read limitations are recorded in HANDOFF.md.
@@ -11,7 +13,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-07 (Atlas title slugs/favorites; Admin attention dropdown; CRM contact editor; Doc Studio improvements)
+Last updated: 2026-10-08 (Atlas scoped production release and verification)
 
 ---
 
