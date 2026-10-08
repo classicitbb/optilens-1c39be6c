@@ -72,6 +72,7 @@ const CrmPipelinePage = lazyWithRetry(() => import("@/pages/admin/crm/CrmPipelin
 const CrmActivitiesPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmActivitiesPage"),
 );
 const CrmOutboxPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmOutboxPage"));
+const EmailPage = lazyWithRetry(() => import("@/pages/admin/email/EmailPage"));
 const CrmDashboardPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmDashboardPage"),
 );
 const RuntimeErrorsPage = lazyWithRetry(() => import("@/pages/admin/RuntimeErrorsPage"));
@@ -232,6 +233,7 @@ const AdminRoutes = () => (
       <Route path="crm/leads/campaigns" element={<LeadCampaignsPage />} />
       <Route path="crm/leads/reports" element={<LeadAuditReportsPage />} />
       <Route path="crm/settings" element={<CrmSettingsPage />} />
+      <Route path="email" element={<EmailPage />} />
       <Route
         path="helpdesk"
         element={<Navigate to="/admin/helpdesk/overview" replace />}

@@ -29,6 +29,7 @@ import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
 import { paginate } from "@/lib/pagination";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { ContactEmailHistory } from "@/features/admin/email/ContactEmailHistory";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -314,7 +315,7 @@ const FILTER_LABELS: Record<FilterMode, string> = {
 type ContactsPageProps = {
   /** Renders the existing Contacts editor as an overlay without changing routes. */
   embeddedContactId?: string | null;
-  embeddedInitialTab?: "details" | "account-settings" | "portal-settings" | "notes";
+  embeddedInitialTab?: "details" | "account-settings" | "portal-settings" | "notes" | "email";
   /** Portal operations for this contact, supplied by Website Portals. */
   embeddedPortalSettings?: ReactNode;
   onEmbeddedClose?: () => void;
@@ -551,7 +552,7 @@ const ContactsPage = ({
   const [isSavingContact, setIsSavingContact] = useState(false);
   const savingContactRef = useRef(false);
   const enrichContact = useContactEnrichment();
-  const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes">("details");
+  const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes" | "email">("details");
   // The portals page clears its account query parameter as the embedded dialog
   // closes. Do not treat that parent URL update as a request to reopen the
   // same embedded contact before the parent unmounts this editor.
@@ -711,7 +712,7 @@ const ContactsPage = ({
     if (!contact) return;
     if (embeddedContactId) openedEmbeddedContactRef.current = embeddedContactId;
     setEditContact(contact);
-    setEditTab(embeddedContactId ? embeddedInitialTab : searchParams.get("tab") === "account-settings" ? "account-settings" : "details");
+    setEditTab(embeddedContactId ? embeddedInitialTab : searchParams.get("tab") === "account-settings" ? "account-settings" : searchParams.get("tab") === "email" ? "email" : "details");
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
@@ -2194,7 +2195,7 @@ const ContactsPage = ({
                   inert={isSavingContact || undefined}
                   value={editTab}
                   onValueChange={(value) => {
-                    const nextTab = value as "details" | "account-settings" | "portal-settings" | "notes";
+                    const nextTab = value as "details" | "account-settings" | "portal-settings" | "notes" | "email";
                     setEditTab(nextTab);
                     if (!embeddedContactId && searchParams.has("contact")) {
                       const nextParams = new URLSearchParams(searchParams);
@@ -2209,6 +2210,7 @@ const ContactsPage = ({
                     <TabsTrigger value="account-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Account Settings</TabsTrigger>
                     {embeddedPortalSettings ? <TabsTrigger value="portal-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Portal Settings</TabsTrigger> : null}
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
+                    {editContact?.id ? <TabsTrigger value="email" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Email</TabsTrigger> : null}
                   </TabsList>
 
                   <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
@@ -2695,6 +2697,12 @@ const ContactsPage = ({
                   {embeddedPortalSettings ? (
                     <TabsContent value="portal-settings" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
                       {embeddedPortalSettings}
+                    </TabsContent>
+                  ) : null}
+
+                  {editContact?.id ? (
+                    <TabsContent value="email" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                      <ContactEmailHistory email={editContact.email} />
                     </TabsContent>
                   ) : null}
 

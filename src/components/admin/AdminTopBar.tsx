@@ -46,6 +46,7 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/crm/settings", "CRM · Settings"],
 ["/admin/dashboard", "Launch Pad"],
 ["/admin/crm", "CRM"],
+["/admin/email", "Email"],
 ["/admin/helpdesk", "Helpdesk"],
 ["/admin/settings/audit", "Settings · Audit Log"],
 ["/admin/settings/integrations", "Settings · Integrations"],
