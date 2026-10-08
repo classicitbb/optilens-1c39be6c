@@ -50,7 +50,7 @@ describe("CRM contact enrichment", () => {
     expect(provider).toContain("const MIN_SIMILARITY = 0.72;");
     expect(provider).toContain("const MIN_SEPARATION = 0.1;");
     expect(provider).toContain('return { kind: "ambiguous", candidates:');
-    expect(provider).toContain('if (status === "ZERO_RESULTS") return { kind: "no_match", reason: "ZERO_RESULTS" };');
+    expect(provider).toContain('if (!results.length) return { kind: "no_match", reason: "ZERO_RESULTS" };');
   });
 
   it("fills blanks silently but always routes country and conflicts to approval", () => {
