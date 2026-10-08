@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { downgradeToV1 } from "../domain/payload";
 import { advanceFrom } from "./focus";
@@ -32,7 +33,9 @@ import type { CardProps } from "./cards/types";
 import { buildOrder, firstIncomplete, SECTION_ORDER, valuesFromOrder, type SectionId } from "./model";
 import { FillFromPhoto } from "./FillFromPhoto";
 import { FlagBanner } from "./FlagBanner";
+import { ORDER_TYPES, type OrderType } from "./orderType";
 import { PrintSheet } from "./PrintSheet";
+import { StockServicePanel } from "./StockServicePanel";
 import { QuotePanel } from "./QuotePanel";
 import { useRxCatalog, type PersistContext } from "./useRxCatalog";
 import { useRxOrderForm } from "./useRxOrderForm";
@@ -175,6 +178,10 @@ function LoadedForm({
   const { data: rxDrafts = [] } = useRxDrafts();
   const hasSavedDrafts = props.surface === "portal" && cartDrafts.length + rxDrafts.length > 0;
   const isTest = props.isTest === true;
+  // Order type is only offered to staff starting a new order; a reopened order is always an Rx order.
+  const [orderType, setOrderType] = useState<OrderType>("rx");
+  const canPickType = props.surface === "admin" && !props.quoteId && !props.prefill && !props.fixture;
+  const stockMode = canPickType && orderType !== "rx";
 
   const initial: RxFormValues = useMemo(() => {
     const saved = props.prefill ? (() => { try { return valuesFromOrder(props.prefill, catalog); } catch { return null; } })() : null;
@@ -480,20 +487,30 @@ function LoadedForm({
       )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <h1 className="text-base font-semibold">Rx order</h1>
-        <span className="rounded-md border px-2 py-0.5 text-xs text-muted-foreground" aria-label="Order number">
-          Order <b className="text-foreground">{orderNo ?? "—"}</b>
-        </span>
+        <h1 className="text-base font-semibold">{stockMode ? ORDER_TYPES.find((t) => t.id === orderType)?.label : "Rx order"}</h1>
+        {canPickType && (
+          <Select value={orderType} onValueChange={(v) => setOrderType(v as OrderType)}>
+            <SelectTrigger aria-label="Order type" className="h-8 w-[210px] text-xs"><SelectValue placeholder="Order type" /></SelectTrigger>
+            <SelectContent>
+              {ORDER_TYPES.map((t) => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {!stockMode && (
+          <span className="rounded-md border px-2 py-0.5 text-xs text-muted-foreground" aria-label="Order number">
+            Order <b className="text-foreground">{orderNo ?? "—"}</b>
+          </span>
+        )}
         <span className="text-[11px] text-muted-foreground" role="status" aria-live="polite">
-          {saving ? "Saving…" : savedAt ? `Saved · ${savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}
+          {!stockMode && (saving ? "Saving…" : savedAt ? `Saved · ${savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "")}
         </span>
         <div className="ml-auto flex items-center gap-2">
-          {props.showPayload && (
+          {!stockMode && props.showPayload && (
             <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setPayloadOpen(true)}>
               <Code2 className="h-3.5 w-3.5" /> Payload
             </Button>
           )}
-          {props.surface === "portal" && !props.fixture && accountId != null && (
+          {!stockMode && props.surface === "portal" && !props.fixture && accountId != null && (
             <FillFromPhoto
               accountId={accountId} accountName={account?.name ?? ""} hasEntries={!api.isEmpty} catalog={catalog}
               onFilled={(v, jobId) => {
@@ -507,17 +524,21 @@ function LoadedForm({
               onError={(message) => toast({ title: "Could not read that picture", description: message, variant: "destructive" })}
             />
           )}
-          {props.surface === "admin" && (
+          {!stockMode && props.surface === "admin" && (
             <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={api.isEmpty} onClick={onPrint}>
               <Printer className="h-3.5 w-3.5" /> Save &amp; print
             </Button>
           )}
-          <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={onSaveDraft}>
-            {hasSavedDrafts && api.isEmpty ? "Go to saved drafts" : "Save draft"}
-          </Button>
-          <Button type="button" variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive" disabled={api.isEmpty && !draftIdRef.current} onClick={onDiscardDraft}>
-            Discard draft
-          </Button>
+          {!stockMode && (
+            <>
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={onSaveDraft}>
+                {hasSavedDrafts && api.isEmpty ? "Go to saved drafts" : "Save draft"}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" className="h-8 text-xs text-destructive hover:text-destructive" disabled={api.isEmpty && !draftIdRef.current} onClick={onDiscardDraft}>
+                Discard draft
+              </Button>
+            </>
+          )}
           {locked ? (
             <span className="rounded-md border px-2 py-1 text-xs">Ordering for <b>{account?.name ?? "—"}</b></span>
           ) : (
@@ -526,6 +547,9 @@ function LoadedForm({
         </div>
       </div>
 
+      {stockMode ? (
+        <StockServicePanel type={orderType as Exclude<OrderType, "rx">} accountId={accountId} accountName={account?.name ?? ""} />
+      ) : (<>
       <FlagBanner flags={values.flags} onConfirm={api.confirmFlag} onConfirmAll={api.confirmAllFlags} />
 
       <nav aria-label="Order steps" className="sticky top-0 z-20 -mx-4 mb-4 flex gap-1 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur">
@@ -589,6 +613,7 @@ function LoadedForm({
         <Button type="button" variant="outline" size="sm" onClick={onSaveDraft}>Draft</Button>
         <Button type="button" size="sm" disabled={submitDisabled} onClick={submit}>{submitLabel}</Button>
       </div>
+      </>)}
 
       <Dialog open={!!done} onOpenChange={(o) => { if (!o) setDone(null); }}>
         <DialogContent>
