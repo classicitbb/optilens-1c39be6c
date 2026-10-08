@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { canonicalToHtml, canonicalToSearchText, toCanonicalDocument } from "@/lib/wikiCanonical";
-import { composeHelpEntrySummary, parseHelpEntrySummary } from "@/lib/helpCenter";
-import { buildAutosaveUpdate } from "@/hooks/useHelpArticles";
+import { composeHelpEntrySummary, parseHelpEntrySummary, slugifyHelpValue } from "@/lib/helpCenter";
+import { buildAutosaveUpdate, uniqueSlug } from "@/hooks/useHelpArticles";
 import { searchDocs, type SearchDoc } from "./searchRank";
 import type {
   AtlasHit,
@@ -296,7 +296,18 @@ export const createHelpArticlesSource = ({ canViewContext, isKnownContext }: Hel
 
     async patchPage(id, patch) {
       const update: Record<string, unknown> = { ...propsToColumns(patch.props) };
-      if (patch.title !== undefined) update.title = patch.title;
+      if (patch.title !== undefined) {
+        const title = patch.title.trim();
+        if (!title) throw new Error("Title required");
+        const { data: rows, error: readError } = await (supabase.from("help_articles") as any).select("id, title, slug");
+        if (readError) throw readError;
+        const current = (rows as Row[]).find((row) => row.id === id);
+        if (!current) throw new Error("Page not found");
+        update.title = title;
+        if (current.slug && title !== current.title) {
+          update.slug = uniqueSlug(slugifyHelpValue(title) || "untitled", (rows as Row[]).filter((row) => row.id !== id).map((row) => row.slug));
+        }
+      }
       if (patch.status !== undefined) {
         update.status = patch.status;
         if (patch.status === "published") update.is_active = true;

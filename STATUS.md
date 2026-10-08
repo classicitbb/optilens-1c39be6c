@@ -1,16 +1,23 @@
 # Project Status
 
-CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+## Atlas title slugs and launcher favorites — 2026-10-07
+
+Local source: title edits update unique slugs (draft autosave; published Update), sidebar renames update both fields, page browser titles reflect saved titles, ID-bearing shared links survive renames, and page actions expose saved per-user launcher favorites through existing pins. No production data write, schema apply or release. Old slug-only bookmarks have no redirect history. Validation and live pin-read limitations are recorded in HANDOFF.md.
+
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. crm-enrich-contacts was deployed through the user-authorized Lovable chat; server logs verify version 94 live. Lovable sandbox edge-smoke passed all 47 functions and 3 probes; the local command failed to connect throughout. The authenticated Specs Optical research request reached Places API (New) but returned three equally named matches and HTTP 502 without contact changes. OPENAI_API_KEY is not configured, so no OpenAI call ran. One earlier UI preparation click reached the old legacy endpoint and was denied. No further lookup, Google configuration or credential changes were made. Frontend publication and successful combined-provider verification remain pending.
 
 > Agents: read this file first. It tells you what is actively being worked on,
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-07 (Admin attention dropdown; CRM contact editor; Doc Studio improvements)
+Last updated: 2026-10-07 (Atlas title slugs/favorites; Admin attention dropdown; CRM contact editor; Doc Studio improvements)
 
 ---
 
 ## Active work
+
+- **Lead Finder CRM matching and follow-up** — local source only. Results are matched against CRM contacts and customer accounts before the result limit: confirmed links and exact name + city (single record) associate automatically, website needs supporting name/city evidence and an unshared host, everything fuzzy is a suggestion. Current customers (flag, linked account, parent company, owning account, or a manual "Mark current customer") are excluded with a count and a "Show current customers" toggle; linked prospects stay visible; links and markings can be corrected. New per-lead panel adds Connection strength (Unclassified/Strong/Not strong, separate from the AI score), Needs follow-up (owner defaults to the signed-in operator, optional due date) and a searchable keyboard-operable "Link existing contact". Save is now the `lead_finder_save_lead` RPC (one transaction, advisory-locked per business, idempotent contact/opportunity/note/task, existing contact status and populated fields kept) replacing the name-based upsert. CRM lookup failure shows a warning and disables saving. Migration `20261007150000_lead_finder_crm_matching.sql` and the `lead-intelligence` function are **not applied/deployed**; no live data was written. 43 focused tests, `tsc -p tsconfig.app.json` and lint (0 errors) pass; the SQL has only static contract tests — **no Postgres/Docker here, so the RPC, concurrency and rollback behaviour must be exercised on a database before release**. See `src/features/admin/leads/CONTEXT.md` and HANDOFF.md.
 
 - **Doc Studio recipients/signatures/labels** — local port 8081 improvements implemented; recipient search/dismissal retains To, signature supports HTML/image copy/export and draft insertion, labels support square shipping/customer layouts and editable headings. Public logo deployment and actual email-client validation remain pending. See Doc Studio CONTEXT and docs/doc-studio-signature-compatibility.md.
 

@@ -1,16 +1,26 @@
 {
-  "semanticVersion": "0.10.0",
-  "sourceEntry": "2026-10-07 — CRM research provider (local source)",
+  "semanticVersion": "0.11.0",
+  "sourceEntry": "2026-10-07 — Lead Finder CRM matching and follow-up (local source)",
   "releaseDateTimeUtc": "2026-10-07T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Research public web uses OpenAI web search with source links and candidate email suggestions. Review the cited pages before adding details and Save to persist draft changes. Function deployment and live verification are pending."
+    "Lead Finder now matches results to the CRM, excludes current customers, supports linking an existing contact (even with a different name), Connection strength and follow-up tasks. Not yet deployed."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "lead-intelligence/crmMatching.ts",
       "impact": "medium",
-      "notes": "Updated as part of CRM research provider (local source)."
+      "notes": "Updated as part of Lead Finder CRM matching and follow-up (local source)."
+    },
+    {
+      "module": "lead_discovery_identities/links",
+      "impact": "medium",
+      "notes": "Updated as part of Lead Finder CRM matching and follow-up (local source)."
+    },
+    {
+      "module": "lead_finder_confirm_link/mark_customer",
+      "impact": "medium",
+      "notes": "Updated as part of Lead Finder CRM matching and follow-up (local source)."
     }
   ],
   "migrationNotes": [

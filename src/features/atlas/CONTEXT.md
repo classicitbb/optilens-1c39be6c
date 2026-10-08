@@ -66,3 +66,9 @@ Knowledge → SOPs and Website → Pages / Content; those URLs redirect here.
 ## Iris formatting contract
 
 Replies and proposal previews use WikiArticleRenderer. irisBlocks converts Markdown via unified / remark-parse / remark-gfm into canonical blocks before acceptance; selection replacement inserts Tiptap nodes and marks. Never flatten accepted rich content to a plain string. Existing stored drafts are not rewritten automatically.
+
+## Title slugs and launcher favorites (2026-10-07, local source)
+
+Title edits regenerate unique stored slugs on draft autosave and published Update; null legacy slugs stay derived. Sidebar page rename updates title and slug together. Rename transitions retain selection by ID before refetch. Page titles set the browser tab title; shared links and sidebar navigation carry articleId so later renames can resolve them. Old slug-only external bookmarks have no redirect history and cannot be recovered after a rename.
+
+The host supplies LauncherFavorite in page actions. It uses the existing user_launcher_pins table and its per-user policies, storing /admin/knowledge/wiki?articleId=... (the existing legacy redirect), with no new schema or access change. AppLauncher resolves current titles/slugs through AtlasSource and space capabilities, hides missing/inaccessible pages and supports unpinning. Pin query cache includes user ID. Atlas sidebar favorites remain per-user browser preferences.

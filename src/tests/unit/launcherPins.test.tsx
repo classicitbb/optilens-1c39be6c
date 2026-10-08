@@ -25,6 +25,7 @@ vi.mock("@/hooks/useRolePermissions", () => ({
 }));
 
 vi.mock("@/hooks/use-mobile", () => ({ useIsMobile: () => false }));
+vi.mock("@/features/admin/core/hooks/useAtlasLauncherItems", () => ({ useAtlasLauncherItems: () => [] }));
 
 const renderAt = (path: string, ui: ReactElement) =>
   render(

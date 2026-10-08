@@ -50,6 +50,7 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
   const adminRole = useAdminRoleSafe();
   const [params, setParams] = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [renaming, setRenaming] = useState<{ id: string; from: string; to: string } | null>(null);
 
   const tabId = params.get("tab") ?? space.savedViews[0]?.id ?? "all";
   const view = space.savedViews.find((candidate) => candidate.id === tabId) ?? space.savedViews[0];
@@ -78,7 +79,9 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
   const boardGroups = useMemo(() => groupByStatus(selectRows(spacePages, query, { ignoreStatus: true })), [spacePages, query]);
   const columns = useMemo(() => space.properties.filter((property) => property.column), [space.properties]);
   const typeColumn = space.properties.find((property) => property.key === "contentType");
-  const peekPage = peekSlug ? (spacePages.find((page) => toPageSlug(page) === peekSlug) ?? null) : null;
+  const peekPage = peekSlug ? (spacePages.find((page) => toPageSlug(page) === peekSlug)
+    ?? (renaming && (peekSlug === renaming.from || peekSlug === renaming.to) ? spacePages.find((page) => page.id === renaming.id) : null)
+    ?? null) : null;
   const canBulk = capabilities.edit;
 
   const clearSelection = () => setSelected(new Set());
@@ -332,7 +335,7 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
         <PagePeek
           key={peekPage.id}
           page={peekPage}
-          pages={spacePages}
+          pages={data.pages}
           space={space}
           data={data}
           capabilities={capabilities}
@@ -344,9 +347,11 @@ const DatabaseSpace = ({ space, data, spacePages, capabilities, onAskIris, dynam
           onClose={() => setParam("peek", null)}
           onOpenFull={() => navigate(atlasPath(space.id, toPageSlug(peekPage)))}
           onAskIris={onAskIris}
+          onSlugChanging={(slug) => setRenaming({ id: peekPage.id, from: peekSlug!, to: slug })}
           onSlugChanged={async (slug) => {
             await data.refresh();
             setParam("peek", slug);
+            setRenaming(null);
           }}
           onStatus={(next) => {
             void setStatusFor([peekPage], next);

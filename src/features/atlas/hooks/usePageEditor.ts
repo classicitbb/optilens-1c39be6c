@@ -71,6 +71,7 @@ interface Options {
   canPublish: boolean;
   /** Called when autosave settles a new slug for an unpublished page. */
   onSlugChanged?: (slug: string) => void | Promise<void>;
+  onSlugChanging?: (slug: string) => void;
   /** Called after a successful Publish/Update/Save with the page's final slug. */
   onSaved?: (slug: string) => void;
   initialMode?: "view" | "edit";
@@ -78,7 +79,7 @@ interface Options {
   routeSlug?: string;
 }
 
-export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugChanged, onSaved, initialMode = "view", routeSlug }: Options) => {
+export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugChanged, onSlugChanging, onSaved, initialMode = "view", routeSlug }: Options) => {
   const { toast } = useToast();
   const [mode, setMode] = useState<"view" | "edit">(initialMode);
   const [draft, setDraft] = useState<DraftForm>(EMPTY_DRAFT);
@@ -86,8 +87,12 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
   const [saveState, setSaveState] = useState<SaveState>("idle");
   // Bumped whenever the draft is (re)loaded from the server so the block editor remounts with it.
   const [editorEpoch, setEditorEpoch] = useState(0);
-  const loadedRef = useRef<{ id?: string; version?: number; title?: string; status?: string; section?: string | null; parent?: string | null; sort?: number }>({});
+  const loadedRef = useRef<{ id?: string; version?: number; title?: string; slug?: string; status?: string; section?: string | null; parent?: string | null; sort?: number }>({});
   const pendingAutosave = useRef<null | (() => Promise<void>)>(null);
+  const titleSlug = (title: string) => uniqueSlug(
+    slugifyHelpValue(title) || "untitled",
+    pages.filter((other) => other.id !== page?.id).map(toPageSlug),
+  );
 
   // Load the draft when the page or its saved version changes. When the server copy changes under
   // the same version (autosave, rename, status, move) only the metadata that changed is merged in,
@@ -107,6 +112,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
       id: page.id,
       version: page.version,
       title: page.draftTitle ?? page.title,
+      slug: page.slug ?? "",
       status: page.status,
       section: page.sectionId,
       parent: page.parentId,
@@ -124,13 +130,14 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
     setDraft((current) => ({
       ...current,
       title: current.title === prev.title ? (page.draftTitle ?? page.title) : current.title,
+      slug: current.slug === prev.slug ? page.slug ?? "" : current.slug,
       status: prev.status !== page.status ? page.status : current.status,
       sectionId: prev.section !== page.sectionId ? (page.sectionId ?? "") : current.sectionId,
       parentId: prev.parent !== page.parentId ? (page.parentId ?? "none") : current.parentId,
       sortOrder: prev.sort !== page.sortOrder ? String(page.sortOrder) : current.sortOrder,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeSlug, page?.id, page?.version, page?.updatedAt, page?.title, page?.draftTitle, page?.status, page?.sectionId, page?.parentId, page?.sortOrder]);
+  }, [routeSlug, page?.id, page?.version, page?.updatedAt, page?.title, page?.slug, page?.draftTitle, page?.status, page?.sectionId, page?.parentId, page?.sortOrder]);
 
   const saved = useMemo(() => (page ? buildDraftFromPage(page) : null), [page]);
   const dirty = useMemo(() => Boolean(saved) && !sameJson(draft, saved), [draft, saved]);
@@ -172,7 +179,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
         const writeBody = bodyChanged && bodyRoute !== "local";
         let nextSlug: string | undefined;
         let meta: Parameters<Data["autosave"]>[0]["meta"];
-        if (metaChanged) {
+        if (metaChanged || (writeBody && !isPublished && draft.title !== page.title && page.slug)) {
           meta = {
             summary: draft.summary,
             entryKind: draft.entryKind,
@@ -182,7 +189,10 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
             sortOrder: Number.parseInt(draft.sortOrder || "0", 10) || 0,
             props: draft.props,
           };
-          if (!isPublished && draft.slug !== saved?.slug) {
+          if (!isPublished && page.slug && draft.title !== page.title) {
+            nextSlug = titleSlug(draft.title);
+            meta.slug = nextSlug;
+          } else if (!isPublished && draft.slug !== saved?.slug) {
             nextSlug = uniqueSlug(
               slugifyHelpValue(draft.slug) || slugifyHelpValue(draft.title),
               pages.filter((other) => other.id !== id).map((other) => other.slug),
@@ -190,6 +200,9 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
             meta.slug = nextSlug;
           }
         }
+        const nextRouteSlug = nextSlug ?? (!isPublished && !page.slug && draft.title !== page.title
+          ? toPageSlug({ id, title: draft.title.trim() || "Untitled", slug: null }) : undefined);
+        if (nextRouteSlug) onSlugChanging?.(nextRouteSlug);
         await data.autosave({
           id,
           ...(writeBody ? { title: draft.title.trim() || "Untitled", doc: draft.doc, asDraft: bodyRoute === "draft" } : {}),
@@ -198,7 +211,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
         if (contextsChanged) await data.setContexts({ id, slugs: draft.contexts });
         setSaveState("saved");
         if (nextSlug && nextSlug !== draft.slug) setDraft((current) => ({ ...current, slug: nextSlug as string }));
-        if (nextSlug && routeSlug && routeSlug !== nextSlug) await onSlugChanged?.(nextSlug);
+        if (nextRouteSlug && routeSlug && routeSlug !== nextRouteSlug) await onSlugChanged?.(nextRouteSlug);
       } catch {
         setSaveState("error");
       }
@@ -286,7 +299,10 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
       }
       setIsSaving(true);
       try {
-        const slug = draft.slug.trim() || null;
+        const slug = page.slug && draft.title.trim() !== page.title
+          ? titleSlug(draft.title)
+          : draft.slug.trim() || null;
+        if (slug && slug !== page.slug) onSlugChanging?.(slug);
         const result = await data.saveVersion({
           id: page.id,
           version: page.version,
@@ -320,7 +336,7 @@ export const usePageEditor = ({ page, pages, data, canEdit, canPublish, onSlugCh
         setIsSaving(false);
       }
     },
-    [canPublish, data, draft, onSaved, page, toast],
+    [canPublish, data, draft, onSaved, onSlugChanging, page, pages, toast],
   );
 
   /** Replace the document (an accepted Iris proposal): the editor remounts with it and autosave takes over. */
