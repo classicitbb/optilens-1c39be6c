@@ -332,3 +332,5 @@ Operational notes and change context for code in `src/**`.
 - `src/features/admin/walk-in-payments/PublishedLinkPanel.tsx` renders the counter QR with the existing `qrcode.react` dependency. The QR encodes only the static `/pay` URL; no payment data is ever put in a QR payload.
 - `src/features/admin/walk-in-payments/UnmatchedPaymentsQueue.tsx` reuses `src/components/admin/ContactPickerSelect.tsx` for attaching a self-service payment to a contact.
 - `src/components/payments/TurnstileWidget.tsx` renders nothing without `VITE_TURNSTILE_SITE_KEY`; the server refuses self-service payments without its own secret regardless, so a missing key surfaces as "unavailable" rather than as an unprotected form.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.

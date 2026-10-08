@@ -355,3 +355,5 @@ Track frontend regressions and customer-facing issues.
 - Surface: public `/pay`
 - Symptom: `scotia-payment` requires a JWT and a staff role, and the shared rate limiter is per-isolate memory that resets on every cold start — so exposing form signing to anonymous callers through it would have risked a card-testing oracle across order, statement and walk-in flows alike.
 - Resolution: anonymous signing lives in a separate `walkin-pay` function authenticated by hashed one-time token, with a database-backed per-IP limiter, database-enforced amount bounds, a fail-closed Turnstile check and an admin kill switch. `scotia-payment` is unchanged for existing flows.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.

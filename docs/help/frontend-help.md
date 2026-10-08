@@ -286,3 +286,5 @@ Support-facing notes for the frontend runtime.
 - If **Pay without a code** is missing from the public page, Cloudflare Turnstile is not configured (`VITE_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`) or the kill switch is off. This is deliberate: self-service refuses to run unprotected.
 - Self-service payments appear under **needs matching** on the same admin page. Attach each one to an order reference or a contact so it can be reconciled; nothing is posted against a customer automatically.
 - Amounts now display and store as Barbados dollars. If an older receipt shows `840`, that is a pre-correction record, not a USD charge — the bank has always charged BBD.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.
