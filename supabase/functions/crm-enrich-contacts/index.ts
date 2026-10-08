@@ -103,7 +103,8 @@ Deno.serve(async (req) => {
 
   const research = body.mode === "research";
   if (research && triggerSource !== "manual") return reply(400, { error: "Public web research requires an administrator request." });
-  const apiKey = research ? (Deno.env.get("OPENAI_API_KEY") ?? "").trim() : await resolvePlacesKey(db);
+  const openai = research ? await resolveProviderCredentials(db, "openai") : null;
+  const apiKey = research ? (openai?.apiKey ?? "") : await resolvePlacesKey(db);
   const researchPlacesKey = research ? await resolvePlacesKey(db) : "";
   if (!apiKey && !researchPlacesKey) return reply(503, { error: research
     ? "Public research needs OPENAI_API_KEY or a Google Places credential configured on the server."
@@ -131,7 +132,7 @@ Deno.serve(async (req) => {
     if (error) return reply(500, { error: error.message });
     if (!contact) return reply(404, { error: "Contact not found" });
     const query = buildResearchQuery(contact);
-    const model = (Deno.env.get("CRM_RESEARCH_OPENAI_MODEL") ?? "").trim() || "gpt-5.5";
+    const model = openai?.model || "gpt-5.5";
     const providers: { provider: ResearchProvider; key: string }[] = [];
     const warnings: string[] = [];
     if (researchPlacesKey) providers.push({ provider: "google_places", key: researchPlacesKey });
