@@ -658,7 +658,7 @@ export default function IntegrationsPage() {
               key={row.provider}
               provider={row.provider}
               row={row}
-              canTest={row.provider === "anthropic"}
+              canTest={row.provider === "anthropic" || row.provider === "openai"}
               onRemoveDraft={() => {}}
             />
           ))}
@@ -667,7 +667,7 @@ export default function IntegrationsPage() {
               key={slug}
               provider={slug}
               row={null}
-              canTest={slug === "anthropic"}
+              canTest={slug === "anthropic" || slug === "openai"}
               onRemoveDraft={() => setDraftProviders((prev) => prev.filter((p) => p !== slug))}
             />
           ))}
