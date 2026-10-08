@@ -171,7 +171,10 @@
     "picomatch@^4.0.3": "4.0.4",
     "uuid": "11.1.1",
     "ws@^8": "8.22.0",
-    "deepmerge-ts": "8.0.2"
+    "deepmerge-ts": "8.0.2",
+    "proxy-addr": "2.0.8",
+    "source-map-js": "1.2.2",
+    "@modelcontextprotocol/sdk": "1.32.1"
   },
   "engines": {
     "node": ">=20",

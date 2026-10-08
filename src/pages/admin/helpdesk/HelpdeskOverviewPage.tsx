@@ -41,7 +41,7 @@ interface OverviewTicket {
   first_response_at: string | null;
   stage: {id: string;name: string;sequence: number;is_closed: boolean;is_folded: boolean;} | null;
   team: {id: string;name: string;} | null;
-  partner_contact: {id: string;name: string;email: string | null;phone: string | null;} | null;
+  partner_contact: {id: string;name: string;email: string | null;phone: string | null;erp_account?: {name: string;} | null;} | null;
 }
 
 interface PriorityOption {
@@ -413,7 +413,7 @@ const HelpdeskOverviewPage = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any).
       from("helpdesk_tickets").
-      select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,first_response_at,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone)").
+      select("id,ticket_number,title,description,priority,owner_user_id,partner_contact_id,stage_id,team_id,created_at,updated_at,closed_at,deadline,first_response_at,stage:helpdesk_ticket_stages(id,name,sequence,is_closed,is_folded),team:helpdesk_teams(id,name),partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone,erp_account:customers!contacts_linked_customer_id_fkey(name))").
       order("created_at", { ascending: false }).
       limit(500);
       if (error) throw error;
@@ -879,6 +879,7 @@ const KanbanView = ({
                                 </div>
                                 <span className="min-w-0 font-medium break-words">{ticket.partner_contact.name}</span>
                                 {ticket.partner_contact.email && <span className="min-w-0 break-all text-xs">· {ticket.partner_contact.email}</span>}
+                                {ticket.partner_contact.erp_account?.name && <span className="min-w-0 break-words text-xs font-medium text-foreground">· {ticket.partner_contact.erp_account.name}</span>}
                               </div>
                             )}
 

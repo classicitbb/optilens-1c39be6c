@@ -45,6 +45,7 @@ export interface HelpdeskTicketDetail {
     name: string;
     email: string | null;
     phone: string | null;
+    erp_account?: { name: string } | null;
   } | null;
 }
 
@@ -63,7 +64,7 @@ export const useHelpdeskTicketDetail = (ticketId: string | undefined) => {
           stage:helpdesk_ticket_stages(id,name,is_closed,is_folded,sequence),
           team:helpdesk_teams(id,name),
           ticket_type:helpdesk_ticket_types(id,name),
-          partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone)`
+          partner_contact:contacts!helpdesk_tickets_partner_contact_id_fkey(id,name,email,phone,erp_account:customers!contacts_linked_customer_id_fkey(name))`
         )
         .eq("id", ticketId)
         .single();
