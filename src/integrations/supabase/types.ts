@@ -6103,6 +6103,191 @@ export type Database = {
           },
         ]
       }
+      lead_discovery_identities: {
+        Row: {
+          city: string | null
+          country: string | null
+          display_name: string
+          first_seen_at: string
+          formatted_address: string | null
+          id: string
+          identity_key: string
+          last_seen_at: string
+          normalized_name: string
+          website: string | null
+          website_host: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          display_name: string
+          first_seen_at?: string
+          formatted_address?: string | null
+          id?: string
+          identity_key: string
+          last_seen_at?: string
+          normalized_name: string
+          website?: string | null
+          website_host?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          display_name?: string
+          first_seen_at?: string
+          formatted_address?: string | null
+          id?: string
+          identity_key?: string
+          last_seen_at?: string
+          normalized_name?: string
+          website?: string | null
+          website_host?: string | null
+        }
+        Relationships: []
+      }
+      lead_discovery_links: {
+        Row: {
+          confirmed_at: string
+          confirmed_by: string | null
+          contact_id: string | null
+          id: string
+          identity_id: string
+          link_kind: string
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          confirmed_at?: string
+          confirmed_by?: string | null
+          contact_id?: string | null
+          id?: string
+          identity_id: string
+          link_kind: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          confirmed_at?: string
+          confirmed_by?: string | null
+          contact_id?: string | null
+          id?: string
+          identity_id?: string
+          link_kind?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_discovery_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_discovery_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "lead_discovery_links_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "lead_discovery_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_discovery_reviews: {
+        Row: {
+          connection_strength: string
+          contact_id: string | null
+          follow_up_due_at: string | null
+          follow_up_owner: string | null
+          id: string
+          identity_id: string
+          needs_follow_up: boolean
+          note_id: string | null
+          opportunity_id: string | null
+          reviewed_at: string
+          reviewed_by: string | null
+          task_id: string | null
+        }
+        Insert: {
+          connection_strength?: string
+          contact_id?: string | null
+          follow_up_due_at?: string | null
+          follow_up_owner?: string | null
+          id?: string
+          identity_id: string
+          needs_follow_up?: boolean
+          note_id?: string | null
+          opportunity_id?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          connection_strength?: string
+          contact_id?: string | null
+          follow_up_due_at?: string | null
+          follow_up_owner?: string | null
+          id?: string
+          identity_id?: string
+          needs_follow_up?: boolean
+          note_id?: string | null
+          opportunity_id?: string | null
+          reviewed_at?: string
+          reviewed_by?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_discovery_reviews_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_discovery_reviews_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "lead_discovery_reviews_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: true
+            referencedRelation: "lead_discovery_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_discovery_reviews_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_discovery_reviews_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_discovery_reviews_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_provider_credentials: {
         Row: {
           created_at: string
@@ -13577,6 +13762,24 @@ export type Database = {
       is_credit_approved_portal_user: {
         Args: { p_user_id?: string }
         Returns: boolean
+      }
+      lead_finder_apply_link: {
+        Args: { p_contact_id: string; p_identity_id: string; p_kind: string }
+        Returns: undefined
+      }
+      lead_finder_clear_link: {
+        Args: { p_identity_key: string }
+        Returns: Json
+      }
+      lead_finder_confirm_link: {
+        Args: { p_contact_id: string; p_identity: Json }
+        Returns: Json
+      }
+      lead_finder_mark_customer: { Args: { p_identity: Json }; Returns: Json }
+      lead_finder_save_lead: { Args: { p_payload: Json }; Returns: Json }
+      lead_finder_touch_identity: {
+        Args: { p_identity: Json }
+        Returns: string
       }
       list_lead_provider_credentials_status: {
         Args: { p_tenant_key?: string }
