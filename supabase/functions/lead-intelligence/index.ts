@@ -9,6 +9,15 @@ import { fallbackPlan, planSearch } from "./ai/planner.ts";
 import { qualifyCandidates, type QualifiedLead, type RejectedCandidate } from "./ai/qualifier.ts";
 import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
+import {
+  applyCrmMatching,
+  buildCrmIndex,
+  normalizeCity,
+  unavailableAnnotation,
+  type ConfirmedLink,
+  type CrmContact,
+  type CrmCustomerAccount,
+} from "./crmMatching.ts";
 
 const corsPolicy = createCorsPolicy();
 
@@ -27,7 +36,8 @@ type EmptyReason =
   | "no_providers_configured"
   | "provider_failures"
   | "no_matches"
-  | "no_qualified_matches";
+  | "no_qualified_matches"
+  | "only_current_customers";
 
 type BlockedIntentCategory = "illegal" | "exploitative_vulnerability" | "coercive_abusive_targeting";
 
@@ -174,6 +184,48 @@ async function loadProviderCredentials(
   }
 }
 
+const PAGE_SIZE = 1000;
+
+/** PostgREST truncates unpaginated reads at 1000 rows, so every CRM read is paged. */
+async function fetchAllRows<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) return rows;
+  }
+}
+
+/** Contacts, customer accounts and operator-confirmed links. Throws when any read fails. */
+async function loadCrmContext(supabaseClient: any) {
+  const contacts = await fetchAllRows<CrmContact>((from, to) =>
+    supabaseClient.from("contacts")
+      .select("id,name,business_name,city,country,website,parent_id,is_customer,linked_customer_id,is_archived")
+      .order("id").range(from, to)
+  );
+  const customers = await fetchAllRows<CrmCustomerAccount>((from, to) =>
+    supabaseClient.from("customers").select("id,name,contact_id").order("id").range(from, to)
+  );
+  const rawLinks = await fetchAllRows<any>((from, to) =>
+    supabaseClient.from("lead_discovery_links")
+      .select("id,link_kind,contact_id,lead_discovery_identities(identity_key,normalized_name,city)")
+      .is("revoked_at", null).order("id").range(from, to)
+  );
+  const links: ConfirmedLink[] = rawLinks
+    .filter((row) => row.lead_discovery_identities)
+    .map((row) => ({
+      identity_key: row.lead_discovery_identities.identity_key,
+      normalized_name: row.lead_discovery_identities.normalized_name,
+      city: row.lead_discovery_identities.city ? normalizeCity(row.lead_discovery_identities.city) : null,
+      link_kind: row.link_kind,
+      contact_id: row.contact_id,
+    }));
+  return { index: buildCrmIndex(contacts, customers), links };
+}
+
 const ICP_FALLBACK_SUMMARY =
   "Optical retailers, eye clinics and regional optical chains across the Caribbean and diaspora, " +
   "buying wholesale lenses, coatings and optical supplies on a recurring basis.";
@@ -197,7 +249,7 @@ serve(async (req) => {
     const supabaseClient = authContext.supabaseUserClient;
 
     const body = await req.json();
-    const { brief, query, pipeline, includeDiagnostics, limit, icpSummary } = body ?? {};
+    const { brief, query, pipeline, includeDiagnostics, limit, icpSummary, showCurrentCustomers } = body ?? {};
 
     // `query` is the legacy field name, still used by the CRM name typeahead.
     const rawBrief = typeof brief === "string" && brief.trim().length > 0
@@ -320,7 +372,7 @@ serve(async (req) => {
 
     // Step 4 - score and rank.
     const scoringWeights = await loadScoringWeights(supabaseClient);
-    const leads = qualified
+    const scoredLeads = qualified
       .map((lead) => {
         const scored = scoreLead(lead, scoringWeights, {
           country: lead.country ?? undefined,
@@ -335,8 +387,27 @@ serve(async (req) => {
           lead_score_breakdown: scored.lead_score_breakdown,
         };
       })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, leadLimit);
+      .sort((a, b) => b.score - a.score);
+
+    // Step 5 - recognise the CRM. Matching and customer exclusion run on the
+    // full ranked list so the result limit never hides a prospect behind a customer.
+    let crmLookup: { ok: boolean; error: string | null } = { ok: true, error: null };
+    let excludedCustomerCount = 0;
+    let leads: Array<(typeof scoredLeads)[number] & { crm: unknown; identity_key: string }>;
+    try {
+      const crmContext = await loadCrmContext(supabaseClient);
+      const matched = applyCrmMatching(scoredLeads, crmContext.index, crmContext.links, {
+        showCurrentCustomers: showCurrentCustomers === true,
+      });
+      excludedCustomerCount = matched.excludedCustomerCount;
+      leads = matched.leads.slice(0, leadLimit).map((lead) => ({ ...lead, identity_key: lead.crm.identityKey }));
+    } catch (error) {
+      crmLookup = { ok: false, error: error instanceof Error ? error.message : "CRM_LOOKUP_FAILED" };
+      leads = scoredLeads.slice(0, leadLimit).map((lead) => {
+        const crm = unavailableAnnotation(lead);
+        return { ...lead, crm, identity_key: crm.identityKey };
+      });
+    }
 
     const providersUsed = Object.entries(telemetry)
       .filter(([, data]) => data.attempted && data.resultCount > 0)
@@ -348,7 +419,9 @@ serve(async (req) => {
 
     let emptyReason: EmptyReason | null = null;
     if (leads.length === 0) {
-      if (attemptedEntries.length === 0) {
+      if (excludedCustomerCount > 0) {
+        emptyReason = "only_current_customers";
+      } else if (attemptedEntries.length === 0) {
         emptyReason = "no_providers_configured";
       } else if (attemptedWithFailures.length === attemptedEntries.length) {
         emptyReason = "provider_failures";
@@ -377,6 +450,9 @@ serve(async (req) => {
       providerTelemetry: telemetry,
       candidatesFound: candidates.length,
       qualifiedCount: leads.length,
+      excludedCustomerCount,
+      showCurrentCustomers: showCurrentCustomers === true,
+      crmLookup,
       rejected: rejected.slice(0, 10),
       emptyReason,
       fetchedAt: new Date().toISOString(),

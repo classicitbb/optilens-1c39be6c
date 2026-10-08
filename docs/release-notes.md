@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+### Release Notes
+- Lead Finder now matches results to the CRM, excludes current customers, supports linking an existing contact (even with a different name), Connection strength and follow-up tasks. Not yet deployed.
+
 ## 2026-10-07 — CRM research provider (local source)
 
 ### Release Notes

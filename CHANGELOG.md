@@ -2,6 +2,14 @@
 
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
 
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+### Release Notes
+- Lead Finder recognises existing CRM contacts and customers, leaves current customers out of results (with a count and a Show current customers toggle), lets you link or correct matches, records Connection strength separately from the AI score, and can create a follow-up task. Migration, function deployment and frontend publication are pending approval.
+
+### Technical Changelog
+- New pure matcher `lead-intelligence/crmMatching.ts` runs before the result limit; new tables `lead_discovery_identities/links/reviews` and RPCs `lead_finder_confirm_link/mark_customer/clear_link/save_lead` replace the name-based upsert with one advisory-locked, idempotent transaction.
+
 ## 2026-10-07 — CRM research provider (local source)
 
 ### Release Notes
