@@ -42,6 +42,11 @@ interface PriorityOption {
 interface CreateHelpdeskTicketDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-selects the initial stage (e.g. the kanban column the "+" was clicked in). */
+  defaultStageId?: string;
+  /** Pre-fills the form each time the dialog opens (e.g. a question raised from an order). */
+  initialValues?: { title?: string; description?: string; contactId?: string; notifyContacts?: boolean };
+  onCreated?: (ticketId: string) => void;
 }
 
 const EMPTY_TEAMS: TeamOption[] = [];
@@ -49,7 +54,41 @@ const EMPTY_STAGES: StageOption[] = [];
 const EMPTY_TICKET_TYPES: TicketTypeOption[] = [];
 const EMPTY_PRIORITIES: PriorityOption[] = [];
 
-export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: CreateHelpdeskTicketDialogProps) {
+// ── localStorage helpers for "last two consistent creations" ──
+const HISTORY_KEY = "helpdesk_create_history";
+
+interface CreateSnapshot {
+  teamId: string;
+  stageId: string;
+  priority: string;
+  ticketTypeId: string;
+}
+
+function loadHistory(): CreateSnapshot[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as CreateSnapshot[]).slice(0, 2) : [];
+  } catch { return []; }
+}
+
+function pushHistory(snapshot: CreateSnapshot) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify([snapshot, ...loadHistory()].slice(0, 2)));
+  } catch { /* storage unavailable: defaults just won't be remembered */ }
+}
+
+/** If the last two creations share the same value for a field, return it. */
+function consistentDefault(field: keyof CreateSnapshot): string | undefined {
+  const hist = loadHistory();
+  if (hist.length < 2) return hist[0]?.[field] || undefined;
+  return hist[0][field] === hist[1][field] ? hist[0][field] || undefined : undefined;
+}
+
+export default function CreateHelpdeskTicketDialog({ open, onOpenChange, defaultStageId, initialValues, onCreated }: CreateHelpdeskTicketDialogProps) {
+  const initialTitle = initialValues?.title ?? "";
+  const initialDescription = initialValues?.description ?? "";
+  const initialContactId = initialValues?.contactId ?? "";
+  const initialNotify = initialValues?.notifyContacts ?? false;
   const { user } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -128,21 +167,22 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
 
     setFiles([]);
     setForm({
-      title: "",
-      description: "",
-      teamId: "",
-      stageId: stages.find((stage) => !stage.is_closed)?.id ?? "",
-      priority: priorities.length > 0 ? String(priorities[0].level) : "1",
-      contactId: "",
-      ticketTypeId: "",
+      title: initialTitle,
+      description: initialDescription,
+      teamId: consistentDefault("teamId") ?? "",
+      stageId: defaultStageId ?? consistentDefault("stageId") ?? stages.find((stage) => !stage.is_closed)?.id ?? "",
+      priority: consistentDefault("priority") ?? (priorities.length > 0 ? String(priorities[0].level) : "1"),
+      contactId: initialContactId,
+      ticketTypeId: consistentDefault("ticketTypeId") ?? "",
       dueDate: "",
-      notifyContacts: false,
+      notifyContacts: initialNotify,
     });
     const focusTimer = window.setTimeout(() => titleRef.current?.focus(), 80);
     return () => window.clearTimeout(focusTimer);
-  }, [open, priorities, stages]);
+  }, [open, priorities, stages, defaultStageId, initialTitle, initialDescription, initialContactId, initialNotify]);
 
   const handleCreate = async () => {
+    if (createTicket.isPending) return;
     if (!form.title.trim()) {
       toast({ title: "Ticket title is required", variant: "destructive" });
       titleRef.current?.focus();
@@ -163,6 +203,8 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
         sourceChannel: "manual",
         notifyContact: !!form.contactId && form.notifyContacts,
       });
+      pushHistory({ teamId: form.teamId, stageId: form.stageId, priority: form.priority, ticketTypeId: form.ticketTypeId });
+      onCreated?.(ticketId);
       if (files.length) {
         // The ticket exists already; report a failed upload without losing it.
         try {
@@ -298,7 +340,8 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
             </div>
           </div>
 
-          <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} disabled={createTicket.isPending}>
+          {/* aria-disabled, not disabled: a disabled focused button drops focus to <body>, which a parent dialog treats as a dismiss. */}
+          <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} aria-disabled={createTicket.isPending}>
             {createTicket.isPending ? "Creating…" : "Create Ticket"}
           </Button>
         </div>

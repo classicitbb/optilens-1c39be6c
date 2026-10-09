@@ -9,14 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeHelpdeskPriorityLabel } from "@/features/admin/helpdesk/utils/normalization";
 import { useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
-import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
+import CreateHelpdeskTicketDialog from "@/features/admin/helpdesk/components/CreateHelpdeskTicketDialog";
 import { useHelpdeskTicketAlerts } from "@/features/admin/helpdesk/hooks/useHelpdeskTicketAlerts";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import { useToast } from "@/hooks/use-toast";
@@ -42,11 +41,6 @@ interface OverviewTicket {
   stage: {id: string;name: string;sequence: number;is_closed: boolean;is_folded: boolean;} | null;
   team: {id: string;name: string;} | null;
   partner_contact: {id: string;name: string;email: string | null;phone: string | null;erp_account?: {name: string;} | null;} | null;
-}
-
-interface PriorityOption {
-  level: number;
-  label: string;
 }
 
 interface StageColumn {
@@ -196,194 +190,28 @@ const TicketEditDialog = ({
 
 };
 
-const StageCreateTicketDialog = ({
-  stageName,
-  defaultStageId,
-  stages,
-  teams,
-  priorities,
-  ticketTypes,
-  canCreate,
-  isCreating,
-  onCreate,
-}: {
-  stageName: string;
-  defaultStageId: string;
-  stages: { id: string; name: string }[];
-  teams: { id: string; name: string }[];
-  priorities: PriorityOption[];
-  ticketTypes: { id: string; name: string }[];
-  canCreate: boolean;
-  isCreating: boolean;
-  onCreate: (payload: { title: string; description: string; teamId?: string | null; stageId?: string | null; dueDate?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null }) => Promise<void>;
-}) => {
+const StageCreateTicketDialog = ({ stageName, defaultStageId }: { stageName: string; defaultStageId: string }) => {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    teamId: "",
-    stageId: defaultStageId,
-    dueDate: "",
-    priority: "1",
-    contactId: "",
-    ticketTypeId: "",
-  });
-
-  useEffect(() => {
-    if (!open) {
-      setForm({
-        title: "",
-        description: "",
-        teamId: "",
-        stageId: defaultStageId,
-        dueDate: "",
-        priority: "1",
-        contactId: "",
-        ticketTypeId: "",
-      });
-    }
-  }, [defaultStageId, open]);
-
-  const handleCreate = async () => {
-    if (!form.title.trim()) return;
-    await onCreate({
-      title: form.title,
-      description: form.description,
-      teamId: form.teamId || null,
-      stageId: form.stageId || defaultStageId,
-      dueDate: form.dueDate || null,
-      priority: Number(form.priority),
-      contactId: form.contactId || null,
-      ticketTypeId: form.ticketTypeId || null,
-    });
-    setForm({
-      title: "",
-      description: "",
-      teamId: "",
-      stageId: defaultStageId,
-      dueDate: "",
-      priority: "1",
-      contactId: "",
-      ticketTypeId: "",
-    });
-    setOpen(false);
-  };
+  const qc = useQueryClient();
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <>
       <Button
         size="icon"
         variant="ghost"
         className="h-7 w-7 text-primary hover:text-primary"
-        disabled={!canCreate}
         title={`Create ticket in ${stageName}`}
         onClick={() => setOpen(true)}
       >
         <Plus className="h-4 w-4" />
       </Button>
-      <DialogContent className="admin-tool admin-overlay-surface w-[520px] max-w-[calc(100vw-1rem)] p-4">
-        <div className="space-y-2" onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            void handleCreate();
-          }
-        }} role="form">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-semibold text-center">Create Ticket</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Type</Label>
-              <Select
-                value={form.ticketTypeId || "__none"}
-                onValueChange={(v) => {
-                  const typeId = v === "__none" ? "" : v;
-                  const typeName = ticketTypes.find((type) => type.id === typeId)?.name;
-                  setForm((prev) => ({
-                    ...prev,
-                    ticketTypeId: typeId,
-                    title: !prev.title.trim() && typeName ? typeName : prev.title,
-                    description: !prev.description.trim() && typeName ? typeName : prev.description,
-                  }));
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none" className="text-xs">No type</SelectItem>
-                  {ticketTypes.map((type) => <SelectItem key={type.id} value={type.id} className="text-xs">{type.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Title *</Label>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                placeholder="Ticket title"
-                className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Contact</Label>
-              <ContactPickerSelect
-                value={form.contactId || null}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, contactId: value || "" }))}
-                placeholder="No contact"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Description</Label>
-              <Textarea
-                value={form.description}
-                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description"
-                className="text-xs min-h-[96px] focus:ring-2 focus:ring-inset focus:ring-primary"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Team</Label>
-              <Select value={form.teamId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, teamId: v === "__none" ? "" : v }))}>
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Team" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none" className="text-xs">No team</SelectItem>
-                  {teams.map((team) => <SelectItem key={team.id} value={team.id} className="text-xs">{team.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Priority</Label>
-              <Select value={form.priority} onValueChange={(v) => setForm((prev) => ({ ...prev, priority: v }))}>
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Priority" /></SelectTrigger>
-                <SelectContent>
-                  {priorities.map((priority) => <SelectItem key={priority.level} value={String(priority.level)} className="text-xs">{priority.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Initial Stage</Label>
-              <Select value={form.stageId || "__none"} onValueChange={(v) => setForm((prev) => ({ ...prev, stageId: v === "__none" ? "" : v }))}>
-                <SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Initial stage" /></SelectTrigger>
-                <SelectContent>
-                  {stages.map((stage) => <SelectItem key={stage.id} value={stage.id} className="text-xs">{stage.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Due Date</Label>
-              <Input
-                type="date"
-                value={form.dueDate}
-                onChange={(e) => setForm((prev) => ({ ...prev, dueDate: e.target.value }))}
-                className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"
-              />
-            </div>
-            <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} disabled={isCreating || !form.title.trim()}>
-              Create Ticket
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+      <CreateHelpdeskTicketDialog
+        open={open}
+        onOpenChange={setOpen}
+        defaultStageId={defaultStageId}
+        onCreated={() => qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] })}
+      />
+    </>
   );
 };
 
@@ -405,7 +233,6 @@ const HelpdeskOverviewPage = () => {
   const openTicket = useOpenTicket();
 
   const updateStage = useUpdateHelpdeskTicketStage();
-  const createTicket = useCreateHelpdeskTicket();
 
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ["helpdesk-overview-tickets"],
@@ -500,26 +327,6 @@ const HelpdeskOverviewPage = () => {
     }
   });
 
-  const { data: priorities = [] } = useQuery({
-    queryKey: ["helpdesk-overview-priorities"],
-    enabled: canViewHelpdesk,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("helpdesk_priorities").select("level,label").eq("is_active", true).order("level");
-      if (error) throw error;
-      return (data ?? []) as PriorityOption[];
-    }
-  });
-
-  const { data: ticketTypes = [] } = useQuery({
-    queryKey: ["helpdesk-overview-ticket-types"],
-    enabled: canViewHelpdesk,
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).from("helpdesk_ticket_types").select("id,name").order("name");
-      if (error) throw error;
-      return (data ?? []) as { id: string; name: string }[];
-    }
-  });
-
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
     return tickets.filter((t) => {
@@ -566,29 +373,6 @@ const HelpdeskOverviewPage = () => {
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, [isFullscreen]);
-
-  const handleCreateInStage = useCallback(async (stageId: string, payload: { title: string; description: string; teamId?: string | null; stageId?: string | null; dueDate?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => {
-    const nextStageId = payload.stageId ?? stageId;
-    try {
-      await createTicket.mutateAsync({
-        title: payload.title,
-        description: payload.description,
-        teamId: payload.teamId ?? null,
-        stageId: nextStageId,
-        priority: payload.priority,
-        ownerUserId: user?.id,
-        partnerContactId: payload.contactId ?? null,
-        ticketTypeId: payload.ticketTypeId ?? null,
-        deadline: payload.dueDate ? new Date(`${payload.dueDate}T00:00:00`).toISOString() : null,
-        sourceChannel: "manual",
-      });
-      qc.invalidateQueries({ queryKey: ["helpdesk-overview-tickets"] });
-      toast({ title: "Ticket created", description: `Created in stage ${stages.find((stage: any) => stage.id === nextStageId)?.name ?? ""}` });
-    } catch (err) {
-      toast({ title: "Ticket creation failed", description: (err as Error).message, variant: "destructive" });
-      throw err;
-    }
-  }, [createTicket, user?.id, qc, toast, stages]);
 
   const handleDrop = useCallback(async (ticketId: string, targetStageId: string) => {
     if (targetStageId === "__unstaged") return;
@@ -668,7 +452,7 @@ const HelpdeskOverviewPage = () => {
           <p className="text-sm text-muted-foreground">Loading tickets…</p>
         </div> :
       viewMode === "kanban" ?
-      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={handleOpenTicket} canCreate={canEdit} isCreating={createTicket.isPending} onCreateInStage={handleCreateInStage} teams={teams} priorities={priorities} ticketTypes={ticketTypes} alertingTicketIds={alertingTicketIds} /> :
+      <KanbanView columns={stageColumns} getOwnerName={getOwnerName} getCreatorName={getCreatorName} onDrop={canEdit ? handleDrop : undefined} onEdit={handleOpenTicket} canCreate={canEdit} alertingTicketIds={alertingTicketIds} /> :
 
       <ListView columns={stageColumns} getOwnerName={getOwnerName} stages={stages} canEdit={canEdit} onStageChange={handleListStageChange} onEdit={handleOpenTicket} alertingTicketIds={alertingTicketIds} />
       }
@@ -687,11 +471,6 @@ const KanbanView = ({
   onDrop,
   onEdit,
   canCreate,
-  isCreating,
-  onCreateInStage,
-  teams,
-  priorities,
-  ticketTypes,
   alertingTicketIds,
 }: {
   columns: StageColumn[];
@@ -700,11 +479,6 @@ const KanbanView = ({
   onDrop?: (ticketId: string, stageId: string) => void;
   onEdit?: (t: OverviewTicket) => void;
   canCreate: boolean;
-  isCreating: boolean;
-  onCreateInStage: (stageId: string, payload: { title: string; description: string; teamId?: string | null; stageId?: string | null; dueDate?: string | null; priority: number; contactId?: string | null; ticketTypeId?: string | null; }) => Promise<void>;
-  teams: { id: string; name: string }[];
-  priorities: PriorityOption[];
-  ticketTypes: { id: string; name: string }[];
   alertingTicketIds?: Set<string>;
 }) => {
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -815,17 +589,7 @@ const KanbanView = ({
                     </div>
                     <div className="flex items-center gap-1">
                       {canCreate && col.name.toLowerCase() === "new" && col.id !== "__unstaged" && (
-                        <StageCreateTicketDialog
-                          stageName={col.name}
-                          defaultStageId={col.id}
-                          stages={columns.map((column) => ({ id: column.id, name: column.name }))}
-                          teams={teams}
-                          priorities={priorities}
-                          ticketTypes={ticketTypes}
-                          canCreate={canCreate}
-                          isCreating={isCreating}
-                          onCreate={(payload) => onCreateInStage(col.id, payload)}
-                        />
+                        <StageCreateTicketDialog stageName={col.name} defaultStageId={col.id} />
                       )}
                       <Badge variant="secondary" className="text-[10px] font-mono">{col.tickets.length}</Badge>
                     </div>

@@ -76,9 +76,9 @@ export async function uploadHelpdeskFiles(ticketId: string, files: File[], messa
   return uploaded;
 }
 
-export async function getHelpdeskAttachmentUrls(attachments: HelpdeskAttachment[]) {
+export async function getHelpdeskAttachmentUrls(attachments: HelpdeskAttachment[], bucket = "helpdesk-attachments") {
   return Promise.all(attachments.map(async (attachment) => {
-    const { data, error } = await supabase.storage.from("helpdesk-attachments").createSignedUrl(attachment.storage_path, 60 * 10);
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(attachment.storage_path, 60 * 10);
     if (error) return attachment;
     return { ...attachment, signedUrl: data.signedUrl };
   }));
