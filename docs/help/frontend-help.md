@@ -292,3 +292,5 @@ Atlas release verification (2026-10-08): the scoped frontend and named sharing m
 ## 2026-10-09 — Public support attachments (local source)
 
 In Contact us or Get support, choose Attach files, paste a file into the details field, or drag it into Iris. Images, PDF/Word/Excel/text documents and supported audio formats are accepted (5 files, 10 MB each). Review file names before Confirm & send. Files from the current Iris chat accompany the request. These changes await release.
+
+Public support form follow-up (2026-10-09): request sections retain their natural height and the form scrolls when attachments exceed the available Iris window height. This prevents file rows from overlapping name, title and details fields.

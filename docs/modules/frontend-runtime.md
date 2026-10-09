@@ -338,3 +338,5 @@ Atlas release verification (2026-10-08): the scoped frontend and named sharing m
 ## 2026-10-09 — Public support attachments (local source)
 
 Public inquiry helper sends multipart submission JSON plus files when attachments exist, preserving JSON-only callers. contact-inquiry enforces actual request-byte caps and file validation, saves private Helpdesk metadata after ticket creation, and returns attachmentError independently of request success. Public uploader attribution is nullable through the prepared migration; existing access policies remain unchanged.
+
+Public support form follow-up (2026-10-09): request sections retain their natural height and the form scrolls when attachments exceed the available Iris window height. This prevents file rows from overlapping name, title and details fields.

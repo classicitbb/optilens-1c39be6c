@@ -648,3 +648,11 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 ## 2026-10-09 — Public support attachments (local source)
 
 Contact us and Get support now allow public Iris requests to carry photos, documents and audio through browse, paste and drop. Chat attachments carry into the request. Local source only; migration/function/frontend release pending.
+
+## 2026-10-09 — Public support form layout (local source)
+
+### Release Notes
+- Public support form sections retain their natural height and scroll when files exceed the available Iris window height, preventing attachment rows from overlapping fields.
+
+### Technical Changelog
+- Disabled shrinking on direct request-form sections and removed the zero-basis growing request-details container in `src/components/assistant/CompanionAssistant.tsx`.

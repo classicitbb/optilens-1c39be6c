@@ -435,7 +435,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
 
   return (
     <form
-      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
+      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto [&>div]:shrink-0 rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
       aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
@@ -538,7 +538,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
           />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col space-y-3">
+        <div className="flex shrink-0 flex-col space-y-3">
           {!isPortalSupport ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2"><Label htmlFor="assistant-requester-name">Your name</Label><Input id="assistant-requester-name" value={formState.name} onChange={(event) => updateForm({ name: event.target.value })} disabled={isSubmitting} /></div>
@@ -555,7 +555,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
             <Label htmlFor="assistant-request-title">Request title</Label>
             <Input id="assistant-request-title" value={formState.issueType} onChange={(event) => updateForm({ issueType: event.target.value })} placeholder="A short title for this request" disabled={isSubmitting} />
           </div>
-          <div className="flex min-h-40 flex-1 flex-col space-y-2">
+          <div className="flex min-h-40 flex-col space-y-2">
             <Label htmlFor="assistant-request-details">What do you need help with?</Label>
             <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="min-h-32 flex-1 resize-none overflow-y-auto assistant-scrollbar" />
           </div>

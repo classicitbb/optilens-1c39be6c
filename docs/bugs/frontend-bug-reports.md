@@ -361,3 +361,5 @@ Atlas release verification (2026-10-08): the scoped frontend and named sharing m
 ## 2026-10-09 — Public support attachments (local source)
 
 Fixed locally: public customer_support requests hid file controls and discarded chat attachments because only portal tickets had an upload path. Public multipart ingestion now stores private ticket files; failed uploads warn without hiding the saved request. 27 focused tests pass. Real browser automation timed out; hosted upload/read checks remain pending.
+
+Public support form follow-up (2026-10-09): request sections retain their natural height and the form scrolls when attachments exceed the available Iris window height. This prevents file rows from overlapping name, title and details fields.
