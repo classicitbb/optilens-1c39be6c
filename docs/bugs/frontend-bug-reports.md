@@ -357,3 +357,7 @@ Track frontend regressions and customer-facing issues.
 - Resolution: anonymous signing lives in a separate `walkin-pay` function authenticated by hashed one-time token, with a database-backed per-IP limiter, database-enforced amount bounds, a fail-closed Turnstile check and an admin kill switch. `scotia-payment` is unchanged for existing flows.
 
 Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.
+
+## 2026-10-09 — Public support attachments (local source)
+
+Fixed locally: public customer_support requests hid file controls and discarded chat attachments because only portal tickets had an upload path. Public multipart ingestion now stores private ticket files; failed uploads warn without hiding the saved request. 27 focused tests pass. Real browser automation timed out; hosted upload/read checks remain pending.

@@ -1,3 +1,4 @@
+import { validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PublicInquirySubmission {
@@ -12,11 +13,18 @@ export interface PublicInquirySubmission {
   sourceChannel?: string;
   honeypot?: string;
   startedAt: string;
+  files?: File[];
 }
 
 export const submitPublicInquiry = async (submission: PublicInquirySubmission) => {
-  const { error } = await supabase.functions.invoke("contact-inquiry", {
-    body: {
+  const { files = [], ...fields } = submission;
+  const validation = validateHelpdeskFiles(files);
+  if (validation) throw new Error(validation);
+  const multipart = new FormData();
+  multipart.set("submission", JSON.stringify(fields));
+  files.forEach((file) => multipart.append("files", file, file.name));
+  const { data, error } = await supabase.functions.invoke("contact-inquiry", {
+    body: files.length ? multipart : {
       inquiryType: submission.inquiryType,
       name: submission.name,
       email: submission.email,
@@ -32,4 +40,5 @@ export const submitPublicInquiry = async (submission: PublicInquirySubmission) =
   });
 
   if (error) throw error;
+  return data as { success: boolean; attachmentError?: string | null };
 };

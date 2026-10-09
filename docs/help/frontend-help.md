@@ -288,3 +288,7 @@ Support-facing notes for the frontend runtime.
 - Amounts now display and store as Barbados dollars. If an older receipt shows `840`, that is a pre-correction record, not a USD charge — the bank has always charged BBD.
 
 Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.
+
+## 2026-10-09 — Public support attachments (local source)
+
+In Contact us or Get support, choose Attach files, paste a file into the details field, or drag it into Iris. Images, PDF/Word/Excel/text documents and supported audio formats are accepted (5 files, 10 MB each). Review file names before Confirm & send. Files from the current Iris chat accompany the request. These changes await release.

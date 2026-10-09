@@ -345,3 +345,7 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
 
 ### Release Notes
+
+## 2026-10-09 — Public support attachments (local source)
+
+### Release Notes

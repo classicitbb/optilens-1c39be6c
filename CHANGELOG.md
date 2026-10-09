@@ -644,3 +644,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 - Updated `scripts/admin_smoke_and_error_checks.mjs` with additional route and snippet assertions.
 - Preserved runtime log format contract checks for `[runtime-error] <timestamp> | <source> | <title> | <detail> | <route>`.
 - Added this date-stamped changelog structure for future major updates.
+
+## 2026-10-09 — Public support attachments (local source)
+
+Contact us and Get support now allow public Iris requests to carry photos, documents and audio through browse, paste and drop. Chat attachments carry into the request. Local source only; migration/function/frontend release pending.

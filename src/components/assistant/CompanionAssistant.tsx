@@ -562,7 +562,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
         </div>
       )}
 
-      {user && (isPortalSupport || isQuoteRequest) ? (
+      {!isTradeSignup ? (
         <div className="space-y-2">
           <input
             ref={requestFileInputRef}
@@ -726,11 +726,15 @@ const CompanionAssistant = () => {
   };
   useEffect(() => {
     if (!formState) { setRequestFiles([]); setRequestFileError(null); }
-  }, [formState]);
+    else if (formState.kind !== "trade_signup" && attachments.length) {
+      setRequestFiles((current) => [...current, ...attachments.map(({ file }) => file)]);
+      setAttachments([]);
+    }
+  }, [formState, attachments]);
 
   // A drop or paste anywhere in the Iris window goes to the request form when
   // one is open (and can take files), otherwise to the chat composer.
-  const requestFormTakesFiles = Boolean(user && formState && (formState.kind === "portal_support" || formState.kind === "quote_request"));
+  const requestFormTakesFiles = Boolean(formState && formState.kind !== "trade_signup");
   const routeDroppedFiles = (files: File[]) => {
     if (historyOpen) return;
     if (formState) { if (requestFormTakesFiles) addRequestFiles(files); return; }

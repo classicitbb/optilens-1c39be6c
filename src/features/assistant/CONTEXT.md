@@ -29,3 +29,7 @@ Shared Iris identity: `docs/ai-assistant-identity.md` and
   path — do not add a parallel retrieval mechanism.
 - Keep the engine (`companionAssistantEngine.ts`) decoupled from React — 
   no direct React imports in the engine file.
+
+## Public request attachments (2026-10-09, local source)
+
+Contact us and Get support accept browse/paste/drop photos, documents and audio (5 files, 10 MB each). Iris transfers unsent composer files into the request and includes sent chat files on submission. `submitPublicInquiry` retains JSON for text-only clients and sends multipart `submission` + `files` otherwise. `contact-inquiry` bounds actual request bytes, validates files independently, then stores them in private ticket-scoped storage after spam/rate checks and ticket creation. Nullable uploader metadata represents a public inquiry; existing participant INSERT and private read policies stay intact. Migration `20261009141913_public_inquiry_attachments.sql` must precede function/frontend release. Partial upload failure returns `attachmentError` while preserving request success. No deployment or live write performed.

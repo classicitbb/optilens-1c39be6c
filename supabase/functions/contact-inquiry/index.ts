@@ -17,6 +17,15 @@ const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_MESSAGE_LENGTH = 4000;
+const ATTACHMENT_TYPES = new Set([
+  "image/png", "image/jpeg", "image/gif", "image/webp",
+  "application/pdf", "text/plain", "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav", "audio/x-wav", "audio/webm", "audio/ogg",
+]);
 
 const inquirySchema = z.object({
   inquiryType: z.string().trim().min(1).max(50).default("contact"),
@@ -51,7 +60,7 @@ Deno.serve(async (req) => {
 
   try {
     const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > 20_000) {
+    if (Number.isFinite(contentLength) && contentLength > (req.headers.get("content-type")?.includes("multipart/form-data") ? 51 * 1024 * 1024 : 20_000)) {
       return new Response(JSON.stringify({ error: "Payload too large" }), {
         status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -70,7 +79,35 @@ Deno.serve(async (req) => {
       console.warn("SMTP not configured (SMTP_HOST / SMTP_USER / SMTP_PASS missing) — emails will not send");
     }
 
-    const payload = inquirySchema.parse(await req.json());
+    // Enforce the body cap even for chunked requests without Content-Length.
+    const maxBodyBytes = req.headers.get("content-type")?.includes("multipart/form-data") ? 51 * 1024 * 1024 : 20_000;
+    const reader = req.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let bodyBytes = 0;
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bodyBytes += value.byteLength;
+        if (bodyBytes > maxBodyBytes) {
+          await reader.cancel();
+          return new Response(JSON.stringify({ error: "Payload too large" }), {
+            status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        chunks.push(value);
+      }
+    }
+    const body = new Blob(chunks as BlobPart[]);
+    const parsedBody = new Response(body, { headers: { "Content-Type": req.headers.get("content-type") || "application/json" } });
+    const multipart = req.headers.get("content-type")?.includes("multipart/form-data") ? await parsedBody.formData() : null;
+    const payload = inquirySchema.parse(multipart ? JSON.parse(String(multipart.get("submission"))) : await parsedBody.json());
+    const files = multipart ? multipart.getAll("files") : [];
+    if (files.length > 5 || files.some((file) => !(file instanceof File) || file.size === 0 || file.size > 10485760 || !ATTACHMENT_TYPES.has(file.type))) {
+      return new Response(JSON.stringify({ error: "Attach up to five supported photos, documents or audio files, 10 MB each." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const sourcePath = new URL(req.url).pathname;
     const ipHint = getIpHintFromRequest(req);
     const userAgent = getUserAgentFromRequest(req) ?? "unknown";
@@ -234,6 +271,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    let attachmentError: string | null = files.length ? "The support ticket could not be created." : null;
+
     // Create helpdesk ticket so submissions appear in the helpdesk overview
     try {
       if (!contactId) {
@@ -294,6 +333,27 @@ Deno.serve(async (req) => {
             inquiry_type: payload.inquiryType,
           },
         });
+        attachmentError = null;
+        try {
+          for (const entry of files) {
+            const file = entry as File;
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-100) || "file";
+            const path = `${ticket.id}/public-inquiry/${crypto.randomUUID()}-${safeName}`;
+            const { error: uploadError } = await supabase.storage.from("helpdesk-attachments").upload(path, file, { contentType: file.type, upsert: false });
+            if (uploadError) throw uploadError;
+            const { error: metadataError } = await supabase.from("helpdesk_ticket_attachments").insert({
+              ticket_id: ticket.id, uploaded_by_user_id: null, file_name: file.name.slice(0, 255),
+              mime_type: file.type, byte_size: file.size, storage_path: path,
+            });
+            if (metadataError) {
+              await supabase.storage.from("helpdesk-attachments").remove([path]);
+              throw metadataError;
+            }
+          }
+        } catch (error) {
+          console.error("Public inquiry attachment upload failed", error);
+          attachmentError = "One or more files could not be attached. The request was saved.";
+        }
         console.log(`Helpdesk ticket ${ticketNumber} created from ${payload.inquiryType} form (contact: ${contactId ?? "none"})`);
       }
     } catch (ticketCreateErr) {
@@ -393,7 +453,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id }), {
+    return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id, attachmentError }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

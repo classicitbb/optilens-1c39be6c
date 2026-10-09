@@ -13,7 +13,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-08 (Atlas scoped production release and verification)
+Last updated: 2026-10-09 (public support attachments prepared locally)
 
 ---
 
@@ -362,3 +362,7 @@ catalog_assignments    — many-to-many: templates ↔ customers
 | Agent/validation rules | `AGENTS.md` |
 | Architecture overview | `docs/architecture/README.md` |
 | Feature-level context | `src/features/<name>/CONTEXT.md` |
+
+## Contact us / Get support attachments — 2026-10-09
+
+Local source enables public Iris attachment browse, description paste and window drop for images, documents and audio; pending composer files and sent chat files carry into requests. Public multipart ingestion persists private Helpdesk attachments without public bucket access. Existing admin shared picker already supports dialog-wide paste/drop. Migration and function/frontend release require approval; hosted upload and authenticated read proof remain pending. See HANDOFF.md.

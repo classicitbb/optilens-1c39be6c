@@ -334,3 +334,7 @@ Operational notes and change context for code in `src/**`.
 - `src/components/payments/TurnstileWidget.tsx` renders nothing without `VITE_TURNSTILE_SITE_KEY`; the server refuses self-service payments without its own secret regardless, so a missing key surfaces as "unavailable" rather than as an unprotected form.
 
 Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.
+
+## 2026-10-09 — Public support attachments (local source)
+
+Public inquiry helper sends multipart submission JSON plus files when attachments exist, preserving JSON-only callers. contact-inquiry enforces actual request-byte caps and file validation, saves private Helpdesk metadata after ticket creation, and returns attachmentError independently of request success. Public uploader attribution is nullable through the prepared migration; existing access policies remain unchanged.

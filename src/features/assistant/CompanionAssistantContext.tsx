@@ -1108,6 +1108,15 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     if ((!requestTitle) || (!isQuoteRequest && !summary) || (isQuoteRequest && !user) || (!isQuoteRequest && (!formState.name.trim() || !formState.email.trim())) || (isPricelistRequest && (!formState.businessName.trim() || !formState.market.trim() || !isPricelistRequesterEligible(formState.requesterType)))) return;
     const requestDetails = isQuoteRequest ? [requestTitle, summary].filter(Boolean).join("\n\n") : summary;
 
+    const collectRequestFiles = async () => {
+      const chatFiles = await Promise.all(messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []).map(async (attachment) => {
+        const response = await fetch(attachment.previewUrl);
+        const blob = await response.blob();
+        return new File([blob], attachment.name, { type: attachment.mimeType || blob.type || "image/png" });
+      }));
+      return [...chatFiles, ...formFiles];
+    };
+
     setIsSubmitting(true);
     try {
       const resultSummary = messages
@@ -1167,7 +1176,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           `Assistant context: ${JSON.stringify(contextNotes)}`,
         ].filter(Boolean).join("\n");
 
-        await submitPublicInquiry({
+        const inquiry = await submitPublicInquiry({
+          files: await collectRequestFiles(),
           inquiryType: isPricelistRequest ? "price_list" : "assistant_request",
           name: formState.name.trim(),
           email: formState.email.trim(),
@@ -1179,6 +1189,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
           honeypot: "",
           startedAt: formState.startedAt,
         });
+        attachmentUploadError = inquiry?.attachmentError ?? null;
       }
 
       // Files picked in the chat composer and in the request form are persisted
@@ -1188,12 +1199,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       // the success confirmation.
       if (portalTicketId && (formFiles.length || messages.some((message) => message.role === "user" && message.attachments?.length))) {
         try {
-          const chatFiles = await Promise.all(messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []).map(async (attachment) => {
-            const response = await fetch(attachment.previewUrl);
-            const blob = await response.blob();
-            return new File([blob], attachment.name, { type: attachment.mimeType || blob.type || "image/png" });
-          }));
-          await uploadHelpdeskFiles(portalTicketId, [...chatFiles, ...formFiles]);
+          await uploadHelpdeskFiles(portalTicketId, await collectRequestFiles());
         } catch (attachmentError) {
           console.error("Failed to attach assistant files to ticket", attachmentError);
           attachmentUploadError = attachmentError instanceof Error ? attachmentError.message : "The files could not be uploaded.";
@@ -1214,7 +1220,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
             ? "Your approved price-list request was sent to Russell and added to the CRM for follow-up."
             : formState.kind === "portal_support"
             ? `Your request is now a live Helpdesk conversation with your portal context attached. Opening it now so the team can reply here.${attachmentUploadError ? ` Your attachments could not be added (${attachmentUploadError}) - you can add them again from the conversation.` : ""}`
-            : "Your request was submitted with the current page and assistant context attached. You can keep chatting here, or open one of the source links above while the team follows up.",
+            : `Your request was submitted with the current page and assistant context attached.${attachmentUploadError ? ` Your attachments could not be added (${attachmentUploadError}). Please contact the team before resending your request.` : ""}`,
           quickActions: pathname.startsWith("/profile")
             ? [
                 { type: "link", label: "Open live conversation", href: portalTicketId ? `/profile/helpdesk/${portalTicketId}` : "/profile/helpdesk" },

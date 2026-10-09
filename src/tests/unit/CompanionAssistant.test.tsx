@@ -154,6 +154,20 @@ describe("CompanionAssistant", () => {
     HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
+  it.each(["Get support", "Contact us"])("allows public visitors to attach files through %s", async (label) => {
+    render(<MemoryRouter><CompanionAssistantProvider><CompanionAssistant /></CompanionAssistantProvider></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
+    fireEvent.click(screen.getByText(label));
+    const file = new File(["audio"], "voice.mp3", { type: "audio/mpeg" });
+    fireEvent.change(screen.getByLabelText("Choose photos, documents or audio"), { target: { files: [file] } });
+    fireEvent.paste(screen.getByLabelText("What do you need help with?"), { clipboardData: { files: [new File(["image"], "pasted.png", { type: "image/png" })] } });
+    fireEvent.drop(screen.getByRole("form", { name: "Support request form" }), { dataTransfer: { types: ["Files"], files: [new File(["pdf"], "dropped.pdf", { type: "application/pdf" })] } });
+    expect(screen.getByText("voice.mp3")).toBeInTheDocument();
+    expect(screen.getByText("pasted.png")).toBeInTheDocument();
+    expect(screen.getByText("dropped.pdf")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Attach files" })).toBeInTheDocument();
+  });
+
   it("renders starter actions when opened", async () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
