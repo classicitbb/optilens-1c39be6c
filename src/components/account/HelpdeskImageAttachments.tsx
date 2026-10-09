@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { ImagePreviewDialog, type PreviewImage } from "@/components/account/ImagePreviewDialog";
 import { getHelpdeskAttachmentUrls, HELPDESK_ATTACHMENT_ACCEPT, isAudioAttachment, isImageAttachment, type HelpdeskAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 
-export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange, disabled, readOnly }: {
+export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange, disabled, readOnly, bucket }: {
   ticketId: string;
   attachments: HelpdeskAttachment[];
   onFilesChange: (files: File[]) => void;
   disabled?: boolean;
   readOnly?: boolean;
+  /** Storage bucket the stored attachments live in; defaults to the helpdesk bucket. */
+  bucket?: string;
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -26,7 +28,7 @@ export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange,
     previousCount.current = selected.length;
   }, [selected.length]);
 
-  useEffect(() => { void getHelpdeskAttachmentUrls(attachments).then(setStored); }, [attachments, ticketId]);
+  useEffect(() => { void getHelpdeskAttachmentUrls(attachments, bucket).then(setStored); }, [attachments, ticketId, bucket]);
   const choose = (files: File[]) => {
     if (disabled) return;
     const combined = [...selected.map((item) => item.file), ...files];

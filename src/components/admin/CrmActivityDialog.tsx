@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import { CalendarPlus, PhoneCall, UserPlus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +19,8 @@ import { TASK_CHANNEL_LABELS, TASK_CHANNELS, type ActivityTaskChannel } from "@/
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import InlineDictationButton from "@/components/admin/InlineDictationButton";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import { ACTIVITY_ATTACHMENT_BUCKET, activityAttachmentQueryKey, toDisplayAttachments, uploadActivityFiles, useActivityAttachments } from "@/features/admin/crm/activityAttachments";
 
 type ActivityForm = {
   activityType: string; dueAt: string; type: ActivityChannelType; taskChannel: ActivityTaskChannel;
@@ -50,6 +53,10 @@ const CrmActivityDialog = () => {
   const editing = useMemo(() => activities.find((activity) => activity.id === editId) ?? null, [activities, editId]);
   const [form, setForm] = useState<ActivityForm>(EMPTY_FORM);
   const [mention, setMention] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const queryClient = useQueryClient();
+  const { data: storedFiles } = useActivityAttachments(editing?.id);
+  const storedAttachments = useMemo(() => toDisplayAttachments(storedFiles ?? []), [storedFiles]);
 
   const applyTitleDictation = useCallback((nextValue: string) => {
     setForm((current) => ({ ...current, activityType: nextValue }));
@@ -61,6 +68,7 @@ const CrmActivityDialog = () => {
   useEffect(() => {
     if (!isOpen) return;
     setMention("");
+    setFiles([]);
     setForm(editing ? {
       activityType: editing.activity_type, dueAt: toDateTimeLocal(editing.due_at), type: editing.type,
       taskChannel: editing.task_channel, content: editing.content ?? "", status: editing.status,
@@ -99,8 +107,20 @@ const CrmActivityDialog = () => {
       callOutcome: form.type === "call" && form.callOutcome ? form.callOutcome : null,
     };
     try {
+      let activityId = editing?.id;
       if (editing) await updateActivity.mutateAsync({ id: editing.id, ...input });
-      else await createActivity.mutateAsync({ ...input, createdBy: user?.id });
+      else activityId = await createActivity.mutateAsync({ ...input, createdBy: user?.id });
+      if (files.length && activityId) {
+        // The task is saved already; report a failed upload without losing it.
+        try {
+          await uploadActivityFiles(activityId, files);
+          await queryClient.invalidateQueries({ queryKey: activityAttachmentQueryKey(activityId) });
+        } catch (uploadError) {
+          toast({ title: `${editing ? "Task updated" : "Task created"}, but attachments failed`, description: uploadError instanceof Error ? uploadError.message : undefined, variant: "destructive" });
+          close();
+          return;
+        }
+      }
       toast({ title: editing ? "Task updated" : isLogCall ? "Call logged" : "Task created" });
       close();
     } catch (error) {
@@ -126,6 +146,7 @@ const CrmActivityDialog = () => {
             <div className="relative"><UserPlus className="pointer-events-none absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground" /><Input id="crm-helper-mention" className="h-8 pl-8 text-xs" value={mention} onChange={(event) => setMention(event.target.value)} placeholder="@mention a staff member" autoComplete="off" />{mentionMatches.length > 0 ? <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 shadow-md">{mentionMatches.map((person) => <button key={person.user_id} type="button" className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-accent focus:bg-accent" onClick={() => addHelper(person.user_id)}>{person.name}</button>)}</div> : null}</div>
           </div>
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs text-muted-foreground" htmlFor="crm-activity-notes">Description</Label><div className="relative"><Textarea id="crm-activity-notes" value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} placeholder="Brief description" className="min-h-[96px] pr-11 text-xs focus:ring-2 focus:ring-inset focus:ring-primary" rows={4} /><InlineDictationButton ariaLabel="Dictate task notes" onValueChange={applyNotesDictation} vocabulary="Classic Visions, CRM, contact, task, follow-up, lens" /></div></div>
+          <div className="sm:col-span-2"><HelpdeskImageAttachments key={`${isOpen}-${editing?.id ?? "new"}`} ticketId={editing?.id ?? ""} attachments={storedAttachments} bucket={ACTIVITY_ATTACHMENT_BUCKET} onFilesChange={setFiles} disabled={isPending} /></div>
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Activity type</Label><Select value={form.type} onValueChange={(type) => setForm({ ...form, type: type as ActivityChannelType })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue /></SelectTrigger><SelectContent>{ACTIVITY_TYPES.map((type) => <SelectItem key={type} value={type} className="text-xs capitalize">{type}</SelectItem>)}</SelectContent></Select></div>
           {form.type === "call" ? <div className="space-y-1"><Label className="text-xs text-muted-foreground">Call outcome{form.status === "completed" ? " *" : ""}</Label><Select value={form.callOutcome || undefined} onValueChange={(callOutcome) => setForm({ ...form, callOutcome: callOutcome as CallOutcome })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue placeholder="Choose outcome" /></SelectTrigger><SelectContent>{CALL_OUTCOMES.map((outcome) => <SelectItem key={outcome} value={outcome} className="text-xs">{CALL_OUTCOME_LABELS[outcome]}</SelectItem>)}</SelectContent></Select></div> : null}
           <div className="space-y-1"><Label className="text-xs text-muted-foreground">Task channel</Label><Select value={form.taskChannel} onValueChange={(taskChannel) => setForm({ ...form, taskChannel: taskChannel as ActivityTaskChannel })}><SelectTrigger className="h-8 text-xs focus:ring-2 focus:ring-inset focus:ring-primary"><SelectValue /></SelectTrigger><SelectContent>{TASK_CHANNELS.map((channel) => <SelectItem key={channel} value={channel} className="text-xs">{TASK_CHANNEL_LABELS[channel]}</SelectItem>)}</SelectContent></Select></div>

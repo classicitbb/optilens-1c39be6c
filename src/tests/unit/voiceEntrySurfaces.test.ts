@@ -24,20 +24,17 @@ describe("voice entry surfaces", () => {
   });
 
   it("uses the shared transcription control in the Helpdesk create-ticket description", () => {
-    const tickets = read("src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx");
+    const create = read("src/features/admin/helpdesk/components/CreateHelpdeskTicketDialog.tsx");
 
-    expect(tickets).toContain('ariaLabel="Dictate ticket description"');
-    expect(tickets).toContain("applyTicketDescriptionDictation");
-    expect(tickets).toContain('from "@/components/admin/InlineDictationButton"');
+    expect(create).toContain('ariaLabel="Dictate ticket description"');
+    expect(create).toContain('from "@/components/admin/InlineDictationButton"');
   });
 
   it("offers dictation on the ticket title and in both Helpdesk composers, with a speech meter on the composers", () => {
     const create = read("src/features/admin/helpdesk/components/CreateHelpdeskTicketDialog.tsx");
-    const tickets = read("src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx");
     const composer = read("src/features/admin/helpdesk/components/TicketReplyComposer.tsx");
 
     expect(create).toContain('ariaLabel="Dictate ticket title"');
-    expect(tickets).toContain('ariaLabel="Dictate ticket title"');
     expect(composer).toContain('ariaLabel="Dictate reply"');
     expect(composer).toContain('ariaLabel="Dictate note"');
     expect(composer.match(/showLevelMeter/g)).toHaveLength(2);
@@ -70,10 +67,10 @@ describe("voice entry surfaces", () => {
 
   it("keeps task and ticket controls inside responsive, wider dialogs", () => {
     const activity = read("src/components/admin/CrmActivityDialog.tsx");
-    const tickets = read("src/pages/admin/helpdesk/HelpdeskTicketsPage.tsx");
+    const create = read("src/features/admin/helpdesk/components/CreateHelpdeskTicketDialog.tsx");
 
     expect(activity).toContain("sm:max-w-2xl");
     expect(activity).toContain("sm:grid-cols-2");
-    expect(tickets).toContain("sm:max-w-xl");
+    expect(create).toContain("sm:max-w-xl");
   });
 });

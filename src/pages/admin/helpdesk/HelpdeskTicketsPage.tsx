@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import { Ticket, Plus } from "lucide-react";
@@ -12,9 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useHelpdeskTickets } from "@/features/admin/helpdesk/hooks/useHelpdeskTickets";
-import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { useAssignHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useAssignHelpdeskTicket";
 import { useUpdateHelpdeskTicketStage } from "@/features/admin/helpdesk/hooks/useUpdateHelpdeskTicketStage";
 import { useArchiveHelpdeskTicket, useUpdateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useHelpdeskMutations";
@@ -22,15 +20,13 @@ import { useHelpdeskTicketAlerts } from "@/features/admin/helpdesk/hooks/useHelp
 import { normalizeSlaBadgeStatus } from "@/features/admin/helpdesk/utils/normalization";
 import { supabase } from "@/integrations/supabase/client";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
-import { useToast } from "@/hooks/use-toast";
 import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useOpenTicket } from "@/features/admin/helpdesk/components/HelpdeskTicketDialog";
-import InlineDictationButton from "@/components/admin/InlineDictationButton";
-import TidySuggestionChip from "@/components/admin/TidySuggestionChip";
+import CreateHelpdeskTicketDialog from "@/features/admin/helpdesk/components/CreateHelpdeskTicketDialog";
 
 
 interface TeamOption { id: string; name: string; }
@@ -43,41 +39,10 @@ const EMPTY_STAGES: StageOption[] = [];
 const EMPTY_TICKET_TYPES: TicketTypeOption[] = [];
 const EMPTY_PRIORITIES: PriorityOption[] = [];
 
-// ── localStorage helpers for "last two consistent creations" ──
-const STORAGE_KEY = "helpdesk_create_history";
-
-interface CreateSnapshot {
-  teamId: string;
-  stageId: string;
-  priority: string;
-  ticketTypeId: string;
-}
-
-function loadHistory(): CreateSnapshot[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CreateSnapshot[]).slice(0, 2) : [];
-  } catch { return []; }
-}
-
-function pushHistory(snapshot: CreateSnapshot) {
-  const hist = loadHistory();
-  hist.unshift(snapshot);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(hist.slice(0, 2)));
-}
-
-/** If the last two creations share the same value for a field, return it. */
-function consistentDefault(field: keyof CreateSnapshot): string | undefined {
-  const hist = loadHistory();
-  if (hist.length < 2) return hist[0]?.[field] || undefined;
-  return hist[0][field] === hist[1][field] ? hist[0][field] || undefined : undefined;
-}
-
 const HelpdeskTicketsPage = () => {
   const { user } = useAuth();
   const openTicket = useOpenTicket();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
   const { canView, canEditFeature } = useRolePermissions();
   const { isAdmin } = useUserRole();
   const isMobile = useIsMobile();
@@ -89,45 +54,9 @@ const HelpdeskTicketsPage = () => {
   const [onlyOpen, setOnlyOpen] = useState(true);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", teamId: "", stageId: "", priority: "1", contactId: "", ticketTypeId: "", dueDate: "" });
-  const applyTicketDescriptionDictation = useCallback((nextValue: string) => {
-    setForm((current) => ({ ...current, description: nextValue }));
-  }, []);
-
-  const applyTicketTitleDictation = useCallback((nextValue: string) => {
-    setForm((current) => ({ ...current, title: nextValue }));
-  }, []);
-
   // Edit dialog state
   const [editTicket, setEditTicket] = useState<any>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", priority: "1", team_id: "", contactId: "", ticket_type_id: "" });
-
-  // Refs for sequential keyboard navigation inside popover
-  const fieldRefs = useRef<(HTMLElement | null)[]>([]);
-  const FIELD_COUNT = 9; // type, title, contact, description, team, priority, stage, due date, submit
-
-  const setFieldRef = useCallback((index: number) => (el: HTMLElement | null) => { fieldRefs.current[index] = el; }, []);
-
-  const focusNext = useCallback((currentIndex: number) => {
-    for (let i = currentIndex + 1; i < FIELD_COUNT; i++) {
-      const el = fieldRefs.current[i];
-      if (el) { el.focus(); return; }
-    }
-    // If at the end, focus submit
-    fieldRefs.current[FIELD_COUNT - 1]?.focus();
-  }, []);
-
-  const handleFieldKeyDown = useCallback((index: number) => (e: KeyboardEvent<HTMLElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (index === FIELD_COUNT - 1) {
-        // On submit button, trigger create
-        handleCreate();
-      } else {
-        focusNext(index);
-      }
-    }
-  }, []);
 
   const { data: teams = EMPTY_TEAMS } = useQuery({
     queryKey: ["helpdesk", "teams", "options"],
@@ -170,7 +99,6 @@ const HelpdeskTicketsPage = () => {
   });
 
   const ticketQuery = useHelpdeskTickets({ search, onlyOpen, teamId: teamId === "all" ? undefined : teamId });
-  const createTicket = useCreateHelpdeskTicket();
   const assignTicket = useAssignHelpdeskTicket();
   const updateStage = useUpdateHelpdeskTicketStage();
   const archiveTicket = useArchiveHelpdeskTicket();
@@ -184,23 +112,6 @@ const HelpdeskTicketsPage = () => {
   const getPrioLabel = (level: number) => priorities.find(p => p.level === level)?.label ?? "Normal";
   const getPrioColor = (level: number) => priorities.find(p => p.level === level)?.color ?? "#6b7280";
 
-  // ── Auto-fill defaults when create dialog opens ──
-  const initFormDefaults = useCallback(() => {
-    const defaultStage = stages.find(s => !s.is_closed)?.id ?? "";
-    const defaultPriority = priorities.length > 0 ? String(priorities[0].level) : "1";
-
-    setForm({
-      title: "",
-      description: "",
-      teamId: consistentDefault("teamId") ?? "",
-      stageId: consistentDefault("stageId") ?? defaultStage,
-      priority: consistentDefault("priority") ?? defaultPriority,
-      contactId: "",
-      ticketTypeId: consistentDefault("ticketTypeId") ?? "",
-      dueDate: "",
-    });
-  }, [stages, priorities]);
-
   useEffect(() => {
     if (searchParams.get("createTicket") === "1" && canEditTickets) {
       setCreateDialogOpen(true);
@@ -209,38 +120,6 @@ const HelpdeskTicketsPage = () => {
       setSearchParams(nextParams, { replace: true });
     }
   }, [canEditTickets, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (createDialogOpen) {
-      initFormDefaults();
-      // Focus first field after dialog animation
-      setTimeout(() => fieldRefs.current[0]?.focus(), 80);
-    }
-  }, [createDialogOpen, initFormDefaults]);
-
-  const handleCreate = async () => {
-    if (!form.title.trim()) { toast({ title: "Ticket title is required", variant: "destructive" }); return; }
-    try {
-      await createTicket.mutateAsync({
-        title: form.title,
-        description: form.description,
-        teamId: form.teamId || null,
-        stageId: form.stageId || null,
-        priority: Number(form.priority),
-        ownerUserId: user?.id ?? null,
-        partnerContactId: form.contactId || null,
-        ticketTypeId: form.ticketTypeId || null,
-        deadline: form.dueDate ? new Date(form.dueDate + "T00:00:00").toISOString() : null,
-        sourceChannel: "manual",
-      });
-      // Save to history for smart defaults
-      pushHistory({ teamId: form.teamId, stageId: form.stageId, priority: form.priority, ticketTypeId: form.ticketTypeId });
-      toast({ title: "Ticket created" });
-      setCreateDialogOpen(false);
-    } catch (error) {
-      toast({ title: "Unable to create ticket", description: (error as Error).message, variant: "destructive" });
-    }
-  };
 
   const openEdit = (ticket: any) => {
     setEditTicket(ticket);
@@ -273,155 +152,15 @@ const HelpdeskTicketsPage = () => {
             {onlyOpen ? "Showing Open" : "Showing All"}
           </Button>
           {canEditTickets && (
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                New Ticket
-              </Button>
-              <DialogContent className="admin-tool admin-overlay-surface sm:max-w-xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-sm font-medium text-center">Create Ticket</DialogTitle>
-                </DialogHeader>
-
-                  {/* 0: Type — selecting auto-fills title & description */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Type</Label>
-                    <Select
-                      value={form.ticketTypeId || "__none"}
-                      onValueChange={(v) => {
-                        const typeId = v === "__none" ? "" : v;
-                        const typeName = ticketTypes.find(t => t.id === typeId)?.name ?? "";
-                        setForm((p) => ({
-                          ...p,
-                          ticketTypeId: typeId,
-                          title: !p.title.trim() && typeName ? typeName : p.title,
-                          description: !p.description.trim() && typeName ? typeName : p.description,
-                        }));
-                        setTimeout(() => focusNext(0), 50);
-                      }}
-                    >
-                      <SelectTrigger ref={setFieldRef(0) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(0) as any}>
-                        <SelectValue placeholder="Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none" className="text-xs">No type</SelectItem>
-                        {ticketTypes.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* 1: Title */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Title *</Label>
-                    <div className="relative">
-                      <Input
-                        ref={setFieldRef(1) as any}
-                        value={form.title}
-                        onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                        placeholder="Ticket title"
-                        className="h-8 pr-10 text-xs"
-                        onKeyDown={handleFieldKeyDown(1) as any}
-                      />
-                      <InlineDictationButton ariaLabel="Dictate ticket title" position="center" trimTrailingPeriod onValueChange={applyTicketTitleDictation} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
-                    </div>
-                    <TidySuggestionChip kind="title" value={form.title} onApply={applyTicketTitleDictation} />
-                  </div>
-
-                  {/* 2: Contact */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Contact</Label>
-                    <div ref={setFieldRef(2)} tabIndex={-1} onKeyDown={handleFieldKeyDown(2) as any}>
-                      <ContactPickerSelect value={form.contactId} onValueChange={(v) => { setForm((p) => ({ ...p, contactId: v })); setTimeout(() => focusNext(2), 50); }} placeholder="Contact" />
-                    </div>
-                  </div>
-
-                  {/* 3: Description */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Description</Label>
-                    <div className="relative">
-                      <Textarea
-                        ref={setFieldRef(3) as any}
-                        value={form.description}
-                        onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                        placeholder="Brief description"
-                        className="min-h-[96px] pb-9 pr-11 text-xs"
-                        onKeyDown={handleFieldKeyDown(3) as any}
-                      />
-                      <InlineDictationButton ariaLabel="Dictate ticket description" onValueChange={applyTicketDescriptionDictation} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
-                      <TidySuggestionChip value={form.description} onApply={applyTicketDescriptionDictation} className="absolute bottom-1.5 left-2 z-10" />
-                    </div>
-                  </div>
-
-                  {/* 4: Team */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Team</Label>
-                    <Select value={form.teamId || "__none"} onValueChange={(v) => { setForm((p) => ({ ...p, teamId: v === "__none" ? "" : v })); setTimeout(() => focusNext(4), 50); }}>
-                      <SelectTrigger ref={setFieldRef(4) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(4) as any}>
-                        <SelectValue placeholder="Team" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none" className="text-xs">No team</SelectItem>
-                        {teams.map((t) => <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* 5: Priority */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Priority</Label>
-                    <Select value={form.priority} onValueChange={(v) => { setForm((p) => ({ ...p, priority: v })); setTimeout(() => focusNext(5), 50); }}>
-                      <SelectTrigger ref={setFieldRef(5) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(5) as any}>
-                        <SelectValue placeholder="Priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {priorities.map((p) => <SelectItem key={p.level} value={String(p.level)} className="text-xs">{p.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* 6: Stage */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Initial Stage</Label>
-                    <Select value={form.stageId || "__none"} onValueChange={(v) => { setForm((p) => ({ ...p, stageId: v === "__none" ? "" : v })); setTimeout(() => focusNext(6), 50); }}>
-                      <SelectTrigger ref={setFieldRef(6) as any} className="h-8 text-xs" onKeyDown={handleFieldKeyDown(6) as any}>
-                        <SelectValue placeholder="Stage" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none" className="text-xs">No stage</SelectItem>
-                        {stages.map((s) => <SelectItem key={s.id} value={s.id} className="text-xs">{s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* 7: Due Date */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Due Date</Label>
-                    <Input
-                      ref={setFieldRef(7) as any}
-                      type="date"
-                      value={form.dueDate}
-                      onChange={(e) => setForm((p) => ({ ...p, dueDate: e.target.value }))}
-                      className="h-8 text-xs"
-                      onKeyDown={handleFieldKeyDown(7) as any}
-                    />
-                  </div>
-
-                  {/* 8: Submit */}
-                  <Button
-                    ref={setFieldRef(8) as any}
-                    size="sm"
-                    className="w-full h-9 text-xs"
-                    onClick={handleCreate}
-                    onKeyDown={handleFieldKeyDown(8) as any}
-                    disabled={createTicket.isPending}
-                  >
-                    {createTicket.isPending ? "Creating…" : "Create Ticket"}
-                  </Button>
-              </DialogContent>
-            </Dialog>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              New Ticket
+            </Button>
           )}
         </div>
       </AdminPageHeader>
+
+      <CreateHelpdeskTicketDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
       <Card>
         <CardHeader className="py-3">
