@@ -1142,6 +1142,65 @@ export type Database = {
         }
         Relationships: []
       }
+      atlas_page_accesses: {
+        Row: {
+          accessed_at: string
+          account_email: string | null
+          id: string
+          page_id: string
+          page_title: string
+          user_id: string | null
+          version_number: number
+        }
+        Insert: {
+          accessed_at?: string
+          account_email?: string | null
+          id?: string
+          page_id: string
+          page_title: string
+          user_id?: string | null
+          version_number: number
+        }
+        Update: {
+          accessed_at?: string
+          account_email?: string | null
+          id?: string
+          page_id?: string
+          page_title?: string
+          user_id?: string | null
+          version_number?: number
+        }
+        Relationships: []
+      }
+      atlas_page_shares: {
+        Row: {
+          enabled: boolean
+          page_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          page_id: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          page_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_page_shares_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: true
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -1499,6 +1558,171 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "crm_pipelines"
             referencedColumns: ["key"]
+          },
+        ]
+      }
+      campaign_activation_performance: {
+        Row: {
+          campaign_name: string
+          channel: string
+          clicks: number
+          contact_id: string | null
+          conversions: number
+          created_at: string
+          created_by: string
+          event_date: string
+          id: string
+          impressions: number
+          lead_segment: string
+          lead_source: string
+          metadata: Json
+          opportunity_id: string | null
+          profile_id: string | null
+          qualified_leads: number
+          revenue: number
+          spend: number
+        }
+        Insert: {
+          campaign_name: string
+          channel: string
+          clicks?: number
+          contact_id?: string | null
+          conversions?: number
+          created_at?: string
+          created_by?: string
+          event_date?: string
+          id?: string
+          impressions?: number
+          lead_segment: string
+          lead_source: string
+          metadata?: Json
+          opportunity_id?: string | null
+          profile_id?: string | null
+          qualified_leads?: number
+          revenue?: number
+          spend?: number
+        }
+        Update: {
+          campaign_name?: string
+          channel?: string
+          clicks?: number
+          contact_id?: string | null
+          conversions?: number
+          created_at?: string
+          created_by?: string
+          event_date?: string
+          id?: string
+          impressions?: number
+          lead_segment?: string
+          lead_source?: string
+          metadata?: Json
+          opportunity_id?: string | null
+          profile_id?: string | null
+          qualified_leads?: number
+          revenue?: number
+          spend?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_activation_performance_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_activation_performance_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "campaign_activation_performance_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_activation_performance_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_activation_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_activation_profiles: {
+        Row: {
+          audience_hypotheses: Json
+          channel_recommendations: Json
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          creative_angles: Json
+          id: string
+          lead_segment: string
+          lead_source: string
+          meta_audience_definitions: Json
+          meta_messaging_variants: Json
+          opportunity_id: string | null
+          packet: Json
+          updated_at: string
+        }
+        Insert: {
+          audience_hypotheses?: Json
+          channel_recommendations?: Json
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          creative_angles?: Json
+          id?: string
+          lead_segment: string
+          lead_source?: string
+          meta_audience_definitions?: Json
+          meta_messaging_variants?: Json
+          opportunity_id?: string | null
+          packet?: Json
+          updated_at?: string
+        }
+        Update: {
+          audience_hypotheses?: Json
+          channel_recommendations?: Json
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          creative_angles?: Json
+          id?: string
+          lead_segment?: string
+          lead_source?: string
+          meta_audience_definitions?: Json
+          meta_messaging_variants?: Json
+          opportunity_id?: string | null
+          packet?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_activation_profiles_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_activation_profiles_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+          {
+            foreignKeyName: "campaign_activation_profiles_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2537,6 +2761,7 @@ export type Database = {
           is_company: boolean
           is_customer: boolean
           lead_score: number
+          lead_segment: string | null
           lead_source: string
           linked_customer_id: number | null
           name: string
@@ -2585,6 +2810,7 @@ export type Database = {
           is_company?: boolean
           is_customer?: boolean
           lead_score?: number
+          lead_segment?: string | null
           lead_source?: string
           linked_customer_id?: number | null
           name: string
@@ -2633,6 +2859,7 @@ export type Database = {
           is_company?: boolean
           is_customer?: boolean
           lead_score?: number
+          lead_segment?: string | null
           lead_source?: string
           linked_customer_id?: number | null
           name?: string
@@ -4146,6 +4373,7 @@ export type Database = {
           draft_body_json: Json | null
           draft_saved_at: string | null
           draft_title: string | null
+          full_width: boolean | null
           id: string
           is_active: boolean
           is_public: boolean | null
@@ -4176,6 +4404,7 @@ export type Database = {
           draft_body_json?: Json | null
           draft_saved_at?: string | null
           draft_title?: string | null
+          full_width?: boolean | null
           id?: string
           is_active?: boolean
           is_public?: boolean | null
@@ -4206,6 +4435,7 @@ export type Database = {
           draft_body_json?: Json | null
           draft_saved_at?: string | null
           draft_title?: string | null
+          full_width?: boolean | null
           id?: string
           is_active?: boolean
           is_public?: boolean | null
@@ -4567,7 +4797,7 @@ export type Database = {
           mime_type: string
           storage_path: string
           ticket_id: string
-          uploaded_by_user_id: string
+          uploaded_by_user_id: string | null
         }
         Insert: {
           byte_size: number
@@ -4578,7 +4808,7 @@ export type Database = {
           mime_type: string
           storage_path: string
           ticket_id: string
-          uploaded_by_user_id: string
+          uploaded_by_user_id?: string | null
         }
         Update: {
           byte_size?: number
@@ -4589,7 +4819,7 @@ export type Database = {
           mime_type?: string
           storage_path?: string
           ticket_id?: string
-          uploaded_by_user_id?: string
+          uploaded_by_user_id?: string | null
         }
         Relationships: [
           {
@@ -13166,6 +13396,11 @@ export type Database = {
           ok: boolean
           status: string
         }[]
+      }
+      atlas_open_shared_page: { Args: { p_token: string }; Returns: Json }
+      atlas_set_page_sharing: {
+        Args: { p_enabled: boolean; p_page_id: string }
+        Returns: Json
       }
       audit_product_cost_rls: {
         Args: never
