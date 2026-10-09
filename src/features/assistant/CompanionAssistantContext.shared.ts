@@ -112,6 +112,7 @@ export interface CompanionAssistantContextValue {
   dismissNudge: () => void;
   snoozeNudge: () => void;
   isSubmitting: boolean;
+  submissionError: string | null;
   openDetachedWindow: () => void;
   formState: AssistantFormState | null;
   openForm: (profile?: AssistantProfile, options?: { kind?: AssistantFormKind; values?: Partial<AssistantFormState> }) => void;

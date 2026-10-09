@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 
 // Staff views (e.g. the admin contact editor) provide a handler here so the
-// same life-buoy icon raises an internal helpdesk ticket instead of opening
+// same life-buoy icon raises a staff-to-contact helpdesk ticket instead of opening
 // the customer's support assistant.
 export const InquireHandlerContext = createContext<((title: string, description: string) => void) | null>(null);
 
@@ -20,7 +20,7 @@ const InquireIconButton = ({ label, className, onInquire }: { label: string; cla
     type="button"
     variant="ghost"
     size="icon"
-    className={className ?? "h-8 w-8 shrink-0"}
+    className={className ?? "h-11 w-11 shrink-0 sm:h-8 sm:w-8"}
     title={label}
     aria-label={label}
     onClick={(event) => {

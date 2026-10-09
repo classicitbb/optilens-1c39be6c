@@ -118,7 +118,7 @@ const InPageAssistantHarness = () => {
 };
 
 const SupportSubmissionHarness = ({ attachmentCount }: { attachmentCount: number }) => {
-  const { messages, formState, submitQuery, openForm, submitForm } = useCompanionAssistant();
+  const { messages, formState, submitQuery, openForm, submitForm, submissionError } = useCompanionAssistant();
   const location = useLocation();
   const attachments = Array.from({ length: attachmentCount }, (_, index) => ({
     name: `evidence-${index + 1}.png`,
@@ -140,6 +140,7 @@ const SupportSubmissionHarness = ({ attachmentCount }: { attachmentCount: number
         Submit request
       </button>
       <span data-testid="support-path">{location.pathname}</span>
+      {submissionError ? <p role="alert">{submissionError}</p> : null}
       <div>{messages.map((message) => "text" in message ? message.text : "").join(" ")}</div>
     </div>
   );
@@ -153,6 +154,34 @@ describe("CompanionAssistant", () => {
     assistantMocks.user = null;
     assistantMocks.identity = null;
     HTMLElement.prototype.scrollIntoView = vi.fn();
+  });
+
+  it("shows a failed portal send, retains the draft and allows a successful retry", async () => {
+    assistantMocks.user = { id: "user-1", email: "user@example.test", user_metadata: { full_name: "Portal User" } };
+    assistantMocks.createTicket.mockRejectedValueOnce(new Error("Helpdesk is unavailable"));
+    assistantMocks.createTicket.mockResolvedValueOnce("ticket-2");
+    render(<MemoryRouter initialEntries={["/profile"]}><CompanionAssistantProvider><SupportSubmissionHarness attachmentCount={0} /></CompanionAssistantProvider></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Prepare request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit request" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Helpdesk is unavailable");
+    expect(screen.getByTestId("support-path")).toHaveTextContent("/profile");
+    expect(screen.getByRole("button", { name: "Submit request" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Submit request" }));
+    await waitFor(() => expect(screen.getByTestId("support-path")).toHaveTextContent("/profile/helpdesk/ticket-2"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("ignores repeated confirmation while the first send is pending", async () => {
+    assistantMocks.user = { id: "user-1", email: "user@example.test", user_metadata: { full_name: "Portal User" } };
+    let finish!: (value: string) => void;
+    assistantMocks.createTicket.mockReturnValue(new Promise<string>((resolve) => { finish = resolve; }));
+    render(<MemoryRouter initialEntries={["/profile"]}><CompanionAssistantProvider><SupportSubmissionHarness attachmentCount={0} /></CompanionAssistantProvider></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Prepare request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit request" }));
+    expect(assistantMocks.createTicket).toHaveBeenCalledTimes(1);
+    finish("ticket-3");
+    await waitFor(() => expect(screen.getByTestId("support-path")).toHaveTextContent("/profile/helpdesk/ticket-3"));
   });
 
   it.each(["Get support", "Contact us"])("allows public visitors to attach files through %s", async (label) => {
