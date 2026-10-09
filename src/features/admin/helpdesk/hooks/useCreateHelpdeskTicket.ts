@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { helpdeskTicketQueryKeys } from "./useHelpdeskTickets";
+import { toast } from "@/hooks/use-toast";
 
 export interface CreateHelpdeskTicketInput {
   ticketNumber?: string;
@@ -52,28 +53,39 @@ export const useCreateHelpdeskTicket = () => {
 
       const ticketId = (data as { id: string }).id;
 
-      const { error: eventErr } = await (supabase as any)
-        .from("helpdesk_ticket_events")
-        .insert({
-          ticket_id: ticketId,
-          event_type: "ticket_created",
-          actor_user_id: input.ownerUserId || null,
-          payload: {
-            source_channel: payload.source_channel,
-            initial_stage_id: payload.stage_id,
-            initial_owner_user_id: payload.owner_user_id,
-            priority: payload.priority,
-          },
-        });
+      try {
+        const { error: eventErr } = await (supabase as any)
+          .from("helpdesk_ticket_events")
+          .insert({
+            ticket_id: ticketId,
+            event_type: "ticket_created",
+            actor_user_id: input.ownerUserId || null,
+            payload: {
+              source_channel: payload.source_channel,
+              initial_stage_id: payload.stage_id,
+              initial_owner_user_id: payload.owner_user_id,
+              priority: payload.priority,
+            },
+          });
 
-      if (eventErr) throw eventErr;
+        if (eventErr) throw eventErr;
+      } catch {
+        toast({ title: "Ticket created, but its timeline could not be updated", description: "Open the existing ticket; do not submit it again.", variant: "destructive" });
+      }
 
       if (payload.partner_contact_id && input.notifyContact === true) {
         // Best effort: the ticket exists even if the notification fails.
-        const { error: emailErr } = await supabase.functions.invoke("helpdesk-email", {
-          body: { type: "ticket_created", ticketId },
-        });
-        if (emailErr) console.warn("Ticket created email failed:", emailErr);
+        try {
+          const { data: emailResult, error: emailErr } = await supabase.functions.invoke("helpdesk-email", {
+            body: { type: "ticket_created", ticketId },
+          });
+          if (emailErr) throw emailErr;
+          if (emailResult?.error || emailResult?.skipped || emailResult?.ok !== true) {
+            throw new Error(emailResult?.error || (emailResult?.skipped ? "No eligible email recipients were found." : "Email delivery was not confirmed."));
+          }
+        } catch (error) {
+          toast({ title: "Ticket created, but customer email was not sent", description: error instanceof Error ? error.message : "Open the existing ticket; do not submit it again.", variant: "destructive" });
+        }
       }
 
       return ticketId;

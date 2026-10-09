@@ -12,3 +12,9 @@ The contact editor's `CompanyCombobox` is editable and keyboard-selectable. Save
 Innovations inbound address mapping already exists. Salesperson receiver compatibility is source-only; producer mapping and bidirectional writeback are pending. Do not infer SQL columns or let website saves imply an Innovations write.
 
 See `docs/crm-contact-editor-follow-up.md` for evidence, remaining contract work and approval boundaries.
+
+## Portal support sends — 2026-10-09 (local source)
+
+CustomerOrdersPanel life-buoy questions use the signed-in staff owner and the selected contact as partner_contact_id; notification now defaults on. Person/company audience rules remain unchanged. Ticket creation writes helpdesk_tickets directly, followed by a timeline event; helpdesk-email handles optional staff-to-contact notifications. A failed event or notification must not turn a persisted ticket into a failed submission or encourage duplicate creation. Notification errors and skipped recipients now warn visibly. Iris retains failed request drafts, exposes submissionError inline and guards concurrent form sends. Both forms use mobile input text and 44px send controls; the admin dialog bounds height with dynamic viewport units and scrolls.
+
+Hosted read-only inspection confirms ticket/event grants and RLS allow existing staff and eligible self-owned portal creation. No schema, authorization, Edge Function or environment-variable change. The exact original production failure remains unconfirmed without a named approved send; frontend release and actual email delivery still require approval.

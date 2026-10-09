@@ -407,7 +407,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
   const location = useLocation();
   const { user } = useAuth();
   const { identity } = usePortalIdentity();
-  const { formState, updateForm, submitForm, submitQuickAction, isSubmitting } = useCompanionAssistant();
+  const { formState, updateForm, submitForm, submitQuickAction, isSubmitting, submissionError } = useCompanionAssistant();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const requestFileInputRef = useRef<HTMLInputElement | null>(null);
   if (!formState) return null;
@@ -435,7 +435,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
 
   return (
     <form
-      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto [&>div]:shrink-0 rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
+      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto [&>div]:shrink-0 [&_input]:text-base [&_textarea]:text-base sm:[&_input]:text-sm sm:[&_textarea]:text-sm rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
       aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
@@ -446,6 +446,7 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
         <p className="font-semibold text-foreground">{isQuoteRequest ? "What would you like a quote for?" : "Review your request before sending"}</p>
         <p className="text-xs leading-5 text-muted-foreground">Nothing is sent until you choose Confirm & send.</p>
       </div>
+      {submissionError ? <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{submissionError}</p> : null}
 
       <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
         <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
@@ -590,8 +591,8 @@ const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles,
       ) : null}
 
       <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
-        <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
-        <Button type="submit" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
+        <Button type="button" className="min-h-11" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
+        <Button type="submit" className="min-h-11" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
       </div>
     </form>
   );

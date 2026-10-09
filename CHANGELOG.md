@@ -660,3 +660,15 @@ Contact us and Get support now allow public Iris requests to carry photos, docum
 ## 2026-10-09 — Iris visitor guidance (local)
 
 Fixed frame/policy prompts being treated as account lookups, automatic dispenser assumptions on public pages, and generated answers missing from follow-up history. Frame, coating and policy starters now answer directly with a relevant clarifying question and links. The guided lens flow retains the selected audience and gives use-specific guidance instead of promising an automatic Rx match. Search the site uses grounded site answers rather than the clipped, retrieval-free web endpoint. No backend deployment or data change. Local browser confirms the three starter replies and screen-use guide; live generated follow-ups from localhost returned a controlled fallback and remain unverified. Focused tests pass; full suite has unrelated admin credential-contract and Rx integration failures.
+
+## 2026-10-09 — Portal ticket sends (local source)
+
+### Release Notes
+- Admin contact order questions default to notifying the selected contact, with the staff member as sender/owner and existing audience rules preserved.
+- Failed support sends retain the draft and show an error; post-creation timeline/email failures warn without inviting duplicate tickets.
+- Mobile forms have 16px input text, 44px buttons and a bounded scrolling admin dialog. Local source only; publication and named email verification require approval.
+- Long portal ticket titles truncate with ellipsis inside their row; full text remains available on hover and when opening the ticket.
+
+### Technical Changelog
+- Guarded concurrent form sends; report skipped email recipients and preserve created ticket IDs after secondary failures.
+- No Edge Function, migration, authorization or environment changes.

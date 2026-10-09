@@ -240,6 +240,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [currentQuery, setCurrentQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const formSubmissionPending = useRef(false);
   const [isSavingConversation, setIsSavingConversation] = useState(false);
   const [nudge, setNudge] = useState<{ message: string; query?: string; formKind?: AssistantFormKind } | null>(null);
   const [formState, setFormState] = useState<AssistantFormState | null>(null);
@@ -463,6 +465,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   }, [isDetachedRoute]);
 
   const openForm = useCallback((profile?: AssistantProfile, options?: { kind?: AssistantFormKind; values?: Partial<AssistantFormState> }) => {
+    setSubmissionError(null);
     setIsOpen(true);
     setNudge(null);
     const initial = createInitialFormState({
@@ -979,7 +982,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   }, [activeProfile, cancelForm, handleLensGuideStep, openForm, submitQuery, submitWebSearch]);
 
   const submitForm = useCallback(async (formFiles: File[] = []) => {
-    if (!formState) return;
+    if (!formState || formSubmissionPending.current) return;
+    setSubmissionError(null);
 
     if (formState.kind === "trade_signup") {
       const fullName = formState.name.trim();
@@ -1075,6 +1079,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       return [...chatFiles, ...formFiles];
     };
 
+    formSubmissionPending.current = true;
     setIsSubmitting(true);
     try {
       const resultSummary = messages
@@ -1197,7 +1202,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
         setIsOpen(false);
         navigate(`/profile/helpdesk/${portalTicketId}`);
       }
+    } catch (error) {
+      const detail = error && typeof error === "object" && "message" in error ? String(error.message) : "Please try again.";
+      setSubmissionError(`Your request could not be sent: ${detail}`);
     } finally {
+      formSubmissionPending.current = false;
       setIsSubmitting(false);
     }
   }, [accountName, activeAudience, activeProfile, createTicket, formState, identity?.crmContactId, identity?.crmCustomerId, location.hash, location.search, messages, navigate, pathname, signUp, user]);
@@ -1239,6 +1248,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     dismissNudge,
     snoozeNudge,
     isSubmitting,
+    submissionError,
     openDetachedWindow,
     formState,
     openForm,
@@ -1258,6 +1268,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     isOpen,
     isDetachedRoute,
     isSubmitting,
+    submissionError,
     isSavingConversation,
     markFeedback,
     messages,

@@ -358,3 +358,7 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-10-09 — Iris visitor guidance (local)
 
 ### Release Notes
+
+## 2026-10-09 — Portal ticket sends (local source)
+
+### Release Notes

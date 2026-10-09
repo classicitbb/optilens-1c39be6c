@@ -681,3 +681,20 @@ Status: Complete — no active handoff
 Implemented, committed, pushed and deployed with the user's explicit authorization through Lovable MCP. Contact us and Get support now share document/image/audio browse, paste and drop controls; Iris chat files carry into the request. The constrained-height form scrolls without overlapping its fields or file rows. Admin ticket creation already uses the shared picker.
 
 Release source, migration/function deployment, publication verification, test results and remaining verification limits are recorded in docs/agent/PUBLIC_SUPPORT_ATTACHMENT_RELEASE.md. No real support request or email was sent. Employee-name mention/routing remains outside this attachment change. Other concurrent visitor-conversation edits were preserved and excluded from this release.
+
+## Portal support sends — 2026-10-09
+
+Status: Source repair complete; repository delivery authorized. Frontend publication and named live send remain pending.
+
+Affected: CustomerOrdersPanel.tsx, CompanionAssistant.tsx, CompanionAssistantContext.tsx/shared.ts, useCreateHelpdeskTicket.ts; CompanionAssistant.test.tsx, helpdeskTicketCreation.test.tsx, CustomerOrdersPanel.test.tsx and continuity docs.
+
+Reproduced in tests: a failed creation rejects without visible feedback; a failed post-insert timeline write makes an existing ticket look failed and prevents its notification; email failures/skipped recipients are silent. Admin notification default was false. Fixes preserve the existing actor/contact audience contract, expose send errors, retain drafts, warn for secondary failures and prevent concurrent sends. No migration/function/auth changes. Hosted metadata was read only; no ticket or email was submitted.
+
+Checks: 22 focused tests pass, including duplicate confirmation. Build passes; full lint 0 errors / 2431 warnings, focused lint 0 errors / 28 warnings. PR checks pass after release-ledger synchronization. Full tests: 225 passed / 4 failed files, 1500 passed / 4 failed tests; untouched failures are adminPortalCopilot credential-source contract, rxFormChemistrie clip timeout, rxOrderDomain seeded-scenario timeout and rxOrderShape outline A assertion. Final TypeScript check passes after correcting the test fixture customer ID to the existing numeric contract.
+
+Browser opened the real local admin contact order dialog: notification checked, selected contact/staff copy, confirm control. At 390x844 the 358px dialog fits; at 320x568 it is 288x536 with a 633px scrolling body and 16px inputs. Cancel works. Local profile support form at 390x844 is 332x560 with a 605px scroll body, 16px inputs and 44px send button. No financial/order/send button clicked. Temporary viewport overrides restored; profile preview tab closed. No new ticket or email submitted. Review screenshot is a chat-local artifact.
+
+Approval required: frontend publication and one explicitly named account/contact plus exact test-message content for a production ticket/email check. Real mobile keyboard and recipient inbox delivery remain unverified. Repository delivery (2026-10-09): user authorized committing and pushing all changes and redeploying Edge Functions only if needed. No Edge Function or config delta exists in the working tree or unpushed branch commits; no function redeploy is needed. No live ticket/email test is authorized. Next executable read-only release review: git show --stat HEAD
+
+Ticket title follow-up (2026-10-09, local): portal Helpdesk list rows and their text flex child now allow shrinking. The title uses one-line ellipsis with a full-title hover attribute; stored text and ticket navigation stay unchanged. Status/date can wrap on narrow screens. This ships with the pending portal send repair.
+Truncation browser proof: existing 433-character ticket titles have ellipsis inside their rows; document scroll width equals viewport width at 1287px and 390px. Stored titles are untouched. Scoped ESLint: 0 errors / 2 existing warnings.
