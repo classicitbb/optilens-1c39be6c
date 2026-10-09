@@ -294,3 +294,7 @@ Atlas release verification (2026-10-08): the scoped frontend and named sharing m
 In Contact us or Get support, choose Attach files, paste a file into the details field, or drag it into Iris. Images, PDF/Word/Excel/text documents and supported audio formats are accepted (5 files, 10 MB each). Review file names before Confirm & send. Files from the current Iris chat accompany the request. These changes await release.
 
 Public support form follow-up (2026-10-09): request sections retain their natural height and the form scrolls when attachments exceed the available Iris window height. This prevents file rows from overlapping name, title and details fields.
+
+## 2026-10-09 — Iris visitor guidance (local)
+
+Fixed frame/policy prompts being treated as account lookups, automatic dispenser assumptions on public pages, and generated answers missing from follow-up history. Frame, coating and policy starters now answer directly with a relevant clarifying question and links. The guided lens flow retains the selected audience and gives use-specific guidance instead of promising an automatic Rx match. Search the site uses grounded site answers rather than the clipped, retrieval-free web endpoint. No backend deployment or data change. Local browser confirms the three starter replies and screen-use guide; live generated follow-ups from localhost returned a controlled fallback and remain unverified. Focused tests pass; full suite has unrelated admin credential-contract and Rx integration failures.

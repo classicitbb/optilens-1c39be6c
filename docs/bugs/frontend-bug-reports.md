@@ -363,3 +363,7 @@ Atlas release verification (2026-10-08): the scoped frontend and named sharing m
 Fixed locally: public customer_support requests hid file controls and discarded chat attachments because only portal tickets had an upload path. Public multipart ingestion now stores private ticket files; failed uploads warn without hiding the saved request. 27 focused tests pass. Real browser automation timed out; hosted upload/read checks remain pending.
 
 Public support form follow-up (2026-10-09): request sections retain their natural height and the form scrolls when attachments exceed the available Iris window height. This prevents file rows from overlapping name, title and details fields.
+
+## 2026-10-09 — Iris visitor guidance (local)
+
+Fixed frame/policy prompts being treated as account lookups, automatic dispenser assumptions on public pages, and generated answers missing from follow-up history. Frame, coating and policy starters now answer directly with a relevant clarifying question and links. The guided lens flow retains the selected audience and gives use-specific guidance instead of promising an automatic Rx match. Search the site uses grounded site answers rather than the clipped, retrieval-free web endpoint. No backend deployment or data change. Local browser confirms the three starter replies and screen-use guide; live generated follow-ups from localhost returned a controlled fallback and remain unverified. Focused tests pass; full suite has unrelated admin credential-contract and Rx integration failures.

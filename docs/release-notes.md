@@ -354,3 +354,7 @@ Summarized release outcomes for each major date-stamped update.
 
 ### Release Notes
 - Public support form sections retain their natural height and scroll when files exceed the available Iris window height, preventing attachment rows from overlapping fields.
+
+## 2026-10-09 — Iris visitor guidance (local)
+
+### Release Notes

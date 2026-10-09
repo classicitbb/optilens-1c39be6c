@@ -11,6 +11,7 @@ import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { uploadHelpdeskFiles } from "@/lib/helpdeskAttachments";
 import { generateAssistantAnswer } from "./assistantGeneration";
+import { asksForPrivateAccountData, buildConversationTurns, visitorStarterAnswer } from "./visitorConversation";
 import {
   buildAssistantCorpus,
   buildRetailerPrompt,
@@ -88,7 +89,7 @@ const getStarterActions = (pathname: string, isAuthenticated: boolean): Assistan
     ? [
         ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in the Caribbean.", profile: "retailer_help" as const }]),
         { type: "lens_guide", label: "Find the right lens", step: 1, answers: {} },
-        { type: "web_search_prompt", label: "Search the web" },
+        { type: "web_search_prompt", label: "Search the site" },
         { type: "form", label: "Get support", profile: "portal_support" },
         { type: "link", label: "Track an order", href: "/profile/orders" },
       ]
@@ -96,7 +97,7 @@ const getStarterActions = (pathname: string, isAuthenticated: boolean): Assistan
         ...(isAuthenticated ? [] : [{ type: "query" as const, label: "Find a retailer", query: "Help me find a retailer in Barbados or across the Caribbean.", profile: "retailer_help" as const }]),
         ...(isAuthenticated ? [] : [{ type: "form" as const, label: "Create a trade account", profile: "customer_support" as const, kind: "trade_signup" as const }]),
         { type: "lens_guide", label: "Find the right lens", step: 1, answers: {} },
-        { type: "web_search_prompt", label: "Search the web" },
+        { type: "web_search_prompt", label: "Search the site" },
         { type: "form", label: "Get support", profile: "customer_support" },
         { type: "form", label: "Contact us", profile: "customer_support" },
       ];
@@ -232,7 +233,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
   const accountName = identity?.organizationName?.trim() || identity?.customerName?.trim() || userName;
   const activeProfile = getProfileForRoute(pathname);
   const [audienceOverride, setAudienceOverride] = useState<AssistantAudience | null>(null);
-  const activeAudience = audienceOverride ?? (user ? "dispenser" : getDefaultAudienceForRoute(pathname));
+  const activeAudience = audienceOverride ?? getDefaultAudienceForRoute(pathname);
   const starterActions = useMemo(() => getStarterActions(pathname, Boolean(user)), [pathname, user]);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -607,9 +608,17 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       return;
     }
 
+    const starterAnswer = visitorStarterAnswer(trimmedQuery);
+    if (starterAnswer) {
+      lastQueryRef.current = trimmedQuery;
+      negativeFeedbackRef.current = false;
+      setMessages((current) => [...current, { id: createId("assistant"), role: "assistant", kind: "text", ...starterAnswer }]);
+      return;
+    }
+
     const normalizedPortalQuery = trimmedQuery.toLowerCase();
 
-    if (shouldAskAudienceClarifier({ query: trimmedQuery, route: pathname, authenticated: Boolean(user), requestedAudience: audienceOverride })) {
+    if (shouldAskAudienceClarifier({ query: trimmedQuery, route: pathname, authenticated: false, requestedAudience: audience !== "visitor" ? audience : audienceOverride })) {
       setMessages((current) => [...current, {
         id: createId("assistant"),
         role: "assistant",
@@ -624,24 +633,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       return;
     }
 
-    if (user && /\b(retailer|retailers|clinic|clinics|where can i buy|find a practice)\b/.test(normalizedPortalQuery)) {
-      lastQueryRef.current = trimmedQuery;
-      setMessages((current) => [...current, {
-        id: createId("assistant"),
-        role: "assistant",
-        kind: "text",
-        text: "You’re signed in as an optical professional, so I’ll skip public retailer-finding assistance. I can help with lens selection, dispensing, ordering, LabLink, or a support request instead.",
-        quickActions: [
-          { type: "link", label: "Open the Rx order form", href: "/profile/rx-order" },
-          { type: "query", label: "Dispensing guidance", query: "Give me practical dispensing guidance.", audience: "dispenser" },
-          { type: "form", label: "Prepare support request", profile: "portal_support" },
-        ],
-      }]);
-      return;
-    }
-
-    const asksForPrivateAccountData = /\b(my|account|order|job|balance|statement|invoice|draft|pricelist|price|support|warranty|remake|purchase order|patient)\b/.test(normalizedPortalQuery);
-    if (asksForPrivateAccountData) {
+    const needsAccountData = asksForPrivateAccountData(trimmedQuery);
+    if (needsAccountData) {
       if (!user) {
         lastQueryRef.current = trimmedQuery;
         negativeFeedbackRef.current = false;
@@ -714,13 +707,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       }
     }
 
-    const conversation = messages
-      .filter((message): message is Extract<AssistantMessage, { kind: "text" | "user" }> => message.kind === "text" || message.kind === "user")
-      .slice(-5)
-      .map((message) => ({
-        role: message.role,
-        text: message.kind === "user" ? message.text : message.text,
-      }));
+    const conversation = buildConversationTurns(messages);
 
     try {
       const result = runAssistantQuery({
@@ -856,51 +843,11 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     setNudge(null);
   }, []);
 
+  // Legacy web actions use the same grounded site-answer path. No external
+  // retrieval is configured; do not promise web research or use the clipped endpoint.
   const submitWebSearch = useCallback(async (query: string) => {
-    const trimmed = query.trim();
-    if (!trimmed) return;
-
-    setIsOpen(true);
-    setNudge(null);
-    setCurrentQuery("");
-
-    setMessages((current) => [
-      ...current,
-      { id: createId("user"), role: "user", kind: "user", text: `🔍 ${trimmed}` },
-    ]);
-
-    setIsSubmitting(true);
-    try {
-      const conversation = messages
-        .filter((m): m is Extract<AssistantMessage, { kind: "text" | "user" }> => m.kind === "text" || m.kind === "user")
-        .slice(-4)
-        .map((m) => ({ role: m.role, text: m.kind === "user" ? m.text : m.text }));
-
-      const { data, error } = await supabase.functions.invoke("companion-web-search", {
-        body: { query: trimmed, route: pathname, conversation },
-      });
-
-      const answer = !error && typeof data?.answer === "string" && data.answer.trim()
-        ? data.answer.trim()
-        : "I could not complete the web search right now. Please try again or contact support.";
-
-      setMessages((current) => [
-        ...current,
-        {
-          id: createId("assistant"),
-          role: "assistant",
-          kind: "text",
-          text: answer,
-          quickActions: [
-            { type: "web_search", label: "Search again", query: trimmed },
-            { type: "form", label: "Get support", profile: pathname.startsWith("/profile") ? "portal_support" : "customer_support" },
-          ],
-        },
-      ]);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [messages, pathname]);
+    await submitQueryInternal(query, activeProfile, activeAudience);
+  }, [submitQueryInternal, activeProfile, activeAudience]);
 
   const handleLensGuideStep = useCallback((step: 1 | 2 | 3 | 4, answers: { audience?: AssistantAudience; useCase?: string; hasRx?: boolean }) => {
     setIsOpen(true);
@@ -917,6 +864,8 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       }]);
       return;
     }
+
+    if (answers.audience) setAudienceOverride(answers.audience);
 
     if (step === 2) {
       setMessages((current) => [...current, {
@@ -951,16 +900,25 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       screens: "computer and screen use",
       driving: "driving and outdoor use",
     }[answers.useCase ?? "everyday"];
+    const guidance = {
+      everyday: "Single vision corrects one viewing range; progressives combine distance, intermediate and near vision when your prescription calls for it.",
+      reading: "Reading lenses cover close work. If you also need to see a computer or across a desk, office lenses may provide a more useful working range.",
+      screens: "For a fixed screen distance, single vision or office lenses may help. Office lenses cover desk and near tasks but are not intended for driving. Anti-reflective coating reduces reflections; it does not replace the right prescription.",
+      driving: "Polarized sunglasses reduce reflected outdoor glare. Photochromic lenses change tint with light, but many darken less behind a windscreen; check the specific design with your optician.",
+    }[answers.useCase ?? "everyday"];
     const rxNote = answers.hasRx
-      ? "Since you already have a prescription, the finder can match it directly against approved lens options."
-      : "Since you don't have a prescription yet, the finder will show general option types you can review with your eye care professional.";
+      ? "Your optician will still need to confirm your prescription, measurements and frame compatibility before choosing a lens."
+      : "Arrange an eye examination before ordering prescription lenses; these are general options to discuss with your eye care professional.";
+    const topicPath = answers.useCase === "screens" || answers.useCase === "reading"
+      ? "/lenses/office-occupational" : answers.useCase === "driving" ? "/photochromic" : "/lenses/lens-types";
 
     setMessages((current) => [...current, {
       id: createId("assistant"), role: "assistant", kind: "text",
-      text: `Got it — a lens mainly for ${useCaseLabel}. ${rxNote} Want me to open the lens finder now with that in mind?`,
+      text: `For ${useCaseLabel}: ${guidance} ${rxNote} ${audience === "patient" ? "Classic Visions supplies optical professionals; a retailer can help you choose and order your glasses." : "Confirm the design and availability before quoting your patient."}`,
       quickActions: [
-        { type: "link", label: "Browse the store", href: "/store" },
-        { type: "query", label: "Ask something else instead", query: "Help me with something else." },
+        { type: "link", label: "Explore these lens options", href: topicPath },
+        ...(audience === "patient" ? [{ type: "link" as const, label: "Find an optical retailer", href: "/find-a-retailer" }] : []),
+        { type: "query", label: "Compare options for this use", query: `Compare lens options for ${useCaseLabel}. ${answers.hasRx ? "I have a current prescription." : "I do not have a current prescription yet."}`, audience },
       ],
     }]);
   }, []);
@@ -984,7 +942,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
       pendingWebSearchRef.current = true;
       setMessages((current) => [...current, {
         id: createId("assistant"), role: "assistant", kind: "text",
-        text: "What do you want to know? I'll search the web for it.",
+        text: "What would you like to find? I can search Classic Visions pages and explain the relevant lens, coating or policy information. This searches the site, not the wider web.",
       }]);
       return;
     }

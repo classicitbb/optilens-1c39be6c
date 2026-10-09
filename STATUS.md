@@ -13,7 +13,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-09 (public support attachments prepared locally)
+Last updated: 2026-10-09 (Iris visitor conversation fixes prepared locally)
 
 ---
 
@@ -366,3 +366,7 @@ catalog_assignments    — many-to-many: templates ↔ customers
 ## Contact us / Get support attachments — 2026-10-09
 
 Local source enables public Iris attachment browse, description paste and window drop for images, documents and audio; pending composer files and sent chat files carry into requests. Public multipart ingestion persists private Helpdesk attachments without public bucket access. Existing admin shared picker already supports dialog-wide paste/drop. Migration and function/frontend release require approval; hosted upload and authenticated read proof remain pending. See HANDOFF.md.
+
+## Iris visitor conversations — 2026-10-09 (local source)
+
+Public starter prompts now give contextual frame/coating/policy guidance and a relevant follow-up instead of account counts or weak product matches. Account lookup requires a record-specific intent; sign-in alone does not identify a public visitor as a dispenser. Generated answers are included in subsequent conversation context. The lens guide retains audience and supplies use-specific education, prescription/measurement limits and retailer links without promising an automated prescription match. Search the site uses the existing grounded companion-assistant path; legacy web action types remain compatible but no longer call the retrieval-free, 400-character companion-web-search endpoint. No new service, environment variable, schema or authorization change. Production release requires approval.

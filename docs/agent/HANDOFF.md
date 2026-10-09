@@ -1,3 +1,17 @@
+## 2026-10-09 — Iris visitor conversation quality
+
+Status: Local implementation complete; production publication and live generated follow-up verification pending.
+
+Browser audit clicked all eight original homepage bubbles. Frame query incorrectly returned website order counts; policy query returned open-ticket counts; signed-in public lens/coating answers assumed a dispenser; the web comparison ended mid-sentence. Source traced broad account keywords, sign-in audience inference, exclusion of generated result turns, a guide promising Rx matching without a finder, and a separate retrieval-free 400-character endpoint.
+
+Affected: assistant provider/engine, visitorConversation helper, two unit test files, assistant CONTEXT and frontend continuity/release documentation. Three public starters now give educational guidance and targeted follow-up questions with existing route links. Actual account intents retain the existing authenticated read path. Public audience selection is conversational only, not authorization. Guide retains audience and gives concrete use-specific guidance. Search the site uses companion-assistant; no Edge Function source, auth, schema, secret or provider configuration changed. Legacy web action types remain compatible.
+
+Validation: 31 focused tests pass; build passes; full lint passes (0 errors, 2431 warnings); focused lint passes (0 errors, 20 warnings). Final TypeScript and PR checks pass after release-ledger synchronization. Full npm run test -- --runInBand finished 225 passed / 3 failed files and 1496 passed / 3 failed tests: adminPortalCopilot.integration credential source-string expectation differs from existing generic provider resolver, rxFormChemistrie.integration clip test timed out, rxFormShape.integration trace upload did not show 1471.oma. These files were untouched. No broad-suite success claimed.
+
+Local browser at port 5179 confirms frame, policy, coating starter replies and Myself → Computer & screens → Not yet / not sure guidance. Screenshot saved in the chat artifact folder. Hosted generation from localhost returned a controlled fallback, so arbitrary generated follow-ups are verified with mocks only; production follow-up quality is not certified. No request form was submitted. No push/deploy or backend/data change.
+
+Approval required: production frontend publication under AGENTS.md; pushing main may trigger publication. Exact next executable action: `git diff -- src/features/assistant/CompanionAssistantContext.tsx src/features/assistant/companionAssistantEngine.ts src/features/assistant/visitorConversation.ts`. Review this scoped frontend change, obtain publication approval, then retest the same bubbles and generated follow-ups on the approved deployed origin. The old companion-web-search backend remains present but is unused by this frontend.
+
 # Work Handoff
 
 ## Atlas layout and authenticated shared pages — 2026-10-08

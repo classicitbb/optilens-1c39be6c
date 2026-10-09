@@ -1,3 +1,4 @@
+import { generateAssistantAnswer } from "@/features/assistant/assistantGeneration";
 import { fireEvent, screen, waitFor } from "@testing-library/dom";
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -239,6 +240,36 @@ describe("CompanionAssistant", () => {
     expect(screen.getByRole("button", { name: "Helpful answer" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Not helpful answer" })).toBeInTheDocument();
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: "start" }));
+  });
+
+  it("answers frame and policy prompts without requiring account lookup, and retains replies", async () => {
+    render(<MemoryRouter initialEntries={["/patients"]}><CompanionAssistantProvider><CompanionAssistant /></CompanionAssistantProvider></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
+    fireEvent.click(screen.getByRole("button", { name: "Find lenses for my frame" }));
+    await screen.findByText(/Lens compatibility depends on the frame type/);
+    const input = screen.getByPlaceholderText("Ask anything");
+    fireEvent.change(input, { target: { value: "Explain office lenses" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(vi.mocked(generateAssistantAnswer).mock.lastCall?.[0].query).toBe("Explain office lenses"));
+    await screen.findByText("AI response from Iris");
+    fireEvent.change(input, { target: { value: "Can I drive in those?" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await waitFor(() => expect(vi.mocked(generateAssistantAnswer).mock.lastCall?.[0].query).toBe("Can I drive in those?"));
+    expect(vi.mocked(generateAssistantAnswer).mock.lastCall?.[0].conversation).toContainEqual({ role: "assistant", text: "AI response from Iris" });
+  });
+
+  it("gives useful screen guidance and carries the selected patient audience forward", async () => {
+    render(<MemoryRouter initialEntries={["/"]}><CompanionAssistantProvider><CompanionAssistant /></CompanionAssistantProvider></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: "Ask Iris" }));
+    fireEvent.click(screen.getByRole("button", { name: "Find the right lens" }));
+    fireEvent.click(screen.getByRole("button", { name: "Myself" }));
+    fireEvent.click(screen.getByRole("button", { name: "Computer & screens" }));
+    fireEvent.click(screen.getByRole("button", { name: "Not yet / not sure" }));
+    expect(screen.getByText(/Office lenses cover desk and near tasks/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Find an optical retailer" })).toHaveAttribute("href", "/find-a-retailer");
+    fireEvent.click(screen.getByRole("button", { name: "Compare options for this use" }));
+    await screen.findByText("AI response from Iris");
+    expect(vi.mocked(generateAssistantAnswer).mock.lastCall?.[0].audience).toBe("patient");
   });
 
   it("asks an anonymous visitor for audience context with inline choices", async () => {
