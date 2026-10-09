@@ -1067,7 +1067,7 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     const isQuoteRequest = formState.kind === "quote_request";
     const isPricelistRequest = formState.kind === "pricelist_request";
     const requestTitle = (isQuoteRequest ? (formState.requestTitle ?? "") : formState.issueType).trim();
-    if ((!requestTitle) || (!isQuoteRequest && !summary) || (isQuoteRequest && !user) || (!isQuoteRequest && (!formState.name.trim() || !formState.email.trim())) || (isPricelistRequest && (!formState.businessName.trim() || !formState.market.trim() || !isPricelistRequesterEligible(formState.requesterType)))) return;
+    if ((!requestTitle) || (!isQuoteRequest && !summary) || (isQuoteRequest && !user) || (!isQuoteRequest && formState.kind !== "portal_support" && (!formState.name.trim() || !formState.email.trim())) || (isPricelistRequest && (!formState.businessName.trim() || !formState.market.trim() || !isPricelistRequesterEligible(formState.requesterType)))) return;
     const requestDetails = isQuoteRequest ? [requestTitle, summary].filter(Boolean).join("\n\n") : summary;
 
     const collectRequestFiles = async () => {
