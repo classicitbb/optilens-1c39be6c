@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -233,6 +233,47 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_attachments: {
+        Row: {
+          activity_id: string
+          byte_size: number
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          activity_id: string
+          byte_size: number
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type: string
+          storage_path: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          activity_id?: string
+          byte_size?: number
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_attachments_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
             referencedColumns: ["id"]
           },
         ]
