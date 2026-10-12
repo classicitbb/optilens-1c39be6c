@@ -8,6 +8,13 @@
       "when": 1791819117002,
       "tag": "0000_restrict_public_bucket_listing",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791819782034,
+      "tag": "0001_tighten_reference_table_reads",
+      "breakpoints": true
     }
   ]
 }
