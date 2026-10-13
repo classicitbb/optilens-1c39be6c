@@ -1,10 +1,10 @@
 ## 2026-10-13 — Pricelist readiness message
 
-Status: Source repair complete; Edge Function deployment pending approval.
+Status: Complete — no active handoff
 
 Affected files: `supabase/functions/admin-user-management/index.ts`, `supabase/functions/customer-onboarding/index.ts`, `src/pages/admin/UsersPage.tsx`, `src/hooks/useAdminUsers.ts`, `src/features/admin/security/adminFunctionPolicy.ts`, focused tests, and continuity docs. Admin create/invite still assigns default template pricing, but cannot send the "Your Classic Visions pricelist is ready" message. The create-user immediate-send control is removed. The separate invite email remains opt-in. The welcome template and scoped email-pipeline smoke path remain for explicit test recipients.
 
-Verification: focused onboarding/policy tests 20 passed; TypeScript and build passed; lint completed with 0 errors and 2,416 warnings. `npm run test -- --runInBand` ran without a final result and was stopped after the focused tests passed. No customer account, pricelist, or email was changed live. Approval required: deploy the two changed Edge Functions and publish the frontend. Next executable action after approval: deploy `admin-user-management` and `customer-onboarding`, publish the frontend, then run `npm run qa:edge-smoke` and verify a named test invite does not enqueue `welcome-pricelist`.
+Verification: focused onboarding/policy tests 20 passed; TypeScript and build passed; lint completed with 0 errors and 2,416 warnings. `npm run test -- --runInBand` ran without a final result and was stopped after the focused tests passed. Main commit `8ed3c5e9` reached READY on Vercel production and GitHub Pages deployment passed. After the GitHub Edge Function workflow failed before deployment because its `SUPABASE_ACCESS_TOKEN` secret was empty, Lovable deployed only `admin-user-management` and `customer-onboarding` from that commit. Its post-deploy `npm run qa:edge-smoke` passed 47 functions and 3 probes; the Doc Studio email probe was skipped because its setup was not configured. No customer account, pricelist, or email was changed during verification. A real named invite was not submitted, so the no-email result is established by source and deployment checks rather than a live invite transaction.
 
 ## 2026-10-09 — Iris visitor conversation quality
 
