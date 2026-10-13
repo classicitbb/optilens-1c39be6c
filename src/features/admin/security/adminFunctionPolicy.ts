@@ -148,8 +148,6 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
       const customerId = assertCustomerId(payload.customerId);
       const contactId = assertContactId(payload.contactId);
       const displayName = assertDisplayName(payload.displayName);
-      // Defaults to false — see invite-user.
-      const sendWelcomeEmail = assertOptionalBoolean(payload.sendWelcomeEmail, "sendWelcomeEmail");
       return {
         action: "create-user" as const,
         email: assertEmail(payload.email),
@@ -157,7 +155,6 @@ export const validateAdminFunctionRequest = ({ actorRole, action, payload = {} }
         displayName,
         ...(customerId !== undefined ? { customerId } : {}),
         ...(contactId !== undefined ? { contactId } : {}),
-        ...(sendWelcomeEmail !== undefined ? { sendWelcomeEmail } : {}),
       };
       }
     case "link-customer-portal-account":

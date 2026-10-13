@@ -1,5 +1,7 @@
 # Project Status
 
+Pricelist readiness email (2026-10-13, local source): account creation and invitations still assign the default template pricelist, but no longer send the "Your Classic Visions pricelist is ready" message. The create-user immediate-send checkbox is removed. The separate invitation email remains an explicit admin choice. Edge Function deployment is pending approval; hosted behavior is unchanged until then. See HANDOFF.md.
+
 Atlas production release (2026-10-08): width persistence, per-user browser sidebar preferences, stable generated identifiers, authenticated published-page sharing and account/page/time audit are deployed. The named sharing migration is applied; hosted grants/RLS and unchanged page policies are verified. No page was enabled for sharing. See HANDOFF.md for local checks, browser proof and remaining target-specific verification. ClickUp and broader spaces remain deferred.
 
 ## Atlas title slugs and launcher favorites — 2026-10-07
@@ -13,7 +15,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-09 (Iris visitor fixes published; portal ticket send repair local and awaiting release approval)
+Last updated: 2026-10-13 (pricelist readiness email suppression complete in local source; Edge Function deployment pending approval)
 
 ---
 

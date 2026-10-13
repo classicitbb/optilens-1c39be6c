@@ -4,10 +4,8 @@ import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 
 /**
  * Fires the customer-onboarding function for a newly created user.
- * This assigns the default template pricelist and, when sendWelcomeEmail is
- * true, sends the welcome email. Defaults to suppressing the email — an
- * admin creating/inviting/linking a portal account from Website Portals is
- * configuring the account, not necessarily telling the customer it's ready.
+ * This assigns the default template pricelist without sending a pricelist
+ * email. Account creation and invitation do not announce pricing readiness.
  * Failures are logged but do NOT block the primary create/invite response.
  */
 async function triggerCustomerOnboarding(
@@ -15,7 +13,6 @@ async function triggerCustomerOnboarding(
   userId: string,
   email: string,
   displayName: string | undefined,
-  sendWelcomeEmail: boolean,
 ): Promise<void> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -34,7 +31,7 @@ async function triggerCustomerOnboarding(
         "x-admin-auth-token": req.headers.get("x-admin-auth-token") ?? "",
         "Origin": req.headers.get("Origin") ?? "",
       },
-      body: JSON.stringify({ userId, email, displayName, suppressEmail: !sendWelcomeEmail }),
+      body: JSON.stringify({ userId, email, displayName }),
     });
 
     if (!resp.ok) {
@@ -399,16 +396,14 @@ Deno.serve(async (req) => {
 
       if (newUserId) {
         await linkCustomerPortalAccount(adminClient, newUserId, customerId, displayName, contactId);
-        // Assign default pricelist; only send the welcome email if the admin
-        // opted in to emailing this customer.
-        await triggerCustomerOnboarding(req, newUserId, email, displayName, wantsEmail);
+        await triggerCustomerOnboarding(req, newUserId, email, displayName);
       }
 
       return jsonResponse(req, 200, { success: true, userId: newUserId, ...(actionLink ? { actionLink } : {}) });
     }
 
     if (action === "create-user") {
-      const { email, password, displayName, customerId, contactId, sendWelcomeEmail } = body;
+      const { email, password, displayName, customerId, contactId } = body;
       if (!email || !password) {
         return jsonResponse(req, 400, { error: "Email and password are required" });
       }
@@ -457,10 +452,9 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Assign default pricelist; only send the welcome email if the admin
-      // opted in to emailing this customer.
+      // Assign the default pricelist without sending a pricing announcement.
       if (newUser?.user?.id) {
-        await triggerCustomerOnboarding(req, newUser.user.id, email, displayName, sendWelcomeEmail === true);
+        await triggerCustomerOnboarding(req, newUser.user.id, email, displayName);
       }
 
       return jsonResponse(req, 200, { success: true, userId: newUser?.user?.id });

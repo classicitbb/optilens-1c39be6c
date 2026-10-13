@@ -35,18 +35,19 @@ describe("customer onboarding email wiring", () => {
 
     expect(adminFunction).toContain("functions/v1/customer-onboarding");
     expect(adminFunction).toContain('if (action === "invite-user")');
-    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUserId, email, displayName, wantsEmail);');
+    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUserId, email, displayName);');
     expect(adminFunction).toContain('if (action === "create-user")');
-    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUser.user.id, email, displayName, sendWelcomeEmail === true);');
+    expect(adminFunction).toContain('await triggerCustomerOnboarding(req, newUser.user.id, email, displayName);');
+    expect(adminFunction).not.toContain('sendWelcomeEmail');
   });
 
-  it("sends the welcome-pricelist email from customer onboarding", () => {
+  it("does not send the welcome-pricelist email during account setup", () => {
     const onboardingFunction = read("supabase/functions/customer-onboarding/index.ts");
+    const usersPage = read("src/pages/admin/UsersPage.tsx");
 
     expect(onboardingFunction).toContain("transactional-email-templates/welcome-pricelist.tsx");
-    expect(onboardingFunction).toContain("renderAsync");
-    expect(onboardingFunction).toContain("sendManagedEmail");
-    expect(onboardingFunction).toContain("template_name: 'welcome-pricelist'");
-    expect(onboardingFunction).toContain("label: 'welcome-pricelist'");
+    expect(onboardingFunction).not.toContain('const suppressEmail = body.suppressEmail === true');
+    expect(onboardingFunction).not.toContain('return await enqueueWelcomeEmail(supabase, {\n    userId,');
+    expect(usersPage).not.toContain('createSendWelcomeEmail');
   });
 });

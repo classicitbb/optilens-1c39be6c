@@ -61,7 +61,6 @@ const UsersPage = () => {
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [createName, setCreateName] = useState("");
-  const [createSendWelcomeEmail, setCreateSendWelcomeEmail] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -188,7 +187,7 @@ const UsersPage = () => {
             <Mail className="h-3.5 w-3.5" />
             Invite
           </Button>
-          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setCreateEmail(""); setCreatePassword(""); setCreateName(""); setCreateSendWelcomeEmail(false); setCreateOpen(true); }}>
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setCreateEmail(""); setCreatePassword(""); setCreateName(""); setCreateOpen(true); }}>
             <UserPlus className="h-3.5 w-3.5" />
             Add User
           </Button>
@@ -539,10 +538,6 @@ const UsersPage = () => {
               onChange={(e) => setCreatePassword(e.target.value)}
               className="h-8 text-xs"
             />
-            <label className="flex items-center gap-2 text-xs text-[hsl(var(--admin-muted-fg))] cursor-pointer">
-              <Checkbox checked={createSendWelcomeEmail} onCheckedChange={(v) => setCreateSendWelcomeEmail(v === true)} />
-              Send the welcome email to this address now
-            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -552,7 +547,7 @@ const UsersPage = () => {
               disabled={createUser.isPending || !createEmail.includes("@") || createPassword.length < 12}
               onClick={async () => {
                 try {
-                  await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined, sendWelcomeEmail: createSendWelcomeEmail });
+                  await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined });
                   toast({ title: "User created", description: `Account created for ${createEmail}.` });
                   setCreateOpen(false);
                 } catch (err) {

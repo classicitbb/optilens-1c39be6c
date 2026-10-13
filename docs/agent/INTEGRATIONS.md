@@ -1,5 +1,7 @@
 # Integrations and Cross-Repository Contract
 
+Customer onboarding email boundary (2026-10-13, local source): `admin-user-management` calls `customer-onboarding` for default template pricing assignment only. Inviting a login may send the separately requested Supabase Auth invite email; it no longer sends the managed `welcome-pricelist` message. The scoped `customer-onboarding:smoke` path still tests the email pipeline against its explicit test recipient. Deploying the changed Edge Functions requires approval and `npm run qa:edge-smoke`; no live email is part of local verification.
+
 ## Atlas launcher favorite persistence — 2026-10-07
 
 Uses existing user_launcher_pins with account-owned policies and user-ID query keys. Stored route is the existing /admin/knowledge/wiki?articleId=... redirect, satisfying the existing admin-route constraint. Launcher resolves only readable pages through AtlasSource and registered space capabilities. No migration, new connector, environment variable, access rule or production write is included.
