@@ -2488,6 +2488,54 @@ export type Database = {
           },
         ]
       }
+      contact_merge_log: {
+        Row: {
+          conflicts: Json
+          discarded: Json
+          dropped_before: Json | null
+          dropped_id: string
+          filled: Json
+          id: string
+          kept_before: Json | null
+          kept_id: string
+          merged_at: string
+          merged_by: string | null
+          moved: Json
+          undone_at: string | null
+          undone_by: string | null
+        }
+        Insert: {
+          conflicts?: Json
+          discarded?: Json
+          dropped_before?: Json | null
+          dropped_id: string
+          filled?: Json
+          id?: string
+          kept_before?: Json | null
+          kept_id: string
+          merged_at?: string
+          merged_by?: string | null
+          moved?: Json
+          undone_at?: string | null
+          undone_by?: string | null
+        }
+        Update: {
+          conflicts?: Json
+          discarded?: Json
+          dropped_before?: Json | null
+          dropped_id?: string
+          filled?: Json
+          id?: string
+          kept_before?: Json | null
+          kept_id?: string
+          merged_at?: string
+          merged_by?: string | null
+          moved?: Json
+          undone_at?: string | null
+          undone_by?: string | null
+        }
+        Relationships: []
+      }
       contact_sync_dead_letters: {
         Row: {
           attempt_count: number
@@ -13612,6 +13660,11 @@ export type Database = {
           quote_acceptance_rate: number
         }[]
       }
+      crm_merge_contacts: {
+        Args: { p_drop: string; p_dry_run?: boolean; p_keep: string }
+        Returns: Json
+      }
+      crm_unmerge_contacts: { Args: { p_log_id: string }; Returns: Json }
       delete_ai_agent_settings: {
         Args: { p_actor_user_id?: string; p_provider: string }
         Returns: undefined
