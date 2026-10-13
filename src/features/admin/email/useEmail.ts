@@ -99,6 +99,42 @@ export type CrmContactMatch = {
   linked_customer_id: number | null;
 };
 
+export type ContactSuggestion = {
+  id: string;
+  name: string;
+  business_name: string | null;
+  email: string;
+  linked_customer_id: number | null;
+  contact_tag_links: { contact_tags: { name: string } | null }[] | null;
+};
+
+// Compose recipient search: CRM contacts with an email whose name, company,
+// email or phone contains the term. Searched server-side so it is not capped
+// by the 1000-row page a full contacts load would hit.
+export function useContactSearch(term: string) {
+  // PostgREST or() syntax reserves , ( ) and " ; * is its wildcard.
+  const cleaned = term.replace(/[,()"*\\%_]/g, " ").trim();
+  return useQuery({
+    queryKey: ["email", "contact-search", cleaned],
+    queryFn: async () => {
+      const pattern = `*${cleaned}*`;
+      const { data, error } = await (supabase.from("contacts") as any)
+        .select("id, name, business_name, email, linked_customer_id, contact_tag_links(contact_tags(name))")
+        .or(["name", "business_name", "email", "phone"].map((column) => `${column}.ilike.${pattern}`).join(","))
+        .eq("is_archived", false)
+        .not("email", "is", null)
+        .neq("email", "")
+        .order("name")
+        .limit(8);
+      if (error) throw error;
+      return (data ?? []) as ContactSuggestion[];
+    },
+    enabled: cleaned.length >= 2,
+    staleTime: 60_000,
+    placeholderData: (previous) => previous,
+  });
+}
+
 // CRM contacts whose email field (which can hold a list) contains the address.
 export function useCrmContactByEmail(address: string | null | undefined) {
   return useQuery({

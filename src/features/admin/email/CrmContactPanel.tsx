@@ -7,7 +7,12 @@ import type { EmailHistoryItem } from "@/lib/emailBridge";
 import { useCrmContactByEmail, useEmailHistory } from "./useEmail";
 import { formatEmailDate } from "./format";
 
-export function CrmContactPanel({ address, name }: { address: string | null; name: string | null }) {
+export function CrmContactPanel({ address, name, onCreateTask, creatingTask }: {
+  address: string | null;
+  name: string | null;
+  onCreateTask: () => void;
+  creatingTask: boolean;
+}) {
   const { data: matches = [], isLoading } = useCrmContactByEmail(address);
   const contact = matches[0];
   const addresses = contact?.email ? parseContactEmails(contact.email).map((value) => value.toLowerCase()) : address ? [address] : [];
@@ -34,8 +39,8 @@ export function CrmContactPanel({ address, name }: { address: string | null; nam
             <Button asChild size="sm" variant="outline" className="justify-start">
               <Link to={`/admin/crm/contacts?contact=${contact.id}&tab=email`}><ExternalLink className="mr-1 h-4 w-4" /> Open in CRM</Link>
             </Button>
-            <Button asChild size="sm" variant="outline" className="justify-start">
-              <Link to="/admin/crm/activities?create=1"><CalendarCheck className="mr-1 h-4 w-4" /> Create task</Link>
+            <Button size="sm" variant="outline" className="justify-start" onClick={onCreateTask} disabled={creatingTask}>
+              <CalendarCheck className="mr-1 h-4 w-4" /> Create task
             </Button>
           </div>
           {matches.length > 1 ? <p className="text-xs text-[hsl(var(--admin-muted-fg))]">{matches.length - 1} more contact{matches.length > 2 ? "s" : ""} share this address.</p> : null}

@@ -116,7 +116,10 @@ const CrmActivitiesPage = () => {
   const { data = [], isLoading } = useActivities();
   const { data: staffNames = {} } = useStaffNames();
   const transition = useTransitionActivity();
-  const [view, setView] = useState<DeskView>("board");
+  const [view, setView] = useState<DeskView>(() => {
+    const requested = searchParams.get("view");
+    return requested === "calendar" || requested === "list" ? requested : "board";
+  });
   const [preset, setPreset] = useState<FocusPreset>("my_focus");
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim().toLowerCase());

@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
-  Archive, Download, Flag, Folder, Forward, Image as ImageIcon, Inbox, Mail, MailOpen, Paperclip,
+  Archive, CalendarCheck, Download, Flag, Folder, Forward, Image as ImageIcon, Inbox, Mail, MailOpen, Paperclip,
   ChevronDown, ChevronRight, Plus, RefreshCw, Reply, ReplyAll, Search, Send, Settings2, Trash2, Users, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { emailBridge, getEmailBridgeUrl, type EmailAccount, type EmailFolder, type EmailMessage } from "@/lib/emailBridge";
 import {
-  useEmailFolders, useEmailMessage, useEmailMessages, useEmailStatus, useInvalidateEmail, useMoveEmail, useSetEmailFlags,
+  useCrmContactByEmail, useEmailFolders, useEmailMessage, useEmailMessages, useEmailStatus, useInvalidateEmail, useMoveEmail, useSetEmailFlags,
 } from "@/features/admin/email/useEmail";
+import { useEmailToTask } from "@/features/admin/email/useEmailToTask";
 import { EmailBody } from "@/features/admin/email/EmailBody";
 import { ComposeDialog } from "@/features/admin/email/ComposeDialog";
 import { CrmContactPanel } from "@/features/admin/email/CrmContactPanel";
+import { EmailAppRail } from "@/features/admin/email/EmailAppRail";
 import { ConnectMailboxDialog, ManageMailboxDialog } from "@/features/admin/email/MailboxDialogs";
 import {
   EMPTY_DRAFT, formatBytes, formatEmailDate, formatFullDate, forwardHeader, hasRemoteImages, prefixSubject, quoteForReply, type ComposeDraft,
@@ -26,6 +29,7 @@ const FOLDER_ICONS: Record<string, LucideIcon> = {
 
 const EmailPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [imagesShownFor, setImagesShownFor] = useState<number | null>(null);
@@ -71,6 +75,12 @@ const EmailPage = () => {
   }, [current?.message_id]);
 
   const ownAddress = (current?.account_address ?? account?.address ?? "").toLowerCase();
+  // The CRM side of the conversation: the recipient for sent mail, otherwise the sender.
+  const sentByUs = current?.special_use === "\\Sent";
+  const crmAddress = (sentByUs ? current?.to[0]?.address : current?.from_address) ?? null;
+  const crmName = (sentByUs ? current?.to[0]?.name : current?.from_name) ?? null;
+  const crmContact = useCrmContactByEmail(crmAddress).data?.[0];
+  const emailToTask = useEmailToTask();
   const sendAccount = current?.account_code ?? accountCode ?? "";
 
   const run = async (label: string, action: () => Promise<unknown>) => {
@@ -93,6 +103,20 @@ const EmailPage = () => {
       ? [...current.to, ...current.cc].map((item) => item.address).filter((address) => address !== ownAddress && address !== current.from_address).join("; ")
       : "";
     openDraft({ ...EMPTY_DRAFT, account: sendAccount, to: current.from_address ?? "", cc, subject: prefixSubject("RE", current.subject), text: quoteForReply(current), replyToMessageId: current.message_id });
+  };
+
+  const createTask = async () => {
+    if (!current) return;
+    try {
+      const taskId = await emailToTask.createTask(current, crmContact?.id);
+      toast({
+        title: "Task created",
+        description: `Due tomorrow at 9:00${crmContact ? `, linked to ${crmContact.business_name || crmContact.name}` : ""}.`,
+        action: <ToastAction altText="Open the task" onClick={() => navigate(`/admin/crm/activities?task=${taskId}`)}>Open task</ToastAction>,
+      });
+    } catch (error) {
+      toast({ title: "Couldn't create the task", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
+    }
   };
 
   const forward = async () => {
@@ -126,7 +150,9 @@ const EmailPage = () => {
   const activeFolder = folderList.find((f) => f.folder_id === folderId);
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] min-h-[520px] flex-col gap-2">
+    <div className="flex h-[calc(100vh-7rem)] min-h-[520px] gap-2">
+    <EmailAppRail />
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
       {/* Home ribbon */}
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-surface,var(--admin-topbar-bg)))] p-1.5">
         <Button size="sm" onClick={() => openDraft({ ...EMPTY_DRAFT, account: sendAccount })}><Mail className="mr-1 h-4 w-4" /> New mail</Button>
@@ -141,6 +167,8 @@ const EmailPage = () => {
           onClick={() => current && setFlags.mutate({ id: current.message_id, is_flagged: !current.is_flagged })} />
         <RibbonButton icon={MailOpen} label="Mark unread" disabled={!current}
           onClick={() => current && run("Marked unread", () => setFlags.mutateAsync({ id: current.message_id, is_read: false }))} />
+        <span className="mx-1 h-6 w-px bg-[hsl(var(--admin-border))]" />
+        <RibbonButton icon={CalendarCheck} label="Create task" disabled={!current || emailToTask.isPending} onClick={createTask} />
         <div className="ml-auto flex items-center gap-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-[hsl(var(--admin-muted-fg))]" />
@@ -239,10 +267,7 @@ const EmailPage = () => {
                 <EmailBody html={current.body_html} text={current.body_text} showImages={showImages} />
               </article>
               <aside className="min-h-0 overflow-y-auto border-t border-[hsl(var(--admin-border))] p-4 xl:border-l xl:border-t-0">
-                <CrmContactPanel
-                  address={activeFolder?.special_use === "\\Sent" ? current.to[0]?.address ?? null : current.from_address}
-                  name={activeFolder?.special_use === "\\Sent" ? current.to[0]?.name ?? null : current.from_name}
-                />
+                <CrmContactPanel address={crmAddress} name={crmName} onCreateTask={createTask} creatingTask={emailToTask.isPending} />
               </aside>
             </div>
           )}
@@ -255,6 +280,7 @@ const EmailPage = () => {
         isAdmin={Boolean(status.data?.user.isAdmin)} />
       <ManageMailboxDialog key={managing?.code ?? "none"} account={managing ? accounts.find((row) => row.code === managing.code) ?? managing : null}
         onClose={() => setManaging(null)} />
+    </div>
     </div>
   );
 };
