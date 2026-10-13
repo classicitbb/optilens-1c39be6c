@@ -99,6 +99,26 @@ export type CrmContactMatch = {
   linked_customer_id: number | null;
 };
 
+export function useSignatures(account: string | null | undefined) {
+  return useQuery({
+    queryKey: ["email", "signatures", account],
+    queryFn: () => emailBridge.signatures(account as string),
+    enabled: Boolean(account),
+    // A bridge without signature support answers 404; compose then simply has no signatures.
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSignatureMutations(account: string) {
+  const queryClient = useQueryClient();
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["email", "signatures", account] });
+  return {
+    save: useMutation({ mutationFn: (body: Parameters<typeof emailBridge.saveSignature>[1]) => emailBridge.saveSignature(account, body), onSuccess: refresh }),
+    remove: useMutation({ mutationFn: (signatureId: number) => emailBridge.deleteSignature(account, signatureId), onSuccess: refresh }),
+  };
+}
+
 export type ContactSuggestion = {
   id: string;
   name: string;
