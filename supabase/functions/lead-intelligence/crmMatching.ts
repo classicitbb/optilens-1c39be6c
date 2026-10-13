@@ -19,6 +19,7 @@ export type CrmContact = {
   is_customer: boolean | null;
   linked_customer_id: number | null;
   is_archived?: boolean | null;
+  is_company?: boolean | null;
 };
 
 export type CrmCustomerAccount = { id: number; name: string; contact_id: string | null };
@@ -152,11 +153,24 @@ export function buildCrmIndex(contacts: CrmContact[], customers: CrmCustomerAcco
   const isCustomerRecord = (contact: CrmContact) =>
     contact.is_customer === true || contact.linked_customer_id != null || customerContactIds.has(contact.id);
 
+  // The ERP link usually sits on the people, not the company record. A company is a
+  // customer when any child (parent_id) or any person naming it as business_name is.
+  const customerParentIds = new Set<string>();
+  const customerBusinessNames = new Set<string>();
+  for (const contact of contacts) {
+    if (contact.is_archived || !isCustomerRecord(contact)) continue;
+    if (contact.parent_id) customerParentIds.add(contact.parent_id);
+    const business = normalizeBusinessName(contact.business_name);
+    if (business) customerBusinessNames.add(business);
+  }
+
   const entities: Entity[] = [];
   for (const contact of contacts) {
     if (contact.is_archived) continue;
     const parent = contact.parent_id ? byContactId.get(contact.parent_id) : undefined;
-    const isCustomer = isCustomerRecord(contact) || (parent ? isCustomerRecord(parent) : false);
+    const isCustomer = isCustomerRecord(contact) || (parent ? isCustomerRecord(parent) : false) ||
+      customerParentIds.has(contact.id) ||
+      (contact.is_company === true && customerBusinessNames.has(normalizeBusinessName(contact.name)));
     const names = [normalizeBusinessName(contact.business_name), normalizeBusinessName(contact.name)]
       .filter((name, i, all) => name && all.indexOf(name) === i);
     if (names.length === 0) continue;
@@ -263,6 +277,37 @@ export function annotateLead(
         reason: "Same business name in the same city.",
       },
       isCurrentCustomer: entity.isCustomer,
+      customerSource: entity.customerSource,
+    };
+  }
+
+  // 2b. A single customer with this exact name whose city is unknown on either side:
+  // treat as the same business so a customer is never pitched as a new lead. The
+  // operator can still unlink it, or show current customers, from the Lead Finder.
+  // Spelling variants (Centre/Center) are folded here only, so stored identity keys stay stable.
+  const fold = (name: string) => name.replace(/\bcentre\b/g, "center");
+  const foldedLead = fold(normalizedName);
+  const looseHits = foldedLead
+    ? index.entities.filter((entity) => entity.names.some((name) => fold(name) === foldedLead))
+    : [];
+  const customerNameHits = looseHits.filter((entity) => entity.isCustomer);
+  const locationAgrees = looseHits.every((entity) => !city || !entity.city || entity.city === city);
+  if (customerNameHits.length > 0 && locationAgrees && (!city || customerNameHits.some((e) => !e.city))) {
+    // People under a company share its business_name; point at the company-like record.
+    const entity = customerNameHits.find((e) => e.names[0] && fold(e.names[0]) === foldedLead) ?? customerNameHits[0];
+    return {
+      ...base,
+      status: "matched",
+      match: {
+        contactId: entity.contactId,
+        contactName: entity.displayName,
+        businessName: entity.businessName,
+        isCustomer: true,
+        basis: "name_location",
+        confirmed: false,
+        reason: "Same business name as a current customer (location not recorded on one side).",
+      },
+      isCurrentCustomer: true,
       customerSource: entity.customerSource,
     };
   }

@@ -142,6 +142,29 @@ describe("customer recognition and exclusion", () => {
     expect(annotateLead({ name: "Account Owner", city: "Oistins" }, idx, []).customerSource).toBe("crm_record");
   });
 
+  it("treats a company as a customer when its people carry the ERP link", () => {
+    const company = contact({ id: "co", name: "ST LUCIA EYE CENTER", is_company: true });
+    const person = contact({ id: "pe", name: "Emsco Remy", business_name: "St. Lucia Eye Center", linked_customer_id: 801 });
+    const idx = buildCrmIndex([company, person], []);
+    const crm = annotateLead({ name: "St. Lucia Eye Centre", city: "Castries" }, idx, []);
+    expect(crm).toMatchObject({ status: "matched", isCurrentCustomer: true });
+    expect(crm.match?.contactId).toBe("co");
+  });
+
+  it("treats a company as a customer when a child record carries the ERP link", () => {
+    const company = contact({ id: "co", name: "Vyve Group", is_company: true });
+    const child = contact({ id: "ch", name: "Vyve Office", parent_id: "co", linked_customer_id: 819 });
+    const idx = buildCrmIndex([company, child], []);
+    expect(annotateLead({ name: "Vyve Group", city: "Bridgetown" }, idx, []).isCurrentCustomer).toBe(true);
+  });
+
+  it("does not exclude a same-name business in a different known city", () => {
+    const company = contact({ id: "co", name: "Eye Centre", city: "Bridgetown", linked_customer_id: 5 });
+    const crm = annotateLead({ name: "Eye Centre", city: "Castries" }, buildCrmIndex([company], []), []);
+    expect(crm.isCurrentCustomer).toBe(false);
+    expect(crm.status).toBe("suggested");
+  });
+
   it("recognises a customer account that has no CRM contact", () => {
     const idx = buildCrmIndex([], [{ id: 9, name: "Lone Account Ltd", contact_id: null }]);
     const crm = annotateLead({ name: "Lone Account", city: "Bridgetown" }, idx, []);
