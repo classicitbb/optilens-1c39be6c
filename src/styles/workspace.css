@@ -147,7 +147,7 @@ body.ws-admin {
    plus Tailwind ring utilities). Text fields recolour their own border; other
    controls get a thin outline. Floating layers keep their shadow when focused. */
 :is(.admin-tool, body.ws-admin)
-  :focus-visible:not([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper] > *) {
+  :focus-visible:not([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper] > *, [contenteditable="true"]) {
   outline: 1px solid hsl(var(--ring));
   outline-offset: 1px;
   box-shadow: none;
