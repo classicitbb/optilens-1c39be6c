@@ -17,6 +17,7 @@ export const NAVIGATION_REGISTRY: NavigationDefinition[] = [
   { id: "admin.copilot", routeId: "admin.copilot", label: "Portal Copilot", context: "admin-console", group: "launcher", appKey: "copilot", order: 0.5, status: "active" },
   { id: "admin.pricing", routeId: "admin.pricing", label: "Pricing", context: "admin-console", group: "launcher", appKey: "pricing", order: 1, status: "active" },
   { id: "admin.crm", routeId: "admin.crm", label: "CRM", context: "admin-console", group: "launcher", appKey: "crm", order: 4, status: "active" },
+  { id: "admin.email", routeId: "admin.email", label: "Email", context: "admin-console", group: "launcher", appKey: "email", order: 4.5, status: "active" },
   { id: "admin.crm.activities", routeId: "admin.crm.activities", label: "Activities", context: "admin-console", group: "launcher", appKey: "crm", shortcutKey: "activities", order: 5, status: "active" },
   { id: "admin.helpdesk", routeId: "admin.helpdesk", label: "Helpdesk", context: "admin-console", group: "launcher", appKey: "helpdesk", order: 6, status: "active" },
   { id: "admin.orders", routeId: "admin.orders", label: "Orders", context: "admin-console", group: "launcher", appKey: "orders", order: 6.2, status: "active" },
