@@ -44,4 +44,17 @@ describe("SignatureManager", () => {
     expect(body.html).toContain(`<img src="https://cv.bb/logo.png">`);
     expect(body.html).not.toContain("onerror");
   });
+
+  it("asks before deleting and only deletes on confirm", async () => {
+    remove.mockClear();
+    render(<SignatureManager account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete Standard" }));
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.getByText(/Delete “Standard”\?/)).toHaveTextContent("no default signature");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Delete Standard" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Delete Standard" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(1));
+  });
 });

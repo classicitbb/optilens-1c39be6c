@@ -1,8 +1,14 @@
 /* Email body editor. Spacing mirrors what recipients see (see emailHtml.ts):
    paragraphs without margins, so Enter twice makes a blank line. */
+/* The surrounding box (.ws-field) shows focus; the editable area itself draws no ring. */
+.email-editor .ProseMirror:focus,
+.email-editor .ProseMirror:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
 .email-editor .ProseMirror {
   min-height: 14rem;
-  padding: 0.5rem 0.75rem 2.75rem;
+  padding: 0.5rem 0.75rem;
   outline: none;
   font-family: Calibri, "Segoe UI", Arial, sans-serif;
   font-size: 15px;
@@ -11,7 +17,10 @@
 }
 .email-editor.email-editor-compact .ProseMirror {
   min-height: 7rem;
-  padding-bottom: 0.5rem;
+}
+/* Room under the text (and signature) for the dictation and Tidy controls. */
+.email-editor.email-editor-assist {
+  padding-bottom: 2.25rem;
 }
 .email-editor .ProseMirror :is(p, ul, ol, blockquote) {
   margin: 0;

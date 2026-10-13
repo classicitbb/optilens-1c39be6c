@@ -26,6 +26,7 @@ export function SignatureManager({ account }: { account: EmailAccount }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   // Remounts the formatted editor when switching back from HTML.
   const [editorKey, setEditorKey] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   const edit = (signature?: EmailSignature) => {
     const html = signature?.body_html ?? "";
@@ -55,14 +56,33 @@ export function SignatureManager({ account }: { account: EmailAccount }) {
             <ul className="grid gap-1">
               {signatures.map((signature) => (
                 <li key={signature.signature_id} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="truncate">{signature.name} {signature.is_default ? <Badge variant="secondary" className="ml-1">Default</Badge> : null}</span>
-                  <span className="flex shrink-0">
-                    <Button size="sm" variant="ghost" className="h-7" aria-label={`Edit ${signature.name}`} onClick={() => edit(signature)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button size="sm" variant="ghost" className="h-7" aria-label={`Delete ${signature.name}`}
-                      onClick={() => run("Signature deleted", () => remove.mutateAsync(signature.signature_id))}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </span>
+                  {confirmDelete === signature.signature_id ? (
+                    <>
+                      <span className="min-w-0">
+                        Delete “{signature.name}”?{signature.is_default ? " New emails from this mailbox will have no default signature." : ""}
+                      </span>
+                      <span className="flex shrink-0 gap-1">
+                        <Button size="sm" variant="ghost" className="h-7" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+                        <Button size="sm" variant="destructive" className="h-7" disabled={remove.isPending}
+                          onClick={async () => {
+                            await run("Signature deleted", () => remove.mutateAsync(signature.signature_id));
+                            setConfirmDelete(null);
+                          }}>
+                          Delete
+                        </Button>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="truncate">{signature.name} {signature.is_default ? <Badge variant="secondary" className="ml-1">Default</Badge> : null}</span>
+                      <span className="flex shrink-0">
+                        <Button size="sm" variant="ghost" className="h-7" aria-label={`Edit ${signature.name}`} onClick={() => edit(signature)}><Pencil className="h-3.5 w-3.5" /></Button>
+                        <Button size="sm" variant="ghost" className="h-7" aria-label={`Delete ${signature.name}`} onClick={() => setConfirmDelete(signature.signature_id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </span>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
