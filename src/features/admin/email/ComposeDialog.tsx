@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fileToAttachment, type EmailAccount, type OutgoingAttachment } from "@/lib/emailBridge";
 import { useSendEmail } from "./useEmail";
+import { RecipientInput } from "./RecipientInput";
+import { invalidRecipients } from "./recipients";
 import { EMPTY_DRAFT, formatBytes, type ComposeDraft } from "./format";
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -31,6 +33,7 @@ export function ComposeDialog({
 
   const totalBytes = form.attachments.reduce((sum, file) => sum + file.size, 0);
   const tooLarge = totalBytes > MAX_BYTES;
+  const invalid = [...invalidRecipients(form.to), ...invalidRecipients(form.cc)];
 
   const handleSend = async () => {
     try {
@@ -53,7 +56,11 @@ export function ComposeDialog({
 
   return (
     <Dialog open={draft !== null} onOpenChange={(open) => { if (!open && !send.isPending) onClose(); }}>
-      <DialogContent className="max-w-3xl gap-3">
+      <DialogContent
+        className="max-w-3xl gap-3"
+        // Escape first closes an open recipient suggestion list.
+        onEscapeKeyDown={(event) => { if ((event.target as HTMLElement | null)?.getAttribute?.("aria-expanded") === "true") event.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle>{form.replyToMessageId ? "Reply" : "New mail"}</DialogTitle>
         </DialogHeader>
@@ -67,14 +74,14 @@ export function ComposeDialog({
               </SelectContent>
             </Select>
           </div>
-          <label className="flex items-center gap-2">
-            <span className="w-14 shrink-0 text-xs text-[hsl(var(--admin-muted-fg))]">To</span>
-            <Input id="compose-to" value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} placeholder="name@example.com; another@example.com" />
-          </label>
-          <label className="flex items-center gap-2">
-            <span className="w-14 shrink-0 text-xs text-[hsl(var(--admin-muted-fg))]">Cc</span>
-            <Input id="compose-cc" value={form.cc} onChange={(e) => setForm({ ...form, cc: e.target.value })} />
-          </label>
+          <div className="flex items-center gap-2">
+            <label htmlFor="compose-to" className="w-14 shrink-0 text-xs text-[hsl(var(--admin-muted-fg))]">To</label>
+            <RecipientInput id="compose-to" label="To" value={form.to} onChange={(to) => setForm((current) => ({ ...current, to }))} placeholder="Search CRM contacts or type an address" />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="compose-cc" className="w-14 shrink-0 text-xs text-[hsl(var(--admin-muted-fg))]">Cc</label>
+            <RecipientInput id="compose-cc" label="Cc" value={form.cc} onChange={(cc) => setForm((current) => ({ ...current, cc }))} />
+          </div>
           <Input id="compose-subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Add a subject" />
           <Textarea id="compose-body" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} rows={14} className="font-[Calibri,'Segoe_UI',sans-serif] text-[15px]" />
           {form.attachments.length > 0 && (
@@ -89,6 +96,7 @@ export function ComposeDialog({
               ))}
             </div>
           )}
+          {invalid.length > 0 && <p className="text-xs text-destructive">Fix or remove {invalid.length === 1 ? "this address" : "these addresses"}: {invalid.join(", ")}</p>}
           {tooLarge && <p className="text-xs text-destructive">Attachments total {formatBytes(totalBytes)}. The limit is 20 MB.</p>}
           {!canSend && <p className="text-xs text-destructive">{from ? `${from.address} can't send yet: its outgoing (SMTP) server isn't set on the bridge.` : "Connect a mailbox to send email."}</p>}
         </div>
@@ -111,7 +119,7 @@ export function ComposeDialog({
           </div>
           <div className="flex gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={onClose} disabled={send.isPending}>Discard</Button>
-            <Button type="button" size="sm" onClick={handleSend} disabled={!canSend || tooLarge || send.isPending || !form.to.trim()}>
+            <Button type="button" size="sm" onClick={handleSend} disabled={!canSend || tooLarge || invalid.length > 0 || send.isPending || !form.to.trim()}>
               <Send className="mr-1 h-4 w-4" /> {send.isPending ? "Sending…" : "Send"}
             </Button>
           </div>
