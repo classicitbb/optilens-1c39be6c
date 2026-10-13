@@ -17,7 +17,10 @@ function readOverride(): string {
 export function getEmailBridgeUrl(): string | null {
   const override = readOverride();
   const fromEnv = (import.meta.env.VITE_EMAIL_BRIDGE_URL as string | undefined)?.trim() ?? "";
-  const url = override || fromEnv;
+  // Default: route through the cloud proxy function so every origin
+  // (published site, preview, dev review) can reach the office bridge.
+  const proxy = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-bridge`;
+  const url = override || (fromEnv ? proxy : "");
   return url ? url.replace(/\/+$/, "") : null;
 }
 
@@ -41,7 +44,7 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
   try {
     response = await fetch(`${base}/api/email/${path}`, {
       ...init,
-      headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), ...(await authHeader()), ...init.headers },
+      headers: { ...(init.body ? { "Content-Type": "application/json" } : {}), apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, ...(await authHeader()), ...init.headers },
     });
   } catch {
     throw new EmailBridgeError("Can't reach the mail bridge. Check that the office server is online.", 0);
