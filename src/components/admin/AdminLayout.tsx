@@ -22,7 +22,9 @@ const AdminLayout = () => {
   useAdminBodyClass();
   const contextSlug = pathnameToContextSlug(location.pathname);
   const isDocStudio = location.pathname === "/admin/docs/studio";
-  const hideSidebar = location.pathname === "/admin/dashboard" || isDocStudio;
+  // Email brings its own Outlook-style app rail, so the admin sidebar would only repeat it.
+  const isEmail = location.pathname === "/admin/email" || location.pathname.startsWith("/admin/email/");
+  const hideSidebar = location.pathname === "/admin/dashboard" || isDocStudio || isEmail;
 
   return (
     <AdminRoleProvider>
