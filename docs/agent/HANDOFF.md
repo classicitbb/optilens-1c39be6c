@@ -1,3 +1,11 @@
+## 2026-10-13 — Pricelist readiness message
+
+Status: Source repair complete; Edge Function deployment pending approval.
+
+Affected files: `supabase/functions/admin-user-management/index.ts`, `supabase/functions/customer-onboarding/index.ts`, `src/pages/admin/UsersPage.tsx`, `src/hooks/useAdminUsers.ts`, `src/features/admin/security/adminFunctionPolicy.ts`, focused tests, and continuity docs. Admin create/invite still assigns default template pricing, but cannot send the "Your Classic Visions pricelist is ready" message. The create-user immediate-send control is removed. The separate invite email remains opt-in. The welcome template and scoped email-pipeline smoke path remain for explicit test recipients.
+
+Verification: focused onboarding/policy tests 20 passed; TypeScript and build passed; lint completed with 0 errors and 2,416 warnings. `npm run test -- --runInBand` ran without a final result and was stopped after the focused tests passed. No customer account, pricelist, or email was changed live. Approval required: deploy the two changed Edge Functions and publish the frontend. Next executable action after approval: deploy `admin-user-management` and `customer-onboarding`, publish the frontend, then run `npm run qa:edge-smoke` and verify a named test invite does not enqueue `welcome-pricelist`.
+
 ## 2026-10-09 — Iris visitor conversation quality
 
 Status: Complete — no active handoff
@@ -698,3 +706,15 @@ Approval required: frontend publication and one explicitly named account/contact
 
 Ticket title follow-up (2026-10-09, local): portal Helpdesk list rows and their text flex child now allow shrinking. The title uses one-line ellipsis with a full-title hover attribute; stored text and ticket navigation stay unchanged. Status/date can wrap on narrow screens. This ships with the pending portal send repair.
 Truncation browser proof: existing 433-character ticket titles have ellipsis inside their rows; document scroll width equals viewport width at 1287px and 390px. Stored titles are untouched. Scoped ESLint: 0 errors / 2 existing warnings.
+
+## Email viewport spacing — 2026-10-13
+
+Status: Complete — no active handoff.
+
+The Email route uses 5px admin-content padding on every side; its page fills the available shell height instead of subtracting a fixed amount from the viewport. At the local 1483x900 browser viewport, the reading pane ends at y=895, leaving the intended 5px bottom inset. This is a local source change only; no deployment or mail action occurred.
+
+Follow-up annotations complete in local source: the mailbox and message-list borders resize from `md` upward, while the CRM border resizes from `xl` upward; all three separators also accept arrow keys. The CRM panel can be hidden and restored. Unread rows have a tinted background, and the dark toolbar/article borders use #294366 with a 1px article border. Browser checks confirmed drag on all three separators, keyboard resizing, CRM hide/restore, and computed dark border values. Scoped ESLint, TypeScript, and build passed. No email was sent or production release performed.
+
+Additional local source follow-up: split New mail control and grouped ribbon menu, stronger selected-message shade, 2px visible resize separators with an 8px hover target, per-folder collapse controls (including Inbox when it has children), and bounded previews for image, PDF, text, and CSV attachments. The CSV parser has focused tests. Local browser verification for this additional follow-up was blocked by the browser URL policy after the previously open localhost tab became an error page; do not treat source checks as rendered proof. No mail or CRM action was submitted.
+
+Status for the additional follow-up: Source complete; rendered browser verification pending. Affected files are EmailPage.tsx, csvPreview.ts, emailCsvPreview.test.ts, Email CONTEXT.md, and this handoff. Focused CSV tests, scoped ESLint, TypeScript, build, and `git diff --check` passed. The blocker is the Codex browser URL policy, not a source error. Production deployment requires explicit approval. Next exact action when the local URL becomes allowed: open the Email page in the Codex in-app browser and check the New menu, unselected and selected ribbon, CSV/image/PDF preview, selected-row shade, folder collapse, and 2px dividers without sending or moving a message.

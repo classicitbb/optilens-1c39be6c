@@ -5,7 +5,7 @@
  * It:
  *   1. Finds the default template pricelist (is_template = true, first created)
  *   2. Assigns it to the new customer via customer_pricing_access
- *   3. Enqueues a welcome email with the pricelist name and login link
+ *   3. Returns assignment status without sending a customer email
  *
  * POST body:
  *   { userId: string, email: string, displayName?: string }
@@ -214,8 +214,6 @@ Deno.serve(async (req) => {
 
   const userId = typeof body.userId === 'string' ? body.userId : ''
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
-  const displayName = typeof body.displayName === 'string' ? body.displayName : undefined
-  const suppressEmail = body.suppressEmail === true
 
   if (!userId || !email) {
     return jsonResponse(400, { error: 'userId and email are required' }, corsHeaders)
@@ -236,7 +234,7 @@ Deno.serve(async (req) => {
   const defaultVersion = templateVersions?.[0]
 
   if (!defaultVersion) {
-    // No template exists yet — skip assignment but still send a general welcome
+    // No template exists yet — skip assignment.
     console.warn('customer-onboarding: no template pricelist found, skipping assignment')
   }
 
@@ -268,35 +266,12 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ── 3. Enqueue welcome email ────────────────────────────────────────────────
-  // Admin-initiated account setup (invite/create) defaults to suppressing this —
-  // an admin configuring a portal account is not the same as the customer
-  // actually being ready to receive mail. The pricelist assignment above still
-  // happens either way.
-  if (suppressEmail) {
-    await supabase.from('email_send_log').insert({
-      message_id: generateMessageId(),
-      template_name: 'welcome-pricelist',
-      recipient_email: email,
-      status: 'suppressed',
-      error_message: 'Suppressed by admin during account configuration',
-    })
-    return jsonResponse(200, {
-      success: true,
-      pricelistAssigned: !!defaultVersion,
-      pricelistVersionId: defaultVersion?.id ?? null,
-      emailQueued: false,
-      reason: 'admin_suppressed',
-    }, corsHeaders)
-  }
-
-  return await enqueueWelcomeEmail(supabase, {
-    userId,
-    email,
-    displayName,
-    pricelistName: defaultVersion?.name ?? 'your pricelist',
-  }, corsHeaders, {
+  // Account setup never announces that pricing is ready. The email template is
+  // reserved for a separate, explicitly requested send after assignment.
+  return jsonResponse(200, {
+    success: true,
     pricelistAssigned: !!defaultVersion,
     pricelistVersionId: defaultVersion?.id ?? null,
-  })
+    emailQueued: false,
+  }, corsHeaders)
 })

@@ -203,7 +203,7 @@ async function fetchAllRows<T>(
 async function loadCrmContext(supabaseClient: any) {
   const contacts = await fetchAllRows<CrmContact>((from, to) =>
     supabaseClient.from("contacts")
-      .select("id,name,business_name,city,country,website,parent_id,is_customer,linked_customer_id,is_archived")
+      .select("id,name,business_name,city,country,website,parent_id,is_customer,linked_customer_id,is_archived,is_company")
       .order("id").range(from, to)
   );
   const customers = await fetchAllRows<CrmCustomerAccount>((from, to) =>

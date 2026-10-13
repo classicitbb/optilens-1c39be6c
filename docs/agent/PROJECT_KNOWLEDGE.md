@@ -1,5 +1,9 @@
 # Project Knowledge
 
+## Pricelist readiness email boundary — 2026-10-13
+
+`admin-user-management` invokes `customer-onboarding` to assign the default template pricelist after create/invite. Normal onboarding returns assignment status and never queues the welcome-pricelist email. The template and scoped email-pipeline smoke path remain available, but a customer-facing pricing announcement requires a separate explicit request after the intended list is assigned. The invite email is a distinct Supabase Auth message.
+
 ## Atlas page identity and launcher favorites — 2026-10-07
 
 Title changes own the stored slug; published draft title edits defer the URL until Update. Null legacy slugs remain unfilled. Rename transitions start before refetch. The host registers LauncherFavorite; saved pins use the existing legacy admin wiki URL with articleId as stable identity, and launcher display resolves current page data through AtlasSource. Browser titles and shared ID-bearing links now track the saved page. Old slug-only links lack durable aliases. No new service, environment variable or schema.
