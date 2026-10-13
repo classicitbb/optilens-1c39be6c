@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContactTagsConfigPage from "@/pages/admin/erp/ContactTagsConfigPage";
 import IndustriesConfigPage from "@/pages/admin/erp/IndustriesConfigPage";
 import LeadSettingsPage from "@/pages/admin/leads/LeadSettingsPage";
+import CrmDataHealthPanel from "@/features/admin/crm/CrmDataHealthPanel";
 
 // One CRM settings page (/admin/crm/settings?section=...) for what used to be
 // Contacts → Tags/Industries config and Leads → Settings.
@@ -10,6 +11,7 @@ const SECTIONS = [
   { value: "tags", label: "Contact Tags", Page: ContactTagsConfigPage },
   { value: "industries", label: "Industries", Page: IndustriesConfigPage },
   { value: "leads", label: "Lead Providers", Page: LeadSettingsPage },
+  { value: "data-health", label: "Data Health", Page: CrmDataHealthPanel },
 ] as const;
 
 type SectionValue = (typeof SECTIONS)[number]["value"];
