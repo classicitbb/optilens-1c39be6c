@@ -102,7 +102,8 @@ export function ComposeDialog({
             <RecipientInput id="compose-cc" label="Cc" value={form.cc} onChange={(cc) => setForm((current) => ({ ...current, cc }))} />
           </div>
           <Input id="compose-subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Add a subject" />
-          <EmailEditor initialHtml={initialBody} onChange={setBodyHtml} label="Message" placeholder="Write your message. Select text to format it." assist />
+          <EmailEditor initialHtml={initialBody} onChange={setBodyHtml} label="Message" placeholder="Write your message. Select text to format it." assist
+            footer={signature ? <SignaturePreview html={signature.body_html} variant="inline" /> : null} />
           {signatures.length > 0 || from?.canManage ? (
             <div className="grid gap-1.5">
               <div className="flex items-center gap-2 text-xs text-[hsl(var(--admin-muted-fg))]">
@@ -124,7 +125,6 @@ export function ComposeDialog({
                   </SelectContent>
                 </Select>
               </div>
-              {signature ? <SignaturePreview html={signature.body_html} /> : null}
             </div>
           ) : null}
           {form.quoted.trim() ? (

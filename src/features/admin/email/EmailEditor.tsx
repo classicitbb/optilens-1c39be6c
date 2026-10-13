@@ -281,6 +281,7 @@ export function EmailEditor({
   placeholder,
   compact = false,
   assist = false,
+  footer,
 }: {
   initialHtml: string;
   onChange: (html: string) => void;
@@ -290,6 +291,8 @@ export function EmailEditor({
   compact?: boolean;
   /** Dictation and Tidy up, as in the Ticket Composer. */
   assist?: boolean;
+  /** Read-only content shown inside the box under the text (the signature). */
+  footer?: ReactNode;
 }) {
   // Created once: initialHtml seeds it, later edits flow out through onChange.
   const latestOnChange = useRef(onChange);
@@ -316,8 +319,9 @@ export function EmailEditor({
   };
 
   return (
-    <div className={cn("email-editor ws-field relative rounded-md border border-input bg-background", compact && "email-editor-compact")}>
+    <div className={cn("email-editor ws-field relative rounded-md border border-input bg-background", compact && "email-editor-compact", assist && "email-editor-assist")}>
       <EditorContent editor={editor} />
+      {footer ? <div className="px-3 pb-2">{footer}</div> : null}
       {editor ? <FormattingBubble editor={editor} /> : null}
       {editor && assist ? (
         <>
