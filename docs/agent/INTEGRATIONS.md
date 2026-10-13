@@ -1,6 +1,6 @@
 # Integrations and Cross-Repository Contract
 
-Customer onboarding email boundary (2026-10-13, local source): `admin-user-management` calls `customer-onboarding` for default template pricing assignment only. Inviting a login may send the separately requested Supabase Auth invite email; it no longer sends the managed `welcome-pricelist` message. The scoped `customer-onboarding:smoke` path still tests the email pipeline against its explicit test recipient. Deploying the changed Edge Functions requires approval and `npm run qa:edge-smoke`; no live email is part of local verification.
+Customer onboarding email boundary (2026-10-13, released): `admin-user-management` calls `customer-onboarding` for default template pricing assignment only. Inviting a login may send the separately requested Supabase Auth invite email; it no longer sends the managed `welcome-pricelist` message. The scoped `customer-onboarding:smoke` path still tests the email pipeline against its explicit test recipient. The two changed Edge Functions were deployed after the user's approval, and post-deploy `npm run qa:edge-smoke` passed without a customer email. The GitHub Edge Function workflow remains unable to deploy until its `SUPABASE_ACCESS_TOKEN` secret is restored.
 
 ## Atlas launcher favorite persistence — 2026-10-07
 
