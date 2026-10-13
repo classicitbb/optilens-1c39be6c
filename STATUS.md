@@ -15,7 +15,9 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-13 (pricelist readiness email suppression deployed and edge health verified)
+Last updated: 2026-10-13 (Email reply HTML quote repaired in local source; rendered mail preview pending bridge availability)
+
+Email reply follow-up (2026-10-13, local source): Reply now preserves the selected message's HTML body and embedded earlier correspondence in outgoing HTML, with a plain-text alternative. The quote preview is expanded by default. Focused tests, scoped lint, TypeScript, and build pass. The local mail bridge is currently unreachable, so authenticated rendered verification is pending. No email was sent or frontend published. See `docs/agent/HANDOFF.md`.
 
 ---
 

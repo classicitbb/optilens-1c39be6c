@@ -131,14 +131,14 @@ function quotedToHtml(quoted: string): string {
   return `<div style="margin-top:1em">${toHtml(header)}${body.length ? `<blockquote style="${QUOTE_STYLE}">${toHtml(body)}</blockquote>` : ""}</div>`;
 }
 
-export function buildOutgoingEmail({ bodyHtml, signatureHtml, quoted }: { bodyHtml: string; signatureHtml?: string | null; quoted?: string | null }) {
+export function buildOutgoingEmail({ bodyHtml, signatureHtml, quoted, quotedHtml }: { bodyHtml: string; signatureHtml?: string | null; quoted?: string | null; quotedHtml?: string | null }) {
   const body = editorHtmlForEmail(sanitizeEmailHtml(bodyHtml));
   const signature = signatureHtml ? sanitizeEmailHtml(signatureHtml) : "";
   const html = [
     `<div style="${EMAIL_FONT}">`,
     body,
     signature ? `<div style="margin-top:1em">${signature}</div>` : "",
-    quoted?.trim() ? quotedToHtml(quoted) : "",
+    quotedHtml?.trim() ? sanitizeEmailHtml(quotedHtml) : quoted?.trim() ? quotedToHtml(quoted) : "",
     "</div>",
   ].join("");
   const text = [htmlToPlainText(bodyHtml), signature ? htmlToPlainText(signature) : "", quoted?.trim() ?? ""].filter(Boolean).join("\n\n");

@@ -23,7 +23,7 @@ import { CrmContactPanel } from "@/features/admin/email/CrmContactPanel";
 import { EmailAppRail } from "@/features/admin/email/EmailAppRail";
 import { ConnectMailboxDialog, ManageMailboxDialog } from "@/features/admin/email/MailboxDialogs";
 import {
-  EMPTY_DRAFT, formatBytes, formatEmailDate, formatFullDate, forwardHeader, hasRemoteImages, prefixSubject, quoteForReply, type ComposeDraft,
+  EMPTY_DRAFT, formatBytes, formatEmailDate, formatFullDate, forwardHeader, hasRemoteImages, prefixSubject, quoteForReply, quoteHtmlForReply, type ComposeDraft,
 } from "@/features/admin/email/format";
 
 const FOLDER_ICONS: Record<string, LucideIcon> = {
@@ -120,7 +120,7 @@ const EmailPage = () => {
     const cc = all
       ? [...current.to, ...current.cc].map((item) => item.address).filter((address) => address !== ownAddress && address !== current.from_address).join("; ")
       : "";
-    openDraft({ ...EMPTY_DRAFT, account: sendAccount, to: current.from_address ?? "", cc, subject: prefixSubject("RE", current.subject), quoted: quoteForReply(current), replyToMessageId: current.message_id });
+    openDraft({ ...EMPTY_DRAFT, account: sendAccount, to: current.from_address ?? "", cc, subject: prefixSubject("RE", current.subject), quoted: quoteForReply(current), quotedHtml: quoteHtmlForReply(current), replyToMessageId: current.message_id });
   };
 
   const createTask = async () => {

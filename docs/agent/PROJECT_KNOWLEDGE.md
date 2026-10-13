@@ -1,5 +1,9 @@
 # Project Knowledge
 
+## Email reply quote — 2026-10-13
+
+`EmailPage.tsx` builds both sanitized HTML and plain-text quotes from the selected message. `ComposeDialog.tsx` previews the HTML in the sandboxed `EmailBody` iframe and `emailHtml.ts` appends it after the response and signature when sending. The current message's embedded prior correspondence survives; separate messages are not fetched as a thread. Inline `cid:` images still lack outgoing attachment rewriting. No bridge API or permission change.
+
 ## Pricelist readiness email boundary — 2026-10-13
 
 `admin-user-management` invokes `customer-onboarding` to assign the default template pricelist after create/invite. Normal onboarding returns assignment status and never queues the welcome-pricelist email. The template and scoped email-pipeline smoke path remain available, but a customer-facing pricing announcement requires a separate explicit request after the intended list is assigned. The invite email is a distinct Supabase Auth message.

@@ -1,3 +1,5 @@
+import { escapeHtml, htmlToPlainText, sanitizeEmailHtml, textToHtml } from "./emailHtml";
+
 export function formatEmailDate(value: string | null, now = new Date()): string {
   if (!value) return "";
   const date = new Date(value);
@@ -15,12 +17,21 @@ export function formatFullDate(value: string | null): string {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-type Quotable = { from_name: string | null; from_address: string | null; sent_at: string | null; subject: string | null; body_text: string | null };
+type Quotable = { from_name: string | null; from_address: string | null; sent_at: string | null; subject: string | null; body_text: string | null; body_html?: string | null };
 
 export function quoteForReply(message: Quotable): string {
   const who = message.from_name ? `${message.from_name} <${message.from_address}>` : message.from_address ?? "";
-  const quoted = (message.body_text ?? "").split(/\r?\n/).map((line) => `> ${line}`).join("\n");
+  const quoted = (message.body_html ? htmlToPlainText(sanitizeEmailHtml(message.body_html)) : message.body_text ?? "").split(/\r?\n/).map((line) => `> ${line}`).join("\n");
   return `\n\nOn ${formatFullDate(message.sent_at)}, ${who} wrote:\n${quoted}`;
+}
+
+export function quoteHtmlForReply(message: Quotable): string {
+  const who = message.from_name ? `${message.from_name} <${message.from_address}>` : message.from_address ?? "";
+  const original = message.body_html
+    ? sanitizeEmailHtml(message.body_html)
+    : textToHtml(message.body_text ?? "");
+  return `<div style="margin-top:1em">On ${escapeHtml(formatFullDate(message.sent_at))}, ${escapeHtml(who)} wrote:</div>` +
+    `<blockquote style="margin:0 0 0 0.8ex;border-left:1px solid #cccccc;padding-left:1ex">${original}</blockquote>`;
 }
 
 export function forwardHeader(message: Quotable & { to: { address: string }[] }): string {
@@ -51,6 +62,8 @@ export type ComposeDraft = {
   text: string;
   /** Reply/forward original, kept below the signature and sent as a quote. */
   quoted: string;
+  /** Preserved HTML original for replies; plain quoted remains the text part. */
+  quotedHtml?: string;
   replyToMessageId?: number;
   attachments: File[];
 };

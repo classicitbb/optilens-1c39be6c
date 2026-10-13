@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildOutgoingEmail, editorHtmlForEmail, htmlToPlainText, sanitizeEmailHtml, textToHtml } from "@/features/admin/email/emailHtml";
+import { quoteForReply, quoteHtmlForReply } from "@/features/admin/email/format";
 
 describe("email HTML", () => {
   it("strips scripts, handlers and unsafe URLs but keeps tables, images and inline styles", () => {
@@ -39,5 +40,25 @@ describe("email HTML", () => {
     expect(html).toContain("On Oct 13, Lily wrote:<blockquote");
     expect(html).toContain("Hello<br>there</blockquote>");
     expect(text).toBe("Thanks!\n\nRussell\n\nOn Oct 13, Lily wrote:\n> Hello\n> there");
+  });
+
+  it("keeps the original HTML conversation in a reply and makes a plain-text alternative", () => {
+    const original = {
+      from_name: "Pat",
+      from_address: "pat@example.com",
+      sent_at: "2026-10-13T12:00:00Z",
+      subject: "Earlier thread",
+      body_text: "Current note",
+      body_html: `<p style="color:#123456">Current note</p><blockquote><p><strong>Earlier note</strong></p></blockquote><script>alert(1)</script>`,
+    };
+    const quoted = quoteForReply(original);
+    const quotedHtml = quoteHtmlForReply(original);
+    const { html, text } = buildOutgoingEmail({ bodyHtml: "<p>My response</p>", quoted, quotedHtml });
+    expect(html).toContain(`<p style="color:#123456">Current note</p>`);
+    expect(html).toContain("<strong>Earlier note</strong>");
+    expect(html).not.toContain("<script");
+    expect(text).toContain("My response");
+    expect(text).toContain("Current note");
+    expect(text).toContain("Earlier note");
   });
 });

@@ -709,6 +709,8 @@ Truncation browser proof: existing 433-character ticket titles have ellipsis ins
 
 ## Email viewport spacing — 2026-10-13
 
+Reply HTML follow-up (2026-10-13): Source repair complete, rendered verification pending. `EmailPage.tsx`, `format.ts`, `ComposeDialog.tsx`, `EmailBody.tsx`, `emailHtml.ts`, and `emailHtml.test.ts` now preserve the selected message's HTML in an expanded sandboxed quote preview and the outgoing HTML, with a plain-text alternative. Five focused tests, scoped lint, TypeScript and build passed. Local bridge requests currently fail with “Can't reach the mail bridge,” so the annotated message could not be reopened for visual proof. No message was sent. Approval required before production frontend publication. Next exact read-only action: once the bridge is reachable, open `http://localhost:8080/admin/email?account=russell-classicvisions-net&folder=23&message=2494`, click Reply, and inspect the expanded HTML quote without sending.
+
 Status: Complete — no active handoff.
 
 The Email route uses 5px admin-content padding on every side; its page fills the available shell height instead of subtracting a fixed amount from the viewport. At the local 1483x900 browser viewport, the reading pane ends at y=895, leaving the intended 5px bottom inset. This is a local source change only; no deployment or mail action occurred.

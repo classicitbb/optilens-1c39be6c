@@ -10,6 +10,8 @@ CRM link: emails are never copied into the CRM. The reading pane looks up the se
 
 Email HTML renders in a sandboxed iframe (no scripts, no same-origin) with remote images blocked until "Show pictures". Inline `cid:` images are not rewritten yet.
 
+Reply drafts now carry the original message's sanitized HTML separately from the editable response. The HTML quote appears expanded below the editor and is appended after the signature in the outgoing HTML; the plain-text part is derived from the HTML so embedded earlier conversation text is retained. This preserves history present inside the selected message, but does not fetch separate thread messages or reattach inline `cid:` images.
+
 The email workspace fills the admin shell with 5px outer padding. Mailbox and message-list widths have drag and arrow-key separators from the `md` three-column layout upward; the CRM width separator appears in the `xl` side-by-side reading pane. The CRM pane can be hidden and restored from the message heading. These widths and visibility are local component state and reset on reload. On smaller layouts, the existing single-column presentation remains in place.
 
 The ribbon uses a split New mail button plus a grouped menu of existing actions; unsupported Outlook actions are not represented. Folder branches with descendants can be expanded or collapsed without changing the selected mailbox. Clicking an attachment opens a local preview for images, PDFs, and small text/CSV files (up to 1 MiB for text), with Download as a separate action. HTML and Office files are download-only. Preview object URLs are revoked when the preview closes.

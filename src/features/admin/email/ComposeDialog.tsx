@@ -12,6 +12,7 @@ import { buildOutgoingEmail, textToHtml } from "./emailHtml";
 import { SignaturePreview } from "./SignaturePreview";
 import { RecipientInput } from "./RecipientInput";
 import { invalidRecipients } from "./recipients";
+import { EmailBody } from "./EmailBody";
 import { EMPTY_DRAFT, formatBytes, type ComposeDraft } from "./format";
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -35,7 +36,7 @@ export function ComposeDialog({
   const [form, setForm] = useState<ComposeDraft>(draft ?? EMPTY_DRAFT);
   const [initialBody] = useState(() => textToHtml(draft?.text ?? ""));
   const [bodyHtml, setBodyHtml] = useState(initialBody);
-  const [showQuoted, setShowQuoted] = useState(false);
+  const [showQuoted, setShowQuoted] = useState(Boolean(draft?.quotedHtml));
   const fileInput = useRef<HTMLInputElement>(null);
   const from = accounts.find((account) => account.code === form.account) ?? accounts[0];
   const canSend = Boolean(from?.canSend);
@@ -55,7 +56,7 @@ export function ComposeDialog({
   const handleSend = async () => {
     try {
       const attachments: OutgoingAttachment[] = await Promise.all(form.attachments.map(fileToAttachment));
-      const body = buildOutgoingEmail({ bodyHtml, signatureHtml: signature?.body_html, quoted: form.quoted });
+      const body = buildOutgoingEmail({ bodyHtml, signatureHtml: signature?.body_html, quoted: form.quoted, quotedHtml: form.quotedHtml });
       const result = await send.mutateAsync({
         account: from.code,
         to: form.to,
@@ -133,7 +134,10 @@ export function ComposeDialog({
                 {showQuoted ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 {form.replyToMessageId ? "Original message" : "Forwarded message"}
               </button>
-              {showQuoted ? <div className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap border-l-2 border-[hsl(var(--admin-border))] pl-3 font-[Calibri,'Segoe_UI',sans-serif] text-[13px] text-[hsl(var(--admin-muted-fg))]">{form.quoted.trim()}</div> : null}
+              {showQuoted ? form.quotedHtml
+                ? <div className="mt-1 h-60"><EmailBody html={form.quotedHtml} text={form.quoted} showImages={false} compact /></div>
+                : <div className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap border-l-2 border-[hsl(var(--admin-border))] pl-3 font-[Calibri,'Segoe_UI',sans-serif] text-[13px] text-[hsl(var(--admin-muted-fg))]">{form.quoted.trim()}</div>
+              : null}
             </div>
           ) : null}
           {form.attachments.length > 0 && (

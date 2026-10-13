@@ -3,7 +3,7 @@ import { useMemo } from "react";
 // Email HTML is untrusted. It renders in a sandboxed iframe with no scripts
 // and no same-origin access; a CSP blocks remote images (tracking pixels)
 // until the reader chooses to show them. Links open in a new tab.
-export function EmailBody({ html, text, showImages }: { html: string | null; text: string | null; showImages: boolean }) {
+export function EmailBody({ html, text, showImages, compact = false }: { html: string | null; text: string | null; showImages: boolean; compact?: boolean }) {
   const srcDoc = useMemo(() => {
     if (!html) return null;
     const imgSrc = showImages ? "data: https: http:" : "data:";
@@ -20,7 +20,7 @@ export function EmailBody({ html, text, showImages }: { html: string | null; tex
         title="Email message"
         sandbox="allow-popups allow-popups-to-escape-sandbox"
         srcDoc={srcDoc}
-        className="h-full min-h-[320px] w-full flex-1 rounded-md border border-[hsl(var(--admin-border))] bg-white"
+        className={compact ? "h-full w-full rounded-md border border-[hsl(var(--admin-border))] bg-white" : "h-full min-h-[320px] w-full flex-1 rounded-md border border-[hsl(var(--admin-border))] bg-white"}
       />
     );
   }
