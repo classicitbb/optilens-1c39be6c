@@ -15,6 +15,7 @@ import {
 import { EmailBody } from "@/features/admin/email/EmailBody";
 import { ComposeDialog } from "@/features/admin/email/ComposeDialog";
 import { CrmContactPanel } from "@/features/admin/email/CrmContactPanel";
+import { EmailAppRail } from "@/features/admin/email/EmailAppRail";
 import { ConnectMailboxDialog, ManageMailboxDialog } from "@/features/admin/email/MailboxDialogs";
 import {
   EMPTY_DRAFT, formatBytes, formatEmailDate, formatFullDate, forwardHeader, hasRemoteImages, prefixSubject, quoteForReply, type ComposeDraft,
@@ -126,7 +127,9 @@ const EmailPage = () => {
   const activeFolder = folderList.find((f) => f.folder_id === folderId);
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] min-h-[520px] flex-col gap-2">
+    <div className="flex h-[calc(100vh-7rem)] min-h-[520px] gap-2">
+    <EmailAppRail />
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
       {/* Home ribbon */}
       <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-surface,var(--admin-topbar-bg)))] p-1.5">
         <Button size="sm" onClick={() => openDraft({ ...EMPTY_DRAFT, account: sendAccount })}><Mail className="mr-1 h-4 w-4" /> New mail</Button>
@@ -255,6 +258,7 @@ const EmailPage = () => {
         isAdmin={Boolean(status.data?.user.isAdmin)} />
       <ManageMailboxDialog key={managing?.code ?? "none"} account={managing ? accounts.find((row) => row.code === managing.code) ?? managing : null}
         onClose={() => setManaging(null)} />
+    </div>
     </div>
   );
 };
