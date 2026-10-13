@@ -1,5 +1,9 @@
 # Project Knowledge
 
+## Email search and ribbon — 2026-10-13
+
+On `/admin/email`, `GlobalSearch.tsx` searches accessible inboxes through the existing authenticated mail bridge `status` / `folders` / `messages?q=` endpoints and places those results ahead of site results. The ribbon's search still targets the selected folder. `EmailPage.tsx` uses a ResizeObserver to keep folder search and Sync on the same ribbon row and expose overflow actions only at narrower widths. No new bridge API, environment variable, permission, or storage path is involved.
+
 ## Pricelist readiness email boundary — 2026-10-13
 
 `admin-user-management` invokes `customer-onboarding` to assign the default template pricelist after create/invite. Normal onboarding returns assignment status and never queues the welcome-pricelist email. The template and scoped email-pipeline smoke path remain available, but a customer-facing pricing announcement requires a separate explicit request after the intended list is assigned. The invite email is a distinct Supabase Auth message.

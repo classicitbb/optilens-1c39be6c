@@ -15,7 +15,9 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-13 (pricelist readiness email suppression complete in local source; Edge Function deployment pending approval)
+Last updated: 2026-10-13 (Email search and ribbon layout updated in local source; production publication pending approval)
+
+Email search/ribbon (2026-10-13, local source): app-wide search on the Email route lists accessible Inbox hits ahead of site results. Folder search and Sync stay on one ribbon row; More holds only actions that do not fit. Layout checked in the local browser at 1138px and 1864px; authenticated result selection still needs external Chrome/Edge verification. No mail action or production publication occurred. See `docs/agent/HANDOFF.md`.
 
 ---
 

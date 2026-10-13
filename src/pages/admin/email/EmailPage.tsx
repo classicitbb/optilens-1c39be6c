@@ -35,6 +35,17 @@ type AttachmentPreview = { attachment: EmailMessage["attachments"][number]; kind
 const EmailPage = () => {
   const gridRef = useRef<HTMLDivElement>(null);
   const readingRef = useRef<HTMLDivElement>(null);
+  const ribbonRef = useRef<HTMLDivElement>(null);
+  const [ribbonWidth, setRibbonWidth] = useState(0);
+  useEffect(() => {
+    const element = ribbonRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setRibbonWidth(entry.contentRect.width));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const compactRibbon = ribbonWidth > 0 && ribbonWidth < 1000;
+  const overflowResponses = ribbonWidth > 0 && ribbonWidth < 1250;
   const [folderWidth, setFolderWidth] = useState(200);
   const [listWidth, setListWidth] = useState(340);
   const [crmWidth, setCrmWidth] = useState(260);
@@ -192,9 +203,9 @@ const EmailPage = () => {
   return (
     <div className="flex h-full min-h-0 gap-2">
     <EmailAppRail />
-    <div className="flex min-w-0 flex-1 flex-col gap-2">
-      {/* Mail ribbon: primary actions stay visible; the menu repeats supported actions in groups. */}
-      <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[hsl(var(--admin-border))] dark:border-[#294366] bg-[hsl(var(--admin-surface,var(--admin-topbar-bg)))] p-1.5">
+    <div ref={ribbonRef} className="flex min-w-0 flex-1 flex-col gap-2">
+      {/* Keep search and Sync on the ribbon; move only actions without room into More. */}
+      <div className="flex min-w-0 items-center gap-1 rounded-lg border border-[hsl(var(--admin-border))] dark:border-[#294366] bg-[hsl(var(--admin-surface,var(--admin-topbar-bg)))] p-1.5">
         <div className="flex overflow-hidden rounded-md bg-[hsl(var(--admin-accent))] text-white">
           <button type="button" onClick={() => openDraft({ ...EMPTY_DRAFT, account: sendAccount })}
             className="flex h-8 items-center gap-1.5 px-3 text-sm font-semibold hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]">
@@ -212,42 +223,52 @@ const EmailPage = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <span className="mx-1 h-6 w-px bg-[hsl(var(--admin-border))]" />
+        {!compactRibbon && <span className="mx-1 h-6 w-px bg-[hsl(var(--admin-border))]" />}
+        {!compactRibbon && <div className="flex items-center gap-1">
         <RibbonButton icon={Trash2} label="Delete" disabled={!current || move.isPending} onClick={() => moveCurrent("trash")} />
         <RibbonButton icon={Archive} label="Archive" disabled={!current || move.isPending} onClick={() => moveCurrent("archive")} />
         <RibbonButton icon={Flag} label={current?.is_flagged ? "Unflag" : "Flag"} disabled={!current}
           onClick={() => current && setFlags.mutate({ id: current.message_id, is_flagged: !current.is_flagged })} />
-        {current && <>
+        </div>}
+        {current && !overflowResponses && <div className="flex items-center gap-1">
           <span className="mx-1 h-6 w-px bg-[hsl(var(--admin-border))]" />
           <RibbonButton icon={Reply} label="Reply" onClick={() => reply(false)} />
           <RibbonButton icon={ReplyAll} label="Reply all" onClick={() => reply(true)} />
           <RibbonButton icon={Forward} label="Forward" onClick={forward} />
-        </>}
+        </div>}
+        {!compactRibbon && <div className="flex items-center gap-1">
         <RibbonButton icon={MailOpen} label="Mark unread" disabled={!current}
           onClick={() => current && run("Marked unread", () => setFlags.mutateAsync({ id: current.message_id, is_read: false }))} />
         <RibbonButton icon={CalendarCheck} label="Create task" disabled={!current || emailToTask.isPending} onClick={createTask} />
-        <DropdownMenu>
+        </div>}
+        {(compactRibbon || overflowResponses) && <DropdownMenu>
           <DropdownMenuTrigger asChild><Button size="sm" variant="ghost" aria-label="More mail actions"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Move & delete</DropdownMenuLabel>
-            <DropdownMenuItem disabled={!current || move.isPending} onSelect={() => moveCurrent("archive")}><Archive className="mr-2 h-4 w-4" /> Archive</DropdownMenuItem>
-            <DropdownMenuItem disabled={!current || move.isPending} onSelect={() => moveCurrent("trash")}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Respond</DropdownMenuLabel>
-            <DropdownMenuItem disabled={!current} onSelect={() => reply(false)}><Reply className="mr-2 h-4 w-4" /> Reply</DropdownMenuItem>
-            <DropdownMenuItem disabled={!current} onSelect={() => reply(true)}><ReplyAll className="mr-2 h-4 w-4" /> Reply all</DropdownMenuItem>
-            <DropdownMenuItem disabled={!current} onSelect={forward}><Forward className="mr-2 h-4 w-4" /> Forward</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Tags & tasks</DropdownMenuLabel>
-            <DropdownMenuItem disabled={!current} onSelect={() => current && setFlags.mutate({ id: current.message_id, is_flagged: !current.is_flagged })}><Flag className="mr-2 h-4 w-4" /> {current?.is_flagged ? "Unflag" : "Flag"}</DropdownMenuItem>
-            <DropdownMenuItem disabled={!current} onSelect={() => current && run("Marked unread", () => setFlags.mutateAsync({ id: current.message_id, is_read: false }))}><MailOpen className="mr-2 h-4 w-4" /> Mark unread</DropdownMenuItem>
-            <DropdownMenuItem disabled={!current || emailToTask.isPending} onSelect={createTask}><CalendarCheck className="mr-2 h-4 w-4" /> Create task</DropdownMenuItem>
+            {compactRibbon && <>
+              <DropdownMenuLabel>Move & delete</DropdownMenuLabel>
+              <DropdownMenuItem disabled={!current || move.isPending} onSelect={() => moveCurrent("archive")}><Archive className="mr-2 h-4 w-4" /> Archive</DropdownMenuItem>
+              <DropdownMenuItem disabled={!current || move.isPending} onSelect={() => moveCurrent("trash")}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>}
+            {overflowResponses && <>
+              <DropdownMenuLabel>Respond</DropdownMenuLabel>
+              <DropdownMenuItem disabled={!current} onSelect={() => reply(false)}><Reply className="mr-2 h-4 w-4" /> Reply</DropdownMenuItem>
+              <DropdownMenuItem disabled={!current} onSelect={() => reply(true)}><ReplyAll className="mr-2 h-4 w-4" /> Reply all</DropdownMenuItem>
+              <DropdownMenuItem disabled={!current} onSelect={forward}><Forward className="mr-2 h-4 w-4" /> Forward</DropdownMenuItem>
+            </>}
+            {compactRibbon && <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Tags & tasks</DropdownMenuLabel>
+              <DropdownMenuItem disabled={!current} onSelect={() => current && setFlags.mutate({ id: current.message_id, is_flagged: !current.is_flagged })}><Flag className="mr-2 h-4 w-4" /> {current?.is_flagged ? "Unflag" : "Flag"}</DropdownMenuItem>
+              <DropdownMenuItem disabled={!current} onSelect={() => current && run("Marked unread", () => setFlags.mutateAsync({ id: current.message_id, is_read: false }))}><MailOpen className="mr-2 h-4 w-4" /> Mark unread</DropdownMenuItem>
+              <DropdownMenuItem disabled={!current || emailToTask.isPending} onSelect={createTask}><CalendarCheck className="mr-2 h-4 w-4" /> Create task</DropdownMenuItem>
+            </>}
           </DropdownMenuContent>
-        </DropdownMenu>
-        <div className="ml-auto flex items-center gap-2">
+        </DropdownMenu>}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-2 h-4 w-4 text-[hsl(var(--admin-muted-fg))]" />
-            <Input id="email-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search ${activeFolder?.display_name ?? "mail"}`} className="h-8 w-56 pl-8" />
+            <Input id="email-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Search ${activeFolder?.display_name ?? "mail"}`} className="h-8 w-[clamp(8rem,20vw,14rem)] pl-8" />
           </div>
           <RibbonButton icon={RefreshCw} label="Sync" disabled={accounts.some((row) => row.syncing)}
             onClick={() => run("Checking for new mail", async () => { await emailBridge.syncNow(); setTimeout(invalidate, 8000); })} />
