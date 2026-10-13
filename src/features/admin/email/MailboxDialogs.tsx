@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import type { EmailAccount } from "@/lib/emailBridge";
 import { useConnectMailbox, useMailboxAccess } from "./useEmail";
+import { SignatureManager } from "./SignatureManager";
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
@@ -87,7 +88,7 @@ export function ManageMailboxDialog({ account, onClose }: { account: EmailAccoun
 
   return (
     <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[94vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{account.displayName}</DialogTitle>
           <DialogDescription>{account.address}</DialogDescription>
@@ -117,6 +118,7 @@ export function ManageMailboxDialog({ account, onClose }: { account: EmailAccoun
               </form>
             </>
           )}
+          {account.canManage ? <div className="border-t border-[hsl(var(--admin-border))] pt-3"><SignatureManager account={account} /></div> : null}
           {account.lastError ? <p className="text-xs text-destructive">Last sync problem: {account.lastError}</p> : null}
           <div className="flex justify-between gap-2 border-t border-[hsl(var(--admin-border))] pt-3">
             {confirmDisconnect ? (

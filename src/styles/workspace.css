@@ -143,6 +143,28 @@ body.ws-admin {
   box-shadow: none;
 }
 
+/* Focus: one quiet 1px accent line instead of the double ring (site base rule
+   plus Tailwind ring utilities). Text fields recolour their own border; other
+   controls get a thin outline. Floating layers keep their shadow when focused. */
+:is(.admin-tool, body.ws-admin)
+  :focus-visible:not([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"], [data-radix-popper-content-wrapper] > *, [contenteditable="true"]) {
+  outline: 1px solid hsl(var(--ring));
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+:is(.admin-tool, body.ws-admin) :is(input:not([type="checkbox"], [type="radio"], [type="range"]), textarea, button[role="combobox"]):is(:focus, :focus-visible) {
+  outline: none;
+  box-shadow: none;
+  /* Beats the resting `.admin-tool input { border-color … !important }` in index.css. */
+  border-color: hsl(var(--ring)) !important;
+}
+
+/* Fields that wrap their input (chip inputs) recolour the wrapper instead. */
+:is(.admin-tool, body.ws-admin) .ws-field:focus-within {
+  border-color: hsl(var(--ring));
+}
+
 /* Floating layers carry the only shadows. */
 .admin-tool [role="dialog"],
 .admin-tool [role="alertdialog"],

@@ -101,7 +101,7 @@ export function RecipientInput({
   return (
     <div className="relative min-w-0 flex-1">
       <div
-        className="flex min-h-9 w-full cursor-text flex-wrap items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-sm focus-within:border-[hsl(var(--admin-muted-fg))]"
+        className="flex min-h-9 w-full cursor-text flex-wrap items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-sm ws-field"
         onClick={() => inputRef.current?.focus()}
       >
         {recipients.map((address) => {
@@ -135,7 +135,7 @@ export function RecipientInput({
           autoComplete="off"
           value={text}
           placeholder={recipients.length ? undefined : placeholder}
-          className="min-w-32 flex-1 bg-transparent py-0.5 outline-none placeholder:text-muted-foreground focus-visible:shadow-none"
+          className="min-w-32 flex-1 bg-transparent py-0.5 outline-none placeholder:text-muted-foreground"
           onChange={(event) => {
             const next = event.target.value;
             // Pasted lists: keep whatever follows the last separator as the text being typed.

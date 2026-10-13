@@ -1,0 +1,56 @@
+/* Email body editor. Spacing mirrors what recipients see (see emailHtml.ts):
+   paragraphs without margins, so Enter twice makes a blank line. */
+.email-editor .ProseMirror {
+  min-height: 14rem;
+  padding: 0.5rem 0.75rem 2.75rem;
+  outline: none;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.email-editor.email-editor-compact .ProseMirror {
+  min-height: 7rem;
+  padding-bottom: 0.5rem;
+}
+.email-editor .ProseMirror :is(p, ul, ol, blockquote) {
+  margin: 0;
+}
+.email-editor .ProseMirror ul {
+  list-style: disc;
+  padding-left: 1.5em;
+}
+.email-editor .ProseMirror ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.email-editor .ProseMirror h1 { font-size: 1.5em; font-weight: 600; margin: 0.4em 0 0.2em; }
+.email-editor .ProseMirror h2 { font-size: 1.25em; font-weight: 600; margin: 0.4em 0 0.2em; }
+.email-editor .ProseMirror h3 { font-size: 1.1em; font-weight: 600; margin: 0.4em 0 0.2em; }
+.email-editor .ProseMirror blockquote {
+  border-left: 2px solid hsl(var(--admin-border));
+  padding-left: 0.75em;
+  color: hsl(var(--admin-muted-fg));
+}
+.email-editor .ProseMirror a {
+  color: hsl(var(--admin-accent));
+  text-decoration: underline;
+}
+.email-editor .ProseMirror code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.9em;
+  background: hsl(var(--admin-border) / 0.5);
+  padding: 0 0.2em;
+}
+.email-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+}
+.email-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: hsl(var(--admin-muted-fg));
+}

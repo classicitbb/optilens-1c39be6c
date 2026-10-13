@@ -102,7 +102,7 @@ const EmailPage = () => {
     const cc = all
       ? [...current.to, ...current.cc].map((item) => item.address).filter((address) => address !== ownAddress && address !== current.from_address).join("; ")
       : "";
-    openDraft({ ...EMPTY_DRAFT, account: sendAccount, to: current.from_address ?? "", cc, subject: prefixSubject("RE", current.subject), text: quoteForReply(current), replyToMessageId: current.message_id });
+    openDraft({ ...EMPTY_DRAFT, account: sendAccount, to: current.from_address ?? "", cc, subject: prefixSubject("RE", current.subject), quoted: quoteForReply(current), replyToMessageId: current.message_id });
   };
 
   const createTask = async () => {
@@ -123,7 +123,7 @@ const EmailPage = () => {
     if (!current) return;
     try {
       const files = await Promise.all(current.attachments.map(emailBridge.downloadAttachment));
-      openDraft({ ...EMPTY_DRAFT, account: sendAccount, subject: prefixSubject("FW", current.subject), text: forwardHeader(current), attachments: files });
+      openDraft({ ...EMPTY_DRAFT, account: sendAccount, subject: prefixSubject("FW", current.subject), quoted: forwardHeader(current), attachments: files });
     } catch (error) {
       toast({ title: "Couldn't load the attachments to forward", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     }
@@ -274,7 +274,7 @@ const EmailPage = () => {
         </div>
       </div>
 
-      <ComposeDialog key={draftKey} draft={draft} accounts={orderedAccounts} onClose={() => setDraft(null)} />
+      <ComposeDialog key={draftKey} draft={draft} accounts={orderedAccounts} onClose={() => setDraft(null)} onManageSignatures={setManaging} />
       <ConnectMailboxDialog key={connectOpen ? "open" : "closed"} open={connectOpen} onClose={() => setConnectOpen(false)}
         defaultAddress={accounts.some((row) => row.address === status.data?.user.email) ? "" : status.data?.user.email ?? ""}
         isAdmin={Boolean(status.data?.user.isAdmin)} />
