@@ -15,6 +15,13 @@
       "when": 1791819782034,
       "tag": "0001_tighten_reference_table_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791901828851,
+      "tag": "0002_fix_select_contacts_for_enrichment_bigint",
+      "breakpoints": true
     }
   ]
 }
