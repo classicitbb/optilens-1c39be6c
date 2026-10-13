@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { selectRequestFiles } from "./requestFiles";
 import { useLocation, useNavigate } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreProducts } from "@/hooks/useStoreProducts";
@@ -1071,12 +1072,13 @@ export const CompanionAssistantProvider = ({ children }: { children: ReactNode }
     const requestDetails = isQuoteRequest ? [requestTitle, summary].filter(Boolean).join("\n\n") : summary;
 
     const collectRequestFiles = async () => {
-      const chatFiles = await Promise.all(messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []).map(async (attachment) => {
+      const chatAttachments = messages.flatMap((message) => message.role === "user" ? (message.attachments ?? []) : []);
+      return selectRequestFiles(formFiles, chatAttachments, async (attachment) => {
         const response = await fetch(attachment.previewUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const blob = await response.blob();
         return new File([blob], attachment.name, { type: attachment.mimeType || blob.type || "image/png" });
-      }));
-      return [...chatFiles, ...formFiles];
+      });
     };
 
     formSubmissionPending.current = true;
