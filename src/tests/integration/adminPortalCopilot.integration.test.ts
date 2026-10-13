@@ -225,12 +225,13 @@ describe("admin-only CV Portal Copilot", () => {
 
     // Portal Copilot always resolves the 'anthropic' row specifically —
     // unaffected by whatever other provider rows exist.
-    expect(credentials).toContain('db.rpc("get_ai_agent_credentials", { p_provider: "anthropic" })');
+    expect(credentials).toContain('db.rpc("get_ai_agent_credentials", { p_provider: provider })');
+    expect(credentials).toContain('resolveProviderCredentials(db, "anthropic", fallbackModel)');
     expect(edge).toContain('from "../_shared/copilot/aiAgentCredentials.ts"');
     expect(edge).toContain("resolveClaudeCredentials(db");
     expect(edge).toContain('operation === "test-ai-agent"');
     expect(edge).toContain('db.rpc("record_ai_agent_test"');
-    expect(edge).toContain('p_provider: "anthropic"');
+    expect(edge).toContain("p_provider: testProvider");
 
     // The settings page renders one card per provider row plus an
     // open-ended add-provider flow; each card owns its own save/test/remove.
