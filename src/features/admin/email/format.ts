@@ -47,12 +47,15 @@ export type ComposeDraft = {
   to: string;
   cc: string;
   subject: string;
+  /** Opening body text (plain); the editor turns it into paragraphs. */
   text: string;
+  /** Reply/forward original, kept below the signature and sent as a quote. */
+  quoted: string;
   replyToMessageId?: number;
   attachments: File[];
 };
 
-export const EMPTY_DRAFT: ComposeDraft = { account: "", to: "", cc: "", subject: "", text: "", attachments: [] };
+export const EMPTY_DRAFT: ComposeDraft = { account: "", to: "", cc: "", subject: "", text: "", quoted: "", attachments: [] };
 
 export function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;

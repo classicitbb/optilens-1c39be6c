@@ -120,6 +120,8 @@ export type EmailStatus = {
 
 export type OutgoingAttachment = { filename: string; contentType: string; base64: string };
 
+export type EmailSignature = { signature_id: number; account_code: string; name: string; body_html: string; is_default: boolean; updated_at: string };
+
 export const emailBridge = {
   status: () => json<EmailStatus>("status"),
   syncNow: () => json<EmailStatus>("sync", { method: "POST" }),
@@ -146,8 +148,17 @@ export const emailBridge = {
     for (const address of addresses) params.append("address", address);
     return json<{ messages: EmailHistoryItem[] }>(`history?${params}`).then((r) => r.messages);
   },
-  send: (body: { account: string; to: string; cc?: string; subject: string; text: string; reply_to_message_id?: number; attachments: OutgoingAttachment[] }) =>
+  send: (body: { account: string; to: string; cc?: string; subject: string; text: string; html?: string; reply_to_message_id?: number; attachments: OutgoingAttachment[] }) =>
     json<{ ok: true; savedToSent: boolean }>("send", { method: "POST", body: JSON.stringify(body) }),
+  signatures: (account: string) =>
+    json<{ signatures: EmailSignature[] }>(`signatures?account=${encodeURIComponent(account)}`).then((r) => r.signatures),
+  saveSignature: (account: string, body: { signature_id?: number; name: string; html: string; is_default: boolean }) =>
+    json<{ signature_id: number }>(`signatures${body.signature_id ? `/${body.signature_id}` : ""}?account=${encodeURIComponent(account)}`, {
+      method: "POST",
+      body: JSON.stringify({ name: body.name, html: body.html, is_default: body.is_default }),
+    }),
+  deleteSignature: (account: string, signatureId: number) =>
+    json<{ ok: true }>(`signatures/${signatureId}/delete?account=${encodeURIComponent(account)}`, { method: "POST" }),
   downloadAttachment: async (attachment: EmailAttachment) => {
     const blob = await (await request(`attachments/${attachment.attachment_id}`)).blob();
     return new File([blob], attachment.filename, { type: attachment.content_type || blob.type });

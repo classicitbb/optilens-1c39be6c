@@ -15,6 +15,8 @@ type InlineDictationButtonProps = {
   showLevelMeter?: boolean;
   /** Drop the full stop transcription adds to a sentence, for titles and other short phrases. */
   trimTrailingPeriod?: boolean;
+  /** Fields that are not an input/textarea (rich text editors) insert the transcript themselves. */
+  onTranscript?: (transcript: string) => void;
 };
 
 // Matches the speech threshold usePushToTalk uses to decide the speaker is active.
@@ -48,6 +50,7 @@ const InlineDictationButton = ({
   position = "top",
   showLevelMeter = false,
   trimTrailingPeriod = false,
+  onTranscript,
 }: InlineDictationButtonProps) => {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const fieldRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
@@ -73,6 +76,10 @@ const InlineDictationButton = ({
 
   const insertTranscript = useCallback((rawTranscript: string) => {
     const transcript = trimTrailingPeriod ? rawTranscript.replace(/\.$/, "") : rawTranscript;
+    if (onTranscript) {
+      onTranscript(transcript);
+      return;
+    }
     const field = fieldRef.current;
     if (!field) {
       onValueChange(transcript);
@@ -96,7 +103,7 @@ const InlineDictationButton = ({
         /* field type may not support selection */
       }
     });
-  }, [onValueChange, trimTrailingPeriod]);
+  }, [onTranscript, onValueChange, trimTrailingPeriod]);
 
   const speech = usePushToTalk(insertTranscript, { vocabulary });
   const isBusy = speech.isStarting || speech.isTranscribing;
