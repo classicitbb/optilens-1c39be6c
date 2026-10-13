@@ -528,7 +528,7 @@ function NotConnected({ reason }: { reason: string | null }) {
       </p>
       <label className="grid gap-1 text-xs text-[hsl(var(--admin-muted-fg))]">
         Bridge address (for admins testing a connection)
-        <Input id="email-bridge-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://mail-bridge.classicvisions.net" />
+        <Input id="email-bridge-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Leave blank to use the cloud relay automatically" />
       </label>
       <Button size="sm" onClick={save}>Save and retry</Button>
     </div>
