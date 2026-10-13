@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fileToAttachment, type EmailAccount, type OutgoingAttachment } from "@/lib/emailBridge";
 import { useSendEmail } from "./useEmail";
@@ -14,8 +13,6 @@ import { invalidRecipients } from "./recipients";
 import { EMPTY_DRAFT, formatBytes, type ComposeDraft } from "./format";
 
 const MAX_BYTES = 20 * 1024 * 1024;
-// A plain border change instead of the theme's double focus ring.
-const QUIET_FOCUS = "focus:ring-0 focus-visible:ring-0 focus-visible:shadow-none focus:border-[hsl(var(--admin-muted-fg))]";
 
 export function ComposeDialog({
   draft,
@@ -71,7 +68,7 @@ export function ComposeDialog({
           <div className="flex items-center gap-2 text-xs text-[hsl(var(--admin-muted-fg))]">
             <span className="w-14 shrink-0">From</span>
             <Select value={from?.code} onValueChange={(code) => setForm({ ...form, account: code })}>
-              <SelectTrigger id="compose-from" className={cn("h-8 min-w-0 flex-1 text-[hsl(var(--admin-content-fg))] sm:w-auto sm:min-w-64 sm:flex-none", QUIET_FOCUS)}><SelectValue /></SelectTrigger>
+              <SelectTrigger id="compose-from" className="h-8 min-w-0 flex-1 text-[hsl(var(--admin-content-fg))] sm:w-auto sm:min-w-64 sm:flex-none"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {accounts.map((account) => <SelectItem key={account.code} value={account.code}>{account.displayName} &lt;{account.address}&gt;</SelectItem>)}
               </SelectContent>
@@ -85,8 +82,8 @@ export function ComposeDialog({
             <label htmlFor="compose-cc" className="w-14 shrink-0 text-xs text-[hsl(var(--admin-muted-fg))]">Cc</label>
             <RecipientInput id="compose-cc" label="Cc" value={form.cc} onChange={(cc) => setForm((current) => ({ ...current, cc }))} />
           </div>
-          <Input id="compose-subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Add a subject" className={QUIET_FOCUS} />
-          <Textarea id="compose-body" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} rows={14} className={cn("font-[Calibri,'Segoe_UI',sans-serif] text-[15px]", QUIET_FOCUS)} />
+          <Input id="compose-subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Add a subject" />
+          <Textarea id="compose-body" value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} rows={14} className="font-[Calibri,'Segoe_UI',sans-serif] text-[15px]" />
           {form.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {form.attachments.map((file, index) => (
