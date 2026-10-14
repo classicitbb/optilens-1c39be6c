@@ -1,5 +1,13 @@
 # Project Knowledge
 
+## Codex one-click dev preview — 2026-10-13
+
+The project menu action `Dev Preview` is configured in `.codex/environments/environment.toml` to run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort --open`. It serves the current worktree, opens the local browser, and does not build or deploy. Port 5173 must be available.
+
+## Atlas standard page width — 2026-10-13
+
+Standard-width Atlas headers and article bodies use `max-w-[770px]` with `sm:px-[5px]`; below `sm`, the existing 24px horizontal inset remains. The authenticated shared-page reader follows the same rule. Full-width page behavior is unchanged. Layout classes are owned by `AtlasWorkspace.tsx`, `components/PageHeader.tsx`, and `components/SharedPageViewer.tsx`.
+
 ## Email reply quote — 2026-10-13
 
 `EmailPage.tsx` builds both sanitized HTML and plain-text quotes from the selected message. `ComposeDialog.tsx` previews the HTML in the sandboxed `EmailBody` iframe and `emailHtml.ts` appends it after the response and signature when sending. The current message's embedded prior correspondence survives; separate messages are not fetched as a thread. Inline `cid:` images still lack outgoing attachment rewriting. No bridge API or permission change.

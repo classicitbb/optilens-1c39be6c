@@ -90,6 +90,12 @@ export function useAtlasPageMeta() {
   return { pageMeta: meta, patchPageMeta: patch };
 }
 
+/** Width last chosen by this user; applies to pages that have no width of their own. */
+export function useAtlasDefaultFullWidth() {
+  const { user } = useAuth();
+  return useStoredState<boolean>(`atlas-default-full-width:${user?.id ?? "anon"}`, false);
+}
+
 export const SIDEBAR_MIN = 200;
 export const SIDEBAR_MAX = 360;
 export const SIDEBAR_DEFAULT = 244;

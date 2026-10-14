@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAtlasPageMeta, useAtlasSidebarState, SIDEBAR_DEFAULT } from '@/features/atlas/hooks/useAtlasPrefs';
+import { useAtlasDefaultFullWidth, useAtlasPageMeta, useAtlasSidebarState, SIDEBAR_DEFAULT } from '@/features/atlas/hooks/useAtlasPrefs';
 import { usePageEditor } from '@/features/atlas/hooks/usePageEditor';
 import { makePage } from './fixtures';
 
@@ -31,6 +31,16 @@ describe('Atlas layout preferences', () => {
     reopened.unmount();
     const reloaded = renderHook(() => useAtlasPageMeta());
     expect(reloaded.result.current.pageMeta[page.id].fullWidth).toBe(false);
+  });
+
+  it('keeps the last chosen width as a per-account default across reloads', () => {
+    const hook = renderHook(() => useAtlasDefaultFullWidth());
+    expect(hook.result.current[0]).toBe(false);
+    act(() => hook.result.current[1](true));
+    hook.unmount();
+    expect(renderHook(() => useAtlasDefaultFullWidth()).result.current[0]).toBe(true);
+    auth.user = { id: 'bob' };
+    expect(renderHook(() => useAtlasDefaultFullWidth()).result.current[0]).toBe(false);
   });
 
   it('merges page settings from multiple mounted workspaces without losing width', () => {

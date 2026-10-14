@@ -1,5 +1,9 @@
 # Integrations and Cross-Repository Contract
 
+The Codex `Dev Preview` project action starts only the local Vite server on loopback port 5173. It adds no external service, connector, credential, access rule, or deployment behavior.
+
+Atlas standard-page width/padding is frontend-only: 770px maximum and 5px gutters from `sm`, with existing mobile gutters retained. No connector, service, environment variable, schema or access boundary changed.
+
 Customer onboarding email boundary (2026-10-13, released): `admin-user-management` calls `customer-onboarding` for default template pricing assignment only. Inviting a login may send the separately requested Supabase Auth invite email; it no longer sends the managed `welcome-pricelist` message. The scoped `customer-onboarding:smoke` path still tests the email pipeline against its explicit test recipient. The two changed Edge Functions were deployed after the user's approval, and post-deploy `npm run qa:edge-smoke` passed without a customer email. The GitHub Edge Function workflow remains unable to deploy until its `SUPABASE_ACCESS_TOKEN` secret is restored.
 
 ## Atlas launcher favorite persistence — 2026-10-07

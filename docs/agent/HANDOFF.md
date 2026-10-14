@@ -20,6 +20,22 @@ Validation: 31 focused tests, final TypeScript, build, PR checks and git diff --
 
 # Work Handoff
 
+## Codex one-click dev preview — 2026-10-13
+
+Status: Complete — no active handoff
+
+Updated `.codex/environments/environment.toml` so the project action menu's Dev Preview action runs Vite against the current working tree at `http://127.0.0.1:5173`, opens the browser, and fails clearly if that port is occupied. This is a local development server, separate from the existing build-and-preview batch launcher and hosted preview/production. No credentials, environment files, application source, deployment or data were changed.
+
+Verification: checked the package's existing `dev` script and reviewed the action configuration. The Codex app action was not launched in this turn.
+
+## Atlas standard page width — 2026-10-13
+
+Status: Complete — no active handoff
+
+Atlas standard-width page headers and article bodies now use a 770px maximum width, reflecting the requested additional 50px over the annotated 720px article width. At the existing `sm` breakpoint and above, the page gutters are 5px; mobile retains the existing 24px gutters. The same standard width and responsive gutters apply to authenticated shared-page reading. Full-width pages remain full-width. Local source only; no deployment or data change.
+
+Verification: source/diff inspection only; no tests or browser verification run.
+
 ## Atlas layout and authenticated shared pages — 2026-10-08
 
 Status: Complete — no active handoff

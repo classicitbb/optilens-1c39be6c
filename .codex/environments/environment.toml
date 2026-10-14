@@ -14,6 +14,6 @@ scoop install supabase
 '''
 
 [[actions]]
-name = "NPM Run"
+name = "Dev Preview"
 icon = "tool"
-command = "npm Run"
+command = "npm run dev -- --host 127.0.0.1 --port 5173 --strictPort --open"

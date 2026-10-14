@@ -21,7 +21,7 @@ import { buildSpaceExport, zipFiles } from "./exportSpace";
 import { buildTree, toPageSlug } from "./pageTree";
 import { useAtlasCapabilities, useAtlasData, usePagesInSpace } from "./hooks/useAtlas";
 import { usePageEditor } from "./hooks/usePageEditor";
-import { useAtlasExpanded, useAtlasFavorites, useAtlasPageMeta, useAtlasSidebarState } from "./hooks/useAtlasPrefs";
+import { useAtlasDefaultFullWidth, useAtlasExpanded, useAtlasFavorites, useAtlasPageMeta, useAtlasSidebarState } from "./hooks/useAtlasPrefs";
 import WorkspaceShell from "./components/WorkspaceShell";
 import WorkspaceSidebar from "./components/WorkspaceSidebar";
 import WorkspaceRightPanel, { parsePanelTab, type PanelTab } from "./components/WorkspaceRightPanel";
@@ -84,6 +84,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
 
   const { favoriteIds, isFavorite, toggleFavorite } = useAtlasFavorites();
   const { pageMeta, patchPageMeta } = useAtlasPageMeta();
+  const [defaultFullWidth, setDefaultFullWidth] = useAtlasDefaultFullWidth();
   const { expanded: toggled, toggleExpanded } = useAtlasExpanded();
   const sidebar = useAtlasSidebarState();
 
@@ -475,7 +476,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
   );
 
   const meta = selectedPage ? pageMeta[selectedPage.id] : undefined;
-  const storedFullWidth = typeof draft.props.fullWidth === "boolean" ? draft.props.fullWidth : meta?.fullWidth ?? false;
+  const storedFullWidth = typeof draft.props.fullWidth === "boolean" ? draft.props.fullWidth : meta?.fullWidth ?? defaultFullWidth;
   const fullWidth = canEdit ? storedFullWidth : meta?.fullWidth ?? storedFullWidth;
   const savePublishedPage = () => editor.saveAs("published", selectedPage && "fullWidth" in selectedPage.props ? { fullWidth } : undefined);
   const editing = mode === "edit" && canEdit;
@@ -710,6 +711,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
           onToggleFullWidth={() => {
             if (!selectedPage) return;
             patchPageMeta(selectedPage.id, { fullWidth: !fullWidth });
+            setDefaultFullWidth(!fullWidth);
             if (canEdit && "fullWidth" in selectedPage.props) setDraft((current) => ({ ...current, props: { ...current.props, fullWidth: !fullWidth } }));
           }}
           onToggleFavorite={() => selectedPage && toggleFavorite(selectedPage.id)}
@@ -766,7 +768,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onContextsChange={(contexts) => setDraft((current) => ({ ...current, contexts }))}
               settings={settings}
             />
-            <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-12 ${fullWidth ? "max-w-none" : "max-w-[720px]"}`}>
+            <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-[5px] ${fullWidth ? "max-w-none" : "max-w-[770px]"}`}>
               <PageBody
                 page={selectedPage}
                 editor={editor}
