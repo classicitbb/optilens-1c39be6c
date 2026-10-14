@@ -35,7 +35,7 @@ const SharedPageViewer = () => {
   if (current.failed) return <p role="alert" className="p-8">This page could not be opened. Please try again.</p>;
   if (!current.page) return <p role="status" className="p-8">This page is unavailable or is no longer shared.</p>;
   return (
-    <article className={`mx-auto w-full px-6 py-10 sm:px-[5px] ${current.page.fullWidth ? "max-w-none" : "max-w-[770px]"}`}>
+    <article className={`mx-auto w-full px-6 py-10 sm:px-[5px] ${current.page.fullWidth ? "max-w-none" : "max-w-[920px]"}`}>
       <h1 className="mb-6 text-3xl font-semibold">{current.page.title}</h1>
       <WikiArticleRenderer bodyJson={current.page.body} legacyContent={current.page.legacyContent}
         className="ws-prose" resolvePageHref={() => undefined} />

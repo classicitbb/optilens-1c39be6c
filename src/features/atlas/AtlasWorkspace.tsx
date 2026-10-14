@@ -768,7 +768,7 @@ const AtlasWorkspace = ({ space, articleSlug }: AtlasWorkspaceProps) => {
               onContextsChange={(contexts) => setDraft((current) => ({ ...current, contexts }))}
               settings={settings}
             />
-            <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-[5px] ${fullWidth ? "max-w-none" : "max-w-[770px]"}`}>
+            <div className={`mx-auto w-full px-6 pb-24 pt-6 sm:px-[5px] ${fullWidth ? "max-w-none" : "max-w-[920px]"}`}>
               <PageBody
                 page={selectedPage}
                 editor={editor}

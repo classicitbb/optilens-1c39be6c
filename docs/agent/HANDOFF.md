@@ -36,6 +36,8 @@ Atlas standard-width page headers and article bodies now use a 770px maximum wid
 
 Verification: source/diff inspection only; no tests or browser verification run.
 
+Follow-ups: browser annotations requested an additional 50px and then 100px for both the page header and article body; standard width is now 920px across the editor and shared reader, with existing gutters and full-width behavior retained.
+
 ## Atlas layout and authenticated shared pages — 2026-10-08
 
 Status: Complete — no active handoff

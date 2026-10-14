@@ -6,7 +6,7 @@ The project menu action `Dev Preview` is configured in `.codex/environments/envi
 
 ## Atlas standard page width — 2026-10-13
 
-Standard-width Atlas headers and article bodies use `max-w-[770px]` with `sm:px-[5px]`; below `sm`, the existing 24px horizontal inset remains. The authenticated shared-page reader follows the same rule. Full-width page behavior is unchanged. Layout classes are owned by `AtlasWorkspace.tsx`, `components/PageHeader.tsx`, and `components/SharedPageViewer.tsx`.
+Standard-width Atlas headers and article bodies use `max-w-[920px]` with `sm:px-[5px]`; below `sm`, the existing 24px horizontal inset remains. The authenticated shared-page reader follows the same rule. Full-width page behavior is unchanged. Layout classes are owned by `AtlasWorkspace.tsx`, `components/PageHeader.tsx`, and `components/SharedPageViewer.tsx`.
 
 ## Email reply quote — 2026-10-13
 

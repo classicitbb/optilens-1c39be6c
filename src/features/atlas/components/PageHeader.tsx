@@ -256,7 +256,7 @@ export const PageIdentity = (props: IdentityProps) => {
   return (
     <div>
       {cover ? <Cover /> : null}
-      <div className={cn("mx-auto w-full px-6 sm:px-[5px]", fullWidth ? "max-w-none" : "max-w-[770px]")}>
+      <div className={cn("mx-auto w-full px-6 sm:px-[5px]", fullWidth ? "max-w-none" : "max-w-[920px]")}>
         <div className={cn("group/ident relative", cover ? "-mt-7" : "pt-8")}>
           {icon ? (
             <Popover>
