@@ -18,6 +18,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 Last updated: 2026-10-13 (Email reply HTML quote repaired in local source; rendered mail preview pending bridge availability)
 
 Email reply follow-up (2026-10-13, local source): Reply now preserves the selected message's HTML body and embedded earlier correspondence in outgoing HTML, with a plain-text alternative. The quote preview is expanded by default. Focused tests, scoped lint, TypeScript, and build pass. The local mail bridge is currently unreachable, so authenticated rendered verification is pending. No email was sent or frontend published. See `docs/agent/HANDOFF.md`.
+Email search/ribbon (2026-10-13, local source): app-wide search on the Email route lists accessible Inbox hits ahead of site results. Folder search and Sync stay on one ribbon row; More holds only actions that do not fit. Layout checked in the local browser at 1138px and 1864px; authenticated result selection still needs external Chrome/Edge verification. No mail action or production publication occurred. See `docs/agent/HANDOFF.md`.
 
 ---
 

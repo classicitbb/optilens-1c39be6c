@@ -17,6 +17,7 @@ import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS, NEW_RX_
 import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
 import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
 import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
+import { emailBridge, getEmailBridgeUrl } from "@/lib/emailBridge";
 
 interface SearchResult {
   id: string;
@@ -35,6 +36,11 @@ const humanizeRouteId = (id: string) => id
 
 const GlobalSearch = () => {
   const [query, setQuery] = useState("");
+  const [mailQuery, setMailQuery] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMailQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const navigate = useNavigate();
@@ -262,6 +268,31 @@ const GlobalSearch = () => {
       });
     },
   });
+  const inEmail = location.pathname.startsWith("/admin/email");
+  const { data: mailResults = [], isError: mailSearchError } = useQuery({
+    queryKey: ["global_search_mail_inboxes", mailQuery],
+    enabled: inEmail && mailQuery.length >= 2 && Boolean(getEmailBridgeUrl()),
+    staleTime: 30_000,
+    retry: false,
+    queryFn: async (): Promise<SearchResult[]> => {
+      const { accounts } = await emailBridge.status();
+      const inboxes = await Promise.allSettled(accounts.map(async (account) => {
+        const folders = await emailBridge.folders(account.code);
+        const inbox = folders.find((folder) => folder.special_use === "\\Inbox");
+        if (!inbox) return [];
+        const messages = await emailBridge.messages(inbox.folder_id, mailQuery);
+        return messages.slice(0, 5).map((message) => ({
+          id: `mail-${message.message_id}`,
+          label: message.subject || "(No subject)",
+          sublabel: `${account.address} · ${message.from_name || message.from_address || "Unknown sender"}`,
+          path: `/admin/email?account=${encodeURIComponent(account.code)}&folder=${inbox.folder_id}&message=${message.message_id}`,
+          icon: Search,
+          group: "Email inboxes",
+        }));
+      }));
+      return inboxes.flatMap((result) => result.status === "fulfilled" ? result.value : []).slice(0, 20);
+    },
+  });
   const wikiResults = staticWikiResults;
 
   const allResults = useMemo(
@@ -272,8 +303,8 @@ const GlobalSearch = () => {
   const results = useMemo(() => {
     if (!query.trim()) return recentModuleResults;
     const q = query.toLowerCase();
-    return [...allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? []))), ...atlasResults];
-  }, [allResults, atlasResults, query, recentModuleResults]);
+    return [...(mailQuery === query.trim() ? mailResults : []), ...allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? []))), ...atlasResults];
+  }, [allResults, atlasResults, mailQuery, mailResults, query, recentModuleResults]);
 
   // Group results
   const grouped = useMemo(() => {
@@ -376,7 +407,7 @@ const GlobalSearch = () => {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search modules, pages, settings… (Ctrl+K)"
+          placeholder={inEmail ? "Search inboxes and site… (Ctrl+K)" : "Search modules, pages, settings… (Ctrl+K)"}
           className="h-7 w-full pl-8 pr-3 text-xs rounded border outline-none transition-all"
           style={{
             borderColor: open ? "hsl(215 65% 60%)" : "hsl(215 15% 82%)",
@@ -401,6 +432,7 @@ const GlobalSearch = () => {
           className="absolute left-0 top-full mt-1 w-full max-h-80 overflow-y-auto rounded-lg border shadow-xl z-[200] py-1"
           style={{ background: "hsl(0 0% 100%)", borderColor: "hsl(215 15% 82%)" }}
         >
+          {inEmail && mailSearchError && <div className="px-3 py-2 text-xs text-amber-700">Inbox search is temporarily unavailable. Site results are shown below.</div>}
           {results.length === 0 ? (
             <div className="px-4 py-3 text-xs" style={{ color: "hsl(215 15% 55%)" }}>
               No results for "<span className="font-medium">{query}</span>"

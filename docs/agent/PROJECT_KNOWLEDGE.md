@@ -11,6 +11,9 @@ Standard-width Atlas headers and article bodies use `max-w-[920px]` with `sm:px-
 ## Email reply quote — 2026-10-13
 
 `EmailPage.tsx` builds both sanitized HTML and plain-text quotes from the selected message. `ComposeDialog.tsx` previews the HTML in the sandboxed `EmailBody` iframe and `emailHtml.ts` appends it after the response and signature when sending. The current message's embedded prior correspondence survives; separate messages are not fetched as a thread. Inline `cid:` images still lack outgoing attachment rewriting. No bridge API or permission change.
+## Email search and ribbon — 2026-10-13
+
+On `/admin/email`, `GlobalSearch.tsx` searches accessible inboxes through the existing authenticated mail bridge `status` / `folders` / `messages?q=` endpoints and places those results ahead of site results. The ribbon's search still targets the selected folder. `EmailPage.tsx` uses a ResizeObserver to keep folder search and Sync on the same ribbon row and expose overflow actions only at narrower widths. No new bridge API, environment variable, permission, or storage path is involved.
 
 ## Pricelist readiness email boundary — 2026-10-13
 

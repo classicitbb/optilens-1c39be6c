@@ -16,4 +16,6 @@ The email workspace fills the admin shell with 5px outer padding. Mailbox and me
 
 The ribbon uses a split New mail button plus a grouped menu of existing actions; unsupported Outlook actions are not represented. Folder branches with descendants can be expanded or collapsed without changing the selected mailbox. Clicking an attachment opens a local preview for images, PDFs, and small text/CSV files (up to 1 MiB for text), with Download as a separate action. HTML and Office files are download-only. Preview object URLs are revoked when the preview closes.
 
+On the Email route, the app-wide search puts matches from accessible inboxes first, then existing site results. It calls the bridge's existing folder-scoped search for each accessible account's Inbox, with a short input delay and a result cap. It does not search Sent, Archive, or other mail folders. The separate ribbon search remains scoped to the selected folder. The ribbon observes its available width, keeps folder search and Sync at the right edge, and moves actions into More only when space is limited.
+
 Not built yet: drafts, rules, PST import, Iris drafting, rich-text compose. Personal accounts (Gmail, Outlook.com) are meant to open in their own webmail.
