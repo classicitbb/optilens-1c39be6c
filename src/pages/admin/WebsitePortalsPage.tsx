@@ -37,7 +37,7 @@ import ContactsPage from "@/pages/admin/erp/ContactsPage";
 import { PortalApprovalsQueue } from "@/components/admin/PortalApprovalsQueue";
 import CustomerOrdersPanel from "@/components/admin/CustomerOrdersPanel";
 import AssignedPricelistsSection from "@/components/account/sections/AssignedPricelistsSection";
-import StatementsSection from "@/components/account/sections/StatementsSection";
+import CustomerStatementsPanel from "@/components/admin/CustomerStatementsPanel";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
@@ -1419,7 +1419,7 @@ const WebsitePortalsPage = () => {
         <AssignedPricelistsSection staffTarget={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, assignedPricelistId: detailQuery.data.assignedPricelistId }} />
       </TabsContent>
       <TabsContent value="statements">
-        <StatementsSection staffTarget={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} />
+        <CustomerStatementsPanel target={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} contactId={detailQuery.data.crmContactId} />
       </TabsContent>
       <TabsContent value="addresses"><AddressBookSection targetUserId={selectedCustomer.userId} title="Customer addresses" description="Update saved checkout addresses." /></TabsContent>
       <TabsContent value="payments"><PaymentMethodsSection targetUserId={selectedCustomer.userId} title="Saved payment methods" description="Manage saved payment methods for this customer." /></TabsContent>
@@ -2101,7 +2101,7 @@ const WebsitePortalsPage = () => {
                 </TabsContent>
 
                 <TabsContent value="statements" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
-                  <StatementsSection staffTarget={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} />
+                  <CustomerStatementsPanel target={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} contactId={detailQuery.data.crmContactId} />
                 </TabsContent>
 
                 <TabsContent value="addresses" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">

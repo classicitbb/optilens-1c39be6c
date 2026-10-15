@@ -5,6 +5,9 @@
 -- unaffected: the membership check still applies to non-staff callers.
 -- Signatures, grants and bodies are otherwise unchanged.
 
+-- The live matrix function predates the lens_id column added in
+-- 20260825030000, so its return type differs and it must be dropped first.
+DROP FUNCTION IF EXISTS public.portal_assigned_pricelist_matrix(integer);
 CREATE OR REPLACE FUNCTION public.portal_assigned_pricelist_matrix(p_customer_id integer DEFAULT NULL)
 RETURNS TABLE (
   category text,
@@ -83,6 +86,9 @@ BEGIN
     AND ma.allocated_price_bbd IS NOT NULL;
 END;
 $function$;
+
+REVOKE ALL ON FUNCTION public.portal_assigned_pricelist_matrix(integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.portal_assigned_pricelist_matrix(integer) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.portal_assigned_pricelist_updated_at(p_customer_id integer DEFAULT NULL)
 RETURNS timestamptz
