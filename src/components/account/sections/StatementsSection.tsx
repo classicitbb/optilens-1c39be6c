@@ -345,8 +345,17 @@ const StatementTemplate = ({
   );
 };
 
-const StatementsSection = () => {
-  const { identity, emulation } = usePortalIdentity();
+// Set when staff view a customer's statements from the admin (no emulation):
+// the gateway serves this customer's data and the Pay Balance action is hidden.
+export type StaffStatementsTarget = {
+  crmCustomerId: number | null;
+  accountNumber: string | null;
+  customerName: string | null;
+};
+
+const StatementsSection = ({ staffTarget }: { staffTarget?: StaffStatementsTarget } = {}) => {
+  const portal = usePortalIdentity();
+  const identity = staffTarget ?? portal.identity;
   const crmCustomerId = identity?.crmCustomerId ?? null;
   // Under admin emulation the gateway must serve the emulated customer's data.
   const websiteCustomerId = typeof crmCustomerId === "number" ? crmCustomerId : undefined;
@@ -879,12 +888,14 @@ const StatementsSection = () => {
               </Select>
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-              <Button
-                onClick={openPaymentModal}
-                className="flex-1 h-10 sm:flex-none bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
-              >
-                Pay Balance
-              </Button>
+              {staffTarget ? null : (
+                <Button
+                  onClick={openPaymentModal}
+                  className="flex-1 h-10 sm:flex-none bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                >
+                  Pay Balance
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="icon"

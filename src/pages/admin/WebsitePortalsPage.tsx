@@ -36,6 +36,8 @@ import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
 import ContactsPage from "@/pages/admin/erp/ContactsPage";
 import { PortalApprovalsQueue } from "@/components/admin/PortalApprovalsQueue";
 import CustomerOrdersPanel from "@/components/admin/CustomerOrdersPanel";
+import AssignedPricelistsSection from "@/components/account/sections/AssignedPricelistsSection";
+import StatementsSection from "@/components/account/sections/StatementsSection";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
@@ -1331,6 +1333,8 @@ const WebsitePortalsPage = () => {
       <TabsList className="flex w-full flex-wrap justify-start gap-2">
         <TabsTrigger value="operations">Operations</TabsTrigger>
         <TabsTrigger value="orders">Orders</TabsTrigger>
+        <TabsTrigger value="pricelist">Pricelist</TabsTrigger>
+        <TabsTrigger value="statements">Statements</TabsTrigger>
         <TabsTrigger value="addresses">Addresses</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
         <TabsTrigger value="support">Support</TabsTrigger>
@@ -1410,6 +1414,12 @@ const WebsitePortalsPage = () => {
           target={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, ordersUseBillToAccount: detailQuery.data.ordersUseBillToAccount }}
           contactId={contactEditor?.contactId ?? detailQuery.data.crmContactId}
         />
+      </TabsContent>
+      <TabsContent value="pricelist">
+        <AssignedPricelistsSection staffTarget={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, assignedPricelistId: detailQuery.data.assignedPricelistId }} />
+      </TabsContent>
+      <TabsContent value="statements">
+        <StatementsSection staffTarget={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} />
       </TabsContent>
       <TabsContent value="addresses"><AddressBookSection targetUserId={selectedCustomer.userId} title="Customer addresses" description="Update saved checkout addresses." /></TabsContent>
       <TabsContent value="payments"><PaymentMethodsSection targetUserId={selectedCustomer.userId} title="Saved payment methods" description="Manage saved payment methods for this customer." /></TabsContent>
@@ -1773,6 +1783,8 @@ const WebsitePortalsPage = () => {
                   <TabsTrigger value="operations">Operations</TabsTrigger>
                   <TabsTrigger id="portal-profile-tab" value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
+                  <TabsTrigger value="pricelist">Pricelist</TabsTrigger>
+                  <TabsTrigger value="statements">Statements</TabsTrigger>
                   <TabsTrigger value="addresses">Addresses</TabsTrigger>
                   <TabsTrigger value="payments">Payments</TabsTrigger>
                   <TabsTrigger value="support">Support</TabsTrigger>
@@ -2082,6 +2094,14 @@ const WebsitePortalsPage = () => {
                     target={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, ordersUseBillToAccount: detailQuery.data.ordersUseBillToAccount }}
                     contactId={detailQuery.data.crmContactId}
                   />
+                </TabsContent>
+
+                <TabsContent value="pricelist" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <AssignedPricelistsSection staffTarget={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, assignedPricelistId: detailQuery.data.assignedPricelistId }} />
+                </TabsContent>
+
+                <TabsContent value="statements" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <StatementsSection staffTarget={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} />
                 </TabsContent>
 
                 <TabsContent value="addresses" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
