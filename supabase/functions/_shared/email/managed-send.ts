@@ -76,6 +76,26 @@ async function logSend(
 }
 
 /**
+ * Keep the rendered message so the admin delivery log can resend it. Skipped
+ * for emails with attachments (not stored). Never blocks or fails the send.
+ */
+async function savePayload(admin: AdminClient, input: ManagedSendInput): Promise<void> {
+  if (input.attachments?.length) return
+  const { error } = await admin.from('email_resend_payloads').upsert({
+    message_id: input.messageId,
+    recipient_email: input.to,
+    from_address: input.from ?? DEFAULT_FROM,
+    reply_to: input.replyTo ?? null,
+    subject: input.subject,
+    html: input.html,
+    text_body: input.text?.trim() ? input.text : htmlToText(input.html),
+  })
+  if (error) {
+    console.error('email_resend_payloads write failed', { error: (error as { message?: string }).message })
+  }
+}
+
+/**
  * Send one email to one recipient through Lovable's managed email API and
  * record the outcome in `email_send_log`.
  *
@@ -98,6 +118,7 @@ export async function sendManagedEmail(
       error_message: error,
       ...(input.logMetadata ? { metadata: input.logMetadata } : {}),
     })
+    await savePayload(admin, input)
     return { status: 'failed', error }
   }
 
@@ -132,6 +153,7 @@ export async function sendManagedEmail(
         error_message: 'Recipient suppressed',
         ...(input.logMetadata ? { metadata: input.logMetadata } : {}),
       })
+      await savePayload(admin, input)
       return { status: 'suppressed', error: 'recipient_suppressed' }
     }
 
@@ -144,9 +166,11 @@ export async function sendManagedEmail(
       error_message: message.slice(0, 1000),
       ...(input.logMetadata ? { metadata: input.logMetadata } : {}),
     })
+    await savePayload(admin, input)
     return { status: 'failed', error: message }
   }
 
+  await savePayload(admin, input)
   await logSend(admin, {
     message_id: input.messageId,
     template_name: input.label,

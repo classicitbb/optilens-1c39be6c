@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-15 — Email Previews resend (local source)
+
+### Release Notes
+- Email Previews can resend a logged email, optionally to a corrected address, and fix that address on the matching CRM contact. Only emails sent after deployment can be resent. Not yet deployed.
+
 ## 2026-10-08 — Atlas layout and authenticated sharing (local source)
 
 ### Release Notes

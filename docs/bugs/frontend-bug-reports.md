@@ -4,6 +4,10 @@ Atlas local source (2026-10-08): repaired browser preference synchronization and
 
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
 
+## 2026-10-15 — Email Previews resend (local source)
+
+Known limits: the ERP-synced `customers` table is not updated, and an Innovations sync may restore a contact's old address. A suppressed corrected address is reported and leaves contacts unchanged. Migration and function deploy pending; no email was sent during development.
+
 ## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
 
 Lead Finder previously upserted contacts by name, so a differently named existing contact produced a duplicate and customers were re-surfaced. Local source adds recognition, exclusion and an idempotent explicit save. Live behaviour of the new SQL is unverified until the migration is applied and exercised on a database.
