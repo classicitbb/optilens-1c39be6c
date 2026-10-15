@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutGrid, HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, Pencil, ArrowLeft, Settings } from
+  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, ArrowLeft, Settings } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,6 +21,7 @@ import AppLauncher from "./AppLauncher";
 import NotificationBell from "./NotificationBell";
 import OperatorAttentionAlert from "./OperatorAttentionAlert";
 import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
+import AnnotateMenu from "@/features/annotate/AnnotateMenu";
 import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -238,21 +239,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             <NotificationBell />
             <OperatorAttentionAlert />
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => navigate("/atlas/website")}
-                  data-navigation-target="/atlas/website"
-                  aria-label="Edit website content"
-                >
-                  <Pencil className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Edit content</span></TooltipContent>
-            </Tooltip>
+            <AnnotateMenu />
 
             <Tooltip>
               <TooltipTrigger asChild>
