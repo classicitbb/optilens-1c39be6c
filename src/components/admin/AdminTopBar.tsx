@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  LayoutGrid, HelpCircle, ExternalLink, LogOut,
+  HelpCircle, ExternalLink, LogOut,
   BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, ArrowLeft, Settings } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -185,7 +185,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             title="Applications"
             data-apps-toggle>
 
-            <LayoutGrid className="h-[18px] w-[18px] text-[hsl(var(--admin-muted-fg))]" />
+            <svg viewBox="0 0 18 18" fill="currentColor" aria-hidden="true" className="h-[18px] w-[18px] text-[hsl(var(--admin-muted-fg))]">
+              {[3, 9, 15].flatMap((cy) => [3, 9, 15].map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.6" />))}
+            </svg>
           </Button>
 
           <span className="text-sm font-semibold tracking-tight select-none text-[hsl(var(--admin-content-fg))]">

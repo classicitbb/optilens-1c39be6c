@@ -41,7 +41,7 @@ export default function AnnotateMenu() {
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
+        <TooltipContent side="bottom" {...UI}>
           <span className="text-xs">Annotate (A)</span>
         </TooltipContent>
       </Tooltip>

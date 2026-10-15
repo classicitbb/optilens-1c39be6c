@@ -24,6 +24,9 @@ import { createAuthHref } from "@/lib/authFlow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import AnnotateToggleItem from "@/features/annotate/AnnotateToggleItem";
+import { ANNOTATE_UI_ATTR } from "@/features/annotate/annotator";
+import { useAnnotator } from "@/features/annotate/useAnnotator";
 
 type MegaMenuLink = {
   label: string;
@@ -499,6 +502,7 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
+  const { annotator, isActive: isAnnotating } = useAnnotator(hasAccess);
   const bannerDismissed = useAccountRequestDismissed();
   const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -630,6 +634,7 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
                       variant="ghost"
                       size="sm"
                       className="h-11 rounded-full border border-border bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
+                      {...{ [ANNOTATE_UI_ATTR]: "" }}
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
@@ -649,6 +654,7 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
                     align="end"
                     sideOffset={10}
                     className="w-[min(88vw,18rem)] rounded-2xl border border-border/90 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
+                    {...{ [ANNOTATE_UI_ATTR]: "" }}
                   >
                     <div className="space-y-1 p-2.5 sm:p-3">
                       <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
@@ -683,12 +689,15 @@ const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
                           </Link>
                         </DropdownMenuItem>
                         {hasAccess &&
-                <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
+                <div className="flex items-center gap-1">
+                          <DropdownMenuItem asChild className="flex-1 rounded-xl px-2.5 py-2 focus:bg-accent/70">
                             <Link to="/admin" {...labLinkNavigationProps} className="flex items-center gap-3">
                               <Shield className="h-4.5 w-4.5 text-foreground/80" />
                               <span className="text-sm font-medium">Admin</span>
                             </Link>
                           </DropdownMenuItem>
+                          <AnnotateToggleItem annotator={annotator} isActive={isAnnotating} />
+                        </div>
                 }
                         {showRequestInMenu &&
                 <DropdownMenuItem
