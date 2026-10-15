@@ -4,6 +4,14 @@ Atlas production release (2026-10-08): scoped layout, stable identifiers and aut
 
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
 
+## 2026-10-15 — Email Previews resend (local source)
+
+### Release Notes
+- The Email delivery status log on Email Previews has a Resend button on each message. The dialog pre-fills the original address so it can be corrected, and when it is changed it offers to replace the old address on matching CRM contacts. Not yet deployed.
+
+### Technical Changelog
+- `sendManagedEmail` stores each rendered message in new service-role-only `email_resend_payloads` (skipped for attachments); `docstudio-api` adds `email/resend-info` and `email/resend`, and `email/health` rows carry `can_resend`. Contacts are updated only after the corrected address accepts the mail. Migration `20261015120000_email_resend_payloads.sql` and the function are not applied/deployed.
+
 ## 2026-10-08 — Atlas layout and authenticated sharing (local source)
 
 ### Release Notes

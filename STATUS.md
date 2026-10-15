@@ -15,10 +15,12 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-13 (Email reply HTML quote repaired in local source; rendered mail preview pending bridge availability)
+Last updated: 2026-10-15 (Email Previews delivery log: Resend, local source)
 
 Email reply follow-up (2026-10-13, local source): Reply now preserves the selected message's HTML body and embedded earlier correspondence in outgoing HTML, with a plain-text alternative. The quote preview is expanded by default. Focused tests, scoped lint, TypeScript, and build pass. The local mail bridge is currently unreachable, so authenticated rendered verification is pending. No email was sent or frontend published. See `docs/agent/HANDOFF.md`.
 Email search/ribbon (2026-10-13, local source): app-wide search on the Email route lists accessible Inbox hits ahead of site results. Folder search and Sync stay on one ribbon row; More holds only actions that do not fit. Layout checked in the local browser at 1138px and 1864px; authenticated result selection still needs external Chrome/Edge verification. No mail action or production publication occurred. See `docs/agent/HANDOFF.md`.
+
+Email resend (2026-10-15, local source): the Email Previews delivery log has a Resend button per message. The dialog pre-fills the original address so it can be corrected, and offers to replace the old address on matching CRM `contacts.email` lists (only after the corrected address accepts the mail; the ERP-synced `customers` table is not touched, and an Innovations sync may restore a contact's old address). `sendManagedEmail` now keeps each rendered message in new table `email_resend_payloads` (service-role only; skipped for emails with attachments), so only emails sent after deployment can be resent. Migration `20261015120000_email_resend_payloads.sql` and the `docstudio-api` function are **not applied/deployed**; no email was sent. Unit tests, `tsc -p tsconfig.app.json` and scoped lint pass; no browser pass.
 
 ---
 

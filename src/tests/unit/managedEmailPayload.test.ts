@@ -18,11 +18,14 @@ describe('managed email payload', () => {
     const exports: { sendManagedEmail?: (admin: unknown, input: unknown) => Promise<unknown> } = {};
     vm.runInNewContext(code, { exports, require: () => ({ sendLovableEmail: send, EmailAPIError: class extends Error {} }), Deno: { env: { get: () => 'fixture' } }, console });
     const insert = vi.fn().mockResolvedValue({ error: null });
-    const result = await exports.sendManagedEmail!({ from: () => ({ insert }) }, {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const result = await exports.sendManagedEmail!({ from: () => ({ insert, upsert }) }, {
       ...input, to: 'partner@example.com', subject: 'Product update', messageId: 'fixture', label: 'raw',
     });
     expect(result).toEqual({ status: 'sent' });
     expect(send).toHaveBeenCalledOnce();
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ status: 'sent' }));
+    // The rendered message is kept so the delivery log can resend it.
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ message_id: 'fixture', recipient_email: 'partner@example.com', subject: 'Product update', html: input.html }));
   });
 });

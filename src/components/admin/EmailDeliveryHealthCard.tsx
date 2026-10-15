@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle2, HelpCircle, Loader2, MailWarning, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, HelpCircle, Loader2, MailWarning, RefreshCw, Send } from "lucide-react";
+import ResendEmailDialog from "@/components/admin/ResendEmailDialog";
 
 // Reads the shared email_send_log audit trail (via docstudio-api, since that
 // table is service-role-only) to answer "is support@classicvisions.net
@@ -18,6 +20,7 @@ type LogRow = {
   status: string;
   error_message: string | null;
   created_at: string;
+  can_resend?: boolean;
 };
 
 type HealthResponse = {
@@ -42,6 +45,7 @@ const STATUS_META: Record<HealthResponse["status"], { label: string; className: 
 
 export default function EmailDeliveryHealthCard() {
   const { toast } = useToast();
+  const [resendId, setResendId] = useState<string | null>(null);
 
   const { data, isLoading, isRefetching, error, refetch } = useQuery({
     queryKey: ["email-delivery-health"],
@@ -68,6 +72,7 @@ export default function EmailDeliveryHealthCard() {
   const failed24h = (data?.counts24h.failed ?? 0) + (data?.counts24h.dlq ?? 0);
 
   return (
+    <>
     <Accordion type="single" collapsible className="rounded-lg border">
       <AccordionItem value="email-delivery-status" className="border-none">
         <AccordionTrigger className="px-4 py-3 hover:no-underline">
@@ -146,10 +151,14 @@ export default function EmailDeliveryHealthCard() {
                         <th className="px-3 py-2 font-medium">Recipient</th>
                         <th className="px-3 py-2 font-medium">Source</th>
                         <th className="px-3 py-2 font-medium">Status</th>
+                        <th className="px-3 py-2 font-medium"><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
                     <tbody>
-                    {data.recent.map((row) => {
+                    {data.recent.map((row, index) => {
+                      // The log has one row per status change; offer resend on the latest only.
+                      const canResend = !!row.message_id && !!row.can_resend && row.status !== "pending"
+                        && data.recent.findIndex((r) => r.message_id === row.message_id) === index;
                       const isError = ["failed", "dlq", "bounced", "complained"].includes(row.status);
                       return (
                         <tr key={`${row.message_id ?? row.created_at}-${row.recipient_email}-${row.status}-${row.created_at}`} className="border-t align-top">
@@ -159,6 +168,13 @@ export default function EmailDeliveryHealthCard() {
                           <td className={`px-3 py-2 ${isError ? "text-red-600" : row.status === "sent" ? "text-emerald-700" : ""}`}>
                             <span className="font-semibold capitalize">{row.status}</span>
                             {isError && row.error_message && <span className="mt-0.5 block font-normal text-[11px] text-red-500">{row.error_message}</span>}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {canResend && (
+                              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setResendId(row.message_id)}>
+                                <Send className="mr-1.5 h-3 w-3" />Resend
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -174,5 +190,7 @@ export default function EmailDeliveryHealthCard() {
         </AccordionContent>
       </AccordionItem>
     </Accordion>
+    <ResendEmailDialog key={resendId} messageId={resendId} onClose={() => setResendId(null)} />
+    </>
   );
 }
