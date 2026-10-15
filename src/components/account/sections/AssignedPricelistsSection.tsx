@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { useOptionalCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeDollarSign, Download, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { usePortalRxPricingStructure } from "@/hooks/usePortalRxPricingStructure
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
-import { useCartContext } from "@/contexts/CartContext";
+import { useOptionalCartContext } from "@/contexts/CartContext";
 import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { cn } from "@/lib/utils";
@@ -115,8 +115,9 @@ const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPriceli
   const { overrides: ownOverrides, setOverride, clearOverride } = useUserPriceOverrides();
   const overrides = staffTarget ? NO_OVERRIDES : ownOverrides;
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
-  const { addToCart } = useCartContext();
-  const { openAssistant } = useCompanionAssistant();
+  // Absent in the admin; the cart and Rx quote actions are hidden for staff.
+  const cart = useOptionalCartContext();
+  const assistant = useOptionalCompanionAssistant();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
     queryKey: ["portal-pricing-currency-settings"],
@@ -150,7 +151,7 @@ const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPriceli
   const addCatalogRowToCart = (row: CatalogRow) => {
     if (!row.item_id) return;
     const productType = row.row_type as "lens" | "supply" | "addon";
-    addToCart({
+    cart?.addToCart({
       id: getStableStoreProductCartId({ id: row.item_id, product_type: productType }),
       name: row.display_description,
       price: row.bbd_price,
@@ -162,7 +163,7 @@ const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPriceli
   // RX lens designs & add-ons -> no structured Rx-cart exists today, so this
   // opens the assistant's quote request form pre-filled with the row details.
   const addToRxQuoteRequest = (description: string, bbdPrice: number) => {
-    openAssistant({
+    assistant?.openAssistant({
       formKind: "quote_request",
       formValues: {
         requestTitle: description,
