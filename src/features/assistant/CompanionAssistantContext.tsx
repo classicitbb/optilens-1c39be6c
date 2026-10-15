@@ -1304,6 +1304,9 @@ export const useCompanionAssistant = () => {
   return context;
 };
 
+// For shared components that also render in the admin, where there is no assistant.
+export const useOptionalCompanionAssistant = () => useContext(CompanionAssistantContext);
+
 export const useRetailerAssistantPrompt = () => {
   const { openAssistant } = useCompanionAssistant();
 

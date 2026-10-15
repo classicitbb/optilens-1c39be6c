@@ -45,9 +45,9 @@ describe("portal lab pricelist access", () => {
   });
 
   it("adds stock-pricelist items through the shared cart context", () => {
-    expect(section).toContain('import { useCartContext } from "@/contexts/CartContext";');
+    expect(section).toContain('import { useOptionalCartContext } from "@/contexts/CartContext";');
     expect(section).not.toContain('import { useCart } from "@/hooks/useCart";');
-    expect(section).toContain("const { addToCart } = useCartContext();");
+    expect(section).toContain("const cart = useOptionalCartContext();");
   });
 
   it("does not report tag selection as saved when replacing existing links fails", () => {

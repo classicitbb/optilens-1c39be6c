@@ -24,6 +24,9 @@ export const useCartContext = () => {
   return context;
 };
 
+// For shared components that also render in the admin, where there is no cart.
+export const useOptionalCartContext = () => useContext(CartContext);
+
 interface CartProviderProps {
   children: ReactNode;
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { useOptionalCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeDollarSign, Download, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { usePortalRxPricingStructure } from "@/hooks/usePortalRxPricingStructure
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
-import { useCartContext } from "@/contexts/CartContext";
+import { useOptionalCartContext } from "@/contexts/CartContext";
 import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { cn } from "@/lib/utils";
@@ -95,15 +95,29 @@ const isLabSupplyRow = (row: CatalogRow) => {
   return section === "lab" || section === "lab supplies";
 };
 
-const AssignedPricelistsSection = () => {
-  const { identity } = usePortalIdentity();
+// Set when staff view a customer's pricelist from the admin (no emulation):
+// the RPCs are scoped to this customer, and the viewer's own retail
+// overrides and cart actions are left out.
+export type StaffPricelistTarget = {
+  userId: string;
+  crmCustomerId: number | null;
+  assignedPricelistId: number | null;
+};
+
+const NO_OVERRIDES = new Map<string, { row_key: string; custom_price: number; currency_code: string }>();
+
+const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPricelistTarget } = {}) => {
+  const portal = usePortalIdentity();
+  const identity = staffTarget ?? portal.identity;
   const assignedPricelistId = identity?.assignedPricelistId ?? null;
   const hasPricelist = typeof assignedPricelistId === "number";
-  const [pricesHidden, setPricesHidden] = useState(true);
-  const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
+  const [pricesHidden, setPricesHidden] = useState(!staffTarget);
+  const { overrides: ownOverrides, setOverride, clearOverride } = useUserPriceOverrides();
+  const overrides = staffTarget ? NO_OVERRIDES : ownOverrides;
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
-  const { addToCart } = useCartContext();
-  const { openAssistant } = useCompanionAssistant();
+  // Absent in the admin; the cart and Rx quote actions are hidden for staff.
+  const cart = useOptionalCartContext();
+  const assistant = useOptionalCompanionAssistant();
 
   const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
     queryKey: ["portal-pricing-currency-settings"],
@@ -137,7 +151,7 @@ const AssignedPricelistsSection = () => {
   const addCatalogRowToCart = (row: CatalogRow) => {
     if (!row.item_id) return;
     const productType = row.row_type as "lens" | "supply" | "addon";
-    addToCart({
+    cart?.addToCart({
       id: getStableStoreProductCartId({ id: row.item_id, product_type: productType }),
       name: row.display_description,
       price: row.bbd_price,
@@ -149,7 +163,7 @@ const AssignedPricelistsSection = () => {
   // RX lens designs & add-ons -> no structured Rx-cart exists today, so this
   // opens the assistant's quote request form pre-filled with the row details.
   const addToRxQuoteRequest = (description: string, bbdPrice: number) => {
-    openAssistant({
+    assistant?.openAssistant({
       formKind: "quote_request",
       formValues: {
         requestTitle: description,
@@ -165,11 +179,12 @@ const AssignedPricelistsSection = () => {
   );
 
   const { data: canAccessLabPricing = false } = useQuery<boolean>({
-    queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null],
+    queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null, staffTarget?.userId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("can_access_customer_lab_pricing", {
         p_customer_id: identity?.crmCustomerId ?? null,
+        ...(staffTarget ? { p_user_id: staffTarget.userId } : {}),
       });
       if (error) throw error;
       return data === true;
@@ -401,9 +416,9 @@ const AssignedPricelistsSection = () => {
                             key={`${section}-${index}`}
                             className={cn(
                               "group border-b last:border-b-0",
-                              isCartRow && "cursor-pointer hover:bg-muted/50",
+                              isCartRow && !staffTarget && "cursor-pointer hover:bg-muted/50",
                             )}
-                            onClick={isCartRow ? rowAction.onClick : undefined}
+                            onClick={isCartRow && !staffTarget ? rowAction.onClick : undefined}
                           >
                             <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
                             <td className="px-3 py-2 text-right font-semibold text-foreground">
@@ -414,8 +429,9 @@ const AssignedPricelistsSection = () => {
                                 onSave={(price) => setOverride.mutate({ rowKey, price, currencyCode: currency })}
                                 onClear={() => clearOverride.mutate(rowKey)}
                                 isSaving={setOverride.isPending}
-                                action={rowAction}
+                                action={staffTarget ? undefined : rowAction}
                                 useRowHoverGroup
+                                readOnly={!!staffTarget}
                               />
                             </td>
                           </tr>
@@ -472,7 +488,7 @@ const AssignedPricelistsSection = () => {
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold text-foreground">Pricelists</h2>
           <p className="text-sm text-muted-foreground">
-            Your assigned wholesale pricing{updatedAt ? ` · updated ${new Date(updatedAt).toLocaleDateString()}` : ""}.
+            {staffTarget ? "Assigned wholesale pricing for this customer" : "Your assigned wholesale pricing"}{updatedAt ? ` · updated ${new Date(updatedAt).toLocaleDateString()}` : ""}.
           </p>
         </div>
       </header>
@@ -580,7 +596,8 @@ const AssignedPricelistsSection = () => {
                                             onClear={() => clearOverride.mutate(rowKey)}
                                             isSaving={setOverride.isPending}
                                             centered
-                                            action={{
+                                            readOnly={!!staffTarget}
+                                            action={staffTarget ? undefined : {
                                               type: "rx",
                                               onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),
                                             }}

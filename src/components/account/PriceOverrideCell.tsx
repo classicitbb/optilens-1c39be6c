@@ -29,6 +29,9 @@ interface PriceOverrideCellProps {
   // price columns. Keep the displayed amount centered even when edit actions
   // are available at the edge of the cell.
   centered?: boolean;
+  // Staff viewing a customer's pricelist: show the plain price with no
+  // editing, since overrides belong to the signed-in viewer, not the customer.
+  readOnly?: boolean;
 }
 
 const formatOverride = (price: number, currencyCode: string) => `${currencyCode} $${price.toFixed(2)}`;
@@ -71,10 +74,15 @@ const PriceOverrideCell = ({
   action,
   useRowHoverGroup,
   centered = false,
+  readOnly = false,
 }: PriceOverrideCellProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const groupClass = useRowHoverGroup ? "" : "group";
+
+  if (readOnly) {
+    return <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>;
+  }
 
   if (editing) {
     const parsed = Number(draft);
