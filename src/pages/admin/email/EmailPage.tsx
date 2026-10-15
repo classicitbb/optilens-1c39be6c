@@ -423,7 +423,6 @@ const EmailPage = () => {
       </Dialog>
     </div>
     </div>
-    </div>
   );
 };
 
