@@ -845,7 +845,7 @@ serve(async (req) => {
       const { data: current, error: curErr } = await supabase.from("docstudio_billing_documents").select("*").eq("id", id).is("deleted_at", null).single();
       if (curErr || !current) {
         // Autosave against a deleted record is an expected client state, not a failure.
-        if (method === "POST" && isAutosave) return json({ missing: true });
+        if (isAutosave && (method === "POST" || method === "PUT")) return json({ missing: true });
         return json({ error: "Document not found" }, 404);
       }
 
