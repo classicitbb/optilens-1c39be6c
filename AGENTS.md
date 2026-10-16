@@ -102,5 +102,3 @@ relevant to your work area — do not load everything upfront.
 - Do not run parallel active route systems for the same runtime surface without a migration plan and deprecation path.
 - Keep website content management (Atlas, `/atlas/website`; `/admin/website/content` only redirects) and website product/store operations (`/admin/website/store`) as separate surfaces. Atlas rules live in `src/features/atlas/CONTEXT.md`.
 - New routes must ship with: route registration, navigation placement, auth decision, and route accessibility tests.
-
-- Doc Studio My Files is a native React panel portalled into the studio; the studio keeps owning file state and actions — one source of truth, no duplicate file API in the browser.
