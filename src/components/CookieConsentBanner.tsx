@@ -57,7 +57,10 @@ const CookieConsentBanner = () => {
     saveConsent({ ...preferences, necessary: true });
   };
 
-  if (!showBanner) return null;
+  // Staff tools fill the screen; the banner covered Doc Studio's controls.
+  // Admin pages are staff-only, so the consent prompt is left to the public site.
+  const onAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  if (!showBanner || onAdminPage) return null;
 
   return (
     <>

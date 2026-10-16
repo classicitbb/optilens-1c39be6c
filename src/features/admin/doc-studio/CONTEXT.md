@@ -11,3 +11,5 @@ Recipient-picker document listeners must clean up at unmount. Selection writes d
 The current checkout is served on port 8081; another checkout was observed on port 8080. Verify the actual server process before assuming localhost serves this source. No new service, connector or environment variable is required for these improvements.
 
 Focused verification: `npx vitest run --coverage=false src/tests/unit/docStudioRecipientSignatureLabel.test.ts src/tests/unit/docStudioLetterhead.test.ts src/tests/unit/nativeDocStudio.unit.test.ts`.
+
+My Files is a native React panel (`files/FileManager.tsx`, helpers in `files/docFiles.ts`) portalled into the empty `#ds-native-files-slot` the studio renders on its files tab. It reads `window._dsApp.state` (myFiles, fileTypeFilter, fileSearch) on the `ds:files-state` event fired from componentDidUpdate, and calls the studio's openFile/rename/share/delete/refreshMyFiles. `buildFileBrowserHtml` is legacy and unused. Iris can list files via the `docstudio_search_files` copilot tool (read-only).

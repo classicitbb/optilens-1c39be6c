@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import DocStudioFileManager from "./files/FileManager";
 
 /**
  * DocStudioEmbed — mounts the Doc Studio dc-runtime natively in the admin page
@@ -255,6 +256,7 @@ const DocStudioEmbed = () => {
         className="ds-native-host"
         style={ready ? undefined : { display: "none" }}
       />
+      {ready && <DocStudioFileManager host={hostRef.current} />}
     </div>
   );
 };
