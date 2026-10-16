@@ -37,12 +37,11 @@ const Features = ({ sectionId }: { sectionId?: string }) => {
           </p>
         </div>
 
-        <div className="grid gap-8 grid-cols-2 lg:grid-cols-4">
+        <div data-sc-in data-sc-stagger="70" className="grid gap-8 grid-cols-2 lg:grid-cols-4">
           {features.map((feature, index) => (
             <div 
               key={feature.title}
-              className="group text-center opacity-0 animate-fade-in"
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="group text-center"
             >
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-card shadow-soft transition-all duration-300 group-hover:shadow-medium group-hover:-translate-y-1 sm:h-16 sm:w-16">
                 <feature.icon className="h-6 w-6 text-accent sm:h-7 sm:w-7" aria-hidden="true" />

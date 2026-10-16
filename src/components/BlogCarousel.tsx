@@ -20,7 +20,7 @@ const BlogCarousel = ({ sectionId }: { sectionId?: string }) => {
   return (
     <section id={sectionId} className="bg-muted/30 py-16 sm:py-24" aria-label="Latest blog posts">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="mb-12 flex flex-col items-center justify-between gap-4 text-center sm:mb-16 md:flex-row md:text-left">
+        <div data-sc-in className="mb-12 flex flex-col items-center justify-between gap-4 text-center sm:mb-16 md:flex-row md:text-left">
           <div>
             <h2 className="mb-2 text-2xl font-bold text-foreground sm:text-3xl md:text-4xl">
               From Our Blog

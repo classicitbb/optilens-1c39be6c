@@ -29,6 +29,7 @@ import {
   type Audience,
 } from "@/components/home/homeContent";
 import { useHomeAudience } from "@/components/home/useHomeAudience";
+import { useScrollCraft } from "@/lib/scrollcraft/useScrollCraft";
 
 /* -------------------------------------------------------------------------- */
 /*  Shared Meridian Precision primitives                                       */
@@ -73,7 +74,7 @@ const SectionHeading = ({
   id: string;
   align?: "left" | "center";
 }) => (
-  <div className={cn("max-w-3xl", align === "center" && "mx-auto text-center")}>
+  <div data-sc-in className={cn("max-w-3xl", align === "center" && "mx-auto text-center")}>
     <div className={cn(align === "center" && "flex justify-center")}>
       <Eyebrow>{eyebrow}</Eyebrow>
     </div>
@@ -104,6 +105,7 @@ const HomePage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const { openAssistant } = useCompanionAssistant();
+  const scrollRef = useScrollCraft([audience]);
 
   const jsonLd = useMemo(() => {
     const orgId = `${BUSINESS.url}/#organization`;
@@ -205,7 +207,8 @@ const HomePage = () => {
   }, [faqs]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div ref={scrollRef} className="min-h-screen bg-background">
+      <span data-sc-progress aria-hidden="true" />
       <Seo
         title="Wholesale Prescription Lenses & Optical Lab — Barbados | Classic Visions"
         description="Classic Visions is a Barbados wholesale optical laboratory supplying prescription lenses, coatings, and optical supplies to opticians and clinics across the Caribbean. Open a trade account."
@@ -218,7 +221,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Hero                                                              */}
         {/* ---------------------------------------------------------------- */}
-        <section className="relative isolate overflow-hidden bg-surface-deep text-surface-deep-foreground" aria-labelledby="hero-heading">
+        <section data-sc-act="flow" className="relative isolate overflow-hidden bg-surface-deep text-surface-deep-foreground" aria-labelledby="hero-heading">
           <div
             className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,hsl(var(--secondary)/0.28),transparent_46%)]"
             aria-hidden="true"
@@ -326,15 +329,17 @@ const HomePage = () => {
                   aria-hidden="true"
                 />
                 <div className="relative aspect-[16/9] w-full overflow-hidden lg:rounded-2xl lg:shadow-[0_30px_80px_-30px_rgba(0,0,0,0.65)] lg:ring-1 lg:ring-surface-deep-foreground/15">
-                  <img
-                    src={caribbeanHero}
-                    alt="Caribbean optical professionals presenting eyeglass frames and a lens in a bright consultation space"
-                    className="h-full w-full object-cover"
-                    loading="eager"
-                    fetchPriority="high"
-                    width={1672}
-                    height={941}
-                  />
+                  <div data-sc-parallax="0.4" className="absolute -inset-y-5 inset-x-0">
+                    <img
+                      src={caribbeanHero}
+                      alt="Caribbean optical professionals presenting eyeglass frames and a lens in a bright consultation space"
+                      className="h-full w-full object-cover"
+                      loading="eager"
+                      fetchPriority="high"
+                      width={1672}
+                      height={941}
+                    />
+                  </div>
                   <div
                     className="absolute inset-0 bg-gradient-to-t from-surface-deep/70 via-transparent to-transparent lg:from-surface-deep/55"
                     aria-hidden="true"
@@ -396,7 +401,7 @@ const HomePage = () => {
               lede="Lenses, coatings, consumables, and the digital tools around them — so your practice isn't stitching together four suppliers to finish one job."
             />
 
-            <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
+            <div data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
               {capabilityPillars.map(({ icon: Icon, title, description, href, links }) => (
                 <article key={title} className="group relative flex flex-col bg-card p-7 transition-colors hover:bg-muted/40">
                   <div className="flex h-11 w-11 items-center justify-center rounded-full border border-secondary/30 bg-secondary/10">
@@ -439,7 +444,7 @@ const HomePage = () => {
               lede="Every design, material, and coating we supply, with the technical page behind it — for you, and for the search engines and assistants your patients ask first."
             />
 
-            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div data-sc-in data-sc-stagger="70" className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {lensExplorer.map(({ title, icon: Icon, items }) => (
                 <div key={title}>
                   <div className="flex items-center gap-2.5 border-b border-border pb-3">
@@ -480,7 +485,7 @@ const HomePage = () => {
               lede="Four steps, each with a named next action. No forms that go nowhere, no pricing you have to chase."
             />
 
-            <ol className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border lg:grid-cols-4">
+            <ol data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border lg:grid-cols-4">
               {onboardingSteps.map(({ number, title, text, meta, href, linkLabel, icon: Icon }) => (
                 <li key={number} className="flex flex-col bg-card p-7">
                   <div className="flex items-center justify-between">
@@ -576,7 +581,7 @@ const HomePage = () => {
               lede="We make the lenses; your optician is the person you'll deal with. Here's how that fits together."
             />
 
-            <ol className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
+            <ol data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
               {patientJourney.map(({ number, title, text, href, linkLabel, icon: Icon }) => (
                 <li key={number} className="flex flex-col bg-card p-7">
                   <div className="flex items-center justify-between">
@@ -611,7 +616,7 @@ const HomePage = () => {
               lede="Short, jargon-free guides to the choices you'll be offered at the counter."
             />
 
-            <ul className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+            <ul data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
               {patientGuides.map((guide) => (
                 <li key={guide.href}>
                   <Link
@@ -644,7 +649,7 @@ const HomePage = () => {
               title="Lenses worth asking your optician about."
             />
 
-            <div className="mt-12 grid gap-8 sm:grid-cols-2">
+            <div data-sc-in data-sc-stagger="70" className="mt-12 grid gap-8 sm:grid-cols-2">
               {patientLensExplorer.map(({ title, icon: Icon, items }) => (
                 <div key={title}>
                   <div className="flex items-center gap-2.5 border-b border-border pb-3">
@@ -689,7 +694,7 @@ const HomePage = () => {
               align="center"
             />
 
-              <div className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-3">
+              <div data-sc-in data-sc-stagger="70" className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-3">
                 {PLACEHOLDERS.testimonials.map((item) => (
                   <figure key={item.name} className="rounded-2xl border border-border bg-card p-7 shadow-soft">
                     <div className="h-px w-10 bg-accent" aria-hidden="true" />

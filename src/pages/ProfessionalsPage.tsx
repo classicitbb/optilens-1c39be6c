@@ -6,6 +6,7 @@ import { Link, useLocation, useSearchParams } from "react-router";
 import Seo from "@/components/seo/Seo";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { useScrollCraft } from "@/lib/scrollcraft/useScrollCraft";
 
 const tradeBenefits = [
   {
@@ -63,6 +64,7 @@ const sections = [
 ];
 
 const ProfessionalsPage = () => {
+  const scrollRef = useScrollCraft();
   const { identity } = usePortalIdentity();
   const { openAssistant } = useCompanionAssistant();
   const location = useLocation();
@@ -92,7 +94,8 @@ const ProfessionalsPage = () => {
     : sections;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div ref={scrollRef} className="min-h-screen bg-background">
+      <span data-sc-progress aria-hidden="true" />
       <Seo
         title="Trade Account & Professional Resources | Classic Visions"
         description="Access trade account onboarding, LabLink ordering, order tracking, pricing requests, and technical resources built for optical stores and clinics."
@@ -129,7 +132,7 @@ const ProfessionalsPage = () => {
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
               Opening a trade account gives your practice a clearer path to ordering, pricing access, technical guidance, and ongoing support.
             </p>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div data-sc-in data-sc-stagger="70" className="mt-6 grid gap-4 md:grid-cols-3">
               {tradeBenefits.map((benefit) => (
                 <div key={benefit.title} className="rounded-xl border border-border/70 bg-background p-5">
                   <h3 className="text-lg font-semibold text-foreground">{benefit.title}</h3>
@@ -160,7 +163,7 @@ const ProfessionalsPage = () => {
             </div>
           </section>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div data-sc-in data-sc-stagger="70" className="mt-8 grid gap-4 md:grid-cols-3">
             {visibleSections.map((section) => (
               <div key={section.title} className="rounded-xl border border-border bg-card p-5 flex flex-col">
                 <h2 className="text-lg font-semibold text-foreground">{section.title}</h2>
