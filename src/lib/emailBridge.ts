@@ -8,7 +8,14 @@ const STORAGE_KEY = "optilens.emailBridgeUrl";
 
 function readOverride(): string {
   try {
-    return window.localStorage.getItem(STORAGE_KEY)?.trim() ?? "";
+    const saved = window.localStorage.getItem(STORAGE_KEY)?.trim() ?? "";
+    // An old saved office address bypasses the cloud relay and fails outside
+    // the published site — drop it so everyone uses the relay.
+    if (/mail-bridge\.classicvisions\.net/i.test(saved)) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      return "";
+    }
+    return saved;
   } catch {
     return "";
   }
