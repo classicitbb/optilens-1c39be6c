@@ -40,6 +40,18 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Can't reach the mail bridge. Check that the office server is online." }), { status: 502, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
+  // When the office server or its tunnel is down, Cloudflare answers with a
+  // full HTML error page (502/503/504/52x). Replace it with a short JSON
+  // message so the Email screen can explain the outage instead of dumping HTML.
+  const upstreamType = upstream.headers.get("content-type") ?? "";
+  if (upstream.status >= 500 && !upstreamType.includes("application/json")) {
+    await upstream.body?.cancel();
+    return new Response(
+      JSON.stringify({ error: "The office mail server is offline or restarting. Try again in a few minutes.", upstreamStatus: upstream.status }),
+      { status: 503, headers: { ...cors, "Content-Type": "application/json" } },
+    );
+  }
+
   const out = new Headers(cors);
   for (const name of ["content-type", "content-disposition", "content-length"]) {
     const value = upstream.headers.get(name);
