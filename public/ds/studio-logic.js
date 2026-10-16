@@ -2346,9 +2346,13 @@
     try {
       this.setState({ billSaveState: 'Saving...' });
       const id = this.state.currentBillingDocumentId;
-      const data = id
-        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id) + '/autosave', { method: 'PUT', body: this.billFilePayload() })
+      let data = id
+        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id) + '/autosave', { method: 'POST', body: this.billFilePayload() })
         : await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload() });
+      if (data && data.missing) {
+        // The open document was deleted elsewhere; keep the user's work as a new draft.
+        data = await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload() });
+      }
       this.applyBillingDocument(data.document);
       this.loadBillingFiles();
       this.loadMyFiles();
