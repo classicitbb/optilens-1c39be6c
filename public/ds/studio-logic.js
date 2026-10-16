@@ -148,6 +148,9 @@
   componentDidUpdate() {
     this.scheduleControlMetadata();
     this.focusLibraryDeleteDialog();
+    // The native admin file manager (src/features/admin/doc-studio/files)
+    // renders My Files from this state; tell it when anything changed.
+    try { window.dispatchEvent(new CustomEvent('ds:files-state')); } catch (e) {}
   }
 
   componentWillUnmount() {
@@ -1902,16 +1905,22 @@
     return data.billingNumber || '';
   };
 
+  // Billing documents arrive with documentName/billingNumber, not fileType/
+  // fileName; without this they listed as "Untitled · undefined".
+  normalizeListedFile = (f) => f && f.kind === 'billing'
+    ? Object.assign({}, f, { fileType: 'billing', fileName: f.fileName || f.documentName || f.billingNumber || 'Untitled billing document' })
+    : f;
+
   loadMyFiles = async () => {
     try {
       const data = await this.docApi('/api/docstudio/my-files');
-      this.setState({ myFiles: data.files || [], myFilesLoaded: true, fileSaveState: 'DB save ready' });
+      this.setState({ myFiles: (data.files || []).map(this.normalizeListedFile), myFilesLoaded: true, myFilesError: '', fileSaveState: 'DB save ready' });
     } catch (e) {
-      this.setState({ myFiles: [], myFilesLoaded: false, fileSaveState: 'Local recovery only' });
+      this.setState({ myFiles: [], myFilesLoaded: false, myFilesError: (e && e.message) || 'Could not load files', fileSaveState: 'Local recovery only' });
     }
   };
 
-  refreshMyFiles = () => { this.loadMyFiles(); this.loadBillingFiles(); };
+  refreshMyFiles = () => Promise.all([this.loadMyFiles(), this.loadBillingFiles()]);
 
   loadFileShareUsers = async () => {
     try {
