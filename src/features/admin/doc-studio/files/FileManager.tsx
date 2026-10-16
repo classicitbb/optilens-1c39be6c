@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { FileText, LayoutGrid, List, MoreHorizontal, RefreshCw, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -117,7 +117,7 @@ function Panel() {
     else if (e.key === " ") { e.preventDefault(); setSelected(f.id); }
   };
 
-  const fileRow = (f: DocFile, body: JSX.Element, className: string) => (
+  const fileRow = (f: DocFile, body: ReactNode, className: string) => (
     <ContextMenu key={f.id} onOpenChange={(o) => o && setSelected(f.id)}>
       <ContextMenuTrigger asChild>
         <div
