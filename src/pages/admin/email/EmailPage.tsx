@@ -18,6 +18,8 @@ import {
 import { useEmailToTask } from "@/features/admin/email/useEmailToTask";
 import { EmailBody } from "@/features/admin/email/EmailBody";
 import { parseCsvPreview } from "@/features/admin/email/csvPreview";
+import { attachmentPreviewKind } from "@/features/admin/email/attachmentPreview";
+import { ImagePreviewDialog } from "@/components/account/ImagePreviewDialog";
 import { ComposeDialog } from "@/features/admin/email/ComposeDialog";
 import { CrmContactPanel } from "@/features/admin/email/CrmContactPanel";
 import { EmailAppRail } from "@/features/admin/email/EmailAppRail";
@@ -178,14 +180,12 @@ const EmailPage = () => {
     try {
       const file = await emailBridge.downloadAttachment(attachment);
       if (requestId !== previewRequest.current) return;
-      const mime = (file.type || attachment.content_type || "").toLowerCase();
-      const name = attachment.filename.toLowerCase();
-      if (["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"].includes(mime) || mime === "application/pdf" || name.endsWith(".pdf")) {
-        const type = name.endsWith(".pdf") ? "application/pdf" : mime;
-        setPreview({ attachment, kind: type === "application/pdf" ? "pdf" : "image", url: URL.createObjectURL(new Blob([file], { type })) });
-      } else if (!/\.html?$/.test(name) && (["text/plain", "text/csv", "application/csv", "application/json"].includes(mime) || /\.(csv|txt|log|json)$/.test(name)) && file.size <= 1024 * 1024) {
+      const detected = attachmentPreviewKind(attachment.filename, attachment.content_type || file.type);
+      if (detected && (detected.kind === "image" || detected.kind === "pdf")) {
+        setPreview({ attachment, kind: detected.kind, url: URL.createObjectURL(new Blob([file], { type: detected.type })) });
+      } else if (detected && file.size <= 1024 * 1024) {
         const text = await file.text();
-        if (requestId === previewRequest.current) setPreview({ attachment, kind: mime.includes("csv") || name.endsWith(".csv") ? "csv" : "text", text });
+        if (requestId === previewRequest.current) setPreview({ attachment, kind: detected.kind, text });
       } else {
         setPreview({ attachment, error: "Preview isn't available for this file. You can download it instead." });
       }
@@ -412,11 +412,13 @@ const EmailPage = () => {
             {preview?.error && <p className="p-4 text-sm">{preview.error}</p>}
             {preview?.kind === "csv" && preview.text !== undefined && <CsvPreview text={preview.text} />}
             {preview?.kind === "text" && preview.text !== undefined && <pre className="p-4 text-xs whitespace-pre-wrap break-words">{preview.text}</pre>}
-            {preview?.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="mx-auto max-h-full max-w-full object-contain" />}
-            {preview?.kind === "pdf" && preview.url && <iframe title={`Preview ${preview.attachment.filename}`} src={preview.url} sandbox="" className="h-full w-full" />}
+            {preview?.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="block h-full w-full object-contain p-2" />}
+            {/* No sandbox: Chrome refuses to run its PDF viewer in a sandboxed frame. The URL is a local blob copy. */}
+            {preview?.kind === "pdf" && preview.url && <iframe title={`Preview ${preview.attachment.filename}`} src={preview.url} className="h-full w-full" />}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={closePreview}>Close</Button>
+            {preview?.url && <Button variant="outline" asChild><a href={preview.url} target="_blank" rel="noreferrer">Open in new tab</a></Button>}
             {preview && <Button onClick={() => openAttachment(preview.attachment)}><Download className="mr-1.5 h-4 w-4" /> Download</Button>}
           </div>
         </DialogContent>

@@ -49,6 +49,8 @@ function getDefaultOriginsForEnv(environment: string): string[] {
     // The public portal is served locally on these exact origins during
     // authenticated, real-browser verification against cloud functions.
     "http://localhost:8081",
+    // Lovable sandbox dev server, used for signed-in end-to-end checks.
+    "http://localhost:8080",
     "http://127.0.0.1:8081",
     // Exact WSL/host bridge origin used by the local production-preview server.
     // Keep this exact rather than permitting arbitrary private-network origins.
