@@ -412,11 +412,13 @@ const EmailPage = () => {
             {preview?.error && <p className="p-4 text-sm">{preview.error}</p>}
             {preview?.kind === "csv" && preview.text !== undefined && <CsvPreview text={preview.text} />}
             {preview?.kind === "text" && preview.text !== undefined && <pre className="p-4 text-xs whitespace-pre-wrap break-words">{preview.text}</pre>}
-            {preview?.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="mx-auto max-h-full max-w-full object-contain" />}
-            {preview?.kind === "pdf" && preview.url && <iframe title={`Preview ${preview.attachment.filename}`} src={preview.url} sandbox="" className="h-full w-full" />}
+            {preview?.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="block h-full w-full object-contain p-2" />}
+            {/* No sandbox: Chrome refuses to run its PDF viewer in a sandboxed frame. The URL is a local blob copy. */}
+            {preview?.kind === "pdf" && preview.url && <iframe title={`Preview ${preview.attachment.filename}`} src={preview.url} className="h-full w-full" />}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={closePreview}>Close</Button>
+            {preview?.url && <Button variant="outline" asChild><a href={preview.url} target="_blank" rel="noreferrer">Open in new tab</a></Button>}
             {preview && <Button onClick={() => openAttachment(preview.attachment)}><Download className="mr-1.5 h-4 w-4" /> Download</Button>}
           </div>
         </DialogContent>
