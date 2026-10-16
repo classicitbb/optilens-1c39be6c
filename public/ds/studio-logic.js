@@ -961,7 +961,7 @@
     const url = /^https?:\/\//i.test(website) ? website : `https://${website}`;
     const link = (href, label) => `<a href="${esc(href)}" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#176d7a;text-decoration:underline">${esc(label)}</a>`;
     const row = (html, style = '') => `<tr><td bgcolor="#ffffff" style="padding:0;background-color:#ffffff;color:#0B1E35;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;word-break:break-word;${style}">${html}</td></tr>`;
-    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-collapse:collapse;border:1px solid #d9d7cf;background-color:#ffffff;color:#0B1E35;font-family:Arial,Helvetica,sans-serif;width:420px;max-width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt"><tr>
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-collapse:collapse;border:0;background-color:#ffffff;color:#0B1E35;font-family:Arial,Helvetica,sans-serif;width:420px;max-width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt"><tr>
       ${d.sgLogo ? `<td width="80" bgcolor="#ffffff" valign="top" style="padding:16px 12px;background-color:#ffffff;border:0"><img src="${logo}" width="56" height="56" alt="Classic Visions" style="display:block;width:56px;height:56px;border:0;background-color:#ffffff"></td>` : ''}
       <td bgcolor="#ffffff" valign="top" style="padding:16px;border:0;border-left:2px solid #C89130;background-color:#ffffff"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%">
         ${row(esc(d.sgName), 'font-size:16px;font-weight:bold;line-height:22px;')}
@@ -1006,7 +1006,6 @@
     const height = Math.max(96, 32 + lines.reduce((sum, line) => sum + 22 + line.gap, 0));
     canvas.width = width * 3; canvas.height = height * 3;
     ctx.scale(3, 3); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = '#d9d7cf'; ctx.strokeRect(.5, .5, width - 1, height - 1);
     ctx.fillStyle = '#C89130'; ctx.fillRect(x - 16, 0, 2, height);
     if (d.sgLogo) {
       const logo = new Image();
