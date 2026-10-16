@@ -13211,6 +13211,8 @@ export type Database = {
       }
       scotia_payment_activity: {
         Row: {
+          account_name: string | null
+          account_number: string | null
           amount: number | null
           currency: string | null
           occurred_at: string | null
@@ -14321,6 +14323,7 @@ export type Database = {
         Returns: {
           allocated_price_bbd: number
           category: string
+          lens_id: string
           material_index: string
           treatment_type: string
         }[]
