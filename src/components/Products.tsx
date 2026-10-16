@@ -66,13 +66,12 @@ const Products = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
+        <div data-sc-in data-sc-stagger="70" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
           {products.map((product, index) => (
             <Card
               key={product.title}
               variant="feature"
-              className="group opacity-0 animate-fade-in"
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="group"
             >
               <CardHeader className="pb-4">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-accent transition-transform group-hover:scale-110 sm:h-14 sm:w-14">

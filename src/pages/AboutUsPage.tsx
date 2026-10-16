@@ -8,9 +8,13 @@ import Header from "@/components/Header";
 import Products from "@/components/Products";
 import Seo from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
+import { useScrollCraft } from "@/lib/scrollcraft/useScrollCraft";
 
-const AboutUsPage = () => (
-  <div className="min-h-screen bg-background">
+const AboutUsPage = () => {
+  const scrollRef = useScrollCraft();
+  return (
+  <div ref={scrollRef} className="min-h-screen bg-background">
+    <span data-sc-progress aria-hidden="true" />
     <Seo
       title="About Classic Visions | Optical Wholesale Partner"
       description="Learn about Classic Visions, our product lines, the service standards behind our work, and the insights we share with optical professionals."
@@ -41,6 +45,7 @@ const AboutUsPage = () => (
     </main>
     <Footer />
   </div>
-);
+  );
+};
 
 export default AboutUsPage;
