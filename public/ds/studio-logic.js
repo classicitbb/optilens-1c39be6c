@@ -2575,7 +2575,9 @@
     });
     let previewNode;
     if (tab === 'files') {
-      previewNode = React.createElement('div', { style: { height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }, dangerouslySetInnerHTML: { __html: this.buildFileBrowserHtml(filteredFiles, d.myFilesViewMode || 'grid', d.myFilesSortCol || 'date', d.myFilesSortDir != null ? d.myFilesSortDir : -1, d.fileAccessFilter || '') } });
+      // Empty slot: the admin app portals its native React file manager in.
+      // buildFileBrowserHtml remains only as a reference implementation.
+      previewNode = React.createElement('div', { id: 'ds-native-files-slot', key: 'ds-native-files-slot', style: { height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' } });
     } else if (tab === 'social') {
       const smFmt = this.SM_FMTS[d.smFormat||'instagram'];
       const smScale = Math.min(680/smFmt.w, 555/smFmt.h);
