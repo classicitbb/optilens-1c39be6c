@@ -2,11 +2,9 @@
 
 ## Start here — orientation sequence
 
-Read these files in order before beginning any task. Fetch only the ones
-relevant to your work area — do not load everything upfront.
+Read in order; fetch only what your task needs.
 
-1. **`STATUS.md`** (root) — always read this first. Current work, known bugs,
-   do-not-touch zones. One file, always up to date.
+1. **`STATUS.md`** (root) — always read this first. Current work, known bugs, do-not-touch zones.
 2. **`src/features/<name>/CONTEXT.md`** — read the CONTEXT.md for the specific
    feature you are working in. Each one is ~30 lines.
 3. **Deeper docs** — fetch only if the task requires it:
