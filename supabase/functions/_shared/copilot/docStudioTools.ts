@@ -93,6 +93,19 @@ export const DOC_STUDIO_TOOLS = [
     },
   },
   {
+    name: "docstudio_search_files",
+    description:
+      "Search the admin's saved Doc Studio files (emails, letterheads, signatures, social posts, ship labels, statements) and billing documents by name, customer or number. Read-only; returns names, types, dates and a link to open each one in Doc Studio.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Optional text to match against file name, customer or document number." },
+        fileType: { type: "string", enum: ["email", "letter", "signature", "social", "shiplabel", "statement", "billing"], description: "Optional type filter." },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "docstudio_get_document",
     description:
       "Read back a Doc Studio billing document by number (PRF-0001) or id, including its line items and totals, without the admin having to open Doc Studio.",
@@ -421,6 +434,30 @@ const updateDocument = async (db: Db, input: Loose, actorUserId: string) => {
   };
 };
 
+const searchFiles = async (db: Db, input: Loose, actorUserId: string) => {
+  const query = typeof input.query === "string" ? input.query.trim().replace(/[%,()]/g, " ") : "";
+  const type = typeof input.fileType === "string" ? input.fileType : "";
+  const results: Loose[] = [];
+  if (type !== "billing") {
+    let q = db.from("docstudio_files").select("id,file_type,file_name,customer_name,updated_at")
+      .is("deleted_at", null).eq("owner_user_id", actorUserId).order("updated_at", { ascending: false }).limit(25);
+    if (type) q = q.eq("file_type", type);
+    if (query) q = q.or(`file_name.ilike.%${query}%,customer_name.ilike.%${query}%`);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    for (const r of data ?? []) results.push({ id: r.id, kind: "file", type: r.file_type, name: r.file_name, customer: r.customer_name, updatedAt: r.updated_at, deepLink: DOC_STUDIO_PATH });
+  }
+  if (!type || type === "billing") {
+    let q = db.from("docstudio_billing_documents").select("id,document_type,document_name,billing_number,customer_name,status,updated_at")
+      .is("deleted_at", null).eq("owner_user_id", actorUserId).order("updated_at", { ascending: false }).limit(25);
+    if (query) q = q.or(`document_name.ilike.%${query}%,billing_number.ilike.%${query}%,customer_name.ilike.%${query}%`);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    for (const r of data ?? []) results.push({ id: r.id, kind: "billing", type: r.document_type, name: r.document_name || r.billing_number, customer: r.customer_name, status: r.status, updatedAt: r.updated_at, deepLink: deepLinkFor(r.id) });
+  }
+  return { files: results };
+};
+
 const getDocument = async (db: Db, input: Loose) => {
   const row = await findDocument(db, String(input.documentId ?? ""));
   if (!row) throw new Error(`No Doc Studio document matching "${input.documentId}".`);
@@ -560,6 +597,8 @@ export const dispatchDocStudioTool = async (
       return updateDocument(db, input, actorUserId);
     case "docstudio_get_document":
       return getDocument(db, input);
+    case "docstudio_search_files":
+      return searchFiles(db, input, actorUserId);
     case "docstudio_resolve_customer": {
       const query = typeof input.query === "string" ? input.query.trim() : "";
       if (!query) throw new Error("A customer name or account number is required.");
