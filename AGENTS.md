@@ -34,9 +34,6 @@ relevant to your work area — do not load everything upfront.
   and preserve the protected wiki/routing rules below unless the task directly
   requires coordinated changes there.
 
----
-
-
 ## Environment
 
 - npm only (never switch package managers); install with `npm ci`; update `package.json`/`package-lock.json` together via npm.
@@ -68,7 +65,7 @@ relevant to your work area — do not load everything upfront.
 
 # Repository agent rules
 
-- Subdirectories may have their own `AGENTS.md` (e.g. `src/features/admin/wiki/`); read it before changing files there.
+- Subdirectories have their own `AGENTS.md`; read it first. Wiki rules: `docs/wiki/AGENTS.md`.
 - Prefer maintainable refactors over parallel legacy systems.
 
 ## Frontend architecture and routing governance
