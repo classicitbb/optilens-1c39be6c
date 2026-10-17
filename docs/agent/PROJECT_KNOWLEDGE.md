@@ -1,5 +1,9 @@
 # Project Knowledge
 
+## Rx/pricelist annotation ownership — 2026-10-17
+
+The active form is `src/features/rx-order/form/RxForm.tsx`. Its portal Print order action mounts `PrintSheet` without explicitly saving; admin Save & print still saves first. Its independent 1.5-second autosave creates a hosted draft from typed live inputs, so use `/admin/orders/rx-test` in Fixtures (no network) mode for synthetic browser checks. `QuotePanel` mounts the client-only gross-margin estimate only when price is visible, ready and fully priced. `AssignedPricelistsSection` owns the teal `secondary` accordion headers and matrix tooltips; the data has no reason code for missing combinations, so tooltip reasons remain conditional.
+
 ## Homepage wording ownership — 2026-10-17
 
 `src/components/home/HomePage.tsx` owns section headings and audience-specific introductions. `src/components/home/homeContent.ts` owns `lensExplorer`; `patientLensExplorer` is its first two entries, so category-title edits apply to both homepage views. Keep the existing responsive heading/grid styles for copy edits. Regenerate public search prose with `npm run search:index`, then verify with `npm run qa:search-index`.

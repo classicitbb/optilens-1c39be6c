@@ -1,5 +1,7 @@
 # Frontend Bug Reports
 
+Rx/pricelist annotations (2026-10-17, local source): customer printing was missing because the React form exposed its print action only in admin. A portal-only current-form print button now reuses the same sheet without an explicit save. Its price-visibility gate remains enforced. Existing form autosave is independent of printing; entering synthetic data in a live form created a draft during verification, which the user requested leaving for review. Remaining tests used the no-network fixture bench. No order was submitted.
+
 Homepage annotations (2026-10-17, local source): requested wording corrected and browser checked in both audience views. Comment 7 supersedes Comment 6's mixed pronouns. Full-suite checks have two unrelated stale expectations: shared Atlas width expects 720px instead of 920px, and admin lens columns still list the removed description issue in KNOWN_BROKEN. No homepage test failure reported.
 
 Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.

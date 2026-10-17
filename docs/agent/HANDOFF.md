@@ -1,3 +1,17 @@
+## 2026-10-17 — Rx/pricelist annotation feedback
+
+Status: Complete — no active handoff
+
+Local source: restored portal Print order beside Save as draft, reusing the existing print sheet without an explicit save; admin Save & print retains save-first behavior. `AssignedPricelistsSection` uses existing secondary/foreground teal tokens and focus/hover tooltips with design, material and colour/treatment. Missing cells explain possible supplier unavailability or deliberately unoffered low-demand options; exact reasons are not present in the current data. QuotePanel shows an optional, local-only BBD selling-price estimate once the visible quote is ready and fully priced. Gross profit is sale minus quote total; gross margin divides by sale, and zero sale has no percentage. Selling price never enters saved/printed/cart payloads. Frames and other costs are excluded; compare like tax bases.
+
+Affected source: `src/components/account/sections/AssignedPricelistsSection.tsx`, `src/features/rx-order/form/{RxForm,QuotePanel,GrossMarginEstimate}.tsx`, `form/marginEstimate.ts`, focused tests and continuity/module docs. No schema, pricing rule, authorization, integration or deployment change.
+
+Browser: live portal print control present; light-mode pricelist teal and both keyboard-focus tooltips checked at 1053×735, dark-mode tooltip also checked. Temporary theme/viewport restored. No-network fixture bench verified BBD 278.25 cost with 150 sale = -128.25 / -85.5%, and 400 sale = 121.75 / 30.4%. Native print output was not sent to a printer; integration tests exercise sheet mounting, print invocation and cleanup.
+
+Verification incident: synthetic PREVIEW ONLY data typed into the live portal form triggered its existing 1.5-second autosave, creating a hosted quote/draft. User explicitly chose to leave it for review; no cleanup was performed, and further synthetic input used Fixtures (no network). No cart addition, submission or lab release occurred. Do not claim this session made no production data writes.
+
+Validation: 27 focused checks pass across Rx form, print sheet, margin and portal lab-access tests. Full suite: 1,563 passed / 2 failed; failures are untouched stale expectations in adminResourceColumns (description removed from live columns but remains KNOWN_BROKEN) and atlasSharedPageViewer (720px expected versus current 920px). Final build and TypeScript pass after the component rename; full lint has 0 errors / 2,424 warnings, final scoped lint has 0 errors / 35 warnings. Diff whitespace check passes. `npm run qa:pr-checks` passes lockfile policy and documentation symmetry, then stops at existing `platformFacts.generated.ts` drift; later gates did not run. Production publication was not requested.
+
 ## 2026-10-17 — Homepage wording annotations
 
 Status: Complete — no active handoff

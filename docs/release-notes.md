@@ -1,5 +1,7 @@
 # Release Notes
 
+Rx/pricelist annotations (2026-10-17, local source): customers can print the current Rx form, identify lens/material/colour from price cells, read why a dash may appear, and enter a selling price for an estimated gross profit and margin. Teal replaces gray category headers. Not published.
+
 Homepage copy (2026-10-17, local source): simplified lens browsing wording and clarified patient guidance and category headings. Verified in the local browser; not published.
 
 Summarized release outcomes for each major date-stamped update.

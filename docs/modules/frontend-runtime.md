@@ -1,5 +1,7 @@
 # Frontend Runtime Module Docs
 
+Rx/pricelist annotations (2026-10-17): RxForm's portal print action mounts the existing print portal without explicitly saving; admin still saves first. QuotePanel mounts GrossMarginEstimate only for visible, ready, priced quotes; its local selling-price state never enters persisted order data. AssignedPricelistsSection uses existing secondary teal tokens and matrix focus/hover tooltips. Live form input still autosaves after 1.5 seconds; synthetic browser tests belong in the fixture bench.
+
 Homepage copy (2026-10-17): section introductions are owned by `src/components/home/HomePage.tsx`; category labels are shared through `homeContent.ts` (`patientLensExplorer` slices `lensExplorer`). Copy edits retain the existing responsive classes and require regenerated public search prose.
 
 Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.

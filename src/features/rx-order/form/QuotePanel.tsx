@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { Derived, SectionId } from "./model";
 import type { RxCatalog } from "./types";
+import { GrossMarginEstimate } from "./GrossMarginEstimate";
 
 const money = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -75,6 +76,7 @@ export function QuotePanel({
             <Flag className="mt-0.5 h-3 w-3" /><span>{price.unpriced ? "Priced when processed — flagged for follow-up." : "Flagged for assistance."}</span>
           </div>
         )}
+        {show && price.ready && !price.unpriced && <GrossMarginEstimate costBBD={price.sub} />}
       </div>
 
       <div className="rounded-xl border bg-card p-4 shadow-sm">

@@ -15,7 +15,9 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-17 (homepage wording annotations, local source)
+Last updated: 2026-10-17 (homepage and Rx/pricelist annotations, local source)
+
+Rx/pricelist annotations (2026-10-17, local source): portal Print order restored, category headers use teal, matrix tooltips identify lens/material/colour and explain unavailable cells, and a visible-price-only BBD gross-margin estimate is optional and never saved with the order. Browser verified pricelist tooltips and the print control; fixture bench verified profit/loss display. The live form autosaved a synthetic PREVIEW ONLY draft during verification; the user requested leaving it for review. No cart submit or lab order performed. Validation details and baseline failures are in `docs/agent/HANDOFF.md`.
 
 Homepage wording (2026-10-17, local source): applied the trade-account heading, simpler lens-explorer heading, patient optician explanation, expanded lens-category labels, and final second-person FAQ copy (Comment 7 supersedes Comment 6). Shared category labels update both audience views. Existing responsive styles remain in place. Browser verified both audience views; build and generated search-index checks pass. Full lint/test results are recorded in `docs/agent/HANDOFF.md`. No publication performed.
 

@@ -89,6 +89,23 @@ beforeEach(() => {
 });
 
 describe("RxForm", () => {
+  it("lets a customer print the current order without saving or submitting it", async () => {
+    const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
+    try {
+      renderForm({ surface: "portal", prefill: savedOrder() });
+      fireEvent.click(screen.getByRole("button", { name: "Print order" }));
+      await waitFor(() => expect(print).toHaveBeenCalledOnce());
+      expect(screen.getByTestId("rx-print-sheet")).toHaveTextContent("Ann Lee");
+      expect(document.body).toHaveClass("rx-printing");
+      expect(mocks.persist).not.toHaveBeenCalled();
+      expect(mocks.addToCart).not.toHaveBeenCalled();
+      expect(mocks.saveDraft).not.toHaveBeenCalled();
+      fireEvent(window, new Event("afterprint"));
+      expect(screen.queryByTestId("rx-print-sheet")).not.toBeInTheDocument();
+      expect(document.body).not.toHaveClass("rx-printing");
+    } finally { print.mockRestore(); }
+  });
+
   it("opens empty with only the first card, the next one named, and nothing saved", () => {
     renderForm();
     expect(screen.getByRole("heading", { name: "Patient & order" })).toBeInTheDocument();
@@ -190,6 +207,23 @@ describe("RxForm", () => {
     renderForm({ prefill: savedOrder() });
     expect(screen.getByText(/Your order details are ready to review/)).toBeInTheDocument();
     expect(screen.queryByText("100.00")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Your selling price (BBD)")).not.toBeInTheDocument();
+  });
+
+  it("keeps the selling-price estimate out of the saved order price", async () => {
+    renderForm({ prefill: savedOrder() });
+    fireEvent.change(screen.getByLabelText("Your selling price (BBD)"), { target: { value: "200" } });
+    expect(screen.getByText("50.0%")).toBeInTheDocument();
+    fireEvent.click(submitButton("Submit to cart"));
+    await waitFor(() => expect(mocks.addToCart).toHaveBeenCalled());
+    expect(mocks.addToCart.mock.calls[0][0]).toMatchObject({ price: 100 });
+    expect(JSON.stringify(mocks.persist.mock.calls[0][0])).not.toContain("sellingPrice");
+  });
+
+  it("does not estimate margin for an unpriced lens", () => {
+    currentCatalog = { ...catalog, lensPrice: () => null };
+    renderForm({ prefill: savedOrder() });
+    expect(screen.queryByLabelText("Your selling price (BBD)")).not.toBeInTheDocument();
   });
 
   it("does not save an empty form, and 'Save draft' on one says so", async () => {

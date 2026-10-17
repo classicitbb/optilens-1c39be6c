@@ -374,11 +374,12 @@ function LoadedForm({
     }
   };
 
-  // Save, then print the order sheet. The sheet is mounted just for the print; the body
+  // Staff save before printing; customer printing does not initiate an extra save.
+  // The sheet is mounted just for the print; the body
   // class makes it the only thing the print stylesheet shows (index.css).
   const [printing, setPrinting] = useState(false);
   const onPrint = async () => {
-    try { await save(); }
+    try { if (props.surface === "admin") await save(); }
     catch (e: any) { toast({ title: "Could not save before printing", description: e?.message, variant: "destructive" }); return; }
     setPrinting(true);
   };
@@ -587,6 +588,11 @@ function LoadedForm({
             <div className="flex flex-wrap gap-2">
               <Button type="button" disabled={submitDisabled} onClick={submit} title={derived.blockedReason ?? undefined}>{submitLabel}</Button>
               <Button type="button" variant="outline" onClick={onSaveDraft}>Save as draft</Button>
+              {props.surface === "portal" && (
+                <Button type="button" variant="outline" disabled={api.isEmpty || printing} onClick={onPrint}>
+                  <Printer className="mr-2 h-4 w-4" /> Print order
+                </Button>
+              )}
             </div>
             {direct && (
               <p className="mt-3 text-[11px] text-muted-foreground">

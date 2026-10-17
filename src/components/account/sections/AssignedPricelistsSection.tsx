@@ -22,6 +22,7 @@ import { compareMaterialOrder } from "@/lib/sortOrder";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import PriceOverrideCell from "@/components/account/PriceOverrideCell";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MatrixRow {
   category: string;
@@ -372,10 +373,10 @@ const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPriceli
   };
 
   const accordionTriggerClass =
-    "rounded-md bg-muted-foreground px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
+    "rounded-md bg-secondary px-4 py-3 text-sm font-bold uppercase tracking-wide text-secondary-foreground transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-secondary-foreground";
 
   const countBadge = (count: number, noun: string) => (
-    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-white">
+    <span className="rounded-full bg-secondary-foreground/15 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-secondary-foreground">
       {count} {noun}{count === 1 ? "" : "s"}
     </span>
   );
@@ -585,26 +586,37 @@ const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPriceli
                                   {visibleCols.map((column) => {
                                     const price = priceByKey.get(`${grouping.key}::${category.key}::${column.key}`);
                                     const rowKey = buildMatrixRowKey(grouping.key, category.key, column.key);
+                                    const lensDetails = `${category.name} · Material: ${column.key} · Colour / treatment: ${grouping.name}`;
                                     return (
                                       <td key={column.key} className="px-3 py-2 text-center font-semibold text-foreground">
-                                        {price != null ? (
-                                          <PriceOverrideCell
-                                            wholesaleDisplay={displayMoney(price)}
-                                            pricesHidden={pricesHidden}
-                                            override={overrides.get(rowKey)}
-                                            onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
-                                            onClear={() => clearOverride.mutate(rowKey)}
-                                            isSaving={setOverride.isPending}
-                                            centered
-                                            readOnly={!!staffTarget}
-                                            action={staffTarget ? undefined : {
-                                              type: "rx",
-                                              onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),
-                                            }}
-                                          />
-                                        ) : (
-                                          "—"
-                                        )}
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div tabIndex={0} aria-label={lensDetails} className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                              {price != null ? (
+                                                <PriceOverrideCell
+                                                  wholesaleDisplay={displayMoney(price)}
+                                                  pricesHidden={pricesHidden}
+                                                  override={overrides.get(rowKey)}
+                                                  onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
+                                                  onClear={() => clearOverride.mutate(rowKey)}
+                                                  isSaving={setOverride.isPending}
+                                                  centered
+                                                  readOnly={!!staffTarget}
+                                                  action={staffTarget ? undefined : {
+                                                    type: "rx",
+                                                    onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),
+                                                  }}
+                                                />
+                                              ) : (
+                                                <span aria-label="Not offered on this pricelist">—</span>
+                                              )}
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-72 text-xs font-normal">
+                                            <p>{lensDetails}</p>
+                                            {price == null && <p className="mt-1">Not offered on this pricelist. This combination may be unavailable from our suppliers or left out because it is rarely ordered. Ask us to confirm the reason or suggest an alternative.</p>}
+                                          </TooltipContent>
+                                        </Tooltip>
                                       </td>
                                     );
                                   })}

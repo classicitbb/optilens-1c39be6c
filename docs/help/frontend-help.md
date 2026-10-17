@@ -1,5 +1,7 @@
 # Frontend Help Docs
 
+Rx/pricelist annotations (2026-10-17, local source): use Print order beside Save as draft to print current entries. Hover or keyboard-focus a matrix price to see its lens design, material and colour/treatment; dashes explain possible reasons for an unoffered combination. Once a full quote is visible, enter the selling price in BBD to estimate gross profit and gross margin. Use the lens order amount on the same tax basis as the quote; frames and other costs are excluded. The selling-price estimate is not saved or sent, although ordinary form fields still autosave.
+
 Homepage wording (2026-10-17, local source): the trade lens index reads "Find the right lenses and coatings for your customers." Patient categories read "Vision correction options" and "Lifestyle lenses and treatments"; the FAQ introduction addresses you and your optician directly.
 
 Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.

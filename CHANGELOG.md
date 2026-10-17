@@ -1,5 +1,7 @@
 # Changelog
 
+Rx/pricelist annotations (2026-10-17, local source): restored customer printing, teal category headers, contextual price/unavailable-option tooltips and an optional unsaved BBD gross-margin estimate for fully priced visible quotes. Not published.
+
 Homepage copy (2026-10-17, local source): clearer trade-account and lens-explorer headings, expanded shared lens-category labels, and updated patient optician/FAQ introductions. Existing layout retained; search prose regenerated. Not published.
 
 Atlas production release (2026-10-08): scoped layout, stable identifiers and authenticated sharing/audit release deployed with the named migration. No page was enabled for sharing; target-specific end-to-end and email-confirmation checks remain unperformed. See docs/agent/HANDOFF.md.

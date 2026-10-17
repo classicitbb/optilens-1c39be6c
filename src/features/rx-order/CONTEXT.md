@@ -17,6 +17,8 @@ staff use it in admin and at the test bench (`/admin/orders/rx-test`).
 | Lab file | `supabase/functions/_shared/orders/hashref.ts` | See `docs/gatekeeper-order-sending.md`. |
 
 ## Rules that are easy to get wrong
+- Portal `Print order` reuses `PrintSheet` without initiating a save; admin `Save & print` retains save-first behavior. The existing 1.5-second form autosave is independent: typing in a live portal form can create a hosted quote/draft even without pressing Save. Use the test bench in **Fixtures (no network)** mode for synthetic input.
+- `form/GrossMarginEstimate.tsx` + `marginEstimate.ts` show an optional BBD selling-price estimate only for a visible, ready, fully priced quote. Profit is selling price minus quote total; gross margin divides by selling price (undefined at zero). This component's state never enters the payload, cart, print sheet or stored drafts; tax bases must match and frames/other costs are excluded.
 - Surcharges are **data** (`rx_surcharge_rules`, `domain/price.ts` `DEFAULT_SURCHARGE_RULES` mirrors the seed). Saved as `Fee` lines whose `group_key` is `surcharge:<code>`.
 - Prism goes to the lab only when prescribed and carries no price line (Innovations prices it). A single-eye order omits the other eye. One height per eye (OC / segment / fitting by lens type). Single-eye `rx_eye` codes 1/2 are **provisional** until trial hashref files confirm them; remote-edge lab spelling is unconfirmed.
 - Split lens: each side is charged half its own pair price. A one-eye job is 0.55 of the pair.
