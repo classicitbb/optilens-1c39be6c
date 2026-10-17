@@ -1,5 +1,9 @@
 # Project Knowledge
 
+## Homepage wording ownership — 2026-10-17
+
+`src/components/home/HomePage.tsx` owns section headings and audience-specific introductions. `src/components/home/homeContent.ts` owns `lensExplorer`; `patientLensExplorer` is its first two entries, so category-title edits apply to both homepage views. Keep the existing responsive heading/grid styles for copy edits. Regenerate public search prose with `npm run search:index`, then verify with `npm run qa:search-index`.
+
 ## Codex one-click dev preview — 2026-10-13
 
 The project menu action `Dev Preview` is configured in `.codex/environments/environment.toml` to run `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort --open`. It serves the current worktree, opens the local browser, and does not build or deploy. Port 5173 must be available.

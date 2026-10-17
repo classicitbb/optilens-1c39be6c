@@ -15,7 +15,9 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-15 (Email Previews delivery log: Resend, local source)
+Last updated: 2026-10-17 (homepage wording annotations, local source)
+
+Homepage wording (2026-10-17, local source): applied the trade-account heading, simpler lens-explorer heading, patient optician explanation, expanded lens-category labels, and final second-person FAQ copy (Comment 7 supersedes Comment 6). Shared category labels update both audience views. Existing responsive styles remain in place. Browser verified both audience views; build and generated search-index checks pass. Full lint/test results are recorded in `docs/agent/HANDOFF.md`. No publication performed.
 
 Email reply follow-up (2026-10-13, local source): Reply now preserves the selected message's HTML body and embedded earlier correspondence in outgoing HTML, with a plain-text alternative. The quote preview is expanded by default. Focused tests, scoped lint, TypeScript, and build pass. The local mail bridge is currently unreachable, so authenticated rendered verification is pending. No email was sent or frontend published. See `docs/agent/HANDOFF.md`.
 Email search/ribbon (2026-10-13, local source): app-wide search on the Email route lists accessible Inbox hits ahead of site results. Folder search and Sync stay on one ribbon row; More holds only actions that do not fit. Layout checked in the local browser at 1138px and 1864px; authenticated result selection still needs external Chrome/Edge verification. No mail action or production publication occurred. See `docs/agent/HANDOFF.md`.

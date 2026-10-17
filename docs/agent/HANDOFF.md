@@ -1,3 +1,13 @@
+## 2026-10-17 — Homepage wording annotations
+
+Status: Complete — no active handoff
+
+Applied all requested copy changes in `src/components/home/HomePage.tsx` and `homeContent.ts`; Comment 2 uses "Find the right lenses and coatings for your customers." Comment 7 supplies the final FAQ introduction, superseding Comment 6. Expanded category labels are shared by both audiences. No breakpoint, container, or token changes. Regenerated `src/lib/generated/publicContentIndex.ts`.
+
+Verification: local in-app browser confirms the trade headings and patient explanation/category labels/FAQ copy; screenshots inspected at approximately 1400px wide. Build, generated search-index check and diff whitespace check pass. Full lint: 0 errors / 2,424 warnings. `npm run test -- --runInBand`: 1,557 passed / 2 failed (242 passed / 2 failed files). Untouched failures: `atlasSharedPageViewer.test.tsx` expects 720px while the current shared reader uses 920px; `adminResourceColumns.unit.test.ts` still includes description in the lens KNOWN_BROKEN list although it no longer references that column. No production publication or data action performed.
+
+PR checks: `npm run qa:pr-checks` passes lockfile policy and documentation symmetry, then stops because `supabase/functions/_shared/copilot/platformFacts.generated.ts` is stale. A read-only generator comparison with CR characters removed still reports drift, so this is not solely Windows line endings. The generated Copilot file and its admin source inputs were untouched by this copy change. Later PR gates did not run.
+
 ## 2026-10-13 — Pricelist readiness message
 
 Status: Complete — no active handoff

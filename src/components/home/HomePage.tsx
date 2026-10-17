@@ -397,7 +397,7 @@ const HomePage = () => {
             <SectionHeading
               id="capabilities-heading"
               eyebrow="What we supply"
-              title="One trade account. The whole bench covered."
+              title="One trade account. Your optical's needs - covered."
               lede="Lenses, coatings, consumables, and the digital tools around them — so your practice isn't stitching together four suppliers to finish one job."
             />
 
@@ -440,7 +440,7 @@ const HomePage = () => {
             <SectionHeading
               id="explorer-heading"
               eyebrow="Lens & coating index"
-              title="Go straight to the specification you're pricing."
+              title="Find the right lenses and coatings for your customers."
               lede="Every design, material, and coating we supply, with the technical page behind it — for you, and for the search engines and assistants your patients ask first."
             />
 
@@ -578,7 +578,7 @@ const HomePage = () => {
               id="journey-heading"
               eyebrow="How it works"
               title="Three steps to your new glasses."
-              lede="We make the lenses; your optician is the person you'll deal with. Here's how that fits together."
+              lede="We make the lenses; your optician is the person you should deal with. Here's how that fits together."
             />
 
             <ol data-sc-in data-sc-stagger="70" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-3">
@@ -730,7 +730,7 @@ const HomePage = () => {
                 <p className="mt-4 text-base leading-7 text-muted-foreground">
                   {isProfessional
                     ? "The questions practices actually ask us — answered here in full, and marked up so search engines and AI assistants can quote them accurately."
-                    : "What people usually want to know before they visit their optician — answered in plain English."}
+                    : "What you usually want to know before you visit your optician — answered in plain English."}
                 </p>
                 <div className="mt-8 rounded-2xl border border-border bg-card p-5">
                   <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent">Still stuck?</p>

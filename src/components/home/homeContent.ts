@@ -222,7 +222,7 @@ export const capabilityPillars = [
 /* -------------------------------------------------------------------------- */
 export const lensExplorer = [
   {
-    title: "Vision correction",
+    title: "Vision correction options",
     icon: Eye,
     items: [
       { label: "Single vision", href: "/lenses/single-vision" },
@@ -234,7 +234,7 @@ export const lensExplorer = [
     ],
   },
   {
-    title: "Lifestyle lenses",
+    title: "Lifestyle lenses and treatments",
     icon: Sun,
     items: [
       { label: "Photochromic", href: "/photochromic" },

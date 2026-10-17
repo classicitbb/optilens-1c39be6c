@@ -1,5 +1,7 @@
 # Release Notes
 
+Homepage copy (2026-10-17, local source): simplified lens browsing wording and clarified patient guidance and category headings. Verified in the local browser; not published.
+
 Summarized release outcomes for each major date-stamped update.
 
 ## 2026-10-15 — Email Previews resend (local source)
