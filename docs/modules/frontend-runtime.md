@@ -1,5 +1,19 @@
 # Frontend Runtime Module Docs
 
+Rx sidebar offset correction (2026-10-17): AccountLayout selects `relative` for the Rx sidebar and retains `sticky top-16` elsewhere. The Rx content row's bounded overflow had become the sticky containing block and applied an extra 64px offset. The existing inner form scroller remains the sole Rx scroll owner.
+
+Rx uncut supply (2026-10-17): `frameSourceForScope` normalizes form defaults, scope changes, load/save and summaries. FrameCard uses a disabled Uncut display for uncut jobs. PortalRxOrderForm passes an `introduction` into the scrolling RxForm root; LensAssistantSection retains only the fixed title. No new effect writes form state.
+
+Portal Rx scroll ownership (2026-10-17): AccountLayout bounds the Rx route only; LensAssistantSection fixes the title outside RxForm's overflow container. A portal-only toolbar/steps group sticks at the frame top. RxStickyLayout observes actual control/frame sizes, including bottom padding, for QuotePanel height/offset and section jump margins. The observer is isolated from Rx values and persistence. Admin layout and the `lg` quote breakpoint retain their existing behavior.
+
+Pricelist education (2026-10-17): `PricelistDesignInfo` uses Radix popovers for design definitions; treatment tooltips reuse accordion buttons without nesting interactive controls. Shared public progressive/photochromic data lives in `src/data` and remains indexed by public search. Pencil visuals shrink without reducing the expanded hit area.
+
+`components/account/pricelistCurrencies.ts` merges configured currencies with the existing indicative EUR/XCD display rates, formats currency symbols, and converts retail overrides through BBD. `RxPricelistCell` uses a 320px maximum width, two-column details, mouse-only hover opening, persistent tap opening, explicit close and 44px targets. No pricing-settings write or new service.
+
+My Orders invoice totals (2026-10-17): shared `InvoiceLines` in `MyOrdersSection.tsx` renders a semantic table footer, sums displayed amounts once in cents, and leaves incomplete totals unavailable. No new fetch, data write, or feature gate.
+
+Pricelist handoff (2026-10-17): `RxPricelistCell` replaces matrix tooltips with a responsive interactive popover. `pricelistLenses.ts` follows each assigned matrix row's selected lens ID through confirmed alias mappings, preferring its primary; the result is one canonical form selection or no resolved selection. `PortalRxOrderForm` passes a fresh `lens` selection to `RxForm`; `prefill/pricelistLens.ts` fills lens/vision fields only. The form resolves price from its current account catalog and follows normal autosave. Existing draft/edit/reorder takes precedence, missing selections are reported, and Start another clears the initial alias.
+
 Rx/pricelist annotations (2026-10-17): RxForm's portal print action mounts the existing print portal without explicitly saving; admin still saves first. QuotePanel mounts GrossMarginEstimate only for visible, ready, priced quotes; its local selling-price state never enters persisted order data. AssignedPricelistsSection uses existing secondary teal tokens and matrix focus/hover tooltips. Live form input still autosaves after 1.5 seconds; synthetic browser tests belong in the fixture bench.
 
 Homepage copy (2026-10-17): section introductions are owned by `src/components/home/HomePage.tsx`; category labels are shared through `homeContent.ts` (`patientLensExplorer` slices `lensExplorer`). Copy edits retain the existing responsive classes and require regenerated public search prose.

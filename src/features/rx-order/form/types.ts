@@ -105,12 +105,16 @@ export const emptyTriple = (): Triple => ({ m: "", d: "", c: "" });
 export const DEFAULT_DELIVERY = "Weekly courier run";
 export const EXPORT_DELIVERY = "Export — freight forwarder";
 
+/** Uncut jobs do not ship or source a frame. */
+export const frameSourceForScope = (scope: string, source?: string | null) =>
+  scope === "uncut" ? "Uncut" : source && source !== "Uncut" ? source : "Customer — shipping to lab";
+
 export const defaultValues = (accountId: number | null = null): RxFormValues => ({
   patient: { first: "", last: "" },
   reference: "",
   accountId,
   job: { scope: "uncut", eyes: "pair", vision: "sv", purpose: "dist" },
-  frame: { name: "", mount: "", source: "Customer — shipping to lab", a: "", b: "", ed: "", dbl: "", edTouched: false },
+  frame: { name: "", mount: "", source: "Uncut", a: "", b: "", ed: "", dbl: "", edTouched: false },
   shape: emptyShape(),
   lens: { od: emptyTriple(), os: emptyTriple(), split: false, diameter: "auto", corridor: "13", baseCurve: "auto" },
   rx: { od: emptyEye(), os: emptyEye() },

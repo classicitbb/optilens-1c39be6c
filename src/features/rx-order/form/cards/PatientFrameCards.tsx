@@ -111,13 +111,15 @@ export function FrameCard({ api, catalog, step, notify }: CardProps) {
         </Field>
         {!remote && (
           <Field label="Frame supplied by">
-            <Select value={f.source} onValueChange={(v) => api.setFrame("source", v)}>
+            {values.job.scope === "uncut" ? (
+              <Input className={CONTROL} aria-label="Frame supplied by" value="Uncut" disabled readOnly />
+            ) : <Select value={f.source} onValueChange={(v) => api.setFrame("source", v)}>
               <SelectTrigger className={CONTROL} aria-label="Frame supplied by"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Customer — shipping to lab">Customer — shipping to lab</SelectItem>
                 <SelectItem value="Classic Visions stock frame">Classic Visions stock frame</SelectItem>
               </SelectContent>
-            </Select>
+            </Select>}
           </Field>
         )}
       </div>

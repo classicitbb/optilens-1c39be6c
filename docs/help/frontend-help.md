@@ -1,5 +1,19 @@
 # Frontend Help Docs
 
+Rx menu alignment (2026-10-17, local source): the left account menu stays directly below the account header, matching other account pages. Scroll within the Rx form to move its content independently.
+
+Rx uncut supply (2026-10-17, local source): choosing Uncut Rx lenses fixes Frame supplied by to Uncut. Choose Full glaze to use the normal frame-supply options. The short introduction now scrolls away; Rx Order Form remains visible above the form.
+
+Portal Rx scrolling (2026-10-17, local source): scroll inside the form below Rx Order Form. Its order controls and steps stay at the top; the desktop quote remains on screen. A long quote has its own scroll area. Step buttons leave the destination below the pinned controls. Phones keep the fixed total and submit controls.
+
+Pricelist education (2026-10-17, local source): click or press Enter on a design name to compare its traits and open the site's lens guide. Escape or clicking outside closes the popover. Hover or keyboard-focus Clear, Transitions, Photochromic, Polarized or UV420 headings for a short explanation.
+
+Pricelist tablet display (2026-10-17): tap a price to keep its compact details open; tap it again, tap Close, or tap outside to dismiss. Currency choices include EUR and XCD (Eastern Caribbean dollar). An estimate label means the existing indicative rate is in use; a configured rate replaces it. Converted retail display values are saved in the currently selected currency only when you press Save.
+
+My Orders invoice totals (2026-10-17, local source): open an invoice from lab orders or a delivery item to see Total (BBD) beneath its itemized amounts. A dash means at least one line amount is unavailable; the total is the sum of those lines.
+
+Pricelist lens handoff (2026-10-17, local source): hover or tap a matrix price (or press Enter on it) to see the order form's exact lens names and retail-price pencil together. The popup shows the one lens selected in the pricelist editor; unrelated lenses at the same price are excluded. An unresolved mapping offers help rather than a substitute. Start Rx order is offered to linked Rx-enabled customers and opens a new draft with the lens selected and current account pricing. Fill in the patient, prescription and frame details; normal autosave applies. Customers without Rx ordering retain Request a quote. The popup keeps a 16px screen gutter on phones.
+
 Rx/pricelist annotations (2026-10-17, local source): use Print order beside Save as draft to print current entries. Hover or keyboard-focus a matrix price to see its lens design, material and colour/treatment; dashes explain possible reasons for an unoffered combination. Once a full quote is visible, enter the selling price in BBD to estimate gross profit and gross margin. Use the lens order amount on the same tax basis as the quote; frames and other costs are excluded. The selling-price estimate is not saved or sent, although ordinary form fields still autosave.
 
 Homepage wording (2026-10-17, local source): the trade lens index reads "Find the right lenses and coatings for your customers." Patient categories read "Vision correction options" and "Lifestyle lenses and treatments"; the FAQ introduction addresses you and your optician directly.

@@ -1,5 +1,13 @@
 # Project Status
 
+Rx sidebar alignment (2026-10-17, local source): removed the sidebar's sticky top offset only on the viewport-bounded Rx route. Its menu now aligns below the account header like other pages; form scrolling stays inside the Rx frame. Browser compared Saved Drafts with a blank Rx form without entering data or creating a draft. No publication performed.
+
+Rx uncut supply/introduction (2026-10-17, local source): Uncut lenses show a disabled Uncut frame-supply value, with load/save/summary normalization; Full glaze restores the usual supply selector. The introductory sentence now scrolls away while the title stays fixed. Fixture and portal browser checks, 29 focused tests, TypeScript, lint and build pass. Full suite retains two unrelated failures. No order submitted or publication performed; see HANDOFF.md.
+
+Portal Rx scrolling (2026-10-17, local source): fixed page title, bounded form scroller, pinned order toolbar/steps, and desktop quote constrained below the controls. Live browser scrolled through the existing form; 27 focused form/layout tests pass. Existing phone total bar remains. No order submitted or deployment performed; live hot-refresh autosave activity was visible. See HANDOFF.md for checks and limitations.
+
+Pricelist education (2026-10-17, local source): smaller visible pencil with retained tap area; design-name popovers explain distinctions and link to existing lens guides; treatment headings have plain-English tooltips. Progressive/photochromic definitions are shared with the public pages. Browser checked in a separate side-chat tab. No pricing, order or publication action. See HANDOFF.md.
+
 Pricelist readiness email (2026-10-13, released): account creation and invitations still assign the default template pricelist, but no longer send the "Your Classic Visions pricelist is ready" message. The create-user immediate-send checkbox is removed. The separate invitation email remains an explicit admin choice. Both Edge Functions and the frontend are deployed; the post-deploy edge health suite passed. See HANDOFF.md.
 
 Atlas production release (2026-10-08): width persistence, per-user browser sidebar preferences, stable generated identifiers, authenticated published-page sharing and account/page/time audit are deployed. The named sharing migration is applied; hosted grants/RLS and unchanged page policies are verified. No page was enabled for sharing. See HANDOFF.md for local checks, browser proof and remaining target-specific verification. ClickUp and broader spaces remain deferred.
@@ -15,7 +23,13 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-17 (homepage and Rx/pricelist annotations, local source)
+Last updated: 2026-10-17 (pricelist tablet/currency display and existing local changes)
+
+Pricelist tablet/currency display (2026-10-17, local source): compact tap-pinned lens popup with close control and 44px targets; EUR/XCD display options, labelled estimates unless configured; currency-aware retail display and numeric CSV. No global rates, transaction currency, hosted preferences or retail values were changed in verification. See HANDOFF.md.
+
+Invoice line totals (2026-10-17, local source): both My Orders invoice dialogs now include Total (BBD) beneath the line amounts. Verified the annotated Rx and delivery examples in the local browser at $900.00 and $280.00. Shared rendering, integer-cent aggregation and missing-amount handling have focused regression coverage. No invoice data, authorization, connector or deployment change. See HANDOFF.md for validation.
+
+Pricelist lens handoff (2026-10-17, local source): one matrix popup combines actual Rx-form lens names, retail-price editing and Start Rx order for linked Rx-enabled customers. The editor-selected lens and its confirmed primary alias determine the single option; the canonical alias opens a fresh account-priced draft, with patient/Rx/frame blank. Existing inquiry fallback, staff read-only views and access rules remain. Desktop/mobile popup checks and mocked draft handoff pass; no new hosted draft or production publication was performed in this follow-up. See HANDOFF.md for full validation and unrelated check failures.
 
 Rx/pricelist annotations (2026-10-17, local source): portal Print order restored, category headers use teal, matrix tooltips identify lens/material/colour and explain unavailable cells, and a visible-price-only BBD gross-margin estimate is optional and never saved with the order. Browser verified pricelist tooltips and the print control; fixture bench verified profit/loss display. The live form autosaved a synthetic PREVIEW ONLY draft during verification; the user requested leaving it for review. No cart submit or lab order performed. Validation details and baseline failures are in `docs/agent/HANDOFF.md`.
 

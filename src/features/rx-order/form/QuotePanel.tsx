@@ -32,7 +32,7 @@ export function QuotePanel({
   const done = checklist.filter((c) => c.ok).length;
 
   return (
-    <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start" aria-label="Order quote">
+    <aside className="space-y-3 lg:sticky lg:top-[var(--rx-quote-top,5rem)] lg:max-h-[var(--rx-quote-max-height,none)] lg:self-start lg:overflow-y-auto" aria-label="Order quote">
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <div className="border-b bg-muted/30 px-4 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{show ? "Live quote · BBD" : "Order summary"}</p>

@@ -121,7 +121,7 @@ export function StepCard({
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className={cn("scroll-mt-20 rounded-xl border bg-card shadow-sm", done && "border-emerald-500/30")}
+      className={cn("scroll-mt-[calc(var(--rx-controls-height,4rem)+1rem)] rounded-xl border bg-card shadow-sm", done && "border-emerald-500/30")}
     >
       <header className="flex items-start gap-3 px-4 pt-4">
         <div

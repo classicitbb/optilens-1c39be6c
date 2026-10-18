@@ -14,7 +14,7 @@ import { hasOutline, parseOma } from "../domain/shape";
 import { standardShape } from "../domain/standardLibrary";
 import { activeEyesOf, defaultDelivery, derive, estimateED, toggleTreatment, type Derived, type SectionId } from "./model";
 import {
-  defaultValues, emptyEye, emptyShape, emptyTriple, type PlusCylText, type RxCatalog, type RxEyeText, type RxFormValues,
+  defaultValues, frameSourceForScope, emptyEye, emptyShape, emptyTriple, type PlusCylText, type RxCatalog, type RxEyeText, type RxFormValues,
 } from "./types";
 
 type Eye = "od" | "os";
@@ -144,6 +144,7 @@ export function useRxOrderForm(args: { catalog: RxCatalog; initialValues?: RxFor
 
   const setJob: RxFormApi["setJob"] = (key, value) => {
     set(`job.${key}`, value);
+    if (key === "scope") set("frame.source", frameSourceForScope(value, get().frame.source));
     let note: string | null = null;
     if (key === "vision") {
       // A design belongs to one vision type, so switching clears both designs.

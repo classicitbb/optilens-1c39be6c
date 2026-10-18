@@ -1,5 +1,27 @@
 # Project Knowledge
 
+Rx sidebar alignment (2026-10-17): AccountLayout uses normal-flow `relative` positioning for the sidebar only on `/profile/rx-order`. The bounded content row is already stationary; inheriting other routes' `sticky top-16` makes its overflow container push the menu down 64px. Other routes keep that sticky offset. Form scrolling remains owned by RxForm.
+
+## Uncut frame supply and Rx introduction — 2026-10-17
+
+`form/types.ts` exports `frameSourceForScope`: uncut jobs use `Uncut`; other scopes preserve a meaningful supplied-by value or default to customer shipping. Default values, job-scope transitions, loaded orders, built orders and folded summaries use that rule. FrameCard renders a disabled Uncut field for uncut jobs and the normal supply selector for full glaze; remote retains its hidden supply field. `PortalRxOrderForm` passes the introduction to RxForm so it scrolls with the form while LensAssistantSection keeps only the fixed page title.
+
+## Portal Rx scroll frame — 2026-10-17
+
+`AccountLayout.tsx` bounds only `/profile/rx-order` to the viewport; `LensAssistantSection.tsx` holds the title above the scrollable RxForm root. Portal toolbar and steps form one sticky group. `form/RxStickyLayout.tsx` uses ResizeObserver for the actual frame/control heights, setting `--rx-controls-height`, `--rx-quote-top`, and `--rx-quote-max-height`. QuotePanel uses those values at `lg` and above, with internal scrolling for long quotes; section jump margins clear the pinned group. Admin falls back to its existing offset and phones retain their fixed total bar. The layout observer never changes form values or initiates saving.
+
+Pricelist education ownership (2026-10-17): `src/data/progressiveProducts.ts` and `photochromicProfiles.ts` are shared by their public guides and `components/account/pricelistEducation.ts`. `PricelistDesignInfo.tsx` owns click/keyboard design popovers with guide links; the assigned grid wraps treatment accordion triggers in tooltips. The pencil is a 10px glyph in a 28px visual button with a 44px pseudo-element hit area; Save/Cancel keep their existing touch sizing. Shared public data stays under `src/data` so the existing search-index generator follows it.
+
+Pricelist tablet/currency ownership (2026-10-17): `RxPricelistCell.tsx` owns compact/tap behavior, `PriceOverrideCell.tsx` increases editor touch targets only with controlsVisible, and `pricelistCurrencies.ts` merges the safe configured-rate RPC with existing indicative EUR/XCD constants. Display conversion uses amount * source BBD-per-unit / target BBD-per-unit; CSV uses numeric converted amounts. Configured rates win, estimates are labelled, transaction currency and business-wide rates remain unchanged.
+
+## My Orders invoice line totals — 2026-10-17
+
+`MyOrdersSection.tsx` uses the same `InvoiceLines` table in lab-order and delivery-invoice dialogs. Total (BBD) adds the displayed line amounts once in integer cents, including credits/zero lines, and shows a dash if any amount is unavailable/non-finite. It is a line sum, not the invoice-header balance. Focused regression command: `npx vitest run --coverage=false src/tests/unit/orderInvoiceLines.test.tsx src/tests/integration/portalMultiAccountAccess.integration.test.ts`.
+
+## Pricelist lens popup and draft handoff — 2026-10-17
+
+The matrix uses `components/account/RxPricelistCell.tsx` for hover/tap/keyboard details, actual Rx picker labels, retail-price editing and a gated Start Rx order action. `pricing/pricelistLenses.ts` resolves each matrix row's selected `lens_id` through confirmed `lens_alias_map` links, preferring its primary alias. It never broadens to other lenses sharing the band. Unresolved or ambiguous mappings remain unavailable; the Rx form's canonical tie-break is retained. The existing catalog hook is queried once for the pricelist, not per cell. `/profile/rx-order?lens=<alias>` seeds a fresh form through `prefill/pricelistLens.ts`; account pricing is loaded normally, never trusted from the link or retail override. Existing saved-order parameters win; absent catalog matches show a notice. The ordinary 1.5-second autosave creates the draft, so browser verification of the live start action needs an approved hosted-draft write.
+
 ## Rx/pricelist annotation ownership — 2026-10-17
 
 The active form is `src/features/rx-order/form/RxForm.tsx`. Its portal Print order action mounts `PrintSheet` without explicitly saving; admin Save & print still saves first. Its independent 1.5-second autosave creates a hosted draft from typed live inputs, so use `/admin/orders/rx-test` in Fixtures (no network) mode for synthetic browser checks. `QuotePanel` mounts the client-only gross-margin estimate only when price is visible, ready and fully priced. `AssignedPricelistsSection` owns the teal `secondary` accordion headers and matrix tooltips; the data has no reason code for missing combinations, so tooltip reasons remain conditional.

@@ -1,3 +1,97 @@
+## 2026-10-17 — Rx sidebar alignment
+
+Status: Complete — no active handoff
+
+Source change: AccountLayout.tsx makes the sidebar `relative` only on `/profile/rx-order`, retaining `sticky top-16` elsewhere. The bounded Rx content row was the sticky containing block, so the inherited top offset pushed the menu down 64px. The form retains its independent scroll container; no frame size, sticky form control, data, authorization, or persistence change.
+
+Browser compared the existing Saved Drafts page with a temporary blank Rx tab at 2099x1260. Both menus begin at the same usual height beneath the account header. The blank form retained Order dash and empty values, with no field entry or save. Saved a chat-local screenshot and closed only the temporary tab; the original user tab was left open. No draft creation, order submission, or deployment was performed. This check verifies menu placement; the blank form had insufficient content for a long-scroll test.
+
+Validation: build and diff whitespace checks pass. Full lint: 0 errors / 2,424 existing warnings. `npm run test -- --runInBand`: 1,609 passed / 2 failed tests (249 passed / 2 failed files), retaining the unrelated adminResourceColumns KNOWN_BROKEN mismatch and Atlas 720px versus 920px assertion. PR checks pass lockfile policy and doc symmetry, then stop at the existing generated Copilot facts drift; later gates did not run. No new test was added for the single route-specific positioning class.
+
+## 2026-10-17 — Uncut frame supply and scrolling introduction
+
+Status: Complete — no active handoff
+
+Affected: form/{types,useRxOrderForm,model,Summary,RxForm}.ts(x), cards/PatientFrameCards.tsx, PortalRxOrderForm.tsx, LensAssistantSection.tsx, rxFormReact.integration.test.tsx and frontend/continuity docs. Uncut jobs use a disabled Uncut source display and normalize default/load/save/summary source through frameSourceForScope. Scope changes restore the standard source for Full glaze; existing non-Uncut selections remain. Remote retains its previous hidden-field behavior. The introduction is now a host prop rendered inside the form scroller, while the page title remains fixed.
+
+Verification: two new regression cases were red before repair. Final focused observer/form/portal suite: 29 tests pass; TypeScript, final build and diff whitespace checks pass. Full lint: 0 errors / 2,424 existing warnings. Full tests before the final summary-display refinement: 1,609 passed / 2 failed tests (249 passed / 2 failed files), retaining only adminResourceColumns' stale description KNOWN_BROKEN entry and Atlas's expected 720px versus current 920px assertion. The summary refinement then passed the focused suite/build.
+
+Browser: the no-write /dev/rx-order fixture verified disabled Uncut, editable Full glaze, and switching back to Uncut; synthetic PREVIEW ONLY names stayed in the fixture. Closed that temporary tab. On the existing portal tab, scrolling verified introduction visible at the top and absent after scroll while the title stays fixed. The user changed the live draft during the session; no synthetic live input, save/submit click, or production deployment was performed by this change. Existing autosave remains independent. Screenshots are chat-local artifacts.
+
+PR checks pass lockfile policy and doc symmetry, then stop on the existing stale generated Copilot facts; later gates did not run. Final scoped lint: 0 errors / 8 existing warnings.
+
+## 2026-10-17 — Portal Rx scroll frame
+
+Status: Complete — no active handoff
+
+Affected: AccountLayout.tsx, sections/LensAssistantSection.tsx, form/{RxForm,RxStickyLayout,QuotePanel,ui}.tsx, rxStickyLayout.test.tsx, portal/Rx CONTEXT and frontend/continuity docs. Only the portal Rx route becomes a viewport-bounded flex frame. The page title is outside the form scroller; the existing form root scrolls. Toolbar and steps pin as one group. ResizeObserver measures wrapping controls/frame size and sets quote top/max-height plus jump offsets. Desktop quote overflow scrolls internally; its height subtracts bottom padding to prevent upward displacement near the form end. The existing phone total/submit bar and admin scroll host remain.
+
+Browser: inspected the existing live form at 2099x1260, scrolled to its bottom and checked the pinned title/toolbar/steps and fully visible quote. No synthetic field input, retail Save, submit, or deployment. Existing draft autosave activity was visible during live hot refresh, so this does not establish zero existing-draft writes. No new order was submitted. Scroll proof is a chat-local screenshot. Mobile viewport and admin host were not visually checked in this turn.
+
+Validation: 27 focused observer/form/portal tests pass, including control wrapping/frame resizing, bottom-padding clearance, height clamping and observer cleanup. TypeScript, build and diff whitespace checks pass. Full lint: 0 errors / 2,424 existing warnings. `npm run test -- --runInBand`: 1,607 passed / 2 failed tests (249 passed / 2 failed files); untouched failures are the adminResourceColumns description KNOWN_BROKEN mismatch and Atlas expected 720px versus current 920px. PR checks pass lockfile policy and doc symmetry, then stop at the existing stale generated Copilot facts; later gates did not run.
+
+## 2026-10-17 - Pricelist education annotations
+
+Status: Complete — no active handoff
+
+Local source: retail pencil glyph is 10px in a 28px visible button with a 44px pseudo-element hit area; Save/Cancel retain their existing sizing. Design names open keyboard-accessible popovers with distinctions and links to existing public guides. Treatment accordion headings have hover/focus tooltips. Progressive and photochromic definitions moved without dropping content into `src/data/progressiveProducts.ts` and `photochromicProfiles.ts`, shared with their public pages and `components/account/pricelistEducation.ts`. The XTRActive Polarized summary is plain English in both places. Other categories use concise summaries and existing guide links; unknown keys retain plain labels. Public search prose regenerated and checked.
+
+Affected source: PriceOverrideCell.tsx, AssignedPricelistsSection.tsx, new PricelistDesignInfo.tsx/pricelistEducation.ts, the two public guide pages/shared data files, generated public index, new pricelistEducation.test.tsx and frontend/continuity docs. Existing parent-thread edits preserved. No pricing, account setting, retail Save, order/draft, backend, authorization or publication action.
+
+Verification: separate side-chat browser tab inspected the Progressive - Best popover/guide link, visible XTRActive Polarized tooltip on keyboard focus, and smaller pencil. Screenshots saved as side-chat artifacts. No main-thread tab was controlled. Focused tests: 15 passed, including open/Escape, guide link, shared source and existing Rx popup tests. TypeScript, final build, search-index and diff whitespace checks pass. Full lint: 0 errors / 2,424 existing warnings; scoped lint: 0 errors / 10 existing warnings. Full-suite snapshot before final small data-location/pencil refinements and the new education tests: 1,603 passed / 2 failed (247 passed / 2 failed files), retaining the untouched adminResourceColumns KNOWN_BROKEN mismatch and Atlas 720px/920px expectation. Final focused tests and build pass after refinements. PR checks pass lockfile policy/doc symmetry, then stop at existing Copilot facts drift; later gates did not run.
+
+## 2026-10-17 - Compact tablet popup and display currencies
+
+Status: Complete — no active handoff
+
+Explicit annotation request in the side conversation: reduce popup size, support touch/tablet interaction, add EUR and Eastern Caribbean dollar (XCD) display. Local changes are limited to RxPricelistCell, PriceOverrideCell, AssignedPricelistsSection, new pricelistCurrencies helper, focused tests and continuity/frontend docs. Existing selected-lens resolution and concurrent work are preserved.
+
+Popup: 320px maximum width with the existing 16px viewport gutter, compact two-column lens details, shorter copy, 44px targets, explicit Close, mouse-only hover, and pinned tap behavior (second tap/outside/Escape/Close dismiss). Currency picker/options use 44px targets and toolbar wraps. Hardware touch was not exercised; pointer/tap behavior is regression-tested.
+
+Currency: configured RPC rates remain authoritative. Existing Rx indicative EUR/XCD constants fill missing display options and are labelled as estimates in picker/page/popup. Retail overrides convert from their stored currency into the selected display currency; missing source rates do not invent a conversion. Euro and EC-dollar symbols are formatted correctly; CSV values remain numeric. No backend/migration/global FX write, checkout/transaction currency change or live rate feed. Browser used a separate temporary tab, preserving the user's tab; its existing XCD preference rendered correctly, and all four menu choices were inspected without saving a currency preference, retail price or Rx draft.
+
+Validation: 26 focused currency/popup/Rx-currency tests pass. TypeScript and final build pass. Full lint: 0 errors / 2,424 existing warnings; scoped lint: 0 errors / 10 existing warnings. Full suite before final small display/export refinements: 1,603 passed / 2 failed (247 passed / 2 failed files), retaining only the existing adminResourceColumns KNOWN_BROKEN mismatch and Atlas 720px/920px assertion. Final focused checks and build were repeated after those refinements. Browser at 1280x720 shows the compact popup and BBD/USD/EUR/XCD choices. Screenshots are side-chat artifacts. No publication performed.
+
+PR checks pass lockfile policy and documentation symmetry, then stop at the pre-existing stale Copilot platform facts file; later gates did not run. Final diff whitespace check passes. No unrelated generated file was changed.
+
+## 2026-10-17 — Pricelist selected-lens correction
+
+Status: Complete — no active handoff
+
+Supersedes the earlier multi-choice price-band popup behavior below. The cause was grouping all catalog aliases by treatment/category/index while ignoring the editor's selected `lens_id`; colour-only classification also admitted polarized/photochromic material names into Clear. Resolution now starts from the assigned matrix row and its confirmed `lens_alias_map` primary, or a sole unambiguous confirmed selection. No broad price-band fallback. Stale/missing/ambiguous links cannot start a guessed lens. The existing Rx form canonical alias tie-break and price calculation are unchanged.
+
+Affected: AssignedPricelistsSection.tsx, useInnovationsCatalog.ts, pricing/pricelistLenses.ts, pricelistLenses.unit.test.ts, Rx CONTEXT and frontend/continuity docs. The new read is limited to confirmed mappings for IDs returned by the assigned matrix RPC, with bounded batches/pagination and existing RLS. No migration, permission change, data write, draft creation, order submission, retail Save or deployment.
+
+Evidence: a failing focused regression initially reproduced extraneous polarized/photochromic choices in a Clear cell. Read-only connected SQL confirmed the editor-selected Clear / Progressive - Best / 1.50 lens has one confirmed primary alias. The authenticated local browser now shows Plastic 1.50 / Progressive - Endless Steady / SRCoated alone, no selector, and an enabled Start Rx order control; the control was not clicked. Screenshot saved as a chat-local artifact.
+
+Validation: 21 focused mapping/popup tests, TypeScript, final build and diff whitespace checks pass. Final full `npm run test -- --runInBand`: 1,597 passed / 2 failed tests (246 passed / 2 failed files), retaining only the unrelated adminResourceColumns KNOWN_BROKEN mismatch and Atlas 720px versus 920px assertion. PR checks pass lockfile/doc symmetry, then stop on pre-existing generated Copilot facts drift. Later gates did not run. An intermediate missing closing brace was corrected before final TypeScript/build/browser/full-test verification; no intermediate failing check is claimed as a pass.
+
+Final lint: 0 errors / 2,424 existing warnings; scoped mapping/hook/section/test lint: 0 errors / 14 existing warnings. No temporary debug instrumentation or fixture page remains.
+
+## 2026-10-17 — My Orders invoice line totals
+
+Status: Complete — no active handoff
+
+Affected: `src/components/account/sections/MyOrdersSection.tsx`, `src/tests/unit/orderInvoiceLines.test.tsx`, portal context and frontend/continuity docs. Both lab-order and delivery-invoice dialogs share a Total (BBD) table footer. It sums displayed two-decimal extended line amounts once in cents, including credits/zero lines; any unavailable/non-finite amount leaves the total unavailable. Empty/loading/error states retain their existing behavior. No new connector, fetch, schema, data write, permission, or deployment.
+
+Browser: the authenticated local My Orders page shows the annotated Rx example's $900.00 total and invoice #92651's $280.00 total; screenshots inspected and saved as chat-local artifacts. Only existing invoice reads were performed. Existing responsive container and table classes remain unchanged.
+
+Validation: final focused invoice/multi-account suite passes 17 tests; final scoped ESLint has 0 errors/warnings; final build and diff whitespace checks pass. Full lint has 0 errors / 2,424 warnings. The full `npm run test -- --runInBand` run passes 1,592 tests with 2 unrelated failures (246 passed / 2 failed files): adminResourceColumns retains a fixed description column in KNOWN_BROKEN; atlasSharedPageViewer expects 720px instead of the current 920px. The final displayed-rounding refinement was then verified by the focused suite/build. Production publication is not performed.
+
+PR checks: lockfile policy and documentation symmetry pass; `npm run qa:pr-checks` then stops on the pre-existing stale `supabase/functions/_shared/copilot/platformFacts.generated.ts`. Later PR gates did not run; no unrelated generated file was changed.
+
+## 2026-10-17 — Pricelist lens popup and Rx draft handoff
+
+Status: Complete — no active handoff
+
+The matrix now uses `RxPricelistCell` to combine the actual form's Material / index, Lens design / type and Lens colour option labels, retail override editing, and Start Rx order. `pricing/pricelistLenses.ts` maps canonical aliases into price bands; multiple matches require selection. Existing inquiry fallback and staff read-only views remain. The handoff uses `/profile/rx-order?lens=<alias>` and `prefill/pricelistLens.ts`; only the lens and vision type are seeded. Prices reload from the locked account, and patient/prescription/frame remain empty. Draft/edit/reorder wins over a lens link; Start another clears the link. Removed aliases show an explanation instead of a substitute. Existing 1.5-second autosave handles the new incomplete draft. No authorization, schema, pricing algorithm or deployment change.
+
+Affected: `components/account/{RxPricelistCell,PriceOverrideCell}.tsx`, `sections/AssignedPricelistsSection.tsx`, `features/rx-order/{PortalRxOrderForm.tsx,form/RxForm.tsx,hooks/useInnovationsCatalog.ts,pricing/pricelistLenses.ts,prefill/pricelistLens.ts}`, two new unit test files, portal/Rx form integration tests and continuity docs. Earlier print, margin and teal-header changes were preserved.
+
+Browser: authenticated local pricelist shows seven actual selections for Clear / Progressive - Good / Poly; choosing SRCoated displays the exact form labels and enables Start Rx order. Retail editor opens inside the same popup and was cancelled without saving. Checked at 1053×735 and 390×844; phone popup bounds are approximately x=16..374 within a 390px viewport. Escape dismisses. Temporary viewport restored. No Start Rx order, quote request, retail Save, cart submit or other production write was triggered in this follow-up. The live draft handoff remains covered by mocked catalog/persistence integration tests rather than a hosted write.
+
+Validation: final 69 focused tests across six files pass, including canonical alias mapping, explicit selection, permission-dependent actions, retail edits, keyboard focus/Escape, stale aliases, fresh account-priced incomplete autosave, and existing portal/matrix pricing checks. TypeScript, build and full lint pass (0 errors / 2,424 warnings); final scoped lint has 0 errors / 47 existing warnings. Earlier full `npm run test -- --runInBand` snapshot: 1,582 passed / 3 failed (244 passed / 3 failed files), before the final keyboard-focus check was added. Untouched failures: adminResourceColumns description KNOWN_BROKEN mismatch, Atlas reader expected 720px versus current 920px, and emailRecipientInput missing CRM contact option in the broad run. PR checks pass lockfile policy/documentation symmetry, then stop at the unchanged stale `supabase/functions/_shared/copilot/platformFacts.generated.ts`; later PR gates did not run. No unrelated repair was attempted.
+
 ## 2026-10-17 — Rx/pricelist annotation feedback
 
 Status: Complete — no active handoff

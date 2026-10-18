@@ -17,7 +17,7 @@ const PortalRxOrderForm = () => {
   const { identity, isLoading: identityLoading, isStaff, canAccessFeature } = usePortalIdentity();
   // Bumped by "Another" to give the form a fresh, quote-less start.
   const [formKey, setFormKey] = useState(0);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftId = searchParams.get("draft") ?? undefined;
   const { data: draft, isFetched: draftFetched, isError: draftError } = useRxDraft(draftId);
   const draftSettled = !draftId || draftFetched;
@@ -25,6 +25,8 @@ const PortalRxOrderForm = () => {
   // ?from=<quote>&as=reorder|remake starts a new order with the same Rx, lens and coatings.
   const editId = searchParams.get("edit") ?? undefined;
   const fromId = searchParams.get("from") ?? undefined;
+  // A pricelist starts a fresh order, never overlays an existing draft/edit.
+  const initialLensAlias = !draftId && !editId && !fromId ? searchParams.get("lens") ?? undefined : undefined;
   const fromKind = searchParams.get("as") === "remake" ? "remake" : "reorder";
   const editFromCart = searchParams.get("cart") === "1";
   const { data: source, isFetched: sourceFetched, isError: sourceError } = useMyRxOrder(editId ?? fromId);
@@ -87,16 +89,25 @@ const PortalRxOrderForm = () => {
 
   return ready ? (
     <RxForm
-      key={`${formKey}:${editId ?? fromId ?? draftId ?? "new"}`}
+      key={`${formKey}:${editId ?? fromId ?? draftId ?? initialLensAlias ?? "new"}`}
       quoteId={editId ?? draftQuoteId ?? null}
       editFromCart={editFromCart}
       surface="portal"
+      introduction="Enter the prescription, frame and patient details to prepare an Rx order."
       lockedAccountId={lockedAccountId}
       checkoutPath="/checkout"
       storePath="/store"
-      onStartAnother={() => setFormKey((k) => k + 1)}
+      onStartAnother={() => {
+        if (initialLensAlias) {
+          const next = new URLSearchParams(searchParams);
+          next.delete("lens");
+          setSearchParams(next, { replace: true });
+        }
+        setFormKey((k) => k + 1);
+      }}
+      initialLensAlias={initialLensAlias}
       prefill={sourcePrefill ?? prefill}
-      prefillBanner={sourceBanner ?? prefillBanner}
+      prefillBanner={sourceBanner ?? prefillBanner ?? (initialLensAlias ? "Started from your pricelist. Current account pricing applies; add the patient, prescription and frame details to complete your draft." : undefined)}
       resumedDraftId={resolveResumedRxDraftId(draftId, draft?.input_payload)}
       pricesVisible={isStaff || canAccessFeature("order-prices")}
       // Credit-approved customers place Rx jobs straight onto their account.

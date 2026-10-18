@@ -17,6 +17,8 @@ staff use it in admin and at the test bench (`/admin/orders/rx-test`).
 | Lab file | `supabase/functions/_shared/orders/hashref.ts` | See `docs/gatekeeper-order-sending.md`. |
 
 ## Rules that are easy to get wrong
+- Uncut jobs have frame source `Uncut` and a disabled display, not a supply selector. `frameSourceForScope` owns default/scope-transition/load/save/summary normalization; full glaze restores the ordinary supply selector and preserves an existing non-Uncut source. The portal introduction is passed through `PortalRxOrderForm` into RxForm's scrolling content; only the page title stays fixed.
+- Portal Rx uses a bounded form scroller below the fixed page title: AccountLayout, LensAssistantSection, and the existing RxForm root supply the flex/min-height chain. The portal-only sticky group contains toolbar and step rail. `RxStickyLayout` observes frame/control sizes and supplies quote top/max-height and section scroll-margin offsets; long desktop quotes scroll inside the remaining frame. Admin hosts keep their existing scroll container and 5rem quote offset; below `lg`, the existing fixed phone total/submit bar remains.
 - Portal `Print order` reuses `PrintSheet` without initiating a save; admin `Save & print` retains save-first behavior. The existing 1.5-second form autosave is independent: typing in a live portal form can create a hosted quote/draft even without pressing Save. Use the test bench in **Fixtures (no network)** mode for synthetic input.
 - `form/GrossMarginEstimate.tsx` + `marginEstimate.ts` show an optional BBD selling-price estimate only for a visible, ready, fully priced quote. Profit is selling price minus quote total; gross margin divides by selling price (undefined at zero). This component's state never enters the payload, cart, print sheet or stored drafts; tax bases must match and frames/other costs are excluded.
 - Surcharges are **data** (`rx_surcharge_rules`, `domain/price.ts` `DEFAULT_SURCHARGE_RULES` mirrors the seed). Saved as `Fee` lines whose `group_key` is `surcharge:<code>`.
@@ -24,6 +26,18 @@ staff use it in admin and at the test bench (`/admin/orders/rx-test`).
 - Split lens: each side is charged half its own pair price. A one-eye job is 0.55 of the pair.
 - Test-bench orders are `quotes.is_test`: out of quote lists, never in the outbox (DB trigger), never in the cart.
 - Writes to Rx quotes by customers need `rx-order`, not `quotes` (policies via `can_write_customer_quote`).
+
+## Pricelist tablet/currency display (2026-10-17, local source)
+
+Design-name popovers and treatment-title tooltips are owned by `components/account/PricelistDesignInfo.tsx` and `pricelistEducation.ts`. Progressive/photochromic definitions are shared with the public guides through `src/data/progressiveProducts.ts` and `photochromicProfiles.ts`; other categories link to the existing relevant lens guide. No traits are invented for unknown categories. The smaller pencil keeps an expanded invisible hit area.
+
+The compact popup supports pinned tap interaction, explicit close and 44px controls. `components/account/pricelistCurrencies.ts` reuses existing indicative EUR/XCD rates when the configured-rate RPC omits them; configured rates take precedence. Estimates are labelled. Retail display conversions and CSV are in the chosen display currency; checkout, saved order pricing and the form currency rules are unchanged.
+
+## Pricelist lens handoff (2026-10-17, local source)
+
+`AssignedPricelistsSection` indexes the existing `get_rx_catalog_aliases` feed with `pricing/pricelistLenses.ts`, using the form's canonical alias tie-break and `cellForAlias`/`treatmentLookupKeys`. Each `RxPricelistCell` combines actual Material / index, Lens design / type and Lens colour option labels, the existing retail-price editor, and the order/inquiry action. Each matrix row's selected `lens_id` restricts the popup to its confirmed primary alias, or a sole unambiguous confirmed selection. `usePricelistLensAliasLinks` reads only confirmed mappings for selected lens IDs, in bounded paginated batches. Other aliases in the same price band are excluded; missing/stale/ambiguous mappings do not select a substitute. Staff-target views remain read-only; no Rx access or no price retains inquiry/help, and unresolved catalog selections cannot start an order.
+
+For linked `rx-order`-enabled customers, Start Rx order navigates to `/profile/rx-order?lens=<alias>`. Only lens identity travels; the form loads the current account's price and selects the correct vision type. No patient, Rx, frame, retail override, or supplied amount is copied. Draft/edit/reorder parameters take precedence over `lens`; Start another clears it. Missing aliases show a notice rather than selecting a substitute. This is a new incomplete form that follows existing autosave, not an immediate cart submission. Browser testing must not activate the live handoff without approval for the resulting hosted draft; use mocked catalog/persistence tests.
 
 ## Phase 2 (customer order management)
 

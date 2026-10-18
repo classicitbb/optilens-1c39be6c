@@ -21,7 +21,7 @@ import {
   type Eye, type FrameIssue, type RxEyeValues, type RxIssue, type RxRules, type RxWarning,
 } from "../domain/validate";
 import {
-  EXPORT_DELIVERY, DEFAULT_DELIVERY, defaultValues, emptyEye, emptyShape,
+  EXPORT_DELIVERY, DEFAULT_DELIVERY, defaultValues, frameSourceForScope, emptyEye, emptyShape,
   type CatalogItem, type CatalogTreatment, type RxCatalog, type RxEyeText, type RxFormValues,
 } from "./types";
 
@@ -413,7 +413,7 @@ export function buildOrder(
     reference: v.reference.trim() || null,
     patient: { first: v.patient.first, last: v.patient.last },
     job: { ...v.job },
-    frame: { name: v.frame.name, mount: v.frame.mount, source: v.frame.source, a: d.frame.a, b: d.frame.b, ed: d.frame.ed, dbl: d.frame.dbl },
+    frame: { name: v.frame.name, mount: v.frame.mount, source: frameSourceForScope(v.job.scope, v.frame.source), a: d.frame.a, b: d.frame.b, ed: d.frame.ed, dbl: d.frame.dbl },
     shape: d.frame.geometry && v.shape.data && v.shape.source
       ? (shapeToPayload(v.shape.data, d.frame.geometry, {
           source: v.shape.source, standardId: v.shape.standardId, fileName: v.shape.fileName, confirmed: v.shape.confirmed,
@@ -473,7 +473,7 @@ export function valuesFromOrder(input: unknown, catalog: RxCatalog): RxFormValue
     reference: o.reference ?? "",
     job: { ...o.job },
     frame: {
-      name: o.frame.name, mount: o.frame.mount, source: o.frame.source || base.frame.source,
+      name: o.frame.name, mount: o.frame.mount, source: frameSourceForScope(o.job.scope, o.frame.source),
       a: textOf(o.frame.a), b: textOf(o.frame.b), ed: textOf(o.frame.ed), dbl: textOf(o.frame.dbl),
       // A saved ED that differs from the box estimate was the person's own
       // (unless the outline set it, in which case the field is locked anyway).

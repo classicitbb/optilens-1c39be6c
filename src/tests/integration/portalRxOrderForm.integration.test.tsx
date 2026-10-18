@@ -13,7 +13,7 @@
 // capture the props it is handed. That keeps this test about the portal's
 // wiring, which is the part nothing else exercises.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 
 const state = vi.hoisted(() => ({
@@ -95,6 +95,28 @@ beforeEach(() => {
 });
 
 describe("the portal Rx order form", () => {
+  it("starts a fresh lens-selected order on the existing customer-locked form", () => {
+    open("/profile/rx-order?lens=100&price=0");
+    expect(state.props.initialLensAlias).toBe("100");
+    expect(state.props.lockedAccountId).toBe(776);
+    expect(state.props.quoteId).toBeNull();
+    expect(state.props.prefill).toBeUndefined();
+    expect(state.props).not.toHaveProperty("price");
+    expect(state.props.prefillBanner).toContain("Current account pricing applies");
+    act(() => state.props.onStartAnother());
+    expect(state.props.initialLensAlias).toBeUndefined();
+  });
+
+  it("never overlays a lens link onto an existing saved draft or edit", () => {
+    open("/profile/rx-order?draft=draft-1&lens=100");
+    expect(state.props.initialLensAlias).toBeUndefined();
+    state.order = released();
+    open("/profile/rx-order?edit=quote-9&lens=100");
+    expect(state.props.initialLensAlias).toBeUndefined();
+    expect(state.props.quoteId).toBe("quote-9");
+    expect(state.props.prefill).toEqual(state.order.payload);
+  });
+
   it("locks the order to the customer's own trading account", () => {
     open();
     expect(screen.getByTestId("rx-form")).toBeTruthy();

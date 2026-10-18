@@ -171,11 +171,30 @@ const readItemPrice = (item: unknown): number | null => {
 const formatLivePrice = (value: number | null) => (value == null ? "—" : `$${value.toFixed(2)}`);
 const INNOVATIONS_ORDERS_PAGE_SIZE = 10;
 
-const InvoiceLines = ({ invoiceQuery }: { invoiceQuery: { isLoading: boolean; isError: boolean; error: unknown; data?: LiveInvoiceResponse } }) => {
+export const InvoiceLines = ({ invoiceQuery }: { invoiceQuery: { isLoading: boolean; isError: boolean; error: unknown; data?: LiveInvoiceResponse } }) => {
   if (invoiceQuery.isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>;
   if (invoiceQuery.isError) return <Alert variant="destructive"><AlertDescription>{invoiceQuery.error instanceof Error ? invoiceQuery.error.message : "Invoice details could not be loaded."}</AlertDescription></Alert>;
   if (!invoiceQuery.data?.lines?.length) return <p className="text-sm text-muted-foreground">This invoice has no itemized lines available from the billing connector yet.</p>;
-  return <div className="overflow-x-auto rounded-md border"><Table><TableHeader><TableRow><TableHead>Description</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price (BBD)</TableHead><TableHead className="text-right">Amount (BBD)</TableHead></TableRow></TableHeader><TableBody>{invoiceQuery.data.lines.map((line, index) => <TableRow key={line.id ?? index}><TableCell>{line.description || "—"}</TableCell><TableCell className="text-right">{line.quantity ?? "—"}</TableCell><TableCell className="text-right">{line.unit_price == null ? "—" : formatLivePrice(line.unit_price)}</TableCell><TableCell className="text-right font-medium">{line.amount == null ? "—" : formatLivePrice(line.amount)}</TableCell></TableRow>)}</TableBody></Table></div>;
+  const lines = invoiceQuery.data.lines;
+  // Sum the displayed line amounts in cents; quantity is already included.
+  // An unavailable amount must not make an incomplete sum look like a total.
+  const total = lines.every((line) => line.amount != null && Number.isFinite(line.amount))
+    ? lines.reduce((sum, line) => sum + Math.round(Number(line.amount!.toFixed(2)) * 100), 0) / 100
+    : null;
+  return (
+    <div className="overflow-x-auto rounded-md border">
+      <Table>
+        <TableHeader><TableRow><TableHead>Description</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price (BBD)</TableHead><TableHead className="text-right">Amount (BBD)</TableHead></TableRow></TableHeader>
+        <TableBody>{lines.map((line, index) => <TableRow key={line.id ?? index}><TableCell>{line.description || "—"}</TableCell><TableCell className="text-right">{line.quantity ?? "—"}</TableCell><TableCell className="text-right">{line.unit_price == null ? "—" : formatLivePrice(line.unit_price)}</TableCell><TableCell className="text-right font-medium">{line.amount == null ? "—" : formatLivePrice(line.amount)}</TableCell></TableRow>)}</TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableHead scope="row" colSpan={3} className="h-auto py-3 font-semibold text-foreground">Total (BBD)</TableHead>
+            <TableCell className="py-3 text-right font-semibold">{formatLivePrice(total)}</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </div>
+  );
 };
 
 const liveDeliveryId = (delivery: LiveDelivery) => delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8);

@@ -6,6 +6,7 @@ import { STD_SHAPES } from "../domain/standardShapes";
 import { cn } from "@/lib/utils";
 import type { Derived, SectionId } from "./model";
 import type { RxCatalog, RxFormValues } from "./types";
+import { frameSourceForScope } from "./types";
 
 export const MOUNT_LABELS: Record<string, string> = {
   plastic: "Plastic", metal: "Metal", grooved: "Grooved / nylon", rimless: "Rimless — drill mount",
@@ -96,7 +97,7 @@ export function SectionSummary({
     return (
       <div className={box}>
         <Fields fields={[
-          remote || shape ? { label: remote ? "Shape / trace" : "Shape", value: shape } : { label: "Supplied by", value: values.frame.source },
+          remote || shape ? { label: remote ? "Shape / trace" : "Shape", value: shape } : { label: "Supplied by", value: frameSourceForScope(values.job.scope, values.frame.source) },
           { label: "Frame", value: values.frame.name.trim() },
           { label: "Mount", value: MOUNT_LABELS[values.frame.mount] ?? values.frame.mount },
           { label: "A", value: mm(derived.frame.a) },

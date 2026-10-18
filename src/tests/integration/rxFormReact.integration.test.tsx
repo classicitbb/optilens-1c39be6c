@@ -89,6 +89,50 @@ beforeEach(() => {
 });
 
 describe("RxForm", () => {
+  it("locks frame supply to Uncut for uncut lenses and restores the supply choice for full glaze", () => {
+    renderForm({ prefill: savedOrder() });
+    fireEvent.click(screen.getByRole("button", { name: "Edit Frame & measurements" }));
+    expect(screen.getByRole("textbox", { name: "Frame supplied by" })).toHaveValue("Uncut");
+    expect(screen.getByRole("textbox", { name: "Frame supplied by" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("radio", { name: "Full glaze" }));
+    expect(screen.getByRole("combobox", { name: "Frame supplied by" })).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Frame supplied by" })).toHaveTextContent("Customer");
+    fireEvent.click(screen.getByRole("radio", { name: "Uncut Rx lenses" }));
+    expect(screen.getByRole("textbox", { name: "Frame supplied by" })).toHaveValue("Uncut");
+    expect(screen.queryByRole("combobox", { name: "Frame supplied by" })).not.toBeInTheDocument();
+  });
+
+  it("normalizes stale frame supply on uncut saved orders without changing full-glaze supply", () => {
+    const values = validValues();
+    values.job.scope = "uncut";
+    values.frame.source = "Classic Visions stock frame";
+    const uncut = savedOrder(values);
+    expect(uncut.frame.source).toBe("Uncut");
+    expect(valuesFromOrder({ ...uncut, frame: { ...uncut.frame, source: "Customer - shipping to lab" } }, currentCatalog).frame.source).toBe("Uncut");
+    values.job.scope = "glaze";
+    expect(savedOrder(values).frame.source).toBe("Classic Visions stock frame");
+  });
+
+  it("loads a pricelist lens into an incomplete new draft using the account price", async () => {
+    currentCatalog = { ...catalog, lensPrice: () => 142, tripleForAlias: (alias) => alias === "pal-100" ? { m: "plastic", d: "prog", c: "clear" } : null };
+    renderForm({ surface: "portal", initialLensAlias: "pal-100" });
+    expect(screen.getByLabelText(/Patient first name/)).toHaveValue("");
+    expect(screen.getByRole("radio", { name: "Multifocal / Progressive" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("combobox", { name: /Lens design \/ type/ })).toHaveValue("Progressive");
+    expect(screen.getByLabelText("Order quote")).toHaveTextContent("142.00");
+    expect(submitButton("Submit to cart")).toBeDisabled();
+    await waitFor(() => expect(mocks.saveDraft).toHaveBeenCalledOnce(), { timeout: 4000 });
+    expect(mocks.saveDraft.mock.calls[0][0].payload.patient.first).toBe("");
+    expect(mocks.addToCart).not.toHaveBeenCalled();
+  });
+
+  it("explains an unavailable pricelist lens rather than choosing a substitute", () => {
+    renderForm({ surface: "portal", initialLensAlias: "removed-lens" });
+    expect(screen.getByRole("alert")).toHaveTextContent("no longer available");
+    expect(screen.getByLabelText("Order quote")).toHaveTextContent("No lens chosen yet");
+    expect(mocks.persist).not.toHaveBeenCalled();
+  });
+
   it("lets a customer print the current order without saving or submitting it", async () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
     try {

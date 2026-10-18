@@ -1,5 +1,21 @@
 # Changelog
 
+Rx sidebar alignment (2026-10-17, local source): the self-contained Rx form no longer pushes the account menu down. Only the Rx sidebar uses normal-flow positioning; other routes retain their existing sticky menu. Not published.
+
+Rx uncut supply/introduction (2026-10-17, local source): frame supply is fixed to Uncut for uncut jobs, including saved/loaded orders; Full glaze retains the normal supply selector. The portal instruction sentence scrolls with the form beneath the fixed title. Not published.
+
+Portal Rx scroll frame (2026-10-17, local source): page title stays fixed; form content scrolls beneath pinned order controls and steps. The desktop quote stays within the frame and scrolls internally if long. Sticky offsets follow wrapping controls and frame resizing. Not published.
+
+Pricelist education (2026-10-17, local source): compact edit pencil, design-trait popovers linked to the public lens guides, and plain-English treatment tooltips. Progressive/photochromic definitions now share source data with those guides. Not published.
+
+Pricelist tablet/currency update (2026-10-17, local source): compact 320px popup, persistent tap interaction, close control and 44px touch targets. EUR/XCD display options reuse existing indicative rates when not configured; configured rates win. Retail display amounts convert with the selected currency, euro symbols render correctly, and CSV remains numeric. Not published.
+
+Pricelist selected-lens correction (2026-10-17, local source): popups now use the editor-selected lens ID and its confirmed primary alias, rather than every alias sharing a price band. Clear / Progressive - Best / 1.50 now shows Plastic 1.50 / Endless Steady / SRCoated alone. Unresolved mappings do not choose substitutes. No pricing rule or database write.
+
+My Orders invoice totals (2026-10-17, local source): lab-order and delivery-invoice detail tables now total their line amounts in BBD. Missing amounts do not produce a misleading partial total. Browser checked; not published.
+
+Pricelist lens handoff (2026-10-17, local source): combined popup shows actual Rx-form lens selections, includes retail-price editing, and opens a new account-priced Rx draft for enabled customers. Multiple matches require a choice; existing inquiry and staff read-only behavior retained. Not published.
+
 Rx/pricelist annotations (2026-10-17, local source): restored customer printing, teal category headers, contextual price/unavailable-option tooltips and an optional unsaved BBD gross-margin estimate for fully priced visible quotes. Not published.
 
 Homepage copy (2026-10-17, local source): clearer trade-account and lens-explorer headings, expanded shared lens-category labels, and updated patient optician/FAQ introductions. Existing layout retained; search prose regenerated. Not published.

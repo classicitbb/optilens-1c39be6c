@@ -41,6 +41,8 @@ import { useRxCatalog, type PersistContext } from "./useRxCatalog";
 import { useRxOrderForm } from "./useRxOrderForm";
 import type { RxCatalog, RxFormValues } from "./types";
 import { defaultValues } from "./types";
+import { valuesForPricelistLens } from "../prefill/pricelistLens";
+import { RxStickyLayout } from "./RxStickyLayout";
 
 export interface RxFormProps {
   quoteId: string | null;
@@ -57,6 +59,10 @@ export interface RxFormProps {
   /** A saved order (v1 or v2) to replay into the form. */
   prefill?: unknown;
   prefillBanner?: string;
+  /** Host description that scrolls with the form rather than its page title. */
+  introduction?: string;
+  /** Fresh order from a pricelist: resolve against the loaded account catalog. */
+  initialLensAlias?: string;
   resumedDraftId?: string;
   pricesVisible?: boolean;
   allowDirectSubmit?: boolean;
@@ -185,7 +191,7 @@ function LoadedForm({
 
   const initial: RxFormValues = useMemo(() => {
     const saved = props.prefill ? (() => { try { return valuesFromOrder(props.prefill, catalog); } catch { return null; } })() : null;
-    return saved ?? defaultValues(accountId);
+    return saved ?? (!props.quoteId && props.initialLensAlias ? valuesForPricelistLens(props.initialLensAlias, catalog, accountId) : null) ?? defaultValues(accountId);
     // initial values are read once, on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -415,7 +421,7 @@ function LoadedForm({
   const [focused, setFocused] = useState<SectionId | null>(null);
   const [editing, setEditing] = useState<ReadonlySet<SectionId>>(new Set());
   const [filled, setFilled] = useState(false);
-  const revealAll = !!props.prefill || filled;
+  const revealAll = !!props.prefill || !!props.initialLensAlias || filled;
   // A card only folds once the person has been in it. Coatings and delivery are
   // "complete" while still empty (no coating is a valid answer), so without this
   // they would fold the moment they appear and hide their own options. A saved
@@ -476,17 +482,23 @@ function LoadedForm({
   const locked = props.lockedAccountId != null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-4 lg:pb-8" data-testid="rx-form" data-rx-form onKeyDown={onFormKeyDown} onFocusCapture={onFormFocus}>
+    <div className={cn("mx-auto w-full max-w-6xl px-4 pb-24 pt-4 lg:pb-8", props.surface === "portal" && "min-h-0 flex-1 overflow-y-auto overscroll-contain pt-0 [scrollbar-gutter:stable]")} data-testid="rx-form" data-rx-form data-rx-scroll-frame={props.surface === "portal" || undefined} onKeyDown={onFormKeyDown} onFocusCapture={onFormFocus}>
+      {props.surface === "portal" && <RxStickyLayout />}
+      {props.introduction && <p className="mb-3 text-sm text-muted-foreground">{props.introduction}</p>}
       {isTest && (
         <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status">
           <b>Test order.</b> Saves are tagged as test and nothing goes to the cart, an account or a lab.
         </div>
       )}
-      {props.prefill && props.prefillBanner && (
+      {(props.prefill || props.initialLensAlias) && props.prefillBanner && (
         // hosts pass a sentence with <b> tags for the old engine; show it as text
         <div className="mb-3 rounded-md border bg-muted/40 px-3 py-2 text-xs">{props.prefillBanner.replace(/<[^>]+>/g, "")}</div>
       )}
+      {props.initialLensAlias && !props.prefill && !initial.lens.od.m && (
+        <p role="alert" className="mb-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs">The lens selected on your pricelist is no longer available in the order catalog. Choose another lens below or ask us for help.</p>
+      )}
 
+      <div data-rx-sticky-controls className={props.surface === "portal" ? "sticky top-0 z-20 flow-root bg-background" : "contents"}>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <h1 className="text-base font-semibold">{stockMode ? ORDER_TYPES.find((t) => t.id === orderType)?.label : "Rx order"}</h1>
         {canPickType && (
@@ -548,12 +560,10 @@ function LoadedForm({
         </div>
       </div>
 
-      {stockMode ? (
-        <StockServicePanel type={orderType as Exclude<OrderType, "rx">} accountId={accountId} accountName={account?.name ?? ""} />
-      ) : (<>
+      {!stockMode && <>
       <FlagBanner flags={values.flags} onConfirm={api.confirmFlag} onConfirmAll={api.confirmAllFlags} />
 
-      <nav aria-label="Order steps" className="sticky top-0 z-20 -mx-4 mb-4 flex gap-1 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur">
+      <nav aria-label="Order steps" className={cn("-mx-4 mb-4 flex gap-1 overflow-x-auto border-b bg-background/95 px-4 py-2 backdrop-blur", props.surface !== "portal" && "sticky top-0 z-20")}>
         {SECTION_ORDER.map((id, i) => {
           const reachable = visible(id);
           return (
@@ -572,6 +582,12 @@ function LoadedForm({
           );
         })}
       </nav>
+      </>}
+      </div>
+
+      {stockMode ? (
+        <StockServicePanel type={orderType as Exclude<OrderType, "rx">} accountId={accountId} accountName={account?.name ?? ""} />
+      ) : (<>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-4">

@@ -1,5 +1,11 @@
 # Integrations and Cross-Repository Contract
 
+Pricelist EUR/XCD display (2026-10-17): existing portal_pricing_currency_settings remains the configured-rate source. The frontend appends only EUR and XCD from the existing Rx indicative-rate constants when absent. No new backend, migration, global FX write, auth change or live-rate feed. User display preferences and retail overrides retain their existing explicit save paths; verification did not save either.
+
+Pricelist selected-lens read (2026-10-17): `portal_assigned_pricelist_matrix` already returns `lens_id`. The portal reads only `lens_id, innovations_alias, is_primary` from existing `lens_alias_map`, restricted to those selected IDs and non-null `confirmed_at`, in bounded paginated batches. Existing grants/RLS remain in force; no new RPC, migration, credentials, authorization or production write. Resolution requires a primary or sole unambiguous confirmed selection, available in the existing safe alias catalog.
+
+Pricelist → Rx form (2026-10-17, local source): reuses the existing `get_rx_catalog_aliases` read and current-account price lookup. Only a canonical lens alias travels in `/profile/rx-order?lens=...`; no client amount, account selection, permission or retail-price override is carried. The existing Rx feature gate, customer account lock, draft save and inquiry paths are retained. No new service, credential, schema, connector or environment variable.
+
 The Codex `Dev Preview` project action starts only the local Vite server on loopback port 5173. It adds no external service, connector, credential, access rule, or deployment behavior.
 
 Atlas standard-page width/padding is frontend-only: 770px maximum and 5px gutters from `sm`, with existing mobile gutters retained. No connector, service, environment variable, schema or access boundary changed.
