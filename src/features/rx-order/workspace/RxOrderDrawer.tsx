@@ -12,6 +12,7 @@ import { savedRxPayload } from "../embed/rx-order-adapter";
 import { upgradeV1, type RxOrderV2 } from "../domain/schema";
 import { SOURCE_LABELS, statusLabel, type WorkspaceItem } from "./classify";
 import { useCaptureImage, useRxOrderDetail } from "./useRxWorkspace";
+import { StockOrderDetails } from "./StockOrderDetails";
 
 const money = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -25,7 +26,7 @@ const Row = ({ k, children }: { k: string; children: ReactNode }) => (
 );
 
 export function RxOrderDrawer({ item, onClose, actions }: { item: WorkspaceItem | null; onClose: () => void; actions: ReactNode }) {
-  const { data: detail } = useRxOrderDetail(item?.quoteId ?? null);
+  const { data: detail } = useRxOrderDetail(item?.kind === "stock" ? null : item?.quoteId ?? null);
   const imagePath = item?.capture?.storage_path ?? null;
   const { data: imageUrl } = useCaptureImage(imagePath);
 
@@ -59,15 +60,16 @@ export function RxOrderDrawer({ item, onClose, actions }: { item: WorkspaceItem 
 
             <div className="my-3 flex flex-wrap items-center gap-2">{actions}</div>
 
-            <Tabs defaultValue="summary">
+            <Tabs key={item.key} defaultValue="summary">
               <TabsList>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
-                <TabsTrigger value="payload">Payload</TabsTrigger>
+                <TabsTrigger value="payload">{item.stock ? "Order file" : "Payload"}</TabsTrigger>
                 <TabsTrigger value="lab">Lab</TabsTrigger>
                 <TabsTrigger value="timeline">Timeline</TabsTrigger>
               </TabsList>
 
               <TabsContent value="summary" className="space-y-4">
+                {item.stock ? <StockOrderDetails stock={item.stock} view="summary" /> : <>
                 {imagePath && (
                   <div className="overflow-auto rounded-lg border bg-muted/30">
                     {!imageUrl ? <p className="p-4 text-xs text-muted-foreground">Loading the original…</p>
@@ -124,17 +126,21 @@ export function RxOrderDrawer({ item, onClose, actions }: { item: WorkspaceItem 
                     <ExternalLink className="h-3 w-3" /> Open the quote
                   </Link>
                 )}
+                </>}
               </TabsContent>
 
               <TabsContent value="payload" className="space-y-3">
+                {item.stock ? <StockOrderDetails stock={item.stock} view="payload" /> : <>
                 <p className="text-[11px] text-muted-foreground">What the form saved (cv.rxorder/2), what is sent to the lab, and the lab order built from it.</p>
                 <details open><summary className="cursor-pointer text-xs font-semibold">Order (cv.rxorder/2)</summary>{order ? <Json value={order} /> : <p className="py-2 text-xs text-muted-foreground">Nothing saved yet.</p>}</details>
                 {canonical && <details><summary className="cursor-pointer text-xs font-semibold">Canonical lab order</summary><Json value={canonical} /></details>}
                 {s && <details><summary className="cursor-pointer text-xs font-semibold">Submission payload</summary><Json value={s.payload} /></details>}
                 {item.capture && <details><summary className="cursor-pointer text-xs font-semibold">Capture job</summary><Json value={item.capture} /></details>}
+                </>}
               </TabsContent>
 
               <TabsContent value="lab" className="space-y-2">
+                {item.stock ? <StockOrderDetails stock={item.stock} view="lab" /> : <>
                 {s ? (
                   <dl className="space-y-1.5">
                     <Row k="Sent to">{s.dispatch_provider === "gatekeeper" ? "Gatekeeper" : "OptiLens / Innovations"}</Row>
@@ -147,9 +153,11 @@ export function RxOrderDrawer({ item, onClose, actions }: { item: WorkspaceItem 
                     {s.rxt_data && <details><summary className="cursor-pointer text-xs font-semibold">Lab response data</summary><pre className="max-h-[40vh] overflow-auto rounded-md bg-muted p-3 text-[11px]">{s.rxt_data}</pre></details>}
                   </dl>
                 ) : <p className="text-xs text-muted-foreground">Not released yet — nothing has gone to the lab.</p>}
+                </>}
               </TabsContent>
 
               <TabsContent value="timeline">
+                {item.stock ? <StockOrderDetails stock={item.stock} view="timeline" /> :
                 <ol className="space-y-2 text-xs">
                   {item.capture && <li><b>{when(item.capture.created_at)}</b> · captured ({SOURCE_LABELS[item.source].toLowerCase()})</li>}
                   {(detail?.events ?? []).map((e) => (
@@ -162,6 +170,7 @@ export function RxOrderDrawer({ item, onClose, actions }: { item: WorkspaceItem 
                   {s?.lab_status && <li><b>{s.lab_status_at ? when(s.lab_status_at) : ""}</b> · lab: {s.lab_status}</li>}
                   {!item.capture && !(detail?.events ?? []).length && <li className="text-muted-foreground">No events recorded yet.</li>}
                 </ol>
+                }
               </TabsContent>
             </Tabs>
           </>
