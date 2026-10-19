@@ -10,6 +10,7 @@ export function StockCameraScanner({ onScan }: { onScan: (code: string) => Promi
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
+    if (attempt === 0) return;
     let disposed = false;
     let processing = false;
     let retryAfter = 0;
@@ -44,6 +45,7 @@ export function StockCameraScanner({ onScan }: { onScan: (code: string) => Promi
     return () => { disposed = true; stop(); };
   }, [attempt]);
   return <div className="space-y-2">
+    {attempt === 0 && <Button type="button" onClick={() => setAttempt(1)}><Camera className="mr-1.5 h-4 w-4" />Enable camera</Button>}
     <video ref={video} aria-label="Barcode camera" autoPlay muted playsInline className="aspect-[4/3] w-full border bg-muted object-cover" />
     {error && <><p role="alert" className="text-xs text-destructive">{error}</p><Button type="button" size="sm" variant="outline" onClick={() => { setError(''); setAttempt(n => n + 1); }}><Camera className="mr-1.5 h-4 w-4" />Retry camera</Button></>}
   </div>;
