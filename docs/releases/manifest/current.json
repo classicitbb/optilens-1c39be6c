@@ -1,16 +1,17 @@
 {
-  "semanticVersion": "0.12.0",
-  "sourceEntry": "2026-10-08 — Atlas layout and authenticated sharing (local source)",
-  "releaseDateTimeUtc": "2026-10-08T00:00:00.000Z",
+  "semanticVersion": "0.13.0",
+  "sourceEntry": "2026-10-19 — Staff Rx submit and staff pricing access (local source)",
+  "releaseDateTimeUtc": "2026-10-19T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending."
+    "On the admin Rx form the button now reads \"Send for submission\". It sends the saved order to Rx Orders > Ready to release, where staff release it to the lab. It no longer adds the order to the staff member's cart.",
+    "Admin and operator profiles are approved for portal pricing against the Retail account, so store and pricelist prices show for staff. This was a data change on the live database only."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Atlas layout and authenticated sharing (local source)."
+      "notes": "Updated as part of Staff Rx submit and staff pricing access (local source)."
     }
   ],
   "migrationNotes": [

@@ -1,26 +1,12 @@
 # Release Notes
 
-Rx menu alignment (2026-10-17, local source): the account menu stays in its usual position beneath the account header while the Rx form scrolls within its frame. Not published.
-
-Rx form follow-up (2026-10-17, local source): uncut lens jobs show an unchangeable Uncut frame-supply value. The instruction sentence disappears as the form scrolls, leaving the title fixed. Not published.
-
-Portal Rx scrolling (2026-10-17, local source): title stays in place while entering an order; the toolbar, steps, and desktop quote remain accessible while the form scrolls. The existing phone total bar remains. Not published.
-
-Pricelist education (2026-10-17, local source): click a lens-design name for its traits and guide link; hover or keyboard-focus a treatment heading for a short explanation. Retail edit pencils are visually smaller. Not published.
-
-Pricelist display (2026-10-17, local source): smaller tap-friendly lens popup and USD, BBD, EUR and XCD display choices. EUR/XCD fallbacks are labelled estimates; configured rates take precedence. No change to checkout or invoice currency.
-
-Pricelist popup correction (2026-10-17, local source): each price shows the lens selected in the pricelist editor. Other lenses sharing the price band are excluded. Not published.
-
-My Orders invoice totals (2026-10-17, local source): a Total (BBD) row now appears beneath the invoice lines in both lab-order and delivery dialogs. Not published.
-
-Pricelist lens handoff (2026-10-17, local source): inspect exact lens options and edit your retail display price in one popup. Rx-enabled customers can choose a lens and start a fresh draft with current account pricing. Not published.
-
-Rx/pricelist annotations (2026-10-17, local source): customers can print the current Rx form, identify lens/material/colour from price cells, read why a dash may appear, and enter a selling price for an estimated gross profit and margin. Teal replaces gray category headers. Not published.
-
-Homepage copy (2026-10-17, local source): simplified lens browsing wording and clarified patient guidance and category headings. Verified in the local browser; not published.
-
 Summarized release outcomes for each major date-stamped update.
+
+## 2026-10-19 — Staff Rx submit and staff pricing access (local source)
+
+### Release Notes
+- On the admin Rx form the button now reads "Send for submission". It sends the saved order to Rx Orders > Ready to release, where staff release it to the lab. It no longer adds the order to the staff member's cart.
+- Admin and operator profiles are approved for portal pricing against the Retail account, so store and pricelist prices show for staff. This was a data change on the live database only.
 
 ## 2026-10-15 — Email Previews resend (local source)
 

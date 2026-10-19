@@ -24,6 +24,19 @@ Atlas production release (2026-10-08): scoped layout, stable identifiers and aut
 
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
 
+## 2026-10-19 — Staff Rx submit and staff pricing access (local source)
+
+### Plan
+- Let staff submit orders from the admin Rx form (`/admin/orders/rx/new`) without the order landing in their own cart, and make sure every admin/operator profile qualifies for portal pricing.
+
+### Release Notes
+- On the admin Rx form the button now reads "Send for submission". It sends the saved order to Rx Orders > Ready to release, where staff release it to the lab. It no longer adds the order to the staff member's cart.
+- Admin and operator profiles are approved for portal pricing against the Retail account, so store and pricelist prices show for staff. This was a data change on the live database only.
+
+### Technical Changelog
+- `RxOrderEditPage` passes `submitToQueue` to `RxForm`, calling new `submit_rx_order_to_queue(p_quote_id)` (staff-only, same hand-off as `submit_reviewed_rx_capture` without a capture job). Migration `20261019120000_submit_rx_order_to_queue.sql` was applied live through the Lovable MCP; `anon` execute is revoked.
+- Live data: manual portal approval and Retail (776) link set on cvre, gregory.morris, lisa.k, randall and kennyhu; Lisa Jordan unarchived with her Retail membership activated. Kenny Hunte stays pending until he verifies his email.
+
 ## 2026-10-15 — Email Previews resend (local source)
 
 ### Release Notes
