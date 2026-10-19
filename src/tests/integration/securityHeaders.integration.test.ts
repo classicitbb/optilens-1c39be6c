@@ -18,6 +18,10 @@ const deployedTargets = (process.env.HEADER_TEST_URLS ?? "")
 const readHeader = (headers: Headers, name: string) => headers.get(name) ?? headers.get(name.toLowerCase());
 
 describe("frontend security header policy", () => {
+  it("allows camera permission only for the app itself", () => {
+    const directives = buildSecurityHeaders("enforce")["Permissions-Policy"].split(", ");
+    expect(directives.find((value: string) => value.startsWith("camera="))).toBe("camera=(self)");
+  });
   it("defines strict CSP in enforcement mode", () => {
     const headers = buildSecurityHeaders("enforce");
     const csp = headers["Content-Security-Policy"];
