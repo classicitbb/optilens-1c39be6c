@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { PackagePlus, ScanLine, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { resolveStockCode, useReleaseStockOrder, useStageStockOrder, useStockOrderCatalog, type StockCatalogItem, type StockVariant } from '@/hooks/useStockOrderBuilder';
+import { resolveStockCode, variantIsChiral, useReleaseStockOrder, useStageStockOrder, useStockOrderCatalog, type StockCatalogItem, type StockVariant } from '@/hooks/useStockOrderBuilder';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,15 +43,23 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
 
   const add = (product: StockCatalogItem, variant: StockVariant | null, quantity = 1, side: StockSide = 'either') => {
     if (busy) return false;
-    const key = stockLineKey(product, variant, side);
-    if ((lines.find(l => l.key === key)?.quantity ?? 0) + quantity > stockLineLimit({ product, side })) {
-      toast({ description: `The maximum is ${stockLineLimit({ product, side })} per line.`, variant: 'destructive' }); return false;
+    // A pair of eye-specific lenses is two order lines (right and left barcode), not one line of two.
+    const split = product.product_type === 'lens' && side === 'pair' && variant != null && variantIsChiral(variant);
+    if (split) {
+      const codes = variant.metadata.opc_by_eye as Record<string, unknown> | undefined;
+      if (!codes?.left || !codes?.right) { toast({ description: 'This pair is missing a left or right OPC. Choose a single eye.', variant: 'destructive' }); return false; }
     }
-    setLines(previous => {
-      const existing = previous.find(l => l.key === key);
-      const nextQuantity = Math.min(stockLineLimit({ product, side }), (existing?.quantity ?? 0) + quantity);
-      return existing ? previous.map(l => l.key === key ? { ...l, quantity: nextQuantity } : l) : [...previous, { key, product, variant, side, quantity: nextQuantity, customerRef: '' }];
-    });
+    const sides: StockSide[] = split ? ['right', 'left'] : [side];
+    const targets = sides.map(s => ({ side: s, key: stockLineKey(product, variant, s) }));
+    const limit = stockLineLimit({ product, side: sides[0] });
+    if (targets.some(t => (lines.find(l => l.key === t.key)?.quantity ?? 0) + quantity > limit)) {
+      toast({ description: `The maximum is ${limit} per line.`, variant: 'destructive' }); return false;
+    }
+    setLines(previous => targets.reduce((acc, t) => {
+      const existing = acc.find(l => l.key === t.key);
+      const nextQuantity = Math.min(limit, (existing?.quantity ?? 0) + quantity);
+      return existing ? acc.map(l => l.key === t.key ? { ...l, quantity: nextQuantity } : l) : [...acc, { key: t.key, product, variant, side: t.side, quantity: nextQuantity, customerRef: '' }];
+    }, previous));
     return true;
   };
   const patch = (key: string, change: Partial<StockLine>) => setLines(previous => previous.map(l => l.key === key ? { ...l, ...change } : l));

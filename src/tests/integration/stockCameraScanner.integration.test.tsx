@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-const mock = vi.hoisted(() => ({ decode: vi.fn(), stop: vi.fn(), trackStop: vi.fn() }));
-vi.mock('@zxing/browser', () => ({ BrowserMultiFormatReader: class { decodeFromStream = mock.decode; } }));
+const mock = vi.hoisted(() => ({ decode: vi.fn(), stop: vi.fn(), trackStop: vi.fn(), hints: undefined as Map<number, unknown> | undefined }));
+vi.mock('@zxing/browser', () => ({ BrowserMultiFormatReader: class { constructor(hints?: Map<number, unknown>) { mock.hints = hints; } decodeFromStream = mock.decode; } }));
+import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { StockCameraScanner } from '@/features/rx-order/form/StockCameraScanner';
 beforeEach(() => {
   mock.stop.mockReset(); mock.trackStop.mockReset();
@@ -23,6 +24,14 @@ describe('stock camera lifecycle', () => {
     expect(onScan).toHaveBeenCalledTimes(1); expect(onScan).toHaveBeenCalledWith('REP');
     await act(async () => { finish?.(true); });
     expect(mock.trackStop).toHaveBeenCalled();
+  });
+  it('reads only linear barcodes, never QR or other 2D symbols', async () => {
+    render(<StockCameraScanner onScan={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Enable camera' }));
+    await waitFor(() => expect(mock.decode).toHaveBeenCalled());
+    const formats = mock.hints?.get(DecodeHintType.POSSIBLE_FORMATS) as BarcodeFormat[];
+    expect(formats).toContain(BarcodeFormat.CODE_128);
+    for (const twoD of [BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX, BarcodeFormat.AZTEC, BarcodeFormat.PDF_417]) expect(formats).not.toContain(twoD);
   });
   it('stops camera tracks when closed', async () => {
     const { unmount } = render(<StockCameraScanner onScan={vi.fn()} />);

@@ -1,5 +1,7 @@
 # Project Status
 
+Stock scanner / pair lines (2026-10-19, local source): the camera scanner now decodes only linear barcodes (Code 128/39/93, Codabar, ITF, EAN, UPC); QR and other 2D symbols are ignored. Adding a Pair of an eye-specific (chiral) lens creates two order lines, Right only and Left only, each with its own OPC, instead of one line of two; symmetric lenses keep one pair line. Browser-driven on EVO (local state only, nothing saved or submitted): 4 supplies and all 41 material/design/colour lens combos, 2,209 lines. VCPL has no stock/supply pricelist rows, so its catalog is empty. Focused tests, tsc and scoped lint pass.
+
 Dashboard import error recovery (2026-10-19, local environment): restored locked dependencies with npm ci after the camera scanner's declared ZXing packages were missing from node_modules. Both app and standalone prototype previews were restarted after releasing their Windows native-module locks. Dashboard browser renders without the Vite overlay or console errors; scanner module HTTP 200 and production build pass. No application source, dependency manifest, lockfile or hosted service change.
 
 Stock entry route / picker visibility (2026-10-19, local source): fresh stock-orders visits open the canonical Rx form with ?type=stock; quote/highlight links retain the stock editor. Lens menus now portal outside scrolling panels; segmented controls have contrasting selected states in both themes. Browser verified lens selection, powers and a local pair addition/removal without saving/submitting. No deployment.

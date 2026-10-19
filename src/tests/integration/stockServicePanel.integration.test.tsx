@@ -10,8 +10,16 @@ vi.mock('@/hooks/useStockOrderBuilder', async importOriginal => ({
 }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock('@/hooks/useReferenceData', () => ({ useReferenceData: () => ({ data: [] }) }));
+vi.mock('@/features/rx-order/form/StockLensBrowser', () => ({
+  StockLensBrowser: ({ products, onAdd }: { products: Array<{ product_id: string }>; onAdd: (p: unknown, v: unknown, q: number, s: string) => void }) => <>
+    <button onClick={() => onAdd(products[0], chiral, 2, 'pair')}>Add chiral pair</button>
+    <button onClick={() => onAdd(products[0], symmetric, 2, 'pair')}>Add symmetric pair</button>
+  </>,
+}));
 import { StockServicePanel } from '@/features/rx-order/form/StockServicePanel';
 const service = { product_type: 'addon', product_id: 'repair', name: 'Frame repair', category: 'Services', sku: 'REP', unit_price: 12, has_variants: false };
+const chiral = { id: 'v1', title: '-2.00', sku: null, opc_code: null, attributes: {}, stock_qty: 0, metadata: { is_chiral: true, opc_by_eye: { right: 'R-111', left: 'L-222' } } };
+const symmetric = { id: 'v2', title: '-3.00', sku: null, opc_code: 'S-333', attributes: {}, stock_qty: 0, metadata: {} };
 beforeEach(() => {
   window.matchMedia = vi.fn().mockImplementation(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
   mock.catalog = [service]; mock.stage.mockReset().mockResolvedValue({ submission_id: 'saved', order_total: 12 }); mock.release.mockReset().mockResolvedValue(undefined); mock.scan.mockReset();
@@ -75,5 +83,18 @@ describe('integrated stock form persistence boundary', () => {
     finish?.({ productType: 'addon', productId: 'repair', variantId: 'v', variantTitle: 'Repair', side: 'either' });
     await waitFor(() => expect(screen.getByLabelText('Scan SKU or OPC')).not.toBeDisabled());
     expect(screen.queryByLabelText('Line 1 quantity')).not.toBeInTheDocument();
+  });
+  it('adds a chiral pair as separate right and left lines with their own barcodes', () => {
+    mock.catalog = [{ ...service, product_type: 'lens', product_id: 'lens', name: 'Stock lens', unit_price: 20, has_variants: true }];
+    start(); fireEvent.click(screen.getByRole('button', { name: 'Add stock lenses' })); fireEvent.click(screen.getByRole('button', { name: 'Add chiral pair' }));
+    expect(screen.getByLabelText('Line 1 quantity')).toHaveValue(2); expect(screen.getByLabelText('Line 2 quantity')).toHaveValue(2);
+    expect(screen.queryByLabelText('Line 3 quantity')).not.toBeInTheDocument();
+    const rows = screen.getAllByRole('row', { hidden: true }); expect(rows[1]).toHaveTextContent('R-111'); expect(rows[1]).toHaveTextContent('Right only');
+    expect(rows[2]).toHaveTextContent('L-222'); expect(rows[2]).toHaveTextContent('Left only');
+  });
+  it('keeps a symmetric pair as one line', () => {
+    mock.catalog = [{ ...service, product_type: 'lens', product_id: 'lens', name: 'Stock lens', unit_price: 20, has_variants: true }];
+    start(); fireEvent.click(screen.getByRole('button', { name: 'Add stock lenses' })); fireEvent.click(screen.getByRole('button', { name: 'Add symmetric pair' }));
+    expect(screen.getByLabelText('Line 1 quantity')).toHaveValue(2); expect(screen.queryByLabelText('Line 2 quantity')).not.toBeInTheDocument();
   });
 });
