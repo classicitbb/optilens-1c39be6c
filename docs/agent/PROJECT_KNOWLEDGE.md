@@ -1,5 +1,9 @@
 # Project Knowledge
 
+## Local dependency recovery — 2026-10-19
+
+If Vite reports a missing import already declared in both package.json and package-lock.json, check `npm ls <package>` before editing source. The stock camera scanner's ZXing packages were absent from node_modules after the camera commit; `npm ci` restored the locked dependencies. On Windows, stop all Vite processes using this checkout (including the standalone stock prototype) before `npm ci`: either can hold the Lightning CSS native module open and cause EPERM unlink. Restore the app with `npm run dev -- --strictPort` and the prototype with `npm exec -- vite --config src/features/rx-order/prototype/vite.config.mjs`. This is local dependency maintenance, with no deployment or schema change.
+
 Stock entry (2026-10-19): AdminRoutes StockOrderEntry redirects fresh /admin/orders/stock-orders visits to /admin/orders/rx/new?type=stock, retaining other query parameters; quote/highlight links keep StockOrderBuilderPage for saved drafts/product tunnels. RxOrderEditPage passes initialOrderType only for new orders and keys by entry mode. ComboBox uses installed Radix Popover portal/anchor, trigger width, collision padding and available-height scrolling. Search/arrow/Enter/Tab/Escape keep input focus. Shared rx-segment styling in index.css supplies explicit light/dark selection. No permission or persistence changes.
 
 ## Integrated stock ordering — 2026-10-19

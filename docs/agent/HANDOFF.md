@@ -914,3 +914,10 @@ Affected files: `src/features/rx-order/form/StockServicePanel.tsx`, `src/pages/a
 Validation: scoped ESLint completed with 0 errors and existing warnings; `npm run build` passed; `git diff --check` passed. Full `npm run lint -- --no-warn-ignored` ran for over 30 seconds without output and was interrupted; do not treat that as a pass. No tests were run. No visual browser verification, order submission, or deployment occurred.
 
 Continuation closed: current stock entry, theme, dropdown, catalog/power and local-line checks are recorded above.
+## 2026-10-19 — Dashboard dependency recovery
+
+Status: Complete — no active handoff
+
+The dashboard showed a Vite import-analysis overlay for @zxing/browser in StockCameraScanner.tsx. Both ZXing packages were declared in package.json/package-lock.json but `npm ls @zxing/browser @zxing/library` returned empty. Restored node_modules with `npm ci`; two attempts first failed with EPERM because the app and standalone prototype Vite processes held Lightning CSS open. Stopped those local previews, completed npm ci, then restored both using their existing configurations. No application source, manifest or lockfile edit was needed. Context changes: STATUS.md, PROJECT_KNOWLEDGE.md and this handoff.
+
+Validation: npm ci and npm ls pass; npm run build passes with existing config/chunk warnings. Dashboard and scanner module return HTTP 200. Fresh authenticated browser renders the dashboard without an error overlay; console warning/error log is empty. Prototype root also returns HTTP 200. No camera permission, order write, hosted deployment or credential change. Lint and tests were not rerun for dependency restoration and context-only edits.
