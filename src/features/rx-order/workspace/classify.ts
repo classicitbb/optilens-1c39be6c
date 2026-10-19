@@ -8,6 +8,7 @@
 //   Problems          failed submissions, failed captures, lab holds
 //   Done              delivered / complete, and cancelled
 import type { RxSubmissionRow } from "../types";
+import type { StockSubmissionRow } from "./stockSubmissions";
 
 export type WorkspaceTab = "review" | "ready" | "lab" | "problems" | "done";
 export const TABS: { id: WorkspaceTab; label: string }[] = [
@@ -35,7 +36,7 @@ export interface CaptureRow {
 
 export interface WorkspaceItem {
   key: string;
-  kind: "submission" | "capture";
+  kind: "submission" | "capture" | "stock";
   tab: WorkspaceTab;
   source: RxSource;
   provider: "innovations" | "gatekeeper" | null;
@@ -47,6 +48,7 @@ export interface WorkspaceItem {
   status: string;
   createdAt: string;
   submission?: RxSubmissionRow;
+  stock?: StockSubmissionRow;
   capture?: CaptureRow;
 }
 
@@ -73,10 +75,16 @@ export function captureTab(c: CaptureRow, hasSubmission: boolean): WorkspaceTab 
   return c.status === "failed" ? "problems" : "review";
 }
 
+export function stockSubmissionTab(s: Pick<StockSubmissionRow, "status" | "lab_status">): WorkspaceTab {
+  if (s.status === "staged") return "ready";
+  return submissionTab(s);
+}
+
 const captureSource = (c: CaptureRow): RxSource => (c.source === "local_capture" ? "local_capture" : "capture");
 
 export function buildItems(args: {
   submissions: readonly RxSubmissionRow[];
+  stocks?: readonly StockSubmissionRow[];
   captures: readonly CaptureRow[];
   accountName: (id: number | null) => string;
   quoteNumbers: ReadonlyMap<string, string>;
@@ -109,6 +117,16 @@ export function buildItems(args: {
       status: c.status, createdAt: c.created_at, capture: c,
     });
   }
+  for (const s of args.stocks ?? []) {
+    items.push({
+      key: `stock:${s.id}`, kind: "stock", tab: stockSubmissionTab(s), source: "form",
+      provider: s.dispatch_provider ?? "innovations", accountId: s.account_id,
+      accountName: s.payload?.account?.name ?? accountName(s.account_id),
+      quoteId: s.quote_id,
+      quoteNumber: s.order_id != null ? `Stock ${s.order_id}` : s.gatekeeper_order_id != null ? `Stock ${s.gatekeeper_order_id}` : s.order_reference ?? "Stock draft",
+      status: s.status, createdAt: s.created_at, stock: s,
+    });
+  }
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
@@ -117,18 +135,21 @@ export interface Filters {
   text: string;
   source: RxSource | "all";
   provider: "innovations" | "gatekeeper" | "all";
+  orderType?: "rx" | "stock" | "all";
   /** yyyy-mm-dd, inclusive; empty for open ended. */
   from: string;
   to: string;
 }
-export const NO_FILTERS: Filters = { text: "", source: "all", provider: "all", from: "", to: "" };
+export const NO_FILTERS: Filters = { text: "", source: "all", provider: "all", orderType: "all", from: "", to: "" };
 
 export function applyFilters(items: readonly WorkspaceItem[], f: Filters): WorkspaceItem[] {
   const text = f.text.trim().toLowerCase();
   return items.filter((i) => {
+    if (f.orderType === "stock" && i.kind !== "stock") return false;
+    if (f.orderType === "rx" && i.kind === "stock") return false;
     if (f.source !== "all" && i.source !== f.source) return false;
     if (f.provider !== "all" && i.provider !== f.provider) return false;
-    if (text && !`${i.accountName} ${i.quoteNumber ?? ""}`.toLowerCase().includes(text)) return false;
+    if (text && !`${i.accountName} ${i.quoteNumber ?? ""} ${i.stock?.order_reference ?? ""} ${i.stock?.po_number ?? ""} ${i.stock?.gatekeeper_order_id ?? ""}`.toLowerCase().includes(text)) return false;
     const day = i.createdAt.slice(0, 10);
     if (f.from && day < f.from) return false;
     if (f.to && day > f.to) return false;

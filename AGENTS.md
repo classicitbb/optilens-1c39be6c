@@ -23,7 +23,7 @@ Read in order.
 ## Scope discipline
 
 - Only read files in the feature folder you are tasked with.
-- Do not preload docs for unrelated features.
+- Rx workspace joins separate outboxes; stock uses its release RPC. Preview never sends.
 - If a task touches multiple features, read both CONTEXT.md files, then stop
   unless you hit a gap.
 - For explicit repo-wide repair, dependency cleanup, build stabilization, or
@@ -64,7 +64,7 @@ Read in order.
 # Repository agent rules
 
 - Subdirectories have their own `AGENTS.md`; read it first. Wiki rules: `docs/wiki/AGENTS.md`.
-- Camera/keyboard stock scans share catalog resolution; dialog close stops camera tracks.
+- Stock scans share resolution; close stops camera.
 
 ## Frontend architecture and routing governance
 
