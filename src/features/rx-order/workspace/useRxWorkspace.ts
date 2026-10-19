@@ -7,11 +7,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useRxSubmissions } from "../hooks/useRxSubmissions";
 import { buildItems, type CaptureRow } from "./classify";
+import type { StockSubmissionRow } from "./stockSubmissions";
 
 export function useRxWorkspace() {
   const qc = useQueryClient();
   const outbox = useRxSubmissions();
   const { data: accounts = [] } = useCustomerAccounts();
+  const stocks = useQuery<StockSubmissionRow[]>({
+    queryKey: ["stock-order-submissions"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("stock_order_submissions")
+        .select("id,account_id,po_number,order_reference,status,payload,created_at,updated_at,quote_id,order_id,dispatch_provider,transport,filename,attempts,last_error,released_at,gatekeeper_order_id,receipt,lab_status,lab_status_detail,lab_status_at")
+        .order("created_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const captures = useQuery<CaptureRow[]>({
     queryKey: ["rx-workspace-captures"],
@@ -43,21 +55,23 @@ export function useRxWorkspace() {
   const accountName = (id: number | null) => accounts.find((a) => a.id === id)?.name ?? "—";
   const items = useMemo(
     () => buildItems({
-      submissions: outbox.data ?? [], captures: captures.data ?? [],
+      submissions: outbox.data ?? [], captures: captures.data ?? [], stocks: stocks.data ?? [],
       accountName: (id) => accounts.find((a) => a.id === id)?.name ?? "—",
       quoteNumbers: quoteNumbers.data ?? new Map(),
     }),
-    [outbox.data, captures.data, accounts, quoteNumbers.data],
+    [outbox.data, captures.data, stocks.data, accounts, quoteNumbers.data],
   );
 
   return {
     items,
-    isLoading: outbox.isLoading || captures.isLoading,
+    isLoading: outbox.isLoading || captures.isLoading || stocks.isLoading,
+    error: outbox.error ?? captures.error ?? stocks.error,
     outbox,
     accountName,
     refresh: () => {
       void qc.invalidateQueries({ queryKey: ["rx-order-submissions"] });
       void qc.invalidateQueries({ queryKey: ["rx-workspace-captures"] });
+      void qc.invalidateQueries({ queryKey: ["stock-order-submissions"] });
     },
   };
 }
