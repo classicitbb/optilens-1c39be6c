@@ -21,6 +21,8 @@ import {
 import { RxOrderDrawer } from "./RxOrderDrawer";
 import { emailCustomer, useRxWorkspace, type CustomerEvent } from "./useRxWorkspace";
 import { useReleaseStockOrder } from "@/hooks/useStockOrderBuilder";
+import { ToastAction } from "@/components/ui/toast";
+import { isNotPricedError, releaseErrorMessage } from "./releaseError";
 
 type Provider = "innovations" | "gatekeeper";
 
@@ -74,7 +76,18 @@ export default function RxOrdersWorkspace() {
   const release = async (i: WorkspaceItem, provider: Provider) => {
     if (i.stock) {
       try { await stockRelease.mutateAsync({ id: i.stock.id, provider }); }
-      catch (e) { toast({ variant: "destructive", title: "Release failed", description: e instanceof Error ? e.message : undefined }); throw e; }
+      catch (e) {
+        const msg = releaseErrorMessage(e);
+        toast({
+          variant: "destructive",
+          title: "Release failed",
+          description: isNotPricedError(msg) ? `${msg} Price it on the account's price list, then release again.` : msg,
+          action: isNotPricedError(msg)
+            ? <ToastAction altText="Open price lists" onClick={() => navigate("/admin/pricing/pricelists")}>Open price lists</ToastAction>
+            : undefined,
+        });
+        throw new Error(msg ?? "Release failed");
+      }
       finally { ws.refresh(); }
       return;
     }
