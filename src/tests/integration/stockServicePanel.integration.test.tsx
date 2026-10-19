@@ -51,4 +51,26 @@ describe('integrated stock form persistence boundary', () => {
     await screen.findByText(/eye-specific OPC/);
     expect(screen.queryByLabelText('Line 1 quantity')).not.toBeInTheDocument(); expect(mock.stage).not.toHaveBeenCalled();
   });
+  it('adds one matched scan locally, closes the scanner and increments on the next scan', async () => {
+    start();
+    for (const quantity of [1, 2]) {
+      fireEvent.click(screen.getByRole('button', { name: 'Scan', exact: true }));
+      fireEvent.change(screen.getByLabelText('Scan SKU or OPC'), { target: { value: 'REP' } });
+      fireEvent.keyDown(screen.getByLabelText('Scan SKU or OPC'), { key: 'Enter' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByLabelText('Line 1 quantity')).toHaveValue(quantity);
+    }
+    expect(mock.stage).not.toHaveBeenCalled(); expect(mock.release).not.toHaveBeenCalled();
+  });
+  it('does not add an item when its lookup completes after backing out', async () => {
+    let finish: ((value: unknown) => void) | undefined;
+    mock.scan.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    start(); fireEvent.click(screen.getByRole('button', { name: 'Scan', exact: true }));
+    fireEvent.change(screen.getByLabelText('Scan SKU or OPC'), { target: { value: 'LOOKUP' } });
+    fireEvent.keyDown(screen.getByLabelText('Scan SKU or OPC'), { key: 'Enter' });
+    fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }));
+    finish?.({ productType: 'addon', productId: 'repair', variantId: 'v', variantTitle: 'Repair', side: 'either' });
+    await waitFor(() => expect(screen.getByLabelText('Scan SKU or OPC')).not.toBeDisabled());
+    expect(screen.queryByLabelText('Line 1 quantity')).not.toBeInTheDocument();
+  });
 });
