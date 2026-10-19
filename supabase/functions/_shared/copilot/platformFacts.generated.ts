@@ -823,11 +823,11 @@ export const PLATFORM_RESOURCE_DETAIL: Record<string, PlatformResourceDetail> = 
     "columns": "*",
     "searchColumns": [
       "name",
-      "description"
+      "notes"
     ],
     "writable": [
       "name",
-      "description",
+      "notes",
       "is_active",
       "web_enabled",
       "wspl_enabled",
