@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { StockItemBrowser } from './StockItemBrowser';
 import { StockLensBrowser } from './StockLensBrowser';
+import { StockCameraScanner } from './StockCameraScanner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { stageStockLines, stockLineKey, stockLineLimit, stockLinePrice, stockLineSku, type StockLine, type StockSide } from './stockOrderModel';
 import './stock-order-form.css';
 
@@ -16,6 +18,8 @@ const money = (price: number) => new Intl.NumberFormat('en-BB', { style: 'curren
 const errorMessage = (e: unknown) => e instanceof Error ? e.message : 'Please try again.';
 
 export function StockServicePanel({ accountId, accountName }: { accountId: number | null; accountName: string }) {
+  const isMobile = useIsMobile();
+  const useCamera = isMobile || (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   const { toast } = useToast();
   const { data: catalog = [], isLoading, error } = useStockOrderCatalog(accountId);
   const stage = useStageStockOrder();
@@ -29,22 +33,26 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState('');
   const submissionId = useRef<string | undefined>(undefined);
+  const scanInFlight = useRef(false);
+  const scanSession = useRef(0);
+  const changeDialog = (next: typeof dialog) => { scanSession.current += 1; setDialog(next); };
   const busy = stage.isPending || release.isPending;
   const supplies = catalog.filter(p => p.product_type !== 'lens');
   const lenses = catalog.filter(p => p.product_type === 'lens');
   const total = lines.reduce((sum, l) => sum + Math.round(stockLinePrice(l) * 100) * l.quantity, 0) / 100;
 
   const add = (product: StockCatalogItem, variant: StockVariant | null, quantity = 1, side: StockSide = 'either') => {
-    if (busy) return;
+    if (busy) return false;
     const key = stockLineKey(product, variant, side);
     if ((lines.find(l => l.key === key)?.quantity ?? 0) + quantity > stockLineLimit({ product, side })) {
-      toast({ description: `The maximum is ${stockLineLimit({ product, side })} per line.`, variant: 'destructive' }); return;
+      toast({ description: `The maximum is ${stockLineLimit({ product, side })} per line.`, variant: 'destructive' }); return false;
     }
     setLines(previous => {
       const existing = previous.find(l => l.key === key);
       const nextQuantity = Math.min(stockLineLimit({ product, side }), (existing?.quantity ?? 0) + quantity);
       return existing ? previous.map(l => l.key === key ? { ...l, quantity: nextQuantity } : l) : [...previous, { key, product, variant, side, quantity: nextQuantity, customerRef: '' }];
     });
+    return true;
   };
   const patch = (key: string, change: Partial<StockLine>) => setLines(previous => previous.map(l => l.key === key ? { ...l, ...change } : l));
   const validate = () => {
@@ -55,7 +63,8 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
   };
   const persist = async () => {
     const items = validate();
-    const row = await stage.mutateAsync({ submissionId: submissionId.current, accountId: accountId!, poNumber: poNumber.trim(), orderReference: reference.trim(), instructions: instructions.trim(), items });
+    if (accountId == null) throw new Error('Choose an account first.');
+    const row = await stage.mutateAsync({ submissionId: submissionId.current, accountId, poNumber: poNumber.trim(), orderReference: reference.trim(), instructions: instructions.trim(), items });
     submissionId.current = row.submission_id;
     return row;
   };
@@ -77,24 +86,31 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
     try { validate(); setDialog('review'); }
     catch (e) { toast({ description: errorMessage(e), variant: 'destructive' }); }
   };
-  const scan = async () => {
-    if (!accountId || scanning || busy) return;
-    const code = scanValue.trim();
-    if (!code || !/^[a-z0-9._/-]+$/i.test(code)) { setScanMessage('Enter a valid SKU / OPC.'); return; }
+  const scan = async (scannedCode = scanValue): Promise<boolean> => {
+    if (accountId == null || scanInFlight.current || busy) return false;
+    const code = scannedCode.trim();
+    if (!code || !/^[a-z0-9._/-]+$/i.test(code)) { setScanMessage('Enter a valid SKU / OPC.'); return false; }
+    scanInFlight.current = true;
+    const session = scanSession.current;
     setScanning(true); setScanMessage('');
     try {
       const direct = supplies.find(p => p.sku === code && !p.has_variants);
-      if (direct) add(direct, null);
+      let added: boolean;
+      if (direct) added = add(direct, null);
       else {
         const resolved = await resolveStockCode(code);
+        if (session !== scanSession.current) return false;
         const product = resolved && catalog.find(p => p.product_type === resolved.productType && p.product_id === resolved.productId);
         if (!resolved || !product) throw new Error('This code is not offered on the selected account’s catalog.');
         if (resolved.isChiral && resolved.side === 'either') throw new Error('Scan the eye-specific OPC for this lens, or select its eye in the lens browser.');
-        add(product, { id: resolved.variantId, title: resolved.variantTitle, sku: code, opc_code: code, attributes: {}, metadata: {}, stock_qty: 0 }, 1, resolved.side);
+        added = add(product, { id: resolved.variantId, title: resolved.variantTitle, sku: code, opc_code: code, attributes: {}, metadata: {}, stock_qty: 0 }, 1, resolved.side);
       }
-      setScanValue(''); setScanMessage('Item added. Scan the next item.');
-    } catch (e) { setScanMessage(errorMessage(e)); }
-    finally { setScanning(false); }
+      if (!added) { setScanMessage('The item could not be added: line limit reached.'); return false; }
+      setScanValue(''); setScanMessage('Item added.');
+      changeDialog(null);
+      return true;
+    } catch (e) { if (session === scanSession.current) setScanMessage(errorMessage(e)); return false; }
+    finally { scanInFlight.current = false; setScanning(false); }
   };
   const scanInput = <Input aria-label="Scan SKU or OPC" value={scanValue} onChange={e => setScanValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); void scan(); } }} placeholder="Scan SKU / OPC, then Enter…" autoComplete="off" disabled={scanning || busy} />;
   const lineTable = <div className="overflow-auto"><table className="stock-entry-table"><thead><tr><th>#</th><th>SKU / OPC</th><th>Description</th><th>Line ref.</th><th>Qty</th><th>Unit price</th><th>Subtotal</th><th /></tr></thead><tbody>{lines.map((l, i) => <tr key={l.key}><td>{i + 1}</td><td className="font-mono text-[10px]">{stockLineSku(l) || '—'}</td><td><b className="font-semibold">{l.product.name}</b><small className="block text-muted-foreground">{l.variant?.title}{l.product.product_type === 'lens' ? ` · ${l.side === 'pair' ? 'Pair' : l.side === 'either' ? 'Single lens' : l.side === 'right' ? 'Right only' : 'Left only'}` : l.product.product_type === 'addon' ? ' · Service' : ''}</small></td><td><Input aria-label={`Line ${i + 1} reference`} value={l.customerRef} onChange={e => patch(l.key, { customerRef: e.target.value })} placeholder="Optional" className="w-24" disabled={busy} /></td><td><Input aria-label={`Line ${i + 1} quantity`} type="number" min={1} max={stockLineLimit(l)} step={1} value={l.quantity} onChange={e => patch(l.key, { quantity: Math.max(1, Math.min(stockLineLimit(l), Math.floor(Number(e.target.value) || 1))) })} className="w-16" disabled={busy} /></td><td className="whitespace-nowrap">{money(stockLinePrice(l))}<small className="block text-muted-foreground">per {l.product.product_type === 'lens' ? l.side === 'pair' ? 'pair' : 'lens' : 'item'}</small></td><td className="whitespace-nowrap font-semibold">{money(stockLinePrice(l) * l.quantity)}</td><td><Button type="button" size="icon" variant="ghost" aria-label={`Remove line ${i + 1}`} className="h-7 w-7" disabled={busy} onClick={() => setLines(previous => previous.filter(x => x.key !== l.key))}><Trash2 className="h-3.5 w-3.5" /></Button></td></tr>)}{!lines.length && <tr><td colSpan={8} className="stock-entry-empty"><PackagePlus className="mx-auto mb-3 h-6 w-6 text-secondary" /><b className="block text-foreground">Your order starts here</b><p className="mt-2">Choose supplies, service items, stock lenses, or scan a barcode.</p></td></tr>}</tbody></table></div>;
@@ -103,10 +119,10 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
     <section className="stock-entry-card" aria-label="Order identification"><fieldset disabled={busy} className="grid gap-4 md:grid-cols-[1.15fr_.85fr_1.6fr]"><label className="stock-entry-label" htmlFor="stock-reference">Patient / order reference <span className="text-destructive">*</span><Input id="stock-reference" value={reference} maxLength={20} required placeholder="Patient name or reference" onChange={e => setReference(e.target.value)} /></label><label className="stock-entry-label" htmlFor="stock-po">PO number <span className="stock-entry-optional">(optional)</span><Input id="stock-po" value={poNumber} maxLength={15} placeholder="Purchase order number" onChange={e => setPoNumber(e.target.value)} /></label><label className="stock-entry-label" htmlFor="stock-instructions">Special instructions <span className="stock-entry-optional">(optional)</span><Textarea id="stock-instructions" value={instructions} placeholder="Anything we should know?" className="h-9 min-h-9 resize-y" onChange={e => setInstructions(e.target.value)} /></label></fieldset></section>
     <section className="stock-entry-card"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Order lines</h2><p className="mt-1 text-[11px] text-muted-foreground">Browse your account’s items, or scan an SKU / OPC.</p></div><div className="flex flex-wrap gap-2">{supplies.length > 0 && <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => setDialog('items')}><PackagePlus className="mr-1.5 h-3.5 w-3.5" />Add supplies{catalog.some(p => p.product_type === 'addon') ? ' / services' : ''}</Button>}{lenses.length > 0 && <Button type="button" size="sm" disabled={busy} onClick={() => setDialog('lenses')}>Add stock lenses</Button>}</div></div>
       {isLoading && <p className="mb-3 text-xs text-muted-foreground">Loading account catalog…</p>}{error && <p role="alert" className="mb-3 text-xs text-destructive">The account catalog could not be loaded. Try reselecting the account.</p>}{!isLoading && !error && !catalog.length && <p className="mb-3 text-xs text-muted-foreground">{accountId == null ? 'Choose an account to see available items.' : 'No stock lenses, supplies or service items are offered on this account’s pricelist.'}</p>}
-      {lineTable}<div className="mt-1 flex flex-wrap items-center gap-2 border-b py-3"><Button type="button" variant="outline" size="sm" disabled={busy || !catalog.length} onClick={() => { setScanMessage(''); setDialog('scanner'); }}><ScanLine className="mr-1.5 h-3.5 w-3.5" />Scan</Button><div className="w-64 max-w-full">{dialog !== 'scanner' && scanInput}</div></div>{dialog !== 'scanner' && scanMessage && <p role="status" className="mt-2 text-xs text-muted-foreground">{scanMessage}</p>}
+      {lineTable}<div className="mt-1 flex flex-wrap items-center gap-2 border-b py-3"><Button type="button" variant="outline" size="sm" disabled={busy || !catalog.length} onClick={() => { setScanMessage(''); changeDialog('scanner'); }}><ScanLine className="mr-1.5 h-3.5 w-3.5" />Scan</Button><div className="w-64 max-w-full">{dialog !== 'scanner' && scanInput}</div></div>{dialog !== 'scanner' && scanMessage && <p role="status" className="mt-2 text-xs text-muted-foreground">{scanMessage}</p>}
       <div className="mt-4 flex items-center justify-between gap-4"><div><div className="font-mono text-[10px] uppercase text-muted-foreground">Checkout estimate · BBD</div><small className="text-[11px] text-muted-foreground">{lines.reduce((n, l) => n + l.quantity, 0)} selling units · account prices · tax excluded</small></div><b className="text-xl font-semibold">{money(total)}</b></div>
     </section>
     <section className="stock-entry-card flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-sm font-semibold">Ready when you are</h2><p className="mt-1 text-[11px] text-muted-foreground">Prices are rechecked when saved and submitted.</p></div><div className="flex gap-2"><Button type="button" variant="outline" size="sm" disabled={busy || !reference.trim() || !lines.length || accountId == null} onClick={() => void saveDraft()}>Save draft</Button><Button type="button" size="sm" disabled={busy || !reference.trim() || !lines.length || accountId == null} onClick={review}>Review order →</Button></div></section>
-    <Dialog open={dialog !== null} onOpenChange={open => !open && setDialog(null)}><DialogContent className="stock-entry-dialog flex max-h-[88dvh] w-[min(980px,calc(100vw-2rem))] max-w-none flex-col gap-0 overflow-hidden p-0"><DialogHeader className="border-b px-5 pb-4 pt-5 text-left"><DialogTitle className="text-base">{dialog === 'items' ? 'Supplies & service items' : dialog === 'lenses' ? 'Choose lenses & powers' : dialog === 'scanner' ? 'Scan an item' : 'Review stock order'}</DialogTitle><DialogDescription className="text-xs">{dialog === 'review' ? `Reference: ${reference} · ${accountName}` : `Published, account-priced items for ${accountName || 'the selected account'}.`}</DialogDescription></DialogHeader><div className="min-h-0 overflow-y-auto p-5">{dialog === 'items' && <StockItemBrowser products={supplies} money={money} onAdd={(p, v) => add(p, v)} />}{dialog === 'lenses' && accountId != null && <StockLensBrowser accountId={accountId} products={lenses} money={money} onAdd={add} onDone={() => setDialog(null)} />}{dialog === 'scanner' && <div className="mx-auto max-w-lg space-y-4"><div className="stock-scan-target"><ScanLine className="h-5 w-5" /><span>Scan the barcode with your USB / handheld scanner</span></div>{scanInput}<p className="text-xs text-muted-foreground">Scan or type the SKU / OPC and press Enter. Each scan adds one item or individual lens. Camera scanning is not enabled.</p>{scanMessage && <p role="status" className="text-xs">{scanMessage}</p>}<Button type="button" size="sm" disabled={scanning || !scanValue.trim()} onClick={() => void scan()}>{scanning ? 'Looking up…' : 'Add scanned item'}</Button></div>}{dialog === 'review' && <div className="space-y-3"><p className="text-xs"><b>Patient / order reference:</b> {reference}</p>{poNumber && <p className="text-xs"><b>PO:</b> {poNumber}</p>}{instructions && <p className="whitespace-pre-wrap text-xs"><b>Special instructions:</b> {instructions}</p>}<ul className="divide-y text-xs">{lines.map(l => <li key={l.key} className="flex justify-between gap-4 py-2"><span>{l.product.name} {l.variant?.title} · {l.side === 'pair' ? 'Pair' : l.side} × {l.quantity}</span><b>{money(stockLinePrice(l) * l.quantity)}</b></li>)}</ul><p className="text-right text-sm font-semibold">Estimate {money(total)}</p><p className="text-xs text-muted-foreground">Submitting saves this order and releases it to the Innovations queue.</p></div>}</div><div className="flex items-center justify-end gap-2 border-t px-5 py-3"><Button type="button" variant="outline" size="sm" onClick={() => setDialog(null)} disabled={busy}> {dialog === 'review' ? 'Back to order' : 'Done'}</Button>{dialog === 'review' && <Button type="button" size="sm" disabled={busy} onClick={() => void submit()}>{busy ? 'Submitting…' : 'Submit stock order'}</Button>}</div></DialogContent></Dialog>
+    <Dialog open={dialog !== null} onOpenChange={open => !open && changeDialog(null)}><DialogContent className="stock-entry-dialog flex max-h-[88dvh] w-[min(980px,calc(100vw-2rem))] max-w-none flex-col gap-0 overflow-hidden p-0"><DialogHeader className="border-b px-5 pb-4 pt-5 text-left"><DialogTitle className="text-base">{dialog === 'items' ? 'Supplies & service items' : dialog === 'lenses' ? 'Choose lenses & powers' : dialog === 'scanner' ? 'Scan an item' : 'Review stock order'}</DialogTitle><DialogDescription className="text-xs">{dialog === 'review' ? `Reference: ${reference} · ${accountName}` : `Published, account-priced items for ${accountName || 'the selected account'}.`}</DialogDescription></DialogHeader><div className="min-h-0 overflow-y-auto p-5">{dialog === 'items' && <StockItemBrowser products={supplies} money={money} onAdd={(p, v) => add(p, v)} />}{dialog === 'lenses' && accountId != null && <StockLensBrowser accountId={accountId} products={lenses} money={money} onAdd={add} onDone={() => setDialog(null)} />}{dialog === 'scanner' && <div className="mx-auto max-w-lg space-y-4"><>{useCamera ? <StockCameraScanner onScan={scan} /> : <div className="stock-scan-target"><ScanLine className="h-5 w-5" /><span>Scan the barcode with your USB / handheld scanner</span></div>}</>{scanInput}<p className="text-xs text-muted-foreground">{useCamera ? 'SKU / OPC' : 'Scan or enter SKU / OPC'}</p>{scanMessage && <p role="status" className="text-xs">{scanMessage}</p>}<Button type="button" size="sm" disabled={scanning || !scanValue.trim()} onClick={() => void scan()}>{scanning ? 'Looking up…' : 'Add scanned item'}</Button></div>}{dialog === 'review' && <div className="space-y-3"><p className="text-xs"><b>Patient / order reference:</b> {reference}</p>{poNumber && <p className="text-xs"><b>PO:</b> {poNumber}</p>}{instructions && <p className="whitespace-pre-wrap text-xs"><b>Special instructions:</b> {instructions}</p>}<ul className="divide-y text-xs">{lines.map(l => <li key={l.key} className="flex justify-between gap-4 py-2"><span>{l.product.name} {l.variant?.title} · {l.side === 'pair' ? 'Pair' : l.side} × {l.quantity}</span><b>{money(stockLinePrice(l) * l.quantity)}</b></li>)}</ul><p className="text-right text-sm font-semibold">Estimate {money(total)}</p><p className="text-xs text-muted-foreground">Submitting saves this order and releases it to the Innovations queue.</p></div>}</div><div className="flex items-center justify-end gap-2 border-t px-5 py-3"><Button type="button" variant="outline" size="sm" onClick={() => changeDialog(null)} disabled={busy}> {dialog === 'review' ? 'Back to order' : 'Done'}</Button>{dialog === 'review' && <Button type="button" size="sm" disabled={busy} onClick={() => void submit()}>{busy ? 'Submitting…' : 'Submit stock order'}</Button>}</div></DialogContent></Dialog>
   </div>;
 }
