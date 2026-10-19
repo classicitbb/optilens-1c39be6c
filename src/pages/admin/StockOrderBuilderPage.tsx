@@ -652,9 +652,9 @@ const StockOrderBuilderPage = () => {
                 <input ref={poNumberRef} id="stock-order-po-number" name="poNumber" autoComplete="off" spellCheck={false} aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => upperCaseInput(e, setPoNumber)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="e.g. PO-1048…" />
               </div>
               <div className="field stock-order-detail-field stock-order-detail-field-reference">
-                <label htmlFor="stock-order-reference">Order reference</label>
+                <label htmlFor="stock-order-reference">Order reference <span aria-hidden="true" className="text-destructive">*</span><span className="sr-only"> required</span></label>
                 <p id="stock-order-reference-hint" className="stock-order-field-hint">A customer-facing or staff note that identifies this order.</p>
-                <input ref={orderReferenceRef} id="stock-order-reference" name="orderReference" autoComplete="off" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => upperCaseInput(e, setOrderReference)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale or phone order…" />
+                <input ref={orderReferenceRef} id="stock-order-reference" name="orderReference" autoComplete="off" required aria-required="true" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => upperCaseInput(e, setOrderReference)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale or phone order…" />
               </div>
             </div>
           </div>}
@@ -760,7 +760,7 @@ const StockOrderBuilderPage = () => {
             <button className="btn btn-ghost" type="button" disabled={!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error" || saveAsQuoteMutation.isPending} onClick={handleSaveAsQuotation}>
               {saveAsQuoteMutation.isPending ? "Saving quotation…" : "Save as quotation"}
             </button>
-            <button className="btn btn-primary" type="button" disabled={!staged || !stageItems.length || hasUnsavedChanges || isSavingStockOrder || autosaveStatus === "error" || releaseMutation.isPending} aria-describedby="stock-submit-gate" title={!staged ? "The order will be ready when its first change has been saved." : !stageItems.length ? "Add a product before submitting the order." : hasUnsavedChanges ? "Wait for changes to save before submitting." : undefined} onClick={handleRelease}>
+            <button className="btn btn-primary" type="button" disabled={!staged || !orderReference.trim() || !stageItems.length || hasUnsavedChanges || isSavingStockOrder || autosaveStatus === "error" || releaseMutation.isPending} aria-describedby="stock-submit-gate" title={!orderReference.trim() ? "Enter the required order reference." : !staged ? "The order will be ready when its first change has been saved." : !stageItems.length ? "Add a product before submitting the order." : hasUnsavedChanges ? "Wait for changes to save before submitting." : undefined} onClick={handleRelease}>
               {releaseMutation.isPending ? "Submitting…" : "Submit order"}
             </button>
           </div>

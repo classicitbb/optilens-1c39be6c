@@ -1,5 +1,7 @@
 # Rx order — feature context
 
+Stock/supplies (2026-10-19, local source): admin new orders offer only Rx and Stock / supplies. StockServicePanel embeds the approved compact identification/table/review UI; StockItemBrowser groups account-priced supplies and addon/service items, and StockLensBrowser reuses Rx Seg/ComboBox/catalog narrowing plus the store grid. useStockLensIdentities reads only safe lens identity fields and existing reference/option links; server catalog membership/prices remain authoritative. Parent Rx autosave is suspended in stock mode; changing account remounts the panel and clears old-account lines/submission IDs. UI pair quantities become individual lenses at stage time (symmetric quantity doubled; chiral pair becomes explicit right/left items with both OPCs required). Save and release remain explicit existing RPCs. USB/typed scanning is supported; camera capture is not enabled. Services are normal published addon products, not a separate order type or blanket collection marker. Legacy marker helpers remain for compatibility only.
+
 The Rx order form (customer `/profile/rx-order`, admin `/admin/orders/quotations/new-rx`)
 and everything it saves. **Customers cannot reach the form**: `rx-order` is opt-in
 (`usePortalIdentity.canAccessPortalFeature`, `can_access_customer_portal_feature`);

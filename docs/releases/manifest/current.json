@@ -1,16 +1,21 @@
 {
-  "semanticVersion": "0.12.0",
-  "sourceEntry": "2026-10-08 — Atlas layout and authenticated sharing (local source)",
-  "releaseDateTimeUtc": "2026-10-08T00:00:00.000Z",
+  "semanticVersion": "0.14.0",
+  "sourceEntry": "2026-10-19 — Integrated stock / supplies form (local source)",
+  "releaseDateTimeUtc": "2026-10-19T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending."
+    "The admin new-order form now embeds compact patient/reference, PO and instructions fields, a shared supplies/services category browser, account-priced lens selectors and variant grid, editable lines and a review-before-submit flow. Service request is removed from the order-type menu. Local source only; no production publication or real order submitted during verification."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "src/features/rx-order",
       "impact": "medium",
-      "notes": "Updated as part of Atlas layout and authenticated sharing (local source)."
+      "notes": "Updated as part of Integrated stock / supplies form (local source)."
+    },
+    {
+      "module": "src/hooks/useStockOrderBuilder.ts",
+      "impact": "medium",
+      "notes": "Updated as part of Integrated stock / supplies form (local source)."
     }
   ],
   "migrationNotes": [

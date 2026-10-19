@@ -264,7 +264,7 @@ function LoadedForm({
   const valuesKey = JSON.stringify(values);
   useEffect(() => {
     carted.current = false;
-    if (api.isEmpty || submitting.current) return;
+    if (stockMode || api.isEmpty || submitting.current) return;
     const timer = setTimeout(async () => {
       if (carted.current) return;
       setSaving(true);
@@ -272,7 +272,7 @@ function LoadedForm({
     }, 1500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valuesKey]);
+  }, [valuesKey, stockMode]);
 
   // ── submit ────────────────────────────────────────────────────────────────
   const [done, setDone] = useState<null | { kind: "cart" | "direct" | "test"; label: string; total: number; v1: any }>(null);
@@ -586,7 +586,7 @@ function LoadedForm({
       </div>
 
       {stockMode ? (
-        <StockServicePanel type={orderType as Exclude<OrderType, "rx">} accountId={accountId} accountName={account?.name ?? ""} />
+        <StockServicePanel key={accountId ?? "no-account"} accountId={accountId} accountName={account?.name ?? ""} />
       ) : (<>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">

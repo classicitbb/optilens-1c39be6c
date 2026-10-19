@@ -1,5 +1,21 @@
 # Project Knowledge
 
+## Integrated stock ordering — 2026-10-19
+
+`form/StockServicePanel.tsx` is now the runtime implementation of the approved prototype. It keeps one required patient/order reference (20 chars), optional PO (15), and optional instructions. StockItemBrowser handles both supply and addon/service catalog rows; StockLensBrowser imports actual Rx selectors/catalog logic and the store LensVariantGrid. `useStockLensIdentities` reads existing safe lens identity fields and reference tables/option links; no name-parsed or seeded product selection enters production. Multiple products/diameters sharing a triple need explicit selection; duplicate grid cells fall back to exact-variant lists. Existing stock catalog membership and server pricing govern everything.
+
+`stockOrderModel.ts` maps selling-unit pairs to individual-lens server quantities. Symmetric pairs double quantity; chiral pairs split into right/left items and require both eye OPCs. Single-eye/scanned individual lenses retain their quantities. Pair line limit 49 and individual limit 99 respect the existing server bound. Mixed service items remain ordinary addon items without marking the entire order as a collection request. The Service request menu option is removed while legacy marker helpers remain for compatibility. Account-keyed remounting clears old prices/draft IDs; Rx autosave is suspended in stock mode. No stock autosave is introduced. Review is local; Save draft and Submit explicitly call the existing RPCs. USB/typed scan entry is supported; no camera implementation or hardware proof.
+
+## Isolated stock / supplies prototype — 2026-10-19
+
+Annotation refinement: the default host is the preferred Rx supplies layout with order details directly followed by order lines; the duplicate supplies demonstration card was removed. `prototype/LensPicker.tsx` imports the real Rx `Seg`, `ComboBox`, `comboOptions` and `repairTriple`, plus the store `LensVariantGrid`; no production order hooks are imported. Vision/eyes are segmented controls, the searchable selector works in any order, and the store grid uses its compact descending axes. `LensVariantGrid.addButtonLabel` is an optional presentation prop with the existing store wording as default. Prototype-only Tailwind sources and scoped CSS render these components without the app shell. The prototype imports styles/workspace.css directly for admin tokens, mapped to semantic Rx component colours.
+
+`src/features/rx-order/prototype/` is a standalone Vite root, launched with `npx vite --config src/features/rx-order/prototype/vite.config.mjs`. It has seeded catalogs, one selected layout, customer/admin presentation, shared supplies rendering, gated power matrices, barcode keyboard entry and a simulated slim camera target. No app routes, environment loading, API clients, storage or real order operations are used. The regular app build excludes this entrypoint; standalone build output goes under `node_modules/.cache/stock-order-prototype`. Refresh clears all state. The merged required patient/order reference and per-pair prices are prototype assumptions to review before production integration. See its README for seeded scenarios and limits.
+
+RX stock/supplies ordering shares the existing stock catalog, draft and release hooks with `/admin/orders/stock-orders`; the standalone builder has not been replaced. Runtime pair/eye conversion is described above. `metadata.opc_by_eye` supplies chiral side-specific OPCs. Only item selection and review are modal; identification and lines stay visible.
+
+`useStockOrderCatalog(accountId)` supplies published, account-priced stock lenses, supplies and addon/service products. Patient/name and tracking reference are now merged into one required field; no independent optional patient value is stored in instructions.
+
 Rx sidebar alignment (2026-10-17): AccountLayout uses normal-flow `relative` positioning for the sidebar only on `/profile/rx-order`. The bounded content row is already stationary; inheriting other routes' `sticky top-16` makes its overflow container push the menu down 64px. Other routes keep that sticky offset. Form scrolling remains owned by RxForm.
 
 ## Uncut frame supply and Rx introduction — 2026-10-17
