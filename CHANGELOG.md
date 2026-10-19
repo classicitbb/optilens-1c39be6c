@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-19 — Stock entry and selector visibility (local source)
+
+### Release Notes
+- Fresh stock-order links open the shared Rx form in Stock / supplies mode. Saved stock quotes/product highlights retain the existing editor. Lens lists escape scrolling panels and fit the viewport; segmented choices have contrasting light/dark states. Browser lens-grid/local-line checks passed without saving/submitting. Not published.
+
+### Technical Changelog
+- Route new stock visits through the canonical Rx form with initialOrderType; preserve quote/highlight links. Reuse Radix Popover positioning and portals for shared searchable lens lists; add scoped theme selection styles. All 1,620 tests, TypeScript, lint, build and route smoke pass.
+
 Stock prototype selected design (2026-10-19, local only): retained only the chosen Rx supplies layout, deleted alternate designs/navigation, compacted identification to labelled fields, and adopted actual admin workspace tokens with Rx-sized controls and admin fonts. No publication or real order connection.
 
 Stock prototype annotation refinement (2026-10-19, local only): removed the duplicate supplies card, retained the preferred order form, reused Rx toggles/searchable any-order lens selectors and the store's compact power grid. Optional grid action wording leaves existing store behavior unchanged. No live catalog, cart or order connection.

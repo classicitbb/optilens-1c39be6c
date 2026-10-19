@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-19 — Stock entry and selector visibility (local source)
+
+### Release Notes
+- Fresh stock-order links open the shared Rx form in Stock / supplies mode. Saved stock quotes/product highlights retain the existing editor. Lens lists escape scrolling panels and fit the viewport; segmented choices have contrasting light/dark states. Browser lens-grid/local-line checks passed without saving/submitting. Not published.
+
 ## 2026-10-19 — Integrated stock / supplies form (local source)
 
 ### Release Notes

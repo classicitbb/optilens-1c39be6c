@@ -30,7 +30,7 @@ export function Seg<T extends string>({
       onValueChange={(v) => v && onChange(v as T)}
       aria-label={label}
       disabled={disabled}
-      className="flex-wrap justify-start gap-0 rounded-lg border bg-muted/40 p-0.5 w-fit"
+      className="rx-segment flex-wrap justify-start gap-1 rounded-lg border bg-muted/40 p-1 w-fit"
     >
       {options.map((o) => (
         <ToggleGroupItem
@@ -38,7 +38,7 @@ export function Seg<T extends string>({
           value={o.value}
           disabled={o.disabled}
           title={o.hint}
-          className="h-8 rounded-md px-3 text-xs font-medium data-[state=on]:bg-background data-[state=on]:shadow-sm data-[state=on]:text-foreground"
+          className="rx-segment-option h-9 rounded-md border border-transparent px-3 text-xs font-semibold"
         >
           {o.label}
         </ToggleGroupItem>

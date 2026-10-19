@@ -62,6 +62,8 @@ describe("lens pickers are type-to-search fields", () => {
     fireEvent.focus(material);
     const list = screen.getByRole("listbox", { name: "Material / index options" });
     expect(list.querySelectorAll("[role=option]")).toHaveLength(3);
+    // The menu escapes the form scroller rather than being clipped inside it.
+    expect(list.closest("[data-rx-form]")).toBeNull();
 
     type(material, "poly");
     expect(options().map((o) => o.textContent)).toEqual(["Polycarbonate"]);

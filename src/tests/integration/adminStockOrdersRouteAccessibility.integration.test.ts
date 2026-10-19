@@ -41,7 +41,10 @@ describe("admin stock order builder route accessibility", () => {
     const labScopeMigration = read("supabase/migrations/20260811010000_scope_stock_order_accounts_to_labs.sql");
 
     expect(routes).toContain('const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrderBuilderPage")');
-    expect(routes).toContain('<Route path="orders/stock-orders" element={<StockOrderBuilderPage />} />');
+    expect(routes).toContain('<Route path="orders/stock-orders" element={<StockOrderEntry />} />');
+    expect(routes).toContain('params.has("quote") || params.has("highlight")');
+    expect(routes).toContain('params.set("type", "stock")');
+    expect(routes).toContain('to={`/admin/orders/rx/new?${params}`}');
     expect(apps).toContain("{ label: 'Stock Order Builder', route: '/admin/orders/stock-orders'");
     expect(navigation).toContain('id: "admin.orders.stock-orders"');
     expect(navigation).toContain('shortcutKey: "stock-order"');

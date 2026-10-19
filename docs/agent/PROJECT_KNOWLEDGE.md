@@ -1,5 +1,7 @@
 # Project Knowledge
 
+Stock entry (2026-10-19): AdminRoutes StockOrderEntry redirects fresh /admin/orders/stock-orders visits to /admin/orders/rx/new?type=stock, retaining other query parameters; quote/highlight links keep StockOrderBuilderPage for saved drafts/product tunnels. RxOrderEditPage passes initialOrderType only for new orders and keys by entry mode. ComboBox uses installed Radix Popover portal/anchor, trigger width, collision padding and available-height scrolling. Search/arrow/Enter/Tab/Escape keep input focus. Shared rx-segment styling in index.css supplies explicit light/dark selection. No permission or persistence changes.
+
 ## Integrated stock ordering — 2026-10-19
 
 `form/StockServicePanel.tsx` is now the runtime implementation of the approved prototype. It keeps one required patient/order reference (20 chars), optional PO (15), and optional instructions. StockItemBrowser handles both supply and addon/service catalog rows; StockLensBrowser imports actual Rx selectors/catalog logic and the store LensVariantGrid. `useStockLensIdentities` reads existing safe lens identity fields and reference tables/option links; no name-parsed or seeded product selection enters production. Multiple products/diameters sharing a triple need explicit selection; duplicate grid cells fall back to exact-variant lists. Existing stock catalog membership and server pricing govern everything.

@@ -1,5 +1,7 @@
 # Project Status
 
+Stock entry route / picker visibility (2026-10-19, local source): fresh stock-orders visits open the canonical Rx form with ?type=stock; quote/highlight links retain the stock editor. Lens menus now portal outside scrolling panels; segmented controls have contrasting selected states in both themes. Browser verified lens selection, powers and a local pair addition/removal without saving/submitting. No deployment.
+
 Integrated stock / supplies form (2026-10-19, local source): replaced the admin Rx form's stock panel with the approved compact layout, categorized supplies/services, Rx-style lens choices, store power grid and review. Service request is no longer an order-type option; published addons/services use the same item browser. Account changes reset local stock state, stock mode suspends Rx autosave, and pair counts convert to individual server lens units. Existing save/release RPCs remain explicit. Real catalog reads and local line addition verified without saving/submitting; no deployment. See HANDOFF.md for validation.
 
 Stock prototype header removal (2026-10-19, local only): removed branding/demo selectors and the full account/title/subtitle/badge row. The form now begins with identification beneath the prototype banner. Seeded full-catalog pricing remains the default. Browser and standalone build verified; no live-site change.
