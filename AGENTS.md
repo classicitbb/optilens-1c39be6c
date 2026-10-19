@@ -2,7 +2,7 @@
 
 ## Start here — orientation sequence
 
-Read in order; fetch only what your task needs.
+Read in order.
 
 1. **`STATUS.md`** (root) — always read this first. Current work, known bugs, do-not-touch zones.
 2. **`src/features/<name>/CONTEXT.md`** — read the CONTEXT.md for the specific
@@ -64,7 +64,7 @@ Read in order; fetch only what your task needs.
 # Repository agent rules
 
 - Subdirectories have their own `AGENTS.md`; read it first. Wiki rules: `docs/wiki/AGENTS.md`.
-- Prefer maintainable refactors over parallel legacy systems.
+- Camera/keyboard stock scans share catalog resolution; dialog close stops camera tracks.
 
 ## Frontend architecture and routing governance
 

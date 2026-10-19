@@ -14743,6 +14743,10 @@ export type Database = {
         Args: { p_job_id: string }
         Returns: string
       }
+      submit_rx_order_to_queue: {
+        Args: { p_quote_id: string }
+        Returns: string
+      }
       sweep_stale_order_claims: {
         Args: { p_older_than?: string }
         Returns: number

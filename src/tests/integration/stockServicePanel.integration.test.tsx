@@ -12,7 +12,10 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock('@/hooks/useReferenceData', () => ({ useReferenceData: () => ({ data: [] }) }));
 import { StockServicePanel } from '@/features/rx-order/form/StockServicePanel';
 const service = { product_type: 'addon', product_id: 'repair', name: 'Frame repair', category: 'Services', sku: 'REP', unit_price: 12, has_variants: false };
-beforeEach(() => { mock.catalog = [service]; mock.stage.mockReset().mockResolvedValue({ submission_id: 'saved', order_total: 12 }); mock.release.mockReset().mockResolvedValue(undefined); mock.scan.mockReset(); });
+beforeEach(() => {
+  window.matchMedia = vi.fn().mockImplementation(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  mock.catalog = [service]; mock.stage.mockReset().mockResolvedValue({ submission_id: 'saved', order_total: 12 }); mock.release.mockReset().mockResolvedValue(undefined); mock.scan.mockReset();
+});
 function start() { render(<StockServicePanel accountId={1} accountName="Fixture account" />); }
 async function addService() {
   fireEvent.click(screen.getByRole('button', { name: /Add supplies/ }));
@@ -50,5 +53,27 @@ describe('integrated stock form persistence boundary', () => {
     start(); fireEvent.change(screen.getByLabelText('Scan SKU or OPC'), { target: { value: 'GENERIC' } }); fireEvent.keyDown(screen.getByLabelText('Scan SKU or OPC'), { key: 'Enter' });
     await screen.findByText(/eye-specific OPC/);
     expect(screen.queryByLabelText('Line 1 quantity')).not.toBeInTheDocument(); expect(mock.stage).not.toHaveBeenCalled();
+  });
+  it('adds one matched scan locally, closes the scanner and increments on the next scan', async () => {
+    start();
+    for (const quantity of [1, 2]) {
+      fireEvent.click(screen.getByRole('button', { name: 'Scan', exact: true }));
+      fireEvent.change(screen.getByLabelText('Scan SKU or OPC'), { target: { value: 'REP' } });
+      fireEvent.keyDown(screen.getByLabelText('Scan SKU or OPC'), { key: 'Enter' });
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByLabelText('Line 1 quantity')).toHaveValue(quantity);
+    }
+    expect(mock.stage).not.toHaveBeenCalled(); expect(mock.release).not.toHaveBeenCalled();
+  });
+  it('does not add an item when its lookup completes after backing out', async () => {
+    let finish: ((value: unknown) => void) | undefined;
+    mock.scan.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    start(); fireEvent.click(screen.getByRole('button', { name: 'Scan', exact: true }));
+    fireEvent.change(screen.getByLabelText('Scan SKU or OPC'), { target: { value: 'LOOKUP' } });
+    fireEvent.keyDown(screen.getByLabelText('Scan SKU or OPC'), { key: 'Enter' });
+    fireEvent.click(screen.getByRole('button', { name: 'Done', exact: true }));
+    finish?.({ productType: 'addon', productId: 'repair', variantId: 'v', variantTitle: 'Repair', side: 'either' });
+    await waitFor(() => expect(screen.getByLabelText('Scan SKU or OPC')).not.toBeDisabled());
+    expect(screen.queryByLabelText('Line 1 quantity')).not.toBeInTheDocument();
   });
 });
