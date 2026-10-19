@@ -1,5 +1,7 @@
 # Frontend Bug Reports
 
+Stock entry/pickers (2026-10-19, local source): repaired fresh stock URL routing, low-contrast segmented choices, and lens menus clipped by modal/form overflow. Authenticated browser verified both themes, actual catalog narrowing, power grid and a temporary local pair line removed without persistence. Search/keyboard and portal placement regression coverage pass; saved-stock editor contracts remain.
+
 Stock form integration (2026-10-19, local source): replaced the old stock panel with the approved compact form; removed separate service order selection and exposed published service/addon items alongside supplies. Added explicit pair-to-lens conversion, chiral per-eye OPC checks, ambiguous product/diameter selection, exact-variant fallback for duplicate grid cells, account-remount isolation and an Rx-autosave guard in stock mode. Tests mock persistence and cover mixed services, pair quantities, required reference, failed-save/no-release, and unpriced scan refusal. Real catalog/selector/grid and local line handoff checked without saving or submitting. No migration, auth or publication.
 
 Selected prototype design follow-up (2026-10-19): removed excess identification heading/help/spacing and all competing layouts/navigation. Direct workspace-token and font imports now replace the approximate prototype palette. Existing seeded order behavior and real shared Rx/store UI components remain. Production forms/data are untouched.

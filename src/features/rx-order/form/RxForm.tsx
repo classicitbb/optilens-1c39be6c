@@ -63,6 +63,8 @@ export interface RxFormProps {
   introduction?: string;
   /** Fresh order from a pricelist: resolve against the loaded account catalog. */
   initialLensAlias?: string;
+  /** New admin order entry mode; saved orders still reopen as Rx. */
+  initialOrderType?: "rx" | "stock";
   resumedDraftId?: string;
   pricesVisible?: boolean;
   allowDirectSubmit?: boolean;
@@ -185,7 +187,7 @@ function LoadedForm({
   const hasSavedDrafts = props.surface === "portal" && cartDrafts.length + rxDrafts.length > 0;
   const isTest = props.isTest === true;
   // Order type is only offered to staff starting a new order; a reopened order is always an Rx order.
-  const [orderType, setOrderType] = useState<OrderType>("rx");
+  const [orderType, setOrderType] = useState<OrderType>(props.initialOrderType ?? "rx");
   const canPickType = props.surface === "admin" && !props.quoteId && !props.prefill && !props.fixture;
   const stockMode = canPickType && orderType !== "rx";
 

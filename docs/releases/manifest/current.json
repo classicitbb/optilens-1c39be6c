@@ -1,21 +1,16 @@
 {
-  "semanticVersion": "0.14.0",
-  "sourceEntry": "2026-10-19 — Integrated stock / supplies form (local source)",
+  "semanticVersion": "0.15.0",
+  "sourceEntry": "2026-10-19 — Stock entry and selector visibility (local source)",
   "releaseDateTimeUtc": "2026-10-19T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "The admin new-order form now embeds compact patient/reference, PO and instructions fields, a shared supplies/services category browser, account-priced lens selectors and variant grid, editable lines and a review-before-submit flow. Service request is removed from the order-type menu. Local source only; no production publication or real order submitted during verification."
+    "Fresh stock-order links open the shared Rx form in Stock / supplies mode. Saved stock quotes/product highlights retain the existing editor. Lens lists escape scrolling panels and fit the viewport; segmented choices have contrasting light/dark states. Browser lens-grid/local-line checks passed without saving/submitting. Not published."
   ],
   "moduleImpact": [
     {
-      "module": "src/features/rx-order",
+      "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Integrated stock / supplies form (local source)."
-    },
-    {
-      "module": "src/hooks/useStockOrderBuilder.ts",
-      "impact": "medium",
-      "notes": "Updated as part of Integrated stock / supplies form (local source)."
+      "notes": "Updated as part of Stock entry and selector visibility (local source)."
     }
   ],
   "migrationNotes": [

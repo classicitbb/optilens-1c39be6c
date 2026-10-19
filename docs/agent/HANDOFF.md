@@ -1,3 +1,13 @@
+## 2026-10-19 - Stock entry and selector visibility
+
+Status: Complete — no active handoff
+
+Fresh stock-orders links redirect to the canonical Rx form in stock mode. Saved quote/product-highlight links retain the existing stock editor. Shared ComboBox now uses the existing Radix portal/anchor with collision handling and available-height scrolling. Shared Seg has distinct selected fills in both themes. No permission or persistence changes.
+
+Authenticated local browser verified material/design/colour narrowing, power grid, and one 0.00/0.00 pair added locally then removed. Both themes, multifocal/right-eye toggles and menus extending beyond the modal scroller were checked. Original dark theme restored. No reference entered, hosted draft/order saved/submitted or production deployment. This supersedes the old stock/supplies visual-verification continuation below.
+
+Validation: 27 focused tests, full lint (0 errors / 2,423 warnings), build and route smoke passed. Final full suite: 1,620 tests pass across 253 files; TypeScript and final build pass. Repeated focused suite: 27 pass. Route smoke passes. Final diff whitespace check passes. PR checks pass after documentation symmetry and generated release-ledger synchronization. The ledger generated version 0.15.0; npm synchronized package.json/package-lock.json with no dependency changes. Live database audit was skipped without credentials.
+
 ## 2026-10-19 — Runtime stock / supplies integration
 
 Status: Complete — no active handoff
@@ -897,10 +907,10 @@ Status for the additional follow-up: Source complete; rendered browser verificat
 
 Follow-up refinements: patient, reference, PO, and compact special-instructions fields remain visible in the main form; patient is optional, order reference is required and max 20 characters, PO is max 15. Only item selection is in a compact modal with treatment-dialog framing; its description identifies account-priced published stock lenses and supplies. The existing account-scoped stock catalog remains the source. Validation for this follow-up is recorded below after completion.
 
-Status: Source complete; visual browser verification pending. No deployment or order submission.
+Status: Complete — no active handoff. Visual verification superseded by the stock entry/selector check above; no deployment or order submission.
 
 Affected files: `src/features/rx-order/form/StockServicePanel.tsx`, `src/pages/admin/StockOrderBuilderPage.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and `docs/agent/INTEGRATIONS.md`. The RX stock/service item picker and order metadata now open in a modal. Instructions read “Special instructions (optional).” Order reference is marked required and blocks draft persistence/release in the RX panel; the standalone Stock Order Builder also marks it required and blocks release without it. Chiral lens variants (only) have Pair (default), Left, and Right selection; pair maps to the existing `either` side code.
 
 Validation: scoped ESLint completed with 0 errors and existing warnings; `npm run build` passed; `git diff --check` passed. Full `npm run lint -- --no-warn-ignored` ran for over 30 seconds without output and was interrupted; do not treat that as a pass. No tests were run. No visual browser verification, order submission, or deployment occurred.
 
-Next exact action: open `/admin/orders/rx/new` in the local browser, select Stock / supplies order, and inspect the modal, required reference, pair/eye choices for a chiral lens, and unchanged pair-only behavior for non-chiral products without saving or submitting.
+Continuation closed: current stock entry, theme, dropdown, catalog/power and local-line checks are recorded above.

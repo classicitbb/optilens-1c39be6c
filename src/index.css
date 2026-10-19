@@ -1030,3 +1030,18 @@ body.ws-admin {
 .rx-print-sig { margin-top: 34px; display: flex; gap: 40px; break-inside: avoid; }
 .rx-print-sig div { flex: 1; border-top: 1px solid #99a; padding-top: 6px; font-size: 11px; color: #557; }
 .rx-print-ft { margin-top: 26px; font-size: 10.5px; color: #889; text-align: center; }
+
+/* Rx and stock selectors: explicit selection in both themes, including dialogs. */
+.rx-segment .rx-segment-option[data-state="off"] { color: hsl(var(--foreground)); }
+.rx-segment .rx-segment-option[data-state="on"] {
+  background: color-mix(in srgb, hsl(var(--primary)) 80%, black);
+  color: white;
+  border-color: currentColor;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / .18);
+}
+.rx-segment .rx-segment-option:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+
+.dark .rx-segment .rx-segment-option[data-state="on"] {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
