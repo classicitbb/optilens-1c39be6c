@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 const mock = vi.hoisted(() => ({ decode: vi.fn(), stop: vi.fn(), trackStop: vi.fn() }));
 vi.mock('@zxing/browser', () => ({ BrowserMultiFormatReader: class { decodeFromStream = mock.decode; } }));
 import { StockCameraScanner } from '@/features/rx-order/form/StockCameraScanner';
@@ -14,6 +14,8 @@ describe('stock camera lifecycle', () => {
     let finish: ((value: boolean) => void) | undefined;
     const onScan = vi.fn(() => new Promise<boolean>(resolve => { finish = resolve; }));
     render(<StockCameraScanner onScan={onScan} />);
+    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Enable camera' }));
     await waitFor(() => expect(mock.decode).toHaveBeenCalled());
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({ video: { facingMode: { ideal: 'environment' } }, audio: false });
     const callback = mock.decode.mock.calls[0][2];
@@ -24,12 +26,14 @@ describe('stock camera lifecycle', () => {
   });
   it('stops camera tracks when closed', async () => {
     const { unmount } = render(<StockCameraScanner onScan={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Enable camera' }));
     await waitFor(() => expect(mock.decode).toHaveBeenCalled()); unmount();
     expect(mock.stop).toHaveBeenCalled(); expect(mock.trackStop).toHaveBeenCalled();
   });
   it('shows a recoverable permission error without calling the item resolver', async () => {
     vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValue(new DOMException('Denied', 'NotAllowedError'));
     const onScan = vi.fn(); render(<StockCameraScanner onScan={onScan} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Enable camera' }));
     await screen.findByRole('alert'); expect(onScan).not.toHaveBeenCalled();
   });
 });
