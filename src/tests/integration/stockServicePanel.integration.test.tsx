@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-const mock = vi.hoisted(() => ({ catalog: [] as unknown[], stage: vi.fn(), release: vi.fn(), scan: vi.fn() }));
+const mock = vi.hoisted(() => ({ catalog: [] as unknown[], stage: vi.fn(), release: vi.fn(), scan: vi.fn(), toast: vi.fn() }));
 vi.mock('@/hooks/useStockOrderBuilder', async importOriginal => ({
   ...await importOriginal<typeof import('@/hooks/useStockOrderBuilder')>(),
   useStockOrderCatalog: () => ({ data: mock.catalog, isLoading: false }),
@@ -8,7 +8,7 @@ vi.mock('@/hooks/useStockOrderBuilder', async importOriginal => ({
   useReleaseStockOrder: () => ({ mutateAsync: mock.release, isPending: false }),
   resolveStockCode: mock.scan,
 }));
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mock.toast }) }));
 vi.mock('@/hooks/useReferenceData', () => ({ useReferenceData: () => ({ data: [] }) }));
 vi.mock('@/features/rx-order/form/StockLensBrowser', () => ({
   StockLensBrowser: ({ products, onAdd }: { products: Array<{ product_id: string }>; onAdd: (p: unknown, v: unknown, q: number, s: string) => void }) => <>
@@ -40,7 +40,7 @@ describe('integrated stock form persistence boundary', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent('Frame repair');
     expect(mock.stage).not.toHaveBeenCalled(); expect(mock.release).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Submit stock order' }));
-    await waitFor(() => expect(mock.release).toHaveBeenCalledWith({ id: 'saved' }));
+    await waitFor(() => expect(mock.release).toHaveBeenCalledWith({ id: 'saved', provider: 'innovations' }));
     expect(mock.stage).toHaveBeenCalledWith(expect.objectContaining({ accountId: 1, orderReference: 'JOB-1', instructions: '', items: [{ product_type: 'addon', product_id: 'repair', variant_id: null, side: 'either', quantity: 1, customer_ref: '' }] }));
   });
   it('does not release after a draft-save failure', async () => {
@@ -96,5 +96,17 @@ describe('integrated stock form persistence boundary', () => {
     mock.catalog = [{ ...service, product_type: 'lens', product_id: 'lens', name: 'Stock lens', unit_price: 20, has_variants: true }];
     start(); fireEvent.click(screen.getByRole('button', { name: 'Add stock lenses' })); fireEvent.click(screen.getByRole('button', { name: 'Add symmetric pair' }));
     expect(screen.getByLabelText('Line 1 quantity')).toHaveValue(2); expect(screen.queryByLabelText('Line 2 quantity')).not.toBeInTheDocument();
+  });
+  it('releases through Gatekeeper when that route is chosen in the review dialog', async () => {
+    start(); await addService(); fireEvent.change(screen.getByLabelText(/Patient \/ order reference/), { target: { value: 'JOB-GK' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Review order →' })); fireEvent.click(screen.getByRole('radio', { name: 'Gatekeeper' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit stock order' }));
+    await waitFor(() => expect(mock.release).toHaveBeenCalledWith({ id: 'saved', provider: 'gatekeeper' }));
+  });
+  it('shows the server message when a save fails with a non-Error object', async () => {
+    mock.stage.mockRejectedValue({ message: "Cleaner is not priced on this account's pricelist." });
+    start(); await addService(); fireEvent.change(screen.getByLabelText(/Patient \/ order reference/), { target: { value: 'JOB-ERR' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Review order →' })); fireEvent.click(screen.getByRole('button', { name: 'Submit stock order' }));
+    await waitFor(() => expect(mock.toast).toHaveBeenCalledWith(expect.objectContaining({ description: "Cleaner is not priced on this account's pricelist." }))); expect(mock.release).not.toHaveBeenCalled();
   });
 });

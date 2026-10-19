@@ -330,17 +330,25 @@ export const useStageStockOrder = () => {
   });
 };
 
-// Stock orders always release through Innovations. The office worker claims
-// the outbox row and drops the rendered file into Innova's Incoming folder.
+// Stock orders release through OptiLens ("innovations": the office worker claims
+// the outbox row and drops the rendered file into Innova's Incoming folder) or
+// Gatekeeper (sent immediately by the gatekeeper-orders function).
+export type StockDispatchProvider = "innovations" | "gatekeeper";
 export const useReleaseStockOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
+    mutationFn: async ({ id, provider = "innovations" }: { id: string; provider?: StockDispatchProvider }) => {
       const { error } = await (supabase.rpc as any)("release_stock_order_submission", {
         p_id: id,
-        p_dispatch_provider: "innovations",
+        p_dispatch_provider: provider,
       });
       if (error) throw error;
+      if (provider !== "gatekeeper") return;
+      const { data, error: sendError } = await supabase.functions.invoke("gatekeeper-orders", {
+        body: { action: "send", orderKind: "stock", submissionId: id },
+      });
+      if (sendError) throw new Error(sendError.message);
+      if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not confirm receipt of the order.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-order-drafts"] });

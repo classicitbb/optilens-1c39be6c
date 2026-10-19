@@ -69,7 +69,8 @@ describe("admin stock order builder route accessibility", () => {
     expect(page).not.toContain('value="gatekeeper"');
     expect(hook).toContain('supabase.rpc as any)("save_stock_order_draft"');
     expect(hook).toContain("p_submission_id: input.submissionId ?? null");
-    expect(hook).toContain('p_dispatch_provider: "innovations"');
+    expect(hook).toContain("p_dispatch_provider: provider");
+    expect(hook).toContain('provider = "innovations"');
     expect(migration).toContain("CREATE FUNCTION public.save_stock_order_draft(");
     expect(migration).toContain("IF jsonb_array_length(COALESCE(p_items, '[]'::jsonb)) > 0 THEN");
     expect(migration).toContain("AND status IN ('staged', 'failed')");
