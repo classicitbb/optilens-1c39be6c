@@ -3,6 +3,7 @@ import {
   applyFilters, buildItems, captureTab, countByTab, NO_FILTERS, statusLabel, submissionTab, type CaptureRow,
 } from "@/features/rx-order/workspace/classify";
 import type { RxSubmissionRow } from "@/features/rx-order/types";
+import type { StockSubmissionRow } from "@/features/rx-order/workspace/stockSubmissions";
 
 const sub = (over: Partial<RxSubmissionRow> = {}): RxSubmissionRow => ({
   id: "s1", quote_id: "q1", order_id: null, account_id: 1, status: "pending_review", dispatch_provider: "innovations", transport: null,
@@ -80,5 +81,34 @@ describe("filters and counts", () => {
     expect(applyFilters(all, { ...NO_FILTERS, provider: "gatekeeper" }).map((i) => i.key)).toEqual(["s:s2"]);
     expect(applyFilters(all, { ...NO_FILTERS, from: "2026-10-01" }).map((i) => i.key)).toEqual(["c:c1", "s:s1"]);
     expect(applyFilters(all, { ...NO_FILTERS, to: "2026-09-30" }).map((i) => i.key)).toEqual(["s:s2"]);
+  });
+});
+
+describe("stock submissions in the shared workspace", () => {
+  const stock: StockSubmissionRow = {
+    id: "stock-33", account_id: 789, order_id: "33", quote_id: null,
+    order_reference: "ZZ SEED GK", po_number: "PO-33", status: "submitted",
+    dispatch_provider: "gatekeeper", transport: "gatekeeper", filename: null,
+    attempts: 1, last_error: null, released_at: "2026-10-19T21:00:13Z",
+    gatekeeper_order_id: 33, receipt: { contrato_id: 47760 }, lab_status: null,
+    lab_status_detail: null, lab_status_at: null,
+    created_at: "2026-10-19T21:00:10Z", updated_at: "2026-10-19T21:00:13Z",
+    payload: { account: { name: "Enhance Vision Optical" }, items: [], order_total: 453.6 },
+  };
+  const items = (s = stock) => buildItems({ submissions: [sub()], stocks: [s], captures: [], accountName: () => "—", quoteNumbers: new Map() });
+
+  it("includes submitted stock order 33 at lab without converting it to Rx", () => {
+    expect(items()[0]).toMatchObject({ key: "stock:stock-33", kind: "stock", tab: "lab", quoteNumber: "Stock 33", stock });
+    expect(items()[0].submission).toBeUndefined();
+  });
+  it("keeps staged stock ready to release", () => expect(items({ ...stock, status: "staged" })[0].tab).toBe("ready"));
+  it("keeps failed stock in problems", () => expect(items({ ...stock, status: "failed" })[0].tab).toBe("problems"));
+  it("filters stock independently from Rx", () => {
+    expect(applyFilters(items(), { ...NO_FILTERS, orderType: "stock" }).map((i) => i.key)).toEqual(["stock:stock-33"]);
+    expect(applyFilters(items(), { ...NO_FILTERS, orderType: "rx" }).map((i) => i.key)).toEqual(["s:s1"]);
+  });
+  it("finds stock by reference and order number", () => {
+    expect(applyFilters(items(), { ...NO_FILTERS, text: "ZZ SEED GK" }).map((i) => i.key)).toEqual(["stock:stock-33"]);
+    expect(applyFilters(items(), { ...NO_FILTERS, text: "33" }).map((i) => i.key)).toEqual(["stock:stock-33"]);
   });
 });
