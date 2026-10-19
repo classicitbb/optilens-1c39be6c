@@ -12,7 +12,10 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock('@/hooks/useReferenceData', () => ({ useReferenceData: () => ({ data: [] }) }));
 import { StockServicePanel } from '@/features/rx-order/form/StockServicePanel';
 const service = { product_type: 'addon', product_id: 'repair', name: 'Frame repair', category: 'Services', sku: 'REP', unit_price: 12, has_variants: false };
-beforeEach(() => { mock.catalog = [service]; mock.stage.mockReset().mockResolvedValue({ submission_id: 'saved', order_total: 12 }); mock.release.mockReset().mockResolvedValue(undefined); mock.scan.mockReset(); });
+beforeEach(() => {
+  window.matchMedia = vi.fn().mockImplementation(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  mock.catalog = [service]; mock.stage.mockReset().mockResolvedValue({ submission_id: 'saved', order_total: 12 }); mock.release.mockReset().mockResolvedValue(undefined); mock.scan.mockReset();
+});
 function start() { render(<StockServicePanel accountId={1} accountName="Fixture account" />); }
 async function addService() {
   fireEvent.click(screen.getByRole('button', { name: /Add supplies/ }));

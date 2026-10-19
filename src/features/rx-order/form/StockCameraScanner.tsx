@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 export function StockCameraScanner({ onScan }: { onScan: (code: string) => Promise<boolean> }) {
   const video = useRef<HTMLVideoElement>(null);
   const callback = useRef(onScan);
-  callback.current = onScan;
+  useEffect(() => { callback.current = onScan; }, [onScan]);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
