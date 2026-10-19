@@ -1,5 +1,11 @@
 # Changelog
 
+Stock prototype selected design (2026-10-19, local only): retained only the chosen Rx supplies layout, deleted alternate designs/navigation, compacted identification to labelled fields, and adopted actual admin workspace tokens with Rx-sized controls and admin fonts. No publication or real order connection.
+
+Stock prototype annotation refinement (2026-10-19, local only): removed the duplicate supplies card, retained the preferred order form, reused Rx toggles/searchable any-order lens selectors and the store's compact power grid. Optional grid action wording leaves existing store behavior unchanged. No live catalog, cart or order connection.
+
+Stock / supplies prototype (2026-10-19, local only): added a separate seeded design study with an order-sheet baseline and two alternate layouts, merged patient/order reference, optional PO/instructions, shared category supplies browser, lens variant grids, pricelist scenarios and simulated scanner/review. No application route, backend connection or production publication.
+
 Rx sidebar alignment (2026-10-17, local source): the self-contained Rx form no longer pushes the account menu down. Only the Rx sidebar uses normal-flow positioning; other routes retain their existing sticky menu. Not published.
 
 Rx uncut supply/introduction (2026-10-17, local source): frame supply is fixed to Uncut for uncut jobs, including saved/loaded orders; Full glaze retains the normal supply selector. The portal instruction sentence scrolls with the form beneath the fixed title. Not published.
@@ -23,6 +29,17 @@ Homepage copy (2026-10-17, local source): clearer trade-account and lens-explore
 Atlas production release (2026-10-08): scoped layout, stable identifiers and authenticated sharing/audit release deployed with the named migration. No page was enabled for sharing; target-specific end-to-end and email-confirmation checks remain unperformed. See docs/agent/HANDOFF.md.
 
 CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-19 — Integrated stock / supplies form (local source)
+
+### Plan
+- Bring the approved prototype into the existing admin Stock / supplies section and order published service items within the same form.
+
+### Release Notes
+- The admin new-order form now embeds compact patient/reference, PO and instructions fields, a shared supplies/services category browser, account-priced lens selectors and variant grid, editable lines and a review-before-submit flow. Service request is removed from the order-type menu. Local source only; no production publication or real order submitted during verification.
+
+### Technical Changelog
+- `src/features/rx-order/form/StockServicePanel.tsx` uses the existing catalog/save/release hooks; new StockItemBrowser, StockLensBrowser and pure stock quantity conversion support the UI. Account changes remount the panel; stock mode cancels Rx autosave. Pair quantities map to server lens units and chiral pairs use both eye OPCs. `src/hooks/useStockOrderBuilder.ts` retains variant availability fields and identifies ambiguous chiral scans. Lens identities/reference labels are read from existing safe RPCs/tables without schema, credential or authorization changes.
 
 ## 2026-10-19 — Staff Rx submit and staff pricing access (local source)
 

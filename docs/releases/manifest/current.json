@@ -1,17 +1,21 @@
 {
-  "semanticVersion": "0.13.0",
-  "sourceEntry": "2026-10-19 — Staff Rx submit and staff pricing access (local source)",
+  "semanticVersion": "0.14.0",
+  "sourceEntry": "2026-10-19 — Integrated stock / supplies form (local source)",
   "releaseDateTimeUtc": "2026-10-19T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "On the admin Rx form the button now reads \"Send for submission\". It sends the saved order to Rx Orders > Ready to release, where staff release it to the lab. It no longer adds the order to the staff member's cart.",
-    "Admin and operator profiles are approved for portal pricing against the Retail account, so store and pricelist prices show for staff. This was a data change on the live database only."
+    "The admin new-order form now embeds compact patient/reference, PO and instructions fields, a shared supplies/services category browser, account-priced lens selectors and variant grid, editable lines and a review-before-submit flow. Service request is removed from the order-type menu. Local source only; no production publication or real order submitted during verification."
   ],
   "moduleImpact": [
     {
-      "module": "general",
+      "module": "src/features/rx-order",
       "impact": "medium",
-      "notes": "Updated as part of Staff Rx submit and staff pricing access (local source)."
+      "notes": "Updated as part of Integrated stock / supplies form (local source)."
+    },
+    {
+      "module": "src/hooks/useStockOrderBuilder.ts",
+      "impact": "medium",
+      "notes": "Updated as part of Integrated stock / supplies form (local source)."
     }
   ],
   "migrationNotes": [

@@ -1,5 +1,11 @@
 # Project Status
 
+Integrated stock / supplies form (2026-10-19, local source): replaced the admin Rx form's stock panel with the approved compact layout, categorized supplies/services, Rx-style lens choices, store power grid and review. Service request is no longer an order-type option; published addons/services use the same item browser. Account changes reset local stock state, stock mode suspends Rx autosave, and pair counts convert to individual server lens units. Existing save/release RPCs remain explicit. Real catalog reads and local line addition verified without saving/submitting; no deployment. See HANDOFF.md for validation.
+
+Stock prototype header removal (2026-10-19, local only): removed branding/demo selectors and the full account/title/subtitle/badge row. The form now begins with identification beneath the prototype banner. Seeded full-catalog pricing remains the default. Browser and standalone build verified; no live-site change.
+
+Stock prototype selected layout (2026-10-19, local only): only the chosen Rx supplies preview form remains; layout variants, switcher, preview tabs and step navigation are deleted. Identification is a compact set of labelled fields without a heading or help copy. Shared admin workspace tokens and font files style the form, dialogs and existing Rx/store components. All data and actions remain seeded/simulated. See HANDOFF.md for validation.
+
 Rx sidebar alignment (2026-10-17, local source): removed the sidebar's sticky top offset only on the viewport-bounded Rx route. Its menu now aligns below the account header like other pages; form scrolling stays inside the Rx frame. Browser compared Saved Drafts with a blank Rx form without entering data or creating a draft. No publication performed.
 
 Rx uncut supply/introduction (2026-10-17, local source): Uncut lenses show a disabled Uncut frame-supply value, with load/save/summary normalization; Full glaze restores the usual supply selector. The introductory sentence now scrolls away while the title stays fixed. Fixture and portal browser checks, 29 focused tests, TypeScript, lint and build pass. Full suite retains two unrelated failures. No order submitted or publication performed; see HANDOFF.md.
@@ -23,7 +29,11 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-17 (pricelist tablet/currency display and existing local changes)
+Last updated: 2026-10-19 (isolated stock/supplies prototype and existing local changes)
+
+RX stock/supplies order UX (2026-10-19, local source): stock/service item entry and order details now open in a modal; instructions are labelled as optional special instructions; order reference is required before saving or releasing. Chiral lens items offer Pair (default), Left, or Right; other items stay Pair. Standalone Stock Order Builder also marks the reference required and blocks submit until entered. Scoped ESLint and production build pass; full lint was interrupted after prolonged no-output execution. No order submitted or deployment performed; see HANDOFF.md.
+
+RX stock order refinement (2026-10-19, local source): patient/reference/PO/instructions stay in the main form; patient is optional, reference required and capped at 20 characters, PO capped at 15. Instructions start compact. The item-only modal uses a compact treatment-dialog style and identifies published supplies and stock lenses covered by the account pricelist. See HANDOFF.md; source validation pending.
 
 Pricelist tablet/currency display (2026-10-17, local source): compact tap-pinned lens popup with close control and 44px targets; EUR/XCD display options, labelled estimates unless configured; currency-aware retail display and numeric CSV. No global rates, transaction currency, hosted preferences or retail values were changed in verification. See HANDOFF.md.
 

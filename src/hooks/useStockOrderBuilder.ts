@@ -143,6 +143,8 @@ export interface StockVariant {
   attributes: Record<string, unknown>;
   metadata: Record<string, unknown>;
   stock_qty: number;
+  reserved_qty?: number;
+  allow_backorder?: boolean;
 }
 
 /** Reads the storefront's own variant list for a product, so the builder
@@ -167,6 +169,8 @@ export const useStockProductVariants = (productType: StockProductType | null, pr
           attributes: (v.attributes ?? {}) as Record<string, unknown>,
           metadata: (v.metadata ?? {}) as Record<string, unknown>,
           stock_qty: Number(v.stock_qty ?? 0),
+          reserved_qty: Number(v.reserved_qty ?? 0),
+          allow_backorder: Boolean(v.allow_backorder),
         }));
     },
   });
@@ -189,6 +193,7 @@ export interface ResolvedScan {
   variantId: string;
   variantTitle: string;
   side: "right" | "left" | "either";
+  isChiral?: boolean;
 }
 
 /** Resolve a scanned or typed code to a website variant. Checked against the
@@ -219,6 +224,7 @@ export const resolveStockCode = async (code: string): Promise<ResolvedScan | nul
     variantId: data.id,
     variantTitle: data.title,
     side: byEye.right === trimmed ? "right" : byEye.left === trimmed ? "left" : "either",
+    isChiral: Boolean(data.metadata?.is_chiral),
   };
 };
 

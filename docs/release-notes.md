@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-19 — Integrated stock / supplies form (local source)
+
+### Release Notes
+- The admin new-order form now embeds compact patient/reference, PO and instructions fields, a shared supplies/services category browser, account-priced lens selectors and variant grid, editable lines and a review-before-submit flow. Service request is removed from the order-type menu. Local source only; no production publication or real order submitted during verification.
+
 ## 2026-10-19 — Staff Rx submit and staff pricing access (local source)
 
 ### Release Notes

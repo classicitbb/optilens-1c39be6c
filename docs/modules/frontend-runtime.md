@@ -1,5 +1,13 @@
 # Frontend Runtime Module Docs
 
+Stock form integration (2026-10-19): RxForm renders StockServicePanel keyed by selected account and offers only Rx / Stock-supplies. Stock mode cancels its Rx autosave timer. The runtime panel imports new category/lens browsers and stock-order-form.css; no prototype modules or seeded values are imported. Shared Rx selectors/domain logic and LensVariantGrid are reused with account-scoped products. Pair conversion, per-eye OPC validation and quantity limits live in stockOrderModel. Existing stock hooks own all server reads/writes.
+
+Selected prototype theme (2026-10-19): shared-ui.css imports styles/workspace.css and maps Tailwind semantic colours to --ws-* tokens. The standalone body opts into ws-admin/admin-tool; Plus Jakarta Sans and JetBrains Mono come from existing font packages. One layout and compact identification replace variant/host/step rendering. Existing ?variant links normalize to the same form.
+
+Prototype lens UI refinement (2026-10-19): `prototype/LensPicker.tsx` mounts the existing Rx Seg/ComboBox and pure comboOptions/repairTriple alongside LensVariantGrid with seeded variants and a local callback. Source alias resolution and local Tailwind compilation are confined to the standalone Vite config. Shared LensVariantGrid accepts optional addButtonLabel with the previous cart label as default. No app-shell or client import.
+
+Stock / supplies design study (2026-10-19): `src/features/rx-order/prototype/vite.config.mjs` defines an independent local Vite root with environment loading and public assets disabled. Its plain-JavaScript seeded UI imports no application client and adds no runtime route. `npx vite --config src/features/rx-order/prototype/vite.config.mjs` runs it. The main application build excludes this entrypoint. The single selected layout uses only in-memory state; standalone builds target an ignored Node cache directory.
+
 Rx sidebar offset correction (2026-10-17): AccountLayout selects `relative` for the Rx sidebar and retains `sticky top-16` elsewhere. The Rx content row's bounded overflow had become the sticky containing block and applied an extra 64px offset. The existing inner form scroller remains the sole Rx scroll owner.
 
 Rx uncut supply (2026-10-17): `frameSourceForScope` normalizes form defaults, scope changes, load/save and summaries. FrameCard uses a disabled Uncut display for uncut jobs. PortalRxOrderForm passes an `introduction` into the scrolling RxForm root; LensAssistantSection retains only the fixed title. No new effect writes form state.

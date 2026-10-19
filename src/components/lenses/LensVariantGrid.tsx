@@ -12,6 +12,8 @@ interface LensVariantGridProps {
   rowLabel?: string;
   columnLabel?: string;
   readOnly?: boolean;
+  /** Override the cart wording when embedding this grid in another order workflow. */
+  addButtonLabel?: string;
   onAddSelected: (items: { variantId: string; quantity: number }[]) => Promise<void>;
 }
 
@@ -23,6 +25,7 @@ export const LensVariantGrid = ({
   rowLabel = "Sphere",
   columnLabel = "Cylinder",
   readOnly = false,
+  addButtonLabel,
   onAddSelected,
 }: LensVariantGridProps) => {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -173,7 +176,7 @@ export const LensVariantGrid = ({
             </Button>
             <Button variant="hero" size="sm" onClick={handleAdd} disabled={saving || selectedCount === 0} className="gap-1.5">
               <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
-              {saving ? "Adding…" : `Add ${selectedCount > 0 ? selectedCount : ""} to cart`}
+              {saving ? "Adding…" : addButtonLabel ?? `Add ${selectedCount > 0 ? selectedCount : ""} to cart`}
             </Button>
           </div>
         )}
