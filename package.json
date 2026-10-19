@@ -96,7 +96,7 @@
     "@tiptap/suggestion": "^3.31.3",
     "@trigger.dev/sdk": "^4.6.3",
     "@vercel/analytics": "^2.0.1",
-    "@zxing/browser": "^0.2.1",
+    "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "ai": "^7.0.31",
     "class-variance-authority": "^0.7.1",
