@@ -60,6 +60,10 @@ export default function RxOrderEditPage() {
             // point the address bar at the saved quote WITHOUT a router navigation, which would remount the form mid-entry
             window.history.replaceState(window.history.state, "", `/admin/orders/rx/${id}/edit`);
           }}
+          submitToQueue={async (id) => {
+            const { error: submitError } = await (supabase.rpc as any)("submit_rx_order_to_queue", { p_quote_id: id });
+            if (submitError) throw new Error(submitError.message);
+          }}
           onStartAnother={() => {
             setCreated(null);
             window.history.replaceState(window.history.state, "", "/admin/orders/rx/new");
