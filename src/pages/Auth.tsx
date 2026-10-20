@@ -59,6 +59,7 @@ const Auth = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [isMicrosoftSubmitting, setIsMicrosoftSubmitting] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [successState, setSuccessState] = useState<SuccessState | null>(null);
   const [leadSignalSent, setLeadSignalSent] = useState(false);
@@ -414,6 +415,34 @@ const Auth = () => {
       });
     } finally {
       setIsGoogleSubmitting(false);
+    }
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    setIsMicrosoftSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("microsoft", {
+        redirect_uri: oAuthRedirectUri,
+      });
+      if (result.error) {
+        toast({
+          title: "Microsoft Sign-In Failed",
+          description: result.error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (result.redirected) return;
+      toast({ title: "Welcome back", description: "You are signed in." });
+      navigate(redirect, { replace: true });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMicrosoftSubmitting(false);
     }
   };
 
@@ -887,6 +916,21 @@ const Auth = () => {
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 1.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
                       </svg>
                       {isGoogleSubmitting ? "Opening Google…" : "Continue with Google"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={`w-full ${isReturningVisitor ? "h-11 rounded-xl" : ""}`}
+                      disabled={isMicrosoftSubmitting || isSubmitting || sendingMagicLink}
+                      onClick={handleMicrosoftSignIn}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 23 23" aria-hidden="true">
+                        <path fill="#F25022" d="M1 1h10v10H1z" />
+                        <path fill="#7FBA00" d="M12 1h10v10H12z" />
+                        <path fill="#00A4EF" d="M1 12h10v10H1z" />
+                        <path fill="#FFB900" d="M12 12h10v10H12z" />
+                      </svg>
+                      {isMicrosoftSubmitting ? "Opening Microsoft…" : "Continue with Microsoft"}
                     </Button>
                   </>
                 ) : null}
