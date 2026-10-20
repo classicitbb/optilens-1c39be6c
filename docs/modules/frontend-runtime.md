@@ -1,5 +1,8 @@
 # Frontend Runtime Module Docs
 
+Doc Studio annotations (2026-10-20): dashboard sublinks come from the feature navigation list, reordered by browser-local per-user module use. Studio applies tab/billType on the existing canonical route; section changes keep the URL in sync. Initial billing type changes detach the local draft instead of autosaving over an open file; file/invite handoffs win. Structural classes on the established template own the square outer workspace panels. The shared admin-topbar class owns the square admin header. Controls and paper templates retain their styles.
+
+
 Localhost data transport (2026-10-20): shared Supabase global fetch and the Doc Studio bridge use the Vite loopback proxy in development. Project URL/session keys and caller authorization remain unchanged; production builds connect directly. Request URL replacement explicitly preserves method, headers, body, cancellation and fetch options. No environment key values belong in documentation.
 
 

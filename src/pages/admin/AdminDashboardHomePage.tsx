@@ -27,6 +27,7 @@ import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
 import { appColor } from "@/features/admin/core/config/appColors";
 import CreateHelpdeskTicketDialog from "@/features/admin/helpdesk/components/CreateHelpdeskTicketDialog";
 import { capitalizeDisplayName, resolveUserFullName } from "@/lib/profileData";
+import { recentStudioTools } from "@/features/admin/doc-studio/navigation";
 
 const appTiles = [
   {
@@ -193,10 +194,14 @@ const AdminDashboardHomePage = () => {
       appTiles
         .filter((tile) => hasAppAccess(tile.featurePrefix))
         .map((tile) => {
+          if (tile.appKey === 'docstudio') {
+            const tools = recentStudioTools(user?.id);
+            return { ...tile, route: tools[0].route, subItems: tools };
+          }
           const subItems = tile.appKey ? ADMIN_APPS[tile.appKey].sidebarItems : [];
           return { ...tile, subItems: subItems.length > 1 ? subItems : [] };
         }),
-    [hasAppAccess],
+    [hasAppAccess, user?.id],
   );
 
   const recentItems = useMemo(() => {

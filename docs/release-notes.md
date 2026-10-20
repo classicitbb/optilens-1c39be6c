@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
 ## 2026-10-20 — Doc Studio Innovations invoice import (local source)
 
 ### Release Notes

@@ -1,5 +1,10 @@
 # Project Knowledge
 
+## Doc Studio section shortcuts — 2026-10-20
+
+`src/features/admin/doc-studio/navigation.ts` defines the allowlisted section deep links on the canonical /admin/docs/studio route (tab plus billing-only billType). The dashboard shows four recently used sections followed by the existing more link. Browser-local docstudio-recent-tools:<user-id> stores only module keys, isolated by signed-in user, with defaults when unavailable. The established runtime applies incoming section queries without billing autosave/type conversion of the open saved document, while billingDocument/staffInvite handoffs retain precedence. A mount-scoped ds:navigation listener updates the canonical query and recent order; it cleans up at unmount. NATIVE_CSS overrides inherited outer div radii only on Studio structural surfaces. AdminTopBar owns the shared square admin header. No new routes, access rules, backend or environment variables.
+
+
 ## Localhost development data transport — 2026-10-20
 
 `src/lib/supabaseDevTransport.ts` supplies the shared Supabase fetch transport and Doc Studio function base. In Vite development on localhost, 127.0.0.1 or IPv6 loopback it routes configured-project HTTP APIs through `/__supabase`. `scripts/vite-supabase-proxy.ts` fixes the upstream to VITE_SUPABASE_URL, limits paths to Supabase HTTP API families, rejects nonloopback/cross-origin sessions, retains caller auth and verifies TLS using Node plus system roots when available. The real Supabase URL remains the client URL, preserving session storage keys and OAuth configuration. No auth/RLS override. Repro: unauthenticated POST to the local proxy live-data-gateway returns upstream 401, while the original hosted preflight at port 5173 returned Origin not allowed. Focused command: `npx vitest run --coverage=false src/tests/unit/supabaseDevTransport.test.ts src/tests/unit/liveDataGateway.unit.test.ts src/tests/unit/docStudioCloudBridge.test.ts`. Preserve this shared transport when regenerating the extended Supabase client.

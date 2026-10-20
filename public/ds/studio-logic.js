@@ -107,6 +107,7 @@
   };
 
   componentDidMount() {
+    const studioSearch = location.search;
     document.addEventListener('pointerdown', this.dismissEmailContacts, true);
     document.addEventListener('focusin', this.dismissEmailContacts, true);
     document.addEventListener('keydown', this.emailContactsKey, true);
@@ -144,6 +145,8 @@
     this.loadBillShareUsers();
     setTimeout(() => { this._billingReady = true; }, 900);
     this.scheduleControlMetadata();
+    this._studioNavigationReady = true;
+    if (!this.applyStudioLocation(studioSearch)) this.notifyStudioNavigation();
   }
 
   componentDidUpdate() {
@@ -152,6 +155,7 @@
     // The native admin file manager (src/features/admin/doc-studio/files)
     // renders My Files from this state; tell it when anything changed.
     try { window.dispatchEvent(new CustomEvent('ds:files-state')); } catch (e) {}
+    this.notifyStudioNavigation();
   }
 
   componentWillUnmount() {
@@ -661,6 +665,28 @@
     this.destroyTiny(cur);
     const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
     this.setState({ tab: k, ...reset }, this.persistSoon);
+  };
+
+  applyStudioLocation = (search) => {
+    const params = new URLSearchParams(search || '');
+    const tab = params.get('tab'), type = params.get('billType');
+    if (params.has('billingDocument') || params.has('staffInvite') || !['files', 'email', 'letter', 'signature', 'social', 'billing', 'shiplabel', 'statement'].includes(tab)) return false;
+    this.switchTab(tab);
+    if (tab === 'billing' && ['invoice', 'quote', 'proforma', 'receipt'].includes(type) && type !== this.state.billType) {
+      // Navigation changes the draft's view, never autosaves a type conversion
+      // over the previously opened billing document.
+      clearTimeout(this._billAutosaveTimer);
+      this.setState({ billType: type, blNumber: this.peekBillNumber(type), currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true, billCollaborators: [], billShareOpen: false }, this.persistSoon);
+    }
+    return true;
+  };
+
+  notifyStudioNavigation = () => {
+    if (!this._studioNavigationReady) return;
+    const key = this.state.tab + ':' + (this.state.tab === 'billing' ? this.state.billType : '');
+    if (key === this._lastStudioNavigation) return;
+    this._lastStudioNavigation = key;
+    try { window.dispatchEvent(new CustomEvent('ds:navigation', { detail: { tab: this.state.tab, billType: this.state.billType } })); } catch (e) {}
   };
 
   composeNewEmail = () => {

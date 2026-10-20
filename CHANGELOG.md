@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
+### Technical Changelog
+- Define feature-owned allowlisted tab/billType links and per-user browser recency; synchronize Studio navigation through a mount-scoped event listener. Preserve file/invitation handoffs and prevent initial billing-type navigation from autosaving over the open file. Scope outer-radius overrides to semantic Studio container classes and the admin top bar.
+
+
 ## 2026-10-20 — Doc Studio Innovations invoice import (local source)
 
 ### Release Notes

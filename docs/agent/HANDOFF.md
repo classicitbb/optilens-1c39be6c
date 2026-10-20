@@ -1,3 +1,19 @@
+## 2026-10-20 — Doc Studio dashboard shortcuts and square surfaces
+
+Status: Complete — no active handoff
+
+Dashboard Doc Studio now shows four direct section links in that signed-in user's browser-local recent order, with the existing more link for the remaining tools. The tile title also opens the last-used section. navigation.ts owns the allowlisted tab/billType URLs on /admin/docs/studio; no new routes or permission changes. The established runtime consumes section queries without autosaving a billing type conversion over the current saved file; billingDocument/staffInvite handoffs take precedence. A mount-scoped navigation listener updates the query and per-user module recency, with cleanup at unmount. No document data is stored in the recency key.
+
+All annotated Studio outer surfaces use border-radius:0 through semantic template classes and scoped native CSS, including the tab bar, left controls/container, preview toolbar/canvas, page/banner wrappers and workspace frames. The selected shared admin top bar is square everywhere AdminTopBar is used. No new breakpoint; these structural overrides apply across viewport sizes. Inputs/buttons/paper content retain existing styling; a browser check confirmed the input radius remains 8px while visible outer panels are 0px. The global admin radius token remains 4px.
+
+Affected implementation: AdminDashboardHomePage.tsx, feature navigation.ts, DocStudioEmbed.tsx, DocStudioPage.tsx, AdminTopBar.tsx, src/index.css, public/ds/studio.html and studio-logic.js. Added docStudioNavigation.test.ts. Documentation symmetry and release-ledger synchronization generated version 0.17.0; package/package-lock were synchronized without dependency changes.
+
+Verification: 26 focused tests across five Doc Studio files pass; scoped ESLint has zero errors/three warnings. TypeScript passed for the implementation. Production build, PR checks and route smoke passed. Full lint retains the unrelated RxOrdersWorkspace.tsx:89 preserve-caught-error error (one error total). Full npm run test -- --runInBand reported failures in rxOrdersWorkspace plus Rx Chemistrie, shape and domain suites, then stopped progressing; it was interrupted without changing those unrelated features. See ignored .codex-studio-full-tests.log for the observed failing cases, not a complete suite verdict.
+
+Authenticated browser at 1320x900: dashboard Invoice and Letterhead buttons opened their exact views, section query state was visible in the URL, and computed styles confirmed square outer containers. Review ran in a separate tab to preserve the user's active Studio work. The health banner was dismissed in the active session, so its square wrapper was checked through source ownership rather than changing that preference. Screenshots are saved in the task visualization folder. Verification navigated sections only and invoked no Save, Send, order, production publication, schema or credential/access operation.
+
+No local continuation is required. Existing loopback server remains on port 5173. Production publication still requires approval under AGENTS.md.
+
 ## 2026-10-20 — Iris take-message webhook
 
 Status: Awaiting approval — production deploy and secret

@@ -1,5 +1,8 @@
 # Integrations and Cross-Repository Contract
 
+Doc Studio dashboard/navigation annotations (2026-10-20): frontend-only allowlisted section queries and browser-local user-scoped recent module keys. No document content or identifiers are stored in the recency key. Existing file and invitation handoffs take precedence over section queries. No route, backend, connector, schema, service, credential, access rule or environment-variable change.
+
+
 Local development Supabase transport (2026-10-20): `/__supabase` forwards only to the configured VITE_SUPABASE_URL through Vite. It accepts same-origin loopback requests, preserves caller bearer/apikey headers, and removes the browser Origin on the server-side hop; hosted JWT, roles, RLS and account scopes remain authoritative. Existing Node roots plus the OS certificate store are used when supported, with TLS verification enabled. No privileged key is added and no production CORS/auth/credential change is required. Shared Supabase HTTP queries, auth/storage/functions and the established Doc Studio bridge reuse it only in development; Realtime remains on its existing direct transport. Static production builds stay direct.
 
 

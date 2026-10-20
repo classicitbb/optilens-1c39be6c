@@ -1,5 +1,8 @@
 # Frontend Help Docs
 
+Doc Studio shortcuts (2026-10-20, local source): the dashboard tile opens your last used Studio section and shows direct section buttons like other applications. Your recent sections appear first; further tools remain available inside Studio. Links open the selected section directly, including Invoice/Quotation. The outer workspace panels and shared admin header have square corners at all screen sizes; inputs and action buttons retain their existing styling. No publication from this change.
+
+
 Local development data (2026-10-20): signed-in localhost development sessions can use the same authorized Supabase queries and live invoice reads as the hosted app. Open the app through npm run dev; the local proxy is automatic across loopback ports. Existing account permissions and private connector availability still apply. Import creates a local draft for review; Save remains a separate action.
 
 

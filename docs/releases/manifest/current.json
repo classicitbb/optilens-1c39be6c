@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.16.0",
-  "sourceEntry": "2026-10-20 — Doc Studio Innovations invoice import (local source)",
+  "semanticVersion": "0.17.0",
+  "sourceEntry": "2026-10-20 — Doc Studio shortcuts and square workspace (local source)",
   "releaseDateTimeUtc": "2026-10-20T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published."
+    "The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Doc Studio Innovations invoice import (local source)."
+      "notes": "Updated as part of Doc Studio shortcuts and square workspace (local source)."
     }
   ],
   "migrationNotes": [

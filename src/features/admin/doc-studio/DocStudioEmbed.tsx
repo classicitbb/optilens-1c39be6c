@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import DocStudioFileManager from "./files/FileManager";
 import { loadInnovationsInvoice } from "./innovationsInvoice";
 import { supabaseRequestUrl } from "@/lib/supabaseDevTransport";
+import { useNavigate } from "react-router";
+import { useAuth } from "@/contexts/AuthContext";
+import { rememberStudioTool, studioToolForState } from "./navigation";
 
 /**
  * DocStudioEmbed — mounts the Doc Studio dc-runtime natively in the admin page
@@ -72,6 +75,9 @@ const NATIVE_CSS = `
 .ds-native-host button:focus-visible{outline:2px solid #1A8A9C;outline-offset:3px}
 .ds-native-host .ds-letter-polish button[aria-pressed="true"]{background:#1A8A9C!important;border-color:#1A8A9C!important;color:#fff!important}
 .ds-native-host .ds-letter-polish button:hover{outline:1px solid #1A8A9C;outline-offset:2px}
+.doc-studio-page,.doc-studio-page>div,.ds-native-host,.ds-native-host #dc-root,.ds-native-host #dc-root>.sc-host,
+.ds-native-host .ds-workspace,.ds-native-host .ds-workspace-body,.ds-native-host .ds-sidebar,.ds-native-host .ds-sidebar>div,
+.ds-native-host #embedded-tabbar,.ds-native-host .ds-preview-panel,.ds-native-host .ds-preview-toolbar,.ds-native-host .ds-preview-scroll{border-radius:0}
 `;
 
 declare global {
@@ -196,6 +202,8 @@ function fetchTemplateMarkup(): Promise<string> {
 }
 
 const DocStudioEmbed = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const hostRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -211,6 +219,18 @@ const DocStudioEmbed = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const onStudioNavigation = (event: Event) => {
+      const detail = (event as CustomEvent<{ tab: string; billType?: string }>).detail;
+      const tool = detail && studioToolForState(detail.tab, detail.billType);
+      if (!tool) return;
+      rememberStudioTool(user?.id, tool.key);
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', tool.tab);
+      if ('billType' in tool) params.set('billType', tool.billType!); else params.delete('billType');
+      const search = `?${params}`;
+      if (search !== window.location.search) navigate({ pathname: '/admin/docs/studio', search }, { replace: true });
+    };
+    window.addEventListener('ds:navigation', onStudioNavigation);
     const invoiceController = new AbortController();
     const invoiceLoader: typeof loadInnovationsInvoice = (number, account) => loadInnovationsInvoice(number, account, invoiceController.signal);
     window.__docStudioLoadInvoice = invoiceLoader;
@@ -233,10 +253,11 @@ const DocStudioEmbed = () => {
     });
     return () => {
       cancelled = true;
+      window.removeEventListener('ds:navigation', onStudioNavigation);
       invoiceController.abort();
       if (window.__docStudioLoadInvoice === invoiceLoader) delete window.__docStudioLoadInvoice;
     };
-  }, [attempt]);
+  }, [attempt, navigate, user?.id]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

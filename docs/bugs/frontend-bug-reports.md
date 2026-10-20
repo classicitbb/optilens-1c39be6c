@@ -1,5 +1,8 @@
 # Frontend Bug Reports
 
+Doc Studio dashboard/outer corners (2026-10-20): the tile previously hid its only sidebar entry and offered no direct section buttons. Feature-owned section links now open the exact tab/type and order recent sections first per browser/user. Invalid query targets are ignored and existing file/invitation links remain authoritative. Inherited 4px outer div radii are explicitly zeroed on structural Studio containers; the shared admin header is square. No blanket descendant-radius reset is used.
+
+
 Local gateway CORS repair (2026-10-20): the hosted live-data function returned 403 Origin not allowed for http://127.0.0.1:5173 even though other local ports were allowed. The development proxy now provides a same-origin transport without production CORS changes. Node enterprise-root trust is resolved with the existing OS trust store, never insecure TLS. Signed-in localhost successfully imported invoice 81799; a mismatched account/invoice response still leaves the template intact.
 
 

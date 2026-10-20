@@ -38,7 +38,7 @@
 </head>
 <body>
 <x-dc>
-<div style="display:flex;flex-direction:column;height:100vh;background:#e9e5da">
+<div class="ds-workspace" style="display:flex;flex-direction:column;height:100vh;background:#e9e5da">
 
   <!-- TOP BAR (hidden when embedded) -->
   <div class="ds-topbar" style="height:58px;flex:none;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 2px 14px rgba(11,30,53,.3);position:relative;z-index:6;background-color:#173d6bcf">
@@ -106,7 +106,7 @@
   </div>
 
   <!-- ===== WORKSPACE ===== -->
-  <div style="flex:1;min-height:0;display:flex">
+  <div class="ds-workspace-body" style="flex:1;min-height:0;display:flex">
 
     <!-- ====== LEFT: CONTROLS ====== -->
     <div class="cv-scroll ds-sidebar" style="{{ sidebarStyle }}">
@@ -858,7 +858,7 @@
     ></div>
 
         <!-- ====== RIGHT: PREVIEW ====== -->
-    <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
+    <div class="ds-preview-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
       <sc-if value="{{ showPreviewHeader }}" hint-placeholder-val="{{ true }}"><div class="ds-preview-toolbar" role="group" aria-label="Document preview actions">
         <div class="ds-preview-identity">
           <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;white-space:nowrap">{{ previewTitle }}</span>
@@ -926,7 +926,7 @@
           <sc-if value="{{ showCopyNow }}" hint-placeholder-val="{{ true }}"><button onClick="{{ copyNow }}" style="min-height:38px;padding:10px 20px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">{{ copyLabel }}</button></sc-if>
         </div>
       </div></sc-if>
-      <div class="cv-scroll" style="{{ previewAreaStyle }}">
+      <div class="cv-scroll ds-preview-scroll" style="{{ previewAreaStyle }}">
         {{ previewNode }}
       </div>
     </div>
