@@ -1,5 +1,6 @@
 # Project Status
 
+Iris phone messages (2026-10-20, local source): new Edge Function `iris-take-message` receives the Telnyx voice assistant's take-message webhook (POST, `X-Iris-Secret` header = server-only `IRIS_WEBHOOK_SECRET`, verify_jwt=false), creates a `phone` helpdesk ticket titled "Phone message: <caller>" with callback details, logs a ticket_created event, and emails the company feedback address (non-fatal). Registered in config.toml and the edge-smoke no-CORS list. The originating session reported deno check and local probes passing (405/401/400); not re-run here (no deno in this container). Not deployed; the secret is not set; Telnyx tool URL still points at a placeholder. See HANDOFF.md.
 Localhost data access (2026-10-20, local source): Vite now offers a loopback-only same-origin Supabase HTTP proxy for signed-in development sessions on any localhost/127.0.0.1/IPv6 loopback port. Shared client reads/functions and Doc Studio use it in development; production builds retain direct transport and existing auth. Confirmed hosted gateway CORS rejection on port 5173 and repaired the local path without a production function change. Live invoice 81799 imported successfully.
 
 

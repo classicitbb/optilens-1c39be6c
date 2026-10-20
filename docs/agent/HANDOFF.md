@@ -1,3 +1,11 @@
+## 2026-10-20 — Iris take-message webhook
+
+Status: Awaiting approval — production deploy and secret
+
+- Files: `supabase/functions/iris-take-message/index.ts`, `supabase/config.toml`, `scripts/edge_functions_smoke.mjs`.
+- Tests run: none in this session (no deno available). The originating session reported `deno check` clean and local 405/401/400 probes. No hosted call or ticket created. `supabase/functions/deno.lock` from that patch was not carried over.
+- Approval required: production Edge Function deploy (merging to main triggers the all-functions deploy and email smoke) and setting the `IRIS_WEBHOOK_SECRET` Supabase secret.
+- Next action: after approval, set `IRIS_WEBHOOK_SECRET`, deploy, run `npm run qa:edge-smoke`, then point the Telnyx `take-message` tool at `/functions/v1/iris-take-message` with header `X-Iris-Secret`.
 ## 2026-10-20 — Doc Studio invoice import and localhost data access
 
 Status: Complete — no active handoff
