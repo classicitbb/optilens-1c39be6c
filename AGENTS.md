@@ -2,7 +2,7 @@
 
 ## Start here — orientation sequence
 
-Read in order; fetch only what your task needs.
+Read in order.
 
 1. **`STATUS.md`** (root) — always read this first. Current work, known bugs, do-not-touch zones.
 2. **`src/features/<name>/CONTEXT.md`** — read the CONTEXT.md for the specific
@@ -23,7 +23,7 @@ Read in order; fetch only what your task needs.
 ## Scope discipline
 
 - Only read files in the feature folder you are tasked with.
-- Do not preload docs for unrelated features.
+- Rx workspace joins separate outboxes; stock uses its release RPC. Preview never sends.
 - If a task touches multiple features, read both CONTEXT.md files, then stop
   unless you hit a gap.
 - For explicit repo-wide repair, dependency cleanup, build stabilization, or
@@ -64,14 +64,13 @@ Read in order; fetch only what your task needs.
 # Repository agent rules
 
 - Subdirectories have their own `AGENTS.md`; read it first. Wiki rules: `docs/wiki/AGENTS.md`.
-- Prefer maintainable refactors over parallel legacy systems.
+- Stock scans share resolution; close stops camera.
 
 ## Frontend architecture and routing governance
 
 - Treat `src/App.tsx` as the frontend shell entrypoint and keep domain split explicit: public, portal, admin, moonshot, ops.
-- Keep route declarations centralized in `src/routes/**` and keep `src/config/routeRegistry.ts` synchronized for metadata + legacy redirects.
-- Every page component intended for runtime use must have exactly one canonical route.
-- Legacy and alias paths must be redirect-only, not duplicate page implementations.
+- Centralize routes in `src/routes/**`; synchronize `src/config/routeRegistry.ts`. Each runtime page has one canonical route; aliases only redirect.
+- Proxy Vercel `/~oauth/**` to `classicvisions.lovable.app` before SPA fallback to avoid OAuth 404s.
 - Keep privileged areas (`/admin/**`, `/admin/moonshot/**`, `/ops/**`) behind explicit admin authorization guards.
 - Keep `src/features/admin/core/config/apps.ts` synchronized with admin route assignments (no dead sidebar links).
 - Do not run parallel active route systems for the same runtime surface without a migration plan and deprecation path.

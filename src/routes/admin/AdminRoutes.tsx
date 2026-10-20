@@ -6,6 +6,15 @@ import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
 import { buildPricelistSelectionPath, type PricelistEditorSection } from "@/features/pricelists/routes";
 import AtlasLegacyRedirect from "@/features/atlas/AtlasLegacyRedirect";
 
+// Keep saved quotes and product-tunnel links on their existing editor contract.
+function StockOrderEntry() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  if (params.has("quote") || params.has("highlight")) return <StockOrderBuilderPage />;
+  params.set("type", "stock");
+  return <Navigate to={`/admin/orders/rx/new?${params}`} replace />;
+}
+
 const AdminLayout = lazyWithRetry(() => import("@/components/admin/AdminLayout"));
 
 const AdminHomeRedirect = lazyWithRetry(() => import("@/components/admin/AdminHomeRedirect"),
@@ -278,7 +287,7 @@ const AdminRoutes = () => (
       <Route path="website/features" element={<FeatureBoardPage />} />
       <Route path="orders" element={<OrdersPage />} />
       <Route path="orders/quotations" element={<QuotationsListPage />} />
-      <Route path="orders/stock-orders" element={<StockOrderBuilderPage />} />
+      <Route path="orders/stock-orders" element={<StockOrderEntry />} />
       <Route path="orders/quotations/new-rx" element={<Navigate to="/admin/orders/rx/new" replace />} />
       <Route path="orders/quotations/rx/:id" element={<RxQuoteRedirect />} />
       <Route path="orders/rx-legacy/new" element={<RxOrderFormPage />} />

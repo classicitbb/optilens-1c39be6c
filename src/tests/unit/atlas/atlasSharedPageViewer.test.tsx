@@ -28,7 +28,7 @@ describe('Shared page website reader', () => {
     expect(document.querySelector('a[href^="/admin"],a[href^="/atlas"]')).toBeNull();
     expect(mocks.open).toHaveBeenCalledTimes(1);
     expect(mocks.open).toHaveBeenCalledWith(token);
-    expect(screen.getByRole('article')).toHaveClass('max-w-[720px]');
+    expect(screen.getByRole('article')).toHaveClass('max-w-[920px]');
   });
   it('uses the saved full-width setting in the website reader', async () => {
     mocks.open.mockResolvedValue({ ...content, fullWidth: true });

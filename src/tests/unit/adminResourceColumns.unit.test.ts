@@ -59,7 +59,7 @@ const KNOWN_BROKEN: Record<string, string[]> = {
   helpdesk_ticket_messages: ["author_id", "is_internal"],
   helpdesk_ticket_stages: ["active"],
   lead_audits: ["created_at"],
-  lenses: ["description", "web_enabled", "wspl_enabled"],
+  lenses: ["web_enabled", "wspl_enabled"],
   opportunities: ["expected_close_date", "name", "notes", "probability"],
   order_items: ["status"],
   orders: ["notes"],

@@ -63,6 +63,8 @@ export interface RxFormProps {
   introduction?: string;
   /** Fresh order from a pricelist: resolve against the loaded account catalog. */
   initialLensAlias?: string;
+  /** New admin order entry mode; saved orders still reopen as Rx. */
+  initialOrderType?: "rx" | "stock";
   resumedDraftId?: string;
   pricesVisible?: boolean;
   allowDirectSubmit?: boolean;
@@ -185,7 +187,7 @@ function LoadedForm({
   const hasSavedDrafts = props.surface === "portal" && cartDrafts.length + rxDrafts.length > 0;
   const isTest = props.isTest === true;
   // Order type is only offered to staff starting a new order; a reopened order is always an Rx order.
-  const [orderType, setOrderType] = useState<OrderType>("rx");
+  const [orderType, setOrderType] = useState<OrderType>(props.initialOrderType ?? "rx");
   const canPickType = props.surface === "admin" && !props.quoteId && !props.prefill && !props.fixture;
   const stockMode = canPickType && orderType !== "rx";
 
@@ -264,7 +266,7 @@ function LoadedForm({
   const valuesKey = JSON.stringify(values);
   useEffect(() => {
     carted.current = false;
-    if (api.isEmpty || submitting.current) return;
+    if (stockMode || api.isEmpty || submitting.current) return;
     const timer = setTimeout(async () => {
       if (carted.current) return;
       setSaving(true);
@@ -272,7 +274,7 @@ function LoadedForm({
     }, 1500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [valuesKey]);
+  }, [valuesKey, stockMode]);
 
   // ── submit ────────────────────────────────────────────────────────────────
   const [done, setDone] = useState<null | { kind: "cart" | "direct" | "test"; label: string; total: number; v1: any }>(null);
@@ -586,7 +588,7 @@ function LoadedForm({
       </div>
 
       {stockMode ? (
-        <StockServicePanel type={orderType as Exclude<OrderType, "rx">} accountId={accountId} accountName={account?.name ?? ""} />
+        <StockServicePanel key={accountId ?? "no-account"} accountId={accountId} accountName={account?.name ?? ""} />
       ) : (<>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">

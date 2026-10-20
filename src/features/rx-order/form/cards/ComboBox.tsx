@@ -4,6 +4,7 @@
 // whole lens can be chosen without the mouse). Escape or Tab away leaves the
 // choice as it was.
 import { useEffect, useId, useRef, useState } from "react";
+import * as Popover from "@radix-ui/react-popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { advanceFrom } from "../focus";
@@ -76,43 +77,51 @@ export function ComboBox({
 
   return (
     <Field label={num ? `${num} · ${label}` : label} required={required}>
-      <div className="relative">
-        <input
-          ref={input}
-          type="text"
-          role="combobox"
-          aria-label={label}
-          aria-expanded={open}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-activedescendant={open && filtered.length ? `${listId}-${active}` : undefined}
-          autoComplete="off"
-          placeholder={placeholder}
-          value={shown}
-          className={cn(
-            "flex w-full rounded-md border border-input bg-background pr-8 text-left placeholder:text-muted-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            CONTROL,
-          )}
-          onFocus={(e) => { openList(); e.currentTarget.select(); }}
-          onClick={() => { if (!open) openList(); }}
-          onChange={(e) => { setQuery(e.target.value); setTyped(true); setOpen(true); setActive(0); }}
-          onBlur={close}
-          onKeyDown={onKeyDown}
-        />
-        <button
-          type="button" tabIndex={-1} aria-hidden="true"
-          // keep focus in the field; just toggle the list
-          onMouseDown={(e) => { e.preventDefault(); if (open) close(); else { input.current?.focus(); openList(); } }}
-          className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-muted-foreground"
-        >
-          <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
-        </button>
+      <Popover.Root open={open} onOpenChange={(next) => { if (!next) close(); }}>
+        <Popover.Anchor asChild>
+          <div className="relative">
+            <input
+              ref={input}
+              type="text"
+              role="combobox"
+              aria-label={label}
+              aria-expanded={open}
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={open && filtered.length ? `${listId}-${active}` : undefined}
+              autoComplete="off"
+              placeholder={placeholder}
+              value={shown}
+              className={cn(
+                "flex w-full rounded-md border border-input bg-background pr-8 text-left placeholder:text-muted-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                CONTROL,
+              )}
+              onFocus={(e) => { openList(); e.currentTarget.select(); }}
+              onClick={() => { if (!open) openList(); }}
+              onChange={(e) => { setQuery(e.target.value); setTyped(true); setOpen(true); setActive(0); }}
+              onBlur={close}
+              onKeyDown={onKeyDown}
+            />
+            <button
+              type="button" tabIndex={-1} aria-hidden="true"
+              // keep focus in the field; just toggle the list
+              onMouseDown={(e) => { e.preventDefault(); if (open) close(); else { input.current?.focus(); openList(); } }}
+              className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-muted-foreground"
+            >
+              <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
+            </button>
 
+          </div>
+        </Popover.Anchor>
         {open && (
-          <ul
+          <Popover.Portal>
+            <Popover.Content asChild align="start" sideOffset={4} collisionPadding={8}
+            onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}
+            onInteractOutside={e => { if (e.target === input.current) e.preventDefault(); }}
+          ><ul
             id={listId} role="listbox" aria-label={`${label} options`}
-            className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-md"
+            className="z-[9300] w-[var(--radix-popover-trigger-width)] max-h-[min(15rem,var(--radix-popover-content-available-height))] overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-md"
           >
             {filtered.length === 0 && <li className="px-2 py-2 text-xs text-muted-foreground">No matches</li>}
             {filtered.map((item, i) => (
@@ -131,8 +140,10 @@ export function ComboBox({
               </li>
             ))}
           </ul>
+            </Popover.Content>
+          </Popover.Portal>
         )}
-      </div>
+      </Popover.Root>
     </Field>
   );
 }

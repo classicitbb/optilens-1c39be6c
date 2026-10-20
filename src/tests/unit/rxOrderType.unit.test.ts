@@ -7,8 +7,8 @@ const item = (customer_ref: string): StageOrderItem => ({
 });
 
 describe("order types", () => {
-  it("offers Rx first, then stock/supplies, then service request", () => {
-    expect(ORDER_TYPES.map((t) => t.id)).toEqual(["rx", "stock", "service"]);
+  it("offers Rx and stock/supplies; service items belong inside stock orders", () => {
+    expect(ORDER_TYPES.map((t) => t.id)).toEqual(["rx", "stock"]);
   });
 
   it("leaves a stock order untouched", () => {

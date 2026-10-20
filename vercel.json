@@ -51,7 +51,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "accelerometer=(), autoplay=(self), camera=(), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(), usb=()"
+          "value": "accelerometer=(), autoplay=(self), camera=(self), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(), usb=()"
         },
         {
           "key": "Content-Security-Policy",

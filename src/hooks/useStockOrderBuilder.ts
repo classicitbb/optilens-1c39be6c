@@ -143,6 +143,8 @@ export interface StockVariant {
   attributes: Record<string, unknown>;
   metadata: Record<string, unknown>;
   stock_qty: number;
+  reserved_qty?: number;
+  allow_backorder?: boolean;
 }
 
 /** Reads the storefront's own variant list for a product, so the builder
@@ -167,6 +169,8 @@ export const useStockProductVariants = (productType: StockProductType | null, pr
           attributes: (v.attributes ?? {}) as Record<string, unknown>,
           metadata: (v.metadata ?? {}) as Record<string, unknown>,
           stock_qty: Number(v.stock_qty ?? 0),
+          reserved_qty: Number(v.reserved_qty ?? 0),
+          allow_backorder: Boolean(v.allow_backorder),
         }));
     },
   });
@@ -189,6 +193,7 @@ export interface ResolvedScan {
   variantId: string;
   variantTitle: string;
   side: "right" | "left" | "either";
+  isChiral?: boolean;
 }
 
 /** Resolve a scanned or typed code to a website variant. Checked against the
@@ -219,6 +224,7 @@ export const resolveStockCode = async (code: string): Promise<ResolvedScan | nul
     variantId: data.id,
     variantTitle: data.title,
     side: byEye.right === trimmed ? "right" : byEye.left === trimmed ? "left" : "either",
+    isChiral: Boolean(data.metadata?.is_chiral),
   };
 };
 
@@ -324,17 +330,25 @@ export const useStageStockOrder = () => {
   });
 };
 
-// Stock orders always release through Innovations. The office worker claims
-// the outbox row and drops the rendered file into Innova's Incoming folder.
+// Stock orders release through OptiLens ("innovations": the office worker claims
+// the outbox row and drops the rendered file into Innova's Incoming folder) or
+// Gatekeeper (sent immediately by the gatekeeper-orders function).
+export type StockDispatchProvider = "innovations" | "gatekeeper";
 export const useReleaseStockOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
+    mutationFn: async ({ id, provider = "innovations" }: { id: string; provider?: StockDispatchProvider }) => {
       const { error } = await (supabase.rpc as any)("release_stock_order_submission", {
         p_id: id,
-        p_dispatch_provider: "innovations",
+        p_dispatch_provider: provider,
       });
       if (error) throw error;
+      if (provider !== "gatekeeper") return;
+      const { data, error: sendError } = await supabase.functions.invoke("gatekeeper-orders", {
+        body: { action: "send", orderKind: "stock", submissionId: id },
+      });
+      if (sendError) throw new Error(sendError.message);
+      if (!data?.ok) throw new Error(data?.error || "Gatekeeper did not confirm receipt of the order.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stock-order-drafts"] });

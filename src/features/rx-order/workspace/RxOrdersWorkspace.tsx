@@ -20,6 +20,9 @@ import {
 } from "./classify";
 import { RxOrderDrawer } from "./RxOrderDrawer";
 import { emailCustomer, useRxWorkspace, type CustomerEvent } from "./useRxWorkspace";
+import { useReleaseStockOrder } from "@/hooks/useStockOrderBuilder";
+import { ToastAction } from "@/components/ui/toast";
+import { isNotPricedError, releaseErrorMessage } from "./releaseError";
 
 type Provider = "innovations" | "gatekeeper";
 
@@ -40,9 +43,10 @@ const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: "
 export default function RxOrdersWorkspace() {
   const navigate = useNavigate();
   const ws = useRxWorkspace();
+  const stockRelease = useReleaseStockOrder();
   const { approveMutation, resendMutation, cancelMutation, pullStatusesMutation } = ws.outbox;
 
-  const [tab, setTab] = useState<WorkspaceTab>("review");
+  const [tab, setTab] = useState<WorkspaceTab>("lab");
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -57,7 +61,7 @@ export default function RxOrdersWorkspace() {
   const open = ws.items.find((i) => i.key === openKey) ?? null;
   const providerOf = (i: WorkspaceItem): Provider => choices[i.key] ?? i.provider ?? "innovations";
 
-  const releasable = rows.filter((i) => i.tab === "ready" && i.submission);
+  const releasable = rows.filter((i) => i.tab === "ready" && (i.submission || i.stock));
   const picked = releasable.filter((i) => selected.has(i.key));
 
   const tellCustomer = async (id: string, event: CustomerEvent) => {
@@ -70,8 +74,26 @@ export default function RxOrdersWorkspace() {
   };
 
   const release = async (i: WorkspaceItem, provider: Provider) => {
-    await approveMutation.mutateAsync({ id: i.submission!.id, provider });
-    if (emailOnRelease) await tellCustomer(i.submission!.id, "released");
+    if (i.stock) {
+      try { await stockRelease.mutateAsync({ id: i.stock.id, provider }); }
+      catch (e) {
+        const msg = releaseErrorMessage(e);
+        toast({
+          variant: "destructive",
+          title: "Release failed",
+          description: isNotPricedError(msg) ? `${msg} Price it on the account's price list, then release again.` : msg,
+          action: isNotPricedError(msg)
+            ? <ToastAction altText="Open price lists" onClick={() => navigate("/admin/pricing/pricelists")}>Open price lists</ToastAction>
+            : undefined,
+        });
+        throw new Error(msg ?? "Release failed");
+      }
+      finally { ws.refresh(); }
+      return;
+    }
+    if (!i.submission) return;
+    await approveMutation.mutateAsync({ id: i.submission.id, provider });
+    if (emailOnRelease) await tellCustomer(i.submission.id, "released");
   };
 
   const releaseSelected = async () => {
@@ -92,10 +114,28 @@ export default function RxOrdersWorkspace() {
 
   const actions = (i: WorkspaceItem, inDrawer = false) => {
     const s = i.submission;
+    if (i.stock) {
+      const stock = i.stock;
+      const provider = providerOf(i);
+      return <div className="inline-flex flex-wrap items-center gap-1">
+        <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => setOpenKey(i.key)}>View order</Button>
+        {["staged", "failed"].includes(stock.status) && <>
+          <Select value={provider} onValueChange={(v: Provider) => setChoices((c) => ({ ...c, [i.key]: v }))}>
+            <SelectTrigger className="h-6 w-[100px] text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="innovations">OptiLens</SelectItem><SelectItem value="gatekeeper">Gatekeeper</SelectItem></SelectContent>
+          </Select>
+          <Button size="sm" className="h-6 gap-1 px-2 text-[10px]" disabled={stockRelease.isPending} onClick={() => {
+            if (window.confirm(`Release ${i.quoteNumber} to ${provider === "gatekeeper" ? "Gatekeeper" : "OptiLens"}?`)) void release(i, provider).catch(() => undefined);
+          }}><Send className="h-3 w-3" />{stock.status === "failed" ? "Retry" : "Release"}</Button>
+        </>}
+      </div>;
+    }
     if (i.kind === "capture") {
+      const capture = i.capture;
+      if (!capture) return null;
       return (
-        <Button size="sm" className="h-6 gap-1 px-2 text-[10px]" onClick={() => navigate(`/admin/orders/rx-capture?job=${i.capture!.id}`)}>
-          <Camera className="h-3 w-3" /> {i.capture!.status === "failed" ? "Open blank" : "Review"}
+        <Button size="sm" className="h-6 gap-1 px-2 text-[10px]" onClick={() => navigate(`/admin/orders/rx-capture?job=${capture.id}`)}>
+          <Camera className="h-3 w-3" /> {capture.status === "failed" ? "Open blank" : "Review"}
         </Button>
       );
     }
@@ -147,10 +187,10 @@ export default function RxOrdersWorkspace() {
   return (
     <div className="space-y-4 p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="flex items-center gap-2 text-base font-semibold"><Send className="h-4 w-4" /> Rx Orders</h1>
+        <h1 className="flex items-center gap-2 text-base font-semibold"><Send className="h-4 w-4" /> Rx & Stock Orders</h1>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground" title="Send the customer an email when you release an order">
-            <Switch checked={emailOnRelease} onCheckedChange={setEmailOnRelease} aria-label="Email customer when released" /> Email customer when released
+            <Switch checked={emailOnRelease} onCheckedChange={setEmailOnRelease} aria-label="Email customer when released" /> Email Rx customer when released
           </label>
           <Button size="sm" variant="outline" className="h-7 gap-1 px-2 text-[11px]" onClick={() => navigate("/admin/orders/rx-capture")}>
             <Camera className="h-3 w-3" /> Capture
@@ -165,7 +205,12 @@ export default function RxOrdersWorkspace() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input className="h-8 w-52 text-xs" placeholder="Account or quote number…" value={filters.text} onChange={(e) => set({ text: e.target.value })} />
+        <Button size="sm" variant="outline" className="h-8" onClick={ws.refresh} aria-label="Refresh orders"><RefreshCw className="h-4 w-4" /></Button>
+        <Select value={filters.orderType ?? "all"} onValueChange={(v: "all" | "rx" | "stock") => set({ orderType: v })}>
+          <SelectTrigger className="h-8 w-[130px] text-xs" aria-label="Order type"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">Rx & Stock</SelectItem><SelectItem value="rx">Rx only</SelectItem><SelectItem value="stock">Stock only</SelectItem></SelectContent>
+        </Select>
+        <Input className="h-8 w-52 text-xs" placeholder="Account, order or reference…" value={filters.text} onChange={(e) => set({ text: e.target.value })} />
         <Select value={filters.source} onValueChange={(v: Filters["source"]) => set({ source: v })}>
           <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -213,7 +258,8 @@ export default function RxOrdersWorkspace() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded border border-border">
+      {ws.error && <p role="alert" className="text-xs text-destructive">Could not load all orders: {ws.error.message}</p>}
+      <div className="overflow-x-auto border border-border">
         <table className="w-full text-xs">
           <thead className="bg-muted/60">
             <tr className="text-left text-[10px] font-semibold text-muted-foreground">
@@ -233,7 +279,7 @@ export default function RxOrdersWorkspace() {
               <tr><td colSpan={8} className="py-8 text-center text-muted-foreground">Nothing in {TABS.find((t) => t.id === tab)?.label.toLowerCase()}.</td></tr>
             )}
             {rows.map((i) => {
-              const s = i.submission;
+              const s = i.submission ?? i.stock;
               return (
                 <tr key={i.key} className="cursor-pointer border-t border-border align-top hover:bg-muted/30" onClick={() => setOpenKey(i.key)}>
                   {tab === "ready" && (
@@ -245,7 +291,7 @@ export default function RxOrdersWorkspace() {
                       />
                     </td>
                   )}
-                  <td className="px-2 py-1.5 font-mono">{i.quoteNumber ?? (i.kind === "capture" ? "Capture" : "—")}</td>
+                  <td className="px-2 py-1.5"><div className="flex items-center gap-1"><span className="font-mono">{i.quoteNumber ?? (i.kind === "capture" ? "Capture" : "—")}</span><Badge variant="secondary" className="text-[9px]">{i.stock ? "Stock" : "Rx"}</Badge></div>{i.stock?.order_reference && <div className="mt-1 text-muted-foreground">{i.stock.order_reference}</div>}</td>
                   <td className="px-2 py-1.5 font-medium">{i.accountName}</td>
                   <td className="px-2 py-1.5">{SOURCE_LABELS[i.source]}</td>
                   <td className="px-2 py-1.5 text-center">
@@ -266,12 +312,6 @@ export default function RxOrdersWorkspace() {
           </tbody>
         </table>
       </div>
-
-      <p className="max-w-3xl text-[10px] text-muted-foreground">
-        Choose OptiLens to use the office sender, or Gatekeeper to send immediately through the enabled Gatekeeper contract. A row left in
-        “approved” or “claimed” with no receipt never reached Gatekeeper — use Send now. Lab statuses refresh automatically and can be pulled
-        manually at most once every 5 minutes. Orders cannot be edited once released.
-      </p>
 
       <RxOrderDrawer item={open} onClose={() => setOpenKey(null)} actions={open ? actions(open, true) : null} />
     </div>

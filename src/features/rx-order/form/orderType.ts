@@ -1,8 +1,5 @@
-// Order type chosen at the top of the Rx order form. "rx" is the prescription
-// form itself; "stock" and "service" are both stock-format orders (rx_eye 5 in
-// the lab file) built from named catalog items. A service request is the same
-// order with a collection marker, so the lab and staff can tell that items are
-// to be collected rather than shipped.
+// New orders offer Rx and stock/supplies. Published services are catalog items
+// inside stock orders. The legacy service marker helpers remain for compatibility.
 import type { StageOrderItem } from "@/hooks/useStockOrderBuilder";
 
 export type OrderType = "rx" | "stock" | "service";
@@ -10,7 +7,6 @@ export type OrderType = "rx" | "stock" | "service";
 export const ORDER_TYPES: { id: OrderType; label: string }[] = [
   { id: "rx", label: "Rx order" },
   { id: "stock", label: "Stock / supplies order" },
-  { id: "service", label: "Service request order" },
 ];
 
 // No colon: the lab file writer replaces any colon inside a value.

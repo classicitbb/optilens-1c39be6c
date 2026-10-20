@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 export default function RxOrderEditPage() {
   const { quoteId: routeQuoteId } = useParams<{ quoteId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [created, setCreated] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
 
@@ -48,9 +49,10 @@ export default function RxOrderEditPage() {
         <p className="p-6 text-xs text-destructive">This order could not be opened.</p>
       ) : (
         <RxForm
-          key={`${routeQuoteId ?? "new"}:${formKey}`}
+          key={`${routeQuoteId ?? "new"}:${searchParams.get("type") === "stock" ? "stock" : "rx"}:${formKey}`}
           quoteId={routeQuoteId ?? null}
           surface="admin"
+          initialOrderType={!routeQuoteId && searchParams.get("type") === "stock" ? "stock" : "rx"}
           prefill={prefill ?? undefined}
           prefillBanner={prefill && quoteNumber ? `Reopened saved order <b>${quoteNumber}</b>.` : undefined}
           checkoutPath="/checkout"
@@ -59,6 +61,10 @@ export default function RxOrderEditPage() {
             setCreated(id);
             // point the address bar at the saved quote WITHOUT a router navigation, which would remount the form mid-entry
             window.history.replaceState(window.history.state, "", `/admin/orders/rx/${id}/edit`);
+          }}
+          submitToQueue={async (id) => {
+            const { error: submitError } = await (supabase.rpc as any)("submit_rx_order_to_queue", { p_quote_id: id });
+            if (submitError) throw new Error(submitError.message);
           }}
           onStartAnother={() => {
             setCreated(null);

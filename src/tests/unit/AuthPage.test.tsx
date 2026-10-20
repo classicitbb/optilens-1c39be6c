@@ -174,6 +174,27 @@ describe("Auth page onboarding flow", () => {
     });
   });
 
+  it("opens Google sign-in through the managed OAuth helper", async () => {
+    renderAuth("/auth?mode=signin");
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    await waitFor(() => {
+      expect(mocks.oAuth).toHaveBeenCalledWith("google", { redirect_uri: window.location.origin });
+    });
+  });
+
+  it("opens Microsoft sign-in through the managed OAuth helper", async () => {
+    renderAuth("/auth?mode=signin");
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue with Microsoft" }));
+
+    await waitFor(() => {
+      expect(mocks.oAuth).toHaveBeenCalledWith("microsoft", { redirect_uri: window.location.origin });
+    });
+  });
+
+
   it("advances from email to password and signs in with Enter", async () => {
     renderAuth("/auth?mode=signin&redirect=%2Fstore");
 

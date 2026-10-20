@@ -1,5 +1,15 @@
 # Frontend Help Docs
 
+Stock entry/pickers (2026-10-19, local source): the Stock Order Builder link now starts the shared form with Stock / supplies selected; switch Order type to Rx when needed. Choose lens material, design and colour in any order, then add quantities from the power grid. Menus float outside the scrolling area and selected choices are distinct in light/dark mode. Existing saved-stock links still reopen their editor. Save draft and Submit remain explicit actions.
+
+Integrated admin stock form (2026-10-19, local source): choose Stock / supplies order, enter a required patient/name or tracking reference, and optionally enter PO/instructions. Add supplies/services opens the category browser for items on the selected account's catalog; Add stock lenses uses vision/eye toggles, searchable material/design/option choices, then actual powers. Pair quantities mean pairs; right/left quantities mean individual lenses. Services are published addon products in the same browser, so there is no separate service order type. Scan accepts USB/handheld or typed SKU/OPC input (no camera). Review does not save; Save draft persists, and final Submit saves/releases to Innovations. Changing account clears local lines. Source only; no production publication from this change.
+
+Selected stock prototype (2026-10-19): only the preferred form remains, styled like the admin site. The top panel contains Patient / order reference, optional PO and optional special instructions without a title or helper text. Fields sit on one desktop row and wrap on smaller screens. Supplies, lens selection, scanner and review remain in this same form; no layout switcher or preview tabs remain.
+
+Stock prototype refinement (2026-10-19): the preferred Rx supplies preview opens first without the duplicate supplies card. Choose vision and eye supply using toggles. Type in any lens selector first; the other lists narrow to compatible choices. The compact store-style matrix has descending power axes, rounded quantity cells and Clear grid. Add selected powers places them in the simulated order lines.
+
+Stock / supplies prototype (2026-10-19, local review): use the demo account menu to try stock-and-supplies, supplies-only, lenses-only or no-pricing scenarios. The selected form is the only layout. Enter a patient name or order reference, optionally a PO and instructions, then browse supplies or choose lens material/design/option to reveal the power grid. Pair quantities are pairs; right/left quantities are individual lenses. Scanner sample code `2817201` adds cleaner. Save/review/sync are simulations and refreshing clears the order. The prototype does not change the website forms.
+
 Rx menu alignment (2026-10-17, local source): the left account menu stays directly below the account header, matching other account pages. Scroll within the Rx form to move its content independently.
 
 Rx uncut supply (2026-10-17, local source): choosing Uncut Rx lenses fixes Frame supplied by to Uncut. Choose Full glaze to use the normal frame-supply options. The short introduction now scrolls away; Rx Order Form remains visible above the form.
