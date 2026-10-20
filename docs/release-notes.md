@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes

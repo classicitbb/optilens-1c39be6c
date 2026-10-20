@@ -1,19 +1,24 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { supabaseDevProxy } from "./scripts/vite-supabase-proxy.ts";
 
 // https://vitejs.dev/config/
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => {
+  const localData = supabaseDevProxy(loadEnv(mode, process.cwd(), 'VITE_SUPABASE_URL').VITE_SUPABASE_URL);
+  return ({
   server: {
     host: "::",
     port: Number(process.env.PORT) || 8080,
+    proxy: localData.proxy,
   },
   preview: {
     host: "::",
     port: Number(process.env.PORT) || 4173,
+    proxy: localData.proxy,
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), localData.plugin],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -57,4 +62,5 @@ export default defineConfig(() => ({
       },
     },
   },
-}));
+});
+});

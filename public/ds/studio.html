@@ -655,6 +655,18 @@
           <div style="flex:1;text-align:right;font:600 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">{{ billSaveState }}</div>
         </div>
 
+        <sc-if value="{{ showInvoiceImport }}">
+          <div style="border:1px solid #d9d7cf;border-radius:8px;padding:12px">
+            <label for="ds-innovations-invoice" style="display:block;font:700 12px/1.4 'Plus Jakarta Sans',sans-serif;margin-bottom:7px">Import from Innovations invoice</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">
+              <input id="ds-innovations-invoice" class="cv-in" inputmode="numeric" value="{{ innovationsInvoiceNumber }}" onChange="{{ onInnovationsInvoiceNumber }}" disabled="{{ invoiceImportDisabled }}" placeholder="Invoice number" style="flex:1;min-width:100px;width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;color:#0B1E35;background:#fff">
+              <button type="button" onClick="{{ importInnovationsInvoice }}" disabled="{{ invoiceImportDisabled }}" style="padding:9px 11px;border:0;border-radius:8px;background:#1A8A9C;color:#fff;font-weight:700">{{ invoiceImportLabel }}</button>
+            </div>
+            <p style="font-size:11px;line-height:1.5;margin:7px 0 0">Fills a new draft with the customer and invoice lines. If the account cannot be found, select it under Fill from customer first.</p>
+            <sc-if value="{{ innovationsInvoiceLoading }}"><progress aria-label="Loading Innovations invoice" style="width:100%"></progress></sc-if>
+            <div role="status" aria-live="polite" style="font-size:12px;line-height:1.5;margin-top:7px">{{ innovationsInvoiceMessage }}</div>
+          </div>
+        </sc-if>
         <div style="display:flex;gap:11px">
           <div style="flex:1">
             <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Number</div>

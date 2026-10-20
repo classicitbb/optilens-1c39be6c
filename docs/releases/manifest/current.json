@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.15.0",
-  "sourceEntry": "2026-10-19 — Stock entry and selector visibility (local source)",
-  "releaseDateTimeUtc": "2026-10-19T00:00:00.000Z",
+  "semanticVersion": "0.16.0",
+  "sourceEntry": "2026-10-20 — Doc Studio Innovations invoice import (local source)",
+  "releaseDateTimeUtc": "2026-10-20T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Fresh stock-order links open the shared Rx form in Stock / supplies mode. Saved stock quotes/product highlights retain the existing editor. Lens lists escape scrolling panels and fit the viewport; segmented choices have contrasting light/dark states. Browser lens-grid/local-line checks passed without saving/submitting. Not published."
+    "Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Stock entry and selector visibility (local source)."
+      "notes": "Updated as part of Doc Studio Innovations invoice import (local source)."
     }
   ],
   "migrationNotes": [
