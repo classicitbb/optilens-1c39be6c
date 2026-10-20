@@ -5,19 +5,28 @@ Not covered: outbound calls by Iris, or any PBX change made from this repo. Writ
 output pasted on 2026-10-20 (FreePBX 16.0.50, Asterisk 16.30.0, trunks `Telnyx` and `FlowSIP`
 registered). Menu names are from memory of FreePBX 16; check each against the GUI.
 
-Placeholder: `IRIS_TARGET` = the number (or SIP URI) the assistant is attached to in Telnyx.
-This is still unknown. Do not guess it.
+`IRIS_TARGET` = **+1 312 883 6807**, the only number assigned to the Iris assistant in Telnyx
+(reported by the user from Telnyx > Calling > Assigned numbers on 2026-10-20: active local US
+Chicago number, HD Voice off, inbound recording off, "Support Unauthenticated Web Calls" off).
+No SIP URI is shown for the assistant, so the route dials this number through the `Telnyx` trunk.
+Leave "Support Unauthenticated Web Calls" off: turning it on would let anyone on the internet start
+Iris sessions that you pay for.
 
 ## 1. Outbound path to Iris
 
 1. Connectivity > Outbound Routes: add route `to-iris`, trunk = `Telnyx` only, with a dial
    pattern that matches **only** `IRIS_TARGET` (no other numbers), placed above routes that
    could match it.
-2. Admin > Custom Destinations: add `Iris` with target `from-internal,IRIS_TARGET,1`
-   (Return = No). If `IRIS_TARGET` is a SIP URI, use Telnyx's SIP URI dialling instead;
-   confirm what Telnyx accepts from the registered trunk.
-3. Loop guard: `IRIS_TARGET` must not be a number that Telnyx sends back into this PBX as an
-   inbound DID. If it is, calls will bounce between the two.
+2. Admin > Custom Destinations: add `Iris` with target `from-internal,13128836807,1`
+   (Return = No). The dial pattern must match whatever form you dial (`13128836807`; if the
+   route adds a prefix, adjust the pattern, and confirm Telnyx expects E.164 `+1...`).
+3. Loop guard: +1 312 883 6807 is assigned to the assistant, not to this PBX, so it should not
+   come back as an inbound DID. Confirm no Telnyx inbound route or forwarding sends it here.
+4. Caller ID: the assistant will see the caller ID the trunk presents. Telnyx normally only
+   accepts caller IDs you own or have verified, so the original caller's number may be replaced
+   by the trunk's. If so, the ticket's "Called from" shows the wrong number. Options: pass the
+   original number in a SIP header (Telnyx assistant dynamic variables, to be checked), or have
+   `iris-take-message` rely on the callback number the caller speaks. Test with a real call.
 
 ## 2. After hours
 
@@ -52,7 +61,7 @@ disabling the `Telnyx` trunk temporarily during a quiet period.
 | Call after hours | Iris answers immediately |
 | Telnyx trunk disabled | Voicemail, not dead air |
 | Caller leaves a message | `phone` helpdesk ticket and email (needs `iris-take-message` deployed and `IRIS_WEBHOOK_SECRET` set) |
-| Caller ID | Shown in the ticket under "Called from" |
+| Caller ID | Check what appears under "Called from"; it may be the trunk's number (see 1.4) |
 
 ## 6. Rollback
 
@@ -64,5 +73,6 @@ Apply Config. Nothing else changes, because the outbound route only matches `IRI
 - The PBX accepts SIP from the internet (extension 2230 registers remotely). Confirm firewall and
   fail2ban before adding more routes.
 - Asterisk 16 is end-of-life; schedule an upgrade independently.
+- Each overflow call is an outbound call to a US number plus assistant minutes; neither rate was checked here.
 - Telnyx per-minute cost applies to every overflow call; consider a ring time that avoids sending
   calls that staff would have answered a few seconds later.

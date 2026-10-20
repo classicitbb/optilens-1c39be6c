@@ -50,13 +50,13 @@ the Iris voice leg; click-to-call, recording upload and the CRM call panel are s
 
 ## Decisions needed before building
 
-0. Telnyx is already chosen: confirm how calls reach the assistant (a Telnyx number forwarded, or a FreePBX SIP trunk to Telnyx) and whether FreePBX needs a failover route.
+0. RESOLVED 2026-10-20: the assistant is on +1 312 883 6807 (no SIP URI); FreePBX dials it via the Telnyx trunk, inbound recording and web calls off. Earlier text: Telnyx is already chosen: confirm how calls reach the assistant (a Telnyx number forwarded, or a FreePBX SIP trunk to Telnyx) and whether FreePBX needs a failover route.
 1. Voice stack: managed (e.g. Telnyx AI/voice, which also gives SIP) versus our own bridge
    with a speech-to-text/text-to-speech provider. Managed is faster to ship; own bridge keeps
    audio and logic in our control. Neither has been priced or checked here.
 2. Should Iris answer inbound calls, place outbound calls, or both? Outbound needs the
    approval step and compliance review (recording and AI-disclosure notices).
-3. Which numbers/extensions, and which hours (after-hours only, or overflow when busy)?
+3. DECIDED: Iris answers after-hours and overflow calls. Still needed: business hours/holidays and ring time before overflow.
 4. Language/accent: the existing transcription path uses `en-BB`/`en-US`/`en-GB`.
 
 ## PBX findings (2026-10-20, pasted by the user; not independently verified)
