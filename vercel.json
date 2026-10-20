@@ -1,6 +1,26 @@
 {
   "rewrites": [
     {
+      "source": "/qbo/oauth/callback",
+      "destination": "/api/qbo/oauth-callback"
+    },
+    {
+      "source": "/qbo/handoff/claim",
+      "destination": "/api/qbo/handoff-claim"
+    },
+    {
+      "source": "/qbo/handoff/result",
+      "destination": "/api/qbo/handoff-result"
+    },
+    {
+      "source": "/qbo/commands/claim",
+      "destination": "/api/qbo/commands-claim"
+    },
+    {
+      "source": "/qbo/commands/result",
+      "destination": "/api/qbo/commands-result"
+    },
+    {
       "source": "/qbo/:action*",
       "destination": "/api/qbo/:action*"
     },

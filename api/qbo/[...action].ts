@@ -93,7 +93,9 @@ function decryptCode(value: string) {
 
 export default async function handler(req: GatewayRequest, res: GatewayResponse) {
   const rawAction = req.query.action ?? req.query["...action"];
-  const action = Array.isArray(rawAction) ? rawAction.join("/") : String(rawAction || "");
+  // Vercel only routes single-segment paths to this catch-all, so vercel.json
+  // rewrites "oauth/callback" etc. to "oauth-callback"; restore the slash here.
+  const action = (Array.isArray(rawAction) ? rawAction.join("/") : String(rawAction || "")).replace(/^(oauth|handoff|commands)-/, "$1/");
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
   try {
