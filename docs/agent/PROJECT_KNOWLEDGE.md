@@ -1,5 +1,14 @@
 # Project Knowledge
 
+Git TLS on Windows: if OpenSSL cannot find the local issuer, a temporary CA bundle combining Node built-in roots and tls.getCACertificates("system") can be supplied per command with git -c http.sslCAInfo=<temporary-bundle>. Keep verification enabled; no global Git or certificate-store change is necessary.
+
+## Portal operations controls — 2026-10-20
+
+WebsitePortalsPage uses shared two-state switches in both the embedded contact settings and fallback portal dialog. Switches write explicit true/false overrides; existing unset rows retain approval/tag inheritance, and existing Rx/order-price opt-ins remain off. Clear conflicting override is retained separately. The assigned-pricelist Edit link uses buildPricelistEditorPath(id, "rx") and is disabled without an assignment.
+
+Migration 20261020214927_new_portal_features_disabled.sql initializes nine false feature rows only after a new profiles INSERT, including auto-notifications. It never backfills existing profiles or overwrites a pre-existing override. The internal trigger uses fixed search_path, fully qualified objects and revoked public execution; existing staff bypass and sensitive pricing/statement tag checks remain. Applying this migration is an authorization/default change and needs explicit approval; commit/push authorization alone is not a database apply. No new service or environment variable.
+
+
 ## Doc Studio section shortcuts — 2026-10-20
 
 `src/features/admin/doc-studio/navigation.ts` defines the allowlisted section deep links on the canonical /admin/docs/studio route (tab plus billing-only billType). The dashboard shows four recently used sections followed by the existing more link. Browser-local docstudio-recent-tools:<user-id> stores only module keys, isolated by signed-in user, with defaults when unavailable. The established runtime applies incoming section queries without billing autosave/type conversion of the open saved document, while billingDocument/staffInvite handoffs retain precedence. A mount-scoped ds:navigation listener updates the canonical query and recent order; it cleans up at unmount. NATIVE_CSS overrides inherited outer div radii only on Studio structural surfaces. AdminTopBar owns the shared square admin header. No new routes, access rules, backend or environment variables.

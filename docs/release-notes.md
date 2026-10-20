@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
 ## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
 
 ### Release Notes

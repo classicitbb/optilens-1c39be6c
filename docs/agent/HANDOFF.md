@@ -1,3 +1,15 @@
+## Portal operations controls — 2026-10-20
+
+Status: Source complete; new-account default migration and rendered verification pending.
+
+User authorized commit and push and selected new accounts only for disabled defaults. Affected: WebsitePortalsPage.tsx, portalFeatureToggleValue.ts, portalFeatureToggleValue.test.ts, 20261020214927_new_portal_features_disabled.sql, STATUS.md, PROJECT_KNOWLEDGE.md, INTEGRATIONS.md and this handoff. Existing accounts are untouched. Production migration apply needs explicit approval under AGENTS.md; no hosted setting or schema was written. Browser getState timed out, so no rendered verification or live toggles were attempted. Validation: production build, TypeScript, scoped lint (0 errors), 21 focused tests and qa:pr-checks pass. Full lint has the pre-existing RxOrdersWorkspace.tsx:89 preserve-caught-error failure (1 error, 2433 warnings). Full npm run test -- --runInBand completed: 257 passed / 4 failed files, 1664 passed / 14 failed tests. Failures are untouched rxFormChemistrie (2 timeouts), rxOrdersWorkspace (10 cases), emailRecipientInput (missing CRM option), and vercelOAuth (existing rewrite contract). Focused new tests pass separately. New trigger SQL has not been executed against a database. Approval required: apply only the named new-profile default migration; no automatic migration apply or Edge Function release is part of this push. Next executable read-only action: git show --stat HEAD
+
+## Finished ZenVue progressive — stock export pricelist (2026-10-20)
+
+Status: Incomplete — browser connection blocked.
+
+User requests adding the finished ZenVue progressive to the export pricelist, specifically its Stock Lens Prices list. No source or hosted price/catalogue records changed. Source inspection confirms StockLensPricesPage uses ListCatalogTab with catalogType=stock and lensFilter=wspl; stock exports use that catalogue. Browser getTab and getState both timed out before returning any UI. No lens identity, target version, or existing selling price was verified; do not invent prices. Tests: none (no implementation change). Approval: prepare the exact row and price for review before the production data save, per project rules. Next executable action: await cua.getState(); then inspect the export version Stock Lens Prices / WSPL Stock List and locate the existing finished ZenVue progressive entry.
+
 ## 2026-10-20 — Doc Studio dashboard shortcuts and square surfaces
 
 Status: Complete — no active handoff

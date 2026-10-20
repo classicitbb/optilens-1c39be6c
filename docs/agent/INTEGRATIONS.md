@@ -1,5 +1,12 @@
 # Integrations and Cross-Repository Contract
 
+## Portal operations controls — 2026-10-20
+
+WebsitePortalsPage uses shared two-state switches in both the embedded contact settings and fallback portal dialog. Switches write explicit true/false overrides; existing unset rows retain approval/tag inheritance, and existing Rx/order-price opt-ins remain off. Clear conflicting override is retained separately. The assigned-pricelist Edit link uses buildPricelistEditorPath(id, "rx") and is disabled without an assignment.
+
+Migration 20261020214927_new_portal_features_disabled.sql initializes nine false feature rows only after a new profiles INSERT, including auto-notifications. It never backfills existing profiles or overwrites a pre-existing override. The internal trigger uses fixed search_path, fully qualified objects and revoked public execution; existing staff bypass and sensitive pricing/statement tag checks remain. Applying this migration is an authorization/default change and needs explicit approval; commit/push authorization alone is not a database apply. No new service or environment variable.
+
+
 Doc Studio dashboard/navigation annotations (2026-10-20): frontend-only allowlisted section queries and browser-local user-scoped recent module keys. No document content or identifiers are stored in the recency key. Existing file and invitation handoffs take precedence over section queries. No route, backend, connector, schema, service, credential, access rule or environment-variable change.
 
 

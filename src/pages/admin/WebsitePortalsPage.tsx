@@ -5,6 +5,7 @@ import {
   Building2,
   CreditCard,
   ExternalLink,
+  Pencil,
   Eye,
   LifeBuoy,
   Mail,
@@ -25,6 +26,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { buildPricelistEditorPath } from "@/features/pricelists/routes";
+import { portalFeatureToggleValue } from "@/lib/portalFeatureToggleValue";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
@@ -787,21 +791,6 @@ const WebsitePortalsPage = () => {
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to clear override.", variant: "destructive" }),
   });
 
-  // Feature overrides are tri-state (unset/true/false), but a two-state toggle
-  // that only ever upserts true/false can never express "unset" — the button
-  // showed "Default" for both a genuinely unset row and an explicit
-  // enabled=false row, so staff had no reliable way to tell an override was
-  // disabled, and every click just flipped straight back to enabled=true.
-  // Cycle unset -> enabled -> disabled -> unset (via clearFeatureOverride) so
-  // "Disabled" is its own visible, sticky state.
-  const cycleFeatureOverride = (feature: string, current: boolean | undefined) => {
-    if (current === undefined) upsertFeatureOverride.mutate({ featureKey: feature, enabled: true });
-    else if (current === true) upsertFeatureOverride.mutate({ featureKey: feature, enabled: false });
-    else clearFeatureOverride.mutate(feature);
-  };
-  const featureOverrideStateLabel = (current: boolean | undefined) =>
-    current === undefined ? "Default" : current ? "Enabled" : "Disabled";
-
   // A disabled override silently wins over an access-granting tag (see
   // can_access_customer_portal_feature): if it's false, the feature stays
   // blocked no matter what canAccessPricing/canAccessStatements say.
@@ -1269,6 +1258,58 @@ const WebsitePortalsPage = () => {
     setProvisioningPassword("");
   };
 
+  const renderFeatureToggle = (feature: (typeof FEATURE_KEYS)[number] | "auto-notifications") => {
+    if (!detailQuery.data) return null;
+    const detail = detailQuery.data;
+    const label = feature === "auto-notifications" ? "Auto notifications" : FEATURE_LABELS[feature];
+    const description = feature === "auto-notifications"
+      ? "Order confirmations, welcome emails, statements, and inquiry replies."
+      : FEATURE_DESCRIPTIONS[feature];
+    const enabled = portalFeatureToggleValue(feature, detail.featureOverrides, {
+      approved: detail.portalAccessStatus === "approved_customer",
+      pricing: detail.canAccessPricing,
+      statements: detail.canAccessStatements,
+    });
+    return (
+      <label key={feature} className="flex min-h-11 cursor-pointer items-center justify-between gap-3 py-2">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">{label}</span>
+          <span className="block text-xs text-muted-foreground">{description}</span>
+        </span>
+        <Switch
+          aria-label={label}
+          checked={enabled}
+          disabled={upsertFeatureOverride.isPending || clearFeatureOverride.isPending}
+          onCheckedChange={(checked) => upsertFeatureOverride.mutate({ featureKey: feature, enabled: checked })}
+        />
+      </label>
+    );
+  };
+
+  const renderAssignedPricelist = () => {
+    if (!detailQuery.data) return null;
+    const id = detailQuery.data.assignedPricelistId;
+    return (
+      <div className="space-y-2">
+        <Label>Assigned pricelist</Label>
+        <div className="flex items-center gap-2">
+          <Select value={id ? String(id) : "none"} onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))} disabled={assignPricelist.isPending}>
+            <SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Select a pricelist" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No assigned pricelist</SelectItem>
+              {pricelistVersions.map((version) => <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {id ? (
+            <Button asChild variant="outline" size="sm">
+              <Link to={buildPricelistEditorPath(id, "rx")} aria-label="Edit assigned pricelist"><Pencil className="mr-2 h-4 w-4" />Edit</Link>
+            </Button>
+          ) : <Button variant="outline" size="sm" disabled><Pencil className="mr-2 h-4 w-4" />Edit</Button>}
+        </div>
+      </div>
+    );
+  };
+
   const portalSettings = !selectedAccount ? null : !selectedCustomer && selectedAccount.linkedPortalUsers.length > 0 ? (
     <Card className="shadow-none hover:shadow-none">
       <CardHeader>
@@ -1367,29 +1408,8 @@ const WebsitePortalsPage = () => {
                   </ul>
                 </div>
               ) : null}
-              {FEATURE_KEYS.map((feature) => {
-                const current = detailQuery.data.featureOverrides[feature];
-                return <Button
-                  key={feature}
-                  type="button"
-                  variant={current === true ? "default" : current === false ? "destructive" : "outline"}
-                  className="w-full justify-between"
-                  onClick={() => cycleFeatureOverride(feature, current)}
-                >
-                  {FEATURE_LABELS[feature]}<span className="text-xs">{featureOverrideStateLabel(current)}</span>
-                </Button>;
-              })}
-              <div className="border-t pt-2">
-                {(() => {
-                  const autoNotificationsEnabled = detailQuery.data.featureOverrides["auto-notifications"] !== false;
-                  return (
-                    <Button type="button" variant={autoNotificationsEnabled ? "default" : "outline"} className="w-full justify-between" onClick={() => upsertFeatureOverride.mutate({ featureKey: "auto-notifications", enabled: !autoNotificationsEnabled })}>
-                      Auto notifications<span className="text-xs">{autoNotificationsEnabled ? "Enabled" : "Disabled"}</span>
-                    </Button>
-                  );
-                })()}
-                <p className="mt-1 text-xs text-muted-foreground">Order confirmations, welcome emails, statements, and inquiry replies sent to this address. Turn off for a private test or troubleshooting account.</p>
-              </div>
+              {FEATURE_KEYS.map(renderFeatureToggle)}
+              <div className="border-t pt-2">{renderFeatureToggle("auto-notifications")}</div>
             </CardContent>
           </Card>
           <Card className="shadow-none hover:shadow-none">
@@ -1398,7 +1418,7 @@ const WebsitePortalsPage = () => {
               <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
                 <Mail className="mr-2 h-4 w-4" />{resetPassword.isPending ? "Sending reset…" : "Send password reset"}
               </Button>
-              <div className="space-y-2"><Label>Assigned pricelist</Label><Select value={detailQuery.data.assignedPricelistId ? String(detailQuery.data.assignedPricelistId) : "none"} onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))}><SelectTrigger><SelectValue placeholder="Select a pricelist" /></SelectTrigger><SelectContent><SelectItem value="none">No assigned pricelist</SelectItem>{pricelistVersions.map((version) => <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>)}</SelectContent></Select></div>
+              {renderAssignedPricelist()}
               <div className="space-y-2"><Label>Innovations account number</Label><div className="flex gap-2"><Input value={accountNumberDraft} onChange={(event) => setAccountNumberDraft(event.target.value)} placeholder="e.g. RETAIL" disabled={!detailQuery.data.crmCustomerId} /><Button size="sm" variant="outline" onClick={() => updateAccountNumber.mutate(accountNumberDraft)} disabled={updateAccountNumber.isPending || !detailQuery.data.crmCustomerId || normalizeAccountNumberInput(accountNumberDraft) === normalizeAccountNumberInput(detailQuery.data.accountNumber)}>{updateAccountNumber.isPending ? "Saving…" : "Save"}</Button></div></div>
             </CardContent>
           </Card>
@@ -1804,45 +1824,8 @@ const WebsitePortalsPage = () => {
                         <div className="space-y-3 rounded-xl border p-4">
                           <p className="text-sm font-semibold text-foreground">Feature access overrides</p>
                           <div className="space-y-2">
-                            {FEATURE_KEYS.map((feature) => {
-                              const current = detailQuery.data.featureOverrides[feature];
-                              const stateClassName = current === true
-                                ? "border-primary bg-primary/5"
-                                : current === false
-                                  ? "border-destructive bg-destructive/5"
-                                  : "border-border";
-                              const labelClassName = current === false ? "text-destructive" : "text-primary";
-                              return (
-                                <button
-                                  key={feature}
-                                  type="button"
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${stateClassName}`}
-                                  onClick={() => cycleFeatureOverride(feature, current)}
-                                >
-                                  <span>
-                                    <span className="block text-sm font-medium text-foreground">{FEATURE_LABELS[feature]}</span>
-                                    <span className="block text-xs text-muted-foreground">{FEATURE_DESCRIPTIONS[feature]}</span>
-                                  </span>
-                                  <span className={`text-xs font-semibold ${labelClassName}`}>{featureOverrideStateLabel(current)}</span>
-                                </button>
-                              );
-                            })}
-                            {(() => {
-                              const autoNotificationsEnabled = detailQuery.data.featureOverrides["auto-notifications"] !== false;
-                              return (
-                                <button
-                                  type="button"
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${autoNotificationsEnabled ? "border-primary bg-primary/5" : "border-border"}`}
-                                  onClick={() => upsertFeatureOverride.mutate({ featureKey: "auto-notifications", enabled: !autoNotificationsEnabled })}
-                                >
-                                  <span>
-                                    <span className="block text-sm font-medium text-foreground">Auto notifications</span>
-                                    <span className="block text-xs text-muted-foreground">Order confirmations, welcome emails, statements, and inquiry replies. Turn off for a private test or troubleshooting account.</span>
-                                  </span>
-                                  <span className="text-xs font-semibold text-primary">{autoNotificationsEnabled ? "Enabled" : "Disabled"}</span>
-                                </button>
-                              );
-                            })()}
+                            {FEATURE_KEYS.map(renderFeatureToggle)}
+                            <div className="border-t pt-2">{renderFeatureToggle("auto-notifications")}</div>
                           </div>
                         </div>
 
@@ -1909,23 +1892,7 @@ const WebsitePortalsPage = () => {
                               <Mail className="mr-2 h-4 w-4" />
                               {resetPassword.isPending ? "Sending reset…" : "Send password reset"}
                             </Button>
-                            <div className="space-y-2">
-                              <Label>Assigned pricelist</Label>
-                              <Select
-                                value={detailQuery.data.assignedPricelistId ? String(detailQuery.data.assignedPricelistId) : "none"}
-                                onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a pricelist" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">No assigned pricelist</SelectItem>
-                                  {pricelistVersions.map((version) => (
-                                    <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            {renderAssignedPricelist()}
                             <div className="space-y-2">
                               <Label>Account number</Label>
                               <div className="flex items-center gap-2">

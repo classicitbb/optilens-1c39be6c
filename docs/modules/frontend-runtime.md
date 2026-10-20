@@ -1,5 +1,8 @@
 # Frontend Runtime Module Docs
 
+Portal controls (2026-10-20): WebsitePortalsPage shares two-state switches and canonical assigned-pricelist Edit links across embedded/fallback settings. portalFeatureToggleValue preserves existing unset inheritance; writes remain explicit booleans. New profiles receive all-false overrides only after the pending INSERT trigger migration is approved/applied.
+
+
 Doc Studio annotations (2026-10-20): dashboard sublinks come from the feature navigation list, reordered by browser-local per-user module use. Studio applies tab/billType on the existing canonical route; section changes keep the URL in sync. Initial billing type changes detach the local draft instead of autosaving over an open file; file/invite handoffs win. Structural classes on the established template own the square outer workspace panels. The shared admin-topbar class owns the square admin header. Controls and paper templates retain their styles.
 
 

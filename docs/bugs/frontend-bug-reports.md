@@ -1,5 +1,8 @@
 # Frontend Bug Reports
 
+Portal controls (2026-10-20): replaced ambiguous three-state cycling with stable enabled/disabled switches, while retaining inherited settings for existing accounts. Both portal settings surfaces now link to the assigned editor. Browser connection timed out, so rendered verification is pending. New-account default trigger is staged, not applied.
+
+
 Doc Studio dashboard/outer corners (2026-10-20): the tile previously hid its only sidebar entry and offered no direct section buttons. Feature-owned section links now open the exact tab/type and order recent sections first per browser/user. Invalid query targets are ignored and existing file/invitation links remain authoritative. Inherited 4px outer div radii are explicitly zeroed on structural Studio containers; the shared admin header is square. No blanket descendant-radius reset is used.
 
 

@@ -1,5 +1,8 @@
 # Frontend Help Docs
 
+Portal settings (2026-10-20): use the switches to enable or disable each feature. Beside Assigned pricelist, Edit opens that selected list; choose a list first if Edit is disabled. Existing accounts keep their settings. New-account all-off defaults are pending the database migration. Pricing and statements still need their access tags.
+
+
 Doc Studio shortcuts (2026-10-20, local source): the dashboard tile opens your last used Studio section and shows direct section buttons like other applications. Your recent sections appear first; further tools remain available inside Studio. Links open the selected section directly, including Invoice/Quotation. The outer workspace panels and shared admin header have square corners at all screen sizes; inputs and action buttons retain their existing styling. No publication from this change.
 
 

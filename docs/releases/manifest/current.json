@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.17.0",
-  "sourceEntry": "2026-10-20 — Doc Studio shortcuts and square workspace (local source)",
+  "semanticVersion": "0.18.0",
+  "sourceEntry": "2026-10-20 — Portal switches and assigned pricelist editor",
   "releaseDateTimeUtc": "2026-10-20T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published."
+    "Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Doc Studio shortcuts and square workspace (local source)."
+      "notes": "Updated as part of Portal switches and assigned pricelist editor."
     }
   ],
   "migrationNotes": [

@@ -1,5 +1,7 @@
 # Project Status
 
+Portal operations controls (2026-10-20): assigned-pricelist Edit deep link and simple enable/disable switches are implemented in both portal settings surfaces. Existing customer settings are preserved. New-profile all-off initialization is staged in 20261020214927_new_portal_features_disabled.sql; production apply requires separate approval. Browser connection timed out; see HANDOFF.md for validation.
+
 Doc Studio shortcuts/square surfaces (2026-10-20, local source): the dashboard Doc Studio tile has direct section links, ordered by that signed-in user's recent use in this browser. Existing Studio URLs accept allowlisted tab/billType query parameters. All annotated structural panels have square outer corners across viewport sizes; the shared admin top bar is square on all admin pages. Input/button/document styling is retained. No new route, backend or publication.
 
 

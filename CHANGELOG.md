@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
+### Technical Changelog
+- Share switch and assigned-pricelist controls across both settings surfaces in src/pages/admin/WebsitePortalsPage.tsx; retain existing inherited access and explicit override writes. Stage an INSERT-only profile trigger in supabase/migrations/20261020214927_new_portal_features_disabled.sql; do not backfill existing users or change sensitive tag gates.
+
+
 ## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
 
 ### Release Notes
