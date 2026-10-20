@@ -59,14 +59,26 @@ the Iris voice leg; click-to-call, recording upload and the CRM call panel are s
 3. Which numbers/extensions, and which hours (after-hours only, or overflow when busy)?
 4. Language/accent: the existing transcription path uses `en-BB`/`en-US`/`en-GB`.
 
-## From the PBX (please run and paste; contains no passwords)
+## PBX findings (2026-10-20, pasted by the user; not independently verified)
 
-```
-fwconsole --version
-asterisk -rx "core show version"
-asterisk -rx "pjsip show endpoints" | head -40
-asterisk -rx "pjsip show registrations"
-```
+- FreePBX 16.0.50, Asterisk 16.30.0 (Asterisk 16 is end-of-life upstream; plan an upgrade separately).
+- 17 PJSIP endpoints: extensions 2221-2228, 2230, 2231, 2248, 2249, 2252, 2253, 2260 plus trunks.
+  2231, 2252, 2253, 2260 have no phone registered. 2230 registers from an outside address
+  (a remote phone), so the PBX is reachable from the internet on SIP: confirm firewall and
+  fail2ban rules and that strong secrets are set.
+- Trunks `FlowSIP` (10.251.0.241, the local carrier) and `Telnyx` (sip.telnyx.com) are both registered and available.
+  Telnyx identifies 64.16.250.10 and 192.76.120.10 as inbound sources.
+- A stale IAX2 peer (2234) and an ARI connection error exist; neither affects calls.
+
+## Next steps
+
+1. Decide the path to the assistant (open question 0). Because the Telnyx trunk is already
+   registered, the simplest route is a FreePBX inbound route or IVR option that sends calls
+   out the Telnyx trunk to the number or SIP URI the assistant is attached to. Needs: the
+   assistant's number in Telnyx and whether it accepts calls from this trunk's credentials.
+2. Add a failover so calls still ring a human extension if Telnyx is down.
+3. Check the Telnyx assistant's tools (take-message is built; others need the same `X-Iris-Secret`-style auth).
+4. Do not build the own-bridge fallback unless Telnyx's assistant proves inadequate.
 
 ## Proposed first build once decided
 
