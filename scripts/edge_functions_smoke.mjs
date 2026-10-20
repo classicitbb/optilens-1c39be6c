@@ -91,6 +91,9 @@ const NO_CORS_FUNCTIONS = new Set([
   // probe can assert for them.
   "helpdesk-notify-worker",
   "rx-capture-purge",
+  // Telnyx (Iris voice assistant) take-message webhook: server-to-server POST
+  // only, authed by X-Iris-Secret; 405 to anything else.
+  "iris-take-message",
 ]);
 
 

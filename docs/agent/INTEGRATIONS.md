@@ -51,6 +51,7 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 
 - App email uses Lovable managed email through `_shared/email/managed-send.ts`; compatibility `smtp.ts` sends log as `raw`. The provider requires nonblank `text`, even for image-only HTML. `LOVABLE_API_KEY` and optional `LOVABLE_SEND_URL` stay server-only. A Lovable source read does not prove active Edge deployment; deployed-code inspection was permission-denied in the September 30 review.
 
+- Telnyx voice assistant Iris calls Edge Function `iris-take-message` (take-message tool) with header `X-Iris-Secret`, checked against server-only `IRIS_WEBHOOK_SECRET`. It creates `phone` helpdesk tickets and emails the company feedback address.
 - Verify each connector in the current session with a harmless read.
 - Lovable intent does not replace repository tests or `STATUS.md`.
 - Review Lovable-generated changes before acceptance.
