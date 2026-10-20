@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const { rewrites } = JSON.parse(
-  readFileSync(new URL("../../../vercel.json", import.meta.url), "utf8"),
+  readFileSync(`${process.cwd()}/vercel.json`, "utf8"),
 );
 
 describe("Vercel OAuth routing", () => {
