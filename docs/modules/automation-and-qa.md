@@ -1,5 +1,8 @@
 # Automation and QA Module Docs
 
+Local Supabase development proxy (2026-10-20): scripts/vite-supabase-proxy.ts configures the fixed upstream and loopback/origin/path guard. TLS uses trusted Node/system roots and remains verified. Source tests cover forwarding, guards, session-token retention and cancellation. Live no-token proxy checks must return upstream 401; an Origin not allowed transport failure is a regression.
+
+
 ## 2026-10-05 — Branch integration smoke verification
 
 The admin smoke harness reads route declarations from `src/routes/admin/AdminRoutes.tsx` and separately checks the protected shell in `src/App.tsx`. Canonical CRM pages, compatibility redirects, runtime logging and role guards remain asserted. JSX assertions ignore layout whitespace. Windows cleanup terminates only the spawned server tree; `--strictPort` prevents a leftover process from substituting for the build under review.

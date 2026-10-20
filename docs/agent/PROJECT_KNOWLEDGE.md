@@ -1,5 +1,15 @@
 # Project Knowledge
 
+## Localhost development data transport — 2026-10-20
+
+`src/lib/supabaseDevTransport.ts` supplies the shared Supabase fetch transport and Doc Studio function base. In Vite development on localhost, 127.0.0.1 or IPv6 loopback it routes configured-project HTTP APIs through `/__supabase`. `scripts/vite-supabase-proxy.ts` fixes the upstream to VITE_SUPABASE_URL, limits paths to Supabase HTTP API families, rejects nonloopback/cross-origin sessions, retains caller auth and verifies TLS using Node plus system roots when available. The real Supabase URL remains the client URL, preserving session storage keys and OAuth configuration. No auth/RLS override. Repro: unauthenticated POST to the local proxy live-data-gateway returns upstream 401, while the original hosted preflight at port 5173 returned Origin not allowed. Focused command: `npx vitest run --coverage=false src/tests/unit/supabaseDevTransport.test.ts src/tests/unit/liveDataGateway.unit.test.ts src/tests/unit/docStudioCloudBridge.test.ts`. Preserve this shared transport when regenerating the extended Supabase client.
+
+
+## Doc Studio Innovations invoice import — 2026-10-20
+
+`innovationsInvoice.ts` resolves invoice-to-account through statement_lines → statements, or uses the explicitly selected account; customers supplies the current customer name/address. Item details must come from `innovations.customer_invoice` through `requestLiveData`, never statement ledger entries. The native mount exposes the loader to the established studio runtime and aborts on unmount. Import preserves item amounts in BBD, disables additional VAT, resets prior document charges, and labels any source-header/line-total difference as an adjustment without inferring its tax/discount breakdown. Missing line amounts fail without changing the template. `innovationsSourceInvoiceNumber` is saved in content; original invoices retain their source number on explicit save, while quotations keep the existing Doc Studio sequence. No new dependencies, service, env variable, schema or permission. Focused command: `npx vitest run --coverage=false src/tests/unit/docStudioInnovationsInvoice.test.ts`.
+
+
 ## Local dependency recovery — 2026-10-19
 
 If Vite reports a missing import already declared in both package.json and package-lock.json, check `npm ls <package>` before editing source. The stock camera scanner's ZXing packages were absent from node_modules after the camera commit; `npm ci` restored the locked dependencies. On Windows, stop all Vite processes using this checkout (including the standalone stock prototype) before `npm ci`: either can hold the Lightning CSS native module open and cause EPERM unlink. Restore the app with `npm run dev -- --strictPort` and the prototype with `npm exec -- vite --config src/features/rx-order/prototype/vite.config.mjs`. This is local dependency maintenance, with no deployment or schema change.

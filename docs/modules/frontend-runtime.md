@@ -1,5 +1,11 @@
 # Frontend Runtime Module Docs
 
+Localhost data transport (2026-10-20): shared Supabase global fetch and the Doc Studio bridge use the Vite loopback proxy in development. Project URL/session keys and caller authorization remain unchanged; production builds connect directly. Request URL replacement explicitly preserves method, headers, body, cancellation and fetch options. No environment key values belong in documentation.
+
+
+Doc Studio Innovations invoice import (2026-10-20): the established studio runtime calls a loader registered by DocStudioEmbed. It resolves the account through synced statement references or selected customer, then calls requestLiveData for innovations.customer_invoice. Mapping preserves source amounts and provenance, fails on missing prices, and detaches the imported draft from the open saved file. Native v2 remains unchanged.
+
+
 Stock entry/pickers (2026-10-19): StockOrderEntry redirects fresh visits to the canonical Rx new form with type=stock, preserving quote/highlight editor links. RxForm receives initialOrderType; the host keys new form mounts by mode. Shared ComboBox uses Radix Popover Anchor/Portal/Content with collision padding and available-height bounds while keeping keyboard focus in its input. Shared Seg uses scoped rx-segment styles for explicit theme contrast.
 
 Stock form integration (2026-10-19): RxForm renders StockServicePanel keyed by selected account and offers only Rx / Stock-supplies. Stock mode cancels its Rx autosave timer. The runtime panel imports new category/lens browsers and stock-order-form.css; no prototype modules or seeded values are imported. Shared Rx selectors/domain logic and LensVariantGrid are reused with account-scoped products. Pair conversion, per-eye OPC validation and quantity limits live in stockOrderModel. Existing stock hooks own all server reads/writes.

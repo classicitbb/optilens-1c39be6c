@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DocStudioFileManager from "./files/FileManager";
+import { loadInnovationsInvoice } from "./innovationsInvoice";
+import { supabaseRequestUrl } from "@/lib/supabaseDevTransport";
 
 /**
  * DocStudioEmbed — mounts the Doc Studio dc-runtime natively in the admin page
@@ -76,6 +78,8 @@ declare global {
   interface Window {
     __dcBoot?: () => unknown;
     __docStudioSupabaseRef?: string;
+    __docStudioLoadInvoice?: typeof loadInnovationsInvoice;
+    __docStudioFunctionsBase?: string;
   }
 }
 
@@ -207,6 +211,10 @@ const DocStudioEmbed = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const invoiceController = new AbortController();
+    const invoiceLoader: typeof loadInnovationsInvoice = (number, account) => loadInnovationsInvoice(number, account, invoiceController.signal);
+    window.__docStudioLoadInvoice = invoiceLoader;
+    window.__docStudioFunctionsBase = supabaseRequestUrl(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1`, import.meta.env.VITE_SUPABASE_URL, import.meta.env.DEV, window.location.origin);
     (async () => {
       const [markup] = await Promise.all([fetchTemplateMarkup(), loadAssets()]);
       if (cancelled || !hostRef.current) return;
@@ -225,6 +233,8 @@ const DocStudioEmbed = () => {
     });
     return () => {
       cancelled = true;
+      invoiceController.abort();
+      if (window.__docStudioLoadInvoice === invoiceLoader) delete window.__docStudioLoadInvoice;
     };
   }, [attempt]);
 

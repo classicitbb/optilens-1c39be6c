@@ -2,6 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { isPortalEmulationTab } from '@/lib/portalEmulation';
+import { createSupabaseDevFetch } from '@/lib/supabaseDevTransport';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -45,6 +46,7 @@ const resolvedStorage = (() => {
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  global: { fetch: createSupabaseDevFetch(SUPABASE_URL) },
   auth: {
     storage: resolvedStorage,
     persistSession: true,

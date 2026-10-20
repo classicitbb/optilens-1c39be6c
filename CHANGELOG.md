@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Signed-in localhost development sessions use the shared same-origin data transport across loopback ports; live invoice import was verified without changing production CORS or permissions.
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
+### Technical Changelog
+- Add a Vite loopback-only Supabase HTTP proxy with existing bearer/apikey forwarding and verified Node/system-CA TLS. Keep the real project URL/session keys and direct production transport. Cover HTTP request semantics and local-origin restrictions.
+- Reuse the account-scoped live invoice gateway through a native-mount loader. Resolve accounts from statement references or selected customer, fail on unavailable prices, label header/line differences, detach imported drafts and preserve original invoice numbers on explicit save. No backend, schema or authorization change.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes

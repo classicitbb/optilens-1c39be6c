@@ -1,5 +1,11 @@
 # Frontend Help Docs
 
+Local development data (2026-10-20): signed-in localhost development sessions can use the same authorized Supabase queries and live invoice reads as the hosted app. Open the app through npm run dev; the local proxy is automatic across loopback ports. Existing account permissions and private connector availability still apply. Import creates a local draft for review; Save remains a separate action.
+
+
+Doc Studio invoice import (2026-10-20, local source): open Billing, select Invoice or Quotation, enter the Innovations invoice number, then choose Import invoice. If prompted, choose its account under Fill from customer and retry. Review customer details, lines, total and source notes, then Save. The original Innovations invoice is unchanged. Imported invoices retain their Innovations number; quotations use a Doc Studio number. The private connector must be online.
+
+
 Stock entry/pickers (2026-10-19, local source): the Stock Order Builder link now starts the shared form with Stock / supplies selected; switch Order type to Rx when needed. Choose lens material, design and colour in any order, then add quantities from the power grid. Menus float outside the scrolling area and selected choices are distinct in light/dark mode. Existing saved-stock links still reopen their editor. Save draft and Submit remain explicit actions.
 
 Integrated admin stock form (2026-10-19, local source): choose Stock / supplies order, enter a required patient/name or tracking reference, and optionally enter PO/instructions. Add supplies/services opens the category browser for items on the selected account's catalog; Add stock lenses uses vision/eye toggles, searchable material/design/option choices, then actual powers. Pair quantities mean pairs; right/left quantities mean individual lenses. Services are published addon products in the same browser, so there is no separate service order type. Scan accepts USB/handheld or typed SKU/OPC input (no camera). Review does not save; Save draft persists, and final Submit saves/releases to Innovations. Changing account clears local lines. Source only; no production publication from this change.
