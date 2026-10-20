@@ -1,5 +1,7 @@
 # Project Status
 
+Lens chain status (2026-10-20, local source): `/admin/pricing/alias-mapping` has a new "Chain status" view that checks every active alias left to right: synced, confirmed CV lens, supplier, reaches a price cell, priced on a pricelist, pricelist assigned to a customer. Innovations-only stages (lens on, price group, Innovations pricelist, cost source) show as grey "not reported yet" until the office pushes them; `docs/lens-chain-office-discovery-brief.md` is the brief for finding those tables. Read-only, no migration or schema change; 8 unit tests, TypeScript pass. Not checked in an authenticated browser against hosted data. Unpriced orders deliberately stay orderable at no charge.
+
 Rx sidebar alignment (2026-10-17, local source): removed the sidebar's sticky top offset only on the viewport-bounded Rx route. Its menu now aligns below the account header like other pages; form scrolling stays inside the Rx frame. Browser compared Saved Drafts with a blank Rx form without entering data or creating a draft. No publication performed.
 
 Rx uncut supply/introduction (2026-10-17, local source): Uncut lenses show a disabled Uncut frame-supply value, with load/save/summary normalization; Full glaze restores the usual supply selector. The introductory sentence now scrolls away while the title stays fixed. Fixture and portal browser checks, 29 focused tests, TypeScript, lint and build pass. Full suite retains two unrelated failures. No order submitted or publication performed; see HANDOFF.md.
