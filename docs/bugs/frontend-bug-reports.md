@@ -2,6 +2,18 @@
 
 Signup lead capture (2026-10-20, local source): professional portal signups wrote straight to public_inquiries, so no owner email, ticket or CRM contact followed. They now go through contact-inquiry. Also fixed there: a duplicate-email ilike().maybeSingle() lookup could throw after the inquiry was saved and skip the owner email; secondary addresses in a contact's email list were never matched.
 
+Portal controls (2026-10-20): replaced ambiguous three-state cycling with stable enabled/disabled switches, while retaining inherited settings for existing accounts. Both portal settings surfaces now link to the assigned editor. Browser connection timed out, so rendered verification is pending. New-account default trigger is staged, not applied.
+
+
+Doc Studio dashboard/outer corners (2026-10-20): the tile previously hid its only sidebar entry and offered no direct section buttons. Feature-owned section links now open the exact tab/type and order recent sections first per browser/user. Invalid query targets are ignored and existing file/invitation links remain authoritative. Inherited 4px outer div radii are explicitly zeroed on structural Studio containers; the shared admin header is square. No blanket descendant-radius reset is used.
+
+
+Local gateway CORS repair (2026-10-20): the hosted live-data function returned 403 Origin not allowed for http://127.0.0.1:5173 even though other local ports were allowed. The development proxy now provides a same-origin transport without production CORS changes. Node enterprise-root trust is resolved with the existing OS trust store, never insecure TLS. Signed-in localhost successfully imported invoice 81799; a mismatched account/invoice response still leaves the template intact.
+
+
+Doc Studio invoice import (2026-10-20): missing invoice lines/amounts, account ambiguity, offline connector and edits during loading leave the current template intact with an explanatory message. Read-only shared files cannot import. Source-header/line differences are explicit adjustments because the existing connector does not expose their tax/discount breakdown. Invoices absent from statement sync require selecting the customer. Live read verification is recorded in docs/agent/HANDOFF.md; no production release.
+
+
 Stock entry/pickers (2026-10-19, local source): repaired fresh stock URL routing, low-contrast segmented choices, and lens menus clipped by modal/form overflow. Authenticated browser verified both themes, actual catalog narrowing, power grid and a temporary local pair line removed without persistence. Search/keyboard and portal placement regression coverage pass; saved-stock editor contracts remain.
 
 Stock form integration (2026-10-19, local source): replaced the old stock panel with the approved compact form; removed separate service order selection and exposed published service/addon items alongside supplies. Added explicit pair-to-lens conversion, chiral per-eye OPC checks, ambiguous product/diameter selection, exact-variant fallback for duplicate grid cells, account-remount isolation and an Rx-autosave guard in stock mode. Tests mock persistence and cover mixed services, pair quantities, required reference, failed-save/no-release, and unpriced scan refusal. Real catalog/selector/grid and local line handoff checked without saving or submitting. No migration, auth or publication.

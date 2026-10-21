@@ -1,3 +1,55 @@
+## Portal operations controls — 2026-10-20
+
+Status: Source complete; new-account default migration and rendered verification pending.
+
+User authorized commit and push and selected new accounts only for disabled defaults. Affected: WebsitePortalsPage.tsx, portalFeatureToggleValue.ts, portalFeatureToggleValue.test.ts, 20261020214927_new_portal_features_disabled.sql, STATUS.md, PROJECT_KNOWLEDGE.md, INTEGRATIONS.md and this handoff. Existing accounts are untouched. Production migration apply needs explicit approval under AGENTS.md; no hosted setting or schema was written. Browser getState timed out, so no rendered verification or live toggles were attempted. Validation: production build, TypeScript, scoped lint (0 errors), 21 focused tests and qa:pr-checks pass. Full lint has the pre-existing RxOrdersWorkspace.tsx:89 preserve-caught-error failure (1 error, 2433 warnings). Full npm run test -- --runInBand completed: 257 passed / 4 failed files, 1664 passed / 14 failed tests. Failures are untouched rxFormChemistrie (2 timeouts), rxOrdersWorkspace (10 cases), emailRecipientInput (missing CRM option), and vercelOAuth (existing rewrite contract). Focused new tests pass separately. New trigger SQL has not been executed against a database. Approval required: apply only the named new-profile default migration; no automatic migration apply or Edge Function release is part of this push. Next executable read-only action: git show --stat HEAD
+
+## Finished ZenVue progressive — stock export pricelist (2026-10-20)
+
+Status: Incomplete — browser connection blocked.
+
+User requests adding the finished ZenVue progressive to the export pricelist, specifically its Stock Lens Prices list. No source or hosted price/catalogue records changed. Source inspection confirms StockLensPricesPage uses ListCatalogTab with catalogType=stock and lensFilter=wspl; stock exports use that catalogue. Browser getTab and getState both timed out before returning any UI. No lens identity, target version, or existing selling price was verified; do not invent prices. Tests: none (no implementation change). Approval: prepare the exact row and price for review before the production data save, per project rules. Next executable action: await cua.getState(); then inspect the export version Stock Lens Prices / WSPL Stock List and locate the existing finished ZenVue progressive entry.
+
+## 2026-10-20 — Doc Studio dashboard shortcuts and square surfaces
+
+Status: Complete — no active handoff
+
+Dashboard Doc Studio now shows four direct section links in that signed-in user's browser-local recent order, with the existing more link for the remaining tools. The tile title also opens the last-used section. navigation.ts owns the allowlisted tab/billType URLs on /admin/docs/studio; no new routes or permission changes. The established runtime consumes section queries without autosaving a billing type conversion over the current saved file; billingDocument/staffInvite handoffs take precedence. A mount-scoped navigation listener updates the query and per-user module recency, with cleanup at unmount. No document data is stored in the recency key.
+
+All annotated Studio outer surfaces use border-radius:0 through semantic template classes and scoped native CSS, including the tab bar, left controls/container, preview toolbar/canvas, page/banner wrappers and workspace frames. The selected shared admin top bar is square everywhere AdminTopBar is used. No new breakpoint; these structural overrides apply across viewport sizes. Inputs/buttons/paper content retain existing styling; a browser check confirmed the input radius remains 8px while visible outer panels are 0px. The global admin radius token remains 4px.
+
+Affected implementation: AdminDashboardHomePage.tsx, feature navigation.ts, DocStudioEmbed.tsx, DocStudioPage.tsx, AdminTopBar.tsx, src/index.css, public/ds/studio.html and studio-logic.js. Added docStudioNavigation.test.ts. Documentation symmetry and release-ledger synchronization generated version 0.17.0; package/package-lock were synchronized without dependency changes.
+
+Verification: 26 focused tests across five Doc Studio files pass; scoped ESLint has zero errors/three warnings. TypeScript passed for the implementation. Production build, PR checks and route smoke passed. Full lint retains the unrelated RxOrdersWorkspace.tsx:89 preserve-caught-error error (one error total). Full npm run test -- --runInBand reported failures in rxOrdersWorkspace plus Rx Chemistrie, shape and domain suites, then stopped progressing; it was interrupted without changing those unrelated features. See ignored .codex-studio-full-tests.log for the observed failing cases, not a complete suite verdict.
+
+Authenticated browser at 1320x900: dashboard Invoice and Letterhead buttons opened their exact views, section query state was visible in the URL, and computed styles confirmed square outer containers. Review ran in a separate tab to preserve the user's active Studio work. The health banner was dismissed in the active session, so its square wrapper was checked through source ownership rather than changing that preference. Screenshots are saved in the task visualization folder. Verification navigated sections only and invoked no Save, Send, order, production publication, schema or credential/access operation.
+
+No local continuation is required. Existing loopback server remains on port 5173. Production publication still requires approval under AGENTS.md.
+
+## 2026-10-20 — Iris take-message webhook
+
+Status: Awaiting approval — production deploy and secret
+
+- Files: `supabase/functions/iris-take-message/index.ts`, `supabase/config.toml`, `scripts/edge_functions_smoke.mjs`.
+- Tests run: none in this session (no deno available). The originating session reported `deno check` clean and local 405/401/400 probes. No hosted call or ticket created. `supabase/functions/deno.lock` from that patch was not carried over.
+- Approval required: production Edge Function deploy (merging to main triggers the all-functions deploy and email smoke) and setting the `IRIS_WEBHOOK_SECRET` Supabase secret.
+- Next action: after approval, set `IRIS_WEBHOOK_SECRET`, deploy, run `npm run qa:edge-smoke`, then point the Telnyx `take-message` tool at `/functions/v1/iris-take-message` with header `X-Iris-Secret`.
+## 2026-10-20 — Doc Studio invoice import and localhost data access
+
+Status: Complete — no active handoff
+
+Invoice and Quotation import by Innovations invoice number through the existing account-scoped live gateway. Statement references resolve the customer automatically when available; otherwise select the customer. Missing item amounts and invoice/account mismatches preserve the current template. Source amounts are imported without double VAT; any header/line difference is explicitly labelled without guessing its tax breakdown. Import fills a separate local draft and cancels pending billing autosave. Source provenance persists; explicit invoice saves retain the Innovations number, while quotations keep the existing sequence.
+
+Localhost transport root cause and repair: hosted gateway OPTIONS from http://127.0.0.1:5173 returned 403 Origin not allowed; the already-listed localhost:8081 origin returned 200. Node also lacked the installed system CA by default. Vite now offers a fixed-upstream, loopback-only same-origin Supabase HTTP proxy, with normal TLS verification using trusted Node/system roots and unchanged bearer/apikey forwarding. The real Supabase URL/session keys, hosted JWT/roles/RLS and account restrictions are unchanged. Shared HTTP queries, auth/storage/functions and Doc Studio use the proxy in development on localhost/127.0.0.1/IPv6 loopback at any port. Realtime remains direct. Production builds retain direct transport. No new environment variable, privileged credential, hosted function/auth/schema change or production deployment.
+
+Affected implementation: public/ds/studio.html, studio-logic.js and cloud-bridge.js; DocStudioEmbed.tsx and new innovationsInvoice.ts; shared Supabase client plus new supabaseDevTransport.ts; vite.config.ts plus scripts/vite-supabase-proxy.ts. Focused regression tests cover mapping, source totals/credits, missing prices, concurrent edits, read-only files, source-number saves, account resolution, proxy host/origin restrictions, HTTP semantics and token/cancellation retention. Required documentation/release-ledger updates generated version 0.16.0; package-lock version was synchronized without dependency changes.
+
+Validation: 35 focused tests across eight files pass; TypeScript app and Node configs pass; scoped ESLint has zero errors and one existing ref warning. Original full lint has one unrelated RxOrdersWorkspace.tsx:89 preserve-caught-error error; full npm run test -- --runInBand reported ten Rx Orders workspace failures and stopped progressing, so was interrupted. Focused reproduction confirms all ten fail with No QueryClient set, use QueryClientProvider to set one from useReleaseStockOrder. No unrelated Rx repair was made. Final production build and PR checks passed; live database audits were skipped without service credentials.
+
+Authenticated local browser: live invoice 81799 imported into both Invoice and Quotation with all five private item lines, current customer address, date and source notes; its authoritative zero total was preserved. Another invoice/customer mismatch returned Invoice was not found for this customer and left the template intact. The signed-in customer/files reads work through the development transport. Unauthenticated proxy requests from both localhost and 127.0.0.1 return the upstream 401, proving authentication remains required. No explicit document Save, invoice writeback, email, order submission, credential/access change or production publication was performed. The imported quotation remains locally editable for review; the development server remains on port 5173. A live-data gateway request uses its normal transient queue/audit records, not an invoice/customer financial write.
+
+No continuation is required for local use. Production publication remains a separate approval under AGENTS.md. Review action: npm run dev -- --host 127.0.0.1 --port 5173, then /admin/docs/studio (reuse the running server rather than starting a duplicate).
+
 ## 2026-10-19 - Stock entry and selector visibility
 
 Status: Complete — no active handoff

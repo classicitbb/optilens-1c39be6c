@@ -8,6 +8,34 @@
 ### Technical Changelog
 - contact-inquiry matches CRM contacts list-aware and literally (_shared/crm/contactEmailMatch.ts) instead of ilike().maybeSingle(), never throws on a lookup failure, and sends the new lead-alert template (assembled by _shared/leads/dossier.ts, I/O in gather.ts) with fallback to the plain notification. Auth.tsx sends the signup lead through submitPublicInquiry (auth_onboarding_interest); that type skips the duplicate customer confirmation. Unit tests cover matching, business-hours maths, notes parsing and every dossier section.
 
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
+### Technical Changelog
+- Share switch and assigned-pricelist controls across both settings surfaces in src/pages/admin/WebsitePortalsPage.tsx; retain existing inherited access and explicit override writes. Stage an INSERT-only profile trigger in supabase/migrations/20261020214927_new_portal_features_disabled.sql; do not backfill existing users or change sensitive tag gates.
+
+
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
+### Technical Changelog
+- Define feature-owned allowlisted tab/billType links and per-user browser recency; synchronize Studio navigation through a mount-scoped event listener. Preserve file/invitation handoffs and prevent initial billing-type navigation from autosaving over the open file. Scope outer-radius overrides to semantic Studio container classes and the admin top bar.
+
+
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Signed-in localhost development sessions use the shared same-origin data transport across loopback ports; live invoice import was verified without changing production CORS or permissions.
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
+### Technical Changelog
+- Add a Vite loopback-only Supabase HTTP proxy with existing bearer/apikey forwarding and verified Node/system-CA TLS. Keep the real project URL/session keys and direct production transport. Cover HTTP request semantics and local-origin restrictions.
+- Reuse the account-scoped live invoice gateway through a native-mount loader. Resolve accounts from statement references or selected customer, fail on unavailable prices, label header/line differences, detach imported drafts and preserve original invoice numbers on explicit save. No backend, schema or authorization change.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes

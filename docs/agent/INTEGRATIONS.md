@@ -1,5 +1,21 @@
 # Integrations and Cross-Repository Contract
 
+## Portal operations controls — 2026-10-20
+
+WebsitePortalsPage uses shared two-state switches in both the embedded contact settings and fallback portal dialog. Switches write explicit true/false overrides; existing unset rows retain approval/tag inheritance, and existing Rx/order-price opt-ins remain off. Clear conflicting override is retained separately. The assigned-pricelist Edit link uses buildPricelistEditorPath(id, "rx") and is disabled without an assignment.
+
+Migration 20261020214927_new_portal_features_disabled.sql initializes nine false feature rows only after a new profiles INSERT, including auto-notifications. It never backfills existing profiles or overwrites a pre-existing override. The internal trigger uses fixed search_path, fully qualified objects and revoked public execution; existing staff bypass and sensitive pricing/statement tag checks remain. Applying this migration is an authorization/default change and needs explicit approval; commit/push authorization alone is not a database apply. No new service or environment variable.
+
+
+Doc Studio dashboard/navigation annotations (2026-10-20): frontend-only allowlisted section queries and browser-local user-scoped recent module keys. No document content or identifiers are stored in the recency key. Existing file and invitation handoffs take precedence over section queries. No route, backend, connector, schema, service, credential, access rule or environment-variable change.
+
+
+Local development Supabase transport (2026-10-20): `/__supabase` forwards only to the configured VITE_SUPABASE_URL through Vite. It accepts same-origin loopback requests, preserves caller bearer/apikey headers, and removes the browser Origin on the server-side hop; hosted JWT, roles, RLS and account scopes remain authoritative. Existing Node roots plus the OS certificate store are used when supported, with TLS verification enabled. No privileged key is added and no production CORS/auth/credential change is required. Shared Supabase HTTP queries, auth/storage/functions and the established Doc Studio bridge reuse it only in development; Realtime remains on its existing direct transport. Static production builds stay direct.
+
+
+Doc Studio invoice import (2026-10-20, local source): reuses authenticated Supabase reads of statement_lines, statements and customers plus the existing innovations.customer_invoice live-data operation. Statement references only resolve the customer account; invoice amounts/descriptions come from the private connector. Account-scoped gateway authorization stays unchanged. Invoices absent from synced statements require explicit customer selection. Customer name/address are current CRM fields, not a historical invoice address snapshot. VAT/discount breakdown and due/PO details are not exposed by the existing invoice contract; no values are inferred. The original invoice number is preserved as document provenance. No new service, connector, credential, environment variable, auth change, backend deploy or migration.
+
+
 Stock entry/picker follow-up (2026-10-19): frontend navigation and existing Radix overlay reuse only. Fresh stock links open the shared Rx form in stock mode; saved-quote/product-highlight links retain their existing editor. No API, service, environment variable, schema or auth change. Browser grid addition/removal stayed in local state without saving/submitting.
 
 Stock prototype integration (2026-10-19, local source): runtime uses existing get_stock_order_catalog, get_store_product_variants_public, save_stock_order_draft and release_stock_order_submission. New lens display lookups project only identity fields from get_lenses_safe and read id/name reference tables plus lens_lens_options links. Supply category identifiers resolve through the existing supply_categories reference hook. No schema, grant/RLS, credential, environment or service change. No client amount is sent to save/release. Prices are server-resolved BBD per individual lens; UI pair counts/prices are converted explicitly, with chiral pairs split by eye. Service items are existing published addon rows. Review and local line entry do not persist anything; Save draft and final Submit remain the only stock writes. Stock mode cancels parent Rx autosave. Browser checks did not invoke either write path. The standalone prototype remains a separate seeded design artifact.
@@ -51,6 +67,7 @@ Exact account IDs, URLs not intended for customers, credentials, internal hosts,
 
 - App email uses Lovable managed email through `_shared/email/managed-send.ts`; compatibility `smtp.ts` sends log as `raw`. The provider requires nonblank `text`, even for image-only HTML. `LOVABLE_API_KEY` and optional `LOVABLE_SEND_URL` stay server-only. A Lovable source read does not prove active Edge deployment; deployed-code inspection was permission-denied in the September 30 review.
 
+- Telnyx voice assistant Iris calls Edge Function `iris-take-message` (take-message tool) with header `X-Iris-Secret`, checked against server-only `IRIS_WEBHOOK_SECRET`. It creates `phone` helpdesk tickets and emails the company feedback address.
 - Verify each connector in the current session with a harmless read.
 - Lovable intent does not replace repository tests or `STATUS.md`.
 - Review Lovable-generated changes before acceptance.

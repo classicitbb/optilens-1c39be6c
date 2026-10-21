@@ -6,6 +6,16 @@ import { describe, expect, it, vi } from "vitest";
 const bridgeSource = readFileSync(resolve(process.cwd(), "public/ds/cloud-bridge.js"), "utf8");
 
 describe("Doc Studio cloud bridge", () => {
+  it("uses the localhost transport without changing the signed-in bearer token", async () => {
+    const originalFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    const windowLike = { fetch: originalFetch, __docStudioFunctionsBase: 'http://localhost:5173/__supabase/functions/v1' };
+    const localStorage = { length: 1, key: () => 'sb-fixture-auth-token', getItem: () => JSON.stringify({ access_token: 'fixture-token' }) };
+    vm.runInNewContext(bridgeSource, { window: windowLike, localStorage, Response, Headers, setTimeout, clearTimeout });
+    await windowLike.fetch('/api/docstudio/my-files');
+    const [url, options] = originalFetch.mock.calls[0];
+    expect(url).toBe('http://localhost:5173/__supabase/functions/v1/docstudio-api/my-files');
+    expect(options.headers.get('Authorization')).toBe('Bearer fixture-token');
+  });
   it("waits for the admin session before loading saved files", async () => {
     let storedSession: string | null = null;
     const originalFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ files: [{ id: "saved-file" }] })));

@@ -7,6 +7,21 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 - Trade-account, price-list and portal-signup requests now create or match a CRM lead and email the owner one lead summary: what they said, fit, history, a suggested next move, a reply-by time (4 business hours, Barbados) and one-tap reply, WhatsApp, CRM and approval links. Portal signups previously produced no owner email, ticket or CRM record. No migration; the contact-inquiry function needs a redeploy.
 
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes
