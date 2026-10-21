@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { startPortalEmulation, stopPortalEmulation } from "@/lib/portalEmulation";
+import { submitPublicInquiry } from "@/lib/publicInquiry";
 import {
   type AuthAudience,
   type AuthIntent,
@@ -250,20 +251,24 @@ const Auth = () => {
       redirect,
     };
 
-    const { error } = await supabase.from("public_inquiries").insert({
-      inquiry_type: "auth_onboarding_interest",
-      name: values.fullName.trim(),
-      email: values.email.trim(),
-      phone: values.phone.trim() || null,
-      business_name: values.organizationName.trim() || null,
-      message: "Professional signup completed onboarding qualification.",
-      notes: JSON.stringify(notes),
-      page_slug: "/auth",
-      source_channel: "auth_onboarding",
-    });
-
-    if (!error) {
+    // Goes through contact-inquiry (like every other public form) so a signup
+    // creates the CRM lead and helpdesk ticket and emails the owner.
+    try {
+      await submitPublicInquiry({
+        inquiryType: "auth_onboarding_interest",
+        name: values.fullName.trim(),
+        email: values.email.trim(),
+        phone: values.phone.trim().slice(0, 20) || null,
+        businessName: values.organizationName.trim() || null,
+        message: "Professional signup completed onboarding qualification.",
+        notes: JSON.stringify(notes),
+        pageSlug: "/auth",
+        sourceChannel: "auth_onboarding",
+        startedAt: new Date().toISOString(),
+      });
       setLeadSignalSent(true);
+    } catch {
+      // The lead signal is best-effort and must not block account creation.
     }
   };
 

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "designcraft": {
+      "command": "node",
+      "args": ["scripts/designcraft.mjs", "mcp"]
+    }
+  }
+}

@@ -4,7 +4,9 @@
       "Bash(npm run qa:pr-checks)",
       "Bash(npm run test)",
       "Bash(npm run test *)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npm run designcraft:doctor)",
+      "Bash(npm run designcraft -- export *)"
     ]
   }
 }

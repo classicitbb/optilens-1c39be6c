@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-20 — Hot-lead summary and signup lead capture (local source)
+
+### Release Notes
+- Trade-account, price-list and portal-signup requests now create or match a CRM lead and email the owner one lead summary: what they said, fit, history, a suggested next move, a reply-by time (4 business hours, Barbados) and one-tap reply, WhatsApp, CRM and approval links. Portal signups previously produced no owner email, ticket or CRM record. No migration; the contact-inquiry function needs a redeploy.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes

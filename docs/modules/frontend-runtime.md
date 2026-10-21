@@ -1,5 +1,7 @@
 # Frontend Runtime Module Docs
 
+Lead capture (2026-10-20): Auth.tsx sendLeadSignal now calls submitPublicInquiry with inquiryType auth_onboarding_interest instead of inserting into public_inquiries, so signups reach contact-inquiry (CRM lead, helpdesk ticket, owner lead-alert email). Failure stays non-blocking for account creation. The edge side (contact-inquiry, _shared/leads, _shared/crm) is in supabase/functions.
+
 Stock entry/pickers (2026-10-19): StockOrderEntry redirects fresh visits to the canonical Rx new form with type=stock, preserving quote/highlight editor links. RxForm receives initialOrderType; the host keys new form mounts by mode. Shared ComboBox uses Radix Popover Anchor/Portal/Content with collision padding and available-height bounds while keeping keyboard focus in its input. Shared Seg uses scoped rx-segment styles for explicit theme contrast.
 
 Stock form integration (2026-10-19): RxForm renders StockServicePanel keyed by selected account and offers only Rx / Stock-supplies. Stock mode cancels its Rx autosave timer. The runtime panel imports new category/lens browsers and stock-order-form.css; no prototype modules or seeded values are imported. Shared Rx selectors/domain logic and LensVariantGrid are reused with account-scoped products. Pair conversion, per-eye OPC validation and quantity limits live in stockOrderModel. Existing stock hooks own all server reads/writes.

@@ -70,7 +70,31 @@ describe("public inquiry routing", () => {
     expect(priceListPage).toContain('formKind: "pricelist_request"');
     expect(assistant).toContain("isPricelistRequesterEligible");
     expect(assistant).toContain('inquiryType: isPricelistRequest ? "price_list" : "assistant_request"');
-    expect(edgeFunction).toContain('payload.inquiryType === "price_list"');
-    expect(edgeFunction).toContain('pipeline: "opticals", stage: "qualifying"');
+    const gather = read("supabase/functions/_shared/leads/gather.ts");
+    expect(edgeFunction).toContain("isSalesInquiry(payload.inquiryType)");
+    expect(edgeFunction).toContain("matchOrCreateSalesContact");
+    expect(gather).toContain("pipeline: 'opticals'");
+    expect(gather).toContain("stage: 'qualifying'");
+  });
+
+  it("matches CRM contacts list-aware and never lets a lookup failure skip the owner email", () => {
+    const edgeFunction = read("supabase/functions/contact-inquiry/index.ts");
+    const gather = read("supabase/functions/_shared/leads/gather.ts");
+
+    expect(edgeFunction).not.toContain(".ilike(\"email\", payload.email)");
+    expect(edgeFunction).not.toContain(".maybeSingle();\n      if (contactLookupError)");
+    expect(gather).toContain("pickContactMatch");
+    expect(gather).toContain("(non-fatal)");
+    // Sales requests get the lead summary, with the plain notification as fallback.
+    expect(edgeFunction).toContain('"lead-alert"');
+    expect(edgeFunction).toContain('"contact-inquiry-notification"');
+  });
+
+  it("sends portal signups through the shared inquiry helper instead of a direct insert", () => {
+    const auth = read("src/pages/Auth.tsx");
+
+    expect(auth).toContain("submitPublicInquiry");
+    expect(auth).toContain('inquiryType: "auth_onboarding_interest"');
+    expect(auth).not.toContain('.from("public_inquiries").insert');
   });
 });
