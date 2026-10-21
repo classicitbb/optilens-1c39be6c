@@ -28,7 +28,7 @@ No local continuation is required. Existing loopback server remains on port 5173
 
 ## 2026-10-20 — Iris take-message webhook
 
-Status: Awaiting approval — production deploy and secret
+Status: Deployed; user reports the function works (2026-10-21). Not independently verified here.
 
 - Files: `supabase/functions/iris-take-message/index.ts`, `supabase/config.toml`, `scripts/edge_functions_smoke.mjs`.
 - Tests run: none in this session (no deno available). The originating session reported `deno check` clean and local 405/401/400 probes. No hosted call or ticket created. `supabase/functions/deno.lock` from that patch was not carried over.
