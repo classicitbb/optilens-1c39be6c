@@ -1,5 +1,14 @@
 # Project Knowledge
 
+## Alert bell, stock refresh and portal loading - 2026-10-20
+
+`features/admin/notifications/alertSound.ts` owns a reusable Web Audio context and two-note bell. NotificationBell unlocks audio on pointer/key interaction and offers browser-local mute/test controls. Newly observed notification IDs ring; the initial backlog stays silent. Operator attention retains its reminder window but rings once per batch and waits for snooze loading. Web Locks serializes playback against a shared localStorage timestamp with a six-second cooldown and bounded 24-hour event receipts; older browsers use a short storage election. Only unlocked tabs can ring. Audio/storage failures are quiet. Coordination is limited to the same origin and browser profile, not devices/private sessions.
+
+`useProductVariants` reads all grid variants using the existing RPC on mount/focus/reconnect and every eight hours while mounted, including background tabs. Browser throttling can delay timers; closed browsers do not run schedules. This reads current database stock, not an office inventory import or stock write. Active-only selection is now part of the cache key; existing prefix invalidations still match.
+
+Portal user loading overlaps admin metadata with profile/role reads. WebsitePortalsPage overlaps CRM-contact resolution with cart/presence/membership reads, keys the list by users, and reuses one-minute caches. useOrders/useCustomerAddresses/useCustomerPaymentMethods accept optional `{ enabled }`; this page enables them only after account selection, avoiding signed-in-admin detail reads on list load. Other callers retain their current-user fallback. Removed the duplicate address/payment refetch effect. No backend/schema/auth change. Focused tests: `npx vitest run --coverage=false src/tests/unit/alertSound.test.ts src/tests/unit/notificationBellSound.test.tsx src/tests/unit/productStockRefresh.test.tsx src/tests/unit/portalLoadingPerformance.test.tsx src/tests/unit/portalDeferredDetails.test.tsx`.
+
+
 Git TLS on Windows: if OpenSSL cannot find the local issuer, a temporary CA bundle combining Node built-in roots and tls.getCACertificates("system") can be supplied per command with git -c http.sslCAInfo=<temporary-bundle>. Keep verification enabled; no global Git or certificate-store change is necessary.
 
 ## Portal operations controls — 2026-10-20
@@ -27,6 +36,8 @@ Migration 20261020214927_new_portal_features_disabled.sql initializes nine false
 ## Local dependency recovery — 2026-10-19
 
 If Vite reports a missing import already declared in both package.json and package-lock.json, check `npm ls <package>` before editing source. The stock camera scanner's ZXing packages were absent from node_modules after the camera commit; `npm ci` restored the locked dependencies. On Windows, stop all Vite processes using this checkout (including the standalone stock prototype) before `npm ci`: either can hold the Lightning CSS native module open and cause EPERM unlink. Restore the app with `npm run dev -- --strictPort` and the prototype with `npm exec -- vite --config src/features/rx-order/prototype/vite.config.mjs`. This is local dependency maintenance, with no deployment or schema change.
+
+Recovery reverified 2026-10-20: both ZXing packages were again absent locally while declared in the unchanged manifest/lockfile. The roaming npm shim selected npm 12 even with Node 22 active; `Get-Command npm.cmd` and `npm --version` reveal this mismatch. In PowerShell, use `$env:Path='C:\nvm4w\nodejs;'+$env:Path` for the current session before `node scripts/check-runtime.mjs` and npm commands. This selects the installed npm 10 without changing global tools or user settings. `npm ci --no-audit --no-fund` restored the locked install; build and scanner-module HTTP checks pass. No source, dependency version or lockfile change was required.
 
 Stock entry (2026-10-19): AdminRoutes StockOrderEntry redirects fresh /admin/orders/stock-orders visits to /admin/orders/rx/new?type=stock, retaining other query parameters; quote/highlight links keep StockOrderBuilderPage for saved drafts/product tunnels. RxOrderEditPage passes initialOrderType only for new orders and keys by entry mode. ComboBox uses installed Radix Popover portal/anchor, trigger width, collision padding and available-height scrolling. Search/arrow/Enter/Tab/Escape keep input focus. Shared rx-segment styling in index.css supplies explicit light/dark selection. No permission or persistence changes.
 

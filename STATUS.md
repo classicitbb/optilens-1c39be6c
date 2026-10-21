@@ -1,5 +1,10 @@
 # Project Status
 
+Alert bell / stock refresh / portal loading (2026-10-20, local source): shared two-note ding dong, six-second same-origin cross-tab cooldown, mute/Test ding dong controls and batched attention sounds. Stock reads refresh on mount/focus/reconnect and every eight hours while mounted (not an office inventory import). Portal loading overlaps independent reads, caches lists for one minute and defers order/address/payment details until account selection. Build, application TypeScript and focused tests pass; full suite retains 12 existing failures and lint retains the Rx workspace error. Live admin timing/audio verification remains pending; see HANDOFF.md. No hosted change.
+
+
+Build recovery (2026-10-20, local environment): `npm run build` failed resolving the declared `@zxing/browser` import because both ZXing packages were missing locally. Restored locked dependencies with npm 10 `npm ci`; production build passes and development runs at http://127.0.0.1:5173/. Edge browser renders the homepage without captured console errors; the scanner module returns HTTP 200. Session-local PATH selection avoids the roaming npm 12 shim. No app source, dependency manifest/lockfile or hosted changes. Full tests: 1,691 passed / 12 failed across three previously documented failing suites (Rx workspace provider, Chemistrie timeout, OAuth rewrite). PR checks retain generated Copilot facts drift. See HANDOFF.md for lint and final validation.
+
 Lead summary + signup lead capture (2026-10-20, local source): trade-account, price-list and portal-signup requests now match/create the CRM lead list-aware (never throwing) and email the owner a `lead-alert` summary (said/fit/history/next move/reply-by 4 business hours Barbados/one-tap links), falling back to the plain notification. Professional portal signups go through `contact-inquiry` (previously a direct `public_inquiries` insert: no owner email, ticket or CRM). 40 focused tests pass; no new full-suite failures (8 pre-existing failing files, incl. missing @zxing deps; copilot-facts drift pre-existing). **Not deployed**: `contact-inquiry` needs a redeploy then `npm run qa:edge-smoke`; no migration. Edge code could not run locally (no Deno); template smoke-rendered with stubbed components only. Plan: C:UsersRusse.claudeplansquiet-watching-whale.md (Milestone 1: Step 6 yes-path and SLA reminders still to do).
 
 Portal operations controls (2026-10-20): assigned-pricelist Edit deep link and simple enable/disable switches are implemented in both portal settings surfaces. Existing customer settings are preserved. New-profile all-off initialization is staged in 20261020214927_new_portal_features_disabled.sql; production apply requires separate approval. Browser connection timed out; see HANDOFF.md for validation.
@@ -50,7 +55,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-20 (Doc Studio invoice import and localhost development data transport)
+Last updated: 2026-10-20 (local alert bell, stock refresh and portal loading verification)
 
 RX stock/supplies order UX (2026-10-19, local source): stock/service item entry and order details now open in a modal; instructions are labelled as optional special instructions; order reference is required before saving or releasing. Chiral lens items offer Pair (default), Left, or Right; other items stay Pair. Standalone Stock Order Builder also marks the reference required and blocks submit until entered. Scoped ESLint and production build pass; full lint was interrupted after prolonged no-output execution. No order submitted or deployment performed; see HANDOFF.md.
 

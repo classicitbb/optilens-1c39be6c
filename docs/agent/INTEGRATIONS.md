@@ -1,5 +1,10 @@
 # Integrations and Cross-Repository Contract
 
+## Alert bell and stock/list reads - 2026-10-20
+
+Frontend changes reuse existing notification/attention reads, get_store_product_variants_public and admin user/customer detail contracts. Eight-hour stock polling runs in mounted browsers plus mount/focus/reconnect; it does not import office inventory and is not a server cron. Bell coordination uses Web Locks and origin-local storage, without cross-device messaging. Portal list caches last one minute; existing mutation invalidations remain effective. No migration, hosted write, new service, connector, environment variable, credential or authorization change.
+
+
 ## Portal operations controls — 2026-10-20
 
 WebsitePortalsPage uses shared two-state switches in both the embedded contact settings and fallback portal dialog. Switches write explicit true/false overrides; existing unset rows retain approval/tag inheritance, and existing Rx/order-price opt-ins remain off. Clear conflicting override is retained separately. The assigned-pricelist Edit link uses buildPricelistEditorPath(id, "rx") and is disabled without an assignment.

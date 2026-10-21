@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-10-20 - Alert bell, stock refresh and portal loading (local source)
+
+### Release Notes
+- Simple two-note alert sound with shared cross-tab cooldown, mute and test controls. Stock grids check database quantities every eight hours while open, plus mount/focus/reconnect. Portal lists overlap independent reads and defer account details until selection.
+
+### Technical Changelog
+- Shared Web Audio/Locks/storage coordination; one sound per attention batch. Separate active-only variant cache entries. One-minute portal caches and optional detail-hook enabled flags. Focused tests, build and TypeScript pass; existing full-suite/lint failures remain. No deployment or hosted write.
+
+
 ## 2026-10-20 — Hot-lead summary and signup lead capture (local source)
 
 ### Release Notes

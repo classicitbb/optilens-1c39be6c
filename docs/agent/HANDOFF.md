@@ -1,3 +1,27 @@
+## 2026-10-20 - Alert bell, stock refresh and portal loading
+
+Status: Source complete - comparative timing and audible multi-tab verification pending.
+
+Implemented shared two-note ding dong, six-second cross-tab cooldown and bounded event receipts (Web Locks/storage election fallback), gesture audio unlock, mute/test controls, new-notification detection and batched attention sounds. Stock checks run every eight hours while mounted plus mount/focus/reconnect. Portal list overlaps independent reads, caches for one minute and defers order/address/payment reads until account selection. No deployment, hosted data, access rule or credential change. Existing local documentation edits were preserved.
+
+Affected: NotificationBell.tsx; notifications/alertSound.ts and useOperatorAttentionAlerts.ts; helpdesk useHelpdeskTicketAlerts.ts compatibility export; useAdminUsers/useProductVariants/useOrders/useCustomerAddresses/useCustomerPaymentMethods hooks; WebsitePortalsPage.tsx; five new test files; continuity docs.
+
+Validation: portalLoadingPerformance test failed before parallelization and passes after it. Final focused verification: 20 tests across seven files pass, including delayed duplicate notification delivery across independent tab instances. Application TypeScript (`npx tsc --noEmit -p tsconfig.app.json`), build and scoped ESLint pass. Full `npm run test -- --runInBand`: 264 passed / 3 failed files, 1700 passed / 12 failed tests: ten Rx workspace QueryClientProvider cases, emailRecipientInput CRM options and OAuth rewrite. Full lint retains one existing RxOrdersWorkspace.tsx:89 preserve-caught-error error. PR checks pass lockfile policy and documentation symmetry, then stop on pre-existing generated Copilot platform facts drift. Logs: ignored `.codex-alert-*.log`.
+
+Browser: the exact annotated ZenVue product grid renders with real data and quantity cells; no cart/save action. Initial admin page hung then redirected to /profile; a subsequent existing-session tab rendered the admin list with Approved 135 / Active 88 / All 145. Opened the bell popover and exercised Test ding dong; controls render correctly and a preview is saved in the task visualization folder. No 5-10x timing or actual audible cross-tab claim is made. Independent tab module/lock/storage behavior and eight-hour refresh are tested synthetically. Closed browsers cannot run schedules; timers can throttle.
+
+Approval required only for future production publishing under AGENTS.md. Exact executable next action: `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort` (reuse the existing server when already running), then compare first-load/revisit timing against a recorded baseline and verify audible Test ding dong across two tabs. Do not change authentication or hosted records for verification.
+
+## 2026-10-20 — Local build and dev recovery
+
+Status: Complete — no active handoff
+
+Reproduced `npm run build` failing to resolve `@zxing/browser` from StockCameraScanner.tsx. `npm ls @zxing/browser @zxing/library --depth=0` confirmed both declared, locked packages were missing from node_modules. No Vite process held this checkout open. Selected installed Node 22.23.2/npm 10.9.8 with session-local PATH precedence, avoiding the roaming npm 12 shim; the runtime check passes. `npm ci --no-audit --no-fund` restored 822 packages with no manifest/lockfile delta. Application source was not changed. Updated only STATUS.md, PROJECT_KNOWLEDGE.md and this handoff.
+
+Production build passes. Dev remains running at http://127.0.0.1:5173/ via `npm run dev -- --host 127.0.0.1 --port 5173 --strictPort`. Homepage and scanner-module HTTP checks return 200. The in-app browser is unavailable; connected Edge rendered the public homepage and captured no console errors. No authenticated transaction, hosted configuration, publication or deployment was attempted.
+
+Full test command completed: 260 passed / 3 failed files; 1,691 passed / 12 failed tests. Remaining failures are the existing ten Rx workspace QueryClientProvider cases, one Chemistrie prefill timeout, and OAuth rewrite assertion. PR checks pass lockfile policy/documentation symmetry then stop at pre-existing generated Copilot facts drift. Build retains non-fatal native-config/chunk-size warnings. Full lint completed with one pre-existing RxOrdersWorkspace.tsx:89 preserve-caught-error error and 2,438 warnings. Validation logs are ignored `.codex-build-*.log` files. No approval or continuation is required for the requested local build/dev recovery; preserve other tasks' pending approval entries below.
+
 ## Portal operations controls — 2026-10-20
 
 Status: Source complete; new-account default migration and rendered verification pending.

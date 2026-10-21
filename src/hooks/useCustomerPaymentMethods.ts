@@ -41,10 +41,10 @@ const mapRow = (row: Record<string, any>): CustomerPaymentMethod => ({
   createdAt: String(row.created_at ?? new Date(0).toISOString()),
 });
 
-export const useCustomerPaymentMethods = (targetUserId?: string) => {
+export const useCustomerPaymentMethods = (targetUserId?: string, options?: { enabled?: boolean }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const effectiveUserId = targetUserId ?? user?.id ?? null;
+  const effectiveUserId = options?.enabled === false ? null : targetUserId ?? user?.id ?? null;
 
   const query = useQuery({
     queryKey: ["customer-payment-methods", effectiveUserId],

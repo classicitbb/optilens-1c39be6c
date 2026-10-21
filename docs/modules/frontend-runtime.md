@@ -1,5 +1,10 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-20 - Alert sound and read performance
+
+alertSound.ts shares a gesture-unlocked Web Audio context, Web Locks/storage cooldown and bounded event receipts and mute preference. NotificationBell detects new IDs without ringing initial backlog; operator attention calls once per batch after snooze loading. useProductVariants polls existing database RPC every eight hours while mounted plus mount/focus/reconnect; activeOnly is part of the cache key. WebsitePortalsPage overlaps CRM/contact and activity reads, caches for one minute and enables order/address/payment hooks only with a selection. Existing other callers retain current-user behavior. No server cron, backend change or auth change.
+
+
 Lead capture (2026-10-20): Auth.tsx sendLeadSignal now calls submitPublicInquiry with inquiryType auth_onboarding_interest instead of inserting into public_inquiries, so signups reach contact-inquiry (CRM lead, helpdesk ticket, owner lead-alert email). Failure stays non-blocking for account creation. The edge side (contact-inquiry, _shared/leads, _shared/crm) is in supabase/functions.
 
 Portal controls (2026-10-20): WebsitePortalsPage shares two-state switches and canonical assigned-pricelist Edit links across embedded/fallback settings. portalFeatureToggleValue preserves existing unset inheritance; writes remain explicit booleans. New profiles receive all-false overrides only after the pending INSERT trigger migration is approved/applied.

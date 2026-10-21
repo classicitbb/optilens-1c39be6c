@@ -1,5 +1,10 @@
 # Frontend Bug Reports
 
+## 2026-10-20 - Overlapping alert audio and portal request waterfalls
+
+Attention previously played a jingle per outstanding item in every tab. Shared two-note playback now coalesces batches and serializes same-origin tabs with cooldown/storage. Portal list previously waited through independent reads and loaded signed-in-admin details without selection. Regression test reproduced sequential metadata loading before parallelization; idle detail reads now have a focused no-request test. Stock refresh has an eight-hour timer regression and cache-selection coverage. Admin/product pages render with live reads; bell controls and test button exercised. Actual audible multi-tab playback is covered synthetically, and the requested 5-10x speedup has no browser baseline. Existing Rx workspace/email recipient/OAuth test failures and Rx workspace lint error remain.
+
+
 Signup lead capture (2026-10-20, local source): professional portal signups wrote straight to public_inquiries, so no owner email, ticket or CRM contact followed. They now go through contact-inquiry. Also fixed there: a duplicate-email ilike().maybeSingle() lookup could throw after the inquiry was saved and skip the owner email; secondary addresses in a contact's email list were never matched.
 
 Portal controls (2026-10-20): replaced ambiguous three-state cycling with stable enabled/disabled switches, while retaining inherited settings for existing accounts. Both portal settings surfaces now link to the assigned editor. Browser connection timed out, so rendered verification is pending. New-account default trigger is staged, not applied.

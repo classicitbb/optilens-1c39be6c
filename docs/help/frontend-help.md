@@ -1,5 +1,10 @@
 # Frontend Help Docs
 
+## 2026-10-20 - Alert sound and fresh stock
+
+Open the admin bell for Alert sound: On/Off and Test ding dong. Browsers need a click/key interaction before sound can play. Tabs sharing the same origin/browser coordinate the sound with a six-second cooldown. Separate devices/private profiles are independent. Stock grids recheck the database when opened, on return/reconnect and every eight hours while open; browser throttling can delay timers. The portal list loads account details when you select an account.
+
+
 Lead summary email (2026-10-20, local source): when a trade account, price list or portal signup request arrives, the owner email lists what the person told us, fit, history, a suggested next move and a reply-by time, with one-tap reply, WhatsApp, CRM and approval links. Portal signups now create a CRM lead and ticket as well.
 
 Portal settings (2026-10-20): use the switches to enable or disable each feature. Beside Assigned pricelist, Edit opens that selected list; choose a list first if Edit is disabled. Existing accounts keep their settings. New-account all-off defaults are pending the database migration. Pricing and statements still need their access tags.

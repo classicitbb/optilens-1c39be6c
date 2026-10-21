@@ -28,25 +28,30 @@ export const useAdminUsers = () => {
 
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ["admin-users"],
+    staleTime: 60_000,
     queryFn: async () => {
-      const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+      const loadAuthUsers = async () => {
+        let authUsers: { id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null; banned_until: string | null }[] = [];
+        try {
+          const data = await callAdminUserManagement<{ id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null; banned_until: string | null }[]>(
+            validateAdminFunctionRequest({ actorRole: role, action: "list-users" })
+          );
+          if (Array.isArray(data)) authUsers = data;
+        } catch {
+          // Edge function may not be deployed yet; retain profile metadata.
+        }
+        return authUsers;
+      };
+
+      const [{ data: profiles, error: pErr }, { data: roles, error: rErr }, authUsers] = await Promise.all([
         (supabase.from("profiles") as any)
           .select("user_id, display_name, full_name, email, phone, organization_name, avatar_url, crm_contact_id"),
         (supabase.from("user_roles") as any)
           .select("id, user_id, role"),
+        loadAuthUsers(),
       ]);
       if (pErr) throw pErr;
       if (rErr) throw rErr;
-
-      let authUsers: { id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null; banned_until: string | null }[] = [];
-      try {
-        const data = await callAdminUserManagement<{ id: string; email: string; created_at: string; email_confirmed_at: string | null; invited_at: string | null; banned_until: string | null }[]>(
-          validateAdminFunctionRequest({ actorRole: role, action: "list-users" })
-        );
-        if (Array.isArray(data)) authUsers = data;
-      } catch {
-        // Edge function may not be deployed yet; continue without emails
-      }
 
       const contactIds = [...new Set((profiles ?? [])
         .map((profile: any) => profile.crm_contact_id)

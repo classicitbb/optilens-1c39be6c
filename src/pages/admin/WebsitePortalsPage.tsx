@@ -264,7 +264,8 @@ const WebsitePortalsPage = () => {
   };
 
   const customersQuery = useQuery({
-    queryKey: ["website-portals-customers"],
+    queryKey: ["website-portals-customers", users],
+    staleTime: 60_000,
     queryFn: async () => {
       const portalUserIds = users.map((entry) => entry.user_id);
       const [{ data, error }, { data: erpCustomers, error: erpCustomersError }] = await Promise.all([
@@ -282,6 +283,49 @@ const WebsitePortalsPage = () => {
       ]);
       if (error) throw error;
       if (erpCustomersError) throw erpCustomersError;
+
+      const profileMap = new Map(
+        ((data ?? []) as Record<string, any>[]).map((row) => [
+          String(row.user_id),
+          row,
+        ]),
+      );
+
+      const customerRoleAccounts = users.filter((entry) => {
+        const profile = profileMap.get(entry.user_id);
+        // Include unassigned logins as portal candidates. An admin can link a
+        // newly created or signed-up user to a customer from this screen;
+        // staff-only roles remain out of the customer operations surface.
+        const isStaffRole = entry.role === "admin" || entry.role === "operator" || entry.role === "viewer";
+        return !isStaffRole || typeof profile?.crm_customer_id === "number";
+      });
+      const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
+
+      const activityPromise = Promise.all([
+        (supabase as any)
+          .from("cart_items")
+          .select("user_id,quantity")
+          .in("user_id", customerUserIds),
+        (supabase as any)
+          .from("abandoned_cart_alerts")
+          .select("user_id,status")
+          .in("user_id", customerUserIds)
+          .eq("status", "open"),
+        (supabase as any)
+          .from("user_presence")
+          .select("user_id,status,last_heartbeat_at")
+          .in("user_id", customerUserIds),
+        // Every account a login has been granted, not just their single
+        // default profiles.crm_customer_id pointer — a login may hold active
+        // memberships on several customer accounts (e.g. a manager across
+        // branches). Without this, a granted secondary account never shows up
+        // as "linked" here even though the grant succeeded.
+        (supabase as any)
+          .from("portal_account_memberships")
+          .select("user_id,customer_id")
+          .in("user_id", customerUserIds)
+          .eq("status", "active"),
+      ]);
 
       const erpCustomerRows = (erpCustomers ?? []) as Array<Record<string, any>>;
       const erpCustomerIds = erpCustomerRows.map((customer) => Number(customer.id)).filter(Number.isFinite);
@@ -357,48 +401,7 @@ const WebsitePortalsPage = () => {
         if (typeof contact.contact.id === "string") customerIdByContactId.set(contact.contact.id, contact.customerId);
       }
 
-      const profileMap = new Map(
-        ((data ?? []) as Record<string, any>[]).map((row) => [
-          String(row.user_id),
-          row,
-        ]),
-      );
-
-      const customerRoleAccounts = users.filter((entry) => {
-        const profile = profileMap.get(entry.user_id);
-        // Include unassigned logins as portal candidates. An admin can link a
-        // newly created or signed-up user to a customer from this screen;
-        // staff-only roles remain out of the customer operations surface.
-        const isStaffRole = entry.role === "admin" || entry.role === "operator" || entry.role === "viewer";
-        return !isStaffRole || typeof profile?.crm_customer_id === "number";
-      });
-      const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
-
-      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }, { data: membershipRows, error: membershipError }] = await Promise.all([
-        (supabase as any)
-          .from("cart_items")
-          .select("user_id,quantity")
-          .in("user_id", customerUserIds),
-        (supabase as any)
-          .from("abandoned_cart_alerts")
-          .select("user_id,status")
-          .in("user_id", customerUserIds)
-          .eq("status", "open"),
-        (supabase as any)
-          .from("user_presence")
-          .select("user_id,status,last_heartbeat_at")
-          .in("user_id", customerUserIds),
-        // Every account a login has been granted, not just their single
-        // default profiles.crm_customer_id pointer — a login may hold active
-        // memberships on several customer accounts (e.g. a manager across
-        // branches). Without this, a granted secondary account never shows up
-        // as "linked" here even though the grant succeeded.
-        (supabase as any)
-          .from("portal_account_memberships")
-          .select("user_id,customer_id")
-          .in("user_id", customerUserIds)
-          .eq("status", "active"),
-      ]);
+      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }, { data: membershipRows, error: membershipError }] = await activityPromise;
 
       if (cartError) throw cartError;
       if (alertError) throw alertError;
@@ -747,9 +750,9 @@ const WebsitePortalsPage = () => {
     },
   });
 
-  const { orders, loading: ordersLoading, createOrder, refetch: refetchOrders } = useOrders(selectedCustomer?.userId ?? undefined);
-  const { addresses, defaultShipping, defaultBilling, refetch: refetchAddresses } = useCustomerAddresses(selectedCustomer?.userId ?? undefined);
-  const { paymentMethods, defaultPaymentMethod, refetch: refetchPaymentMethods } = useCustomerPaymentMethods(selectedCustomer?.userId ?? undefined);
+  const { orders, loading: ordersLoading, createOrder, refetch: refetchOrders } = useOrders(selectedCustomer?.userId ?? undefined, { enabled: !!selectedCustomer });
+  const { addresses, defaultShipping, defaultBilling, refetch: refetchAddresses } = useCustomerAddresses(selectedCustomer?.userId ?? undefined, { enabled: !!selectedCustomer });
+  const { paymentMethods, defaultPaymentMethod, refetch: refetchPaymentMethods } = useCustomerPaymentMethods(selectedCustomer?.userId ?? undefined, { enabled: !!selectedCustomer });
 
   const upsertFeatureOverride = useMutation({
     mutationFn: async ({ featureKey, enabled }: { featureKey: string; enabled: boolean }) => {
@@ -1027,13 +1030,6 @@ const WebsitePortalsPage = () => {
     },
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to place order on behalf.", variant: "destructive" }),
   });
-
-  useEffect(() => {
-    if (!selectedCustomer?.userId) return;
-    refetchAddresses();
-    refetchPaymentMethods();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCustomer?.userId]);
 
   useEffect(() => {
     if (!detailQuery.data) return;
