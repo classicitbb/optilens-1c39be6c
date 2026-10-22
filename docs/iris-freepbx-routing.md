@@ -12,6 +12,43 @@ No SIP URI is shown for the assistant, so the route dials this number through th
 Leave "Support Unauthenticated Web Calls" off: turning it on would let anyone on the internet start
 Iris sessions that you pay for.
 
+## Decided schedule (2026-10-21, from the user)
+
+- Open: 8:00 AM to 5:00 PM (Barbados time), all public holidays treated as closed.
+- Open hours: calls ring staff immediately. If nobody answers after **4 rings**, Iris answers.
+  Set the ring group or queue ring time to about 22 seconds (a 2 s ring / 4 s pause cycle means
+  the fourth ring ends near 20 s); adjust after timing a real call.
+- Closed hours and public holidays: Iris answers immediately.
+- Time condition: weekday/time group 8:00-17:00; holidays go in a Calendar or a dated time
+  group; confirm whether weekends are closed (not stated).
+
+## Preferred path: Telnyx SIP connection instead of the PSTN number (to verify)
+
+Telnyx documents a "UAC connection" for connecting a PBX to an AI Assistant: Telnyx registers
+**to your PBX** as an extension, and calls to that extension go to the assistant
+(destination `<extension>@assistant-<uuid>.sip.telnyx.com`). Source: Telnyx SIP Attach docs
+(developers.telnyx.com/docs/voice/uac-connections). Read from the docs only; not tried on this account.
+
+On FreePBX:
+1. Create a new PJSIP extension (e.g. `2299`, unused) with a strong random secret. This is
+   the "Iris" extension.
+2. In Telnyx, create a UAC connection: `external_uac_settings` proxy = the PBX's public
+   address and SIP port, username = `2299`, the secret, transport; `internal_uac_settings.destination_uri`
+   = `<ext>@assistant-<uuid>.sip.telnyx.com` for the Iris assistant. Check `registration_status` shows registered.
+3. Replace the Custom Destination in section 1 with one that rings extension `2299`
+   (Misc Destination or Extension destination), so calls never leave the PBX as PSTN.
+
+Costs and risks to confirm before switching:
+- This needs the PBX reachable from Telnyx on its SIP port (public address plus port forward
+  to 192.168.254.52, restricted to Telnyx's source addresses). The PBX is already reachable
+  from the internet for extension 2230; tighten the firewall, do not widen it.
+- No PSTN leg, so no per-call outbound charge to the Chicago number (assistant minutes still apply).
+- Caller ID: SIP may carry the original caller's number to the assistant; verify with a test call.
+- Keep the +1 312 883 6807 route as a failover until the SIP path has been tested.
+- The Telnyx doc does not confirm other ways to give an assistant a SIP URI (for example a
+  credential or FQDN trunk). If the portal offers one, the PBX could dial it with an outbound
+  trunk and no inbound exposure; check the portal first.
+
 ## 1. Outbound path to Iris
 
 1. Connectivity > Outbound Routes: add route `to-iris`, trunk = `Telnyx` only, with a dial
