@@ -48,6 +48,7 @@ const sections = [
       { label: "Lab Process Overview", to: "/professionals/lab-process-overview" },
       { label: "Tracing & Cutting Guide", to: "/professionals/tracing-cutting-guide" },
       { label: "Lens Ordering Tips", to: "/professionals/lens-ordering-tips" },
+      { label: "Caribbean Lens Ordering Guide", to: "/professionals/caribbean-lens-ordering-guide" },
       { label: "Chemistrie Lens System", to: "/professionals/chemistrie-lens-system" },
     ],
   },

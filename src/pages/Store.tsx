@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Seo from "@/components/seo/Seo";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,6 +164,11 @@ const Store = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Wholesale Lens & Optical Supply Catalog | Classic Visions"
+        description="Browse Classic Visions' wholesale catalog of prescription lenses, coatings, lab supplies and optical accessories for eye care professionals in Barbados and the Caribbean."
+        canonicalPath="/store"
+      />
       <Header />
 
       <main id="main-content" className="pt-24 pb-16">

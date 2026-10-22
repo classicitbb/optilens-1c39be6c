@@ -86,6 +86,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.classicvisions.net/professionals/caribbean-lens-ordering-guide</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.classicvisions.net/professionals/freight-delivery-policy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -139,6 +144,11 @@
     <loc>https://www.classicvisions.net/patients/night-driving-aids</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/patients/prescription-lens-cost</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/lenses/lens-types</loc>

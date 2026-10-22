@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Seo from "@/components/seo/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,6 +79,18 @@ const StoreProductPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title={product ? `${product.name} | Classic Visions` : "Product | Classic Visions"}
+        description={
+          product?.description?.trim().slice(0, 160) ||
+          (product
+            ? `${product.name} — wholesale ${product.product_type === "lens" ? "lens" : "optical supply"} from Classic Visions.`
+            : "Wholesale lenses and optical supplies from Classic Visions.")
+        }
+        canonicalPath={`/store/product/${productType}/${productId}`}
+        image={product?.image_url || undefined}
+        noindex={!isLoading && !product}
+      />
       <Header />
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4 lg:px-8">
