@@ -189,6 +189,7 @@ describe("public route accessibility", () => {
       "public.patients.computer-mobile-use",
       "public.patients.sunlight-protection",
       "public.patients.regular-eye-exams",
+      "public.patients.prescription-lens-cost",
     ];
 
     for (const routeId of patientRouteIds) {
@@ -207,5 +208,6 @@ describe("public route accessibility", () => {
     expect(source).toContain('<Route path="patients/computer-mobile-use" element={<ComputerMobileUsePage />} />');
     expect(source).toContain('<Route path="patients/sunlight-protection" element={<SunlightProtectionPage />} />');
     expect(source).toContain('<Route path="patients/regular-eye-exams" element={<RegularEyeExamsPage />} />');
+    expect(source).toContain('<Route path="patients/prescription-lens-cost" element={<PrescriptionLensCostPage />} />');
   });
 });

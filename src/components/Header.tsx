@@ -185,6 +185,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Computer & Mobile Use", description: "Reduce digital eye strain with practical habits", to: "/patients/computer-mobile-use" },
     { label: "Sunlight & Protection", description: "UV and glare guidance for outdoor comfort", to: "/patients/sunlight-protection" },
     { label: "Regular Eye Exams", description: "Protect long-term vision health", to: "/patients/regular-eye-exams" },
+    { label: "Lens Pricing Guide", description: "What prescription lenses cost and why", to: "/patients/prescription-lens-cost" },
     { label: "Night Driving Aids", description: "Reduce glare and improve clarity after dark", to: "/patients/night-driving-aids" }]
 
   }]
@@ -246,6 +247,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "computer-mobile-use": "Computer & Mobile Use",
   "sunlight-protection": "Sunlight & Protection",
   "regular-eye-exams": "Regular Eye Exams",
+  "prescription-lens-cost": "Lens Pricing Guide",
   "night-driving-aids": "Night Driving Aids",
   "chemistrie-lens-system": "Chemistrie Lens System",
   "dispensing-tips": "Dispensing Tips",

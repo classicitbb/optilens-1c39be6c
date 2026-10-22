@@ -141,6 +141,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.classicvisions.net/patients/prescription-lens-cost</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.classicvisions.net/lenses/lens-types</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>

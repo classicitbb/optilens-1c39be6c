@@ -383,6 +383,14 @@ export const SITE_SEARCH_INDEX: SiteSearchEntry[] = [
     group: "Pages",
     keywords: ["patients", "eye exams", "prescription", "eye health", "annual checkup", "optometrist"],
   },
+  {
+    id: "page-patients-prescription-lens-cost",
+    title: "How Much Do Prescription Lenses Cost?",
+    description: "Pricing guide covering lens type, material, coatings and prescription factors.",
+    path: "/patients/prescription-lens-cost",
+    group: "Pages",
+    keywords: ["patients", "price", "cost", "how much", "prescription lenses", "pricing guide", "high-index"],
+  },
 
   // ─── Anchors ─────────────────────────────────────────────────────────────────
   {

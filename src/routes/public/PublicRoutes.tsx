@@ -39,6 +39,7 @@ const CaringForGlassesPage = lazyWithRetry(() => import("@/pages/patients/Caring
 const ComputerMobileUsePage = lazyWithRetry(() => import("@/pages/patients/ComputerMobileUsePage"));
 const SunlightProtectionPage = lazyWithRetry(() => import("@/pages/patients/SunlightProtectionPage"));
 const RegularEyeExamsPage = lazyWithRetry(() => import("@/pages/patients/RegularEyeExamsPage"));
+const PrescriptionLensCostPage = lazyWithRetry(() => import("@/pages/patients/PrescriptionLensCostPage"));
 const NightDrivingAidsPage = lazyWithRetry(() => import("@/pages/patients/NightDrivingAidsPage"));
 const ProfessionalsPortalPage = lazyWithRetry(() => import("@/pages/ProfessionalsPortalPage"));
 const ProfessionalsChemistriePage = lazyWithRetry(() => import("@/pages/ProfessionalsChemistriePage"));
@@ -155,6 +156,7 @@ const PublicRoutes = () => (
     <Route path="patients/computer-mobile-use" element={<ComputerMobileUsePage />} />
     <Route path="patients/sunlight-protection" element={<SunlightProtectionPage />} />
     <Route path="patients/regular-eye-exams" element={<RegularEyeExamsPage />} />
+    <Route path="patients/prescription-lens-cost" element={<PrescriptionLensCostPage />} />
     <Route path="find-a-retailer" element={<FindARetailerPage />} />
     <Route path="find-a-retailer/barbados" element={<BarbadosRetailersPage />} />
     <Route path="patients/find-a-retailer" element={<Navigate to="/find-a-retailer" replace />} />
