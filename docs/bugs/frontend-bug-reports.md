@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-22 - Red CI on main
+
+PR Validation failed on a lint error (preserve-caught-error in the Rx workspace release path), release ledger drift (CHANGELOG entry used a hyphen instead of an em dash, so it was never parsed), and the dependency audit (vite, follow-redirects). Separately, the `/~oauth` rewrite had been lost from vercel.json in a later merge and the Rx workspace tests still expected the pre-2026-10-19 default tab, placeholder and an unmocked stock-release hook. All fixed; lint, tsc and the full test suite pass locally. Supersedes the 2026-10-20 note about remaining Rx workspace/OAuth failures.
+
 ## 2026-10-20 - Overlapping alert audio and portal request waterfalls
 
 Attention previously played a jingle per outstanding item in every tab. Shared two-note playback now coalesces batches and serializes same-origin tabs with cooldown/storage. Portal list previously waited through independent reads and loaded signed-in-admin details without selection. Regression test reproduced sequential metadata loading before parallelization; idle detail reads now have a focused no-request test. Stock refresh has an eight-hour timer regression and cache-selection coverage. Admin/product pages render with live reads; bell controls and test button exercised. Actual audible multi-tab playback is covered synthetically, and the requested 5-10x speedup has no browser baseline. Existing Rx workspace/email recipient/OAuth test failures and Rx workspace lint error remain.

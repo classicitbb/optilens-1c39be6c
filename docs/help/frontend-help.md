@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-22 - CI repair
+
+No visible change for staff. The Rx Orders workspace still opens on At lab, and sign-in through the OAuth broker keeps working on the hosted site.
+
 ## 2026-10-20 - Alert sound and fresh stock
 
 Open the admin bell for Alert sound: On/Off and Test ding dong. Browsers need a click/key interaction before sound can play. Tabs sharing the same origin/browser coordinate the sound with a six-second cooldown. Separate devices/private profiles are independent. Stock grids recheck the database when opened, on return/reconnect and every eight hours while open; browser throttling can delay timers. The portal list loads account details when you select an account.
