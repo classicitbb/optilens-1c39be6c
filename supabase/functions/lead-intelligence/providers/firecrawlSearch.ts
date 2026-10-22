@@ -1,10 +1,12 @@
 import type { LeadCandidate, ProviderAdapter, ProviderSearchParams } from "./types.ts";
 import { cleanBusinessName } from "./businessName.ts";
 
-const getApiKey = () => Deno.env.get("FIRECRAWL_API_KEY")?.trim() ?? "";
+// The key saved on Leads Settings wins; the backend secret is only a fallback.
+const getApiKey = (credentials?: Record<string, string>) =>
+  credentials?.["firecrawl_search"]?.trim() || Deno.env.get("FIRECRAWL_API_KEY")?.trim() || "";
 
-const search = async ({ query, country, city }: ProviderSearchParams): Promise<LeadCandidate[]> => {
-  const apiKey = getApiKey();
+const search = async ({ query, country, city, credentials }: ProviderSearchParams): Promise<LeadCandidate[]> => {
+  const apiKey = getApiKey(credentials);
   if (!apiKey) throw new Error("NOT_CONFIGURED");
 
   const locationParts = [city, country].filter(Boolean).join(", ");
@@ -52,6 +54,6 @@ const search = async ({ query, country, city }: ProviderSearchParams): Promise<L
 
 export const firecrawlSearchProvider: ProviderAdapter = {
   id: "firecrawl_search",
-  isConfigured: () => Boolean(getApiKey()),
+  isConfigured: (credentials) => Boolean(getApiKey(credentials)),
   search,
 };
