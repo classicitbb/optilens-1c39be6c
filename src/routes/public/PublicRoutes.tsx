@@ -45,6 +45,7 @@ const ProfessionalsPortalPage = lazyWithRetry(() => import("@/pages/Professional
 const ProfessionalsChemistriePage = lazyWithRetry(() => import("@/pages/ProfessionalsChemistriePage"));
 const CustomerSuppliedFramesPolicyPage = lazyWithRetry(() => import("@/pages/professionals/CustomerSuppliedFramesPolicyPage"));
 const DispensingTipsPage = lazyWithRetry(() => import("@/pages/professionals/DispensingTipsPage"));
+const CaribbeanLensOrderingGuidePage = lazyWithRetry(() => import("@/pages/professionals/CaribbeanLensOrderingGuidePage"));
 const FreightDeliveryPolicyPage = lazyWithRetry(() => import("@/pages/professionals/FreightDeliveryPolicyPage"));
 const RepairsPolicyPage = lazyWithRetry(() => import("@/pages/professionals/RepairsPolicyPage"));
 const ReturnsReplacementsPage = lazyWithRetry(() => import("@/pages/professionals/ReturnsReplacementsPage"));
@@ -164,6 +165,7 @@ const PublicRoutes = () => (
     <Route path="dispensing-tips" element={<DispensingTipsPage />} />
     <Route path="professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
     <Route path="professionals/customer-supplied-frames-policy" element={<CustomerSuppliedFramesPolicyPage />} />
+    <Route path="professionals/caribbean-lens-ordering-guide" element={<CaribbeanLensOrderingGuidePage />} />
     <Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />
     <Route path="professionals/repairs-policy" element={<RepairsPolicyPage />} />
     <Route path="professionals/returns-replacements" element={<ReturnsReplacementsPage />} />

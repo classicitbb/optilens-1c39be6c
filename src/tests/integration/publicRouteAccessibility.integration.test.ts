@@ -85,6 +85,12 @@ describe("public route accessibility", () => {
     ).toBeTruthy();
   });
 
+  it("registers /professionals/caribbean-lens-ordering-guide in the public route registry", () => {
+    expect(
+      APP_ROUTE_REGISTRY.find((route) => route.id === "public.professionals.caribbean-lens-ordering-guide" && route.path === "/professionals/caribbean-lens-ordering-guide" && route.status === "active"),
+    ).toBeTruthy();
+  });
+
   it("registers /lenses/led-pro in the public route registry", () => {
     expect(
       APP_ROUTE_REGISTRY.find((route) => route.id === "public.lenses.led-pro" && route.path === "/lenses/led-pro" && route.status === "active"),
@@ -168,6 +174,13 @@ describe("public route accessibility", () => {
     const source = fs.readFileSync(publicRoutesPath, "utf8");
 
     expect(source).toContain('<Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />');
+  });
+
+  it("declares a runtime route for /professionals/caribbean-lens-ordering-guide", () => {
+    const publicRoutesPath = path.resolve(process.cwd(), "src/routes/public/PublicRoutes.tsx");
+    const source = fs.readFileSync(publicRoutesPath, "utf8");
+
+    expect(source).toContain('<Route path="professionals/caribbean-lens-ordering-guide" element={<CaribbeanLensOrderingGuidePage />} />');
   });
 
   it("declares runtime routes for the professional support policy pages", () => {

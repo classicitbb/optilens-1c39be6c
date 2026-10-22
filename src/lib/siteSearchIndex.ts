@@ -392,6 +392,15 @@ export const SITE_SEARCH_INDEX: SiteSearchEntry[] = [
     keywords: ["patients", "price", "cost", "how much", "prescription lenses", "pricing guide", "high-index"],
   },
 
+  {
+    id: "page-professionals-caribbean-lens-ordering-guide",
+    title: "Caribbean Lens Ordering Guide for Optical Retailers",
+    description: "Practical steps for ordering wholesale lenses: Rx, frame data, freight and customs.",
+    path: "/professionals/caribbean-lens-ordering-guide",
+    group: "Pages",
+    keywords: ["professionals", "caribbean", "ordering guide", "wholesale lenses", "optical retailers", "freight", "customs"],
+  },
+
   // ─── Anchors ─────────────────────────────────────────────────────────────────
   {
     id: "anchor-home-about",

@@ -142,6 +142,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Lab Process Overview", description: "Production flow and checkpoints", to: "/professionals/lab-process-overview" },
     { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
     { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
+    { label: "Caribbean Ordering Guide", description: "Order steps, freight and customs for island retailers", to: "/professionals/caribbean-lens-ordering-guide" },
     { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
     { label: "ZenVue Wholesale", description: "Feature-page application for optical partners", to: "/zenvue/wholesale" }]
 
@@ -255,6 +256,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "tracing-cutting-guide": "Tracing & Cutting Guide",
   "lab-process-overview": "Lab Process Overview",
   "lens-ordering-tips": "Lens Ordering Tips",
+  "caribbean-lens-ordering-guide": "Caribbean Lens Ordering Guide",
   "rx-order": "Rx Order Form",
   "rx-job-status": "Order Tracking"
 };
