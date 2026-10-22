@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/~oauth/:match*",
+      "destination": "https://classicvisions.lovable.app/~oauth/:match*"
+    },
+    {
       "source": "/qbo/oauth/callback",
       "destination": "/api/qbo/oauth-callback"
     },

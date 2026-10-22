@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({ email: vi.fn(), approve: vi.fn(), cancel: vi.f
 
 vi.mock("react-router", async (orig) => ({ ...(await orig<typeof import("react-router")>()), useNavigate: () => mocks.navigate }));
 vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn(), useToast: () => ({ toast: vi.fn() }) }));
+vi.mock("@/hooks/useStockOrderBuilder", () => ({ useReleaseStockOrder: () => ({ mutateAsync: vi.fn(), isPending: false }) }));
 vi.mock("@/features/rx-order/workspace/useRxWorkspace", () => ({
   useRxWorkspace: () => ({
     items: mocks.state.items, isLoading: false, accountName: () => "—", refresh: vi.fn(),
@@ -40,13 +41,14 @@ const show = () => render(<MemoryRouter><RxOrdersWorkspace /></MemoryRouter>);
 describe("Rx Orders workspace", () => {
   afterEach(() => { cleanup(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
-  it("opens on what needs review, with a count on every tab", () => {
+  it("shows a count on every tab and lists captures under Needs review", () => {
     load([sub("1"), sub("2", { status: "failed", last_error: "boom" }), sub("3", { status: "submitted", lab_status: "Shipped" })], [cap]);
     show();
     expect(screen.getByRole("tab", { name: /Needs review/ })).toHaveTextContent("1");
     expect(screen.getByRole("tab", { name: /Ready to release/ })).toHaveTextContent("1");
     expect(screen.getByRole("tab", { name: /Problems/ })).toHaveTextContent("1");
     expect(screen.getByRole("tab", { name: /Done/ })).toHaveTextContent("1");
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Needs review/ }));
     expect(screen.getByText("Office capture")).toBeInTheDocument();
   });
 
@@ -97,7 +99,7 @@ describe("Rx Orders workspace", () => {
     show();
     fireEvent.mouseDown(screen.getByRole("tab", { name: /Ready to release/ }));
     await waitFor(() => screen.getByText("Q-1"));
-    fireEvent.change(screen.getByPlaceholderText(/Account or quote number/), { target: { value: "customer 2" } });
+    fireEvent.change(screen.getByPlaceholderText(/Account, order or reference/), { target: { value: "customer 2" } });
     expect(screen.queryByText("Q-1")).not.toBeInTheDocument();
     expect(screen.getByText("Q-2")).toBeInTheDocument();
   });
@@ -105,6 +107,7 @@ describe("Rx Orders workspace", () => {
   it("opens a capture for review and an order into its drawer", async () => {
     load([sub("1")], [cap]);
     show();
+    fireEvent.mouseDown(screen.getByRole("tab", { name: /Needs review/ }));
     fireEvent.click(screen.getByRole("button", { name: /Review/ }));
     expect(mocks.navigate).toHaveBeenCalledWith("/admin/orders/rx-capture?job=c1");
     fireEvent.mouseDown(screen.getByRole("tab", { name: /Ready to release/ }));

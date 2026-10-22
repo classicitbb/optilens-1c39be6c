@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-22 - CI repair (Rx workspace, OAuth rewrite, dependencies)
+
+Rx Orders workspace now attaches the original error as `cause` when a release is rethrown. The `/~oauth/:match*` Vercel rewrite is restored ahead of the SPA fallback. Vite and follow-redirects moved to patched versions via `npm audit fix`. No behavior or database change.
+
 ## 2026-10-20 - Alert sound and read performance
 
 alertSound.ts shares a gesture-unlocked Web Audio context, Web Locks/storage cooldown and bounded event receipts and mute preference. NotificationBell detects new IDs without ringing initial backlog; operator attention calls once per batch after snooze loading. useProductVariants polls existing database RPC every eight hours while mounted plus mount/focus/reconnect; activeOnly is part of the cache key. WebsitePortalsPage overlaps CRM/contact and activity reads, caches for one minute and enables order/address/payment hooks only with a selection. Existing other callers retain current-user behavior. No server cron, backend change or auth change.

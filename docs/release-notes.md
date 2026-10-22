@@ -1,12 +1,11 @@
 # Release Notes
 
-## 2026-10-20 - Alert bell, stock refresh and portal loading (local source)
+Summarized release outcomes for each major date-stamped update.
+
+## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
 
 ### Release Notes
-- New alerts ring a two-note bell, coordinated across tabs in the same browser/origin. Notification popover offers mute and Test ding dong. Stock quantities refresh every eight hours while open and on return/reconnect. Portal list skips unselected-account detail reads and overlaps independent work; no measured 5-10x claim. No publication or database change.
-
-
-Summarized release outcomes for each major date-stamped update.
+- Simple two-note alert sound with shared cross-tab cooldown, mute and test controls. Stock grids check database quantities every eight hours while open, plus mount/focus/reconnect. Portal lists overlap independent reads and defer account details until selection.
 
 ## 2026-10-20 — Hot-lead summary and signup lead capture (local source)
 
