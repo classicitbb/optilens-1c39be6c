@@ -4025,6 +4025,39 @@ export type Database = {
         }
         Relationships: []
       }
+      email_resend_payloads: {
+        Row: {
+          created_at: string
+          from_address: string | null
+          html: string
+          message_id: string
+          recipient_email: string
+          reply_to: string | null
+          subject: string
+          text_body: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_address?: string | null
+          html: string
+          message_id: string
+          recipient_email: string
+          reply_to?: string | null
+          subject: string
+          text_body?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_address?: string | null
+          html?: string
+          message_id?: string
+          recipient_email?: string
+          reply_to?: string | null
+          subject?: string
+          text_body?: string | null
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
