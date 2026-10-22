@@ -21,6 +21,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import Header from "@/components/Header";
+import StoreProductImage from "@/components/StoreProductImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -171,15 +172,16 @@ const OrderSummarySidebar = ({
   checkoutMethod: PaymentMethod;
 }) => (
   <aside className="flex flex-col gap-4 rounded-lg border border-border/80 bg-card p-5 shadow-soft lg:sticky lg:top-28">
-    <h2 className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground font-semibold">
+    <h2 className="text-base font-semibold text-foreground">
       Order summary
     </h2>
 
     <div className="max-h-56 space-y-3 overflow-y-auto pr-1">
       {items.map((item) => (
         <div key={item.id} className="flex items-start justify-between gap-3 text-xs">
+          <StoreProductImage name={item.product_name} productType={item.product_type} className="h-12 w-12 shrink-0 rounded-md" showCaption={false} />
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-foreground leading-snug truncate">
+            <p className="font-medium text-foreground leading-snug break-words">
               {item.product_name}
             </p>
             {item.variant_label && (
@@ -208,7 +210,7 @@ const OrderSummarySidebar = ({
       <div className="flex justify-between text-muted-foreground">
         <span>Shipping</span>
         <span className="tabular-nums font-mono">
-          {shippingCost === 0 ? "Free" : shippingCost ? `$${shippingCost.toFixed(2)}` : "Calculated at next step"}
+          {shippingCost === 0 ? "Free" : shippingCost ? `$${shippingCost.toFixed(2)}` : "Calculated after your address"}
         </span>
       </div>
     </div>
@@ -216,7 +218,7 @@ const OrderSummarySidebar = ({
     <Separator />
 
     <div className="flex items-baseline justify-between">
-      <span className="font-semibold text-foreground text-sm">Total</span>
+      <span className="font-semibold text-foreground text-sm">{shippingCost === null ? "Subtotal before shipping" : "Total"}</span>
       <span className="tabular-nums font-mono text-lg font-bold text-foreground">
         ${(totalPrice + (shippingCost ?? 0)).toFixed(2)}
         <span className="ml-1 font-mono text-[9px] font-normal uppercase tracking-wider text-muted-foreground">
@@ -239,7 +241,7 @@ const OrderSummarySidebar = ({
 
     <div className="mt-1 flex items-center justify-center gap-1.5 rounded bg-muted/30 py-2 text-[10.5px] font-mono text-muted-foreground">
       <ShieldCheck className="h-3.5 w-3.5 text-secondary shrink-0" />
-      <span>256-bit SSL Encrypted Checkout</span>
+      <span>Review every detail before you order</span>
     </div>
   </aside>
 );
@@ -459,6 +461,7 @@ const CheckoutPage = () => {
       if (!formData.fullName.trim()) errors.fullName = "Full name is required.";
       if (!formData.phone.trim()) errors.phone = "Phone number is required.";
       if (!formData.email.trim()) errors.email = "Email address is required.";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) errors.email = "Enter a valid email address, such as name@example.com.";
     }
     if (s === 2) {
       if (!formData.shippingAddress.line1.trim()) errors.addressLine1 = "Street address is required.";
@@ -468,9 +471,12 @@ const CheckoutPage = () => {
   };
 
   const goNext = () => {
+    if (isProcessing) return;
     const errors = validateStep(step);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      const fieldIds: Record<string, string> = { fullName: "full-name", phone: "phone", email: "email", addressLine1: "ship-line1", addressCountry: "ship-country" };
+      requestAnimationFrame(() => document.getElementById(fieldIds[Object.keys(errors)[0]])?.focus());
       return;
     }
     setFieldErrors({});
@@ -516,7 +522,7 @@ const CheckoutPage = () => {
   };
 
   // ── Step labels ──
-  const stepLabel = step < 4 ? "Continue" : payWithScotia ? "Open secure payment" : "Place order";
+  const stepLabel = step === 1 ? "Continue to shipping" : step === 2 ? "Choose payment" : step === 3 ? "Review your order" : payWithScotia ? "Open secure payment" : "Place order";
 
   // ─────────────────────────────────────────────────────────────────────────
   // STORE LOCKDOWN — checkout stays closed until the store_checkout feature
@@ -841,6 +847,7 @@ const CheckoutPage = () => {
 
       {/* Main layout */}
       <main className="container mx-auto px-4 pb-16 pt-8 sm:px-6">
+        <div className="mb-7"><p className="mb-2 text-xs font-semibold uppercase tracking-widest text-secondary">Step {step} of 4 · {STEPS[step - 1].label}</p><h1 className="text-3xl font-semibold tracking-tight text-foreground">Complete your order</h1><p className="mt-2 text-sm text-muted-foreground">Confirm your details, choose delivery and payment, then review before placing your order.</p></div>
         {isLoading ? (
           <div className="flex min-h-[40vh] items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -861,6 +868,7 @@ const CheckoutPage = () => {
                       </Label>
                       <Input
                         id="full-name"
+                        name="name" autoComplete="name"
                         value={formData.fullName}
                         onChange={(e) => {
                           setFormData((p) => ({ ...p, fullName: e.target.value }));
@@ -879,6 +887,7 @@ const CheckoutPage = () => {
                       </Label>
                       <Input
                         id="phone"
+                        name="phone" type="tel" autoComplete="tel"
                         value={formData.phone}
                         onChange={(e) => {
                           setFormData((p) => ({ ...p, phone: e.target.value }));
@@ -897,6 +906,7 @@ const CheckoutPage = () => {
                       </Label>
                       <Input
                         id="email"
+                        name="email" autoComplete="email" spellCheck={false}
                         type="email"
                         value={formData.email}
                         onChange={(e) => {
@@ -914,16 +924,14 @@ const CheckoutPage = () => {
                       <Label htmlFor="company">Company name</Label>
                       <Input
                         id="company"
+                        name="organization" autoComplete="organization"
                         value={(formData as any).company ?? identity?.organizationName ?? ""}
                         onChange={(e) => setFormData((p) => ({ ...p, company: e.target.value } as any))}
                         placeholder="Island Optical Ltd."
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="vat">VAT / Tax ID <span className="text-muted-foreground/60">(optional)</span></Label>
-                      <Input id="vat" placeholder="Optional" />
-                    </div>
+
                   </div>
                 </div>
               )}
@@ -1527,7 +1535,7 @@ const CheckoutPage = () => {
               )}
 
               {/* ── Action bar ── */}
-              {<div className="flex items-center gap-3">
+              {<div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
                 <Button
                   type="button"
                   variant="outline"
@@ -1547,7 +1555,9 @@ const CheckoutPage = () => {
                   type="button"
                   variant={step === 4 ? "secondary" : "default"}
                   onClick={goNext}
-                  className="ml-auto gap-1.5 min-w-[140px]"
+                  className="ml-auto min-h-11 gap-1.5 min-w-[140px]"
+                  disabled={isProcessing}
+                  aria-busy={isProcessing}
                   aria-label={stepLabel}
                 >
                   {isProcessing ? (
@@ -1566,7 +1576,7 @@ const CheckoutPage = () => {
             </div>
 
             {/* ── Sidebar ── */}
-            <div className="w-full lg:w-72 lg:shrink-0">
+            <div className="w-full lg:w-80 lg:shrink-0">
               <OrderSummarySidebar
                 items={items}
                 totalPrice={totalPrice}

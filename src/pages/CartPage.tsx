@@ -15,7 +15,7 @@ import QuantityInput from "@/components/cart/QuantityInput";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import { cn } from "@/lib/utils";
 import { getCartItemUnit } from "@/lib/cartUnits";
-import StorageImage from "@/components/StorageImage";
+import StoreProductImage from "@/components/StoreProductImage";
 
 const CartPage = () => {
   const { items, totalPrice, totalItems, updateQuantity, removeFromCart, loading } = useCartContext();
@@ -142,15 +142,7 @@ const CartPage = () => {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="h-12 w-12 shrink-0 rounded-md border border-border bg-muted/20 overflow-hidden flex items-center justify-center">
-                              {linkedProduct?.image_url ? (
-                                <StorageImage
-                                  src={linkedProduct.image_url}
-                                  alt={item.product_name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <Package className="h-5 w-5 text-muted-foreground/40" />
-                              )}
+                              <StoreProductImage imageUrl={linkedProduct?.image_url} name={item.product_name} productType={item.product_type} category={linkedProduct?.category} className="h-full w-full" showCaption={false} />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="font-medium text-foreground text-sm truncate">
