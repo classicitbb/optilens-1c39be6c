@@ -67,6 +67,16 @@ const fetchPdfBytes = async (url: string, attempts = 3) => {
   throw lastError;
 };
 
+/**
+ * Desktop browsers ship their own PDF viewer (Chrome's search, print, thumbnails,
+ * form fill). Use it when present; touch devices keep the pdf.js canvas path.
+ */
+const hasNativePdfViewer = () =>
+  typeof navigator !== "undefined" &&
+  navigator.pdfViewerEnabled === true &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(pointer: fine)").matches;
+
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3;
 
@@ -166,6 +176,8 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
   const [scale, setScale] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [useNative] = useState(hasNativePdfViewer);
+  const [nativeUrl, setNativeUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -180,7 +192,9 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
   useEffect(() => {
     let cancelled = false;
     let loaded: PdfDocumentProxy | null = null;
+    let objectUrl: string | null = null;
     setDoc(null);
+    setNativeUrl(null);
     setError(null);
     setProgress(0);
     setCurrentPage(1);
@@ -189,6 +203,12 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
       try {
         const bytes = await fetchPdfBytes(url);
         if (cancelled) return;
+        if (useNative) {
+          // A local blob keeps cross-origin signed URLs inside the frame-src policy.
+          objectUrl = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+          setNativeUrl(objectUrl);
+          return;
+        }
         const task = pdfjs.getDocument({ data: bytes });
         task.onProgress = ({ loaded: done, total }: { loaded: number; total: number }) => {
           if (total > 0 && !cancelled) setProgress(Math.round((done / total) * 100));
@@ -210,8 +230,9 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
     return () => {
       cancelled = true;
       void loaded?.destroy();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [url, reloadKey]);
+  }, [url, reloadKey, useNative]);
 
   const pages = useMemo(
     () => (doc ? Array.from({ length: doc.numPages }, (_, index) => index + 1) : []),
@@ -225,7 +246,7 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
 
   return (
     <div className={cn("flex flex-col border border-border bg-muted/20", expandToContent ? "h-auto" : "min-h-0", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
+      {!useNative && <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-background px-3 py-2">
         <p className="text-xs text-muted-foreground">
           {doc
             ? pageMode === "single"
@@ -276,9 +297,9 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
             Fit width
           </Button>
         </div>
-      </div>
+      </div>}
 
-      <div ref={scrollRef} className={cn("flex-1 p-4", expandToContent ? "overflow-visible" : "min-h-0 overflow-auto")} role="document" aria-label={title}>
+      <div ref={scrollRef} className={cn("flex-1", useNative ? "min-h-0 overflow-hidden" : cn("p-4", expandToContent ? "overflow-visible" : "min-h-0 overflow-auto"))} role="document" aria-label={title}>
         {error ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <AlertTriangle className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
@@ -304,7 +325,10 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
               </Button>
             </div>
           </div>
-        ) : !doc ? (
+        ) : useNative && nativeUrl ? (
+          // No sandbox: Chrome refuses to run its PDF viewer in a sandboxed frame.
+          <iframe title={title} src={nativeUrl} className={cn("block w-full border-0", expandToContent ? "h-[80vh]" : "h-full")} />
+        ) : useNative || !doc ? (
           <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
             <p className="text-xs">{progress > 0 ? `Loading document… ${progress}%` : "Loading document…"}</p>
