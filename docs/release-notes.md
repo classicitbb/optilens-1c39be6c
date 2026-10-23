@@ -6,6 +6,7 @@ Summarized release outcomes for each major date-stamped update.
 
 ### Release Notes
 - The 25 active Innovations "2 Frame Repairs" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor.
+
 ## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
 
 ### Release Notes

@@ -7,6 +7,7 @@
 
 ### Technical Changelog
 - New `addons.stock_orderable` flag (add-on editor "Stock order" switch). `get_stock_order_catalog`, `resolve_stock_order_price` and `_price_stock_order_items` accept a priced stock_orderable add-on for staff and fall back to `addons.price`. `resolve_stock_order_price` now reads `addons.price`/`cost` instead of the non-existent `sell_price`/`base_price`. `isRxOrderableAddon` excludes `repairs`. Migration `20261023120000_frame_repairs_addons.sql` is applied live; seed is idempotent on category + SKU.
+
 ## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
 
 ### Release Notes
