@@ -527,6 +527,7 @@ export type Database = {
           is_active: boolean
           is_auto: boolean
           is_popular: boolean
+          stock_orderable: boolean
           name: string
           price: number
           show_on_website: boolean
@@ -545,6 +546,7 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
+          stock_orderable?: boolean
           name: string
           price?: number
           show_on_website?: boolean
@@ -563,6 +565,7 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
+          stock_orderable?: boolean
           name?: string
           price?: number
           show_on_website?: boolean
