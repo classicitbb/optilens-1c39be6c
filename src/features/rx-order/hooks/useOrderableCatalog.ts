@@ -31,7 +31,9 @@ import { useAddons, Addon } from "@/hooks/useAddons";
 export const isRxOrderableLens = (lens: Pick<Lens, "is_active" | "sell_price" | "base_price">) =>
   lens.is_active && (lens.sell_price > 0 || lens.base_price > 0);
 
-export const isRxOrderableAddon = (addon: Pick<Addon, "is_active">) => addon.is_active;
+// Frame repairs are stock-order items, not prescription treatments.
+export const isRxOrderableAddon = (addon: Pick<Addon, "is_active"> & Partial<Pick<Addon, "category">>) =>
+  addon.is_active && addon.category !== "repairs";
 
 interface PricelistScope {
   accountId: number;

@@ -1,5 +1,10 @@
 {
   "semanticVersion": "0.20.0",
+  "sourceEntry": "2026-10-23 — Frame repairs as staff-only stock-order addons",
+  "releaseDateTimeUtc": "2026-10-23T00:00:00.000Z",
+  "environment": "production",
+  "releaseSummary": [
+    "The 25 active Innovations \"2 Frame Repairs\" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor."
   "sourceEntry": "2026-10-22 — Native PDF viewer and spreadsheet previews (local source)",
   "releaseDateTimeUtc": "2026-10-22T00:00:00.000Z",
   "environment": "production",
@@ -10,6 +15,7 @@
     {
       "module": "general",
       "impact": "medium",
+      "notes": "Updated as part of Frame repairs as staff-only stock-order addons."
       "notes": "Updated as part of Native PDF viewer and spreadsheet previews (local source)."
     }
   ],

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-23 — Frame repairs as staff-only stock-order addons
+
+### Release Notes
+- The 25 active Innovations "2 Frame Repairs" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor.
+
+### Technical Changelog
+- New `addons.stock_orderable` flag (add-on editor "Stock order" switch). `get_stock_order_catalog`, `resolve_stock_order_price` and `_price_stock_order_items` accept a priced stock_orderable add-on for staff and fall back to `addons.price`. `resolve_stock_order_price` now reads `addons.price`/`cost` instead of the non-existent `sell_price`/`base_price`. `isRxOrderableAddon` excludes `repairs`. Migration `20261023120000_frame_repairs_addons.sql` is applied live; seed is idempotent on category + SKU.
 ## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
 
 ### Release Notes

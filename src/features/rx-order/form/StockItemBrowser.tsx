@@ -27,7 +27,7 @@ export function StockItemBrowser({ products, money, onAdd }: StockItemBrowserPro
   const [expanded, setExpanded] = useState<string | null>(null);
   const categoryOf = (p: StockCatalogItem) => {
     const named = categoryNames.find(c => c.id === p.category)?.name;
-    const labels: Record<string, string> = { lab: 'Lab Supplies', optical: 'Optical Supplies', accessories: 'Eyewear Accessories' };
+    const labels: Record<string, string> = { lab: 'Lab Supplies', optical: 'Optical Supplies', accessories: 'Eyewear Accessories', repairs: 'Frame Repairs' };
     return named || labels[p.category ?? ''] || (p.category && !/^[0-9a-f]{8}-/i.test(p.category) ? p.category : p.product_type === 'addon' ? 'Services' : 'Supplies');
   };
   const categories = ['All items', ...new Set(products.map(categoryOf))];
