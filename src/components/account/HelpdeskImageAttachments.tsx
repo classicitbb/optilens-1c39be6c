@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText, Loader2, Music, Paperclip, X } from "lucide-react";
+import { FileSpreadsheet, FileText, Loader2, Music, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImagePreviewDialog, type PreviewImage } from "@/components/account/ImagePreviewDialog";
+import { SpreadsheetPreviewDialog, type SpreadsheetSource } from "@/components/files/SpreadsheetPreview";
+import { spreadsheetFormat } from "@/lib/spreadsheetPreview";
 import { getHelpdeskAttachmentUrls, HELPDESK_ATTACHMENT_ACCEPT, isAudioAttachment, isImageAttachment, type HelpdeskAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 
 export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange, disabled, readOnly, bucket }: {
@@ -19,6 +21,7 @@ export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange,
   const [stored, setStored] = useState<HelpdeskAttachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewImage | null>(null);
+  const [sheet, setSheet] = useState<SpreadsheetSource | null>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const previousCount = useRef(0);
 
@@ -77,13 +80,14 @@ export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange,
   );
   const attachedCount = selected.length + stored.length;
   const strip = attachedCount ? <div ref={stripRef} className="space-y-1">
-    {readOnly ? null : <p className="text-xs font-medium text-muted-foreground" role="status">{attachedCount === 1 ? "1 file attached" : `${attachedCount} files attached`} · click an image to preview</p>}
+    {readOnly ? null : <p className="text-xs font-medium text-muted-foreground" role="status">{attachedCount === 1 ? "1 file attached" : `${attachedCount} files attached`} · click an image or spreadsheet to preview</p>}
     <div className="flex flex-wrap gap-2">
       {stored.map((attachment) => !attachment.signedUrl ? <Loader2 key={attachment.id} className="h-4 w-4 animate-spin" />
         : isImageAttachment(attachment.mime_type) ? <div key={attachment.id}>{imageThumb(attachment.signedUrl, attachment.file_name, attachment.file_name)}</div>
         : isAudioAttachment(attachment.mime_type) ? <div key={attachment.id} className="space-y-1"><p className="max-w-56 truncate text-xs">{attachment.file_name}</p><audio controls preload="none" className="h-8 max-w-56" src={attachment.signedUrl} /></div>
+        : spreadsheetFormat(attachment.file_name, attachment.mime_type) ? <button key={attachment.id} type="button" title="Click to preview" aria-label={`Preview ${attachment.file_name}`} onClick={() => setSheet({ name: attachment.file_name, format: spreadsheetFormat(attachment.file_name, attachment.mime_type)!, url: attachment.signedUrl })} className="flex max-w-56 items-center gap-1.5 rounded border px-2 py-1 text-xs hover:bg-muted"><FileSpreadsheet className="h-4 w-4 shrink-0" /><span className="truncate">{attachment.file_name}</span></button>
         : <a key={attachment.id} href={attachment.signedUrl} target="_blank" rel="noreferrer" className="flex max-w-56 items-center gap-1.5 rounded border px-2 py-1 text-xs hover:bg-muted"><FileText className="h-4 w-4 shrink-0" /><span className="truncate">{attachment.file_name}</span></a>)}
-      {selected.map(({ file, url }) => <div key={url} className="relative">{isImageAttachment(file.type) ? imageThumb(url, file.name, "New attachment preview") : <div className="flex max-w-56 items-center gap-1.5 rounded border px-2 py-1 text-xs">{isAudioAttachment(file.type) ? <Music className="h-4 w-4 shrink-0" /> : <FileText className="h-4 w-4 shrink-0" />}<span className="truncate">{file.name}</span></div>}<button type="button" aria-label={`Remove ${file.name}`} className="absolute -right-2 -top-2 rounded-full bg-background" onClick={() => { URL.revokeObjectURL(url); const next = selected.filter((item) => item.url !== url); setSelected(next); onFilesChange(next.map((item) => item.file)); }}><X className="h-4 w-4" /></button></div>)}
+      {selected.map(({ file, url }) => <div key={url} className="relative">{isImageAttachment(file.type) ? imageThumb(url, file.name, "New attachment preview") : spreadsheetFormat(file.name, file.type) ? <button type="button" title="Click to preview" aria-label={`Preview ${file.name}`} onClick={() => setSheet({ name: file.name, format: spreadsheetFormat(file.name, file.type)!, file })} className="flex max-w-56 items-center gap-1.5 rounded border px-2 py-1 text-xs hover:bg-muted"><FileSpreadsheet className="h-4 w-4 shrink-0" /><span className="truncate">{file.name}</span></button> : <div className="flex max-w-56 items-center gap-1.5 rounded border px-2 py-1 text-xs">{isAudioAttachment(file.type) ? <Music className="h-4 w-4 shrink-0" /> : <FileText className="h-4 w-4 shrink-0" />}<span className="truncate">{file.name}</span></div>}<button type="button" aria-label={`Remove ${file.name}`} className="absolute -right-2 -top-2 rounded-full bg-background" onClick={() => { URL.revokeObjectURL(url); const next = selected.filter((item) => item.url !== url); setSelected(next); onFilesChange(next.map((item) => item.file)); }}><X className="h-4 w-4" /></button></div>)}
     </div>
   </div> : null;
   return <div ref={rootRef} className="space-y-2">
@@ -96,5 +100,6 @@ export const HelpdeskImageAttachments = ({ ticketId, attachments, onFilesChange,
     </>}
     {error ? <p className="text-xs text-destructive">{error}</p> : null}
     <ImagePreviewDialog image={preview} onClose={() => setPreview(null)} />
+    <SpreadsheetPreviewDialog source={sheet} onClose={() => setSheet(null)} />
   </div>;
 };

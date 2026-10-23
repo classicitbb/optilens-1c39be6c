@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-22 - PDF viewer limits and missing spreadsheet previews
+
+The pdf.js viewer drew every PDF to canvas, so desktop users lost search, print and thumbnails; desktop now uses the browser viewer. Excel attachments had no preview at all and csv previews existed only in admin email; both formats now preview in email and helpdesk. Not browser-verified: the handbook and evidence pages require sign-in, so the native iframe path and the helpdesk dialog were covered by typecheck, unit tests and build only. Known limit: legacy .xls and files over the size caps download instead of previewing.
+
 ## 2026-10-22 - Red CI on main
 
 PR Validation failed on a lint error (preserve-caught-error in the Rx workspace release path), release ledger drift (CHANGELOG entry used a hyphen instead of an em dash, so it was never parsed), and the dependency audit (vite, follow-redirects). Separately, the `/~oauth` rewrite had been lost from vercel.json in a later merge and the Rx workspace tests still expected the pre-2026-10-19 default tab, placeholder and an unmocked stock-release hook. All fixed; lint, tsc and the full test suite pass locally. Supersedes the 2026-10-20 note about remaining Rx workspace/OAuth failures.
