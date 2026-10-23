@@ -19,8 +19,9 @@ Iris sessions that you pay for.
   Set the ring group or queue ring time to about 22 seconds (a 2 s ring / 4 s pause cycle means
   the fourth ring ends near 20 s); adjust after timing a real call.
 - Closed hours and public holidays: Iris answers immediately.
-- Time condition: weekday/time group 8:00-17:00; holidays go in a Calendar or a dated time
-  group; confirm whether weekends are closed (not stated).
+- Weekends are closed (confirmed 2026-10-23): Iris answers immediately on Saturday and Sunday.
+- Time condition: time group Monday-Friday 8:00-17:00; holidays go in a Calendar or a dated time
+  group and take precedence (closed). Any call outside that group goes to Iris.
 
 ## Preferred path: Telnyx SIP connection instead of the PSTN number (to verify)
 
