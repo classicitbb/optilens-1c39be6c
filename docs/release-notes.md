@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
+
+### Release Notes
+- PDFs open in the browser's own viewer on desktop (search, print, thumbnails); phones and tablets keep the built-in page viewer. CSV and Excel (.xlsx) attachments can now be previewed as a grid, with sheet tabs, from admin email and helpdesk tickets.
+
 ## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
 
 ### Release Notes

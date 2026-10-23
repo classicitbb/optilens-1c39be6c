@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-22 - Native PDF viewer and spreadsheet previews
+
+PdfViewer renders the browser's PDF viewer in an unsandboxed iframe (Chrome refuses it in a sandboxed frame) on a blob URL when navigator.pdfViewerEnabled and a fine pointer are present; otherwise it keeps the pdf.js canvas path. The blob keeps cross-origin signed URLs inside CSP, so frame-src now allows blob:. src/lib/spreadsheetPreview.ts detects csv/xlsx and reads the first 200 rows and 40 columns of each sheet (read-excel-file is dynamically imported; 1 MB csv and 5 MB xlsx caps). SpreadsheetPreview and SpreadsheetPreviewDialog (src/components/files) serve admin email attachments and helpdesk attachments; attachmentPreviewKind reports xlsx. Legacy .xls is not previewed.
+
 ## 2026-10-22 - CI repair (Rx workspace, OAuth rewrite, dependencies)
 
 Rx Orders workspace now attaches the original error as `cause` when a release is rethrown. The `/~oauth/:match*` Vercel rewrite is restored ahead of the SPA fallback. Vite and follow-redirects moved to patched versions via `npm audit fix`. No behavior or database change.
