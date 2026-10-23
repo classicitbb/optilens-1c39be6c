@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-22 - PDF and spreadsheet previews
+
+On a computer, PDFs now open in your browser's own viewer, so you can search, print and use page thumbnails. On phones and tablets the existing page-by-page viewer is used. In admin email, open a CSV or Excel (.xlsx) attachment to see it as a grid; click a sheet tab at the bottom to switch sheets. On helpdesk tickets, click a CSV or Excel attachment to preview it. Previews show the first 200 rows and 40 columns; download the file for the rest. Older .xls files can only be downloaded.
+
 ## 2026-10-22 - CI repair
 
 No visible change for staff. The Rx Orders workspace still opens on At lab, and sign-in through the OAuth broker keeps working on the hosted site.

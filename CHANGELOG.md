@@ -8,6 +8,14 @@
 ### Technical Changelog
 - New `addons.stock_orderable` flag (add-on editor "Stock order" switch). `get_stock_order_catalog`, `resolve_stock_order_price` and `_price_stock_order_items` accept a priced stock_orderable add-on for staff and fall back to `addons.price`. `resolve_stock_order_price` now reads `addons.price`/`cost` instead of the non-existent `sell_price`/`base_price`. `isRxOrderableAddon` excludes `repairs`. Migration `20261023120000_frame_repairs_addons.sql` is applied live; seed is idempotent on category + SKU.
 
+## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
+
+### Release Notes
+- PDFs open in the browser's own viewer on desktop (search, print, thumbnails); phones and tablets keep the built-in page viewer. CSV and Excel (.xlsx) attachments can now be previewed as a grid, with sheet tabs, from admin email and helpdesk tickets.
+
+### Technical Changelog
+- PdfViewer uses an unsandboxed iframe on a blob URL when navigator.pdfViewerEnabled and a fine pointer are present, else pdf.js. frame-src gains blob: (http-header-policy.json, vercel.json re-synced). New spreadsheetPreview lib and SpreadsheetPreview/SpreadsheetPreviewDialog components (read-excel-file, lazy-loaded; 200 rows, 40 columns, 1 MB csv / 5 MB xlsx caps) replace the email-only CsvPreview and open helpdesk csv/xlsx attachments. Legacy .xls still downloads.
+
 ## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
 
 ### Release Notes
