@@ -6,6 +6,10 @@ Summarized release outcomes for each major date-stamped update.
 
 ### Release Notes
 - The 25 active Innovations "2 Frame Repairs" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor.
+## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
+
+### Release Notes
+- PDFs open in the browser's own viewer on desktop (search, print, thumbnails); phones and tablets keep the built-in page viewer. CSV and Excel (.xlsx) attachments can now be previewed as a grid, with sheet tabs, from admin email and helpdesk tickets.
 
 ## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
 

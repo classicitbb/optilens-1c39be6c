@@ -17,7 +17,7 @@ import {
 } from "@/features/admin/email/useEmail";
 import { useEmailToTask } from "@/features/admin/email/useEmailToTask";
 import { EmailBody } from "@/features/admin/email/EmailBody";
-import { parseCsvPreview } from "@/features/admin/email/csvPreview";
+import { SpreadsheetPreview } from "@/components/files/SpreadsheetPreview";
 import { attachmentPreviewKind } from "@/features/admin/email/attachmentPreview";
 import { ImagePreviewDialog } from "@/components/account/ImagePreviewDialog";
 import { ComposeDialog } from "@/features/admin/email/ComposeDialog";
@@ -32,7 +32,7 @@ const FOLDER_ICONS: Record<string, LucideIcon> = {
   "\\Inbox": Inbox, "\\Sent": Send, "\\Drafts": Mail, "\\Archive": Archive, "\\Trash": Trash2, "\\Junk": Folder,
 };
 
-type AttachmentPreview = { attachment: EmailMessage["attachments"][number]; kind?: "image" | "pdf" | "csv" | "text"; url?: string; text?: string; loading?: boolean; error?: string };
+type AttachmentPreview = { attachment: EmailMessage["attachments"][number]; kind?: "image" | "pdf" | "csv" | "text" | "xlsx"; url?: string; text?: string; file?: Blob; loading?: boolean; error?: string };
 
 const EmailPage = () => {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -183,6 +183,9 @@ const EmailPage = () => {
       const detected = attachmentPreviewKind(attachment.filename, attachment.content_type || file.type);
       if (detected && (detected.kind === "image" || detected.kind === "pdf")) {
         setPreview({ attachment, kind: detected.kind, url: URL.createObjectURL(new Blob([file], { type: detected.type })) });
+      } else if (detected && (detected.kind === "csv" || detected.kind === "xlsx")) {
+        // The viewer reports files over its size limit itself.
+        setPreview({ attachment, kind: detected.kind, file });
       } else if (detected && file.size <= 1024 * 1024) {
         const text = await file.text();
         if (requestId === previewRequest.current) setPreview({ attachment, kind: detected.kind, text });
@@ -410,7 +413,7 @@ const EmailPage = () => {
           <div className="min-h-0 flex-1 overflow-auto rounded-md border border-[hsl(var(--admin-border))] bg-white text-slate-900">
             {preview?.loading && <p className="p-4 text-sm">Loading preview…</p>}
             {preview?.error && <p className="p-4 text-sm">{preview.error}</p>}
-            {preview?.kind === "csv" && preview.text !== undefined && <CsvPreview text={preview.text} />}
+            {(preview?.kind === "csv" || preview?.kind === "xlsx") && preview.file && <SpreadsheetPreview file={preview.file} format={preview.kind} />}
             {preview?.kind === "text" && preview.text !== undefined && <pre className="p-4 text-xs whitespace-pre-wrap break-words">{preview.text}</pre>}
             {preview?.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="block h-full w-full object-contain p-2" />}
             {/* No sandbox: Chrome refuses to run its PDF viewer in a sandboxed frame. The URL is a local blob copy. */}
@@ -452,19 +455,6 @@ function ResizeHandle({ label, value, min, max, onChange, side = "right" }: {
     onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={() => { drag.current = null; }}
     onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }} onKeyDown={keyDown}
     className={cn("absolute inset-y-0 z-10 w-0.5 cursor-col-resize touch-none select-none before:absolute before:-left-[3px] before:inset-y-0 before:w-2 before:content-[''] hover:bg-[hsl(var(--admin-accent))]/40 focus-visible:bg-[hsl(var(--admin-accent))]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--admin-accent))]", side === "right" ? "right-0" : "left-0")} />;
-}
-
-function CsvPreview({ text }: { text: string }) {
-  const rows = parseCsvPreview(text);
-  return <div className="min-w-max text-xs">
-    <table className="border-collapse">
-      <tbody>{rows.map((cells, rowIndex) => <tr key={rowIndex}>
-        <th scope="row" className="sticky left-0 border border-slate-200 bg-slate-100 px-2 py-1 text-right font-normal text-slate-500">{rowIndex + 1}</th>
-        {cells.slice(0, 40).map((value, columnIndex) => <td key={columnIndex} className="max-w-64 whitespace-nowrap border border-slate-200 px-2 py-1">{value}</td>)}
-      </tr>)}</tbody>
-    </table>
-    {rows.length === 200 && <p className="p-2 text-slate-600">Showing the first 200 rows. Download for the full file.</p>}
-  </div>;
 }
 
 function RibbonButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
