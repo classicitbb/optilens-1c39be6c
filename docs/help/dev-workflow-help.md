@@ -1,5 +1,8 @@
 # Developer Workflow Help
 
+Local data access (2026-10-20): run `npm run dev -- --host 127.0.0.1 --port 5173` and sign in normally. Supabase HTTP traffic uses the local same-origin proxy on any loopback port, forwarding only your existing session permissions. VITE_SUPABASE_URL remains the configured project; do not paste keys into source or disable TLS verification. Node 22 can add the OS trust store when a trusted enterprise CA is installed. Static production builds retain their direct backend URLs.
+
+
 ## 2026-10-05 — Reviewing branch integration
 
 Run `npm run qa:smoke` with the lockfile dependencies installed and its selected port free. It verifies the modular admin router and exits after cleaning up its own preview process tree. On a Windows CRLF checkout, regenerate platform facts, public search index and release ledger before drift checks; review Git diffs before committing generated output. See `docs/agent/OPEN_BRANCH_REVIEW.md` for integration evidence and publication boundaries.

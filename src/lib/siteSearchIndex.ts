@@ -383,6 +383,23 @@ export const SITE_SEARCH_INDEX: SiteSearchEntry[] = [
     group: "Pages",
     keywords: ["patients", "eye exams", "prescription", "eye health", "annual checkup", "optometrist"],
   },
+  {
+    id: "page-patients-prescription-lens-cost",
+    title: "How Much Do Prescription Lenses Cost?",
+    description: "Pricing guide covering lens type, material, coatings and prescription factors.",
+    path: "/patients/prescription-lens-cost",
+    group: "Pages",
+    keywords: ["patients", "price", "cost", "how much", "prescription lenses", "pricing guide", "high-index"],
+  },
+
+  {
+    id: "page-professionals-caribbean-lens-ordering-guide",
+    title: "Caribbean Lens Ordering Guide for Optical Retailers",
+    description: "Practical steps for ordering wholesale lenses: Rx, frame data, freight and customs.",
+    path: "/professionals/caribbean-lens-ordering-guide",
+    group: "Pages",
+    keywords: ["professionals", "caribbean", "ordering guide", "wholesale lenses", "optical retailers", "freight", "customs"],
+  },
 
   // ─── Anchors ─────────────────────────────────────────────────────────────────
   {

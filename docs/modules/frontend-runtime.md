@@ -1,5 +1,32 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-22 - Native PDF viewer and spreadsheet previews
+
+PdfViewer renders the browser's PDF viewer in an unsandboxed iframe (Chrome refuses it in a sandboxed frame) on a blob URL when navigator.pdfViewerEnabled and a fine pointer are present; otherwise it keeps the pdf.js canvas path. The blob keeps cross-origin signed URLs inside CSP, so frame-src now allows blob:. src/lib/spreadsheetPreview.ts detects csv/xlsx and reads the first 200 rows and 40 columns of each sheet (read-excel-file is dynamically imported; 1 MB csv and 5 MB xlsx caps). SpreadsheetPreview and SpreadsheetPreviewDialog (src/components/files) serve admin email attachments and helpdesk attachments; attachmentPreviewKind reports xlsx. Legacy .xls is not previewed.
+
+## 2026-10-22 - CI repair (Rx workspace, OAuth rewrite, dependencies)
+
+Rx Orders workspace now attaches the original error as `cause` when a release is rethrown. The `/~oauth/:match*` Vercel rewrite is restored ahead of the SPA fallback. Vite and follow-redirects moved to patched versions via `npm audit fix`. No behavior or database change.
+
+## 2026-10-20 - Alert sound and read performance
+
+alertSound.ts shares a gesture-unlocked Web Audio context, Web Locks/storage cooldown and bounded event receipts and mute preference. NotificationBell detects new IDs without ringing initial backlog; operator attention calls once per batch after snooze loading. useProductVariants polls existing database RPC every eight hours while mounted plus mount/focus/reconnect; activeOnly is part of the cache key. WebsitePortalsPage overlaps CRM/contact and activity reads, caches for one minute and enables order/address/payment hooks only with a selection. Existing other callers retain current-user behavior. No server cron, backend change or auth change.
+
+
+Lead capture (2026-10-20): Auth.tsx sendLeadSignal now calls submitPublicInquiry with inquiryType auth_onboarding_interest instead of inserting into public_inquiries, so signups reach contact-inquiry (CRM lead, helpdesk ticket, owner lead-alert email). Failure stays non-blocking for account creation. The edge side (contact-inquiry, _shared/leads, _shared/crm) is in supabase/functions.
+
+Portal controls (2026-10-20): WebsitePortalsPage shares two-state switches and canonical assigned-pricelist Edit links across embedded/fallback settings. portalFeatureToggleValue preserves existing unset inheritance; writes remain explicit booleans. New profiles receive all-false overrides only after the pending INSERT trigger migration is approved/applied.
+
+
+Doc Studio annotations (2026-10-20): dashboard sublinks come from the feature navigation list, reordered by browser-local per-user module use. Studio applies tab/billType on the existing canonical route; section changes keep the URL in sync. Initial billing type changes detach the local draft instead of autosaving over an open file; file/invite handoffs win. Structural classes on the established template own the square outer workspace panels. The shared admin-topbar class owns the square admin header. Controls and paper templates retain their styles.
+
+
+Localhost data transport (2026-10-20): shared Supabase global fetch and the Doc Studio bridge use the Vite loopback proxy in development. Project URL/session keys and caller authorization remain unchanged; production builds connect directly. Request URL replacement explicitly preserves method, headers, body, cancellation and fetch options. No environment key values belong in documentation.
+
+
+Doc Studio Innovations invoice import (2026-10-20): the established studio runtime calls a loader registered by DocStudioEmbed. It resolves the account through synced statement references or selected customer, then calls requestLiveData for innovations.customer_invoice. Mapping preserves source amounts and provenance, fails on missing prices, and detaches the imported draft from the open saved file. Native v2 remains unchanged.
+
+
 Stock entry/pickers (2026-10-19): StockOrderEntry redirects fresh visits to the canonical Rx new form with type=stock, preserving quote/highlight editor links. RxForm receives initialOrderType; the host keys new form mounts by mode. Shared ComboBox uses Radix Popover Anchor/Portal/Content with collision padding and available-height bounds while keeping keyboard focus in its input. Shared Seg uses scoped rx-segment styles for explicit theme contrast.
 
 Stock form integration (2026-10-19): RxForm renders StockServicePanel keyed by selected account and offers only Rx / Stock-supplies. Stock mode cancels its Rx autosave timer. The runtime panel imports new category/lens browsers and stock-order-form.css; no prototype modules or seeded values are imported. Shared Rx selectors/domain logic and LensVariantGrid are reused with account-scoped products. Pair conversion, per-eye OPC validation and quantity limits live in stockOrderModel. Existing stock hooks own all server reads/writes.

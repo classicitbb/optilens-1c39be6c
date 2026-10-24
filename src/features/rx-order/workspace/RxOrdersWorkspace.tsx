@@ -86,7 +86,7 @@ export default function RxOrdersWorkspace() {
             ? <ToastAction altText="Open price lists" onClick={() => navigate("/admin/pricing/pricelists")}>Open price lists</ToastAction>
             : undefined,
         });
-        throw new Error(msg ?? "Release failed");
+        throw Object.assign(new Error(msg ?? "Release failed"), { cause: e });
       }
       finally { ws.refresh(); }
       return;

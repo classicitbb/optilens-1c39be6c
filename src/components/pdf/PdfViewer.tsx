@@ -10,13 +10,16 @@ import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
  *
  * Renders pages to <canvas> with pdf.js instead of relying on the browser's
  * built-in PDF plugin, which is unavailable on iOS Safari, Android Chrome and
- * most in-app browsers. The worker is bundled and served same-origin so no CSP
- * exception or CDN is required.
+ * most in-app browsers, and which the site's CSP (object-src 'none') blocks in
+ * Edge and Chrome. The worker is bundled and served same-origin so no CSP
+ * exception or CDN is required. Use this for every PDF preview.
  */
 
 type PdfViewerProps = {
-  /** URL of the PDF (same-origin or CORS-enabled). */
+  /** URL of the PDF (same-origin or CORS-enabled). Also used by the open and download fallbacks. */
   url: string;
+  /** The PDF's bytes when the caller already holds them (e.g. a downloaded attachment), so nothing is fetched from `url`. */
+  file?: Blob;
   /** Accessible label for the document region. */
   title: string;
   className?: string;
@@ -157,7 +160,7 @@ const PdfPage = ({
   );
 };
 
-const PdfViewer = ({ url, title, className, downloadName, expandToContent = false, pageMode = "all" }: PdfViewerProps) => {
+const PdfViewer = ({ url, file, title, className, downloadName, expandToContent = false, pageMode = "all" }: PdfViewerProps) => {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [doc, setDoc] = useState<PdfDocumentProxy | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -187,7 +190,7 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
 
     (async () => {
       try {
-        const bytes = await fetchPdfBytes(url);
+        const bytes = file ? await file.arrayBuffer() : await fetchPdfBytes(url);
         if (cancelled) return;
         const task = pdfjs.getDocument({ data: bytes });
         task.onProgress = ({ loaded: done, total }: { loaded: number; total: number }) => {
@@ -211,7 +214,7 @@ const PdfViewer = ({ url, title, className, downloadName, expandToContent = fals
       cancelled = true;
       void loaded?.destroy();
     };
-  }, [url, reloadKey]);
+  }, [url, file, reloadKey]);
 
   const pages = useMemo(
     () => (doc ? Array.from({ length: doc.numPages }, (_, index) => index + 1) : []),

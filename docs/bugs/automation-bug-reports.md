@@ -1,5 +1,8 @@
 # Automation Bug Reports
 
+Localhost gateway transport (2026-10-20): root causes were a port-specific hosted CORS allowlist and Node lacking the installed system CA by default. A loopback-restricted Vite proxy, verified upstream TLS and unchanged caller auth resolve the development path. Missing login still returns 401; the fix must not inject service-role credentials or widen hosted permissions.
+
+
 ## 2026-10-05 — Stale smoke assertions and Windows cleanup
 
 - The harness checked admin routes in the old monolithic App file, superseded CRM paths and obsolete UI strings. Assertions now target current route ownership and controls while preserving route/guard checks.

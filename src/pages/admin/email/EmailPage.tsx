@@ -1,23 +1,23 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent as ReactDragEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
-  Archive, CalendarCheck, Download, Flag, Folder, Forward, Image as ImageIcon, Inbox, Mail, MailOpen, Paperclip,
-  ChevronDown, ChevronRight, MoreHorizontal, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Reply, ReplyAll, Search, Send, Settings2, Trash2, Users, type LucideIcon,
+  Archive, CalendarCheck, Download, ExternalLink, Flag, Folder, Forward, Image as ImageIcon, Inbox, Mail, MailOpen, Paperclip,
+  ChevronDown, ChevronRight, MoreHorizontal, PanelRightClose, PanelRightOpen, Plus, RefreshCw, Reply, ReplyAll, Search, Send, Settings2, Star, Trash2, Users, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { emailBridge, getEmailBridgeUrl, type EmailAccount, type EmailFolder, type EmailMessage } from "@/lib/emailBridge";
 import {
-  useCrmContactByEmail, useEmailFolders, useEmailMessage, useEmailMessages, useEmailStatus, useInvalidateEmail, useMoveEmail, useSetEmailFlags,
+  useCrmContactByEmail, useEmailFolders, useEmailFolderSets, useEmailMessage, useEmailMessages, useEmailStatus, useInvalidateEmail, useMoveEmail, useSetEmailFlags,
 } from "@/features/admin/email/useEmail";
 import { useEmailToTask } from "@/features/admin/email/useEmailToTask";
 import { EmailBody } from "@/features/admin/email/EmailBody";
-import { parseCsvPreview } from "@/features/admin/email/csvPreview";
+import { SpreadsheetPreview } from "@/components/files/SpreadsheetPreview";
+import PdfViewer from "@/components/pdf/PdfViewer";
 import { attachmentPreviewKind } from "@/features/admin/email/attachmentPreview";
 import { ImagePreviewDialog } from "@/components/account/ImagePreviewDialog";
 import { ComposeDialog } from "@/features/admin/email/ComposeDialog";
@@ -32,7 +32,20 @@ const FOLDER_ICONS: Record<string, LucideIcon> = {
   "\\Inbox": Inbox, "\\Sent": Send, "\\Drafts": Mail, "\\Archive": Archive, "\\Trash": Trash2, "\\Junk": Folder,
 };
 
-type AttachmentPreview = { attachment: EmailMessage["attachments"][number]; kind?: "image" | "pdf" | "csv" | "text"; url?: string; text?: string; loading?: boolean; error?: string };
+type AttachmentPreview = { attachment: EmailMessage["attachments"][number]; kind?: "image" | "pdf" | "csv" | "text" | "xlsx"; url?: string; text?: string; file?: Blob; loading?: boolean; error?: string };
+
+type Favorite = { account: string; folderId: number };
+const FAVORITES_KEY = "optilens.email.favoriteFolders";
+const FOLDER_DRAG_TYPE = "application/x-optilens-email-folder";
+
+const loadFavorites = (): Favorite[] => {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(FAVORITES_KEY) ?? "[]");
+    return Array.isArray(stored) ? stored.filter((item) => typeof item?.account === "string" && typeof item?.folderId === "number") : [];
+  } catch {
+    return [];
+  }
+};
 
 const EmailPage = () => {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -63,6 +76,14 @@ const EmailPage = () => {
   const [preview, setPreview] = useState<AttachmentPreview | null>(null);
   const previewRequest = useRef(0);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => new Set());
+  // Each mailbox opens and closes on its own; the active one opens when it becomes active.
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(() => new Set());
+  const toggleAccount = (code: string) => setExpandedAccounts((current) => {
+    const next = new Set(current);
+    if (next.has(code)) next.delete(code); else next.add(code);
+    return next;
+  });
+  const [favorites, setFavorites] = useState<Favorite[]>(loadFavorites);
   const openDraft = (next: ComposeDraft) => { setDraftKey((key) => key + 1); setDraft(next); };
 
   useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url); }, [preview?.url]);
@@ -79,6 +100,29 @@ const EmailPage = () => {
   const account = accounts.find((row) => row.code === accountCode) ?? null;
   const folders = useEmailFolders(accountCode);
   const folderList = folders.data ?? [];
+
+  const [openedAccount, setOpenedAccount] = useState<string | null>(null);
+  if (accountCode && accountCode !== openedAccount) {
+    setOpenedAccount(accountCode);
+    setExpandedAccounts((current) => new Set(current).add(accountCode));
+  }
+
+  const isFavorite = (code: string, id: number) => favorites.some((item) => item.account === code && item.folderId === id);
+  const updateFavorites = (next: Favorite[]) => {
+    setFavorites(next);
+    try { window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next)); } catch { /* storage blocked: favorites last for this visit */ }
+  };
+  const addFavorite = (code: string, id: number) => { if (!isFavorite(code, id)) updateFavorites([...favorites, { account: code, folderId: id }]); };
+  const toggleFavorite = (code: string, id: number) => updateFavorites(isFavorite(code, id)
+    ? favorites.filter((item) => !(item.account === code && item.folderId === id))
+    : [...favorites, { account: code, folderId: id }]);
+  const favoriteAccounts = [...new Set(favorites.map((item) => item.account))].filter((code) => accounts.some((row) => row.code === code));
+  const favoriteFolders = useEmailFolderSets(favoriteAccounts);
+  const favoriteItems = favorites.flatMap((item) => {
+    const owner = accounts.find((row) => row.code === item.account);
+    const folder = favoriteFolders[favoriteAccounts.indexOf(item.account)]?.data?.find((row) => row.folder_id === item.folderId);
+    return owner && folder ? [{ account: owner, folder }] : [];
+  });
 
   const inboxId = folderList.find((f) => f.special_use === "\\Inbox")?.folder_id ?? folderList[0]?.folder_id ?? null;
   const folderId = params.get("folder") && params.get("account") === accountCode ? Number(params.get("folder")) : inboxId;
@@ -160,16 +204,41 @@ const EmailPage = () => {
     }
   };
 
+  const saveFile = (file: Blob, filename: string) => {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  };
+
   const openAttachment = async (attachment: EmailMessage["attachments"][number]) => {
     try {
-      const file = await emailBridge.downloadAttachment(attachment);
-      const url = URL.createObjectURL(file);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = attachment.filename;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      saveFile(await emailBridge.downloadAttachment(attachment), attachment.filename);
     } catch (error) {
+      toast({ title: "Couldn't open the attachment", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
+    }
+  };
+
+  // Double-click: show the file in its own browser tab when the browser can display it, otherwise download it
+  // so the computer opens it in the default program.
+  const openOutside = async (attachment: EmailMessage["attachments"][number]) => {
+    const detected = attachmentPreviewKind(attachment.filename, attachment.content_type);
+    const viewType = !detected || detected.kind === "xlsx" ? null : "type" in detected ? detected.type : "text/plain;charset=utf-8";
+    // The tab opens now, inside the double-click, so the popup blocker allows it; the file fills it once downloaded.
+    const tab = viewType ? window.open("", "_blank") : null;
+    try {
+      const file = await emailBridge.downloadAttachment(attachment);
+      if (tab && viewType) {
+        const url = URL.createObjectURL(new Blob([file], { type: viewType }));
+        tab.location.href = url;
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } else {
+        saveFile(file, attachment.filename);
+      }
+    } catch (error) {
+      tab?.close();
       toast({ title: "Couldn't open the attachment", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     }
   };
@@ -182,7 +251,11 @@ const EmailPage = () => {
       if (requestId !== previewRequest.current) return;
       const detected = attachmentPreviewKind(attachment.filename, attachment.content_type || file.type);
       if (detected && (detected.kind === "image" || detected.kind === "pdf")) {
-        setPreview({ attachment, kind: detected.kind, url: URL.createObjectURL(new Blob([file], { type: detected.type })) });
+        const typed = new Blob([file], { type: detected.type });
+        setPreview({ attachment, kind: detected.kind, url: URL.createObjectURL(typed), file: detected.kind === "pdf" ? typed : undefined });
+      } else if (detected && (detected.kind === "csv" || detected.kind === "xlsx")) {
+        // The viewer reports files over its size limit itself.
+        setPreview({ attachment, kind: detected.kind, file });
       } else if (detected && file.size <= 1024 * 1024) {
         const text = await file.text();
         if (requestId === previewRequest.current) setPreview({ attachment, kind: detected.kind, text });
@@ -280,9 +353,13 @@ const EmailPage = () => {
         {/* Mailboxes and their folders */}
         <div className="relative hidden min-h-0 min-w-0 md:block">
         <nav className="h-full min-h-0 overflow-y-auto" aria-label="Mailboxes">
+          <FavoritesBin items={favoriteItems} activeAccount={accountCode} activeFolderId={folderId}
+            onOpen={(code, id) => selectFolder(code, id)} onRemove={(code, id) => toggleFavorite(code, id)} onAdd={addFavorite} />
           {orderedAccounts.map((row) => (
-            <MailboxGroup key={row.code} account={row} active={row.code === accountCode} activeFolderId={folderId}
-              folders={row.code === accountCode ? folderList : []} onOpen={() => selectAccount(row.code)}
+            <MailboxGroup key={row.code} account={row} activeFolderId={row.code === accountCode ? folderId : null}
+              onOpen={() => { if (row.code === accountCode) toggleAccount(row.code); else selectAccount(row.code); }}
+              expanded={expandedAccounts.has(row.code)} onToggle={() => toggleAccount(row.code)}
+              isFavorite={(id) => isFavorite(row.code, id)} onToggleFavorite={(id) => toggleFavorite(row.code, id)}
               onFolder={(id) => selectFolder(row.code, id)} onManage={() => setManaging(row)}
               collapsedFolders={collapsedFolders} onToggleFolder={(path) => setCollapsedFolders((current) => {
                 const next = new Set(current);
@@ -368,21 +445,44 @@ const EmailPage = () => {
                 {current.attachments.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {current.attachments.map((attachment) => (
-                      <button key={attachment.attachment_id} type="button" onClick={() => previewAttachment(attachment)}
-                        className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--admin-border))] px-2.5 py-1.5 text-left text-xs hover:border-[hsl(var(--admin-accent))]">
+                      <button key={attachment.attachment_id} type="button" onClick={() => previewAttachment(attachment)} onDoubleClick={() => openOutside(attachment)}
+                        title="Click to preview, double-click to open outside the email client"
+                        className={cn("inline-flex items-center gap-2 rounded-md border border-[hsl(var(--admin-border))] px-2.5 py-1.5 text-left text-xs hover:border-[hsl(var(--admin-accent))]",
+                          preview?.attachment.attachment_id === attachment.attachment_id && "border-[hsl(var(--admin-accent))] bg-[hsl(var(--admin-accent))]/10")}>
                         <Paperclip className="h-3.5 w-3.5" />
                         <span><span className="font-medium">{attachment.filename}</span><br /><span className="text-[hsl(var(--admin-muted-fg))]">{formatBytes(attachment.size_bytes)}</span></span>
                       </button>
                     ))}
                   </div>
                 )}
-                {hasRemoteImages(current.body_html) && !showImages && (
-                  <div className="flex items-center gap-2 rounded-md bg-[hsl(var(--admin-accent))]/10 px-3 py-2 text-xs">
-                    <ImageIcon className="h-4 w-4" /> Pictures in this email are blocked to protect your privacy.
-                    <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => setImagesShownFor(messageId)}>Show pictures</Button>
+                {preview ? (
+                  <div className="flex min-h-[420px] flex-1 flex-col gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={closePreview}>← Back to email</Button>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">{preview.attachment.filename}</span>
+                      <Button variant="outline" size="sm" onClick={() => openOutside(preview.attachment)}><ExternalLink className="mr-1.5 h-4 w-4" /> Open</Button>
+                      <Button size="sm" onClick={() => openAttachment(preview.attachment)}><Download className="mr-1.5 h-4 w-4" /> Download</Button>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-auto rounded-md border border-[hsl(var(--admin-border))] bg-white text-slate-900">
+                      {preview.loading && <p className="p-4 text-sm">Loading preview…</p>}
+                      {preview.error && <p className="p-4 text-sm">{preview.error}</p>}
+                      {(preview.kind === "csv" || preview.kind === "xlsx") && preview.file && <SpreadsheetPreview file={preview.file} format={preview.kind} />}
+                      {preview.kind === "text" && preview.text !== undefined && <pre className="p-4 text-xs whitespace-pre-wrap break-words">{preview.text}</pre>}
+                      {preview.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="block h-full w-full object-contain p-2" />}
+                      {preview.kind === "pdf" && preview.url && <PdfViewer url={preview.url} file={preview.file} title={`Preview ${preview.attachment.filename}`} downloadName={preview.attachment.filename} className="h-full border-0" />}
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    {hasRemoteImages(current.body_html) && !showImages && (
+                      <div className="flex items-center gap-2 rounded-md bg-[hsl(var(--admin-accent))]/10 px-3 py-2 text-xs">
+                        <ImageIcon className="h-4 w-4" /> Pictures in this email are blocked to protect your privacy.
+                        <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => setImagesShownFor(messageId)}>Show pictures</Button>
+                      </div>
+                    )}
+                    <EmailBody html={current.body_html} text={current.body_text} showImages={showImages} />
+                  </>
                 )}
-                <EmailBody html={current.body_html} text={current.body_text} showImages={showImages} />
               </article>
               {crmOpen && <aside className="relative min-h-0 border-t border-[hsl(var(--admin-border))] xl:border-l xl:border-t-0">
                 <div className="hidden xl:block">
@@ -404,25 +504,6 @@ const EmailPage = () => {
         isAdmin={Boolean(status.data?.user.isAdmin)} />
       <ManageMailboxDialog key={managing?.code ?? "none"} account={managing ? accounts.find((row) => row.code === managing.code) ?? managing : null}
         onClose={() => setManaging(null)} />
-      <Dialog open={preview !== null} onOpenChange={(open) => { if (!open) closePreview(); }}>
-        <DialogContent className="flex h-[85vh] w-[92vw] max-w-5xl flex-col gap-3 overflow-hidden bg-[hsl(var(--admin-card))] text-[hsl(var(--admin-content-fg))]">
-          <DialogHeader><DialogTitle className="truncate pr-8">{preview?.attachment.filename}</DialogTitle></DialogHeader>
-          <div className="min-h-0 flex-1 overflow-auto rounded-md border border-[hsl(var(--admin-border))] bg-white text-slate-900">
-            {preview?.loading && <p className="p-4 text-sm">Loading preview…</p>}
-            {preview?.error && <p className="p-4 text-sm">{preview.error}</p>}
-            {preview?.kind === "csv" && preview.text !== undefined && <CsvPreview text={preview.text} />}
-            {preview?.kind === "text" && preview.text !== undefined && <pre className="p-4 text-xs whitespace-pre-wrap break-words">{preview.text}</pre>}
-            {preview?.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="block h-full w-full object-contain p-2" />}
-            {/* No sandbox: Chrome refuses to run its PDF viewer in a sandboxed frame. The URL is a local blob copy. */}
-            {preview?.kind === "pdf" && preview.url && <iframe title={`Preview ${preview.attachment.filename}`} src={preview.url} className="h-full w-full" />}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={closePreview}>Close</Button>
-            {preview?.url && <Button variant="outline" asChild><a href={preview.url} target="_blank" rel="noreferrer">Open in new tab</a></Button>}
-            {preview && <Button onClick={() => openAttachment(preview.attachment)}><Download className="mr-1.5 h-4 w-4" /> Download</Button>}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
     </div>
   );
@@ -454,19 +535,6 @@ function ResizeHandle({ label, value, min, max, onChange, side = "right" }: {
     className={cn("absolute inset-y-0 z-10 w-0.5 cursor-col-resize touch-none select-none before:absolute before:-left-[3px] before:inset-y-0 before:w-2 before:content-[''] hover:bg-[hsl(var(--admin-accent))]/40 focus-visible:bg-[hsl(var(--admin-accent))]/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(var(--admin-accent))]", side === "right" ? "right-0" : "left-0")} />;
 }
 
-function CsvPreview({ text }: { text: string }) {
-  const rows = parseCsvPreview(text);
-  return <div className="min-w-max text-xs">
-    <table className="border-collapse">
-      <tbody>{rows.map((cells, rowIndex) => <tr key={rowIndex}>
-        <th scope="row" className="sticky left-0 border border-slate-200 bg-slate-100 px-2 py-1 text-right font-normal text-slate-500">{rowIndex + 1}</th>
-        {cells.slice(0, 40).map((value, columnIndex) => <td key={columnIndex} className="max-w-64 whitespace-nowrap border border-slate-200 px-2 py-1">{value}</td>)}
-      </tr>)}</tbody>
-    </table>
-    {rows.length === 200 && <p className="p-2 text-slate-600">Showing the first 200 rows. Download for the full file.</p>}
-  </div>;
-}
-
 function RibbonButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <Button size="sm" variant="ghost" onClick={onClick} disabled={disabled} className="gap-1.5">
@@ -475,22 +543,78 @@ function RibbonButton({ icon: Icon, label, onClick, disabled }: { icon: LucideIc
   );
 }
 
-function MailboxGroup({ account, active, activeFolderId, folders, onOpen, onFolder, onManage, collapsedFolders, onToggleFolder }: {
-  account: EmailAccount;
-  active: boolean;
+function FavoritesBin({ items, activeAccount, activeFolderId, onOpen, onRemove, onAdd }: {
+  items: { account: EmailAccount; folder: EmailFolder }[];
+  activeAccount: string | null;
   activeFolderId: number | null;
-  folders: EmailFolder[];
+  onOpen: (account: string, id: number) => void;
+  onRemove: (account: string, id: number) => void;
+  onAdd: (account: string, id: number) => void;
+}) {
+  const [over, setOver] = useState(false);
+  const accepts = (event: ReactDragEvent<HTMLDivElement>) => event.dataTransfer.types.includes(FOLDER_DRAG_TYPE);
+  const drop = (event: ReactDragEvent<HTMLDivElement>) => {
+    setOver(false);
+    if (!accepts(event)) return;
+    event.preventDefault();
+    try {
+      const dropped = JSON.parse(event.dataTransfer.getData(FOLDER_DRAG_TYPE));
+      if (typeof dropped?.account === "string" && typeof dropped?.folderId === "number") onAdd(dropped.account, dropped.folderId);
+    } catch {
+      // Not one of our folders.
+    }
+  };
+  return (
+    <div className={cn("mb-2 rounded-md border border-dashed border-transparent pb-1", over && "border-[hsl(var(--admin-accent))] bg-[hsl(var(--admin-accent))]/10")}
+      onDragOver={(event) => { if (accepts(event)) { event.preventDefault(); setOver(true); } }}
+      onDragLeave={() => setOver(false)} onDrop={drop}>
+      <div className="flex items-center gap-1 px-1 py-1.5 text-[13px] font-semibold"><Star className="h-3.5 w-3.5 shrink-0" /> Favorites</div>
+      {items.length === 0 ? <p className="px-2 pb-1 text-[11px] leading-snug text-[hsl(var(--admin-muted-fg))]">Drag a folder here, or click its star, to keep it handy.</p> : null}
+      {items.map(({ account, folder }) => {
+        const Icon = FOLDER_ICONS[folder.special_use ?? ""] ?? Folder;
+        const active = account.code === activeAccount && folder.folder_id === activeFolderId;
+        return (
+          <div key={`${account.code}:${folder.folder_id}`} className={cn("group flex w-full items-center rounded-md pl-2 pr-2 hover:bg-[hsl(var(--admin-accent))]/5", active && "bg-[hsl(var(--admin-accent))]/10 font-semibold")}>
+            <button type="button" onClick={() => onOpen(account.code, folder.folder_id)} title={`${folder.display_name} · ${account.address}`}
+              className="flex min-w-0 flex-1 items-center justify-between gap-2 py-1.5 text-left text-sm">
+              <span className="flex min-w-0 items-center gap-2">
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{folder.display_name}<span className="font-normal text-[hsl(var(--admin-muted-fg))]"> · {account.displayName}</span></span>
+              </span>
+              {folder.unread_count ? <span className="text-xs font-semibold tabular-nums text-[hsl(var(--admin-accent))]">{folder.unread_count}</span> : null}
+            </button>
+            <button type="button" onClick={() => onRemove(account.code, folder.folder_id)} aria-label={`Remove ${folder.display_name} from favorites`}
+              className="ml-1 rounded p-0.5 hover:bg-[hsl(var(--admin-accent))]/15"><Star className="h-3.5 w-3.5 fill-current" /></button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MailboxGroup({ account, expanded, activeFolderId, onOpen, onToggle, onFolder, onManage, collapsedFolders, onToggleFolder, isFavorite, onToggleFavorite }: {
+  account: EmailAccount;
+  expanded: boolean;
+  activeFolderId: number | null;
   onOpen: () => void;
+  onToggle: () => void;
   onFolder: (id: number) => void;
   onManage: () => void;
   collapsedFolders: Set<string>;
   onToggleFolder: (path: string) => void;
+  isFavorite: (id: number) => boolean;
+  onToggleFavorite: (id: number) => void;
 }) {
+  // Each mailbox loads its own folders while open, so several can be open at once.
+  const folders = useEmailFolders(expanded ? account.code : null).data ?? [];
   return (
     <div className="mb-1">
       <div className="flex items-center gap-1 rounded-md pr-1 hover:bg-[hsl(var(--admin-accent))]/5">
-        <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-1 px-1 py-1.5 text-left text-[13px] font-semibold" title={account.address}>
-          {active ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+        <button type="button" onClick={onToggle} aria-expanded={expanded} aria-label={`${expanded ? "Collapse" : "Expand"} ${account.displayName}`}
+          className="flex h-7 w-5 shrink-0 items-center justify-center rounded hover:bg-[hsl(var(--admin-accent))]/15">
+          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        </button>
+        <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-1 py-1.5 text-left text-[13px] font-semibold" title={account.address}>
           <span className="truncate">{account.displayName}</span>
           {account.isShared ? <Users className="h-3 w-3 shrink-0 text-[hsl(var(--admin-muted-fg))]" aria-label="Shared mailbox" /> : null}
         </button>
@@ -501,24 +625,30 @@ function MailboxGroup({ account, active, activeFolderId, folders, onOpen, onFold
         ) : null}
       </div>
       {account.lastError ? <p className="px-6 pb-1 text-[11px] text-destructive">Can't sync: {account.lastError}</p> : null}
-      {active && !account.lastSyncAt && !account.lastError ? <p className="px-6 pb-1 text-[11px] text-[hsl(var(--admin-muted-fg))]">First sync in progress…</p> : null}
-      {active ? folders.filter((folder) => ![...collapsedFolders].some((key) => key.startsWith(`${account.code}:`) && folder.path.startsWith(`${key.slice(account.code.length + 1)}.`))).map((folder) => {
+      {expanded && !account.lastSyncAt && !account.lastError ? <p className="px-6 pb-1 text-[11px] text-[hsl(var(--admin-muted-fg))]">First sync in progress…</p> : null}
+      {expanded ? folders.filter((folder) => ![...collapsedFolders].some((key) => key.startsWith(`${account.code}:`) && folder.path.startsWith(`${key.slice(account.code.length + 1)}.`))).map((folder) => {
         const hasChildren = folders.some((other) => other.path.startsWith(`${folder.path}.`));
         return <FolderButton key={folder.folder_id} folder={folder} active={folder.folder_id === activeFolderId}
           hasChildren={hasChildren} expanded={!collapsedFolders.has(`${account.code}:${folder.path}`)} onToggle={() => onToggleFolder(`${account.code}:${folder.path}`)}
-          onClick={() => onFolder(folder.folder_id)} />;
+          onClick={() => onFolder(folder.folder_id)} accountCode={account.code}
+          favorite={isFavorite(folder.folder_id)} onToggleFavorite={() => onToggleFavorite(folder.folder_id)} />;
       }) : null}
     </div>
   );
 }
 
-function FolderButton({ folder, active, onClick, hasChildren, expanded, onToggle }: {
+function FolderButton({ folder, active, onClick, hasChildren, expanded, onToggle, accountCode, favorite, onToggleFavorite }: {
   folder: EmailFolder; active: boolean; onClick: () => void; hasChildren: boolean; expanded: boolean; onToggle: () => void;
+  accountCode: string; favorite: boolean; onToggleFavorite: () => void;
 }) {
   const Icon = FOLDER_ICONS[folder.special_use ?? ""] ?? Folder;
   const depth = Math.max(0, folder.path.split(".").length - 2);
   return (
-    <div className={cn("flex w-full items-center rounded-md pr-2 hover:bg-[hsl(var(--admin-accent))]/5", active && "bg-[hsl(var(--admin-accent))]/10 font-semibold")}
+    <div draggable onDragStart={(event) => {
+        event.dataTransfer.setData(FOLDER_DRAG_TYPE, JSON.stringify({ account: accountCode, folderId: folder.folder_id }));
+        event.dataTransfer.effectAllowed = "copy";
+      }}
+      className={cn("group flex w-full items-center rounded-md pr-2 hover:bg-[hsl(var(--admin-accent))]/5", active && "bg-[hsl(var(--admin-accent))]/10 font-semibold")}
       style={{ paddingLeft: `${4 + depth * 12}px` }}>
       {hasChildren ? <button type="button" onClick={onToggle} aria-label={`${expanded ? "Collapse" : "Expand"} ${folder.display_name}`}
         aria-expanded={expanded} className="flex h-7 w-5 shrink-0 items-center justify-center rounded hover:bg-[hsl(var(--admin-accent))]/15">
@@ -527,6 +657,10 @@ function FolderButton({ folder, active, onClick, hasChildren, expanded, onToggle
       <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center justify-between gap-2 py-1.5 text-left text-sm">
         <span className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{folder.display_name}</span></span>
         {folder.unread_count ? <span className="text-xs font-semibold tabular-nums text-[hsl(var(--admin-accent))]">{folder.unread_count}</span> : null}
+      </button>
+      <button type="button" onClick={onToggleFavorite} aria-pressed={favorite} aria-label={`${favorite ? "Remove" : "Add"} ${folder.display_name} ${favorite ? "from" : "to"} favorites`}
+        className={cn("ml-1 rounded p-0.5 hover:bg-[hsl(var(--admin-accent))]/15 focus-visible:opacity-100 group-hover:opacity-100", favorite ? "opacity-100" : "opacity-0")}>
+        <Star className={cn("h-3.5 w-3.5", favorite && "fill-current")} />
       </button>
     </div>
   );

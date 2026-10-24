@@ -7,6 +7,41 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 - Contact dialog has a Calls tab: a Call button rings the staff member's own extension, then dials the customer through FreePBX, and shows recorded calls with summary, transcript and playback. Only calls staff choose to record are kept. Needs the migration, `PBX_AGENT_TOKEN`, function deploys and the PBX agent install in `docs/pbx-calls-setup.md`; recording consent and retention steps are required before use. Not applied, deployed or installed.
 
+## 2026-10-23 — Frame repairs as staff-only stock-order addons
+
+### Release Notes
+- The 25 active Innovations "2 Frame Repairs" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor.
+
+## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
+
+### Release Notes
+- PDFs open in the browser's own viewer on desktop (search, print, thumbnails); phones and tablets keep the built-in page viewer. CSV and Excel (.xlsx) attachments can now be previewed as a grid, with sheet tabs, from admin email and helpdesk tickets.
+
+## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
+
+### Release Notes
+- Simple two-note alert sound with shared cross-tab cooldown, mute and test controls. Stock grids check database quantities every eight hours while open, plus mount/focus/reconnect. Portal lists overlap independent reads and defer account details until selection.
+
+## 2026-10-20 — Hot-lead summary and signup lead capture (local source)
+
+### Release Notes
+- Trade-account, price-list and portal-signup requests now create or match a CRM lead and email the owner one lead summary: what they said, fit, history, a suggested next move, a reply-by time (4 business hours, Barbados) and one-tap reply, WhatsApp, CRM and approval links. Portal signups previously produced no owner email, ticket or CRM record. No migration; the contact-inquiry function needs a redeploy.
+
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes

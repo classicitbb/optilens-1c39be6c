@@ -82,6 +82,7 @@
     bkBankName: '', bkAccName: 'Classic Visions', bkAccNo: '', bkBranch: '', bkSwift: '', bkNote: '',
     // Billing — unified Invoice / Quotation / Pro Forma / Receipt
     billType: 'invoice', blNumber: '', blDate: '', blDue: '', blPO: '',
+    innovationsInvoiceNumber: '', innovationsSourceInvoiceNumber: '', innovationsInvoiceLoading: false, innovationsInvoiceMessage: '',
     blToName: '', blToCompany: '', blToAddr: '', blToAttn: '',
     blCurrency: 'BBD', blVatEnabled: true, blVatRate: '17.5',
     blDiscount: '', blShipping: '',
@@ -106,6 +107,7 @@
   };
 
   componentDidMount() {
+    const studioSearch = location.search;
     document.addEventListener('pointerdown', this.dismissEmailContacts, true);
     document.addEventListener('focusin', this.dismissEmailContacts, true);
     document.addEventListener('keydown', this.emailContactsKey, true);
@@ -143,6 +145,8 @@
     this.loadBillShareUsers();
     setTimeout(() => { this._billingReady = true; }, 900);
     this.scheduleControlMetadata();
+    this._studioNavigationReady = true;
+    if (!this.applyStudioLocation(studioSearch)) this.notifyStudioNavigation();
   }
 
   componentDidUpdate() {
@@ -151,6 +155,7 @@
     // The native admin file manager (src/features/admin/doc-studio/files)
     // renders My Files from this state; tell it when anything changed.
     try { window.dispatchEvent(new CustomEvent('ds:files-state')); } catch (e) {}
+    this.notifyStudioNavigation();
   }
 
   componentWillUnmount() {
@@ -238,7 +243,7 @@
   };
 
   // ---------- persistence ----------
-  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailContactSearch, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { innovationsInvoiceLoading, innovationsInvoiceMessage, copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailContactSearch, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); if (this.isCurrentFileField(k)) this.scheduleFileAutosave(); if (this.isIssuerField(k)) this.saveDocStudioSettingsSoon(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -660,6 +665,28 @@
     this.destroyTiny(cur);
     const reset = (k === 'files' || k === cur) ? {} : { currentFileId: '', currentFileKind: '', currentFileType: '', currentFileVersion: '', currentFileName: '', currentFileIsTemplate: false, currentFileAccess: 'owner', currentFileIsOwner: true, fileSaveState: 'DB save ready' };
     this.setState({ tab: k, ...reset }, this.persistSoon);
+  };
+
+  applyStudioLocation = (search) => {
+    const params = new URLSearchParams(search || '');
+    const tab = params.get('tab'), type = params.get('billType');
+    if (params.has('billingDocument') || params.has('staffInvite') || !['files', 'email', 'letter', 'signature', 'social', 'billing', 'shiplabel', 'statement'].includes(tab)) return false;
+    this.switchTab(tab);
+    if (tab === 'billing' && ['invoice', 'quote', 'proforma', 'receipt'].includes(type) && type !== this.state.billType) {
+      // Navigation changes the draft's view, never autosaves a type conversion
+      // over the previously opened billing document.
+      clearTimeout(this._billAutosaveTimer);
+      this.setState({ billType: type, blNumber: this.peekBillNumber(type), currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true, billCollaborators: [], billShareOpen: false }, this.persistSoon);
+    }
+    return true;
+  };
+
+  notifyStudioNavigation = () => {
+    if (!this._studioNavigationReady) return;
+    const key = this.state.tab + ':' + (this.state.tab === 'billing' ? this.state.billType : '');
+    if (key === this._lastStudioNavigation) return;
+    this._lastStudioNavigation = key;
+    try { window.dispatchEvent(new CustomEvent('ds:navigation', { detail: { tab: this.state.tab, billType: this.state.billType } })); } catch (e) {}
   };
 
   composeNewEmail = () => {
@@ -1687,6 +1714,30 @@
     receipt:  { title: 'RECEIPT',            prefix: 'RCT', toLabel: 'Received from', dueLabel: '',            showBank: false, showPay: true,  note: '' }
   };
   billMeta = () => this.BILL_META[this.state.billType] || this.BILL_META.invoice;
+  importInnovationsInvoice = async () => {
+    if (this.state.innovationsInvoiceLoading || !this.canEditBillingFile() || !['invoice', 'quote'].includes(this.state.billType)) return;
+    const number = String(this.state.innovationsInvoiceNumber || '').trim();
+    const type = this.state.billType, fileId = this.state.currentBillingDocumentId;
+    const snapshot = JSON.stringify(this.billingSnapshot());
+    clearTimeout(this._billAutosaveTimer);
+    this.setState({ innovationsInvoiceLoading: true, innovationsInvoiceMessage: 'Loading Innovations invoice…' });
+    try {
+      if (!window.__docStudioLoadInvoice) throw new Error('Invoice import is available in the admin Doc Studio.');
+      const fields = await window.__docStudioLoadInvoice(number, this.state.selectedBillingCustomer || '');
+      if (type !== this.state.billType || fileId !== this.state.currentBillingDocumentId || snapshot !== JSON.stringify(this.billingSnapshot())) throw new Error('The document changed while loading. Import again to fill the current template.');
+      // Import as an independent local draft, never autosave over the open file.
+      clearTimeout(this._billAutosaveTimer);
+      this.setState({ ...fields, innovationsSourceInvoiceNumber: String(Number(number)),
+        blNumber: type === 'invoice' ? String(Number(number)) : this.peekBillNumber('quote'),
+        currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '',
+        currentBillingAccess: 'owner', currentBillingIsOwner: true, billCollaborators: [], billShareOpen: false,
+        billSaveState: 'Imported draft — review and save',
+        innovationsInvoiceLoading: false, innovationsInvoiceMessage: 'Invoice ' + number + ' imported. Review the customer, lines and source notes before saving.'
+      }, this.persist);
+    } catch (error) {
+      this.setState({ innovationsInvoiceLoading: false, innovationsInvoiceMessage: error.message || 'Invoice import failed. Try again.' });
+    }
+  };
   peekBillNumber = (type) => { const m = this.BILL_META[type] || this.BILL_META.invoice; const seq = (this.state.billSeq && this.state.billSeq[type]) || 1; return `${m.prefix}-${String(seq).padStart(4, '0')}`; };
   nextBillNumber = () => {
     const type = this.state.billType, m = this.BILL_META[type] || this.BILL_META.invoice;
@@ -1717,7 +1768,7 @@
     return { blRows: blank ? [row] : [...rows, row] };
   }, this.billingChanged);
 
-  BILL_FILE_KEYS = ['billType', 'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blCurrency', 'blVatEnabled', 'blVatRate', 'blDiscount', 'blShipping', 'blRows', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes', 'billPaperSize', 'bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote', 'selectedBillingCustomer'];
+  BILL_FILE_KEYS = ['innovationsSourceInvoiceNumber', 'billType', 'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blCurrency', 'blVatEnabled', 'blVatRate', 'blDiscount', 'blShipping', 'blRows', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes', 'billPaperSize', 'bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote', 'selectedBillingCustomer'];
   BILL_DRAFT_KEYS = this.BILL_FILE_KEYS;
   isBillingField = (k) => this.BILL_FILE_KEYS.includes(k);
   canEditBillingFile = () => this.state.currentBillingAccess !== 'view';
@@ -2258,6 +2309,7 @@
     const fields = doc.content || {};
     this._suspendBillingAutosave = true;
     this.setState({
+      innovationsSourceInvoiceNumber: '',
       ...fields,
       currentBillingDocumentId: doc.id || '',
       currentBillingVersion: doc.version || '',
@@ -2282,7 +2334,7 @@
       this.setState({ billSaveState: 'Saving...' });
       // A new document takes its number from the shared sequence at save time,
       // not from the placeholder shown while drafting.
-      if (!id) {
+      if (!id && !(this.state.billType === 'invoice' && this.state.innovationsSourceInvoiceNumber && this.state.blNumber === this.state.innovationsSourceInvoiceNumber)) {
         try {
           const reserved = await this.reserveBillingNumber(this.state.billType);
           if (reserved) await new Promise(done => this.setState({ blNumber: reserved }, done));
@@ -2844,6 +2896,14 @@
       })),
       addStRow: this.addStRow,
       // ---- billing ----
+      showInvoiceImport: ['invoice', 'quote'].includes(d.billType),
+      innovationsInvoiceNumber: d.innovationsInvoiceNumber || '',
+      onInnovationsInvoiceNumber: (e) => this.setState({ innovationsInvoiceNumber: e.target.value }),
+      importInnovationsInvoice: this.importInnovationsInvoice,
+      invoiceImportDisabled: !!d.innovationsInvoiceLoading || !this.canEditBillingFile(),
+      invoiceImportLabel: d.innovationsInvoiceLoading ? 'Loading…' : 'Import invoice',
+      innovationsInvoiceLoading: !!d.innovationsInvoiceLoading,
+      innovationsInvoiceMessage: d.innovationsInvoiceMessage || '',
       billTypeOpts, billTitle: bm.title, isReceipt: d.billType === 'receipt', notReceipt: d.billType !== 'receipt',
       showBank: bm.showBank, billDueLabel: bm.dueLabel || 'Valid until', hasDue: !!bm.dueLabel,
       billCurrencyOpts: this.seg('blCurrency', [{ k: 'BBD', l: 'BBD' }, { k: 'USD', l: 'USD' }]),

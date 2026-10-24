@@ -18,12 +18,12 @@ const getErrorMessage = (error: unknown) => {
   return "Failed to create order.";
 };
 
-export const useOrders = (targetUserId?: string) => {
+export const useOrders = (targetUserId?: string, options?: { enabled?: boolean }) => {
   const [orders, setOrders] = useState<OrderEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
-  const effectiveUserId = targetUserId ?? user?.id ?? null;
+  const effectiveUserId = options?.enabled === false ? null : targetUserId ?? user?.id ?? null;
 
   const fetchOrders = useCallback(async () => {
     if (!effectiveUserId) {

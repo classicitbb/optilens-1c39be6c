@@ -1,5 +1,32 @@
 # Frontend Bug Reports
 
+## 2026-10-22 - PDF viewer limits and missing spreadsheet previews
+
+The pdf.js viewer drew every PDF to canvas, so desktop users lost search, print and thumbnails; desktop now uses the browser viewer. Excel attachments had no preview at all and csv previews existed only in admin email; both formats now preview in email and helpdesk. Not browser-verified: the handbook and evidence pages require sign-in, so the native iframe path and the helpdesk dialog were covered by typecheck, unit tests and build only. Known limit: legacy .xls and files over the size caps download instead of previewing.
+
+## 2026-10-22 - Red CI on main
+
+PR Validation failed on a lint error (preserve-caught-error in the Rx workspace release path), release ledger drift (CHANGELOG entry used a hyphen instead of an em dash, so it was never parsed), and the dependency audit (vite, follow-redirects). Separately, the `/~oauth` rewrite had been lost from vercel.json in a later merge and the Rx workspace tests still expected the pre-2026-10-19 default tab, placeholder and an unmocked stock-release hook. All fixed; lint, tsc and the full test suite pass locally. Supersedes the 2026-10-20 note about remaining Rx workspace/OAuth failures.
+
+## 2026-10-20 - Overlapping alert audio and portal request waterfalls
+
+Attention previously played a jingle per outstanding item in every tab. Shared two-note playback now coalesces batches and serializes same-origin tabs with cooldown/storage. Portal list previously waited through independent reads and loaded signed-in-admin details without selection. Regression test reproduced sequential metadata loading before parallelization; idle detail reads now have a focused no-request test. Stock refresh has an eight-hour timer regression and cache-selection coverage. Admin/product pages render with live reads; bell controls and test button exercised. Actual audible multi-tab playback is covered synthetically, and the requested 5-10x speedup has no browser baseline. Existing Rx workspace/email recipient/OAuth test failures and Rx workspace lint error remain.
+
+
+Signup lead capture (2026-10-20, local source): professional portal signups wrote straight to public_inquiries, so no owner email, ticket or CRM contact followed. They now go through contact-inquiry. Also fixed there: a duplicate-email ilike().maybeSingle() lookup could throw after the inquiry was saved and skip the owner email; secondary addresses in a contact's email list were never matched.
+
+Portal controls (2026-10-20): replaced ambiguous three-state cycling with stable enabled/disabled switches, while retaining inherited settings for existing accounts. Both portal settings surfaces now link to the assigned editor. Browser connection timed out, so rendered verification is pending. New-account default trigger is staged, not applied.
+
+
+Doc Studio dashboard/outer corners (2026-10-20): the tile previously hid its only sidebar entry and offered no direct section buttons. Feature-owned section links now open the exact tab/type and order recent sections first per browser/user. Invalid query targets are ignored and existing file/invitation links remain authoritative. Inherited 4px outer div radii are explicitly zeroed on structural Studio containers; the shared admin header is square. No blanket descendant-radius reset is used.
+
+
+Local gateway CORS repair (2026-10-20): the hosted live-data function returned 403 Origin not allowed for http://127.0.0.1:5173 even though other local ports were allowed. The development proxy now provides a same-origin transport without production CORS changes. Node enterprise-root trust is resolved with the existing OS trust store, never insecure TLS. Signed-in localhost successfully imported invoice 81799; a mismatched account/invoice response still leaves the template intact.
+
+
+Doc Studio invoice import (2026-10-20): missing invoice lines/amounts, account ambiguity, offline connector and edits during loading leave the current template intact with an explanatory message. Read-only shared files cannot import. Source-header/line differences are explicit adjustments because the existing connector does not expose their tax/discount breakdown. Invoices absent from statement sync require selecting the customer. Live read verification is recorded in docs/agent/HANDOFF.md; no production release.
+
+
 Stock entry/pickers (2026-10-19, local source): repaired fresh stock URL routing, low-contrast segmented choices, and lens menus clipped by modal/form overflow. Authenticated browser verified both themes, actual catalog narrowing, power grid and a temporary local pair line removed without persistence. Search/keyboard and portal placement regression coverage pass; saved-stock editor contracts remain.
 
 Stock form integration (2026-10-19, local source): replaced the old stock panel with the approved compact form; removed separate service order selection and exposed published service/addon items alongside supplies. Added explicit pair-to-lens conversion, chiral per-eye OPC checks, ambiguous product/diameter selection, exact-variant fallback for duplicate grid cells, account-remount isolation and an Rx-autosave guard in stock mode. Tests mock persistence and cover mixed services, pair quantities, required reference, failed-save/no-release, and unpriced scan refusal. Real catalog/selector/grid and local line handoff checked without saving or submitting. No migration, auth or publication.

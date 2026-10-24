@@ -1,5 +1,32 @@
 # Frontend Help Docs
 
+## 2026-10-22 - PDF and spreadsheet previews
+
+On a computer, PDFs now open in your browser's own viewer, so you can search, print and use page thumbnails. On phones and tablets the existing page-by-page viewer is used. In admin email, open a CSV or Excel (.xlsx) attachment to see it as a grid; click a sheet tab at the bottom to switch sheets. On helpdesk tickets, click a CSV or Excel attachment to preview it. Previews show the first 200 rows and 40 columns; download the file for the rest. Older .xls files can only be downloaded.
+
+## 2026-10-22 - CI repair
+
+No visible change for staff. The Rx Orders workspace still opens on At lab, and sign-in through the OAuth broker keeps working on the hosted site.
+
+## 2026-10-20 - Alert sound and fresh stock
+
+Open the admin bell for Alert sound: On/Off and Test ding dong. Browsers need a click/key interaction before sound can play. Tabs sharing the same origin/browser coordinate the sound with a six-second cooldown. Separate devices/private profiles are independent. Stock grids recheck the database when opened, on return/reconnect and every eight hours while open; browser throttling can delay timers. The portal list loads account details when you select an account.
+
+
+Lead summary email (2026-10-20, local source): when a trade account, price list or portal signup request arrives, the owner email lists what the person told us, fit, history, a suggested next move and a reply-by time, with one-tap reply, WhatsApp, CRM and approval links. Portal signups now create a CRM lead and ticket as well.
+
+Portal settings (2026-10-20): use the switches to enable or disable each feature. Beside Assigned pricelist, Edit opens that selected list; choose a list first if Edit is disabled. Existing accounts keep their settings. New-account all-off defaults are pending the database migration. Pricing and statements still need their access tags.
+
+
+Doc Studio shortcuts (2026-10-20, local source): the dashboard tile opens your last used Studio section and shows direct section buttons like other applications. Your recent sections appear first; further tools remain available inside Studio. Links open the selected section directly, including Invoice/Quotation. The outer workspace panels and shared admin header have square corners at all screen sizes; inputs and action buttons retain their existing styling. No publication from this change.
+
+
+Local development data (2026-10-20): signed-in localhost development sessions can use the same authorized Supabase queries and live invoice reads as the hosted app. Open the app through npm run dev; the local proxy is automatic across loopback ports. Existing account permissions and private connector availability still apply. Import creates a local draft for review; Save remains a separate action.
+
+
+Doc Studio invoice import (2026-10-20, local source): open Billing, select Invoice or Quotation, enter the Innovations invoice number, then choose Import invoice. If prompted, choose its account under Fill from customer and retry. Review customer details, lines, total and source notes, then Save. The original Innovations invoice is unchanged. Imported invoices retain their Innovations number; quotations use a Doc Studio number. The private connector must be online.
+
+
 Stock entry/pickers (2026-10-19, local source): the Stock Order Builder link now starts the shared form with Stock / supplies selected; switch Order type to Rx when needed. Choose lens material, design and colour in any order, then add quantities from the power grid. Menus float outside the scrolling area and selected choices are distinct in light/dark mode. Existing saved-stock links still reopen their editor. Save draft and Submit remain explicit actions.
 
 Integrated admin stock form (2026-10-19, local source): choose Stock / supplies order, enter a required patient/name or tracking reference, and optionally enter PO/instructions. Add supplies/services opens the category browser for items on the selected account's catalog; Add stock lenses uses vision/eye toggles, searchable material/design/option choices, then actual powers. Pair quantities mean pairs; right/left quantities mean individual lenses. Services are published addon products in the same browser, so there is no separate service order type. Scan accepts USB/handheld or typed SKU/OPC input (no camera). Review does not save; Save draft persists, and final Submit saves/releases to Innovations. Changing account clears local lines. Source only; no production publication from this change.

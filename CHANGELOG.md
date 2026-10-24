@@ -8,6 +8,67 @@
 ### Technical Changelog
 - Add `call_requests`, `call_recordings`, `staff_extensions`, private `call-recordings` bucket and `contact_ids_by_phone` (migration `20261024120000_pbx_calls.sql`); Edge Functions pbx-calls (staff) and pbx-agent (shared-secret LAN agent); the PBX agent script; shared phone-number and file-name helpers with 11 unit tests. `pbx-agent` is exempt from the smoke preflight probe. TypeScript and build pass; Deno type-check and a real PBX run not possible here.
 
+## 2026-10-23 — Frame repairs as staff-only stock-order addons
+
+### Release Notes
+- The 25 active Innovations "2 Frame Repairs" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor.
+
+### Technical Changelog
+- New `addons.stock_orderable` flag (add-on editor "Stock order" switch). `get_stock_order_catalog`, `resolve_stock_order_price` and `_price_stock_order_items` accept a priced stock_orderable add-on for staff and fall back to `addons.price`. `resolve_stock_order_price` now reads `addons.price`/`cost` instead of the non-existent `sell_price`/`base_price`. `isRxOrderableAddon` excludes `repairs`. Migration `20261023120000_frame_repairs_addons.sql` is applied live; seed is idempotent on category + SKU.
+
+## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
+
+### Release Notes
+- PDFs open in the browser's own viewer on desktop (search, print, thumbnails); phones and tablets keep the built-in page viewer. CSV and Excel (.xlsx) attachments can now be previewed as a grid, with sheet tabs, from admin email and helpdesk tickets.
+
+### Technical Changelog
+- PdfViewer uses an unsandboxed iframe on a blob URL when navigator.pdfViewerEnabled and a fine pointer are present, else pdf.js. frame-src gains blob: (http-header-policy.json, vercel.json re-synced). New spreadsheetPreview lib and SpreadsheetPreview/SpreadsheetPreviewDialog components (read-excel-file, lazy-loaded; 200 rows, 40 columns, 1 MB csv / 5 MB xlsx caps) replace the email-only CsvPreview and open helpdesk csv/xlsx attachments. Legacy .xls still downloads.
+
+## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
+
+### Release Notes
+- Simple two-note alert sound with shared cross-tab cooldown, mute and test controls. Stock grids check database quantities every eight hours while open, plus mount/focus/reconnect. Portal lists overlap independent reads and defer account details until selection.
+
+### Technical Changelog
+- Shared Web Audio/Locks/storage coordination; one sound per attention batch. Separate active-only variant cache entries. One-minute portal caches and optional detail-hook enabled flags. Focused tests, build and TypeScript pass; existing full-suite/lint failures remain. No deployment or hosted write.
+
+
+## 2026-10-20 — Hot-lead summary and signup lead capture (local source)
+
+### Release Notes
+- Trade-account, price-list and portal-signup requests now create or match a CRM lead and email the owner one lead summary: what they said, fit, history, a suggested next move, a reply-by time (4 business hours, Barbados) and one-tap reply, WhatsApp, CRM and approval links. Portal signups previously produced no owner email, ticket or CRM record. No migration; the contact-inquiry function needs a redeploy.
+
+### Technical Changelog
+- contact-inquiry matches CRM contacts list-aware and literally (_shared/crm/contactEmailMatch.ts) instead of ilike().maybeSingle(), never throws on a lookup failure, and sends the new lead-alert template (assembled by _shared/leads/dossier.ts, I/O in gather.ts) with fallback to the plain notification. Auth.tsx sends the signup lead through submitPublicInquiry (auth_onboarding_interest); that type skips the duplicate customer confirmation. Unit tests cover matching, business-hours maths, notes parsing and every dossier section.
+
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
+### Technical Changelog
+- Share switch and assigned-pricelist controls across both settings surfaces in src/pages/admin/WebsitePortalsPage.tsx; retain existing inherited access and explicit override writes. Stage an INSERT-only profile trigger in supabase/migrations/20261020214927_new_portal_features_disabled.sql; do not backfill existing users or change sensitive tag gates.
+
+
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
+### Technical Changelog
+- Define feature-owned allowlisted tab/billType links and per-user browser recency; synchronize Studio navigation through a mount-scoped event listener. Preserve file/invitation handoffs and prevent initial billing-type navigation from autosaving over the open file. Scope outer-radius overrides to semantic Studio container classes and the admin top bar.
+
+
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Signed-in localhost development sessions use the shared same-origin data transport across loopback ports; live invoice import was verified without changing production CORS or permissions.
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
+### Technical Changelog
+- Add a Vite loopback-only Supabase HTTP proxy with existing bearer/apikey forwarding and verified Node/system-CA TLS. Keep the real project URL/session keys and direct production transport. Cover HTTP request semantics and local-origin restrictions.
+- Reuse the account-scoped live invoice gateway through a native-mount loader. Resolve accounts from statement references or selected customer, fail on unavailable prices, label header/line differences, detach imported drafts and preserve original invoice numbers on explicit save. No backend, schema or authorization change.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes

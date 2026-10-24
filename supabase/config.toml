@@ -19,6 +19,9 @@ project_id = "xstmeirxhfbiyayrrsob"
     verify_jwt = false
   [functions.contact-inquiry]
     verify_jwt = false
+  # Telnyx voice assistant (Iris) take-message webhook; authed by X-Iris-Secret.
+  [functions.iris-take-message]
+    verify_jwt = false
   [functions.companion-assistant]
     verify_jwt = false
   [functions.portal-copilot]

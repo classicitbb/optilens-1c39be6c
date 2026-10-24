@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Link, useNavigate } from "react-router";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import QuantityInput from "@/components/cart/QuantityInput";
-import StorageImage from "@/components/StorageImage";
+import StoreProductImage from "@/components/StoreProductImage";
 import { getCartItemUnit } from "@/lib/cartUnits";
 
 interface CartSheetProps {
@@ -125,15 +125,7 @@ export const CartSheet = ({
                         >
                           {/* Thumbnail */}
                           <div className="h-14 w-14 shrink-0 rounded-md border border-border bg-muted/20 overflow-hidden flex items-center justify-center">
-                            {linkedProduct?.image_url ? (
-                              <StorageImage
-                                src={linkedProduct.image_url}
-                                alt={item.product_name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <Package className="h-5 w-5 text-muted-foreground/40" />
-                            )}
+                            <StoreProductImage imageUrl={linkedProduct?.image_url} name={item.product_name} productType={item.product_type} category={linkedProduct?.category} className="h-full w-full" showCaption={false} />
                           </div>
 
                           {/* Info */}

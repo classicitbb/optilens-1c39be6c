@@ -527,6 +527,7 @@ export type Database = {
           is_active: boolean
           is_auto: boolean
           is_popular: boolean
+          stock_orderable: boolean
           name: string
           price: number
           show_on_website: boolean
@@ -545,6 +546,7 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
+          stock_orderable?: boolean
           name: string
           price?: number
           show_on_website?: boolean
@@ -563,6 +565,7 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
+          stock_orderable?: boolean
           name?: string
           price?: number
           show_on_website?: boolean
@@ -2856,6 +2859,7 @@ export type Database = {
           name: string
           next_action_at: string | null
           notes: string | null
+          notes_doc: Json | null
           parent_id: string | null
           phone: string | null
           pipeline: string | null
@@ -2905,6 +2909,7 @@ export type Database = {
           name: string
           next_action_at?: string | null
           notes?: string | null
+          notes_doc?: Json | null
           parent_id?: string | null
           phone?: string | null
           pipeline?: string | null
@@ -2954,6 +2959,7 @@ export type Database = {
           name?: string
           next_action_at?: string | null
           notes?: string | null
+          notes_doc?: Json | null
           parent_id?: string | null
           phone?: string | null
           pipeline?: string | null
@@ -4022,6 +4028,39 @@ export type Database = {
           is_healthy?: boolean
           release_sha?: string | null
           source?: string
+        }
+        Relationships: []
+      }
+      email_resend_payloads: {
+        Row: {
+          created_at: string
+          from_address: string | null
+          html: string
+          message_id: string
+          recipient_email: string
+          reply_to: string | null
+          subject: string
+          text_body: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_address?: string | null
+          html: string
+          message_id: string
+          recipient_email: string
+          reply_to?: string | null
+          subject: string
+          text_body?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_address?: string | null
+          html?: string
+          message_id?: string
+          recipient_email?: string
+          reply_to?: string | null
+          subject?: string
+          text_body?: string | null
         }
         Relationships: []
       }

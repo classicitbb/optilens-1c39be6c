@@ -41,3 +41,6 @@ supabase/functions/mcp/index.ts
 
 # Trigger.dev build output
 .trigger
+
+# DesignCraft exports
+output/designcraft/

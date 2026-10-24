@@ -1,8 +1,43 @@
 # Project Knowledge
 
+## Alert bell, stock refresh and portal loading - 2026-10-20
+
+`features/admin/notifications/alertSound.ts` owns a reusable Web Audio context and two-note bell. NotificationBell unlocks audio on pointer/key interaction and offers browser-local mute/test controls. Newly observed notification IDs ring; the initial backlog stays silent. Operator attention retains its reminder window but rings once per batch and waits for snooze loading. Web Locks serializes playback against a shared localStorage timestamp with a six-second cooldown and bounded 24-hour event receipts; older browsers use a short storage election. Only unlocked tabs can ring. Audio/storage failures are quiet. Coordination is limited to the same origin and browser profile, not devices/private sessions.
+
+`useProductVariants` reads all grid variants using the existing RPC on mount/focus/reconnect and every eight hours while mounted, including background tabs. Browser throttling can delay timers; closed browsers do not run schedules. This reads current database stock, not an office inventory import or stock write. Active-only selection is now part of the cache key; existing prefix invalidations still match.
+
+Portal user loading overlaps admin metadata with profile/role reads. WebsitePortalsPage overlaps CRM-contact resolution with cart/presence/membership reads, keys the list by users, and reuses one-minute caches. useOrders/useCustomerAddresses/useCustomerPaymentMethods accept optional `{ enabled }`; this page enables them only after account selection, avoiding signed-in-admin detail reads on list load. Other callers retain their current-user fallback. Removed the duplicate address/payment refetch effect. No backend/schema/auth change. Focused tests: `npx vitest run --coverage=false src/tests/unit/alertSound.test.ts src/tests/unit/notificationBellSound.test.tsx src/tests/unit/productStockRefresh.test.tsx src/tests/unit/portalLoadingPerformance.test.tsx src/tests/unit/portalDeferredDetails.test.tsx`.
+
+
+Git TLS on Windows: if OpenSSL cannot find the local issuer, a temporary CA bundle combining Node built-in roots and tls.getCACertificates("system") can be supplied per command with git -c http.sslCAInfo=<temporary-bundle>. Keep verification enabled; no global Git or certificate-store change is necessary.
+
+## Portal operations controls — 2026-10-20
+
+WebsitePortalsPage uses shared two-state switches in both the embedded contact settings and fallback portal dialog. Switches write explicit true/false overrides; existing unset rows retain approval/tag inheritance, and existing Rx/order-price opt-ins remain off. Clear conflicting override is retained separately. The assigned-pricelist Edit link uses buildPricelistEditorPath(id, "rx") and is disabled without an assignment.
+
+Migration 20261020214927_new_portal_features_disabled.sql initializes nine false feature rows only after a new profiles INSERT, including auto-notifications. It never backfills existing profiles or overwrites a pre-existing override. The internal trigger uses fixed search_path, fully qualified objects and revoked public execution; existing staff bypass and sensitive pricing/statement tag checks remain. Applying this migration is an authorization/default change and needs explicit approval; commit/push authorization alone is not a database apply. No new service or environment variable.
+
+
+## Doc Studio section shortcuts — 2026-10-20
+
+`src/features/admin/doc-studio/navigation.ts` defines the allowlisted section deep links on the canonical /admin/docs/studio route (tab plus billing-only billType). The dashboard shows four recently used sections followed by the existing more link. Browser-local docstudio-recent-tools:<user-id> stores only module keys, isolated by signed-in user, with defaults when unavailable. The established runtime applies incoming section queries without billing autosave/type conversion of the open saved document, while billingDocument/staffInvite handoffs retain precedence. A mount-scoped ds:navigation listener updates the canonical query and recent order; it cleans up at unmount. NATIVE_CSS overrides inherited outer div radii only on Studio structural surfaces. AdminTopBar owns the shared square admin header. No new routes, access rules, backend or environment variables.
+
+
+## Localhost development data transport — 2026-10-20
+
+`src/lib/supabaseDevTransport.ts` supplies the shared Supabase fetch transport and Doc Studio function base. In Vite development on localhost, 127.0.0.1 or IPv6 loopback it routes configured-project HTTP APIs through `/__supabase`. `scripts/vite-supabase-proxy.ts` fixes the upstream to VITE_SUPABASE_URL, limits paths to Supabase HTTP API families, rejects nonloopback/cross-origin sessions, retains caller auth and verifies TLS using Node plus system roots when available. The real Supabase URL remains the client URL, preserving session storage keys and OAuth configuration. No auth/RLS override. Repro: unauthenticated POST to the local proxy live-data-gateway returns upstream 401, while the original hosted preflight at port 5173 returned Origin not allowed. Focused command: `npx vitest run --coverage=false src/tests/unit/supabaseDevTransport.test.ts src/tests/unit/liveDataGateway.unit.test.ts src/tests/unit/docStudioCloudBridge.test.ts`. Preserve this shared transport when regenerating the extended Supabase client.
+
+
+## Doc Studio Innovations invoice import — 2026-10-20
+
+`innovationsInvoice.ts` resolves invoice-to-account through statement_lines → statements, or uses the explicitly selected account; customers supplies the current customer name/address. Item details must come from `innovations.customer_invoice` through `requestLiveData`, never statement ledger entries. The native mount exposes the loader to the established studio runtime and aborts on unmount. Import preserves item amounts in BBD, disables additional VAT, resets prior document charges, and labels any source-header/line-total difference as an adjustment without inferring its tax/discount breakdown. Missing line amounts fail without changing the template. `innovationsSourceInvoiceNumber` is saved in content; original invoices retain their source number on explicit save, while quotations keep the existing Doc Studio sequence. No new dependencies, service, env variable, schema or permission. Focused command: `npx vitest run --coverage=false src/tests/unit/docStudioInnovationsInvoice.test.ts`.
+
+
 ## Local dependency recovery — 2026-10-19
 
 If Vite reports a missing import already declared in both package.json and package-lock.json, check `npm ls <package>` before editing source. The stock camera scanner's ZXing packages were absent from node_modules after the camera commit; `npm ci` restored the locked dependencies. On Windows, stop all Vite processes using this checkout (including the standalone stock prototype) before `npm ci`: either can hold the Lightning CSS native module open and cause EPERM unlink. Restore the app with `npm run dev -- --strictPort` and the prototype with `npm exec -- vite --config src/features/rx-order/prototype/vite.config.mjs`. This is local dependency maintenance, with no deployment or schema change.
+
+Recovery reverified 2026-10-20: both ZXing packages were again absent locally while declared in the unchanged manifest/lockfile. The roaming npm shim selected npm 12 even with Node 22 active; `Get-Command npm.cmd` and `npm --version` reveal this mismatch. In PowerShell, use `$env:Path='C:\nvm4w\nodejs;'+$env:Path` for the current session before `node scripts/check-runtime.mjs` and npm commands. This selects the installed npm 10 without changing global tools or user settings. `npm ci --no-audit --no-fund` restored the locked install; build and scanner-module HTTP checks pass. No source, dependency version or lockfile change was required.
 
 Stock entry (2026-10-19): AdminRoutes StockOrderEntry redirects fresh /admin/orders/stock-orders visits to /admin/orders/rx/new?type=stock, retaining other query parameters; quote/highlight links keep StockOrderBuilderPage for saved drafts/product tunnels. RxOrderEditPage passes initialOrderType only for new orders and keys by entry mode. ComboBox uses installed Radix Popover portal/anchor, trigger width, collision padding and available-height scrolling. Search/arrow/Enter/Tab/Escape keep input focus. Shared rx-segment styling in index.css supplies explicit light/dark selection. No permission or persistence changes.
 

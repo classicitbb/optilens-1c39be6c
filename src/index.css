@@ -541,6 +541,10 @@
   border-radius: var(--admin-radius);
 }
 
+.admin-tool .admin-topbar {
+  border-radius: 0;
+}
+
 /* Print/PDF preview areas must have no rounded corners */
 .print-preview-container,
 .print-preview-container * {

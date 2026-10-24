@@ -2,9 +2,10 @@
 // tunnel). Browsers call this function instead of the bridge directly, so the
 // bridge's exact-origin CORS list no longer blocks preview/dev origins.
 // The bridge still verifies the caller's own access token and role.
-import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
+import { createCorsPolicy, DEV_ORIGIN_PATTERNS, getCorsHeaders, handleCorsPreflight, rejectDisallowedOrigin } from "../_shared/http/cors.ts";
 
-const policy = createCorsPolicy();
+// Email also opens from localhost and Lovable preview hosts; the bridge still checks the caller's token and role.
+const policy = createCorsPolicy({ originPatterns: DEV_ORIGIN_PATTERNS });
 const BRIDGE = (Deno.env.get("EMAIL_BRIDGE_URL") ?? "https://mail-bridge.classicvisions.net").replace(/\/+$/, "");
 
 Deno.serve(async (req) => {

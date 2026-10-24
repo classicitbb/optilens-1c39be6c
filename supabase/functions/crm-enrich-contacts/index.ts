@@ -20,7 +20,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { sendSmtpEmail, getSmtpConfig } from "../_shared/email/smtp.ts";
 import { enrichContact, type EnrichableContact, type TriggerSource } from "../_shared/enrichment/contactEnrichment.ts";
 import { buildResearchQuery, type PublicWebSource } from "../_shared/enrichment/publicWebResearch.ts";
-import { researchProvider, type ResearchProvider } from "../_shared/enrichment/combinedResearch.ts";
+import { AmbiguousMatchError, researchProvider, type ResearchProvider } from "../_shared/enrichment/combinedResearch.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-scheduler-secret, x-client-info, apikey, content-type",
@@ -153,6 +153,13 @@ Deno.serve(async (req) => {
         await db.from("contact_enrichment_attempts").update({ outcome: findings.length ? "matched" : "no_match" }).eq("id", attempt.id);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Public research failed.";
+        if (error instanceof AmbiguousMatchError) {
+          // The provider answered; it just can't pick one business. Not a gateway failure.
+          completed++;
+          warnings.push(message);
+          await db.from("contact_enrichment_attempts").update({ outcome: "no_match", error: message }).eq("id", attempt.id);
+          continue;
+        }
         warnings.push(`${provider}: ${message}`);
         await db.from("contact_enrichment_attempts").update({ outcome: "error", error: message }).eq("id", attempt.id);
       }

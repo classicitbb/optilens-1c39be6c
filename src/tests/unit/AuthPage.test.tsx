@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   resend: vi.fn(),
   resetPasswordForEmail: vi.fn(),
   toast: vi.fn(),
-  insert: vi.fn(),
+  submitInquiry: vi.fn(),
   oAuth: vi.fn(),
   authState: {
     user: null as null | { id: string; email?: string; user_metadata?: Record<string, unknown> },
@@ -40,11 +40,12 @@ vi.mock("@/integrations/lovable/index", () => ({
   },
 }));
 
+vi.mock("@/lib/publicInquiry", () => ({
+  submitPublicInquiry: mocks.submitInquiry,
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: () => ({
-      insert: mocks.insert,
-    }),
     auth: {
       resend: mocks.resend,
       resetPasswordForEmail: mocks.resetPasswordForEmail,
@@ -103,13 +104,13 @@ describe("Auth page onboarding flow", () => {
     mocks.resend.mockReset();
     mocks.resetPasswordForEmail.mockReset();
     mocks.toast.mockReset();
-    mocks.insert.mockReset();
+    mocks.submitInquiry.mockReset();
     mocks.oAuth.mockReset();
     mocks.signIn.mockResolvedValue({ error: null });
     mocks.signUp.mockResolvedValue({ error: null });
     mocks.resend.mockResolvedValue({ error: null });
     mocks.resetPasswordForEmail.mockResolvedValue({ error: null });
-    mocks.insert.mockResolvedValue({ error: null });
+    mocks.submitInquiry.mockResolvedValue({ success: true });
     mocks.oAuth.mockResolvedValue({ error: null });
   });
 
@@ -151,7 +152,12 @@ describe("Auth page onboarding flow", () => {
     });
 
     await waitFor(() => {
-      expect(mocks.insert).toHaveBeenCalled();
+      expect(mocks.submitInquiry).toHaveBeenCalledWith(expect.objectContaining({
+        inquiryType: "auth_onboarding_interest",
+        email: "jordan@example.com",
+        businessName: "Vision Center",
+        pageSlug: "/auth",
+      }));
       expect(screen.getByText("Confirm your email")).toBeInTheDocument();
       expect(screen.getByText(/We sent a confirmation link to jordan@example.com/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Resend confirmation email" })).toBeInTheDocument();
