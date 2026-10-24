@@ -19,6 +19,12 @@ query.
 5. CV Web polls the request and renders the response. No scheduled customer-data
    sync is required for these screens.
 
+Idle `agent.next` responses carry `poll_after_ms` (1.7 s 07:00–19:00
+America/Barbados, 7 s otherwise). The worker should sleep that long before its
+next poll; responses that return a request omit it, so poll again immediately.
+Expired/consumed request rows and the 14-day request log are purged hourly by
+pg_cron (`purge_live_data_gateway`), not on each poll.
+
 ## Allowed operations
 
 | Operation | Private source | Portal feature |
