@@ -40,7 +40,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-function resolveTarget(rawPath: unknown): { path: string } | { error: string } {
+function resolveTarget(rawPath: unknown): { path: string; table?: string } | { error: string } {
   if (typeof rawPath !== "string" || rawPath.trim() === "") {
     return { error: "`path` is required." };
   }
