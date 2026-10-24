@@ -7,6 +7,7 @@ import { ExternalLink } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import PdfViewer from "@/components/pdf/PdfViewer";
 import { canonicalOrderFromRxSubmission } from "../../../../supabase/functions/_shared/orders/hashref";
 import { savedRxPayload } from "../embed/rx-order-adapter";
 import { upgradeV1, type RxOrderV2 } from "../domain/schema";
@@ -73,7 +74,7 @@ export function RxOrderDrawer({ item, onClose, actions }: { item: WorkspaceItem 
                 {imagePath && (
                   <div className="overflow-auto rounded-lg border bg-muted/30">
                     {!imageUrl ? <p className="p-4 text-xs text-muted-foreground">Loading the original…</p>
-                      : item.capture?.file_name?.toLowerCase().endsWith(".pdf") ? <iframe title="Original" src={imageUrl} className="h-[50vh] w-full" />
+                      : item.capture?.file_name?.toLowerCase().endsWith(".pdf") ? <PdfViewer url={imageUrl} title="Original" className="h-[50vh] border-0" />
                       : <img src={imageUrl} alt="The captured sheet" className="max-h-[50vh] w-full object-contain" />}
                   </div>
                 )}
