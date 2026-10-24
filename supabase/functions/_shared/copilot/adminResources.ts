@@ -760,7 +760,13 @@ export const dispatchAdminResourceTool = async (
       builder = builder.or(resource.searchColumns.map((column) => `${column}.ilike.${like}`).join(","));
     }
     const filters = (input.filters ?? {}) as Record<string, unknown>;
+    const allowedFilterColumns = resource.select === "*"
+      ? null
+      : new Set(resource.select.split(",").map((c) => c.trim()).filter(Boolean));
     for (const [column, value] of Object.entries(filters)) {
+      if (!/^[a-z_][a-z0-9_]*$/.test(column) || (allowedFilterColumns && !allowedFilterColumns.has(column))) {
+        throw new Error(`Filtering by "${column}" is not allowed for ${resource.key}.`);
+      }
       builder = value === null ? builder.is(column, null) : builder.eq(column, value as never);
     }
     if (resource.orderBy) builder = builder.order(resource.orderBy, { ascending: false });
