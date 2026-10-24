@@ -1099,7 +1099,9 @@ const ContactsPage = ({
   const exportCsv = () => {
     const headers = [...CONTACT_IMPORT_FIELDS];
     const toCsvValue = (value: unknown) => {
-      const str = String(value ?? "");
+      const raw = String(value ?? "");
+      // Neutralize spreadsheet formula injection (=, +, -, @, tab, CR).
+      const str = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
       return str.includes(",") || str.includes('"') || str.includes("\n")
         ? `"${str.replace(/"/g, '""')}"`
         : str;

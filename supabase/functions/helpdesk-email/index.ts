@@ -51,7 +51,11 @@ async function sendEmail(opts: {
   }
 
   // No SMTP configured — log so the issue is visible in edge function logs
-  console.warn(`[helpdesk-email] SMTP not configured — would send to ${opts.to}: ${opts.subject}`)
+  console.warn("[helpdesk-email] SMTP not configured — email not sent")
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string))
 }
 
 function followupBreachHtml(opts: {
@@ -68,8 +72,8 @@ function followupBreachHtml(opts: {
 <body style="font-family:sans-serif;background:#f9fafb;margin:0;padding:32px 16px">
   <div style="max-width:540px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e5e7eb;padding:32px">
     <h2 style="color:#dc2626;margin-top:0">⚠ ${label}</h2>
-    <p style="color:#374151">Ticket <strong>${opts.ticketNumber}</strong> — <em>${opts.subject}</em> — has exceeded its SLA deadline and requires immediate attention.</p>
-    <a href="${opts.viewUrl}" style="display:inline-block;padding:10px 20px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">Open Ticket</a>
+    <p style="color:#374151">Ticket <strong>${escapeHtml(opts.ticketNumber)}</strong> — <em>${escapeHtml(opts.subject)}</em> — has exceeded its SLA deadline and requires immediate attention.</p>
+    <a href="${escapeHtml(opts.viewUrl)}" style="display:inline-block;padding:10px 20px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">Open Ticket</a>
     <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
     <p style="color:#9ca3af;font-size:12px;margin:0">${SITE_NAME} Helpdesk — automated SLA alert</p>
   </div>
