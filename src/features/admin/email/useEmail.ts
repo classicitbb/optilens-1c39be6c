@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { emailBridge, getEmailBridgeUrl } from "@/lib/emailBridge";
 
@@ -20,6 +20,17 @@ export function useEmailFolders(account: string | null) {
     queryFn: () => emailBridge.folders(account as string),
     enabled: Boolean(account),
     refetchInterval: REFRESH_MS,
+  });
+}
+
+/** Folder lists for several mailboxes at once; shares the cache with useEmailFolders. */
+export function useEmailFolderSets(accounts: string[]) {
+  return useQueries({
+    queries: accounts.map((account) => ({
+      queryKey: ["email", "folders", account],
+      queryFn: () => emailBridge.folders(account),
+      refetchInterval: REFRESH_MS,
+    })),
   });
 }
 
