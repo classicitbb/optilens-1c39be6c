@@ -140,7 +140,7 @@ async function enqueueWelcomeEmail(
     }, corsHeaders)
   }
 
-  console.log('customer-onboarding: welcome email sent', { messageId, email })
+  console.log('customer-onboarding: welcome email sent', { messageId })
 
   return jsonResponse(200, {
     success: true,

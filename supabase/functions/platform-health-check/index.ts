@@ -81,7 +81,7 @@ const probeSlaSchema = async (db: any): Promise<Check> => {
   return {
     name: "helpdesk-sla-schema",
     healthy: !error,
-    error: error ? error.message : null,
+    error: error ? "schema probe failed" : null,
     checkedAt: now(),
   };
 };
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       failed: failures.length,
       checks,
       recorded: !recordError,
-      recordError: recordError?.message ?? null,
+      recordError: recordError ? "record failed" : null,
     }),
     { status: 200, headers },
   );

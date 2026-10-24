@@ -607,7 +607,8 @@ async function handleClientRequest(req: Request, body: JsonObject) {
           p_user_id: auth.user.id,
         });
       if (statementAccessError) {
-        return json(req, { error: "Could not verify statement access.", detail: statementAccessError.message }, 500);
+        console.error("[live-data-gateway] statement access check failed", statementAccessError.message);
+        return json(req, { error: "Could not verify statement access." }, 500);
       }
       if (canAccessStatement !== true) {
         return json(req, { error: "Statements are available only to contacts tagged Approved Access to Statement or CEO." }, 403);
