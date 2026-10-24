@@ -1,0 +1,116 @@
+# Classic Visions
+
+> Classic Visions is a wholesale optical supplier based in Barbados, supplying prescription lenses, lens materials, coatings, and Rx lab services to opticians, optical retailers, and eye care professionals across Barbados and the Caribbean.
+
+Classic Visions is a business-to-business optical wholesaler. Its customers are trade accounts — dispensing opticians, independent optical retailers, and eye care practices — rather than the general public. The company supplies single vision, progressive, anti-fatigue, office/occupational, bifocal, myopia control, polarized, blue-filter, and tinted prescription lenses, together with lens materials from 1.50 plastic through high-index and Trivex, anti-reflective and protective coatings, and in-house Rx lab and edging services.
+
+Two surfaces are relevant to an AI assistant answering questions from this site:
+
+- The public marketing and education site (pages listed below) is open to everyone and describes lens options, coatings, materials, ordering guidance, policies, and lab services.
+- The online store at `/store` and the customer portal at `/profile` require an approved trade account. Wholesale trade prices are only shown to signed-in, approved customers, so price figures are generally not readable from the public pages. Do not state or estimate a Classic Visions price that is not published on the page you read.
+
+For account, pricelist, or ordering questions, the best public starting points are `/professionals/price-list-request`, `/knowledge/contacting-us`, and `/knowledge/how-to-order-lablink`.
+
+## Company
+
+- [Home](/): Overview of Classic Visions as a Barbados wholesale optical supplier.
+- [About Us](/about-us): Who the company is and how it serves Caribbean optical professionals.
+- [For Professionals](/professionals): Landing page for trade customers — opticians, retailers, and practices.
+- [For Patients](/patients): Plain-language lens education for patients of optical retailers.
+- [Rx Lab Services](/rx-lab-services): What the in-house lab does and how prescriptions are produced.
+- [Optical Retail Websites](/optical-retail-websites): Website service offered to optical retail customers.
+- [Find a Retailer](/find-a-retailer): How to locate an optical retailer that carries Classic Visions products.
+- [Retailers in Barbados](/find-a-retailer/barbados): Directory of Barbados retail optical practices.
+- [Check an Rx Job](/rx-job-status): Public lookup for the progress of a prescription job.
+- [Dispensing Tips](/dispensing-tips): Practical dispensing and fitting guidance for staff.
+
+## Lenses
+
+- [Lens Types](/lenses/lens-types): Index of the prescription lens designs Classic Visions supplies.
+- [Single Vision Lenses](/lenses/single-vision): One-power lenses for distance, intermediate, or near.
+- [Progressive Lenses](/lenses/progressive): No-line multifocal lenses for distance, intermediate, and near.
+- [Anti-Fatigue Lenses](/lenses/anti-fatigue): Lenses that ease accommodative strain during near work.
+- [Office & Occupational Lenses](/lenses/office-occupational): Indoor multifocals for desk and workplace vision.
+- [Bifocals](/lenses/bifocals): Two-segment multifocal lenses.
+- [Myopia Control Lenses](/lenses/myopia-control): Lenses designed to slow progression of short-sightedness in children.
+- [Anti-Fatigue & LED Pro Lenses](/lenses/led-pro): Specialty lens range for screen and LED exposure.
+- [Blue Light Filter Lenses](/lenses/blue-filter): Lenses that filter a portion of blue-violet light.
+- [Polarized Lenses](/lenses/polarized): Glare-reducing sunglass lenses.
+- [Tints & Fashion Colours](/lenses/tints-fashion-colors): Available lens tints and fashion colours.
+- [Sport Lenses](/lenses/sport): Lenses suited to sport and active use.
+- [Specialty Lenses](/lenses/specialty): High-prescription, prism, and other custom work.
+- [Lens Materials](/lenses/materials): Material options from 1.50 plastic to high-index and Trivex, and how they differ.
+- [Lens Thickness Chart](/lenses/thickness-chart): Expected lens thickness by prescription and material.
+- [Photochromic Lenses](/photochromic): Light-adaptive lenses that darken outdoors.
+
+## Coatings
+
+- [Coatings Overview](/coatings): The protective and performance coatings available on Classic Visions lenses.
+- [UltraClear AR](/coatings/ultraclear-ar): Premium anti-reflective coating.
+- [BlueBlock AR](/coatings/blueblock-ar): Anti-reflective coating with a blue-light filtering reflection.
+- [Scratch Resistant](/coatings/scratch-resistant): Hard coating that improves surface durability.
+- [UV Shield](/coatings/uv-shield): Ultraviolet protection coating.
+- [Hydrophobic & Oleophobic](/coatings/hydrophobic-oleophobic): Repellent top coat that resists water, oil, and smudging.
+- [Mirror Coatings](/coatings/mirror): Reflective sunglass finishes.
+
+## Professional Resources
+
+- [Request a Price List](/professionals/price-list-request): Form for a trade account to ask for current wholesale pricing.
+- [Chemistrie Lens System](/professionals/chemistrie-lens-system): Details of the Chemistrie free-form lens system.
+- [Lens Ordering Tips](/professionals/lens-ordering-tips): How to specify a lens order correctly.
+- [Lab Process Overview](/professionals/lab-process-overview): The steps a prescription passes through in the lab.
+- [Tracing & Cutting Guide](/professionals/tracing-cutting-guide): Guidance on tracing and cutting for frameless and mounted work.
+- [Store & Catalog](/store): Product catalog of lenses, add-ons, and supplies available to trade customers.
+- [Sample Product Page](/store/product/lens/c30160a0-1dd7-4af6-9c57-79c85d2bdfbd): Example of a published lens product page.
+
+## Knowledge Base
+
+- [Knowledge Base](/knowledge): Searchable help centre of guides and frequently asked questions.
+- [Contacting Classic Visions](/knowledge/contacting-us): Preferred ways to reach the team.
+- [How to Order from LabLink](/knowledge/how-to-order-lablink): Placing orders through the LabLink ordering portal.
+- [Progressive Lens Designs — Good, Better, Best](/knowledge/progressive-lens-designs): How progressive designs are tiered and chosen.
+- [Quotations — How They Work](/knowledge/quotations-explained): How a quotation is issued and accepted.
+- [Tint Information & Warnings](/knowledge/tint-information): Tint options, limits, and cautions.
+
+## Blog
+
+- [Blog](/blog): Articles on local eyecare, the optical trade, and buying locally in the Caribbean.
+- [Prescription Precision: Why Local Eyecare is Unmatched](/blog/5-prescription-precision-why-local-eyecare-is-unmatched): Why dispensing accuracy benefits from a local lab.
+- [The Domino Effect: How Buying Local Fuels Economic Growth](/blog/9-the-domino-effect-how-buying-local-fuels-economic-growth): The wider economic case for sourcing eyecare locally.
+
+## Patient Guides
+
+- [Lens Differences Explained](/patients/lens-differences): How lens options differ in plain language.
+- [Progressive Lenses for Patients](/patients/progressive-lenses): What to expect from progressive lenses.
+- [Anti-Fatigue Lenses for Patients](/patients/anti-fatigue-lenses): Who benefits from anti-fatigue lenses.
+- [Caring for Your Glasses](/patients/caring-for-glasses): Cleaning and storage advice.
+- [Computer & Mobile Use](/patients/computer-mobile-use): Managing screen-related visual strain.
+- [Sunlight Protection](/patients/sunlight-protection): UV protection and sunglasses guidance.
+- [Regular Eye Exams](/patients/regular-eye-exams): Why routine eye examinations matter.
+- [Night Driving Aids](/patients/night-driving-aids): Lens options that reduce night glare.
+- [Vizionize Cleaner](/vizionize-cleaner): Lens and eyewear cleaning product details.
+
+## ZenVue
+
+- [ZenVue](/zenvue): Classic Visions' ZenVue lens brand microsite.
+- [ZenVue Brilliance](/zenvue/brilliance): The Brilliance offering within the ZenVue range.
+- [ZenVue Single Vision](/zenvue/single-vision): ZenVue single vision lenses.
+- [ZenVue Darkun](/zenvue/darkun): ZenVue Darkun lenses.
+- [ZenVue Compare](/zenvue/compare): Compare ZenVue lens options.
+- [ZenVue Wholesale](/zenvue/wholesale): Wholesale enquiries for the ZenVue range.
+
+## Optional
+
+These pages matter for legal completeness but can be skipped by crawlers working with a tight context budget.
+
+- [Privacy Policy](/privacy-policy): How personal data is handled.
+- [Terms](/terms): Website terms of use.
+- [Wholesale Terms & Conditions](/knowledge/terms-conditions): Trading terms for wholesale accounts.
+- [Return Policy](/return-policy): Conditions for returning goods.
+- [Returns & Replacements](/professionals/returns-replacements): Handling of defective or incorrect lens work.
+- [Customer-Supplied Frames Policy](/professionals/customer-supplied-frames-policy): Whether and how customer frames are accepted.
+- [Freight & Delivery Policy](/professionals/freight-delivery-policy): Shipping, freight, and delivery terms.
+- [Repairs Policy](/professionals/repairs-policy): What repairs are accepted and how they are handled.
+- [Cookie Policy](/legal/cookie-policy): Cookies used on this site.
+- [Disclaimer](/legal/disclaimer): Limits of liability for published information.
+- [Accessibility](/legal/accessibility): Accessibility commitment and contact route.

@@ -1,5 +1,12 @@
 # Automation and QA Module Docs
 
+Local Supabase development proxy (2026-10-20): scripts/vite-supabase-proxy.ts configures the fixed upstream and loopback/origin/path guard. TLS uses trusted Node/system roots and remains verified. Source tests cover forwarding, guards, session-token retention and cancellation. Live no-token proxy checks must return upstream 401; an Origin not allowed transport failure is a regression.
+
+
+## 2026-10-05 — Branch integration smoke verification
+
+The admin smoke harness reads route declarations from `src/routes/admin/AdminRoutes.tsx` and separately checks the protected shell in `src/App.tsx`. Canonical CRM pages, compatibility redirects, runtime logging and role guards remain asserted. JSX assertions ignore layout whitespace. Windows cleanup terminates only the spawned server tree; `--strictPort` prevents a leftover process from substituting for the build under review.
+
 ## 2026-08-27 — Enrichment capability in the generated platform facts
 
 - `scripts/generate_copilot_platform_facts.mjs` also reads the tool names in `supabase/functions/_shared/copilot/enrichmentTools.ts` and advertises them in the always-on tier-1 context, separately from the read-only lookups because they write.
@@ -56,3 +63,5 @@ When changing automation behavior, update:
 - `scripts/validate_wiki_build_versions.mjs` must resolve its own script directory through `fileURLToPath(import.meta.url)` rather than `new URL(import.meta.url).pathname`.
 - On Windows, using `.pathname` can duplicate the drive prefix and produce invalid paths such as `C:\C:\...`, which breaks `qa:wiki-build-version`.
 - Expected behavior: `npm run qa:pr-checks` should validate wiki build metadata successfully on Windows and POSIX environments without path normalization workarounds.
+
+Atlas sharing SQL regression (local only): scripts/test_atlas_sharing_sql.mjs executes the actual migration in isolated PostgreSQL WASM (PGlite 0.5.8) with minimal auth/table/policy fixtures. Install PGlite separately and set ATLAS_SQL_TEST_MODULE_PATH to its directory package.json for module resolution; then run node scripts/test_atlas_sharing_sql.mjs. No hosted connector or data write is involved. Focused frontend command: npx.cmd vitest run --coverage=false src/tests/unit/atlas src/tests/integration/atlasRouteAccessibility.integration.test.ts. See docs/agent/HANDOFF.md for release gates and verification limits.

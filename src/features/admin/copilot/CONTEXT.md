@@ -61,6 +61,9 @@ the admin's tool and approval policy remains specific to this workspace.
 - `supabase/functions/_shared/copilot/platformTools.ts` — `get_platform_facts`, the on-demand capability detail.
 - `scripts/generate_copilot_platform_facts.mjs` — the generator behind `npm run copilot:facts`.
 - `supabase/functions/_shared/copilot/enrichmentTools.ts` — enrich_contact, list_enrichment_findings, queue_enrichment_approvals.
+- `supabase/functions/_shared/copilot/helpdeskTools.ts` — create_support_ticket: opens the ticket, its timeline event and a completed action carrying the ticket id. Sends no email.
+- `src/features/admin/copilot/recordLinks.ts` — maps a completed action's result to the record's admin route, so the chat can link straight to it.
+- `supabase/migrations/20260908120000_copilot_helpdesk_ticket_action.sql` — create_support_ticket action type and helpdesk_ticket workflow row (pending deployment).
 - `supabase/functions/_shared/enrichment/contactEnrichment.ts` — the shared field policy.
 - `supabase/functions/crm-enrich-contacts/index.ts` — scheduled and manual batch driver.
 - `supabase/migrations/20260827140000_crm_contact_enrichment.sql` — provenance tables and write RPCs.

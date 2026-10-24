@@ -76,14 +76,15 @@ const AccountLayout = () => {
 
   const visibleEmulation = portalSessionEmulation ?? emulation;
   const displayName = visibleEmulation ? capitalizeDisplayName(visibleEmulation.label, "Customer") : getDisplayName(user?.email);
+  const isRxOrder = location.pathname === "/profile/rx-order";
 
   return (
-    <div className="h-dvh overflow-y-auto bg-background">
+    <div className={isRxOrder ? "flex h-dvh flex-col overflow-hidden bg-background" : "h-dvh overflow-y-auto bg-background"}>
       <EmulationBanner />
       <AccountTopBar displayName={displayName} onSignOut={signOut} />
 
-      <div className="flex w-full gap-6 px-4 py-6 sm:px-6 xl:px-8 2xl:px-10">
-        <aside className={`sticky top-16 hidden shrink-0 self-start border-r pr-4 transition-[width] lg:block ${sidebarCollapsed ? "w-14" : "w-64 xl:w-72 xl:pr-6"}`}>
+      <div className={`flex w-full gap-6 px-4 py-6 sm:px-6 xl:px-8 2xl:px-10 ${isRxOrder ? "min-h-0 flex-1 overflow-hidden" : ""}`}>
+        <aside className={`${isRxOrder ? "relative" : "sticky top-16"} hidden shrink-0 self-start border-r pr-4 transition-[width] lg:block ${sidebarCollapsed ? "w-14" : "w-64 xl:w-72 xl:pr-6"}`}>
           <AccountSidebar pathname={location.pathname} collapsed={sidebarCollapsed} />
           <Tooltip>
             <TooltipTrigger asChild>
@@ -106,7 +107,7 @@ const AccountLayout = () => {
           </Tooltip>
         </aside>
 
-        <main className="mx-auto min-w-0 w-full max-w-[1280px] flex-1">
+        <main className={`mx-auto min-w-0 w-full flex-1 ${isRxOrder ? "flex min-h-0 max-w-[1200px] flex-col" : "max-w-[1280px]"}`}>
           <Outlet />
         </main>
       </div>

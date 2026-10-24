@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle2, HelpCircle, Loader2, MailWarning, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle2, HelpCircle, Loader2, MailWarning, RefreshCw, Send } from "lucide-react";
+import ResendEmailDialog from "@/components/admin/ResendEmailDialog";
 
 // Reads the shared email_send_log audit trail (via docstudio-api, since that
 // table is service-role-only) to answer "is support@classicvisions.net
@@ -18,6 +20,7 @@ type LogRow = {
   status: string;
   error_message: string | null;
   created_at: string;
+  can_resend?: boolean;
 };
 
 type HealthResponse = {
@@ -42,6 +45,7 @@ const STATUS_META: Record<HealthResponse["status"], { label: string; className: 
 
 export default function EmailDeliveryHealthCard() {
   const { toast } = useToast();
+  const [resendId, setResendId] = useState<string | null>(null);
 
   const { data, isLoading, isRefetching, error, refetch } = useQuery({
     queryKey: ["email-delivery-health"],
@@ -65,27 +69,39 @@ export default function EmailDeliveryHealthCard() {
 
   const meta = data ? STATUS_META[data.status] : STATUS_META.no_data;
   const StatusIcon = meta.icon;
+  const failed24h = (data?.counts24h.failed ?? 0) + (data?.counts24h.dlq ?? 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <StatusIcon className="h-4 w-4" /> Email delivery status
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={meta.className}>{meta.label}</Badge>
-            <Button variant="outline" size="sm" onClick={() => void recheck()} disabled={isLoading || isRefetching}>
-              <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
-              Recheck
-            </Button>
+    <>
+    <Accordion type="single" collapsible className="rounded-lg border">
+      <AccordionItem value="email-delivery-status" className="border-none">
+        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+          <div className="flex flex-1 flex-wrap items-center justify-between gap-2 pr-2">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <StatusIcon className="h-4 w-4" /> Email delivery status
+              <Badge variant="outline" className={meta.className}>{meta.label}</Badge>
+            </span>
+            {!isLoading && (
+              <span className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="text-emerald-700">{data?.counts24h.sent ?? 0} sent</span>
+                <span className={failed24h > 0 ? "text-red-600" : ""}>{failed24h} failed</span>
+                <span>{data?.counts24h.pending ?? 0} pending</span>
+                <span className="hidden sm:inline">Last sent: {fmt(data?.lastSentAt)}</span>
+              </span>
+            )}
           </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Live status for outbound mail from {data?.sender ?? "support@classicvisions.net"} — shared by Doc Studio's email tool, contact forms, and every transactional email.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => void recheck()} disabled={isLoading || isRefetching}>
+            <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isRefetching ? "animate-spin" : ""}`} />
+            Recheck
+          </Button>
         </div>
-        <CardDescription>
-          Live status for outbound mail from {data?.sender ?? "support@classicvisions.net"} — shared by Doc Studio's email tool, contact forms, and every transactional email.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+        <div className="space-y-3 text-sm">
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Checking delivery status…
@@ -135,10 +151,14 @@ export default function EmailDeliveryHealthCard() {
                         <th className="px-3 py-2 font-medium">Recipient</th>
                         <th className="px-3 py-2 font-medium">Source</th>
                         <th className="px-3 py-2 font-medium">Status</th>
+                        <th className="px-3 py-2 font-medium"><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
                     <tbody>
-                    {data.recent.map((row) => {
+                    {data.recent.map((row, index) => {
+                      // The log has one row per status change; offer resend on the latest only.
+                      const canResend = !!row.message_id && !!row.can_resend && row.status !== "pending"
+                        && data.recent.findIndex((r) => r.message_id === row.message_id) === index;
                       const isError = ["failed", "dlq", "bounced", "complained"].includes(row.status);
                       return (
                         <tr key={`${row.message_id ?? row.created_at}-${row.recipient_email}-${row.status}-${row.created_at}`} className="border-t align-top">
@@ -148,6 +168,13 @@ export default function EmailDeliveryHealthCard() {
                           <td className={`px-3 py-2 ${isError ? "text-red-600" : row.status === "sent" ? "text-emerald-700" : ""}`}>
                             <span className="font-semibold capitalize">{row.status}</span>
                             {isError && row.error_message && <span className="mt-0.5 block font-normal text-[11px] text-red-500">{row.error_message}</span>}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {canResend && (
+                              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setResendId(row.message_id)}>
+                                <Send className="mr-1.5 h-3 w-3" />Resend
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -159,7 +186,11 @@ export default function EmailDeliveryHealthCard() {
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+        </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+    <ResendEmailDialog key={resendId} messageId={resendId} onClose={() => setResendId(null)} />
+    </>
   );
 }

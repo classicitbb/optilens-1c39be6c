@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { helpdeskAttachmentQueryKeys } from "@/features/admin/helpdesk/hooks/useHelpdeskAttachments";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,9 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import ContactPickerSelect from "@/components/admin/ContactPickerSelect";
 import InlineDictationButton from "@/components/admin/InlineDictationButton";
+import TidySuggestionChip from "@/components/admin/TidySuggestionChip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateHelpdeskTicket } from "@/features/admin/helpdesk/hooks/useCreateHelpdeskTicket";
 import { useToast } from "@/hooks/use-toast";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import { uploadHelpdeskFiles } from "@/lib/helpdeskAttachments";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TeamOption {
@@ -37,6 +42,11 @@ interface PriorityOption {
 interface CreateHelpdeskTicketDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-selects the initial stage (e.g. the kanban column the "+" was clicked in). */
+  defaultStageId?: string;
+  /** Pre-fills the form each time the dialog opens (e.g. a question raised from an order). */
+  initialValues?: { title?: string; description?: string; contactId?: string; notifyContacts?: boolean };
+  onCreated?: (ticketId: string) => void;
 }
 
 const EMPTY_TEAMS: TeamOption[] = [];
@@ -44,11 +54,47 @@ const EMPTY_STAGES: StageOption[] = [];
 const EMPTY_TICKET_TYPES: TicketTypeOption[] = [];
 const EMPTY_PRIORITIES: PriorityOption[] = [];
 
-export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: CreateHelpdeskTicketDialogProps) {
+// ── localStorage helpers for "last two consistent creations" ──
+const HISTORY_KEY = "helpdesk_create_history";
+
+interface CreateSnapshot {
+  teamId: string;
+  stageId: string;
+  priority: string;
+  ticketTypeId: string;
+}
+
+function loadHistory(): CreateSnapshot[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? (JSON.parse(raw) as CreateSnapshot[]).slice(0, 2) : [];
+  } catch { return []; }
+}
+
+function pushHistory(snapshot: CreateSnapshot) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify([snapshot, ...loadHistory()].slice(0, 2)));
+  } catch { /* storage unavailable: defaults just won't be remembered */ }
+}
+
+/** If the last two creations share the same value for a field, return it. */
+function consistentDefault(field: keyof CreateSnapshot): string | undefined {
+  const hist = loadHistory();
+  if (hist.length < 2) return hist[0]?.[field] || undefined;
+  return hist[0][field] === hist[1][field] ? hist[0][field] || undefined : undefined;
+}
+
+export default function CreateHelpdeskTicketDialog({ open, onOpenChange, defaultStageId, initialValues, onCreated }: CreateHelpdeskTicketDialogProps) {
+  const initialTitle = initialValues?.title ?? "";
+  const initialDescription = initialValues?.description ?? "";
+  const initialContactId = initialValues?.contactId ?? "";
+  const initialNotify = initialValues?.notifyContacts ?? false;
   const { user } = useAuth();
   const { toast } = useToast();
+  const qc = useQueryClient();
   const createTicket = useCreateHelpdeskTicket();
   const titleRef = useRef<HTMLInputElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -58,6 +104,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
     contactId: "",
     ticketTypeId: "",
     dueDate: "",
+    notifyContacts: false,
   });
 
   const { data: teams = EMPTY_TEAMS } = useQuery({
@@ -96,24 +143,46 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
     },
   });
 
+  // Who a ticket reaches: a company contact means the whole account, a person
+  // contact means that person only (see helpdesk_contact_recipients).
+  const { data: audience } = useQuery({
+    queryKey: ["helpdesk", "ticket-audience", form.contactId],
+    enabled: open && !!form.contactId,
+    queryFn: async () => {
+      const [{ data: contact, error: contactError }, { data: recipients, error: recipientsError }] = await Promise.all([
+        (supabase as any).from("contacts").select("is_company").eq("id", form.contactId).maybeSingle(),
+        (supabase.rpc as any)("helpdesk_contact_recipients", { p_contact_id: form.contactId }),
+      ]);
+      if (contactError) throw contactError;
+      if (recipientsError) throw recipientsError;
+      return {
+        isCompany: !!contact?.is_company,
+        recipients: (recipients ?? []) as Array<{ email: string; name: string | null }>,
+      };
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
 
+    setFiles([]);
     setForm({
-      title: "",
-      description: "",
-      teamId: "",
-      stageId: stages.find((stage) => !stage.is_closed)?.id ?? "",
-      priority: priorities.length > 0 ? String(priorities[0].level) : "1",
-      contactId: "",
-      ticketTypeId: "",
+      title: initialTitle,
+      description: initialDescription,
+      teamId: consistentDefault("teamId") ?? "",
+      stageId: defaultStageId ?? consistentDefault("stageId") ?? stages.find((stage) => !stage.is_closed)?.id ?? "",
+      priority: consistentDefault("priority") ?? (priorities.length > 0 ? String(priorities[0].level) : "1"),
+      contactId: initialContactId,
+      ticketTypeId: consistentDefault("ticketTypeId") ?? "",
       dueDate: "",
+      notifyContacts: initialNotify,
     });
     const focusTimer = window.setTimeout(() => titleRef.current?.focus(), 80);
     return () => window.clearTimeout(focusTimer);
-  }, [open, priorities, stages]);
+  }, [open, priorities, stages, defaultStageId, initialTitle, initialDescription, initialContactId, initialNotify]);
 
   const handleCreate = async () => {
+    if (createTicket.isPending) return;
     if (!form.title.trim()) {
       toast({ title: "Ticket title is required", variant: "destructive" });
       titleRef.current?.focus();
@@ -121,7 +190,7 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
     }
 
     try {
-      await createTicket.mutateAsync({
+      const ticketId = await createTicket.mutateAsync({
         title: form.title,
         description: form.description,
         teamId: form.teamId || null,
@@ -132,7 +201,21 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
         ticketTypeId: form.ticketTypeId || null,
         deadline: form.dueDate ? new Date(`${form.dueDate}T00:00:00`).toISOString() : null,
         sourceChannel: "manual",
+        notifyContact: !!form.contactId && form.notifyContacts,
       });
+      pushHistory({ teamId: form.teamId, stageId: form.stageId, priority: form.priority, ticketTypeId: form.ticketTypeId });
+      onCreated?.(ticketId);
+      if (files.length) {
+        // The ticket exists already; report a failed upload without losing it.
+        try {
+          await uploadHelpdeskFiles(ticketId, files);
+          qc.invalidateQueries({ queryKey: helpdeskAttachmentQueryKeys.list(ticketId) });
+        } catch (uploadError) {
+          toast({ title: "Ticket created, but attachments failed", description: (uploadError as Error).message, variant: "destructive" });
+          onOpenChange(false);
+          return;
+        }
+      }
       toast({ title: "Ticket created" });
       onOpenChange(false);
     } catch (error) {
@@ -172,21 +255,54 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
 
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Title *</Label>
-            <Input ref={titleRef} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ticket title" className="h-8 text-xs" />
+            <div className="relative">
+              <Input ref={titleRef} value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ticket title" className="h-8 pr-10 text-xs" />
+              <InlineDictationButton ariaLabel="Dictate ticket title" position="center" trimTrailingPeriod onValueChange={(title) => setForm((current) => ({ ...current, title }))} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+            </div>
+            <TidySuggestionChip kind="title" value={form.title} onApply={(title) => setForm((current) => ({ ...current, title }))} />
           </div>
 
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Contact</Label>
             <ContactPickerSelect value={form.contactId} onValueChange={(contactId) => setForm((current) => ({ ...current, contactId }))} placeholder="Contact" />
+            {form.contactId && audience ? (
+              <p className="text-[11px] text-muted-foreground">
+                {audience.isCompany
+                  ? "Whole account: every contact and portal user of this company can see it."
+                  : "Only this person can see it; colleagues at their company cannot."}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="helpdesk-notify-contacts"
+                checked={form.notifyContacts}
+                disabled={!form.contactId}
+                onCheckedChange={(checked) => setForm((current) => ({ ...current, notifyContacts: checked === true }))}
+              />
+              <Label htmlFor="helpdesk-notify-contacts" className="text-xs">Notify contact{audience?.isCompany ? "s" : ""} by email</Label>
+            </div>
+            {form.contactId && form.notifyContacts && audience ? (
+              <p className="text-[11px] text-muted-foreground">
+                {audience.recipients.length
+                  ? `Emails ${audience.recipients.map((recipient) => recipient.name || recipient.email).join(", ")}. The title goes in the subject; details stay behind sign-in.`
+                  : "No email address on file for this contact, so no email will be sent."}
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Description</Label>
             <div className="relative">
-              <Textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Brief description" className="min-h-[96px] pr-11 text-xs" />
+              <Textarea value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Brief description" className="min-h-[96px] pb-9 pr-11 text-xs" />
               <InlineDictationButton ariaLabel="Dictate ticket description" onValueChange={(description) => setForm((current) => ({ ...current, description }))} vocabulary="Classic Visions, Helpdesk, ticket, customer, Innovations, ERP, lens" />
+              <TidySuggestionChip value={form.description} onApply={(description) => setForm((current) => ({ ...current, description }))} className="absolute bottom-1.5 left-2 z-10" />
             </div>
           </div>
+
+          <HelpdeskImageAttachments key={String(open)} ticketId="" attachments={[]} onFilesChange={setFiles} disabled={createTicket.isPending} />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
@@ -224,7 +340,8 @@ export default function CreateHelpdeskTicketDialog({ open, onOpenChange }: Creat
             </div>
           </div>
 
-          <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} disabled={createTicket.isPending}>
+          {/* aria-disabled, not disabled: a disabled focused button drops focus to <body>, which a parent dialog treats as a dismiss. */}
+          <Button size="sm" className="h-9 w-full text-xs" onClick={() => void handleCreate()} aria-disabled={createTicket.isPending}>
             {createTicket.isPending ? "Creating…" : "Create Ticket"}
           </Button>
         </div>

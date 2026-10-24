@@ -1,5 +1,12 @@
 # Developer Workflow Help
 
+Local data access (2026-10-20): run `npm run dev -- --host 127.0.0.1 --port 5173` and sign in normally. Supabase HTTP traffic uses the local same-origin proxy on any loopback port, forwarding only your existing session permissions. VITE_SUPABASE_URL remains the configured project; do not paste keys into source or disable TLS verification. Node 22 can add the OS trust store when a trusted enterprise CA is installed. Static production builds retain their direct backend URLs.
+
+
+## 2026-10-05 — Reviewing branch integration
+
+Run `npm run qa:smoke` with the lockfile dependencies installed and its selected port free. It verifies the modular admin router and exits after cleaning up its own preview process tree. On a Windows CRLF checkout, regenerate platform facts, public search index and release ledger before drift checks; review Git diffs before committing generated output. See `docs/agent/OPEN_BRANCH_REVIEW.md` for integration evidence and publication boundaries.
+
 ## Contact enrichment scheduling
 
 The two pg_cron jobs in `20260827140500_crm_contact_enrichment_schedule.sql` stay dormant until both vault secrets exist:
@@ -98,3 +105,5 @@ Then confirm with a **separate** `SELECT` after the commit. The `UPDATE`'s own `
 Do not disable the trigger to force a write. If an Innovations sync runs while it is off, curated CRM values are overwritten wholesale from the ERP.
 
 Application code is unaffected: authenticated admin/staff sessions carry a real role claim, so the Contacts and Customers screens write normally. This only bites out-of-band SQL.
+
+Atlas sharing SQL regression (local only): scripts/test_atlas_sharing_sql.mjs executes the actual migration in isolated PostgreSQL WASM (PGlite 0.5.8) with minimal auth/table/policy fixtures. Install PGlite separately and set ATLAS_SQL_TEST_MODULE_PATH to its directory package.json for module resolution; then run node scripts/test_atlas_sharing_sql.mjs. No hosted connector or data write is involved. Focused frontend command: npx.cmd vitest run --coverage=false src/tests/unit/atlas src/tests/integration/atlasRouteAccessibility.integration.test.ts. See docs/agent/HANDOFF.md for release gates and verification limits.

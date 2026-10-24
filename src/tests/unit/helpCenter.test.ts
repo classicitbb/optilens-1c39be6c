@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContentArticle } from "@/hooks/useContentArticles";
-import type { HelpArticle } from "@/hooks/useHelpArticles";
-import type { WikiHeading } from "@/hooks/useWikiHeadings";
 import {
-  buildAdminHelpCenterTree,
   buildPublicHelpCenterTree,
   composeHelpEntrySummary,
   extractCanonicalHeadings,
@@ -29,28 +26,6 @@ const createContentArticle = (overrides: Partial<ContentArticle> = {}): ContentA
   created_at: "2026-01-01T00:00:00.000Z",
   updated_at: "2026-01-02T00:00:00.000Z",
   status: "published",
-  ...overrides,
-});
-
-const createHelpArticle = (overrides: Partial<HelpArticle> = {}): HelpArticle => ({
-  id: "help-1",
-  title: "Lens fitting checklist",
-  content: "<h1>Lens fitting checklist</h1>",
-  body_json: null,
-  page_slug: "knowledge/wiki",
-  context_slugs: ["knowledge/wiki"],
-  category: "professional-resources",
-  sort_order: 0,
-  is_active: true,
-  status: "draft",
-  slug: "lens-fitting-checklist",
-  summary: "Checklist summary",
-  parent_id: null,
-  section_id: "heading-1",
-  version_number: 1,
-  published_at: null,
-  created_at: "2026-01-01T00:00:00.000Z",
-  updated_at: "2026-01-02T00:00:00.000Z",
   ...overrides,
 });
 
@@ -87,30 +62,6 @@ describe("helpCenter", () => {
       kind: "link",
       href: "/patients/progressive-lenses",
     });
-  });
-
-  it("builds the admin tree from headings and parent-child article relationships", () => {
-    const headings: WikiHeading[] = [
-      { id: "heading-1", title: "Professional Resources", slug: "professional-resources", sort_order: 0 },
-    ];
-
-    const parent = createHelpArticle();
-    const child = createHelpArticle({
-      id: "help-2",
-      title: "Dispensing tips",
-      slug: "dispensing-tips",
-      parent_id: "help-1",
-      section_id: "heading-1",
-      sort_order: 1,
-    });
-
-    const tree = buildAdminHelpCenterTree(headings, [parent, child]);
-    const section = tree.sections[0];
-    const parentNode = tree.nodeBySlug.get("lens-fitting-checklist");
-
-    expect(section?.title).toBe("Professional Resources");
-    expect(section?.children[0]?.id).toBe("help-1");
-    expect(parentNode?.children[0]?.slug).toBe("dispensing-tips");
   });
 
   it("extracts table-of-contents headings from canonical content", () => {

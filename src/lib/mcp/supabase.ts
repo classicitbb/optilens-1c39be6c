@@ -70,6 +70,24 @@ export async function currentUserId(ctx: ToolContext): Promise<string | undefine
   return data?.user?.id;
 }
 
+/**
+ * Resolves the caller's financial-data capability so MCP tools gate financial
+ * resources exactly like the Portal Copilot does. Fails closed on any error.
+ */
+export async function callerCanAccessFinancialData(ctx: ToolContext): Promise<{ canAccessFinancialData: boolean }> {
+  try {
+    const db = supabaseForUser(ctx);
+    const { data: userData } = await db.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) return { canAccessFinancialData: false };
+    const { data, error } = await db.rpc("can_access_financial_data", { p_user_id: userId });
+    if (error) return { canAccessFinancialData: false };
+    return { canAccessFinancialData: data === true };
+  } catch {
+    return { canAccessFinancialData: false };
+  }
+}
+
 export const notAuthenticated = {
   content: [{ type: "text" as const, text: "Not authenticated." }],
   isError: true as const,

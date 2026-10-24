@@ -49,4 +49,9 @@ describe("rx orderable addon rule", () => {
   it("excludes an inactive addon", () => {
     expect(isRxOrderableAddon({ is_active: false })).toBe(false);
   });
+
+  it("keeps frame repairs out of the prescription treatments", () => {
+    expect(isRxOrderableAddon({ is_active: true, category: "repairs" })).toBe(false);
+    expect(isRxOrderableAddon({ is_active: true, category: "ar_coating" })).toBe(true);
+  });
 });

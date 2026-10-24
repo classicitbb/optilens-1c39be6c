@@ -1,5 +1,148 @@
 # Frontend Help Docs
 
+## 2026-10-22 - PDF and spreadsheet previews
+
+On a computer, PDFs now open in your browser's own viewer, so you can search, print and use page thumbnails. On phones and tablets the existing page-by-page viewer is used. In admin email, open a CSV or Excel (.xlsx) attachment to see it as a grid; click a sheet tab at the bottom to switch sheets. On helpdesk tickets, click a CSV or Excel attachment to preview it. Previews show the first 200 rows and 40 columns; download the file for the rest. Older .xls files can only be downloaded.
+
+## 2026-10-22 - CI repair
+
+No visible change for staff. The Rx Orders workspace still opens on At lab, and sign-in through the OAuth broker keeps working on the hosted site.
+
+## 2026-10-20 - Alert sound and fresh stock
+
+Open the admin bell for Alert sound: On/Off and Test ding dong. Browsers need a click/key interaction before sound can play. Tabs sharing the same origin/browser coordinate the sound with a six-second cooldown. Separate devices/private profiles are independent. Stock grids recheck the database when opened, on return/reconnect and every eight hours while open; browser throttling can delay timers. The portal list loads account details when you select an account.
+
+
+Lead summary email (2026-10-20, local source): when a trade account, price list or portal signup request arrives, the owner email lists what the person told us, fit, history, a suggested next move and a reply-by time, with one-tap reply, WhatsApp, CRM and approval links. Portal signups now create a CRM lead and ticket as well.
+
+Portal settings (2026-10-20): use the switches to enable or disable each feature. Beside Assigned pricelist, Edit opens that selected list; choose a list first if Edit is disabled. Existing accounts keep their settings. New-account all-off defaults are pending the database migration. Pricing and statements still need their access tags.
+
+
+Doc Studio shortcuts (2026-10-20, local source): the dashboard tile opens your last used Studio section and shows direct section buttons like other applications. Your recent sections appear first; further tools remain available inside Studio. Links open the selected section directly, including Invoice/Quotation. The outer workspace panels and shared admin header have square corners at all screen sizes; inputs and action buttons retain their existing styling. No publication from this change.
+
+
+Local development data (2026-10-20): signed-in localhost development sessions can use the same authorized Supabase queries and live invoice reads as the hosted app. Open the app through npm run dev; the local proxy is automatic across loopback ports. Existing account permissions and private connector availability still apply. Import creates a local draft for review; Save remains a separate action.
+
+
+Doc Studio invoice import (2026-10-20, local source): open Billing, select Invoice or Quotation, enter the Innovations invoice number, then choose Import invoice. If prompted, choose its account under Fill from customer and retry. Review customer details, lines, total and source notes, then Save. The original Innovations invoice is unchanged. Imported invoices retain their Innovations number; quotations use a Doc Studio number. The private connector must be online.
+
+
+Stock entry/pickers (2026-10-19, local source): the Stock Order Builder link now starts the shared form with Stock / supplies selected; switch Order type to Rx when needed. Choose lens material, design and colour in any order, then add quantities from the power grid. Menus float outside the scrolling area and selected choices are distinct in light/dark mode. Existing saved-stock links still reopen their editor. Save draft and Submit remain explicit actions.
+
+Integrated admin stock form (2026-10-19, local source): choose Stock / supplies order, enter a required patient/name or tracking reference, and optionally enter PO/instructions. Add supplies/services opens the category browser for items on the selected account's catalog; Add stock lenses uses vision/eye toggles, searchable material/design/option choices, then actual powers. Pair quantities mean pairs; right/left quantities mean individual lenses. Services are published addon products in the same browser, so there is no separate service order type. Scan accepts USB/handheld or typed SKU/OPC input (no camera). Review does not save; Save draft persists, and final Submit saves/releases to Innovations. Changing account clears local lines. Source only; no production publication from this change.
+
+Selected stock prototype (2026-10-19): only the preferred form remains, styled like the admin site. The top panel contains Patient / order reference, optional PO and optional special instructions without a title or helper text. Fields sit on one desktop row and wrap on smaller screens. Supplies, lens selection, scanner and review remain in this same form; no layout switcher or preview tabs remain.
+
+Stock prototype refinement (2026-10-19): the preferred Rx supplies preview opens first without the duplicate supplies card. Choose vision and eye supply using toggles. Type in any lens selector first; the other lists narrow to compatible choices. The compact store-style matrix has descending power axes, rounded quantity cells and Clear grid. Add selected powers places them in the simulated order lines.
+
+Stock / supplies prototype (2026-10-19, local review): use the demo account menu to try stock-and-supplies, supplies-only, lenses-only or no-pricing scenarios. The selected form is the only layout. Enter a patient name or order reference, optionally a PO and instructions, then browse supplies or choose lens material/design/option to reveal the power grid. Pair quantities are pairs; right/left quantities are individual lenses. Scanner sample code `2817201` adds cleaner. Save/review/sync are simulations and refreshing clears the order. The prototype does not change the website forms.
+
+Rx menu alignment (2026-10-17, local source): the left account menu stays directly below the account header, matching other account pages. Scroll within the Rx form to move its content independently.
+
+Rx uncut supply (2026-10-17, local source): choosing Uncut Rx lenses fixes Frame supplied by to Uncut. Choose Full glaze to use the normal frame-supply options. The short introduction now scrolls away; Rx Order Form remains visible above the form.
+
+Portal Rx scrolling (2026-10-17, local source): scroll inside the form below Rx Order Form. Its order controls and steps stay at the top; the desktop quote remains on screen. A long quote has its own scroll area. Step buttons leave the destination below the pinned controls. Phones keep the fixed total and submit controls.
+
+Pricelist education (2026-10-17, local source): click or press Enter on a design name to compare its traits and open the site's lens guide. Escape or clicking outside closes the popover. Hover or keyboard-focus Clear, Transitions, Photochromic, Polarized or UV420 headings for a short explanation.
+
+Pricelist tablet display (2026-10-17): tap a price to keep its compact details open; tap it again, tap Close, or tap outside to dismiss. Currency choices include EUR and XCD (Eastern Caribbean dollar). An estimate label means the existing indicative rate is in use; a configured rate replaces it. Converted retail display values are saved in the currently selected currency only when you press Save.
+
+My Orders invoice totals (2026-10-17, local source): open an invoice from lab orders or a delivery item to see Total (BBD) beneath its itemized amounts. A dash means at least one line amount is unavailable; the total is the sum of those lines.
+
+Pricelist lens handoff (2026-10-17, local source): hover or tap a matrix price (or press Enter on it) to see the order form's exact lens names and retail-price pencil together. The popup shows the one lens selected in the pricelist editor; unrelated lenses at the same price are excluded. An unresolved mapping offers help rather than a substitute. Start Rx order is offered to linked Rx-enabled customers and opens a new draft with the lens selected and current account pricing. Fill in the patient, prescription and frame details; normal autosave applies. Customers without Rx ordering retain Request a quote. The popup keeps a 16px screen gutter on phones.
+
+Rx/pricelist annotations (2026-10-17, local source): use Print order beside Save as draft to print current entries. Hover or keyboard-focus a matrix price to see its lens design, material and colour/treatment; dashes explain possible reasons for an unoffered combination. Once a full quote is visible, enter the selling price in BBD to estimate gross profit and gross margin. Use the lens order amount on the same tax basis as the quote; frames and other costs are excluded. The selling-price estimate is not saved or sent, although ordinary form fields still autosave.
+
+Homepage wording (2026-10-17, local source): the trade lens index reads "Find the right lenses and coatings for your customers." Patient categories read "Vision correction options" and "Lifestyle lenses and treatments"; the FAQ introduction addresses you and your optician directly.
+
+Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-15 — Email Previews resend (local source)
+
+Settings → Email Previews → Email delivery status: choose Resend beside a message that did not arrive. Edit Send to if the address was wrong; tick the contact checkbox to correct it in the CRM as well. Resend is unavailable for emails with attachments and for emails sent before this feature was deployed.
+
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+In Lead Finder each result shows its CRM match and why. Use Link existing contact when the CRM name differs, or Mark current customer for a business with no contact. Set Connection strength and, if needed, Needs follow-up (owner defaults to you) before Save to CRM. Turn on Show current customers to see excluded ones; Unlink or Unmark fixes a mistake.
+
+## 2026-10-07 — Contact public research
+
+Save the contact's name/company/location before selecting Research public web. Once the updated function is deployed, results come from OpenAI web search. Open each source to review its match; AI suggestions may refer to similarly named businesses. Add email changes only the editor draft. Save persists it. Missing server configuration and the shared daily limit are surfaced as errors.
+
+
+## 2026-10-07 — Doc Studio recipients, signatures and labels
+
+In Send email, open Contacts and search a name or address. Selection updates To immediately; outside click, focus loss and Escape close the list. In Signature, Copy signature retains links, Copy image preserves appearance, Download PNG/HTML supplies a fallback, and Add to email draft appends it to your draft. Save person reuses the file manager. In Ship Label, select Customer label to omit shipping information; headings remain editable. See docs/doc-studio-signature-compatibility.md for client setup and publication limits.
+
+## 2026-10-07 — CRM contact editor
+
+Type a company name in Parent Company; Enter selects the first filtered result and arrow keys move the highlight. Escape cancels the search. Separate email addresses with commas, semicolons or colons; put the primary first. Save keeps the editor open, while Save & Close closes after persistence succeeds. Save before Research public web: it uses stored contact details. Check the linked source and identity before adding a suggested email, then Save the draft. Find business details remains the Google Places action. Website edits currently do not write back to Innovations.
+
+## 2026-10-07 — Admin attention dropdown
+
+Click the amber attention count beside the notification bell to see items needing attention. Click an item or Open Help Desk to open the work. Close the panel with X, Escape or a click outside it; the count remains until work is handled. Use Snooze for the existing timed pause.
+
+## Iris wiki formatting
+
+Iris replies and proposals show formatted text. Accept preserves headings, bold, bullets, checklists, tables and code in the page draft. Update remains a separate publishing step. Existing drafts that already contain literal Markdown need to be regenerated or reformatted.
+
+## 2026-10-05 — Using Atlas
+
+- Open **Atlas** from the launcher (or `/atlas`). Pick a space in the sidebar header: **Wiki**, **SOPs** or **Website**. Ctrl+K searches every page by title and text; it also exports the space (zip of Markdown and JSON) and runs an import dry run.
+- **Website** shows a table of entries. Use the tabs, the **Table / Board / Gallery** switch, the status filter, sort and search. Click a row to open the side peek; **Open as full page** gives the full editor. Tick rows for bulk **Publish**, **Move to draft** or **Archive**; a page that fails the publish checks is listed by title and not published. On the Board, drag a card to **Published** (it snaps back if it fails the checks).
+- In the Wiki sidebar, hover a section to rename or delete it, or add a page. Deleting a section keeps its pages, which move to the top level.
+- **Ask Iris** (Ctrl+J, the sparkle in the top bar, or the selection toolbar) to summarize, make a checklist, find related pages, draft an FAQ entry, improve or shorten selected text, or ask a question. Iris shows a proposal: **Accept** adds it to the page draft, **Discard** drops it, **Try again** asks again. Offline, Iris pauses and you can keep writing.
+- To install Atlas as its own window, use the install icon in Chrome or Edge's address bar while on an Atlas page.
+
+## 2026-10-05 — Writing in the wiki workspace
+
+- Open **Knowledge → Wiki**. Use the sidebar to open, add (+), rename, duplicate, move or archive pages; drag a page onto another to nest it, or between two pages to reorder. Archived pages are in **Trash**, where **Restore** brings them back.
+- Press Ctrl+K to search page titles, text and website content. Ctrl+J opens the Iris panel and Ctrl+\\ hides the sidebar.
+- Choose **Edit**, then type `/` to insert a block, `@` to mention a page, person or date, or select text for formatting and colour. Use the grip beside a block to drag it, or click it for Turn into, Colour, Duplicate and Delete.
+- Pages save automatically a moment after you stop typing (the top bar shows Saving…, Saved or Autosave failed). Edits to a published page are kept as an unpublished draft; the page shows **Unpublished changes** with **Update** and **Discard changes**, and visitors keep seeing the published version until you update. Page settings apply straight away. The slug is locked while a page is published so links keep working. Tab and Shift+Tab nest and un-nest list items. **Page history** in the right panel lists the saved versions of the page and can restore an earlier one. Publishing is blocked while the page has an unsupported block or a placeholder build version.
+- Favorites, page icons, covers and full width are remembered in this browser only.
+
+## Dismiss the Doc Studio email status bar
+
+Use the close button beside **View details** to hide the current bar for this tab session, including reloads. A changed delivery status or new send attempt shows it again. Email delivery details remain available under Settings > Email Previews.
+
+
+## 2026-09-30 — Preview toolbar (pending release)
+
+At narrower widths preview controls flow onto additional rows. Save, Save as, Rename, Share and Delete retain their tooltips and accessible names; their icons render without the external icon font. Export labels remain readable and save-status text wraps.
+
+## 2026-09-30 — Letterhead polish (pending release)
+
+Choose Gold rule, Teal rule or No rule above document type. Comfortable is recommended for correspondence; Compact reduces paragraph gaps. Choices follow saved letters and Word exports. The footer keeps one light separator. Multipage print repetition is not yet verified.
+
+## 2026-09-26 — Completing an Rx order
+
+- Press Enter through first name, last name, then the optional order reference. The patient panel stays open until you move into Frame & measurements.
+- Click a completed panel's labelled summary to reopen it. Frame and lens summaries show the field names above each value; a selected standard or traced shape has a small preview.
+- In Prescription, correct the listed issue if the next panel stays locked. Prism cannot exceed 10Δ. A fitting height above the frame's B measurement blocks the order; a height within 3 mm of B is allowed with a warning to check it.
+- For Chemistrie, choose one Sun lens category (solid, mirror or gradient), a listed power for Blue or Reader clips, or the fixed Night Drive lens. Magnet colors are Silver, Gold and Gunmetal.
+
+## 2026-09-11 — Safer price, lab-status, shipment, and support actions
+
+- When editing a pricelist, changing only its name or selecting **Save** with unchanged adjustments does not touch line prices. If a percentage changed, **Preserve manual prices** is selected by default. Use **Replace all line prices** only when every price in the affected sections should be rebuilt.
+- Gatekeeper delivery and status refresh stay off until an administrator reconnects with a production PIN and enables them. During an outage the last known status remains visible and the next refresh is delayed automatically.
+- On a shipment, choose a supplier at any time. Existing Type and Commodity entries are retained; blank fields may be suggested from that supplier's most recent shipment.
+- A support request is created before image uploads begin. If an image is too large, unsupported, over the five-file limit, or fails to upload, open the created ticket and add the missing image there rather than submitting another request.
+
+## 2026-09-04 — Walk-in payment customer email and receipt printing
+
+- In **Settings → Walk-in Payments**, staff can enter a customer email address when taking a walk-in payment.
+- Once the payment is approved by Scotia, a receipt email is automatically sent to the customer.
+- A prompt appears asking whether you would like to print a physical receipt. Select **Print receipt** to open the print dialog, or **Not now** to dismiss.
+- The completed payment card displays the email address and provides buttons to print the receipt or resend the receipt email.
+
+## 2026-09-04 — Payment activity and saved cards
+
+- Administrators can open **Settings → Payment Activity** to confirm whether a Scotia card payment was successful, declined, or had an error. The page intentionally does not show card or bank-response details.
+- When paying a statement by card, select **Save this card securely for future payments** before continuing to Scotiabank. The card is saved only if the bank approves the payment; full card details and CVV are never stored by Classic Visions.
+
 ## 2026-08-27 — Keeping contact details up to date
 
 - Contacts are topped up automatically overnight. Blank website, phone and address fields are filled from the business's public listing; anything already filled in is left alone.
@@ -29,7 +172,7 @@
 
 ## 2026-08-18 — Downloading a statement PDF
 
-- Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose OneDrive credentials.
+- Open **My Account → Statements** and use the authenticated statement link. PDF download requests are authorized against the signed-in customer account and do not expose private storage credentials.
 
 ## 2026-08-15 — Saving a stock quotation
 
@@ -192,3 +335,31 @@ Support-facing notes for the frontend runtime.
 - If the LED PRO watch section appears blank, check the embedded demo URL in `src/pages/lenses/LedProPage.tsx` before investigating local media assets.
 - SLA policy descriptions in admin now pass through the shared rich-text sanitizer before display; if formatting disappears, inspect the stored HTML rather than bypassing sanitization.
 - PDF preview should now open from a defined 100% manual zoom baseline; if operators report unexpected scale on first load, start investigation in `src/components/admin/PdfPreviewShell.tsx`.
+
+## 2026-09-17 — Customer-device walk-in payments
+
+- Staff take a walk-in payment at **Settings → Walk-in Payments** and now choose between **Take card now** (this device), **Publish link** (customer scans the counter QR and types a six-character code) and **Request by email** (customer pays from a link, valid 72 hours).
+- The counter QR code should point at `https://classicvisions.net/pay`. It is the same sticker for every payment and carries no payment data, so it never needs reprinting.
+- Claim codes expire after 30 minutes and work once. If a customer's card is declined, publish a new link rather than re-reading the old code — the customer-facing page tells them to ask staff.
+- If a customer says the code or link does not work, that single message covers wrong, expired and already-used links on purpose; it does not tell an attacker which codes exist. Publish a fresh link instead of investigating the customer's wording.
+- If **Pay without a code** is missing from the public page, Cloudflare Turnstile is not configured (`VITE_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`) or the kill switch is off. This is deliberate: self-service refuses to run unprotected.
+- Self-service payments appear under **needs matching** on the same admin page. Attach each one to an order reference or a contact so it can be reconciled; nothing is posted against a customer automatically.
+- Amounts now display and store as Barbados dollars. If an older receipt shows `840`, that is a pre-correction record, not a USD charge — the bank has always charged BBD.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.
+
+## 2026-10-09 — Public support attachments (local source)
+
+In Contact us or Get support, choose Attach files, paste a file into the details field, or drag it into Iris. Images, PDF/Word/Excel/text documents and supported audio formats are accepted (5 files, 10 MB each). Review file names before Confirm & send. Files from the current Iris chat accompany the request. These changes await release.
+
+Public support form follow-up (2026-10-09): request sections retain their natural height and the form scrolls when attachments exceed the available Iris window height. This prevents file rows from overlapping name, title and details fields.
+
+## 2026-10-09 — Iris visitor guidance (local)
+
+Fixed frame/policy prompts being treated as account lookups, automatic dispenser assumptions on public pages, and generated answers missing from follow-up history. Frame, coating and policy starters now answer directly with a relevant clarifying question and links. The guided lens flow retains the selected audience and gives use-specific guidance instead of promising an automatic Rx match. Search the site uses grounded site answers rather than the clipped, retrieval-free web endpoint. No backend deployment or data change. Local browser confirms the three starter replies and screen-use guide; live generated follow-ups from localhost returned a controlled fallback and remain unverified. Focused tests pass; full suite has unrelated admin credential-contract and Rx integration failures.
+
+## 2026-10-09 — Portal ticket sends (local source)
+
+Admin contact order questions now default to notifying the selected contact, retain the signed-in staff owner and existing account audience rules, and block missing recipients. Iris shows creation errors and retains the draft for retry. Timeline and email failures after ticket creation warn without failing the existing ticket; skipped email recipients are reported. Concurrent confirmations are guarded. Mobile forms use 16px input text, 44px buttons and a bounded scrolling admin dialog; life-buoy targets are 44px below the desktop breakpoint. No Edge Function, migration, authorization or environment changes. Frontend publication and named live email verification remain pending approval.
+
+Ticket title follow-up (2026-10-09, local): portal Helpdesk list rows and their text flex child now allow shrinking. The title uses one-line ellipsis with a full-title hover attribute; stored text and ticket navigation stay unchanged. Status/date can wrap on narrow screens. This ships with the pending portal send repair.

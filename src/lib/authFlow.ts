@@ -37,6 +37,12 @@ export const getSafeAuthRedirect = (candidate?: string | null) => {
   return candidate;
 };
 
+/** Email confirmation must retain a requested page while staying on this website. */
+export const getAuthEmailRedirect = (origin: string, destination?: string | null) => {
+  const url = new URL(getSafeAuthRedirect(destination), origin);
+  return url.origin === new URL(origin).origin ? url.href : `${origin}/`;
+};
+
 export const parseAuthMode = (value?: string | null): AuthMode =>
   value === "signup" ? "signup" : "signin";
 

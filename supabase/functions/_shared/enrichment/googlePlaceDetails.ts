@@ -71,31 +71,26 @@ const similarity = (left: string, right: string): number => {
   return (2 * hits) / (first.length + second.length);
 };
 
-export const findPlaceForContact = async (apiKey: string, query: string): Promise<PlaceMatch> => {
-  const url = new URL("https://maps.googleapis.com/maps/api/place/textsearch/json");
-  url.searchParams.set("query", query);
-  url.searchParams.set("key", apiKey);
-
-  const response = await fetch(url.toString());
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
+export const findPlaceForContact = async (apiKey: string, query: string, businessName = query): Promise<PlaceMatch> => {
+  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress" },
+    body: JSON.stringify({ textQuery: query, pageSize: 5 }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Google Places lookup failed (HTTP_${response.status}). Check Places API (New) enablement and API key restrictions.`);
   const payload = await response.json();
-  const status = typeof payload?.status === "string" ? payload.status : "UNKNOWN";
-
-  if (status === "ZERO_RESULTS") return { kind: "no_match", reason: "ZERO_RESULTS" };
-  if (status !== "OK") {
-    const detail = typeof payload?.error_message === "string" ? payload.error_message.trim() : "";
-    throw new Error(detail ? `${status}:${detail}` : status);
-  }
-
-  const results = (payload.results ?? []) as Record<string, unknown>[];
+  if (payload.error || (payload.places !== undefined && !Array.isArray(payload.places))) throw new Error("Google Places returned an unexpected search response.");
+  const results = (payload.places ?? []) as Record<string, unknown>[];
   if (!results.length) return { kind: "no_match", reason: "ZERO_RESULTS" };
 
   const scored = results
     .map((row) => ({
-      placeId: String(row.place_id ?? ""),
-      name: String(row.name ?? ""),
-      formattedAddress: typeof row.formatted_address === "string" ? row.formatted_address : "",
-      score: similarity(query, String(row.name ?? "")),
+      placeId: String(row.id ?? ""),
+      name: String((row.displayName as { text?: string })?.text ?? ""),
+      formattedAddress: typeof row.formattedAddress === "string" ? row.formattedAddress : "",
+      score: similarity(businessName, String((row.displayName as { text?: string })?.text ?? "")),
     }))
     .filter((row) => row.placeId)
     .sort((a, b) => b.score - a.score);
@@ -120,66 +115,59 @@ export const findPlaceForContact = async (apiKey: string, query: string): Promis
 };
 
 const PLACE_FIELDS = [
-  "place_id",
-  "name",
-  "website",
-  "formatted_phone_number",
-  "international_phone_number",
-  "formatted_address",
-  "address_components",
+  "id",
+  "displayName",
+  "websiteUri",
+  "nationalPhoneNumber",
+  "internationalPhoneNumber",
+  "formattedAddress",
+  "addressComponents",
   "rating",
-  "user_ratings_total",
-  "url",
+  "userRatingCount",
+  "googleMapsUri",
 ].join(",");
 
-const component = (components: Record<string, unknown>[], type: string, form: "long_name" | "short_name") => {
+const component = (components: Record<string, unknown>[], type: string, form: "longText" | "shortText") => {
   const found = components.find((entry) => Array.isArray(entry.types) && (entry.types as string[]).includes(type));
   const value = found?.[form];
   return typeof value === "string" && value.trim() ? value.trim() : null;
 };
 
 export const fetchPlaceDetails = async (apiKey: string, placeId: string): Promise<PlaceDetails> => {
-  const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
-  url.searchParams.set("place_id", placeId);
-  url.searchParams.set("fields", PLACE_FIELDS);
-  url.searchParams.set("key", apiKey);
-
-  const response = await fetch(url.toString());
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
+  const response = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+    headers: { "X-Goog-Api-Key": apiKey, "X-Goog-FieldMask": PLACE_FIELDS },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) throw new Error(`Google Places details failed (HTTP_${response.status}). Check Places API (New) enablement and API key restrictions.`);
   const payload = await response.json();
-  const status = typeof payload?.status === "string" ? payload.status : "UNKNOWN";
-  if (status !== "OK") {
-    const detail = typeof payload?.error_message === "string" ? payload.error_message.trim() : "";
-    throw new Error(detail ? `${status}:${detail}` : status);
-  }
-
-  const result = (payload.result ?? {}) as Record<string, unknown>;
-  const components = (result.address_components ?? []) as Record<string, unknown>[];
-  const streetNumber = component(components, "street_number", "long_name");
-  const route = component(components, "route", "long_name");
+  if (payload.error || typeof payload.id !== "string") throw new Error("Google Places returned an unexpected details response.");
+  const result = payload as Record<string, unknown>;
+  const components = (result.addressComponents ?? []) as Record<string, unknown>[];
+  const streetNumber = component(components, "street_number", "longText");
+  const route = component(components, "route", "longText");
 
   return {
-    placeId: String(result.place_id ?? placeId),
-    name: String(result.name ?? ""),
-    website: typeof result.website === "string" && result.website.trim() ? result.website.trim() : null,
-    phone: typeof result.formatted_phone_number === "string" && result.formatted_phone_number.trim()
-      ? result.formatted_phone_number.trim()
-      : typeof result.international_phone_number === "string" && result.international_phone_number.trim()
-      ? result.international_phone_number.trim()
+    placeId: String(result.id),
+    name: String((result.displayName as { text?: string })?.text ?? ""),
+    website: typeof result.websiteUri === "string" && result.websiteUri.trim() ? result.websiteUri.trim() : null,
+    phone: typeof result.internationalPhoneNumber === "string" && result.internationalPhoneNumber.trim()
+      ? result.internationalPhoneNumber.trim()
+      : typeof result.nationalPhoneNumber === "string" && result.nationalPhoneNumber.trim()
+      ? result.nationalPhoneNumber.trim()
       : null,
     street: [streetNumber, route].filter(Boolean).join(" ") || null,
-    city: component(components, "locality", "long_name")
-      ?? component(components, "postal_town", "long_name")
-      ?? component(components, "administrative_area_level_2", "long_name"),
-    state: component(components, "administrative_area_level_1", "long_name"),
-    zip: component(components, "postal_code", "long_name"),
-    countryName: component(components, "country", "long_name"),
-    countryCode: component(components, "country", "short_name"),
+    city: component(components, "locality", "longText")
+      ?? component(components, "postal_town", "longText")
+      ?? component(components, "administrative_area_level_2", "longText"),
+    state: component(components, "administrative_area_level_1", "longText"),
+    zip: component(components, "postal_code", "longText"),
+    countryName: component(components, "country", "longText"),
+    countryCode: component(components, "country", "shortText"),
     rating: typeof result.rating === "number" ? result.rating : null,
-    reviewsCount: typeof result.user_ratings_total === "number" ? result.user_ratings_total : null,
-    formattedAddress: typeof result.formatted_address === "string" ? result.formatted_address : null,
-    mapsUrl: typeof result.url === "string" && result.url
-      ? result.url
+    reviewsCount: typeof result.userRatingCount === "number" ? result.userRatingCount : null,
+    formattedAddress: typeof result.formattedAddress === "string" ? result.formattedAddress : null,
+    mapsUrl: typeof result.googleMapsUri === "string" && result.googleMapsUri
+      ? result.googleMapsUri
       : `https://www.google.com/maps/place/?q=place_id:${placeId}`,
   };
 };

@@ -5,15 +5,19 @@ import { Search, BookOpen, ArrowRight, PlusCircle, Ticket, User, Activity, Layou
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
-import { canViewContextSlug, canViewWikiCategory } from "@/lib/wikiPermissions";
+import { canViewWikiCategory } from "@/lib/wikiPermissions";
 import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toAdminWikiArticlePath } from "@/lib/wikiArticleRouting";
+import { toWikiArticleSlug } from "@/lib/wikiArticleRouting";
+import { atlasPath } from "@/features/atlas/config";
+import { getAtlasSpace, homeSpaceFor } from "@/features/atlas/spaces";
+import { useAtlasCapabilities, useAtlasSource } from "@/features/atlas/hooks/useAtlas";
 import { CREATE_ACTIVITY_SEARCH_KEYWORDS, CREATE_TICKET_SEARCH_KEYWORDS, NEW_RX_ORDER_SEARCH_KEYWORDS } from "./globalSearchActions";
 import { useRecentModules } from "@/features/admin/core/hooks/useRecentModules";
 import { APP_ROUTE_REGISTRY } from "@/config/routeRegistry";
 import { ACTIVE_NAVIGATION_REGISTRY } from "@/config/navigationRegistry";
+import { emailBridge, getEmailBridgeUrl } from "@/lib/emailBridge";
 
 interface SearchResult {
   id: string;
@@ -32,6 +36,11 @@ const humanizeRouteId = (id: string) => id
 
 const GlobalSearch = () => {
   const [query, setQuery] = useState("");
+  const [mailQuery, setMailQuery] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMailQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
   const navigate = useNavigate();
@@ -40,6 +49,8 @@ const GlobalSearch = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { canView, canEditFeature, hasAppAccess } = useRolePermissions();
   const recentPaths = useRecentModules();
+  const atlasSource = useAtlasSource();
+  const { bySpace: atlasCapabilities } = useAtlasCapabilities();
 
   const moduleResults = useMemo<SearchResult[]>(() => {
     return Object.values(ADMIN_APPS)
@@ -124,7 +135,7 @@ const GlobalSearch = () => {
 
   const actionResults = useMemo<SearchResult[]>(() => {
     const results: SearchResult[] = [];
-    if (hasAppAccess("crm")) results.push({
+    if (hasAppAccess(ADMIN_APPS.crm.featurePrefix)) results.push({
       id: "action-create-activity",
       label: "Create Activity",
       sublabel: "CRM",
@@ -146,7 +157,7 @@ const GlobalSearch = () => {
       id: "action-new-rx-order",
       label: "New Rx Order",
       sublabel: "Quotations",
-      path: "/admin/website/quotations/new-rx",
+      path: "/admin/orders/rx/new",
       icon: PlusCircle,
       group: "Actions",
       keywords: [...NEW_RX_ORDER_SEARCH_KEYWORDS],
@@ -161,7 +172,7 @@ const GlobalSearch = () => {
       const q = `%${query}%`;
       const results: SearchResult[] = [];
 
-      if (hasAppAccess("crm")) {
+      if (hasAppAccess(ADMIN_APPS.crm.featurePrefix)) {
         const { data: contacts } = await (supabase.from("contacts") as any)
           .select("id, name, business_name, email")
           .or(`name.ilike.${q},business_name.ilike.${q},email.ilike.${q}`)
@@ -171,7 +182,7 @@ const GlobalSearch = () => {
             id: `contact-${c.id}`,
             label: [c.name, c.business_name].filter(Boolean).join(" ") || "Unknown Contact",
             sublabel: c.email || "Contact / Lead",
-            path: `/admin/contacts/${c.id}`,
+            path: `/admin/crm/contacts?contact=${c.id}`,
             icon: User,
             group: "Contacts & Leads",
           })));
@@ -194,7 +205,7 @@ const GlobalSearch = () => {
       }
 
       const { data: profiles } = await (supabase.from("profiles") as any)
-        .select("id, full_name, display_name")
+        .select("id, user_id, full_name, display_name")
         .or(`full_name.ilike.${q},display_name.ilike.${q}`)
         .limit(5);
       if (profiles) {
@@ -202,7 +213,7 @@ const GlobalSearch = () => {
           id: `profile-${p.id}`,
           label: p.full_name || p.display_name || "Unknown User",
           sublabel: "Web Portal User",
-          path: `/admin/settings/users?id=${p.id}`,
+          path: `/admin/website/portals?account=${encodeURIComponent(`user:${p.user_id}`)}`,
           icon: User,
           group: "Web Portal",
         })));
@@ -213,53 +224,76 @@ const GlobalSearch = () => {
     enabled: query.trim().length >= 2,
   });
 
-  const { data: wikiResults = [] } = useQuery({
-    queryKey: ["global_search_wiki_articles"],
-    queryFn: async () => {
-      if (!canView("wiki")) return [] as SearchResult[];
+  // Static help articles (shipped with the app) open in the Atlas wiki.
+  const staticWikiResults = useMemo<SearchResult[]>(() => {
+    if (!canView("wiki")) return [];
+    return wikiCategories
+      .filter((category) => canViewWikiCategory(category.id, canView))
+      .flatMap((cat) =>
+        cat.articles.map((article) => ({
+          id: `wiki-static-${cat.id}-${article.id}`,
+          label: article.title,
+          sublabel: cat.title,
+          path: atlasPath("wiki", toWikiArticleSlug({ id: `static:${article.id}`, title: article.title })),
+          icon: BookOpen,
+          group: "Help / Wiki",
+        })),
+      );
+  }, [canView]);
 
-      const staticResults: SearchResult[] = wikiCategories
-        .filter((category) => canViewWikiCategory(category.id, canView))
-        .flatMap((cat) =>
-          cat.articles.map((article) => ({
-            id: `wiki-static-${cat.id}-${article.id}`,
-            label: article.title,
-            sublabel: cat.title,
-            path: toAdminWikiArticlePath({ id: `static:${article.id}`, title: article.title }),
+  // Every Atlas page the user can read, by title and body, from one search source (AtlasSource.search).
+  const readableStoreSpaces = useMemo(
+    () => [...new Set(Object.entries(atlasCapabilities).filter(([, caps]) => caps.view).map(([id]) => getAtlasSpace(id)?.scope.storeSpace ?? id))],
+    [atlasCapabilities],
+  );
+  const { data: atlasResults = [] } = useQuery({
+    queryKey: ["global_search_atlas", query, readableStoreSpaces.join(",")],
+    enabled: query.trim().length >= 2 && readableStoreSpaces.length > 0,
+    staleTime: 30_000,
+    queryFn: async (): Promise<SearchResult[]> => {
+      const hits = await atlasSource.search(query, { spaceIds: readableStoreSpaces, limit: 12 });
+      return hits.flatMap((hit) => {
+        const home = homeSpaceFor(hit.spaceId);
+        if (!home) return [];
+        return [
+          {
+            id: `atlas-${hit.pageId}`,
+            label: hit.title,
+            sublabel: `${home.label} · ${hit.snippet}`.slice(0, 120),
+            path: atlasPath(home.id, toWikiArticleSlug({ id: hit.pageId, title: hit.title, slug: hit.slug })),
             icon: BookOpen,
-            group: "Help / Wiki",
-          }))
-        );
-
-      const { data, error } = await (supabase.from("help_articles") as any)
-        .select("*, help_article_contexts(context_slug)")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (error) throw error;
-
-      const dbResults: SearchResult[] = ((data ?? []) as any[])
-        .map((article) => {
-          const contexts = article.help_article_contexts?.map((c: any) => c.context_slug).filter(Boolean) ?? [];
-          const effectiveContexts = contexts.length > 0 ? contexts : [article.page_slug];
-          const allowedContexts = effectiveContexts.filter((contextSlug: string) => canViewContextSlug(contextSlug, canView));
-          if (allowedContexts.length === 0) return null;
-
-          return {
-            id: `wiki-db-${article.id}`,
-            label: article.title,
-            sublabel: article.category || "Custom",
-            path: toAdminWikiArticlePath({ id: article.id, title: article.title, slug: article.slug }),
-            icon: BookOpen,
-            group: "Help / Wiki",
-          };
-        })
-        .filter((result): result is NonNullable<typeof result> => !!result) as SearchResult[];
-
-      return [...staticResults, ...dbResults];
+            group: "Atlas",
+          },
+        ];
+      });
     },
-    enabled: canView("wiki"),
   });
+  const inEmail = location.pathname.startsWith("/admin/email");
+  const { data: mailResults = [], isError: mailSearchError } = useQuery({
+    queryKey: ["global_search_mail_inboxes", mailQuery],
+    enabled: inEmail && mailQuery.length >= 2 && Boolean(getEmailBridgeUrl()),
+    staleTime: 30_000,
+    retry: false,
+    queryFn: async (): Promise<SearchResult[]> => {
+      const { accounts } = await emailBridge.status();
+      const inboxes = await Promise.allSettled(accounts.map(async (account) => {
+        const folders = await emailBridge.folders(account.code);
+        const inbox = folders.find((folder) => folder.special_use === "\\Inbox");
+        if (!inbox) return [];
+        const messages = await emailBridge.messages(inbox.folder_id, mailQuery);
+        return messages.slice(0, 5).map((message) => ({
+          id: `mail-${message.message_id}`,
+          label: message.subject || "(No subject)",
+          sublabel: `${account.address} · ${message.from_name || message.from_address || "Unknown sender"}`,
+          path: `/admin/email?account=${encodeURIComponent(account.code)}&folder=${inbox.folder_id}&message=${message.message_id}`,
+          icon: Search,
+          group: "Email inboxes",
+        }));
+      }));
+      return inboxes.flatMap((result) => result.status === "fulfilled" ? result.value : []).slice(0, 20);
+    },
+  });
+  const wikiResults = staticWikiResults;
 
   const allResults = useMemo(
     () => [...moduleResults, ...registeredRouteResults, ...actionResults, ...wikiResults, ...dbSearchResults],
@@ -269,8 +303,8 @@ const GlobalSearch = () => {
   const results = useMemo(() => {
     if (!query.trim()) return recentModuleResults;
     const q = query.toLowerCase();
-    return allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? [])));
-  }, [allResults, query, recentModuleResults]);
+    return [...(mailQuery === query.trim() ? mailResults : []), ...allResults.filter((r) => fieldsMatch(q, r.label, r.sublabel, r.group, ...(r.keywords ?? []))), ...atlasResults];
+  }, [allResults, atlasResults, mailQuery, mailResults, query, recentModuleResults]);
 
   // Group results
   const grouped = useMemo(() => {
@@ -373,7 +407,7 @@ const GlobalSearch = () => {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search modules, wiki, settings… (Ctrl+K)"
+          placeholder={inEmail ? "Search inboxes and site… (Ctrl+K)" : "Search modules, pages, settings… (Ctrl+K)"}
           className="h-7 w-full pl-8 pr-3 text-xs rounded border outline-none transition-all"
           style={{
             borderColor: open ? "hsl(215 65% 60%)" : "hsl(215 15% 82%)",
@@ -398,6 +432,7 @@ const GlobalSearch = () => {
           className="absolute left-0 top-full mt-1 w-full max-h-80 overflow-y-auto rounded-lg border shadow-xl z-[200] py-1"
           style={{ background: "hsl(0 0% 100%)", borderColor: "hsl(215 15% 82%)" }}
         >
+          {inEmail && mailSearchError && <div className="px-3 py-2 text-xs text-amber-700">Inbox search is temporarily unavailable. Site results are shown below.</div>}
           {results.length === 0 ? (
             <div className="px-4 py-3 text-xs" style={{ color: "hsl(215 15% 55%)" }}>
               No results for "<span className="font-medium">{query}</span>"
@@ -414,17 +449,24 @@ const GlobalSearch = () => {
                 {items.map((result) => {
                   const idx = flatResults.indexOf(result);
                   const isHighlighted = idx === highlighted;
+                  const isAction = result.id === "action-create-activity";
                   return (
-                    <button
+                    <a
                       key={result.id}
+                      href={isAction ? undefined : result.path}
                       className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors group"
+                        "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors group cursor-pointer"
                       )}
                       style={{
                         background: isHighlighted ? "hsl(215 65% 50% / 0.08)" : "transparent",
                       }}
                       onMouseEnter={() => setHighlighted(idx)}
-                      onClick={() => handleSelect(result)}
+                      onClick={(e) => {
+                        // let the browser handle new-tab/new-window modifiers
+                        if (!isAction && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;
+                        e.preventDefault();
+                        handleSelect(result);
+                      }}
                     >
                       <result.icon
                         className="h-3.5 w-3.5 shrink-0"
@@ -453,7 +495,7 @@ const GlobalSearch = () => {
                         )}
                         style={{ color: "hsl(215 65% 50%)" }}
                       />
-                    </button>
+                    </a>
                   );
                 })}
               </div>

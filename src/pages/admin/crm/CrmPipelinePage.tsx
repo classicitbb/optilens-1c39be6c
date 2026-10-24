@@ -99,7 +99,7 @@ const CrmPipelinePage = () => {
           <Button variant={showClassify ? "default" : "outline"} size="sm" onClick={() => setShowClassify((v) => !v)}>
             <UserPlus className="mr-1 h-4 w-4" /> Classify Contacts
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate("/admin/leads")}>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/crm/leads")}>
             <Target className="mr-1 h-4 w-4" /> Find Leads
           </Button>
         </div>

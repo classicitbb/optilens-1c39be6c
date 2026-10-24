@@ -181,6 +181,14 @@ export const mountRxOrder = (options: MountOptions = {}): RxHarness => {
     const el = field<HTMLInputElement | HTMLSelectElement>(selector);
     if (!el) throw new Error(`rxOrderHarness: no element matches ${selector}`);
     el.value = value;
+    // A <select> silently discards a value it has no option for, leaving "".
+    // Unnoticed, that reads downstream as "the user never answered" and fails
+    // tests far from the cause — so refuse the value here instead.
+    if (el instanceof HTMLSelectElement && el.value !== value) {
+      throw new Error(
+        `rxOrderHarness: ${selector} has no option "${value}" (options: ${[...el.options].map((option) => option.value).join(", ")})`,
+      );
+    }
     fire(el, "input");
     fire(el, "change");
   };
@@ -289,7 +297,7 @@ export const fillValidOrder = (h: RxHarness, o: FillOverrides = {}): RxHarness =
     if (o.patient?.ref) h.set("#ref", o.patient.ref);
 
     h.set("#fname", o.frame?.name ?? "Ray-Ban RB5154");
-    h.set("#mount", o.frame?.mount ?? "full");
+    h.set("#mount", o.frame?.mount ?? "plastic");
     h.set("#fa", o.frame?.a ?? "52");
     h.set("#fb", o.frame?.b ?? "38");
     h.set("#fdbl", o.frame?.dbl ?? "18");

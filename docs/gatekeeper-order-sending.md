@@ -48,8 +48,14 @@ coatings, tints and supplies ride in the *same* item blocks.
   `.stockhashref` format spells semi-finished `SLENS`; that spelling is
   accepted on the way in and rewritten to `SFLENS` here, so the office format
   did not have to change.
-- `rx_*_prism` / `rx_*_prism2` are always written, zeroed, with a direction —
-  the spec asks for explicit zeros rather than absent fields.
+- `rx_*_prism` / `rx_*_prism2` carry the prescribed prism and its direction;
+  when none is prescribed they are written as explicit zeros (the spec asks for
+  zeros rather than absent fields). No price lines go with prism — Innovations
+  calculates it.
+- A single-eye order omits the other eye entirely. `rx_eye` 1 (right) / 2 (left)
+  is PROVISIONAL until trial hashref files confirm the code; pairs stay 3.
+- One height per eye (OC / segment / fitting, by lens type) travels as
+  `rx_*_seg_height`.
 
 `src/tests/unit/orderHashref.unit.test.ts` pins all of the above.
 
@@ -61,11 +67,12 @@ Gatekeeper *sending* contract:
 - `lab_num` ← `webrx_lab_id_receiver`
 - `cust_num` ← `webrx_retailer_name_receiver`
 
-On the OptiLens route they come from the office's own `data/rx/config.json`,
-which the cloud does not hold. That is why `innovations-sync` returns
+On the OptiLens route `lab_num` comes from the office's own `data/rx/config.json`
+and `cust_num` is the customer's ERP account number; the cloud holds neither. That is why `innovations-sync` returns
 `canonical_order` (the model) and a `hashref_body` rendered with
-`{{lab_num}}` / `{{cust_num}}` placeholders — useful for eyeballing an order,
-never for sending as-is.
+`{{lab_num}}` / `{{cust_num}}` placeholders — which `optilens-local/lib/rx-order-submitter.js` fills in and drops
+verbatim into the Innovations Incoming folder (it no longer builds its own
+file). The order number is the database `gatekeeper_order_id` on both routes.
 
 ## Gatekeeper specifics
 
@@ -88,6 +95,14 @@ Gatekeeper's immediate receipt, recorded on the submission row by
 `record_gatekeeper_result(p_submission_id, p_success, p_order_kind, ...)`.
 If Gatekeeper accepts an order but recording the receipt then fails, the row is
 **not** marked failed — a retry would create a duplicate Rx at the lab.
+
+## Stuck claims
+
+A row `claimed` for more than 15 minutes (worker died, or could not report back)
+is moved to `failed` by `sweep_stale_order_claims()` (pg_cron, every 5 minutes)
+with an instruction to check the Incoming folder / Gatekeeper log first. It is
+never returned to `approved`, because the file or POST may already have
+arrived. Staff re-release from the Problems tab once they have checked.
 
 ## Preview
 

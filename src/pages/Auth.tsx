@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { startPortalEmulation, stopPortalEmulation } from "@/lib/portalEmulation";
+import { submitPublicInquiry } from "@/lib/publicInquiry";
 import {
   type AuthAudience,
   type AuthIntent,
@@ -21,6 +22,7 @@ import {
   type AuthStep,
   createAuthHref,
   getDefaultAuthStep,
+  getAuthEmailRedirect,
   getSafeAuthRedirect,
   parseAuthIntent,
   readAuthFlowState,
@@ -57,6 +59,8 @@ const Auth = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [isMicrosoftSubmitting, setIsMicrosoftSubmitting] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [successState, setSuccessState] = useState<SuccessState | null>(null);
   const [leadSignalSent, setLeadSignalSent] = useState(false);
@@ -247,20 +251,24 @@ const Auth = () => {
       redirect,
     };
 
-    const { error } = await supabase.from("public_inquiries").insert({
-      inquiry_type: "auth_onboarding_interest",
-      name: values.fullName.trim(),
-      email: values.email.trim(),
-      phone: values.phone.trim() || null,
-      business_name: values.organizationName.trim() || null,
-      message: "Professional signup completed onboarding qualification.",
-      notes: JSON.stringify(notes),
-      page_slug: "/auth",
-      source_channel: "auth_onboarding",
-    });
-
-    if (!error) {
+    // Goes through contact-inquiry (like every other public form) so a signup
+    // creates the CRM lead and helpdesk ticket and emails the owner.
+    try {
+      await submitPublicInquiry({
+        inquiryType: "auth_onboarding_interest",
+        name: values.fullName.trim(),
+        email: values.email.trim(),
+        phone: values.phone.trim().slice(0, 20) || null,
+        businessName: values.organizationName.trim() || null,
+        message: "Professional signup completed onboarding qualification.",
+        notes: JSON.stringify(notes),
+        pageSlug: "/auth",
+        sourceChannel: "auth_onboarding",
+        startedAt: new Date().toISOString(),
+      });
       setLeadSignalSent(true);
+    } catch {
+      // The lead signal is best-effort and must not block account creation.
     }
   };
 
@@ -282,7 +290,7 @@ const Auth = () => {
         audience,
         interestIntent: intentValue,
         onboardingCompletedAt,
-      });
+      }, redirect);
 
       if (error) {
         toast({
@@ -385,6 +393,62 @@ const Auth = () => {
       return;
     }
     await completeSignup(intent);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: oAuthRedirectUri,
+      });
+      if (result.error) {
+        toast({
+          title: "Google Sign-In Failed",
+          description: result.error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (result.redirected) return;
+      toast({ title: "Welcome back", description: "You are signed in." });
+      navigate(redirect, { replace: true });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    setIsMicrosoftSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("microsoft", {
+        redirect_uri: oAuthRedirectUri,
+      });
+      if (result.error) {
+        toast({
+          title: "Microsoft Sign-In Failed",
+          description: result.error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      if (result.redirected) return;
+      toast({ title: "Welcome back", description: "You are signed in." });
+      navigate(redirect, { replace: true });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMicrosoftSubmitting(false);
+    }
   };
 
   const successAudience = successState?.audience ?? audience ?? "professional";
@@ -528,7 +592,8 @@ const Auth = () => {
                     if (!successState?.email) return;
                     setResendingConfirmation(true);
                     try {
-                      const { error } = await supabase.auth.resend({ type: "signup", email: successState.email });
+                      const { error } = await supabase.auth.resend({ type: "signup", email: successState.email,
+                        options: { emailRedirectTo: getAuthEmailRedirect(window.location.origin, successState.redirect) } });
                       if (error) throw error;
                       toast({ title: "Email resent", description: `Check ${successState.email} again.` });
                     } catch {
@@ -834,6 +899,46 @@ const Auth = () => {
                           ? "Create Account"
                           : "Continue"}
                 </Button>
+
+                {mode === "signin" ? (
+                  <>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground" role="separator">
+                      <span className="h-px flex-1 bg-border" aria-hidden="true" />
+                      <span>or</span>
+                      <span className="h-px flex-1 bg-border" aria-hidden="true" />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={`w-full ${isReturningVisitor ? "h-11 rounded-xl" : ""}`}
+                      disabled={isGoogleSubmitting || isSubmitting || sendingMagicLink}
+                      onClick={handleGoogleSignIn}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09A6.6 6.6 0 0 1 5.5 12c0-.73.12-1.43.34-2.09V7.07H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.93l2.66-2.84z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 1.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
+                      </svg>
+                      {isGoogleSubmitting ? "Opening Google…" : "Continue with Google"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={`w-full ${isReturningVisitor ? "h-11 rounded-xl" : ""}`}
+                      disabled={isMicrosoftSubmitting || isSubmitting || sendingMagicLink}
+                      onClick={handleMicrosoftSignIn}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 23 23" aria-hidden="true">
+                        <path fill="#F25022" d="M1 1h10v10H1z" />
+                        <path fill="#7FBA00" d="M12 1h10v10H12z" />
+                        <path fill="#00A4EF" d="M1 12h10v10H1z" />
+                        <path fill="#FFB900" d="M12 12h10v10H12z" />
+                      </svg>
+                      {isMicrosoftSubmitting ? "Opening Microsoft…" : "Continue with Microsoft"}
+                    </Button>
+                  </>
+                ) : null}
 
                 {mode === "signin" ? (
                   <button

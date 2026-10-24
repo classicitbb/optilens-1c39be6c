@@ -40,7 +40,7 @@ describe("LensVariantGrid", () => {
     expect(screen.getByText(/cart will split into Left \+ Right lines/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("4.00 1.00 quantity"), { target: { value: "2" } });
-    fireEvent.click(screen.getByRole("button", { name: /add selected to cart/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add 2 to cart/i }));
 
     expect(onAddSelected).toHaveBeenCalledWith([{ variantId: "v1", quantity: 2 }]);
   });

@@ -111,6 +111,38 @@ describe("Rx order validation rules", () => {
       h.destroy();
     });
 
+    it("blocks prism above 10 diopters and explains the limit", () => {
+      const h = mountRxOrder().fillValidOrder({ rx: { od: { prism: "10.25", base: "IN" } } });
+      expect(h.rxErrors()).toContain("OD prism cannot exceed 10.00Δ in any base direction.");
+      expect(h.submitEnabled()).toBe(false);
+      h.destroy();
+    });
+
+    it("shows missing values in the other eye once Rx entry begins", () => {
+      const h = mountRxOrder().fillValidOrder();
+      h.setRx("os", { sph: "", pd: "" });
+      expect(h.rxErrors()).toContain("OS sphere is required.");
+      expect(h.rxErrors()).toContain("OS distance PD must be 20–45 mm.");
+      expect(h.submitEnabled()).toBe(false);
+      h.destroy();
+    });
+
+    it("blocks a fitting height above B but warns within 3 mm of B", () => {
+      const h = mountRxOrder().fillValidOrder({
+        vision: "mf",
+        frame: { b: "30" },
+        lens: { m: MATERIALS.plastic, d: DESIGNS.prog, c: COLOURS.clear },
+        rx: { od: { add: "2.00", ht: "31" }, os: { add: "2.00", ht: "28" } },
+      });
+      expect(h.rxErrors()).toContain("OD fitting height 31.0 mm exceeds the frame B measurement of 30.0 mm.");
+      expect(h.rxWarnings().join(" ")).toContain("OS fitting height is within 3 mm of frame B");
+      expect(h.submitEnabled()).toBe(false);
+      h.setRx("od", { ht: "27" });
+      expect(h.rxErrors()).toEqual([]);
+      expect(h.submitEnabled()).toBe(true);
+      h.destroy();
+    });
+
     it("rejects a near PD wider than the distance PD", () => {
       const h = mountRxOrder().fillValidOrder({
         vision: "sv",
@@ -132,7 +164,7 @@ describe("Rx order validation rules", () => {
       });
 
       expect(h.rxErrors()).toEqual([
-        "OD fitting height 12.0 mm — progressives cannot be cut below 14 mm.",
+        "OD fitting height must be 14–35 mm.",
       ]);
       expect(h.submitEnabled()).toBe(false);
 
@@ -235,15 +267,29 @@ describe("Rx order validation rules", () => {
     it("prices a combination the matrix covers", () => {
       const h = mountRxOrder().fillValidOrder();
 
-      expect(h.quoteText()).toContain("278.25");
+      // The default fixture frame (A 52 / B 38 / DBL 18) needs a 75 mm blank,
+      // so the total is the 278.25 pair price plus the 22.00 oversize surcharge.
+      expect(h.field("#qTotal")?.textContent).toContain("300.25");
       expect(h.quoteText()).not.toContain("on request");
       expect(h.assistFlags()).toEqual([]);
 
       h.destroy();
     });
 
-    it("routes an unpriced combination to assistance and blocks the cart", () => {
+    it("routes an unpriced combination to assistance but still allows the order by default", () => {
       const h = mountRxOrder().fillValidOrder({
+        lens: { m: MATERIALS.plastic, d: DESIGNS.sv, c: COLOURS.amber },
+      });
+
+      expect(h.quoteText()).toContain("on request");
+      expect(h.assistFlags()).toEqual(["Lens not priced on this account — quote requested"]);
+      expect(h.submitEnabled()).toBe(true);
+
+      h.destroy();
+    });
+
+    it("routes an unpriced combination to assistance and blocks the cart", () => {
+      const h = mountRxOrder({ blockUnpricedOrders: true }).fillValidOrder({
         lens: { m: MATERIALS.plastic, d: DESIGNS.sv, c: COLOURS.amber },
       });
 

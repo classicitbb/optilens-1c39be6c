@@ -31,7 +31,9 @@ import { useAddons, Addon } from "@/hooks/useAddons";
 export const isRxOrderableLens = (lens: Pick<Lens, "is_active" | "sell_price" | "base_price">) =>
   lens.is_active && (lens.sell_price > 0 || lens.base_price > 0);
 
-export const isRxOrderableAddon = (addon: Pick<Addon, "is_active">) => addon.is_active;
+// Frame repairs are stock-order items, not prescription treatments.
+export const isRxOrderableAddon = (addon: Pick<Addon, "is_active"> & Partial<Pick<Addon, "category">>) =>
+  addon.is_active && addon.category !== "repairs";
 
 interface PricelistScope {
   accountId: number;
@@ -65,7 +67,16 @@ export const usePricelistScope = (accountId: number | null) => {
         .eq("id", accountId)
         .maybeSingle();
       if (custErr) throw custErr;
-      const versionId = customer?.assigned_pricelist_id ?? null;
+      let versionId: number | null = customer?.assigned_pricelist_id ?? null;
+      if (versionId == null) {
+        // `customers` is staff-only under RLS, so a customer's read above comes
+        // back empty and would leave them with no pricelist (everything "on
+        // request"). Their own accounts, with the assigned pricelist, come from
+        // the portal memberships RPC — the same source the rest of the portal uses.
+        const { data: memberships, error: memErr } = await (supabase.rpc as any)("get_portal_account_memberships");
+        if (memErr) throw memErr;
+        versionId = (memberships ?? []).find((m: any) => m.customer_id === accountId)?.assigned_pricelist_id ?? null;
+      }
       if (versionId == null) return { ...EMPTY_SCOPE, accountId };
 
       const [{ data: version }, { data: rows, error: rowsErr }] = await Promise.all([

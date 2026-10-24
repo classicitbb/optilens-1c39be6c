@@ -14,6 +14,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { mergeSupplierShipmentDefaults } from "@/features/shipments/supplierShipmentDefaults";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +23,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, Download, Check, ChevronsUpDown, Lock, CircleAlert, CircleCheck, FileText, PenLine, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeChargeRowTotal, computeInsuranceFreightCharge, formatMoney } from "@/lib/importCostings";
+import ShipmentEvidencePanel, { acceptedShipmentDocuments, uploadShipmentDocuments } from "./ShipmentEvidencePanel";
+import ShipmentCostingCoverSheet from "./ShipmentCostingCoverSheet";
+import { deriveChargeProfiles, type ChargeProfile } from "@/features/shipments/chargeProfiles";
+import { getChargeAdvance, type ChargeField } from "@/features/shipments/chargeKeyboard";
 
 const fmt = formatMoney;
 
@@ -36,12 +42,20 @@ const NumericInput = ({
   disabled,
   className,
   onAdvance,
+  suggestion,
+  onAcceptSuggestion,
+  suggestionDescription,
+  focusTarget,
 }: {
   value: number;
   onChange: (v: number) => void;
   disabled?: boolean;
   className?: string;
   onAdvance?: () => void;
+  suggestion?: number;
+  onAcceptSuggestion?: () => void;
+  suggestionDescription?: string;
+  focusTarget?: string;
 }) => {
   const [local, setLocal] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
@@ -62,6 +76,7 @@ const NumericInput = ({
   };
 
   return (
+    <div className="relative">
     <Input
       ref={ref}
       type="text"
@@ -77,7 +92,20 @@ const NumericInput = ({
           onAdvance?.();
         }
       }}
+      data-charge-focus={focusTarget}
     />
+    {suggestion != null && Math.abs(suggestion - value) > 0.004 && (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onAcceptSuggestion}
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded border border-primary/30 bg-background px-1 py-0.5 text-[9px] font-medium text-primary hover:bg-primary/10">
+            Use BBD${suggestion.toFixed(2)}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-64 text-xs">{suggestionDescription}</TooltipContent>
+      </Tooltip>
+    )}
+    </div>
   );
 };
 
@@ -88,12 +116,14 @@ const TextInput = ({
   disabled,
   className,
   onAdvance,
+  focusTarget,
 }: {
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
   className?: string;
   onAdvance?: () => void;
+  focusTarget?: string;
 }) => {
   const [local, setLocal] = useState(value);
   const ref = useRef<HTMLInputElement>(null);
@@ -123,6 +153,7 @@ const TextInput = ({
           onAdvance?.();
         }
       }}
+      data-charge-focus={focusTarget}
     />
   );
 };
@@ -184,16 +215,10 @@ const ProductCombobox = ({
   );
 };
 
-/** Focus next tabbable input in the table */
-const focusNextInput = (current: EventTarget) => {
-  const el = current as HTMLElement;
-  const table = el.closest("table");
-  if (!table) return;
-  const inputs = Array.from(table.querySelectorAll<HTMLInputElement>("input:not([disabled]), button:not([disabled])"));
-  const idx = inputs.indexOf(el as HTMLInputElement);
-  if (idx >= 0 && idx < inputs.length - 1) {
-    inputs[idx + 1].focus();
-  }
+const focusChargeField = (chargeId: string, field: "type" | "amount" | "vat" | "duty" | "reclaimable" | "notes") => {
+  window.setTimeout(() => {
+    document.querySelector<HTMLElement>(`[data-charge-focus="${chargeId}:${field}"]`)?.focus();
+  }, 0);
 };
 
 const ShipmentDetailPage = () => {
@@ -213,6 +238,7 @@ const ShipmentDetailPage = () => {
     po_ref: "", date_received: new Date().toISOString().split("T")[0],
     invoice_number: "", invoice_date: new Date().toISOString().split("T")[0],
     currency: "USD", exchange_rate: 2, fob_foreign: 0, invoice_total_foreign: 0, freight_provider: "dhl",
+    settlement_method: "BBD Funded - Wire", fxf_applicability: "applicable", fxf_rate: 0.02,
     status: "draft", version: 1, parent_id: null, created_by: user?.id ?? "",
     created_at: "", updated_at: "",
   };
@@ -220,7 +246,15 @@ const ShipmentDetailPage = () => {
   const [shipment, setShipment] = useState<Shipment | null>(isNew ? defaultShipment : null);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [buildingBinder, setBuildingBinder] = useState(false);
   const [invoiceTouched, setInvoiceTouched] = useState(false);
+  const [chargeSuggestions, setChargeSuggestions] = useState<Record<string, ChargeProfile>>({});
+  const [documentReviewExpanded, setDocumentReviewExpanded] = useState(true);
+  // New shipments start with a choice: manual entry (the original form) or
+  // documents first, where source files are queued and uploaded on Create.
+  const [entryMode, setEntryMode] = useState<"manual" | "documents" | null>(isNew ? null : "manual");
+  const [queuedDocuments, setQueuedDocuments] = useState<File[]>([]);
+  const supplierLookupRequestRef = useRef(0);
 
   const { data: suppliers } = useReferenceData("suppliers");
   const { settings } = usePricingEngine();
@@ -246,6 +280,20 @@ const ShipmentDetailPage = () => {
     })();
   }, [id]);
 
+  useEffect(() => {
+    if (!shipment?.supplier_id) { setChargeSuggestions({}); return; }
+    let active = true;
+    void (async () => {
+      const { data: supplierShipments } = await (supabase.from("shipments") as any).select("id").eq("supplier_id", shipment.supplier_id).order("created_at", { ascending: false }).limit(30);
+      const shipmentIds = (supplierShipments ?? []).map((row: { id: string }) => row.id);
+      if (!shipmentIds.length) return;
+      const { data } = await (supabase.from("shipment_charges") as any).select("shipment_id, charge_type, amount_bbd, vat_bbd, duty_bbd, vat_reclaimable, notes").in("shipment_id", shipmentIds);
+      if (!active) return;
+      setChargeSuggestions(deriveChargeProfiles(data ?? [], shipmentIds));
+    })();
+    return () => { active = false; };
+  }, [shipment?.supplier_id]);
+
   const isLocked = shipment?.status === "locked";
   const editable = canEdit && !isLocked;
   const LENS_CODES = ["lens", "stklens", "osrxlens"];
@@ -265,6 +313,19 @@ const ShipmentDetailPage = () => {
     }
   };
 
+  const handleSupplierSelect = async (supplierId: string) => {
+    const requestId = ++supplierLookupRequestRef.current;
+    setShipment((current) => current ? { ...current, supplier_id: supplierId } as Shipment : current);
+
+    // Defaults are a convenience only: they always remain editable and only use
+    // the supplier's most recently created shipment.
+    const { data, error } = await (supabase.from("shipments") as any)
+      .select("type, commodity").eq("supplier_id", supplierId).order("created_at", { ascending: false }).limit(1);
+    if (error || requestId !== supplierLookupRequestRef.current) return;
+    const previous = data?.[0];
+    setShipment((current) => current ? mergeSupplierShipmentDefaults(current, supplierId, previous) : current);
+  };
+
   const handleSave = async () => {
     if (!shipment) return;
     if (!shipment.supplier_id) {
@@ -277,19 +338,36 @@ const ShipmentDetailPage = () => {
     }
     setSaving(true);
     try {
+      const computed = computeShipmentTotals(shipment, charges, settings);
+      const persistedFxf = {
+        settlement_method: shipment.settlement_method ?? "BBD Funded - Wire",
+        fxf_applicability: computed.fxfApplicable ? "applicable" : "exempt",
+        fxf_rate: computed.fxfRate,
+        fxf_basis_bbd: computed.fxfBasisBbd,
+        fxf_expected_bbd: computed.expectedFxfBbd,
+        fxf_actual_bbd: computed.actualFxfBbd,
+        fxf_variance_bbd: computed.fxfVarianceBbd,
+      };
       if (isNew) {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
         const { data, error } = await (supabase.from("shipments") as any)
-          .insert({ ...form, created_by: user?.id })
+          .insert({ ...form, ...persistedFxf, created_by: user?.id })
           .select()
           .single();
         if (error) throw error;
         logChange({ table_name: "shipments", record_id: data.id, action: "create", new_data: data });
         toast({ title: "Shipment created" });
-        navigate(`/admin/pricing/costings/${data.id}`, { replace: true });
+        if (queuedDocuments.length && user) {
+          try {
+            await uploadShipmentDocuments(data.id, user.id, queuedDocuments);
+          } catch (uploadError: any) {
+            toast({ title: "Some documents did not upload", description: `${uploadError.message} Add them again from Document review.`, variant: "destructive" });
+          }
+        }
+        navigate(`/admin/finance/costings/${data.id}`, { replace: true });
       } else {
         const { id: _, created_at, updated_at, supplier_name, ...form } = shipment as any;
-        const { error } = await (supabase.from("shipments") as any).update(form).eq("id", id);
+        const { error } = await (supabase.from("shipments") as any).update({ ...form, ...persistedFxf }).eq("id", id);
         if (error) throw error;
         logChange({ table_name: "shipments", record_id: id!, action: "update", new_data: form });
         toast({ title: "Saved" });
@@ -303,10 +381,24 @@ const ShipmentDetailPage = () => {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!shipment || !id || isNew) return;
+    if (newStatus === "locked") {
+      const lineTotal = lines.reduce((sum, line) => sum + (line.line_fob_foreign || 0), 0);
+      if (Math.abs(lineTotal - shipment.invoice_total_foreign) >= 0.005) {
+        toast({ title: "Cannot lock", description: "Reconcile invoice lines before locking.", variant: "destructive" });
+        return;
+      }
+    }
     const oldStatus = shipment.status;
     try {
       const { error } = await (supabase.from("shipments") as any).update({ status: newStatus }).eq("id", id);
       if (error) throw error;
+      if (newStatus === "locked") {
+        const { error: binderError } = await supabase.functions.invoke("shipment-binder", { body: { shipmentId: id } });
+        if (binderError) {
+          await (supabase.from("shipments") as any).update({ status: "reviewed" }).eq("id", id);
+          throw new Error("Binder generation failed; shipment remains reviewed.");
+        }
+      }
       setShipment({ ...shipment, status: newStatus as any });
       logChange({ table_name: "shipments", record_id: id, action: "update", change_summary: { status: { old: oldStatus, new: newStatus } } });
       toast({ title: `Status → ${newStatus}` });
@@ -325,6 +417,17 @@ const ShipmentDetailPage = () => {
     await upsertLine.mutateAsync({ shipment_id: id, product_type: isLensShipment ? "lens" : "free", description: "", quantity: 1, unit_fob_foreign: 0, line_fob_foreign: 0, markup_percent: 30, sort_order: lines.length });
   };
 
+  const addLineAndFocusProduct = async () => {
+    await addLine();
+    // The mutation invalidates the row query; wait one paint so the blank row's
+    // product selector exists before focusing it. This is keyboard-only and
+    // does not depend on browser clipboard behaviour.
+    window.setTimeout(() => {
+      const selectors = Array.from(document.querySelectorAll<HTMLButtonElement>("button[role='combobox']"));
+      selectors[selectors.length - 1]?.focus();
+    }, 0);
+  };
+
   const exportCSV = (data: Record<string, any>[], filename: string) => {
     if (data.length === 0) return;
     const headers = Object.keys(data[0]);
@@ -340,9 +443,9 @@ const ShipmentDetailPage = () => {
     const seen = new Set<string>();
     return items.filter(i => { if (seen.has(i.label)) return false; seen.add(i.label); return true; });
   };
-  const lensOptions = useMemo(() => dedup(lenses.filter(l => l.is_active).map(l => ({ id: l.id, label: l.name }))), [lenses]);
-  const supplyOptions = useMemo(() => dedup(supplies.filter(s => s.is_active).map(s => ({ id: s.id, label: s.name }))), [supplies]);
-  const addonOptions = useMemo(() => dedup(addons.filter(a => a.is_active).map(a => ({ id: a.id, label: a.name }))), [addons]);
+  const lensOptions = useMemo(() => dedup(lenses.filter(l => l.is_active && l.supplier_id === shipment?.supplier_id).map(l => ({ id: l.id, label: l.name }))), [lenses, shipment?.supplier_id]);
+  const supplyOptions = useMemo(() => dedup(supplies.filter(s => s.is_active && s.supplier_id === shipment?.supplier_id).map(s => ({ id: s.id, label: s.name }))), [supplies, shipment?.supplier_id]);
+  const addonOptions = useMemo(() => dedup(addons.filter(a => a.is_active && a.supplier_id === shipment?.supplier_id).map(a => ({ id: a.id, label: a.name }))), [addons, shipment?.supplier_id]);
 
   const getProductOptions = (type: string) => {
     switch (type) {
@@ -378,6 +481,51 @@ const ShipmentDetailPage = () => {
     upsertCharge.mutate({ id: charge.id, [field]: value } as Partial<ShipmentCharge>);
   }, [upsertCharge]);
 
+  const applyChargeProfile = useCallback((charge: ShipmentCharge, profile: ChargeProfile) => {
+    upsertCharge.mutate({
+      id: charge.id,
+      amount_bbd: profile.amount_bbd,
+      vat_bbd: profile.vat_bbd,
+      duty_bbd: profile.duty_bbd,
+      vat_reclaimable: profile.vat_reclaimable,
+      notes: profile.notes,
+    });
+  }, [upsertCharge]);
+
+  const addChargeAndFocusType = async () => {
+    await addCharge();
+    window.setTimeout(() => {
+      const targets = Array.from(document.querySelectorAll<HTMLElement>("[data-charge-focus$=':type']"));
+      targets[targets.length - 1]?.focus();
+    }, 0);
+  };
+
+  const exportBinder = async () => {
+    if (!id || shipment.status !== "reviewed") return;
+    setBuildingBinder(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("shipment-binder", { body: { shipmentId: id } });
+      if (error || !data?.path) throw error ?? new Error("Binder generation returned no file.");
+      const { data: signed, error: signedError } = await supabase.storage.from("shipment-costing-documents").createSignedUrl(data.path, 600);
+      if (signedError || !signed?.signedUrl) throw signedError ?? new Error("Could not prepare the binder download.");
+      window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+      toast({ title: "Binder generated", description: "The costing cover and uploaded documents are ready to archive." });
+    } catch (error: any) {
+      toast({ title: "Binder export failed", description: error.message, variant: "destructive" });
+    } finally {
+      setBuildingBinder(false);
+    }
+  };
+
+  const advanceCharge = useCallback((chargeId: string, field: ChargeField) => {
+    const next = getChargeAdvance(charges.map((charge) => charge.id), chargeId, field);
+    if (next.kind === "create") {
+      void addChargeAndFocusType();
+      return;
+    }
+    focusChargeField(next.chargeId, next.field);
+  }, [charges]);
+
   // Line field updater (blur-based) — partial update by id only.
   const updateLine = useCallback((line: ShipmentLine, updates: Partial<ShipmentLine>) => {
     upsertLine.mutate({ id: line.id, ...updates });
@@ -386,55 +534,137 @@ const ShipmentDetailPage = () => {
   if (loading || !shipment) return <div className="p-4 text-sm text-muted-foreground">Loading…</div>;
 
   const xr = totals.exchangeRate || shipment.exchange_rate || 1;
+  const currencyMark = shipment.currency === "USD" ? "US$" : `${shipment.currency}$`;
   const insuranceFreightAmount = computeInsuranceFreightCharge(charges);
+  const freightProvider = shipment.freight_provider ?? "dhl";
+  const cifBbd = totals.fobBbd + insuranceFreightAmount;
+  const expectedFxfBbd = Math.round(cifBbd * 0.02 * 100) / 100;
+  const otherLandedChargesBbd = Math.max(0, totals.chargeSubtotalExcludingVatBbd - insuranceFreightAmount);
+  const supplierLinesTotal = lines.reduce((sum, line) => sum + (line.line_fob_foreign || 0), 0);
+  const invoiceVariance = supplierLinesTotal - shipment.invoice_total_foreign;
+  const invoiceReconciled = Math.abs(invoiceVariance) < 0.005;
+
+  if (isNew && !entryMode) {
+    return (
+      <div className="min-w-0 space-y-4 p-4">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)} aria-label="Back to shipment list">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-lg font-semibold text-foreground">New Shipment</h1>
+        </div>
+        <div className="mx-auto grid max-w-3xl gap-3 pt-6 md:grid-cols-2">
+          <button type="button" onClick={() => setEntryMode("documents")} className="rounded-lg border border-border bg-card p-5 text-left shadow-sm transition-colors hover:border-primary">
+            <Upload className="mb-3 h-5 w-5 text-primary" />
+            <div className="text-sm font-semibold text-foreground">Start from documents</div>
+            <p className="mt-1 text-xs text-muted-foreground">Drop the supplier invoice, customs entry, freight bill and other supporting documents first, then complete the costing.</p>
+          </button>
+          <button type="button" onClick={() => setEntryMode("manual")} className="rounded-lg border border-border bg-card p-5 text-left shadow-sm transition-colors hover:border-primary">
+            <PenLine className="mb-3 h-5 w-5 text-muted-foreground" />
+            <div className="text-sm font-semibold text-foreground">Enter manually</div>
+            <p className="mt-1 text-xs text-muted-foreground">Type every field by hand, exactly as before. Documents can still be attached after saving.</p>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const queueDocuments = (files: FileList) => {
+    const accepted = acceptedShipmentDocuments(files);
+    if (accepted.length < files.length) toast({ title: "Some files skipped", description: "Only PDF, PNG or JPEG files up to 25MB are accepted." });
+    setQueuedDocuments((current) => [...current, ...accepted]);
+  };
 
   return (
-    <div className="p-4 space-y-4 w-fit min-w-full">
+    <div className="min-w-0 space-y-4 p-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-lg font-semibold text-foreground">
-          {isNew ? "New Shipment" : `Shipment: ${shipment.invoice_number || "Untitled"}`}
-        </h1>
-        {!isNew && <Badge variant="outline" className="capitalize">{shipment.status}</Badge>}
-        {!isNew && <span className="text-xs text-muted-foreground">v{shipment.version}</span>}
-        <div className="flex-1" />
-        {!isNew && editable && shipment.status === "draft" && (
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("reviewed")}>Mark Reviewed</Button>
-        )}
-        {!isNew && editable && shipment.status === "reviewed" && (
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("locked")}>Lock</Button>
-        )}
-        {!isNew && isAdmin && shipment.status === "reviewed" && (
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("draft")}>Back to Draft</Button>
-        )}
-        {editable && (
-          <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
-            <Save className="h-3 w-3" /> {isNew ? "Create" : "Save"}
+      <div className="sticky top-0 z-20 -mx-4 border-b border-border bg-background/95 px-4 py-2 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate(-1)} aria-label="Back to shipment list">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-        )}
+          <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
+            <h1 className="truncate text-lg font-semibold text-foreground">
+              {isNew ? "New Shipment" : `Shipment: ${shipment.invoice_number || "Untitled"}`}
+            </h1>
+            {!isNew && <Badge variant="outline" className="shrink-0 capitalize">{shipment.status}</Badge>}
+            {!isNew && <span className="shrink-0 text-xs text-muted-foreground">v{shipment.version}</span>}
+          </div>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {!isNew && editable && shipment.status === "draft" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("reviewed")}>Mark Reviewed</Button>
+          )}
+          {!isNew && editable && shipment.status === "reviewed" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("locked")}>Lock</Button>
+          )}
+          {!isNew && isAdmin && shipment.status === "reviewed" && (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleStatusChange("draft")}>Back to Draft</Button>
+          )}
+          {editable && (
+            <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={saving}>
+              <Save className="h-3 w-3" /> {isNew ? "Create" : "Save"}
+            </Button>
+          )}
+          </div>
+        </div>
       </div>
 
+      {isNew && entryMode === "documents" && (
+        <section
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => { e.preventDefault(); queueDocuments(e.dataTransfer.files); }}
+          className="rounded-lg border border-dashed border-border bg-card p-4 shadow-sm"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Source documents</h2>
+              <p className="text-xs text-muted-foreground">Drop the supplier invoice, customs entry and any other landing-cost documents. They are attached when you click Create.</p>
+            </div>
+            <label className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-input bg-background px-3 text-xs font-medium hover:bg-accent">
+              <Upload className="h-3 w-3" /> Choose documents
+              <input type="file" className="hidden" accept="application/pdf,image/png,image/jpeg" multiple onChange={(e) => { if (e.target.files) queueDocuments(e.target.files); e.target.value = ""; }} />
+            </label>
+          </div>
+          {queuedDocuments.length > 0 ? (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {queuedDocuments.map((file, index) => (
+                <li key={`${file.name}-${index}`} className="flex items-center gap-1 rounded border border-border bg-muted/40 py-0.5 pl-2 pr-0.5 text-xs">
+                  <FileText className="h-3 w-3 text-muted-foreground" />
+                  <span className="max-w-[220px] truncate">{file.name}</span>
+                  <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={() => setQueuedDocuments((current) => current.filter((_, i) => i !== index))} aria-label={`Remove ${file.name}`}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-3 flex min-h-[80px] items-center justify-center rounded border border-dashed text-xs text-muted-foreground">Drop PDF, PNG or JPEG files here</div>
+          )}
+        </section>
+      )}
+
+      <div className="grid min-w-0 gap-3 2xl:grid-cols-[minmax(320px,520px)_minmax(460px,1fr)_minmax(280px,360px)] 2xl:items-start">
+        <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] 2xl:contents">
+
       {/* Shipment fields */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Field label="Type *">
-          <Select value={shipment.type} onValueChange={(v) => updateField("type", v)} disabled={!editable}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+      <div className="grid min-w-0 grid-cols-1 gap-x-2 gap-y-1.5 rounded-lg border border-border bg-card p-3 shadow-sm xl:grid-cols-2 2xl:col-start-1 2xl:row-span-2 2xl:row-start-1">
+        <h2 className="col-span-full text-sm font-semibold text-foreground">Shipment details</h2>
+        <Field label="Supplier *">
+          <Select value={shipment.supplier_id} onValueChange={handleSupplierSelect} disabled={!editable}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select supplier…" /></SelectTrigger>
             <SelectContent>
-              {shipmentTypes.filter(t => t.is_active).map(t => (
-                <SelectItem key={t.id} value={t.code}>{t.name}</SelectItem>
+              {(suppliers ?? []).filter((s) => s.is_active).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Supplier *">
-          <Select value={shipment.supplier_id} onValueChange={(v) => updateField("supplier_id", v)} disabled={!editable}>
-            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select…" /></SelectTrigger>
+        <Field label="Type *">
+          <Select value={shipment.type} onValueChange={(v) => updateField("type", v)} disabled={!editable}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select…" /></SelectTrigger>
             <SelectContent>
-              {(suppliers ?? []).filter((s) => s.is_active).map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              {shipmentTypes.filter(t => t.is_active).map(t => (
+                <SelectItem key={t.id} value={t.code}>{t.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -477,10 +707,10 @@ const ShipmentDetailPage = () => {
             <span className="flex items-center gap-1 text-muted-foreground"><Lock className="h-3 w-3" /> Fixed</span>
           </div>
         </Field>
-        <Field label={`FOB (${shipment.currency}) *`}>
+        <Field label={`FOB (${currencyMark}) *`}>
           <NumericInput value={shipment.fob_foreign} onChange={(v) => updateField("fob_foreign", v)} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
-        <Field label={`Invoice Total (${shipment.currency}) *`}>
+        <Field label={`Invoice Total (${currencyMark}) *`}>
           <NumericInput value={shipment.invoice_total_foreign} onChange={(v) => { setInvoiceTouched(true); updateField("invoice_total_foreign", v); }} disabled={!editable} className="h-8 text-xs text-right" />
         </Field>
         <Field label="Freight Provider">
@@ -494,40 +724,113 @@ const ShipmentDetailPage = () => {
             />
           </div>
         </Field>
+        <Field label="Settlement Method">
+          <Select value={shipment.settlement_method ?? "BBD Funded - Wire"} onValueChange={(value) => updateField("settlement_method", value)} disabled={!editable}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BBD Funded - Wire">BBD Funded - Wire</SelectItem>
+              <SelectItem value="BBD Funded - Card">BBD Funded - Card</SelectItem>
+              <SelectItem value="BBD Converted to Foreign Currency">BBD Converted to Foreign Currency</SelectItem>
+              <SelectItem value="FCA">Foreign Currency Account (FCA)</SelectItem>
+              <SelectItem value="Supplier Credit / Unsettled">Supplier Credit / Unsettled</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
       </div>
 
       {/* Computed summary */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Dials</h2>
-          <span className="text-xs text-muted-foreground">Rates use pricing settings for {shipment.currency} when available.</span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 rounded border border-border bg-muted p-3">
-          <ComputedField label="FOB (BBD)" value={fmt(totals.fobBbd)} />
-          <ComputedField label="Invoice (BBD)" value={fmt(totals.invoiceBbd)} />
-          <ComputedField label="10% of Ins. & Frt. to Charity">
-            <div className="space-y-0.5 text-center">
-              <div className="text-sm font-mono font-semibold text-foreground">{fmt(totals.charityAllocationBbd)}</div>
-              <div className="text-[10px] text-muted-foreground">{fmt(totals.charityAllocationBbd)} + {fmt(totals.chargeSubtotalExcludingVatBbd)} = {fmt(totals.totalShipmentCostBbd)}</div>
+        <details open className="min-w-0 space-y-2 rounded-lg border border-border bg-card p-3 shadow-sm xl:self-start 2xl:col-start-3 2xl:row-span-2 2xl:row-start-1">
+        <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Landed cost story</h2>
+            <p className="text-xs text-muted-foreground">The calculation is visible before it becomes a final costing record.</p>
+          </div>
+          <Badge variant="outline" className="text-[10px]">FXF model preview</Badge>
+        </summary>
+        <div className="mt-2 grid gap-2">
+          <div className="divide-y rounded-md border bg-muted/20 px-3">
+            <CostStoryRow label="FOB / supplier invoice" value={fmt(totals.fobBbd)} suffix="BBD" />
+            <CostStoryRow label="Insurance & freight" value={fmt(insuranceFreightAmount)} suffix="BBD" />
+            {freightProvider === "dhl" && <CostStoryRow label="DHL charity contribution (10% of insurance & freight)" value={fmt(totals.charityAllocationBbd)} suffix="BBD" />}
+            <CostStoryRow label="CIF" value={fmt(cifBbd)} suffix="BBD" strong />
+            <CostStoryRow label="FXF @ 2.00% of CIF" value={fmt(expectedFxfBbd)} suffix="BBD" strong icon={<Lock className="h-3 w-3" />} />
+            <CostStoryRow label="Other landed charges excl. recoverable VAT" value={fmt(otherLandedChargesBbd)} suffix="BBD" />
+            <CostStoryRow label="Current total landed" value={fmt(totals.totalLandedBbd)} suffix="BBD" strong />
+            <CostStoryRow label="Current landed multiplier" value={totals.multiplier.toFixed(4)} suffix="×" strong />
+          </div>
+          <div className={`rounded-md border p-3 ${invoiceReconciled ? "border-emerald-500/30 bg-emerald-500/5" : "border-destructive/40 bg-destructive/5"}`}>
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {invoiceReconciled ? <CircleCheck className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-destructive" />}
+              {invoiceReconciled ? "Invoice reconciled" : "Invoice mismatch"}
             </div>
-          </ComputedField>
-          <ComputedField label="Charges excl. VAT (BBD)" value={fmt(totals.chargeSubtotalExcludingVatBbd)} />
-          <ComputedField label="Total Landed (BBD)" value={fmt(totals.totalLandedBbd)} />
-          <ComputedField label="Multiplier" value={totals.multiplier.toFixed(4)} />
+            <div className="mt-3 space-y-1 text-xs">
+              <CostCheck label="Lines" value={`${shipment.currency} ${fmt(supplierLinesTotal)}`} />
+              <CostCheck label="Invoice" value={`${shipment.currency} ${fmt(shipment.invoice_total_foreign)}`} />
+              <CostCheck label="Variance" value={`${invoiceVariance < 0 ? "-" : ""}${shipment.currency} ${fmt(Math.abs(invoiceVariance))}`} emphasize />
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">FXF is separate from the supplier invoice and never resolves a line mismatch.</p>
+          </div>
         </div>
-      </section>
+        <p className="text-[11px] text-muted-foreground">FXF is persisted on save from CIF at the configured rate; FCA settlement is exempt. Overrides require a reviewed revision.</p>
+      </details>
+      </div>
 
-      {/* Tabs - only show for saved shipments */}
       {!isNew && (
-        <Tabs defaultValue="charges" className="w-full">
-          <TabsList className="h-8 p-0.5 gap-0.5" style={{ background: "hsl(215 10% 93%)", borderRadius: "4px" }}>
-            <TabsTrigger value="charges" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Charges ({charges.length})</TabsTrigger>
-            <TabsTrigger value="lines" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Line Items ({lines.length})</TabsTrigger>
-            <TabsTrigger value="exports" className="text-xs h-7 px-3" style={{ borderRadius: "3px" }}>Exports</TabsTrigger>
+        <div className="min-w-0 space-y-3 2xl:contents">
+        <section
+          className={cn(
+            "flex min-w-0 2xl:col-start-2 2xl:row-start-1",
+            documentReviewExpanded && "min-h-[410px]",
+          )}
+        >
+          <ShipmentEvidencePanel
+            shipmentId={id ?? null}
+            readOnly={isLocked}
+            expanded={documentReviewExpanded}
+            onExpandedChange={setDocumentReviewExpanded}
+            targets={[
+              { key: "invoice_total_foreign", label: "Supplier invoice", value: `${currencyMark} ${fmt(shipment.invoice_total_foreign)}`, category: "invoice" },
+              { key: "invoice_number", label: "Invoice number", value: shipment.invoice_number || "Not entered", category: "invoice" },
+              { key: "insurance_freight", label: "Freight & insurance", value: `BBD$ ${fmt(insuranceFreightAmount)}`, category: "freight" },
+              { key: "po_ref", label: "PO / AWB reference", value: shipment.po_ref || "Not entered", category: "reference" },
+            ]}
+            coverSheet={<ShipmentCostingCoverSheet
+              shipmentNumber={shipment.invoice_number}
+              supplier={suppliers?.find((supplier) => supplier.id === shipment.supplier_id)?.name ?? shipment.supplier_id}
+              reference={shipment.po_ref}
+              receivedOn={shipment.date_received}
+              currency={shipment.currency}
+              fobBbd={totals.fobBbd}
+              freightBbd={insuranceFreightAmount}
+              charityAllocationBbd={totals.charityAllocationBbd}
+              freightProvider={freightProvider}
+              cifBbd={cifBbd}
+              fxfBbd={expectedFxfBbd}
+              otherChargesBbd={otherLandedChargesBbd}
+              totalLandedBbd={totals.totalLandedBbd}
+              multiplier={totals.multiplier}
+              status={shipment.status}
+            />}
+          />
+        </section>
+
+      {/* On wide desktops, working tabs span the header and document-review columns. */}
+        <Tabs
+          defaultValue="lines"
+          className="min-w-0 border-t pt-3 2xl:col-span-2 2xl:col-start-1 2xl:row-start-2"
+        >
+          <TabsList className="h-8">
+            <TabsTrigger value="lines" className="text-xs">Invoice items ({lines.length})</TabsTrigger>
+            <TabsTrigger value="charges" className="text-xs">Landed charges ({charges.length})</TabsTrigger>
+            <TabsTrigger value="exports" className="text-xs">Export bundle</TabsTrigger>
           </TabsList>
 
-          {/* Charges Tab */}
-          <TabsContent value="charges" className="space-y-2">
+          <TabsContent value="charges" className="space-y-2 pt-2">
+            <div className="flex items-center justify-between rounded-md border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-xs">
+              <div className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-violet-700" /><span className="font-medium">Foreign Exchange Fee</span><Badge variant="outline" className="text-[9px]">System · planned</Badge></div>
+              <Tooltip><TooltipTrigger asChild><span tabIndex={0} className="cursor-help font-mono underline decoration-dotted underline-offset-2">{fmt(expectedFxfBbd)} BBD</span></TooltipTrigger><TooltipContent className="text-xs">CIF {fmt(cifBbd)} × 2.00% = {fmt(expectedFxfBbd)} BBD</TooltipContent></Tooltip>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">All amounts in BBD</span>
               {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addCharge}><Plus className="h-3 w-3" /> Add Charge</Button>}
@@ -549,33 +852,34 @@ const ShipmentDetailPage = () => {
                 <TableBody>
                   {charges.map((c) => {
                     const rowTotal = computeChargeRowTotal(c);
+                    const suggestion = chargeSuggestions[c.charge_type];
                     return (
                       <TableRow key={c.id} className="text-xs">
                         <TableCell className="py-1">
-                          <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => updateCharge(c, "charge_type", v)}>
-                            <SelectTrigger className="h-7 text-xs border-0 shadow-none"><SelectValue /></SelectTrigger>
+                          <Select value={c.charge_type} disabled={!editable} onValueChange={(v) => { updateCharge(c, "charge_type", v); focusChargeField(c.id, "amount"); }}>
+                            <SelectTrigger data-charge-focus={`${c.id}:type`} className="h-7 text-xs border-0 shadow-none"><SelectValue /></SelectTrigger>
                             <SelectContent>{activeChargeTypes.map((ct) => <SelectItem key={ct.id} value={ct.name}>{ct.name}</SelectItem>)}</SelectContent>
                           </Select>
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => {}} />
+                          <NumericInput value={c.amount_bbd} disabled={!editable} className="h-7 text-xs text-right w-full pr-20" focusTarget={`${c.id}:amount`}
+                            suggestion={suggestion?.amount_bbd} suggestionDescription={suggestion ? `Most common ${c.charge_type} profile for this supplier: used ${suggestion.count} times in the latest 30 shipments. Applies amount, VAT, duty, reclaimable state, and notes.` : undefined} onAcceptSuggestion={() => suggestion && applyChargeProfile(c, suggestion)} onChange={(v) => updateCharge(c, "amount_bbd", v)} onAdvance={() => advanceCharge(c.id, "amount")} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => {}} />
+                          <NumericInput value={c.vat_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full" focusTarget={`${c.id}:vat`}
+                            onChange={(v) => updateCharge(c, "vat_bbd", v)} onAdvance={() => advanceCharge(c.id, "vat")} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => {}} />
+                          <NumericInput value={c.duty_bbd ?? 0} disabled={!editable} className="h-7 text-xs text-right w-full" focusTarget={`${c.id}:duty`}
+                            onChange={(v) => updateCharge(c, "duty_bbd", v)} onAdvance={() => advanceCharge(c.id, "duty")} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <Switch checked={c.vat_reclaimable} disabled={!editable}
-                            onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} />
+                          <Switch checked={c.vat_reclaimable} disabled={!editable} data-charge-focus={`${c.id}:reclaimable`}
+                            onCheckedChange={(v) => updateCharge(c, "vat_reclaimable", v)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); advanceCharge(c.id, "reclaimable"); } }} />
                         </TableCell>
                         <TableCell className="py-1">
-                          <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full"
-                            onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => {}} />
+                          <TextInput value={c.notes ?? ""} disabled={!editable} className="h-7 text-xs w-full" focusTarget={`${c.id}:notes`}
+                            onChange={(v) => updateCharge(c, "notes", v)} onAdvance={() => advanceCharge(c.id, "notes")} />
                         </TableCell>
                         <TableCell className="py-1 text-right"><AlignedMoney value={rowTotal} /></TableCell>
                         {editable && (
@@ -619,7 +923,7 @@ const ShipmentDetailPage = () => {
           </TabsContent>
 
           {/* Line Items Tab */}
-          <TabsContent value="lines" className="space-y-2">
+          <TabsContent value="lines" className="space-y-2 pt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">Multiplier: {totals.multiplier.toFixed(4)}</span>
               {editable && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={addLine}><Plus className="h-3 w-3" /> Add Line</Button>}
@@ -696,7 +1000,7 @@ const ShipmentDetailPage = () => {
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.landedUnitUsd)}</TableCell>
                         <TableCell className="py-1">
                           <NumericInput value={l.markup_percent} disabled={!editable} className="h-7 text-xs text-right w-full"
-                            onChange={(v) => updateLine(l, { markup_percent: v })} />
+                            onChange={(v) => updateLine(l, { markup_percent: v })} onAdvance={() => { void addLineAndFocusProduct(); }} />
                         </TableCell>
                         <TableCell className="py-1 text-right font-mono">{fmt(computed.sellBbd)}</TableCell>
                         <TableCell className="py-1 text-right font-mono text-muted-foreground">{fmt(computed.sellUsd)}</TableCell>
@@ -724,9 +1028,10 @@ const ShipmentDetailPage = () => {
           </TabsContent>
 
           {/* Exports Tab */}
-          <TabsContent value="exports" className="space-y-3">
-            <p className="text-xs text-muted-foreground">Export data for this shipment as CSV files.</p>
+          <TabsContent value="exports" className="space-y-3 pt-3">
+            <p className="text-xs text-muted-foreground">Export data as CSV, or generate the binder front page with all uploaded source documents.</p>
             <div className="flex flex-wrap gap-2">
+              {editable && shipment.status === "reviewed" && <Button size="sm" className="h-8 text-xs gap-1" onClick={() => void exportBinder()} disabled={buildingBinder}><Download className="h-3 w-3" /> {buildingBinder ? "Building binder…" : "Export binder PDF"}</Button>}
               <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => {
                 const { fobBbd, invoiceBbd, totalLandedBbd, multiplier } = totals;
                 exportCSV([{
@@ -762,13 +1067,15 @@ const ShipmentDetailPage = () => {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
       )}
 
       {isNew && (
-        <div className="text-center py-8 text-xs text-muted-foreground border border-border rounded bg-muted">
+        <div className="text-center py-8 text-xs text-muted-foreground border border-border rounded bg-muted 2xl:col-span-3">
           Save the shipment first to add Charges and Line Items.
         </div>
       )}
+      </div>
     </div>
   );
 };
@@ -780,10 +1087,17 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
-const ComputedField = ({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) => (
-  <div className="text-center">
-    <div className="text-[10px] text-muted-foreground">{label}</div>
-    {children ?? <div className="text-sm font-mono font-semibold text-foreground">{value}</div>}
+const CostStoryRow = ({ label, value, suffix, strong = false, icon }: { label: string; value: string; suffix: string; strong?: boolean; icon?: React.ReactNode }) => (
+  <div className={cn("flex items-center justify-between gap-4 py-2 text-xs", strong && "font-semibold")}>
+    <span className="flex items-center gap-1.5 text-muted-foreground">{icon}{label}</span>
+    <span className="font-mono tabular-nums text-foreground">{suffix === "×" ? `${suffix}${value}` : `${value} ${suffix}`}</span>
+  </div>
+);
+
+const CostCheck = ({ label, value, emphasize = false }: { label: string; value: string; emphasize?: boolean }) => (
+  <div className={cn("flex items-center justify-between gap-3", emphasize && "font-semibold")}>
+    <span className="text-muted-foreground">{label}</span>
+    <span className="font-mono tabular-nums">{value}</span>
   </div>
 );
 

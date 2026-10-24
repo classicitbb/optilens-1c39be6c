@@ -167,6 +167,7 @@ const LineOverrideDialog = ({
           .update({
             overridden_price_bbd: parsedPrice,
             reason: reason || null,
+            override_source: "manual",
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingId);
@@ -179,6 +180,7 @@ const LineOverrideDialog = ({
             reference_id: referenceId,
             overridden_price_bbd: parsedPrice,
             reason: reason || null,
+            override_source: "manual",
           });
         if (error) throw error;
       }

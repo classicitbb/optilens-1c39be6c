@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { LeadRecord } from "../types";
+import type { ConnectionStrength, LeadFollowUp, LeadRecord } from "../types";
 import { DEFAULT_SEQUENCE } from "./useLeadSequenceBuilder";
 import { formatComplianceError, validateTargetingInput } from "../utils/targetingCompliance";
 import { inferLeadSegment } from "../utils/campaignActivation";
@@ -23,94 +23,135 @@ const logLeadEvent = async (payload: {
   }
 };
 
+export interface SaveLeadInput {
+  lead: LeadRecord;
+  /** Existing contact chosen by the operator; omit to use the confirmed link or create a new one. */
+  contactId?: string | null;
+  connectionStrength: ConnectionStrength;
+  followUp: LeadFollowUp;
+}
+
+const hostOfWebsite = (website: string | null) => {
+  if (!website) return null;
+  try {
+    return new URL(/^https?:\/\//i.test(website) ? website : `https://${website}`).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+};
+
+export const buildIdentityPayload = (lead: LeadRecord) => {
+  if (!lead.identity_key || !lead.crm) throw new Error("This result has no business identity yet. Search again.");
+  return {
+    identity_key: lead.identity_key,
+    display_name: lead.name,
+    normalized_name: lead.crm.normalizedName,
+    city: lead.city,
+    country: lead.country,
+    website: lead.website,
+    website_host: hostOfWebsite(lead.website),
+    formatted_address: lead.formatted_address ?? null,
+  };
+};
+
+const invalidateCrm = (qc: ReturnType<typeof useQueryClient>) => {
+  qc.invalidateQueries({ queryKey: ["leads-v1"] });
+  qc.invalidateQueries({ queryKey: ["crm-opportunities"] });
+  qc.invalidateQueries({ queryKey: ["crm-activities"] });
+};
+
+/** Explicit, transactional save: one RPC, targeting the chosen contact or creating a new one. */
 export const useSaveLeadToCrm = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (lead: LeadRecord) => {
-      const segment = inferLeadSegment(lead);
-
-      const contactPayload = {
-        name: lead.name,
-        country: lead.country,
-        city: lead.city,
-        website: lead.website,
-        instagram_handle: lead.instagram_handle,
-        facebook_page_id: lead.facebook_page,
-        google_rating: lead.google_rating,
-        google_reviews_count: lead.google_reviews_count,
-        ai_intent_score: lead.ai_intent_score,
-        status: "lead",
-        notes: lead.notes,
-        lead_score: lead.score,
-        lead_source: lead.lead_source ?? "lead_finder",
-        lead_segment: lead.lead_segment ?? segment,
-      };
-
-      const { data: contact, error: contactErr } = await (supabase.from("contacts") as any)
-        .upsert(contactPayload as any, { onConflict: "name" })
-        .select("id")
-        .single();
-      if (contactErr) throw contactErr;
-
-      const { data: oppRaw, error: oppErr } = await (supabase.from("opportunities") as any)
-        .upsert({
-          contact_id: contact.id,
-          title: `${lead.name} Opportunity`,
-          stage: "new",
-          country: lead.country,
-          volume_tier: "medium",
-          source_search_run_id: lead.search_run_id ?? null,
-        } as any, { onConflict: "contact_id,title" })
-        .select("id")
-        .single();
-      if (oppErr) throw oppErr;
-      const opportunity = oppRaw as unknown as { id: string } | null;
-
-      const { error: noteErr } = await (supabase.from("notes") as any)
-        .insert({
-          contact_id: contact.id,
-          source: "lead_finder",
-          content: `Lead imported via Lead Finder. Score: ${lead.score}`,
-        } as any);
-      if (noteErr) throw noteErr;
-
-
-      try {
-        await (supabase as any).from("lead_scoring_outcomes").insert({
-          contact_id: contact.id,
-          opportunity_id: opportunity?.id ?? null,
-          outcome_stage: "imported_to_crm",
-          model_score: lead.score,
-          score_breakdown: lead.lead_score_breakdown ?? {},
-          metadata: {
-            source: "lead_finder",
-            lead_name: lead.name,
-          },
-        } as any);
-      } catch {
-        // silently ignore outcome logging failures
+    mutationFn: async ({ lead, contactId, connectionStrength, followUp }: SaveLeadInput) => {
+      if (lead.crm?.status === "unavailable") {
+        throw new Error("CRM matching is unavailable, so saving could create a duplicate. Search again once it recovers.");
       }
-
-      await logLeadEvent({
-        event_type: "saved_to_crm",
-        contact_id: contact.id,
-        opportunity_id: opportunity?.id ?? null,
-        provider_diagnostics_summary: {
-          source: "lead_finder",
-          lead_name: lead.name,
-          score: lead.score,
-          country: lead.country,
-          city: lead.city,
-          search_run_id: lead.search_run_id ?? null,
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await (supabase as any).rpc("lead_finder_save_lead", {
+        p_payload: {
+          identity: buildIdentityPayload(lead),
+          contact_id: contactId ?? lead.crm?.match?.contactId ?? null,
+          lead: {
+            rating: lead.google_rating,
+            reviews: lead.google_reviews_count,
+            instagram_handle: lead.instagram_handle,
+            facebook_page: lead.facebook_page,
+            score: lead.score,
+            ai_intent_score: lead.ai_intent_score,
+            score_breakdown: lead.lead_score_breakdown ?? {},
+            search_run_id: lead.search_run_id ?? null,
+            lead_segment: lead.lead_segment ?? inferLeadSegment(lead),
+          },
+          connection_strength: connectionStrength,
+          needs_follow_up: followUp.needsFollowUp,
+          follow_up_owner: followUp.needsFollowUp ? followUp.ownerId ?? user?.id ?? null : null,
+          follow_up_due_at: followUp.needsFollowUp && followUp.dueDate ? new Date(`${followUp.dueDate}T12:00:00`).toISOString() : null,
         },
       });
+      if (error) throw error;
+      return data as { contact_id: string; created_contact: boolean; task_id: string | null; already_saved: boolean };
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["leads-v1"] });
-      qc.invalidateQueries({ queryKey: ["crm-opportunities"] });
-      qc.invalidateQueries({ queryKey: ["crm-activities"] });
+    onSuccess: () => invalidateCrm(qc),
+  });
+};
+
+export const useConfirmLeadLink = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ lead, contactId }: { lead: LeadRecord; contactId: string }) => {
+      const { error } = await (supabase as any).rpc("lead_finder_confirm_link", {
+        p_identity: buildIdentityPayload(lead),
+        p_contact_id: contactId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateCrm(qc),
+  });
+};
+
+export const useMarkCurrentCustomer = () => {
+  return useMutation({
+    mutationFn: async (lead: LeadRecord) => {
+      const { error } = await (supabase as any).rpc("lead_finder_mark_customer", {
+        p_identity: buildIdentityPayload(lead),
+      });
+      if (error) throw error;
     },
   });
+};
+
+export const useClearLeadLink = () => {
+  return useMutation({
+    mutationFn: async (identityKey: string) => {
+      const { error } = await (supabase as any).rpc("lead_finder_clear_link", { p_identity_key: identityKey });
+      if (error) throw error;
+    },
+  });
+};
+
+export interface ContactSearchResult {
+  id: string;
+  name: string | null;
+  business_name: string | null;
+  city: string | null;
+  is_customer: boolean | null;
+  linked_customer_id: number | null;
+}
+
+/** Searchable contact picker source; names differing from the lead are expected. */
+export const searchContacts = async (term: string): Promise<ContactSearchResult[]> => {
+  const trimmed = term.trim().replace(/[%,()]/g, " ");
+  if (trimmed.length < 2) return [];
+  const { data, error } = await (supabase.from("contacts") as any)
+    .select("id,name,business_name,city,is_customer,linked_customer_id")
+    .or(`name.ilike.%${trimmed}%,business_name.ilike.%${trimmed}%`)
+    .eq("is_archived", false)
+    .order("name")
+    .limit(15);
+  if (error) throw error;
+  return (data ?? []) as ContactSearchResult[];
 };
 
 export const useRunLeadSequence = () => {

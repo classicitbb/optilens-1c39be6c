@@ -18,7 +18,7 @@
 //   SCOTIA_SHARED_SECRET   HMAC key
 //   SCOTIA_ENV             "test" | "production"  (default "test")
 //   SCOTIA_TIMEZONE        IANA tz, e.g. "America/Barbados" (default)
-//   SCOTIA_CURRENCY        ISO numeric, e.g. "840" USD (default "840")
+//   SCOTIA_CURRENCY        ISO numeric, e.g. "052" BBD (default "052")
 // ============================================================
 
 import { z } from "npm:zod@^4.4.3";
@@ -30,9 +30,8 @@ import {
 } from "../_shared/http/cors.ts";
 import { requireAuthenticatedUser, type AuthContext } from "../_shared/http/auth.ts";
 import {
-  ALWAYS_HASH_ALGORITHM,
-  DEFAULT_CHECKOUT_OPTION,
   GATEWAY_URLS,
+  baseSaleParams,
   classifyScotiaResponse,
   computeExtendedHash,
 } from "../_shared/scotia/ipgConnect.ts";
@@ -44,6 +43,8 @@ import {
   logScotiaEvent,
   probeSnippet,
 } from "../_shared/scotia/events.ts";
+import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
+import { sendWalkInPaymentRequest } from "../_shared/email/walk-in-payment-request.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -96,7 +97,28 @@ const probeSchema = z.object({
   action: z.literal("probe"),
 });
 
-const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema]);
+const sendReceiptSchema = z.object({
+  action: z.literal("send-walkin-receipt"),
+  paymentId: z.string().uuid(),
+  force: z.boolean().optional(),
+});
+
+// Publishes an email-request walk-in payment and mails the pay link in one
+// server-side step. The link token is deliberately NOT returned to the browser:
+// for this flow the customer's inbox is the only place it needs to exist.
+const sendRequestSchema = z.object({
+  action: z.literal("send-walkin-request"),
+  amount: z.union([z.string(), z.number()]),
+  customerName: z.string().min(1).max(200),
+  customerEmail: z.string().email().max(200),
+  orderReference: z.string().max(200).optional(),
+  reason: z.string().max(500).optional(),
+  contactId: z.string().uuid().optional(),
+  /** Set when re-sending an existing request; the old link stops working. */
+  replacesPaymentId: z.string().uuid().optional(),
+});
+
+const bodySchema = z.discriminatedUnion("action", [prepareSchema, validateSchema, probeSchema, sendReceiptSchema, sendRequestSchema]);
 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -141,6 +163,26 @@ async function assertPaymentOwnership(
     return null;
   }
 
+  if (orderId.startsWith("WALKIN-")) {
+    const paymentId = orderId.slice("WALKIN-".length);
+    const { data, error } = await (authContext.supabaseUserClient as any)
+      .from("walk_in_payments")
+      .select("id, amount, status, payment_reference")
+      .eq("id", paymentId)
+      .maybeSingle();
+    const isStaff = await requireAdmin(authContext) || await authContext.supabaseAdminClient
+      .rpc("has_edit_role", { _user_id: authContext.user.id })
+      .then(({ data, error: roleError }) => !roleError && !!data);
+
+    if (
+      !isStaff || error || !data || data.status !== "pending"
+      || data.payment_reference !== orderId || !amountsMatch(data.amount, chargetotal)
+    ) {
+      return "This walk-in payment is not available.";
+    }
+    return null;
+  }
+
   const { data: order, error: orderError } = await authContext.supabaseUserClient
     .from("orders")
     .select("id, total_amount, status, checkout_method")
@@ -173,44 +215,11 @@ async function assertPaymentOwnership(
 }
 
 /** Current time in `YYYY:MM:DD-hh:mm:ss` for the configured timezone. */
-function txnDateTime(timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
-  }).formatToParts(new Date());
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
-  return `${get("year")}:${get("month")}:${get("day")}-${get("hour")}:${get("minute")}:${get("second")}`;
-}
-
 function json(body: unknown, status: number, req: Request): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json", ...getCorsHeaders(req, corsPolicy) },
   });
-}
-
-/** The always-present sale fields, shared by checkout prepares and the probe. */
-function baseSaleParams(cfg: ScotiaConfig, opts: {
-  chargetotal: string;
-  responseSuccessURL: string;
-  responseFailURL: string;
-}): Record<string, string> {
-  return {
-    chargetotal: opts.chargetotal,
-    checkoutoption: DEFAULT_CHECKOUT_OPTION,
-    // Required by the Scotia hosted-page contract for this site. Keep this
-    // fixed even if an old credential-store row still has another value.
-    currency: "840",
-    language: "en_GB",
-    hash_algorithm: ALWAYS_HASH_ALGORITHM,
-    responseFailURL: opts.responseFailURL,
-    responseSuccessURL: opts.responseSuccessURL,
-    storename: cfg.storeId,
-    timezone: cfg.timezone,
-    txndatetime: txnDateTime(cfg.timezone),
-    txntype: "sale",
-  };
 }
 
 /**
@@ -250,7 +259,6 @@ async function runProbe(cfg: ScotiaConfig, req: Request): Promise<Response> {
       storeId: cfg.storeId,
       env: cfg.env,
       endpointUrl,
-      requestParams: formParams,
       notes: `Gateway unreachable: ${String(err)}`,
     });
     return json({
@@ -279,8 +287,8 @@ async function runProbe(cfg: ScotiaConfig, req: Request): Promise<Response> {
     httpStatus: status,
     failRc: verdict.failRc,
     failReason: verdict.detail,
-    requestParams: formParams,
-    responseParams: { classification: verdict.classification, snippet },
+    amount: Number(formParams.chargetotal),
+    currency: cfg.currency,
     notes: "Admin IPG health check",
   });
 
@@ -304,6 +312,14 @@ async function requireAdmin(authContext: AuthContext): Promise<boolean> {
     { _user_id: authContext.user.id, _role: "admin" },
   );
   return !error && !!isAdmin;
+}
+
+async function requireStaffRole(authContext: AuthContext): Promise<boolean> {
+  const { data: canEdit, error } = await (authContext.supabaseAdminClient as any).rpc(
+    "has_edit_role",
+    { _user_id: authContext.user.id },
+  );
+  return !error && !!canEdit;
 }
 
 
@@ -333,6 +349,68 @@ Deno.serve(async (req) => {
   if (authContext instanceof Response) return authContext;
 
   try {
+    if (parsed.action === "send-walkin-receipt") {
+      if (!(await requireStaffRole(authContext))) {
+        return json({ error: "Staff edit role required to send walk-in payment receipt." }, 403, req);
+      }
+      await sendWalkInPaymentReceipt(supabaseAdmin as never, parsed.paymentId, {
+        force: parsed.force ?? true,
+      });
+      return json({ success: true }, 200, req);
+    }
+
+    if (parsed.action === "send-walkin-request") {
+      if (!(await requireStaffRole(authContext))) {
+        return json({ error: "Staff edit role required to send a payment request." }, 403, req);
+      }
+
+      // Published through the caller's own client so the RPC's auth.uid() and
+      // has_edit_role checks apply to the real staff member, not the service role.
+      const { data: published, error: publishError } = await authContext.supabaseUserClient
+        .rpc("publish_walk_in_payment", {
+          p_amount: Number(parsed.amount),
+          p_customer_name: parsed.customerName,
+          p_origin: "email_request",
+          p_customer_email: parsed.customerEmail,
+          p_order_reference: parsed.orderReference ?? null,
+          p_reason: parsed.reason ?? null,
+          p_contact_id: parsed.contactId ?? null,
+        });
+      if (publishError || !published) {
+        return json({ error: publishError?.message ?? "Could not create the payment request." }, 400, req);
+      }
+
+      const record = published as { id: string; token: string };
+      const origin = req.headers.get("origin") ?? Deno.env.get("SCOTIA_SITE_ORIGIN")
+        ?? "https://classicvisions.net";
+      const outcome = await sendWalkInPaymentRequest(supabaseAdmin as never, {
+        paymentId: record.id,
+        token: record.token,
+        siteOrigin: origin,
+        tokenVersion: Date.now(),
+      });
+
+      if (!outcome.sent) {
+        // The intent exists but nobody can reach it, so retire it rather than
+        // leaving a payment the customer was never told about.
+        await supabaseAdmin.from("walk_in_payments").update({ status: "failed" }).eq("id", record.id);
+        return json({ error: outcome.reason ?? "Could not send the payment request." }, 502, req);
+      }
+
+      // Supersedes an earlier request for the same debt. Expiring it is what
+      // stops the old link resolving; the token hash stays because the
+      // link-token-required constraint holds for every customer-device origin.
+      if (parsed.replacesPaymentId && parsed.replacesPaymentId !== record.id) {
+        await supabaseAdmin
+          .from("walk_in_payments")
+          .update({ status: "failed", link_expires_at: new Date().toISOString() })
+          .eq("id", parsed.replacesPaymentId)
+          .eq("status", "pending");
+      }
+
+      return json({ success: true, paymentId: record.id }, 200, req);
+    }
+
     if (parsed.action === "validate") {
       const result = await classifyScotiaResponse(parsed.response, cfg.sharedSecret, cfg.storeId);
       return json({
@@ -412,8 +490,8 @@ Deno.serve(async (req) => {
 
     const hashExtended = await computeExtendedHash(formParams, cfg.sharedSecret);
 
-    // Diagnostics: record exactly what was signed so a later gateway failure
-    // can be matched against the form the buyer actually posted.
+    // Persist a minimal reconciliation event; signed form parameters and
+    // gateway payloads must never be retained by this application.
     await logScotiaEvent(supabaseAdmin, {
       kind: "prepare",
       outcome: "ok",
@@ -421,7 +499,8 @@ Deno.serve(async (req) => {
       storeId: cfg.storeId,
       env: cfg.env,
       endpointUrl: GATEWAY_URLS[cfg.env],
-      requestParams: formParams,
+      amount: Number(formParams.chargetotal),
+      currency: cfg.currency,
       notes: p.testMode ? "Admin signed-form test" : "Checkout prepare",
     });
 

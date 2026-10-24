@@ -79,13 +79,13 @@ export default function AiAgentProviderCard({ provider, row, canTest, onRemoveDr
 
   const testMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("portal-copilot", { body: { operation: "test-ai-agent" } });
+      const { data, error } = await supabase.functions.invoke("portal-copilot", { body: { operation: "test-ai-agent", provider } });
       if (error) throw new Error(error.message);
       if (!data?.ok) throw new Error(data?.error || "The AI agent did not confirm the configuration.");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ai-agent-settings"] });
-      toast({ title: "Connected", description: "The Claude API key and model were verified." });
+      toast({ title: "Connected", description: `The ${providerTitle(provider)} API key and model were verified.` });
     },
     onError: (error: any) => {
       qc.invalidateQueries({ queryKey: ["ai-agent-settings"] });

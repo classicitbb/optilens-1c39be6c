@@ -18,6 +18,3 @@ export const toWikiArticleSlug = ({ id, title, slug }: WikiArticleRouteInput): s
   const suffix = slugify(id).slice(0, 10) || "item";
   return `${base}-${suffix}`;
 };
-
-export const toAdminWikiArticlePath = (article: WikiArticleRouteInput): string =>
-  `/admin/knowledge/wiki/${toWikiArticleSlug(article)}`;

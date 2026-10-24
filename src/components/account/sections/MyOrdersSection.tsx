@@ -1,5 +1,5 @@
 import { format, subDays } from "date-fns";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, ExternalLink, Loader2, Package, Printer, RefreshCw, Search, ShoppingBag, Truck } from "lucide-react";
@@ -24,6 +24,9 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { requestLiveData } from "@/lib/liveDataGateway";
 import InquireButton from "@/components/account/InquireButton";
+import { ORDER_AGE_BANDS, orderAgeBand, orderAgeTint } from "@/lib/orderAge";
+import { useMyRxOrders } from "@/features/rx-order/orders/api";
+import { rxBrief, rxStage, STAGE_LABELS, type RxOrderFacts, type RxStage } from "@/features/rx-order/orders/lifecycle";
 
 
 const formatAddress = (address?: Record<string, unknown> | null) => {
@@ -69,7 +72,7 @@ const ORDER_FILTERS: { value: OrderBucket | "all"; label: string }[] = [
 
 type OrderRow = {
   key: string;
-  kind: "order" | "payment";
+  kind: "order" | "payment" | "rx";
   reference: string;
   typeLabel: string;
   date: string;
@@ -79,7 +82,11 @@ type OrderRow = {
   itemCount: number;
   total: number;
   order: OrderEntity | null;
+  /** Set when this row is an Rx order: patient, the customer's reference and the lens, for display and search. */
+  rx?: { facts: RxOrderFacts; patient: string; reference: string; lens: string; stage: RxStage };
 };
+
+const rxBucket = (stage: RxStage): OrderBucket => (stage === "shipped" ? "completed" : stage === "cancelled" ? "other" : "pending");
 
 type LiveDelivery = {
   shipment_session_id: string;
@@ -97,11 +104,14 @@ type LiveDelivery = {
 
 type LiveDeliveryItem = {
   order_id: string | number | null;
+  invoice_id?: string | number | null;
   rx_number?: string | null;
   patient?: string | null;
   description?: string | null;
   quantity?: number | null;
   status_name?: string | null;
+  amount?: number | null;
+  received_at?: string | null;
 };
 
 type LiveDeliveriesResponse = {
@@ -111,12 +121,22 @@ type LiveDeliveriesResponse = {
   fallback?: boolean;
 };
 
+const NO_LIVE_DELIVERIES: LiveDelivery[] = [];
+
 type LiveInnovationsOrder = {
+  order_id?: string | number | null;
+  invoice_id?: number | null;
+  amount?: number | null;
   rx_number: string | null;
   patient: string | null;
   received_at: string | null;
   promise_date?: string | null;
   status_name: string | null;
+};
+
+type LiveInvoiceResponse = {
+  invoice: { id: number; invoice_date?: string | null; patient?: string | null; total?: number | null } | null;
+  lines: Array<{ id?: number | string | null; description: string | null; quantity: number | null; unit_price: number | null; amount: number | null }>;
 };
 
 type LiveInnovationsOrdersResponse = {
@@ -151,11 +171,53 @@ const readItemPrice = (item: unknown): number | null => {
 const formatLivePrice = (value: number | null) => (value == null ? "—" : `$${value.toFixed(2)}`);
 const INNOVATIONS_ORDERS_PAGE_SIZE = 10;
 
+export const InvoiceLines = ({ invoiceQuery }: { invoiceQuery: { isLoading: boolean; isError: boolean; error: unknown; data?: LiveInvoiceResponse } }) => {
+  if (invoiceQuery.isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+  if (invoiceQuery.isError) return <Alert variant="destructive"><AlertDescription>{invoiceQuery.error instanceof Error ? invoiceQuery.error.message : "Invoice details could not be loaded."}</AlertDescription></Alert>;
+  if (!invoiceQuery.data?.lines?.length) return <p className="text-sm text-muted-foreground">This invoice has no itemized lines available from the billing connector yet.</p>;
+  const lines = invoiceQuery.data.lines;
+  // Sum the displayed line amounts in cents; quantity is already included.
+  // An unavailable amount must not make an incomplete sum look like a total.
+  const total = lines.every((line) => line.amount != null && Number.isFinite(line.amount))
+    ? lines.reduce((sum, line) => sum + Math.round(Number(line.amount!.toFixed(2)) * 100), 0) / 100
+    : null;
+  return (
+    <div className="overflow-x-auto rounded-md border">
+      <Table>
+        <TableHeader><TableRow><TableHead>Description</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Price (BBD)</TableHead><TableHead className="text-right">Amount (BBD)</TableHead></TableRow></TableHeader>
+        <TableBody>{lines.map((line, index) => <TableRow key={line.id ?? index}><TableCell>{line.description || "—"}</TableCell><TableCell className="text-right">{line.quantity ?? "—"}</TableCell><TableCell className="text-right">{line.unit_price == null ? "—" : formatLivePrice(line.unit_price)}</TableCell><TableCell className="text-right font-medium">{line.amount == null ? "—" : formatLivePrice(line.amount)}</TableCell></TableRow>)}</TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableHead scope="row" colSpan={3} className="h-auto py-3 font-semibold text-foreground">Total (BBD)</TableHead>
+            <TableCell className="py-3 text-right font-semibold">{formatLivePrice(total)}</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </div>
+  );
+};
+
 const liveDeliveryId = (delivery: LiveDelivery) => delivery.source_shipment_id ?? delivery.shipment_session_id.slice(0, 8);
 
 // Shipping method names are stored in the lab system as "<route #> <courier name>"
 // (e.g. "1 Tia Lewis"); the route number isn't meaningful to the customer.
 const formatShippingMethodName = (name?: string | null) => (name ?? "").replace(/^\d+\s+/, "");
+
+const searchIncludes = (query: string, values: Array<string | number | null | undefined>) =>
+  values.some((value) => String(value ?? "").toLocaleLowerCase().includes(query));
+
+const deliveryMatchesSearch = (delivery: LiveDelivery, query: string) => {
+  if (!query) return true;
+  return searchIncludes(query, [
+    delivery.source_shipment_id,
+    ...((delivery.orders ?? []).flatMap((item) => [
+      item.order_id,
+      item.invoice_id,
+      item.rx_number,
+      item.patient,
+    ])),
+  ]);
+};
 
 const isSafeTrackingUrl = (value?: string | null) => {
   if (!value) return null;
@@ -167,7 +229,14 @@ const isSafeTrackingUrl = (value?: string | null) => {
   }
 };
 
-const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; showPrices: boolean }) => {
+const LiveDeliveryCard = ({ delivery, expanded, highlighted, showPrices, onExpandedChange, onSelectInvoice }: {
+  delivery: LiveDelivery;
+  expanded: boolean;
+  highlighted: boolean;
+  showPrices: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+  onSelectInvoice: (invoiceId: number, item: LiveDeliveryItem) => void;
+}) => {
   const trackingUrl = isSafeTrackingUrl(delivery.tracking_url);
   const shipmentItems = delivery.orders ?? [];
   const shipmentRowCount = shipmentItems.length;
@@ -179,7 +248,16 @@ const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; sh
     : null;
 
   return (
-    <Accordion type="single" collapsible className="rounded-lg border bg-card px-3 sm:px-4">
+    <Accordion
+      type="single"
+      collapsible
+      value={expanded ? delivery.shipment_session_id : undefined}
+      onValueChange={(value) => onExpandedChange(value === delivery.shipment_session_id)}
+      className={cn(
+        "rounded-lg border bg-card px-3 transition-[border-color,box-shadow] sm:px-4",
+        highlighted && "animate-[pulse_1.2s_ease-in-out_1] border-primary/60 shadow-[0_0_0_1px_rgba(56,189,248,0.18)]",
+      )}
+    >
       <AccordionItem value={delivery.shipment_session_id} className="border-none">
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1">
@@ -236,8 +314,14 @@ const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; sh
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shipmentItems.map((item, index) => (
-                  <TableRow key={`${item.order_id ?? "item"}-${item.rx_number ?? index}`}>
+                {shipmentItems.map((item, index) => {
+                  // Only open shipments are age-shaded; items fall back to the shipment start when the bridge sends no per-item date.
+                  const ageBand = isOpen ? orderAgeBand(item.received_at ?? delivery.started_at) : null;
+                  return (
+                  <TableRow key={`${item.order_id ?? "item"}-${item.rx_number ?? index}`} className={item.invoice_id ? "cursor-pointer hover:bg-muted/50" : undefined} style={ageBand ? { backgroundColor: orderAgeTint(ageBand) } : undefined} title={ageBand ? `Order age: ${ageBand.label}` : undefined} onClick={() => {
+                    const invoiceId = Number(item.invoice_id);
+                    if (Number.isSafeInteger(invoiceId) && invoiceId > 0) onSelectInvoice(invoiceId, item);
+                  }}>
                     <TableCell className="font-medium">{item.order_id ?? "—"}</TableCell>
                     <TableCell>{item.rx_number ?? "—"}</TableCell>
                     <TableCell>{item.patient || item.description || "—"}</TableCell>
@@ -245,7 +329,8 @@ const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; sh
                     <TableCell>{item.status_name ?? "—"}</TableCell>
                     {showPrices ? <TableCell className="text-right">{formatLivePrice(shipmentPrices[index])}</TableCell> : null}
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
               {showPrices ? (
                 <TableFooter>
@@ -266,9 +351,21 @@ const LiveDeliveryCard = ({ delivery, showPrices }: { delivery: LiveDelivery; sh
   );
 };
 
-const MyOrdersSection = () => {
-  const { canAccessFeature, identity, emulation } = usePortalIdentity();
-  const { orders, loading } = useOrders(emulation?.userId);
+// Set when staff view a customer's orders from the admin (no emulation): data
+// is fetched for this customer and every section is shown with prices.
+export type StaffOrdersTarget = {
+  userId: string;
+  crmCustomerId: number | null;
+  accountNumber: string | null;
+  ordersUseBillToAccount: boolean;
+};
+
+const MyOrdersSection = ({ staffTarget }: { staffTarget?: StaffOrdersTarget } = {}) => {
+  const portal = usePortalIdentity();
+  const identity = staffTarget ?? portal.identity;
+  const targetUserId = staffTarget?.userId ?? portal.emulation?.userId;
+  const canAccessFeature = (feature: Parameters<typeof portal.canAccessFeature>[0]) => !!staffTarget || portal.canAccessFeature(feature);
+  const { orders, loading } = useOrders(targetUserId);
   const canSeePrivateOrders = canAccessFeature("private-orders");
   const canSeeLiveOrderStatus = canAccessFeature("live-order-status");
   const showPrices = canAccessFeature("order-prices");
@@ -296,44 +393,91 @@ const MyOrdersSection = () => {
     staleTime: 30_000,
     retry: 1,
   });
-  const liveDeliveries = deliveriesQuery.data?.deliveries ?? [];
+  const liveDeliveries = deliveriesQuery.data?.deliveries ?? NO_LIVE_DELIVERIES;
+  const normalizedInnovationsSearch = innovationsSearch.trim().toLocaleLowerCase();
   const filteredInnovationsOrders = useMemo(() => {
-    const query = innovationsSearch.trim().toLocaleLowerCase();
+    const query = normalizedInnovationsSearch;
     if (!query) return innovationsOrdersQuery.data?.orders ?? [];
     return (innovationsOrdersQuery.data?.orders ?? []).filter((order) =>
-      [order.patient, order.rx_number].some((value) => value?.toLocaleLowerCase().includes(query)),
+      searchIncludes(query, [order.order_id, order.patient, order.rx_number]),
     );
-  }, [innovationsOrdersQuery.data?.orders, innovationsSearch]);
+  }, [innovationsOrdersQuery.data?.orders, normalizedInnovationsSearch]);
+  const filteredLiveDeliveries = useMemo(
+    () => liveDeliveries.filter((delivery) => deliveryMatchesSearch(delivery, normalizedInnovationsSearch)),
+    [liveDeliveries, normalizedInnovationsSearch],
+  );
+  const [expandedDeliveryId, setExpandedDeliveryId] = useState<string | null>(null);
+  const singleMatchedDeliveryId = normalizedInnovationsSearch && filteredLiveDeliveries.length === 1
+    ? filteredLiveDeliveries[0].shipment_session_id
+    : null;
   // Search always runs against the full fetched set above; only the on-screen
   // slice is paginated, and a new search starts back at the first page.
-  useEffect(() => {
-    setInnovationsVisibleCount(INNOVATIONS_ORDERS_PAGE_SIZE);
-  }, [innovationsSearch]);
   const visibleInnovationsOrders = filteredInnovationsOrders.slice(0, innovationsVisibleCount);
   const innovationsPrices = filteredInnovationsOrders.map((order) => readItemPrice(order));
 
-  const paymentsQuery = useAccountPayments(emulation?.userId);
+  const paymentsQuery = useAccountPayments(targetUserId);
+  // Rx orders are first-class rows (patient, reference, lens, stage), not a generic "Web order".
+  // The Rx list is the caller's own, so it is not loaded when staff view or emulate a customer.
+  const rxOrdersQuery = useMyRxOrders(!staffTarget && !portal.emulation);
   const [orderFilter, setOrderFilter] = useState<OrderBucket | "all">("pending");
   const [orderSearch, setOrderSearch] = useState("");
   const [expandedOrderKey, setExpandedOrderKey] = useState<string | null>(null);
   const [selectedLabOrder, setSelectedLabOrder] = useState<LiveInnovationsOrder | null>(null);
+  const [selectedDeliveryInvoice, setSelectedDeliveryInvoice] = useState<{ invoiceId: number; item: LiveDeliveryItem } | null>(null);
+  const selectedInvoiceId = selectedDeliveryInvoice?.invoiceId ?? selectedLabOrder?.invoice_id ?? null;
+  const invoiceQuery = useQuery({
+    queryKey: ["live-innovations-order-invoice", selectedInvoiceId, websiteCustomerId],
+    enabled: Number.isSafeInteger(selectedInvoiceId) && Number(selectedInvoiceId) > 0,
+    queryFn: ({ signal }) => requestLiveData<LiveInvoiceResponse>("innovations.customer_invoice", { invoice_id: selectedInvoiceId }, { signal, websiteCustomerId, localFallbackTarget }),
+    retry: 1,
+  });
 
   const orderRows = useMemo<OrderRow[]>(() => {
-    const webRows: OrderRow[] = orders.map((order) => ({
-      key: `order-${order.id}`,
-      kind: "order",
-      reference: `#${order.id.slice(0, 8).toUpperCase()}`,
-      typeLabel: "Web order",
-      date: order.createdAt,
-      status: order.status,
-      statusLabel: order.status === "pending_payment"
-        ? "Awaiting payment"
-        : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace(/_/g, " "),
-      bucket: bucketForStatus(order.status),
-      itemCount: order.items?.length ?? 0,
-      total: order.totalAmount,
-      order,
-    }));
+    const rxByOrder = new Map<string, RxOrderFacts>();
+    for (const f of rxOrdersQuery.data ?? []) if (f.order_id) rxByOrder.set(f.order_id, f);
+    const rxInfo = (facts: RxOrderFacts) => ({ facts, ...rxBrief(facts.payload), stage: rxStage(facts) });
+    const webRows: OrderRow[] = orders.map((order) => {
+      const facts = rxByOrder.get(order.id);
+      const rx = facts ? rxInfo(facts) : undefined;
+      return {
+        key: `order-${order.id}`,
+        kind: "order",
+        reference: `#${order.id.slice(0, 8).toUpperCase()}`,
+        typeLabel: rx ? "Rx order" : "Web order",
+        date: order.createdAt,
+        status: order.status,
+        statusLabel: rx
+          ? STAGE_LABELS[rx.stage]
+          : order.status === "pending_payment"
+            ? "Awaiting payment"
+            : order.status.charAt(0).toUpperCase() + order.status.slice(1).replace(/_/g, " "),
+        bucket: rx ? rxBucket(rx.stage) : bucketForStatus(order.status),
+        itemCount: order.items?.length ?? 0,
+        total: order.totalAmount,
+        order,
+        rx,
+      };
+    });
+    const placed = new Set(orders.map((o) => o.id));
+    const rxOnlyRows: OrderRow[] = (rxOrdersQuery.data ?? [])
+      .filter((f) => !f.order_id || !placed.has(f.order_id))
+      .map((facts) => {
+        const rx = rxInfo(facts);
+        return {
+          key: `rx-${facts.quote_id}`,
+          kind: "rx" as const,
+          reference: facts.rx_order_number != null ? `#${facts.rx_order_number}` : `#${facts.quote_id.slice(0, 8).toUpperCase()}`,
+          typeLabel: "Rx order",
+          date: facts.created_at,
+          status: rx.stage,
+          statusLabel: STAGE_LABELS[rx.stage],
+          bucket: rxBucket(rx.stage),
+          itemCount: 1,
+          total: Number(facts.total ?? 0),
+          order: null,
+          rx,
+        };
+      });
     const paymentRows: OrderRow[] = (paymentsQuery.data ?? []).map((payment) => ({
       key: `payment-${payment.id}`,
       kind: "payment",
@@ -347,10 +491,10 @@ const MyOrdersSection = () => {
       total: payment.amount,
       order: null,
     }));
-    return [...webRows, ...paymentRows].sort(
+    return [...webRows, ...rxOnlyRows, ...paymentRows].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
-  }, [orders, paymentsQuery.data]);
+  }, [orders, paymentsQuery.data, rxOrdersQuery.data]);
 
   const bucketCounts = useMemo(() => ({
     pending: orderRows.filter((row) => row.bucket === "pending").length,
@@ -368,6 +512,10 @@ const MyOrdersSection = () => {
         row.reference,
         row.typeLabel,
         row.statusLabel,
+        row.rx?.patient,
+        row.rx?.reference,
+        row.rx?.lens,
+        row.rx?.facts.rx_order_number,
         row.total.toFixed(2),
         format(new Date(row.date), "PPP"),
         ...(row.order?.items ?? []).map((item) => item.productName),
@@ -384,12 +532,14 @@ const MyOrdersSection = () => {
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
-        <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        {staffTarget ? null : <>
+          <h2 className="text-2xl font-semibold text-foreground">Order History</h2>
+          <p className="text-sm text-muted-foreground">View your past orders and track their status.</p>
+        </>}
         <nav className="flex flex-wrap gap-2 pt-1" aria-label="Jump to order sections">
           {pendingCount ? <a href="#pending-orders"><Badge className="cursor-pointer bg-amber-500 text-amber-950 hover:bg-amber-500">Pending {pendingCount}</Badge></a> : null}
-          {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {innovationsOrdersQuery.data?.orders.length ?? 0}</Badge></a> : null}
-          {canSeeLiveOrderStatus ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {liveDeliveries.length}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#innovations-orders-heading"><Badge variant="outline" className="cursor-pointer">Lab orders {filteredInnovationsOrders.length}</Badge></a> : null}
+          {canSeeLiveOrderStatus ? <a href="#live-deliveries-heading"><Badge variant="outline" className="cursor-pointer">Shipments {filteredLiveDeliveries.length}</Badge></a> : null}
         </nav>
         {!canSeePrivateOrders ? (
           <p className="text-sm text-muted-foreground">Private/manual sales orders unlock after your customer account is approved.</p>
@@ -411,9 +561,12 @@ const MyOrdersSection = () => {
                 <Input
                   type="search"
                   value={innovationsSearch}
-                  onChange={(event) => setInnovationsSearch(event.target.value)}
-                  placeholder="Search patient or Rx #"
-                  aria-label="Search lab orders by patient name or Rx number"
+                  onChange={(event) => {
+                    setInnovationsSearch(event.target.value);
+                    setInnovationsVisibleCount(INNOVATIONS_ORDERS_PAGE_SIZE);
+                  }}
+                  placeholder="Search patient, Rx or order #"
+                  aria-label="Search lab orders and deliveries by patient name, Rx number or order number"
                   className="h-9 pl-9"
                 />
               </div>
@@ -445,14 +598,14 @@ const MyOrdersSection = () => {
               </AlertDescription>
             </Alert>
           ) : innovationsOrdersQuery.isLoading ? (
-            <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : (innovationsOrdersQuery.data?.orders.length ?? 0) === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders were found for this account.</CardContent></Card>
 
           ) : filteredInnovationsOrders.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">No active lab orders match that patient name or Rx number.</CardContent></Card>
           ) : (
-            <Card>
+            <Card className="overflow-hidden border-0 shadow-sm md:border">
               <CardContent className="overflow-x-auto p-0">
                 <Table>
                     <TableHeader>
@@ -466,12 +619,16 @@ const MyOrdersSection = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {visibleInnovationsOrders.map((order, index) => (
+                    {visibleInnovationsOrders.map((order, index) => {
+                      const ageBand = orderAgeBand(order.received_at);
+                      return (
                       <TableRow
                         key={`${order.rx_number ?? "order"}-${order.received_at ?? "unknown"}`}
                         className="cursor-pointer focus-within:bg-muted/50 hover:bg-muted/50"
+                        style={ageBand ? { backgroundColor: orderAgeTint(ageBand) } : undefined}
+                        title={ageBand ? `Order age: ${ageBand.label}` : undefined}
                         onClick={() => setSelectedLabOrder(order)}
-                        aria-label={`View invoice details for ${order.patient ?? order.rx_number ?? "lab order"}`}
+                        aria-label={`View invoice details for ${order.patient ?? order.rx_number ?? "lab order"}${ageBand ? ` (order age ${ageBand.label})` : ""}`}
                       >
                         <TableCell>{order.rx_number ?? "—"}</TableCell>
                         <TableCell>{order.patient ?? "—"}</TableCell>
@@ -497,10 +654,20 @@ const MyOrdersSection = () => {
                         </TableCell>
                         {showPrices ? <TableCell className="text-right">{formatLivePrice(innovationsPrices[index])} BBD</TableCell> : null}
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-3 py-2 text-xs text-muted-foreground" aria-label="Order age colour key">
+                <span>Order age:</span>
+                {ORDER_AGE_BANDS.map((band) => (
+                  <span key={band.label} className="inline-flex items-center gap-1">
+                    <span className="h-3 w-3 rounded-sm border" style={{ backgroundColor: orderAgeTint(band, 0.6) }} aria-hidden="true" />
+                    {band.label}
+                  </span>
+                ))}
+              </div>
               {filteredInnovationsOrders.length > innovationsVisibleCount ? (
                 <div className="flex items-center justify-between gap-3 border-t p-3">
                   <p className="text-xs text-muted-foreground">
@@ -537,7 +704,14 @@ const MyOrdersSection = () => {
             <div><dt className="text-muted-foreground">Received</dt><dd className="font-medium">{formatLiveDate(selectedLabOrder?.received_at ?? null)}</dd></div>
             <div><dt className="text-muted-foreground">Promise date</dt><dd className="font-medium">{formatLiveDate(selectedLabOrder?.promise_date ?? null)}</dd></div>
           </dl>
-          {showPrices ? <div className="rounded-lg border p-4"><div className="flex items-center justify-between"><span className="font-medium">Invoice total</span><span className="font-semibold">{formatLivePrice(readItemPrice(selectedLabOrder))} BBD</span></div><p className="mt-2 text-xs text-muted-foreground">Itemized invoice lines appear here when the billing connector provides them.</p></div> : null}
+          {selectedLabOrder?.invoice_id ? <InvoiceLines invoiceQuery={invoiceQuery} /> : <p className="text-sm text-muted-foreground">Invoice lines will be available after this job is posted to an invoice.</p>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selectedDeliveryInvoice} onOpenChange={(open) => !open && setSelectedDeliveryInvoice(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader><DialogTitle>Invoice #{selectedDeliveryInvoice?.invoiceId}</DialogTitle><DialogDescription>Posted invoice items for this delivery job.</DialogDescription></DialogHeader>
+          <InvoiceLines invoiceQuery={invoiceQuery} />
         </DialogContent>
       </Dialog>
 
@@ -563,18 +737,31 @@ const MyOrdersSection = () => {
               </AlertDescription>
             </Alert>
           ) : deliveriesQuery.isLoading ? (
-            <Card><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
+            <Card className="border-0 shadow-sm md:border"><CardContent className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></CardContent></Card>
           ) : liveDeliveries.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">
               {deliveriesQuery.data?.source_status === "offline"
                 ? "The live shipment connection is offline, so deliveries can't be shown right now."
                 : "No open shipments or recently closed deliveries were found."}
             </CardContent></Card>
 
+          ) : filteredLiveDeliveries.length === 0 ? (
+            <Card className="border-0 shadow-sm md:border"><CardContent className="py-8 text-center text-sm text-muted-foreground">
+              No deliveries match that patient name, Rx number or order number.
+            </CardContent></Card>
+
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">Open shipments are shown regardless of age; closed deliveries remain available for 45 days.</p>
-              {liveDeliveries.map((delivery) => <LiveDeliveryCard key={delivery.shipment_session_id} delivery={delivery} showPrices={showPrices} />)}
+              {filteredLiveDeliveries.map((delivery) => <LiveDeliveryCard
+                key={`${delivery.shipment_session_id}-${singleMatchedDeliveryId === delivery.shipment_session_id ? normalizedInnovationsSearch : ""}`}
+                delivery={delivery}
+                expanded={singleMatchedDeliveryId === delivery.shipment_session_id || expandedDeliveryId === delivery.shipment_session_id}
+                highlighted={singleMatchedDeliveryId === delivery.shipment_session_id}
+                showPrices={showPrices}
+                onExpandedChange={(expanded) => setExpandedDeliveryId(expanded ? delivery.shipment_session_id : null)}
+                onSelectInvoice={(invoiceId, item) => setSelectedDeliveryInvoice({ invoiceId, item })}
+              />)}
             </div>
           )}
           {deliveriesQuery.data?.retrieved_at ? (
@@ -590,9 +777,9 @@ const MyOrdersSection = () => {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       ) : orderRows.length === 0 ? (
-        <Card className="mx-auto max-w-md text-center">
+        <Card className="mx-auto max-w-md border-0 text-center shadow-sm md:border">
           <CardContent className="py-12">
-            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <ShoppingBag className="mx-auto mb-4 h-12 w-12 text-muted-foreground transition-transform hover:scale-110" />
             <h3 className="mb-2 text-lg font-semibold text-foreground">No orders yet</h3>
             <p className="text-muted-foreground">When you complete a purchase, your orders will appear here.</p>
           </CardContent>
@@ -636,15 +823,15 @@ const MyOrdersSection = () => {
                   type="search"
                   value={orderSearch}
                   onChange={(event) => setOrderSearch(event.target.value)}
-                  placeholder="Search orders"
-                  aria-label="Search orders by number, status, date, total or product"
+                  placeholder="Search orders or patients"
+                  aria-label="Search orders by number, patient, reference, status, date, total or product"
                   className="h-9 pl-9"
                 />
               </div>
             </div>
           </div>
 
-          <Card>
+          <Card className="overflow-hidden border-0 shadow-sm md:border">
             <CardContent className="overflow-x-auto p-0">
               <Table>
                 <TableHeader>
@@ -670,8 +857,17 @@ const MyOrdersSection = () => {
                       const isExpanded = expandedOrderKey === row.key;
                       return (
                         <Fragment key={row.key}>
-                          <TableRow>
-                            <TableCell className="font-medium">Order {row.reference}</TableCell>
+                          <TableRow className="group transition-colors hover:bg-muted/50">
+                            <TableCell className="font-medium transition-colors group-hover:text-primary">
+                              {row.rx ? (
+                                <Link to={`/profile/orders/rx/${row.rx.facts.quote_id}`} className="block hover:underline">
+                                  Rx order {row.rx.facts.rx_order_number != null ? `#${row.rx.facts.rx_order_number}` : row.reference}
+                                  <span className="block max-w-xs truncate text-xs font-normal text-muted-foreground">
+                                    {[row.rx.patient, row.rx.reference && `Ref ${row.rx.reference}`, row.rx.lens].filter(Boolean).join(" · ")}
+                                  </span>
+                                </Link>
+                              ) : `Order ${row.reference}`}
+                            </TableCell>
                             <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                               {format(new Date(row.date), "PPP 'at' p")}
                             </TableCell>
@@ -685,6 +881,9 @@ const MyOrdersSection = () => {
                             <TableCell className="text-right font-semibold">${row.total.toFixed(2)} USD</TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
+                                {row.rx ? (
+                                  <Button asChild variant="outline" size="sm"><Link to={`/profile/orders/rx/${row.rx.facts.quote_id}`}>View Rx order</Link></Button>
+                                ) : null}
                                 {row.order ? (
                                   <>
                                     <Button
@@ -725,9 +924,23 @@ const MyOrdersSection = () => {
                                       {isExpanded ? "Hide items" : `View ${row.itemCount} item${row.itemCount === 1 ? "" : "s"}`}
                                     </Button>
                                   </>
-                                ) : (
+                                ) : row.rx ? null : (
                                   <span className="text-sm text-muted-foreground">Applied to account</span>
                                 )}
+                                {staffTarget ? (
+                                  <InquireButton
+                                    label="Raise a ticket about this order"
+                                    title={`Inquiry about ${row.typeLabel} ${row.reference}`}
+                                    description={[
+                                      `${row.typeLabel} ${row.reference}`,
+                                      `Date: ${format(new Date(row.date), "PPP")}`,
+                                      `Status: ${row.statusLabel}`,
+                                      `Total: $${row.total.toFixed(2)} USD`,
+                                      "",
+                                      "Question: ",
+                                    ].join("\n")}
+                                  />
+                                ) : null}
                               </div>
                             </TableCell>
                           </TableRow>

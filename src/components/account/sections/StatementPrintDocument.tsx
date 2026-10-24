@@ -3,6 +3,7 @@ import { paginateStatementLines } from "./statementPrintLayout";
 
 export interface PrintableStatement {
   id: string;
+  account_number?: string | null;
   statement_date: string | null;
   period_start: string | null;
   period_end: string | null;
@@ -56,7 +57,7 @@ export const statementPrintStyles = `
     min-height: 267mm;
     margin: 0 auto 8mm;
     padding: 0 0 13mm;
-    overflow: hidden;
+    overflow: visible;
     background: #fff;
     break-after: page;
     page-break-after: always;
@@ -105,6 +106,8 @@ export const statementPrintStyles = `
   .statement-aging th:last-child, .statement-aging td:last-child { color: #a83220; }
   .statement-aging td:first-child { color: #0B1E35; font-size: 8pt; font-weight: 700; }
   .statement-transactions th { padding: 6px 8px; font-size: 6.5pt; font-weight: 700; letter-spacing: .1em; text-align: left; text-transform: uppercase; }
+  .statement-transactions thead { display: table-header-group; }
+  .statement-transactions tbody { break-inside: auto; page-break-inside: auto; }
   .statement-transactions th:nth-child(1) { width: 68px; }
   .statement-transactions th:nth-child(2) { width: 100px; }
   .statement-transactions th:nth-child(4), .statement-transactions th:nth-child(5) { width: 86px; text-align: right; }
@@ -112,6 +115,7 @@ export const statementPrintStyles = `
   .statement-transactions th:nth-child(5) { color: #1A8A9C; }
   .statement-transactions td { padding: 4px 8px; border-bottom: 1px solid #c9d4de; color: #0B1E35; font-size: 7pt; line-height: 1.3; overflow-wrap: anywhere; vertical-align: top; }
   .statement-transactions tr { break-inside: avoid; page-break-inside: avoid; }
+  .statement-meta-summary, .statement-aging, .statement-totals, .statement-note, .statement-bank { break-inside: avoid; page-break-inside: avoid; }
   .statement-transactions tbody tr:nth-child(even) { background: #F4F2ED; }
   .statement-transactions td:first-child { color: #5a7490; white-space: nowrap; }
   .statement-transactions td:nth-child(4), .statement-transactions td:nth-child(5) { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }

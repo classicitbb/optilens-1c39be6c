@@ -5,6 +5,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAdminNotifications } from "@/features/admin/notifications/useAdminNotifications";
 import { useNavigate } from "react-router";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { isAlertSoundEnabled, playAlertSound, setAlertSoundEnabled, unlockAlertSound } from "@/features/admin/notifications/alertSound";
 
 const severityColor: Record<string, string> = {
   error: "text-destructive",
@@ -13,12 +15,36 @@ const severityColor: Record<string, string> = {
 };
 
 const NotificationBell = () => {
-  const { notifications, unreadCount, markRead, markAllRead, clearNotification, clearAll } =
+  const { notifications, unreadCount, isLoading, markRead, markAllRead, clearNotification, clearAll } =
   useAdminNotifications();
   const [open, setOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const seen = useRef<{ userId: string; ids: Set<string> } | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(isAlertSoundEnabled);
+
+  useEffect(() => {
+    const syncPreference = () => setSoundEnabled(isAlertSoundEnabled());
+    document.addEventListener("pointerdown", unlockAlertSound);
+    document.addEventListener("keydown", unlockAlertSound);
+    window.addEventListener("storage", syncPreference);
+    return () => {
+      document.removeEventListener("pointerdown", unlockAlertSound);
+      document.removeEventListener("keydown", unlockAlertSound);
+      window.removeEventListener("storage", syncPreference);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) { seen.current = null; return; }
+    if (isLoading) return;
+    const previous = seen.current?.userId === user.id ? seen.current.ids : null;
+    const newIds = previous ? notifications.filter((notification) => !previous.has(notification.id)).map((notification) => `notification:${notification.id}`) : [];
+    if (newIds.length) void playAlertSound(newIds);
+    seen.current = { userId: user.id, ids: new Set(notifications.map((notification) => notification.id)) };
+  }, [isLoading, notifications, user]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -86,6 +112,19 @@ const NotificationBell = () => {
                 </Button>
             }
             </div>
+          </div>
+
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" aria-pressed={soundEnabled} onClick={() => {
+              const enabled = !soundEnabled;
+              setAlertSoundEnabled(enabled);
+              setSoundEnabled(enabled);
+              if (enabled) unlockAlertSound();
+            }}>Alert sound: {soundEnabled ? "On" : "Off"}</Button>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" disabled={!soundEnabled} onClick={async () => {
+              await unlockAlertSound();
+              void playAlertSound();
+            }}>Test ding dong</Button>
           </div>
 
           <div className="admin-overlay-surface max-h-72 overflow-y-auto">

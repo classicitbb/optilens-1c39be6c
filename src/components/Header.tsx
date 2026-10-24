@@ -24,7 +24,9 @@ import { createAuthHref } from "@/lib/authFlow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
-import HomeVersionSwitch from "@/components/home-prototypes/HomeVersionSwitch";
+import AnnotateToggleItem from "@/features/annotate/AnnotateToggleItem";
+import { ANNOTATE_UI_ATTR } from "@/features/annotate/annotator";
+import { useAnnotator } from "@/features/annotate/useAnnotator";
 
 type MegaMenuLink = {
   label: string;
@@ -140,6 +142,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Lab Process Overview", description: "Production flow and checkpoints", to: "/professionals/lab-process-overview" },
     { label: "Tracing & Cutting Guide", description: "Frame tracing best practices", to: "/professionals/tracing-cutting-guide" },
     { label: "Lens Ordering Tips", description: "Reduce hold-ups and remakes", to: "/professionals/lens-ordering-tips" },
+    { label: "Caribbean Ordering Guide", description: "Order steps, freight and customs for island retailers", to: "/professionals/caribbean-lens-ordering-guide" },
     { label: "Chemistrie Lens System", description: "Magnetic clip system overview", to: "/professionals/chemistrie-lens-system" },
     { label: "ZenVue Wholesale", description: "Feature-page application for optical partners", to: "/zenvue/wholesale" }]
 
@@ -183,6 +186,7 @@ const PRIMARY_MENU: PrimaryMenuItem[] = [
     { label: "Computer & Mobile Use", description: "Reduce digital eye strain with practical habits", to: "/patients/computer-mobile-use" },
     { label: "Sunlight & Protection", description: "UV and glare guidance for outdoor comfort", to: "/patients/sunlight-protection" },
     { label: "Regular Eye Exams", description: "Protect long-term vision health", to: "/patients/regular-eye-exams" },
+    { label: "Lens Pricing Guide", description: "What prescription lenses cost and why", to: "/patients/prescription-lens-cost" },
     { label: "Night Driving Aids", description: "Reduce glare and improve clarity after dark", to: "/patients/night-driving-aids" }]
 
   }]
@@ -244,6 +248,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "computer-mobile-use": "Computer & Mobile Use",
   "sunlight-protection": "Sunlight & Protection",
   "regular-eye-exams": "Regular Eye Exams",
+  "prescription-lens-cost": "Lens Pricing Guide",
   "night-driving-aids": "Night Driving Aids",
   "chemistrie-lens-system": "Chemistrie Lens System",
   "dispensing-tips": "Dispensing Tips",
@@ -251,6 +256,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   "tracing-cutting-guide": "Tracing & Cutting Guide",
   "lab-process-overview": "Lab Process Overview",
   "lens-ordering-tips": "Lens Ordering Tips",
+  "caribbean-lens-ordering-guide": "Caribbean Lens Ordering Guide",
   "rx-order": "Rx Order Form",
   "rx-job-status": "Order Tracking"
 };
@@ -494,12 +500,13 @@ const MobileNavigation = ({
   </>;
 };
 
-const Header = () => {
+const Header = ({ hideBreadcrumbs = false }: { hideBreadcrumbs?: boolean }) => {
   const location = useLocation();
   const { openAssistant } = useCompanionAssistant();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { hasAccess, role, isLoading: roleLoading } = useUserRole();
+  const { annotator, isActive: isAnnotating } = useAnnotator(hasAccess);
   const bannerDismissed = useAccountRequestDismissed();
   const showRequestInMenu = !!user && !roleLoading && !role && bannerDismissed;
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -631,6 +638,7 @@ const Header = () => {
                       variant="ghost"
                       size="sm"
                       className="h-11 rounded-full border border-border bg-background/70 px-1.5 shadow-sm transition-all hover:bg-muted/80 sm:gap-2 sm:px-2.5"
+                      {...{ [ANNOTATE_UI_ATTR]: "" }}
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={activeUserAvatar || undefined} alt={activeUserName} />
@@ -650,6 +658,7 @@ const Header = () => {
                     align="end"
                     sideOffset={10}
                     className="w-[min(88vw,18rem)] rounded-2xl border border-border/90 bg-background/80 p-0 shadow-2xl shadow-black/10 backdrop-blur-md"
+                    {...{ [ANNOTATE_UI_ATTR]: "" }}
                   >
                     <div className="space-y-1 p-2.5 sm:p-3">
                       <div className="flex items-center gap-2.5 rounded-xl px-1 py-1">
@@ -684,12 +693,15 @@ const Header = () => {
                           </Link>
                         </DropdownMenuItem>
                         {hasAccess &&
-                <DropdownMenuItem asChild className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
+                <div className="flex items-center gap-1">
+                          <DropdownMenuItem asChild className="flex-1 rounded-xl px-2.5 py-2 focus:bg-accent/70">
                             <Link to="/admin" {...labLinkNavigationProps} className="flex items-center gap-3">
                               <Shield className="h-4.5 w-4.5 text-foreground/80" />
                               <span className="text-sm font-medium">Admin</span>
                             </Link>
                           </DropdownMenuItem>
+                          <AnnotateToggleItem annotator={annotator} isActive={isAnnotating} />
+                        </div>
                 }
                         {showRequestInMenu &&
                 <DropdownMenuItem
@@ -747,8 +759,6 @@ const Header = () => {
                         </div>
                       </div>
 
-                      {hasAccess ? <HomeVersionSwitch /> : null}
-
                       <DropdownMenuItem onClick={handleSignOut} className="rounded-xl px-2.5 py-2 focus:bg-accent/70">
                         <LogOut className="h-4.5 w-4.5 text-foreground/80" />
                         <span className="text-sm font-medium">Sign out</span>
@@ -788,7 +798,7 @@ const Header = () => {
 
       </header>
 
-      {showBreadcrumbs &&
+      {showBreadcrumbs && !hideBreadcrumbs &&
       <nav aria-label="Breadcrumb" className="mt-16">
           <div className="container mx-auto max-w-5xl px-4 pt-4 lg:px-8">
             <div className="text-sm text-muted-foreground">

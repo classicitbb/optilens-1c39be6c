@@ -16,6 +16,8 @@ import { template as adminErrorNotification } from './admin-error-notification.t
 import { template as contactInquiryNotification } from './contact-inquiry-notification.tsx'
 import { template as inquiryConfirmation } from './inquiry-confirmation.tsx'
 import { template as statementReady } from './statement-ready.tsx'
+import { template as rxOrderUpdate } from './rx-order-update.tsx'
+import { template as leadAlert } from './lead-alert.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'order-confirmation': orderConfirmation,
@@ -26,4 +28,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'contact-inquiry-notification': contactInquiryNotification,
   'inquiry-confirmation': inquiryConfirmation,
   'statement-ready': statementReady,
+  'rx-order-update': rxOrderUpdate,
+  'lead-alert': leadAlert,
 }

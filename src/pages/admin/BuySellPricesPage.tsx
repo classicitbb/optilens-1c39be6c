@@ -1,92 +1,57 @@
-import { useState, useRef, ReactNode } from "react";
-import { useSearchParams } from "react-router";
-
-import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
+import { type ReactNode, useState } from "react";
+import { createPortal } from "react-dom";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
-import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
+import { useBBDUSDRate, type PricelistVersion } from "@/hooks/usePricelistVersions";
 
-// Namespaced per pricelist page — a single shared "admin-selected-version-id"
-// key used to silently clobber whichever pricelist page was opened last.
-const VERSION_STORAGE_KEY = "admin-selected-version-id:buysell";
+interface BuySellPricesPageProps {
+  version: PricelistVersion;
+  showUSD: boolean;
+  highlightItemId?: string | null;
+  onDirtyChange?: (isDirty: boolean) => void;
+  headerActionsElement?: HTMLElement | null;
+}
 
-const BuySellPricesPage = () => {
+const BuySellPricesPage = ({ version, showUSD, highlightItemId, onDirtyChange, headerActionsElement }: BuySellPricesPageProps) => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
-  const { data: versions } = usePricelistVersions();
-  const [searchParams] = useSearchParams();
-  const highlightItemId = searchParams.get("id");
-  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
-    const stored = localStorage.getItem(VERSION_STORAGE_KEY);
-    return stored ? Number(stored) : null;
-  });
-
-  const handleVersionChange = (id: number | null) => {
-    setSelectedVersionId(id);
-    if (id !== null) localStorage.setItem(VERSION_STORAGE_KEY, String(id));
-  };
-  const [showUSD, setShowUSD] = useState(false);
-  const previewFormat = "list" as const;
-  const previewRef = useRef<HTMLDivElement>(null);
   const [saveBar, setSaveBar] = useState<ReactNode>(null);
 
-  const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
-  const resolvedId = activeVersion?.id ?? null;
-
-  const handlePreviewClick = () => {
-    setTimeout(() => {
-      previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  };
-
   return (
-    <VersionSelectorPanel
-      pageTitle="Supplies Prices"
-      pageSubtitle="Supplies catalog pricelist. Categories auto-group by supply type."
-      selectedVersionId={selectedVersionId}
-      onVersionChange={handleVersionChange}
-      showUSD={showUSD}
-      onShowUSDChange={setShowUSD}
-      onPreviewClick={handlePreviewClick}
-      saveBar={saveBar}
-      exportBar={resolvedId && activeVersion ? (
-        <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} catalogType="buysell" />
-      ) : undefined}
-    >
-      {resolvedId && activeVersion && (
-        <div className="space-y-4">
-          <ListCatalogTab
-            pageName="Supplies Prices"
-            fxRate={fxRate}
-            showUSD={showUSD}
-            catalogType="buysell"
-            lensFilter="none"
-            showTreatmentsAddons={false}
-            pageTitle={activeVersion?.name ?? "Supplies Pricelist"}
-            versionId={resolvedId}
-            renderSaveBar={setSaveBar}
-            highlightItemId={highlightItemId}
-          />
+    <div className="space-y-2">
+      {headerActionsElement
+        ? createPortal(
+            <div className="flex flex-wrap items-center justify-end gap-2 no-print">
+              <RxExportBar version={version} showUSD={showUSD} fxRate={fxRate} catalogType="buysell" />
+              {saveBar}
+            </div>,
+            headerActionsElement,
+          )
+        : null}
 
-          {/* Live Preview */}
-          <div ref={previewRef} className="mt-6">
-            <PdfPreviewShell
-              title={`${activeVersion.name} — Supplies Preview`}
-              formatLabel="List"
-            >
-              <PricelistLivePreview
-                version={activeVersion}
-                previewFormat={previewFormat}
-                showUSD={showUSD}
-                fxRate={fxRate}
-                catalogType="buysell"
-              />
-            </PdfPreviewShell>
-          </div>
+      <div className="space-y-4">
+        <ListCatalogTab
+          pageName="Supplies Prices"
+          fxRate={fxRate}
+          showUSD={showUSD}
+          catalogType="buysell"
+          lensFilter="none"
+          showTreatmentsAddons={false}
+          pageTitle={version.name}
+          versionId={version.id}
+          renderSaveBar={setSaveBar}
+          highlightItemId={highlightItemId}
+          onDirtyChange={onDirtyChange}
+        />
+
+        <div className="mt-6">
+          <PdfPreviewShell title={`${version.name} — Supplies Preview`} formatLabel="List">
+            <PricelistLivePreview version={version} previewFormat="list" showUSD={showUSD} fxRate={fxRate} catalogType="buysell" />
+          </PdfPreviewShell>
         </div>
-      )}
-    </VersionSelectorPanel>
+      </div>
+    </div>
   );
 };
 

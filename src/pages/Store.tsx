@@ -1,9 +1,10 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import Seo from "@/components/seo/Seo";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, Eye, Expand, ArrowDownUp, LayoutGrid, List, Lock, Settings } from "lucide-react";
+import { ShoppingCart, Search, LayoutGrid, List, Lock, Settings } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useCartContext } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,9 +19,8 @@ import {
 } from "@/hooks/useStoreProducts";
 import { useTradePricing } from "@/hooks/useTradePricing";
 import { getProductHubRoute } from "@/lib/productLinks";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createAuthHref } from "@/lib/authFlow";
-import StorageImage from "@/components/StorageImage";
+import StoreProductImage from "@/components/StoreProductImage";
 
 const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
   lab: "Lab Supplies",
@@ -29,16 +29,14 @@ const SUPPLY_CATEGORY_LABELS: Record<string, string> = {
 };
 
 type ProductLayout = "grid" | "list";
-type SortMode = "price_low_high" | "price_high_low";
+type SortMode = "name" | "price_low_high" | "price_high_low";
 
 const ProductCard = ({
   product,
-  index,
   layout,
   isTradeCustomer,
 }: {
   product: StoreProduct;
-  index: number;
   layout: ProductLayout;
   isTradeCustomer: boolean;
 }) => {
@@ -63,218 +61,43 @@ const ProductCard = ({
     });
   };
 
-  if (layout === "list") {
-    return (
-      <Card variant="feature" className="opacity-0 animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
-        <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium capitalize text-accent">
-                {product.product_type === "supply"
-                  ? SUPPLY_CATEGORY_LABELS[product.category] || product.category
-                  : product.category}
-              </span>
-              {product.subcategory ? (
-                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                  {product.subcategory}
-                </span>
-              ) : null}
-              {product.tags.slice(0, 3).map((tag) => (
-                <span key={tag} className="text-xs text-muted-foreground">
-                  {tag}
-                </span>
-              ))}
-            </div>
-            <h3 className="text-lg font-semibold leading-snug text-foreground">{product.name}</h3>
-            <p className="text-sm text-muted-foreground">{product.description}</p>
-          </div>
-          {user ? (
-            <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-[240px]">
-              <div className="flex items-baseline justify-between gap-4">
-                <div>
-                  <div className="text-2xl font-bold text-foreground">
-                    ${product.sell_price_usd.toFixed(2)}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {product.product_type === "supply" ? "/unit" : "/pair"}
-                    </span>
-                  </div>
-                  {isTradeCustomer && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-accent">Trade price</span>
-                  )}
-                </div>
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="hero" size="sm" className="flex-1" onClick={handleAdd}>
-                  <ShoppingCart className="h-4 w-4" />
-                  {product.has_variants ? "Configure" : "Add to Cart"}
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to={getStoreProductRoute(product)}>
-                    <Eye className="h-4 w-4" />
-                    View
-                  </Link>
-                </Button>
-                {canEdit && (
-                  <Button variant="outline" size="sm" asChild title="Open in Product Hub" aria-label="Open in Product Hub">
-                    <Link to={getProductHubRoute(product.product_type, product.id)}>
-                      <Settings className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex w-full items-center justify-between gap-3 md:w-auto md:min-w-[260px]">
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Lock className="h-3.5 w-3.5" />
-                Sign in for pricing
-              </div>
-              <Button variant="hero" size="sm" asChild>
-                <Link
-                  to={createAuthHref({
-                    mode: "signup",
-                    audience: "professional",
-                    intent: "products",
-                    redirect: "/store",
-                  })}
-                >
-                  Create Trade Account
-                </Link>
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
+  const list = layout === "list";
+  const category = product.product_type === "supply" ? SUPPLY_CATEGORY_LABELS[product.category] || product.category : product.category;
   return (
-    <Card variant="feature" className="opacity-0 animate-fade-in" style={{ animationDelay: `${index * 40}ms` }}>
-      <CardHeader className="gap-4 pb-2">
-        <div className="mb-2 flex items-center gap-2">
-          <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium capitalize text-accent">
-            {product.product_type === "supply"
-              ? SUPPLY_CATEGORY_LABELS[product.category] || product.category
-              : product.category}
-          </span>
-          {product.subcategory && (
-            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-              {product.subcategory}
-            </span>
-          )}
+    <Card className={`group overflow-hidden border-border/70 bg-card shadow-sm transition-shadow hover:shadow-lg ${list ? "flex flex-col sm:flex-row" : "flex h-full flex-col"}`}>
+      <Link to={getStoreProductRoute(product)} className={`block shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary ${list ? "sm:w-44" : ""}`} aria-label={`View ${product.name}`}>
+        <StoreProductImage imageUrl={product.image_url} name={product.name} productType={product.product_type} category={product.category} className={list ? "h-40 sm:h-full sm:min-h-44" : "aspect-[3/2] w-full"} showCaption={!list} />
+      </Link>
+      <div className="flex min-w-0 flex-1 flex-col p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium capitalize text-secondary">{category}</span>
+          {product.has_variants && <span className="rounded-full border border-border px-2 py-0.5">Choose options</span>}
         </div>
-        <div className="grid grid-cols-[1fr_92px] gap-3">
-          <div className="min-w-0 space-y-1">
-            <CardTitle className="text-lg leading-snug break-words">{product.name}</CardTitle>
-            <CardDescription className="whitespace-normal break-words">{product.description}</CardDescription>
-          </div>
-          <div className="relative h-[92px] w-[92px] overflow-hidden rounded-md border border-border/50 bg-muted/30">
-            {product.image_url ? (
-              <StorageImage
-                src={product.image_url}
-                alt={`${product.name} thumbnail`}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-                No image
-              </div>
-            )}
-            {product.image_url && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute bottom-1 right-1 h-6 w-6"
-                    aria-label={`Expand image for ${product.name}`}
-                  >
-                    <Expand className="h-3.5 w-3.5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>{product.name}</DialogTitle>
-                  </DialogHeader>
-                  <StorageImage
-                    src={product.image_url}
-                    alt={`${product.name} large preview`}
-                    className="max-h-[70vh] w-full rounded-md object-contain"
-                  />
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
+        <h3 className="text-lg font-semibold leading-snug text-foreground">
+          <Link to={getStoreProductRoute(product)} className="rounded-sm hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary">{product.name}</Link>
+        </h3>
+        <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {product.tags.slice(0, 3).map((tag) => <span key={tag} className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">{tag}</span>)}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {product.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {product.tags.map((tag) => (
-              <span key={tag} className="flex items-center gap-1 text-xs text-muted-foreground">
-                <div className="h-1 w-1 rounded-full bg-accent" />
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-        {user ? (
-          <>
-            <div>
-              <div className="text-2xl font-bold text-foreground">
-                ${product.sell_price_usd.toFixed(2)}
-                <span className="text-sm font-normal text-muted-foreground">
-                  {product.product_type === "supply" ? "/unit" : "/pair"}
-                </span>
-              </div>
-              {isTradeCustomer && (
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-accent">Trade price</span>
-              )}
+        <div className="mt-auto pt-5">
+          {user ? <>
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <p className="text-2xl font-semibold tabular-nums text-foreground">${product.sell_price_usd.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">USD / {product.product_type === "lens" ? "pair" : product.product_type === "addon" ? "service" : "unit"}</span></p>
+              {isTradeCustomer && <span className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Trade price</span>}
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">USD</span>
-            <Button variant="hero" size="sm" onClick={handleAdd}>
-              <ShoppingCart className="h-4 w-4" />
-              {product.has_variants ? "Configure" : "Add to Cart"}
-            </Button>
-            <Button variant="outline" size="sm" asChild>
-              <Link to={getStoreProductRoute(product)}>
-                <Eye className="h-4 w-4" />
-                View
-              </Link>
-            </Button>
-            {canEdit && (
-              <Button variant="outline" size="sm" asChild title="Open in Product Hub" aria-label="Open in Product Hub">
-                <Link to={getProductHubRoute(product.product_type, product.id)}>
-                  <Settings className="h-4 w-4" />
-                </Link>
+            <div className="flex gap-2 border-t border-border/60 pt-4">
+              <Button variant="hero" className="min-h-11 flex-1" onClick={handleAdd} aria-label={`${product.has_variants ? "Choose options for" : "Add to cart:"} ${product.name}`}>
+                <ShoppingCart className="h-4 w-4" aria-hidden="true" />{product.has_variants ? "Choose options" : "Add to cart"}
               </Button>
-            )}
-          </>
-        ) : (
-          <div className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Lock className="h-3.5 w-3.5" />
-              Sign in for pricing
+              {canEdit && <Button variant="outline" size="icon" className="h-11 w-11" asChild><Link to={getProductHubRoute(product.product_type, product.id)} aria-label={`Manage ${product.name}`}><Settings className="h-4 w-4" /></Link></Button>}
             </div>
-            <Button variant="hero" size="sm" asChild>
-              <Link
-                to={createAuthHref({
-                  mode: "signup",
-                  audience: "professional",
-                  intent: "products",
-                  redirect: "/store",
-                })}
-              >
-                Create Trade Account
-              </Link>
-            </Button>
-          </div>
-        )}
-      </CardFooter>
+          </> : <div className="space-y-3 border-t border-border/60 pt-4">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground"><Lock className="h-3.5 w-3.5" aria-hidden="true" />Sign in for pricing</p>
+            <Button variant="outline" className="min-h-11 w-full" asChild><Link to={createAuthHref({ mode: "signin", audience: "professional", intent: "products", redirect: getStoreProductRoute(product) })}>Sign in to order</Link></Button>
+          </div>}
+        </div>
+      </div>
     </Card>
   );
 };
@@ -285,11 +108,11 @@ const Store = () => {
   const initialCategory = searchParams.get("category") || "";
   const [searchTerm, setSearchTerm] = useState(initialCategory ? "" : "");
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [sortMode, setSortMode] = useState<SortMode>("price_low_high");
+  const [sortMode, setSortMode] = useState<SortMode>("name");
   const [layout, setLayout] = useState<ProductLayout>("grid");
 
   const { tradePricing, customerId: tradeCustomerId, isTradeCustomer } = useTradePricing();
-  const { data: products, isLoading } = useStoreProducts(tradePricing, tradeCustomerId);
+  const { data: products, isLoading, isError, refetch } = useStoreProducts(tradePricing, tradeCustomerId);
 
   const filtered = useMemo(() => {
     const categorySlug = initialCategory.toLowerCase();
@@ -328,7 +151,7 @@ const Store = () => {
     });
 
     return [...result].sort((a, b) =>
-      sortMode === "price_low_high" ? a.sell_price_usd - b.sell_price_usd : b.sell_price_usd - a.sell_price_usd,
+      sortMode === "name" ? a.name.localeCompare(b.name) : sortMode === "price_low_high" ? a.sell_price_usd - b.sell_price_usd : b.sell_price_usd - a.sell_price_usd,
     );
   }, [activeTab, initialCategory, products, searchTerm, sortMode]);
 
@@ -341,21 +164,28 @@ const Store = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Seo
+        title="Wholesale Lens & Optical Supply Catalog | Classic Visions"
+        description="Browse Classic Visions' wholesale catalog of prescription lenses, coatings, lab supplies and optical accessories for eye care professionals in Barbados and the Caribbean."
+        canonicalPath="/store"
+      />
       <Header />
 
-      <main className="pt-24 pb-16">
+      <main id="main-content" className="pt-24 pb-16">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="mb-12 text-center">
-            <h1 className="mb-4 text-4xl font-bold text-foreground">Product Catalog</h1>
-            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-              Browse premium lenses, optical supplies, and service packages in one storefront.
-            </p>
+          <div className="mb-8 flex flex-col justify-between gap-6 rounded-2xl border border-border/60 bg-card p-6 sm:p-9 md:flex-row md:items-end">
+            <div className="max-w-2xl">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">Classic Visions · Optical essentials</p>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">The right products.<br className="hidden sm:block" /> A simpler way to order.</h1>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">Browse stock lenses, optical supplies and lab services. Choose your options, review your cart and order in a few clear steps.</p>
+            </div>
+            <Button variant="outline" className="min-h-11 shrink-0" asChild><Link to="/cart"><ShoppingCart className="h-4 w-4" aria-hidden="true" />View your cart</Link></Button>
           </div>
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-8">
             <div className="flex flex-col gap-4 rounded-xl bg-card p-4 shadow-soft">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                <TabsList>
+                <TabsList className="h-auto flex-wrap justify-start">
                   <TabsTrigger value="all">All Products</TabsTrigger>
                   <TabsTrigger value="lenses">Lenses</TabsTrigger>
                   <TabsTrigger value="supplies">Supplies</TabsTrigger>
@@ -364,37 +194,17 @@ const Store = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search products..."
+                    placeholder="Search lenses, supplies or services…"
+                    aria-label="Search products"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <div className="inline-flex items-center rounded-md border bg-background p-1">
-                    <Button
-                      type="button"
-                      variant={sortMode === "price_low_high" ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => setSortMode("price_low_high")}
-                      aria-label="Sort by price low to high"
-                    >
-                      <ArrowDownUp className="h-3.5 w-3.5" />
-                      Price ↑
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={sortMode === "price_high_low" ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => setSortMode("price_high_low")}
-                      aria-label="Sort by price high to low"
-                    >
-                      <ArrowDownUp className="h-3.5 w-3.5" />
-                      Price ↓
-                    </Button>
-                  </div>
+                  <select aria-label="Sort products" value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)} className="h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary">
+                    <option value="name">Name: A–Z</option><option value="price_low_high">Price: low to high</option><option value="price_high_low">Price: high to low</option>
+                  </select>
 
                   <div className="inline-flex items-center rounded-md border bg-background p-1">
                     <Button
@@ -404,6 +214,7 @@ const Store = () => {
                       className="h-8 px-2"
                       onClick={() => setLayout("grid")}
                       aria-label="Grid view"
+                      aria-pressed={layout === "grid"}
                     >
                       <LayoutGrid className="h-4 w-4" />
                     </Button>
@@ -414,6 +225,7 @@ const Store = () => {
                       className="h-8 px-2"
                       onClick={() => setLayout("list")}
                       aria-label="List view"
+                      aria-pressed={layout === "list"}
                     >
                       <List className="h-4 w-4" />
                     </Button>
@@ -422,7 +234,11 @@ const Store = () => {
               </div>
             </div>
 
-            {isLoading ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground" aria-live="polite">
+              <span>{isLoading ? "Loading products…" : `${filtered.length} products`}</span>
+              {(searchTerm || initialCategory) && <Button variant="ghost" size="sm" onClick={() => { setSearchTerm(""); handleTabChange(activeTab); }}>Clear filters</Button>}
+            </div>
+            {isError ? <div role="alert" className="rounded-xl border border-border p-8 text-center"><p>Products could not be loaded. Please try again.</p><Button className="mt-4" onClick={() => void refetch()}>Try again</Button></div> : isLoading ? (
               <div className="flex justify-center py-16">
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               </div>
@@ -431,11 +247,10 @@ const Store = () => {
                 <TabsContent value={activeTab}>
                   <h2 className="sr-only">Product listings</h2>
                   <div className={layout === "grid" ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
-                    {filtered.map((product, index) => (
+                    {filtered.map((product) => (
                       <ProductCard
                         key={`${product.product_type}:${product.id}`}
                         product={product}
-                        index={index}
                         layout={layout}
                         isTradeCustomer={isTradeCustomer}
                       />
@@ -443,7 +258,7 @@ const Store = () => {
                   </div>
                   {filtered.length === 0 && (
                     <div className="py-16 text-center">
-                      <p className="text-lg text-muted-foreground">No products found matching your criteria.</p>
+                      <p className="text-lg font-medium text-foreground">No products match your search.</p><p className="mt-2 text-sm text-muted-foreground">Try a product name or choose another category.</p><Button variant="outline" className="mt-5" onClick={() => { setSearchTerm(""); handleTabChange("all"); }}>Show all products</Button>
                     </div>
                   )}
                 </TabsContent>

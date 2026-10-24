@@ -12,6 +12,7 @@ import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowed
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildOrderHashref, canonicalOrderFor, text, type OrderKind } from "../_shared/orders/hashref.ts";
+import { shouldFallbackGatekeeperRx, type GatekeeperPreSendFailureKind } from "../_shared/gatekeeperPolicy.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -136,12 +137,30 @@ async function recordDispatchLog(log: DispatchLog | null, entry: {
   if (error) console.error("gatekeeper dispatch log write failed", error.message);
 }
 
+const GATEKEEPER_TIMEOUT_MS = 20_000;
+
+class GatekeeperPreSendError extends Error {
+  constructor(message: string, readonly kind: GatekeeperPreSendFailureKind, readonly httpStatus: number | null = null) {
+    super(message);
+    this.name = "GatekeeperPreSendError";
+  }
+}
+
+class GatekeeperStatusUnavailableError extends Error {
+  constructor(message: string, readonly httpStatus: number | null = null) {
+    super(message);
+    this.name = "GatekeeperStatusUnavailableError";
+  }
+}
+
 // Single place where Gatekeeper is called, so no request can escape logging.
 async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: string, init: RequestInit, requestSnapshot?: unknown, expectedStatuses: number[] = []) {
   const startedAt = Date.now();
   const method = (init.method ?? "GET").toUpperCase();
   try {
-    const response = await fetch(url, init);
+    // Gatekeeper occasionally stalls. Without a deadline the edge worker is
+    // killed by the runtime and the caller gets an unhandled 502 with no log.
+    const response = await fetch(url, { ...init, signal: AbortSignal.timeout(GATEKEEPER_TIMEOUT_MS) });
     const raw = await response.text();
     let body: any = {};
     try { body = raw ? JSON.parse(raw) : {}; } catch { body = { raw: raw.slice(0, SNAPSHOT_LIMIT) }; }
@@ -156,7 +175,10 @@ async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: stri
       request: requestSnapshot ?? null,
       response: { body, headers: { "content-type": response.headers.get("content-type") } },
       errorMessage: expectedResponse ? null : `Gatekeeper responded HTTP ${response.status}`,
-      alert: !expectedResponse,
+      // Terminal handling below decides whether this is an operator error or
+      // a deduplicated degraded-state warning. Logging here must not alert or
+      // every upstream response would produce two notifications.
+      alert: false,
     });
     return { response, body };
   } catch (error) {
@@ -171,9 +193,9 @@ async function gatekeeperFetch(log: DispatchLog | null, phase: string, url: stri
       request: requestSnapshot ?? null,
       response: { network_error: message },
       errorMessage: `Network error calling Gatekeeper: ${message}`,
-      alert: true,
+      alert: false,
     });
-    throw error;
+    throw new GatekeeperPreSendError(`Network error calling Gatekeeper: ${message}`, "connectivity");
   }
 }
 
@@ -197,7 +219,14 @@ async function authenticate(environment: "staging" | "production", jwtKey: strin
   url.searchParams.set("jwt_key", jwtKey);
   url.searchParams.set("jwt_secret", jwtSecret);
   const { response, body } = await gatekeeperFetch(log, "auth_user", url.toString(), { method: "POST" }, { environment, jwt_key: "[redacted]" });
-  if (!response.ok || !text(body?.auth_token)) throw new Error(`Gatekeeper authentication failed (HTTP ${response.status}).`);
+  if (!response.ok || !text(body?.auth_token)) {
+    const server = environment === "production" ? "live" : "test";
+    throw new GatekeeperPreSendError(
+      `Gatekeeper's ${server} server rejected the saved login details. This usually means Ocuco has reset or expired your lab's access. Ask Ocuco for a new single-use PIN, then reconnect from the Integrations page. Further sign-in attempts are paused to protect your lab from being blocked. (HTTP ${response.status})`,
+      "authentication",
+      response.status,
+    );
+  }
   return String(body.auth_token);
 }
 
@@ -271,7 +300,9 @@ async function statusesFor(environment: "staging" | "production", authToken: str
       headers: { Authorization: `Bearer ${authToken}`, Accept: "application/json" },
     }, { environment, path }, [404]);
     if (response.status === 404) continue;
-    if (!response.ok) throw new Error(`Gatekeeper status pull failed (HTTP ${response.status}).`);
+    if (!response.ok) {
+      throw new GatekeeperStatusUnavailableError(`Gatekeeper status pull failed (HTTP ${response.status}).`, response.status);
+    }
     return normalizeStatusRows(body);
   }
   return null;
@@ -287,13 +318,45 @@ function sanitizeContracts(contracts: GatekeeperContract[]) {
   }));
 }
 
+// Gatekeeper blacklists callers that sign in more than ~twice a day, and
+// failed sign-ins count. Once the stored JWT pair has been rejected (401),
+// retrying it cannot succeed, so refuse to contact Gatekeeper again until a
+// successful sign-in (e.g. reconnecting with a fresh PIN) supersedes it or the
+// cool-down lapses.
+const FAILED_AUTH_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+
+async function assertNoRecentAuthRejection(admin: any, environment: "staging" | "production") {
+  const since = new Date(Date.now() - FAILED_AUTH_COOLDOWN_MS).toISOString();
+  const endpoint = `${baseUrl(environment)}/api/v2/auth_user`;
+  const { data, error } = await admin
+    .from("gatekeeper_dispatch_logs")
+    .select("success,http_status,created_at")
+    .eq("phase", "auth_user")
+    .eq("endpoint", endpoint)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error || !Array.isArray(data) || data.length === 0) return;
+  const latest = data[0];
+  if (latest.success === false && (latest.http_status === 401 || latest.http_status === 403)) {
+    const retryAt = new Date(Date.parse(latest.created_at) + FAILED_AUTH_COOLDOWN_MS);
+    throw new GatekeeperPreSendError(
+      `Gatekeeper rejected the saved login (HTTP ${latest.http_status}). To avoid being blocked, sign-in is paused until ${retryAt.toISOString().slice(0, 16).replace("T", " ")} UTC. Reconnect with a new PIN from Ocuco to resume sooner.`,
+      "authentication",
+      latest.http_status,
+    );
+  }
+}
+
 async function credentialsFor(authContext: any): Promise<GatekeeperCredentials> {
   const { data, error } = await authContext.supabaseAdminClient.rpc("get_gatekeeper_credentials");
   const config = (Array.isArray(data) ? data[0] : data) as GatekeeperCredentials | null;
   if (error || !config?.jwt_key || !config?.jwt_secret || !config?.receiver_lab_id || !config?.hash_routing) {
-    throw new Error("Gatekeeper is not connected with an active sending contract.");
+    throw new GatekeeperPreSendError("Gatekeeper is not connected with an active sending contract.", "configuration");
   }
-  if (!config.enabled) throw new Error("Gatekeeper outbound delivery is disabled in Integrations.");
+  if (!config.enabled) {
+    throw new GatekeeperPreSendError("Gatekeeper outbound delivery is disabled in Integrations.", "configuration");
+  }
   return config;
 }
 
@@ -301,7 +364,7 @@ async function connectionCredentialsFor(authContext: any): Promise<GatekeeperCon
   const { data, error } = await authContext.supabaseAdminClient.rpc("get_gatekeeper_connection_credentials");
   const config = (Array.isArray(data) ? data[0] : data) as GatekeeperConnectionCredentials | null;
   if (error || !config?.jwt_key || !config?.jwt_secret || !config?.origin_lab_id || !config?.lab_name) {
-    throw new Error("Gatekeeper has not been connected yet.");
+    throw new GatekeeperPreSendError("Gatekeeper has not been connected yet.", "configuration");
   }
   return config;
 }
@@ -311,14 +374,23 @@ async function validAuthToken(authContext: any, config: Pick<GatekeeperCredentia
   if (config.auth_token && Number.isFinite(expiresAt) && expiresAt > Date.now() + 60_000) return config.auth_token;
   const refreshedAt = config.last_auth_refresh_at ? Date.parse(config.last_auth_refresh_at) : 0;
   if (Number.isFinite(refreshedAt) && Date.now() - refreshedAt < 12 * 60 * 60 * 1000) {
-    throw new Error("Gatekeeper token is unavailable and may not be refreshed more than twice in 24 hours.");
+    throw new GatekeeperPreSendError(
+      "Gatekeeper token is unavailable and may not be refreshed more than twice in 24 hours.",
+      "authentication",
+    );
   }
+  await assertNoRecentAuthRejection(authContext.supabaseAdminClient, config.environment);
   const token = await authenticate(config.environment, config.jwt_key, config.jwt_secret, log);
   const { error } = await authContext.supabaseAdminClient.rpc("cache_gatekeeper_auth_token", {
     p_auth_token: token,
     p_actor_user_id: authContext.user.id,
   });
-  if (error) throw new Error(`Gatekeeper token was created but could not be stored: ${error.message}`);
+  if (error) {
+    throw new GatekeeperPreSendError(
+      `Gatekeeper token was created but could not be stored: ${error.message}`,
+      "configuration",
+    );
+  }
   return token;
 }
 
@@ -387,7 +459,8 @@ Deno.serve(async (req) => {
       const { response: pinResponse, body: pinBody } = await gatekeeperFetch(log, "lab_access_with_pin", pinUrl.toString(), {}, { environment, webrx_lab_id: originLabId, pin_code: "[redacted]" });
       const lab = pinBody?.message?.lab ?? pinBody?.lab ?? {};
       if (!pinResponse.ok || !text(lab.jwt_key) || !text(lab.jwt_secret)) {
-        throw new Error(`Gatekeeper did not accept the PIN (HTTP ${pinResponse.status}).`);
+        const server = environment === "production" ? "live" : "test";
+        throw new Error(`Gatekeeper's ${server} server did not accept that PIN. Each PIN works only once and must match the lab ID it was issued for. Check the lab ID and server choice, or ask Ocuco for a fresh PIN. Do not retry the same PIN — repeated attempts can get the lab blocked. (HTTP ${pinResponse.status})`);
       }
       const authToken = await authenticate(environment, String(lab.jwt_key), String(lab.jwt_secret), log);
 
@@ -450,49 +523,98 @@ Deno.serve(async (req) => {
     }
 
     if (action === "pull-statuses") {
-      // Gatekeeper forbids pulling job statuses more often than every 5
-      // minutes, so the window is claimed in the database before any call is
-      // made — a burst of page loads or an overlapping cron run is a no-op.
+      const { data: pollSettings, error: settingsError } = await authContext.supabaseAdminClient
+        .from("gatekeeper_settings")
+        .select("status_poll_enabled,status_pull_next_attempt_at,environment")
+        .eq("tenant_key", "default")
+        .maybeSingle();
+      if (settingsError) throw new Error(`Status settings could not be read: ${settingsError.message}`);
+      if (!pollSettings?.status_poll_enabled) {
+        return json(req, { ok: true, pulled: false, reason: "disabled" });
+      }
+      if (pollSettings.environment !== "production") {
+        return json(req, { ok: true, pulled: false, reason: "production_connection_required" });
+      }
+      if (pollSettings.status_pull_next_attempt_at
+          && Date.parse(pollSettings.status_pull_next_attempt_at) > Date.now()) {
+        return json(req, {
+          ok: true,
+          pulled: false,
+          reason: "backoff",
+          nextAttemptAt: pollSettings.status_pull_next_attempt_at,
+        });
+      }
+
+      // Manual refresh may bypass the ordinary five-minute throttle, but it
+      // never bypasses outage backoff. The database claim is atomic so page
+      // loads and the cron cannot overlap.
       const { data: claimed, error: claimError } = await authContext.supabaseAdminClient
-        .rpc("begin_gatekeeper_status_pull", { p_force: false });
+        .rpc("begin_gatekeeper_status_pull", { p_force: !isCron });
       if (claimError) throw new Error(`Status pull could not start: ${claimError.message}`);
       if (!claimed) return json(req, { ok: true, pulled: false, reason: "throttled" });
 
-      const config = await credentialsFor(authContext);
-      const authToken = await validAuthToken(authContext, config, log);
-      const rows = await statusesFor(config.environment, authToken, text(config.receiver_lab_id), log);
-      if (!rows) {
-        return json(req, { ok: true, pulled: false, reason: "endpoint_unavailable" });
-      }
-
-      const byPo = new Map(rows.map((row) => [row.poNumber.toUpperCase(), row]));
-      let updated = 0;
-      for (const kind of ["rx", "stock"] as const) {
-        const { table } = ORDER_TABLES[kind];
-        const { data: submissions } = await authContext.supabaseAdminClient
-          .from(table)
-          .select(kind === "stock" ? "id, gatekeeper_order_id, payload, po_number" : "id, gatekeeper_order_id, payload")
-          .eq("status", "submitted")
-          .not("gatekeeper_order_id", "is", null)
-          .limit(500);
-        for (const submission of (submissions ?? []) as any[]) {
-          const po = text(
-            submission.po_number ?? submission.payload?.po_number ?? submission.payload?.quote?.quote_number ?? submission.gatekeeper_order_id,
-            64,
-          ).toUpperCase();
-          const match = byPo.get(po) ?? byPo.get(String(submission.gatekeeper_order_id));
-          if (!match) continue;
-          const { error: recordError } = await authContext.supabaseAdminClient.rpc("record_gatekeeper_status", {
-            p_submission_id: submission.id,
-            p_order_kind: kind,
-            p_status: match.status,
-            p_detail: match.detail,
-          });
-          if (recordError) console.error("gatekeeper status write failed", recordError.message);
-          else updated += 1;
+      try {
+        const config = await credentialsFor(authContext);
+        const authToken = await validAuthToken(authContext, config, log);
+        const rows = await statusesFor(config.environment, authToken, text(config.receiver_lab_id), log);
+        if (!rows) {
+          throw new GatekeeperStatusUnavailableError("Gatekeeper's status endpoint is unavailable.", 404);
         }
+
+        const byPo = new Map(rows.map((row) => [row.poNumber.toUpperCase(), row]));
+        let updated = 0;
+        for (const kind of ["rx", "stock"] as const) {
+          const { table } = ORDER_TABLES[kind];
+          const { data: submissions } = await authContext.supabaseAdminClient
+            .from(table)
+            .select(kind === "stock" ? "id, gatekeeper_order_id, payload, po_number" : "id, gatekeeper_order_id, payload")
+            .eq("status", "submitted")
+            .not("gatekeeper_order_id", "is", null)
+            .limit(500);
+          for (const submission of (submissions ?? []) as any[]) {
+            const po = text(
+              submission.po_number ?? submission.payload?.po_number ?? submission.payload?.quote?.quote_number ?? submission.gatekeeper_order_id,
+              64,
+            ).toUpperCase();
+            const match = byPo.get(po) ?? byPo.get(String(submission.gatekeeper_order_id));
+            if (!match) continue;
+            const { error: recordError } = await authContext.supabaseAdminClient.rpc("record_gatekeeper_status", {
+              p_submission_id: submission.id,
+              p_order_kind: kind,
+              p_status: match.status,
+              p_detail: match.detail,
+            });
+            if (recordError) console.error("gatekeeper status write failed", recordError.message);
+            else updated += 1;
+          }
+        }
+
+        const { error: outcomeError } = await authContext.supabaseAdminClient.rpc(
+          "record_gatekeeper_status_pull_outcome",
+          { p_success: true },
+        );
+        if (outcomeError) throw new Error(`Status success could not be recorded: ${outcomeError.message}`);
+        return json(req, { ok: true, pulled: true, received: rows.length, updated });
+      } catch (error) {
+        if (error instanceof GatekeeperStatusUnavailableError || error instanceof GatekeeperPreSendError) {
+          const message = error.message;
+          const { data: outcome, error: outcomeError } = await authContext.supabaseAdminClient.rpc(
+            "record_gatekeeper_status_pull_outcome",
+            { p_success: false, p_error_message: message },
+          );
+          if (outcomeError) {
+            throw new Error(`Status outage could not be recorded: ${outcomeError.message}`, { cause: error });
+          }
+          const state = Array.isArray(outcome) ? outcome[0] : outcome;
+          return json(req, {
+            ok: true,
+            pulled: false,
+            reason: "temporarily_unavailable",
+            nextAttemptAt: state?.next_attempt_at ?? null,
+          });
+        }
+        throw error;
       }
-      return json(req, { ok: true, pulled: true, received: rows.length, updated });
     }
 
 
@@ -539,6 +661,7 @@ Deno.serve(async (req) => {
     if (!claimed) return json(req, { error: "Submission is not awaiting Gatekeeper delivery." }, 409);
 
     let receiptAccepted = false;
+    let postStarted = false;
 
     try {
       const config = await credentialsFor(authContext);
@@ -547,6 +670,9 @@ Deno.serve(async (req) => {
         labNum: config.receiver_lab_id,
         custNum: config.receiver_retailer_name,
       });
+      // From this point forward Gatekeeper may have accepted the order even if
+      // the response times out. Automatic fallback is therefore prohibited.
+      postStarted = true;
       const { response, body: responseBody } = await gatekeeperFetch(
         log,
         "push_order_to_lab",
@@ -576,6 +702,42 @@ Deno.serve(async (req) => {
       return json(req, { ok: true, orderKind, receipt: { id: receipt.id ?? null, guid: receipt.guid ?? null, created_at: receipt.created_at ?? null } });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (error instanceof GatekeeperPreSendError) {
+        const { data: settings, error: settingsError } = await authContext.supabaseAdminClient
+          .from("gatekeeper_settings")
+          .select("fallback_to_innovations")
+          .eq("tenant_key", "default")
+          .maybeSingle();
+        if (!settingsError && shouldFallbackGatekeeperRx({
+          orderKind,
+          postStarted,
+          failureKind: error.kind,
+          fallbackEnabled: settings?.fallback_to_innovations === true,
+        })) {
+          const { data: requeued, error: requeueError } = await authContext.supabaseAdminClient.rpc(
+            "requeue_gatekeeper_rx_to_innovations",
+            { p_submission_id: submissionId, p_reason: `${error.kind}: ${message}` },
+          );
+          if (!requeueError && requeued === true) {
+            await recordDispatchLog(log, {
+              phase: "fallback_queued",
+              success: true,
+              request: { submissionId, from: "gatekeeper", to: "innovations", reason: error.kind },
+              response: { queued: true, transport: null },
+            });
+            return json(req, {
+              ok: true,
+              orderKind,
+              delivery: "fallback_queued",
+              provider: "innovations",
+              message: "Gatekeeper was unavailable before sending. The Rx order is queued for Innovations file-drop delivery.",
+            });
+          }
+          if (requeueError) {
+            console.error("gatekeeper fallback requeue failed", requeueError.message);
+          }
+        }
+      }
       if (!receiptAccepted) {
         await authContext.supabaseAdminClient.rpc("record_gatekeeper_result", {
           p_submission_id: submissionId, p_success: false, p_order_kind: orderKind, p_error_message: message,

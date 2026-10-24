@@ -14,7 +14,9 @@
   <script src="react-dom.production.min.js"></script>
   <script src="vendor/tinymce/tinymce.min.js" referrerpolicy="origin"></script>
   <script src="support.js"></script>
+  <script src="letter-word-export.js"></script>
   <script src="studio-logic.js"></script>
+  <link rel="stylesheet" href="preview-toolbar.css">
   <link rel="stylesheet" href="_ds/classic-visions-design-system-e309148b-2428-4341-97fd-7a73961abd15/styles.css">
   <style>
     html,body{margin:0;height:100%;background:#e9e5da;font-family:'Plus Jakarta Sans',sans-serif}
@@ -36,7 +38,7 @@
 </head>
 <body>
 <x-dc>
-<div style="display:flex;flex-direction:column;height:100vh;background:#e9e5da">
+<div class="ds-workspace" style="display:flex;flex-direction:column;height:100vh;background:#e9e5da">
 
   <!-- TOP BAR (hidden when embedded) -->
   <div class="ds-topbar" style="height:58px;flex:none;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 2px 14px rgba(11,30,53,.3);position:relative;z-index:6;background-color:#173d6bcf">
@@ -104,7 +106,7 @@
   </div>
 
   <!-- ===== WORKSPACE ===== -->
-  <div style="flex:1;min-height:0;display:flex">
+  <div class="ds-workspace-body" style="flex:1;min-height:0;display:flex">
 
     <!-- ====== LEFT: CONTROLS ====== -->
     <div class="cv-scroll ds-sidebar" style="{{ sidebarStyle }}">
@@ -235,6 +237,17 @@
       <sc-if value="{{ isLetter }}" hint-placeholder-val="{{ false }}">
       <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:20px">
 
+        <fieldset class="ds-letter-polish" style="border:0;margin:0;padding:0;min-width:0">
+          <legend style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Letterhead polish</legend>
+          <div role="group" aria-label="Header rule" style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ letterRuleOpts }}" as="o" hint-placeholder-count="3"><button aria-pressed="{{ o.pressed }}" onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+          </div>
+          <div role="group" aria-label="Body spacing" style="display:flex;flex-wrap:wrap;gap:7px;margin-top:9px">
+            <sc-for list="{{ letterSpacingOpts }}" as="o" hint-placeholder-count="2"><button aria-pressed="{{ o.pressed }}" onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+          </div>
+          <p style="font:400 11.5px/1.5 'Plus Jakarta Sans',sans-serif;color:#8a93a0;margin:9px 0 0">One restrained header rule. These choices also apply to print and Word exports.</p>
+        </fieldset>
+
         <div>
           <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:9px">Document type</div>
           <div style="display:flex;flex-wrap:wrap;gap:7px">
@@ -346,6 +359,13 @@
           <span style="font:600 13px/1 'Plus Jakarta Sans',sans-serif;color:#0B1E35">Show logo</span>
         </label>
 
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button onClick="{{ insertSignatureInEmail }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Add to email draft</button>
+          <button onClick="{{ copySignatureImage }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Copy image</button>
+          <button onClick="{{ downloadSignatureImage }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Download PNG</button>
+          <button onClick="{{ downloadSignatureHtml }}" style="padding:8px;background:#fff;color:#0B1E35;border:1px solid #d9d7cf;border-radius:6px">Download HTML</button>
+        </div>
+        <p style="font:12px/1.5 Arial;color:#8fa3b8;margin:0">Copy signature keeps links editable. Paste into your email client's signature settings or any rich text editor. Copy image keeps the tile's appearance; links are not clickable. Save a person to reuse it here.</p>
         <div style="border-top:1px solid #efece3;padding-top:18px;margin-top:6px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
             <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Saved signatures</span>
@@ -447,16 +467,22 @@
       <!-- ---------- SHIPPING LABEL ---------- -->
       <sc-if value="{{ isShiplabel }}" hint-placeholder-val="{{ false }}">
       <div style="padding:22px 20px 48px;display:flex;flex-direction:column;gap:16px">
+        <label style="color:#1A8A9C;font:700 12px Arial">Label type<select class="cv-in" aria-label="Label type" value="{{ slMode }}" onChange="{{ setLabelMode }}" style="display:block;width:100%;padding:9px;margin-top:7px;background:#fff;color:#0B1E35"><option value="shipping">Shipping label</option><option value="customer">Customer label</option></select></label>
+        <label style="color:#1A8A9C;font:700 12px Arial">Recipient heading<input class="cv-in" aria-label="Recipient heading" value="{{ f.slToCaption.v }}" onChange="{{ f.slToCaption.on }}" style="display:block;width:100%;box-sizing:border-box;padding:9px;margin-top:7px;background:#fff;color:#0B1E35"></label>
+        <sc-if value="{{ isShippingMode }}" hint-placeholder-val="{{ false }}">
+        <label style="color:#1A8A9C;font:700 12px Arial">Sender heading<input class="cv-in" aria-label="Sender heading" value="{{ f.slFromCaption.v }}" onChange="{{ f.slFromCaption.on }}" style="display:block;width:100%;box-sizing:border-box;padding:9px;margin-top:7px;background:#fff;color:#0B1E35"></label>
         <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">From</div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Name</div><input class="cv-in" value="{{ f.slFromName.v }}" onChange="{{ f.slFromName.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Address</div><textarea class="cv-in" value="{{ f.slFromAddr.v }}" onChange="{{ f.slFromAddr.on }}" rows="2" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Phone</div><input class="cv-in" value="{{ f.slFromPhone.v }}" onChange="{{ f.slFromPhone.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
-        <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Ship to</div>
+        </sc-if>
+        <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">{{ labelRecipientCaption }}</div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Fill from company</div><select class="cv-in" value="{{ selectedShipCustomer }}" onChange="{{ applyCustomerToShipLabel }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"><option value="">Select customer</option><sc-for list="{{ customerOptions }}" as="c" hint-placeholder-count="0"><option value="{{ c.account }}">{{ c.label }}</option></sc-for></select></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Recipient name</div><input class="cv-in" value="{{ f.slToName.v }}" onChange="{{ f.slToName.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Company</div><input class="cv-in" value="{{ f.slToCompany.v }}" onChange="{{ f.slToCompany.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Address</div><textarea class="cv-in" value="{{ f.slToAddr.v }}" onChange="{{ f.slToAddr.on }}" rows="2" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.5 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none;resize:vertical"></textarea></div>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Phone</div><input class="cv-in" value="{{ f.slToPhone.v }}" onChange="{{ f.slToPhone.on }}" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
+        <sc-if value="{{ isShippingMode }}" hint-placeholder-val="{{ false }}">
         <div style="border-top:1px solid #efece3;padding-top:14px;font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C">Courier</div>
         <div style="display:flex;gap:11px">
           <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Carrier</div><input class="cv-in" value="{{ f.slCarrier.v }}" onChange="{{ f.slCarrier.on }}" placeholder="e.g. FedEx" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
@@ -467,6 +493,7 @@
           <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Weight</div><input class="cv-in" value="{{ f.slWeight.v }}" onChange="{{ f.slWeight.on }}" placeholder="e.g. 2.3 kg" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
           <div style="flex:1"><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Dims (L×W×H)</div><input class="cv-in" value="{{ f.slDims.v }}" onChange="{{ f.slDims.on }}" placeholder="e.g. 30×20×10 cm" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
         </div>
+        </sc-if>
         <div><div style="font:600 11px/1 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;margin-bottom:5px">Special instructions</div><input class="cv-in" value="{{ f.slNote.v }}" onChange="{{ f.slNote.on }}" placeholder="e.g. Fragile — handle with care" style="width:100%;padding:8px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.4 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></div>
       </div>
       </sc-if>
@@ -628,6 +655,18 @@
           <div style="flex:1;text-align:right;font:600 11.5px/1.4 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">{{ billSaveState }}</div>
         </div>
 
+        <sc-if value="{{ showInvoiceImport }}">
+          <div style="border:1px solid #d9d7cf;border-radius:8px;padding:12px">
+            <label for="ds-innovations-invoice" style="display:block;font:700 12px/1.4 'Plus Jakarta Sans',sans-serif;margin-bottom:7px">Import from Innovations invoice</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">
+              <input id="ds-innovations-invoice" class="cv-in" inputmode="numeric" value="{{ innovationsInvoiceNumber }}" onChange="{{ onInnovationsInvoiceNumber }}" disabled="{{ invoiceImportDisabled }}" placeholder="Invoice number" style="flex:1;min-width:100px;width:100%;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;color:#0B1E35;background:#fff">
+              <button type="button" onClick="{{ importInnovationsInvoice }}" disabled="{{ invoiceImportDisabled }}" style="padding:9px 11px;border:0;border-radius:8px;background:#1A8A9C;color:#fff;font-weight:700">{{ invoiceImportLabel }}</button>
+            </div>
+            <p style="font-size:11px;line-height:1.5;margin:7px 0 0">Fills a new draft with the customer and invoice lines. If the account cannot be found, select it under Fill from customer first.</p>
+            <sc-if value="{{ innovationsInvoiceLoading }}"><progress aria-label="Loading Innovations invoice" style="width:100%"></progress></sc-if>
+            <div role="status" aria-live="polite" style="font-size:12px;line-height:1.5;margin-top:7px">{{ innovationsInvoiceMessage }}</div>
+          </div>
+        </sc-if>
         <div style="display:flex;gap:11px">
           <div style="flex:1">
             <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.13em;text-transform:uppercase;color:#1A8A9C;margin-bottom:7px">Number</div>
@@ -819,9 +858,9 @@
     ></div>
 
         <!-- ====== RIGHT: PREVIEW ====== -->
-    <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
-      <sc-if value="{{ showPreviewHeader }}" hint-placeholder-val="{{ true }}"><div style="height:58px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#f4f2ed;border-bottom:1px solid #ded9cd">
-        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+    <div class="ds-preview-panel" style="flex:1;min-width:0;display:flex;flex-direction:column;background:#e9e5da">
+      <sc-if value="{{ showPreviewHeader }}" hint-placeholder-val="{{ true }}"><div class="ds-preview-toolbar" role="group" aria-label="Document preview actions">
+        <div class="ds-preview-identity">
           <span style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5b6b7c;white-space:nowrap">{{ previewTitle }}</span>
           <sc-if value="{{ showEmailFileIdentity }}" hint-placeholder-val="{{ false }}">
             <span style="color:#b3aa9a;font-size:13px;line-height:1">•</span>
@@ -829,11 +868,11 @@
             <span style="{{ activeEmailFileBadgeStyle }}">{{ activeEmailFileStatus }}</span>
           </sc-if>
         </div>
-        <div style="display:flex;gap:9px">
+        <div class="ds-preview-actions">
           <sc-if value="{{ isLetter }}" hint-placeholder-val="{{ false }}">
-            <button onClick="{{ printLetter }}" style="height:38px;padding:0 16px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Print / PDF</button>
+            <button onClick="{{ printLetter }}" style="min-height:38px;padding:10px 16px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Print / PDF</button>
             <div style="position:relative">
-              <button onClick="{{ toggleDocx }}" style="height:38px;padding:0 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Open in Word / Google Docs <span style="font-size:8px;opacity:.55;transform:translateY(1px)">▼</span></button>
+              <button onClick="{{ toggleDocx }}" style="min-height:38px;padding:10px 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Open in Word / Google Docs <svg class="ds-toolbar-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></button>
               <sc-if value="{{ docxOpen }}" hint-placeholder-val="{{ false }}">
                 <div onClick="{{ toggleDocx }}" style="position:fixed;inset:0;z-index:45"></div>
                 <div style="position:absolute;top:46px;right:0;z-index:46;width:268px;background:#fff;border:1px solid #e7e4db;border-radius:13px;box-shadow:0 20px 48px -12px rgba(11,30,53,.42);overflow:hidden">
@@ -850,10 +889,10 @@
             </div>
           </sc-if>
           <sc-if value="{{ isEmail }}" hint-placeholder-val="{{ true }}">
-            <button onClick="{{ composeNewEmail }}" title="Start a blank email" style="height:38px;padding:0 15px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Compose</button>
-            <button onClick="{{ openEmailSend }}" style="height:38px;padding:0 18px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Send Email</button>
+            <button onClick="{{ composeNewEmail }}" title="Start a blank email" style="min-height:38px;padding:10px 15px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Compose</button>
+            <button onClick="{{ openEmailSend }}" style="min-height:38px;padding:10px 18px;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Send Email</button>
             <div style="position:relative">
-              <button onClick="{{ toggleDl }}" style="height:38px;padding:0 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Download <span style="font-size:8px;opacity:.55;transform:translateY(1px)">▼</span></button>
+              <button onClick="{{ toggleDl }}" style="min-height:38px;padding:10px 18px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">Download <svg class="ds-toolbar-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></button>
               <sc-if value="{{ dlOpen }}" hint-placeholder-val="{{ false }}">
                 <div onClick="{{ toggleDl }}" style="position:fixed;inset:0;z-index:45"></div>
                 <div style="position:absolute;top:46px;right:0;z-index:46;width:252px;background:#fff;border:1px solid #e7e4db;border-radius:13px;box-shadow:0 20px 48px -12px rgba(11,30,53,.42);overflow:hidden">
@@ -870,24 +909,24 @@
             </div>
           </sc-if>
           <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ false }}">
-            <span style="align-self:center;font:600 11.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ billSaveState }}</span>
-            <button onClick="{{ saveBillingFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save</span></button>
-            <button onClick="{{ saveBillingFileAs }}" title="Save As" aria-label="Save As" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save_as</span></button>
-            <button onClick="{{ renameBillingFile }}" title="Rename" aria-label="Rename" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">drive_file_rename_outline</span></button>
-            <button onClick="{{ toggleBillShare }}" title="Share" aria-label="Share" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">share</span></button>
-            <button onClick="{{ deleteBillingFile }}" title="Delete" aria-label="Delete" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #e4c8c8;border-radius:9px;background:#fff;color:#a23b3b;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">delete</span></button>
+            <span class="ds-save-status" role="status" aria-live="polite">{{ billSaveState }}</span>
+            <button onClick="{{ saveBillingFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg></button>
+            <button onClick="{{ saveBillingFileAs }}" title="Save As" aria-label="Save As" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v3M7 3v6h10V3M7 21v-8h5"/><path d="m14 18 6-6 3 3-6 6-4 1 1-4Z"/></svg></button>
+            <button onClick="{{ renameBillingFile }}" title="Rename" aria-label="Rename" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m15 5 4-4 4 4-4 4M15 5 4 16l-1 5 5-1L19 9M15 5l4 4M12 21h9"/></svg></button>
+            <button onClick="{{ toggleBillShare }}" title="Share" aria-label="Share" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg></button>
+            <button onClick="{{ deleteBillingFile }}" title="Delete" aria-label="Delete" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #e4c8c8;border-radius:9px;background:#fff;color:#a23b3b;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button>
           </sc-if>
           <sc-if value="{{ showFileActions }}" hint-placeholder-val="{{ false }}">
-            <span style="align-self:center;font:600 11.5px/1.3 'Plus Jakarta Sans',sans-serif;color:#5b6b7c;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fileSaveState }}</span>
-            <button onClick="{{ saveActiveFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save</span></button>
-            <button onClick="{{ saveAsActiveFile }}" title="Save as" aria-label="Save as" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">save_as</span></button>
-            <button onClick="{{ shareActiveFile }}" title="Share" aria-label="Share" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">share</span></button>
-            <button onClick="{{ deleteActiveFile }}" title="Delete" aria-label="Delete" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #e4c8c8;border-radius:9px;background:#fff;color:#a23b3b;cursor:pointer"><span class="material-symbols-outlined" style="font-size:20px;line-height:1">delete</span></button>
+            <span class="ds-save-status" role="status" aria-live="polite">{{ fileSaveState }}</span>
+            <button onClick="{{ saveActiveFile }}" title="Save" aria-label="Save" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #0B1E35;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></svg></button>
+            <button onClick="{{ saveAsActiveFile }}" title="Save as" aria-label="Save as" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v3M7 3v6h10V3M7 21v-8h5"/><path d="m14 18 6-6 3 3-6 6-4 1 1-4Z"/></svg></button>
+            <button onClick="{{ shareActiveFile }}" title="Share" aria-label="Share" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #d9d7cf;border-radius:9px;background:#fff;color:#0B1E35;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg></button>
+            <button onClick="{{ deleteActiveFile }}" title="Delete" aria-label="Delete" style="height:38px;width:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1.5px solid #e4c8c8;border-radius:9px;background:#fff;color:#a23b3b;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button>
           </sc-if>
-          <sc-if value="{{ showCopyNow }}" hint-placeholder-val="{{ true }}"><button onClick="{{ copyNow }}" style="height:38px;padding:0 20px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">{{ copyLabel }}</button></sc-if>
+          <sc-if value="{{ showCopyNow }}" hint-placeholder-val="{{ true }}"><button onClick="{{ copyNow }}" style="min-height:38px;padding:10px 20px;border:0;border-radius:9px;background:#C89130;color:#0B1E35;font:700 13px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px -6px rgba(200,145,48,.6)">{{ copyLabel }}</button></sc-if>
         </div>
       </div></sc-if>
-      <div class="cv-scroll" style="{{ previewAreaStyle }}">
+      <div class="cv-scroll ds-preview-scroll" style="{{ previewAreaStyle }}">
         {{ previewNode }}
       </div>
     </div>
@@ -1015,11 +1054,12 @@
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
               <div style="font:700 11px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#1A8A9C">To</div>
-              <button onClick="{{ toggleEmailContacts }}" style="background:none;border:0;color:#0B1E35;font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Contacts</button>
+              <button id="ds-contact-toggle" aria-expanded="{{ emailContactsExpanded }}" aria-controls="ds-contact-picker" onClick="{{ toggleEmailContacts }}" style="background:none;border:0;color:#0B1E35;font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer">Contacts</button>
             </div>
             <textarea class="cv-in" value="{{ emailTo }}" onChange="{{ setEmailTo }}" placeholder="name@example.com, second@example.com" rows="3" style="width:100%;box-sizing:border-box;resize:vertical;min-height:74px;padding:9px 11px;border:1px solid #d9d7cf;border-radius:8px;font:400 13px/1.45 'Plus Jakarta Sans',sans-serif;color:#0B1E35;background:#fff;outline:none"></textarea>
             <sc-if value="{{ emailContactsOpen }}" hint-placeholder-val="{{ false }}">
-              <div style="margin-top:8px;border:1px solid #e7e4db;border-radius:10px;background:#fff;box-shadow:0 14px 36px -18px rgba(11,30,53,.35);max-height:190px;overflow:auto">
+              <div id="ds-contact-picker" role="group" aria-label="Choose email recipients" style="margin-top:8px;border:1px solid #e7e4db;border-radius:10px;background:#fff;box-shadow:0 14px 36px -18px rgba(11,30,53,.35);max-height:240px;overflow:auto">
+                <div style="position:sticky;top:0;background:#fff;padding:8px;z-index:1"><input id="ds-contact-search" type="search" aria-label="Search contacts by name or email" value="{{ emailContactSearch }}" onChange="{{ setEmailContactSearch }}" placeholder="Search name or email…" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #d9d7cf;border-radius:6px;color:#0B1E35;background:#fff"></div>
                 <sc-for list="{{ emailContactOptions }}" as="c" hint-placeholder-count="0">
                   <label style="display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-bottom:1px solid #f4f1ea;cursor:pointer">
                     <input type="checkbox" checked="{{ c.checked }}" onChange="{{ c.toggle }}" style="width:15px;height:15px;margin-top:1px;accent-color:#1A8A9C;flex:none">
@@ -1029,7 +1069,7 @@
                     </span>
                   </label>
                 </sc-for>
-                <sc-if value="{{ noEmailContacts }}" hint-placeholder-val="{{ false }}"><div style="padding:12px;font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#8a93a0">No contacts with email addresses loaded.</div></sc-if>
+                <sc-if value="{{ noEmailContacts }}" hint-placeholder-val="{{ false }}"><div role="status" style="padding:12px;font:400 12px/1.45 'Plus Jakarta Sans',sans-serif;color:#5b6b7c">No matching contacts with email addresses.</div></sc-if>
               </div>
             </sc-if>
           </div>

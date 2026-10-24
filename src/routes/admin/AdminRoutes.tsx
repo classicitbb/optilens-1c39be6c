@@ -1,7 +1,19 @@
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { lazy } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router";
 import AdminOnlyRoute from "@/components/admin/AdminOnlyRoute";
+import { buildPricelistSelectionPath, type PricelistEditorSection } from "@/features/pricelists/routes";
+import AtlasLegacyRedirect from "@/features/atlas/AtlasLegacyRedirect";
+
+// Keep saved quotes and product-tunnel links on their existing editor contract.
+function StockOrderEntry() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  if (params.has("quote") || params.has("highlight")) return <StockOrderBuilderPage />;
+  params.set("type", "stock");
+  return <Navigate to={`/admin/orders/rx/new?${params}`} replace />;
+}
 
 const AdminLayout = lazyWithRetry(() => import("@/components/admin/AdminLayout"));
 
@@ -14,10 +26,8 @@ const ReferenceDataPage = lazyWithRetry(() => import("@/pages/admin/ReferenceDat
 const AuditLogPage = lazyWithRetry(() => import("@/pages/admin/AuditLogPage"));
 const ProductCatalogPage = lazyWithRetry(() => import("@/pages/admin/ProductCatalogPage"),
 );
-const RxLensPricesPage = lazyWithRetry(() => import("@/pages/admin/RxLensPricesPage"));
-const StockLensPricesPage = lazyWithRetry(() => import("@/pages/admin/StockLensPricesPage"),
-);
-const BuySellPricesPage = lazyWithRetry(() => import("@/pages/admin/BuySellPricesPage"));
+const PricelistsPage = lazyWithRetry(() => import("@/pages/admin/PricelistsPage"));
+const PricelistEditorPage = lazyWithRetry(() => import("@/pages/admin/PricelistEditorPage"));
 const PricingComparePage = lazyWithRetry(() => import("@/pages/admin/PricingComparePage"),
 );
 const LensClassificationPage = lazyWithRetry(() => import("@/pages/admin/LensClassificationPage"),
@@ -28,12 +38,9 @@ const CompanySettingsPage = lazyWithRetry(() => import("@/pages/admin/CompanySet
 );
 const RolesPermissionsPage = lazyWithRetry(() => import("@/pages/admin/RolesPermissionsPage"),
 );
-const AdminWikiPage = lazyWithRetry(() => import("@/pages/admin/AdminWikiPage"));
-const ContentManagerPage = lazyWithRetry(() => import("@/pages/admin/ContentManagerPage"),
-);
 const ImportCostingsPage = lazyWithRetry(() => import("@/pages/admin/costings/ImportCostingsPage"),
 );
-const ShipmentDetailPage = lazyWithRetry(() => import("@/pages/admin/costings/ShipmentDetailPage"),
+const ShipmentDetailPage = lazyWithRetry(() => import("@/pages/admin/costings/DesktopShipmentEditor"),
 );
 const CostingsReportsPage = lazyWithRetry(() => import("@/pages/admin/costings/CostingsReportsPage"),
 );
@@ -43,6 +50,12 @@ const RxOrderFormPage = lazyWithRetry(() => import("@/pages/admin/RxOrderFormPag
 const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrderBuilderPage"),
 );
 const RxSubmissionsPage = lazyWithRetry(() => import("@/pages/admin/RxSubmissionsPage"));
+// Staff test bench: the Rx form against test fixtures. Nothing is saved or sent to a lab.
+const RxOrdersWorkspace = lazyWithRetry(() => import("@/features/rx-order/workspace/RxOrdersWorkspace"));
+const RxRulesPage = lazyWithRetry(() => import("@/features/rx-order/workspace/RxRulesPage"));
+const RxOrderEditPage = lazyWithRetry(() => import("@/pages/admin/RxOrderEditPage"));
+const RxCapturePage = lazyWithRetry(() => import("@/features/rx-capture/RxCapturePage"));
+const RxOrderTestBench = lazyWithRetry(() => import("@/features/rx-order/dev/RxOrderPreview"));
 const AliasMappingPage = lazyWithRetry(() => import("@/pages/admin/AliasMappingPage"));
 const QuoteEditorPage = lazyWithRetry(() => import("@/pages/admin/QuoteEditorPage"));
 const QuotePrintPreviewPage = lazyWithRetry(() => import("@/pages/admin/QuotePrintPreviewPage"),
@@ -53,10 +66,6 @@ const CatalogPublisherV2Page = lazyWithRetry(() => import("@/pages/admin/Catalog
 );
 const CatalogEditorPage = lazyWithRetry(() => import("@/pages/admin/CatalogEditorPage"));
 const ContactsPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactsPage"));
-const ContactTagsConfigPage = lazyWithRetry(() => import("@/pages/admin/erp/ContactTagsConfigPage"),
-);
-const IndustriesConfigPage = lazyWithRetry(() => import("@/pages/admin/erp/IndustriesConfigPage"),
-);
 const PricingSettingsPage = lazyWithRetry(() => import("@/pages/admin/PricingSettingsPage"),
 );
 const LeadFinderPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadFinderPage"));
@@ -67,12 +76,12 @@ const LeadAuditReportsPage = lazyWithRetry(() => import("@/pages/admin/leads/Lea
 );
 const LeadsAiAssistantPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadsAiAssistantPage"),
 );
-const LeadSettingsPage = lazyWithRetry(() => import("@/pages/admin/leads/LeadSettingsPage"),
-);
+const CrmSettingsPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmSettingsPage"));
 const CrmPipelinePage = lazyWithRetry(() => import("@/pages/admin/crm/CrmPipelinePage"));
 const CrmActivitiesPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmActivitiesPage"),
 );
 const CrmOutboxPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmOutboxPage"));
+const EmailPage = lazyWithRetry(() => import("@/pages/admin/email/EmailPage"));
 const CrmDashboardPage = lazyWithRetry(() => import("@/pages/admin/crm/CrmDashboardPage"),
 );
 const RuntimeErrorsPage = lazyWithRetry(() => import("@/pages/admin/RuntimeErrorsPage"));
@@ -81,6 +90,9 @@ const IntegrationsPage = lazyWithRetry(() => import("@/pages/admin/settings/Inte
 const ApiKeysPage = lazyWithRetry(() => import("@/pages/admin/settings/ApiKeysPage"));
 const BankPaymentPortalsPage = lazyWithRetry(() => import("@/pages/admin/settings/BankPaymentPortalsPage"),
 );
+const PaymentActivityPage = lazyWithRetry(() => import("@/pages/admin/settings/PaymentActivityPage"));
+const WalkInPaymentsPage = lazyWithRetry(() => import("@/pages/admin/WalkInPaymentsPage"));
+const StatementDeliveryPreviewPage = lazyWithRetry(() => import("@/pages/admin/StatementDeliveryPreviewPage"));
 const ReleasesPage = lazyWithRetry(() => import("@/pages/admin/settings/ReleasesPage"));
 const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage"),
 );
@@ -91,8 +103,6 @@ const HelpdeskTicketsPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/H
 const HelpdeskConfigPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskConfigPage"),
 );
 const HelpdeskOverviewPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskOverviewPage"),
-);
-const HelpdeskTicketDetailPage = lazyWithRetry(() => import("@/pages/admin/helpdesk/HelpdeskTicketDetailPage"),
 );
 const WebsitePortalsPage = lazyWithRetry(() => import("@/pages/admin/WebsitePortalsPage"),
 );
@@ -108,6 +118,71 @@ const ProductHubPage = lazyWithRetry(() => import("@/pages/admin/ProductHubPage"
 const AssistantQualityPage = lazyWithRetry(() => import("@/pages/admin/assistant/AssistantQualityPage"),
 );
 
+const LegacyPricelistRedirect = ({ section }: { section: PricelistEditorSection }) => {
+  const location = useLocation();
+  const itemId = new URLSearchParams(location.search).get("id");
+  return <Navigate to={buildPricelistSelectionPath(section, itemId)} replace />;
+};
+
+// The ticket editor is a modal opened by ?ticket=<id>; keep old /tickets/:id links
+// (emails, copilot results, bookmarks) working.
+const HelpdeskTicketRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/admin/helpdesk/tickets${ticketHref(id ?? "")}`} replace />;
+};
+
+// The React Rx form is the Rx order form. The old prototype form stays reachable at
+// /admin/orders/rx-legacy/* (for reference) and these old URLs land on the new one.
+const RxQuoteRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/admin/orders/rx/${id ?? ""}/edit`} replace />;
+};
+
+// Order handling moved from /admin/website/* to /admin/orders/*; keep old links
+// (bookmarks, stored notification hrefs) working, including sub-paths and query.
+const LegacyWebsiteOrdersRedirect = () => {
+  const { pathname, search } = useLocation();
+  const to = pathname
+    .replace(/^\/admin\/website\/orders/, "/admin/orders")
+    .replace(/^\/admin\/website\//, "/admin/orders/");
+  return <Navigate to={`${to}${search}`} replace />;
+};
+
+// Costings (from Pricing) and payment pages (from Settings) moved to /admin/finance/*.
+// scotia-return still sends staff to /admin/settings/walk-in-payments; keep the query.
+const LegacyFinanceRedirect = () => {
+  const { pathname, search } = useLocation();
+  const to = pathname
+    .replace(/^\/admin\/pricing\/costings/, "/admin/finance/costings")
+    .replace(/^\/admin\/settings\//, "/admin/finance/");
+  return <Navigate to={`${to}${search}`} replace />;
+};
+
+// Contacts and Leads merged into CRM under /admin/crm/*. Keeps old links working,
+// including /admin/erp/contacts?contact=… deep links, which used to lose their query.
+const LegacyCrmRedirect = () => {
+  const { pathname, search } = useLocation();
+  const contactId = pathname.match(/^\/admin\/contacts\/([^/]+)$/)?.[1];
+  if (contactId && contactId !== "config") {
+    return <Navigate to={`/admin/crm/contacts?contact=${encodeURIComponent(contactId)}`} replace />;
+  }
+  const settingsSection: Record<string, string> = {
+    "/admin/contacts/config": "tags",
+    "/admin/contacts/config/tags": "tags",
+    "/admin/erp/config/contact-tags": "tags",
+    "/admin/contacts/config/industries": "industries",
+    "/admin/erp/config/industries": "industries",
+    "/admin/leads/settings": "leads",
+  };
+  if (settingsSection[pathname]) {
+    return <Navigate to={`/admin/crm/settings?section=${settingsSection[pathname]}`} replace />;
+  }
+  const to = pathname
+    .replace(/^\/admin\/(erp\/)?contacts/, "/admin/crm/contacts")
+    .replace(/^\/admin\/leads/, "/admin/crm/leads");
+  return <Navigate to={`${to}${search}`} replace />;
+};
+
 const AdminRoutes = () => (
   <Routes>
     <Route element={<AdminLayout />}>
@@ -119,9 +194,11 @@ const AdminRoutes = () => (
         element={<Navigate to="pricing/catalog" replace />}
       />
       <Route path="pricing/catalog" element={<ProductCatalogPage />} />
-      <Route path="pricing/rx-lenses" element={<RxLensPricesPage />} />
-      <Route path="pricing/stock-lenses" element={<StockLensPricesPage />} />
-      <Route path="pricing/supplies" element={<BuySellPricesPage />} />
+      <Route path="pricing/pricelists" element={<PricelistsPage />} />
+      <Route path="pricing/pricelists/:versionId/:section?" element={<PricelistEditorPage />} />
+      <Route path="pricing/rx-lenses" element={<LegacyPricelistRedirect section="rx" />} />
+      <Route path="pricing/stock-lenses" element={<LegacyPricelistRedirect section="stock" />} />
+      <Route path="pricing/supplies" element={<LegacyPricelistRedirect section="supplies" />} />
       <Route path="pricing/compare" element={<PricingComparePage />} />
       <Route
         path="pricing/classification"
@@ -136,30 +213,19 @@ const AdminRoutes = () => (
         }
       />
       <Route path="pricing/publisher/:id" element={<CatalogEditorPage />} />
-      <Route path="pricing/costings" element={<ImportCostingsPage />} />
-      <Route path="pricing/costings/new" element={<ShipmentDetailPage />} />
-      <Route path="pricing/costings/:id" element={<ShipmentDetailPage />} />
-      <Route
-        path="pricing/costings/reports"
-        element={<CostingsReportsPage />}
-      />
+      <Route path="pricing/costings/*" element={<LegacyFinanceRedirect />} />
       <Route path="pricing/reference" element={<ReferenceDataPage />} />
       <Route path="pricing/alias-mapping" element={<AliasMappingPage />} />
       <Route path="pricing/imports" element={<ImportsPage />} />
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
-      <Route path="contacts" element={<ContactsPage />} />
-      <Route path="contacts/config/tags" element={<ContactTagsConfigPage />} />
-      <Route
-        path="contacts/config/industries"
-        element={<IndustriesConfigPage />}
-      />
-
-      <Route path="leads" element={<MyLeadsPage />} />
-      <Route path="leads/finder" element={<LeadFinderPage />} />
-      <Route path="leads/campaigns" element={<LeadCampaignsPage />} />
-      <Route path="leads/reports" element={<LeadAuditReportsPage />} />
-      <Route path="leads/ai" element={<LeadsAiAssistantPage />} />
-      <Route path="leads/settings" element={<LeadSettingsPage />} />
+      <Route path="contacts/*" element={<LegacyCrmRedirect />} />
+      <Route path="leads" element={<LegacyCrmRedirect />} />
+      <Route path="leads/finder" element={<LegacyCrmRedirect />} />
+      <Route path="leads/campaigns" element={<LegacyCrmRedirect />} />
+      <Route path="leads/reports" element={<LegacyCrmRedirect />} />
+      <Route path="leads/settings" element={<LegacyCrmRedirect />} />
+      <Route path="leads/ai" element={<Navigate to="/admin/copilot/leads-assistant" replace />} />
+      <Route path="copilot/leads-assistant" element={<LeadsAiAssistantPage />} />
 
       <Route
         path="crm"
@@ -170,6 +236,13 @@ const AdminRoutes = () => (
       <Route path="crm/proposals" element={<CatalogPublisherV2Page />} />
       <Route path="crm/outbox" element={<CrmOutboxPage />} />
       <Route path="crm/activities" element={<CrmActivitiesPage />} />
+      <Route path="crm/contacts" element={<ContactsPage />} />
+      <Route path="crm/leads" element={<MyLeadsPage />} />
+      <Route path="crm/leads/finder" element={<LeadFinderPage />} />
+      <Route path="crm/leads/campaigns" element={<LeadCampaignsPage />} />
+      <Route path="crm/leads/reports" element={<LeadAuditReportsPage />} />
+      <Route path="crm/settings" element={<CrmSettingsPage />} />
+      <Route path="email" element={<EmailPage />} />
       <Route
         path="helpdesk"
         element={<Navigate to="/admin/helpdesk/overview" replace />}
@@ -178,7 +251,7 @@ const AdminRoutes = () => (
       <Route path="helpdesk/tickets" element={<HelpdeskTicketsPage />} />
       <Route
         path="helpdesk/tickets/:id"
-        element={<HelpdeskTicketDetailPage />}
+        element={<HelpdeskTicketRedirect />}
       />
       <Route
         path="helpdesk/teams"
@@ -200,10 +273,10 @@ const AdminRoutes = () => (
         path="website"
         element={<Navigate to="/admin/website/portals" replace />}
       />
-      <Route path="website/content" element={<ContentManagerPage />} />
+      <Route path="website/content" element={<AtlasLegacyRedirect spaceId="website" />} />
       <Route
         path="website/microsites"
-        element={<Navigate to="/admin/website/content" replace />}
+        element={<Navigate to="/atlas/website" replace />}
       />
       <Route path="website/portals" element={<WebsitePortalsPage />} />
       <Route path="website/nps" element={<NpsDashboardPage />} />
@@ -212,17 +285,29 @@ const AdminRoutes = () => (
         element={<Navigate to="/admin/docs/studio" replace />}
       />
       <Route path="website/features" element={<FeatureBoardPage />} />
-      <Route path="website/quotations" element={<QuotationsListPage />} />
-      <Route path="website/stock-orders" element={<StockOrderBuilderPage />} />
-      <Route path="website/quotations/new-rx" element={<RxOrderFormPage />} />
-      <Route path="website/quotations/rx/:id" element={<RxOrderFormPage />} />
-      <Route path="website/quotations/:id" element={<QuoteEditorPage />} />
+      <Route path="orders" element={<OrdersPage />} />
+      <Route path="orders/quotations" element={<QuotationsListPage />} />
+      <Route path="orders/stock-orders" element={<StockOrderEntry />} />
+      <Route path="orders/quotations/new-rx" element={<Navigate to="/admin/orders/rx/new" replace />} />
+      <Route path="orders/quotations/rx/:id" element={<RxQuoteRedirect />} />
+      <Route path="orders/rx-legacy/new" element={<RxOrderFormPage />} />
+      <Route path="orders/rx-legacy/:id" element={<RxOrderFormPage />} />
+      <Route path="orders/quotations/:id" element={<QuoteEditorPage />} />
       <Route
-        path="website/quotations/:id/print-preview"
+        path="orders/quotations/:id/print-preview"
         element={<QuotePrintPreviewPage />}
       />
-      <Route path="website/rx-submissions" element={<RxSubmissionsPage />} />
-      <Route path="website/orders" element={<OrdersPage />} />
+      <Route path="orders/rx" element={<RxOrdersWorkspace />} />
+      <Route path="orders/rx/settings" element={<RxRulesPage />} />
+      <Route path="orders/rx/new" element={<RxOrderEditPage />} />
+      <Route path="orders/rx/:quoteId/edit" element={<RxOrderEditPage />} />
+      <Route path="orders/rx-submissions" element={<RxSubmissionsPage />} />
+      <Route path="orders/rx-capture" element={<RxCapturePage />} />
+      <Route path="orders/rx-test" element={<RxOrderTestBench allowLive />} />
+      <Route path="website/orders" element={<LegacyWebsiteOrdersRedirect />} />
+      <Route path="website/quotations/*" element={<LegacyWebsiteOrdersRedirect />} />
+      <Route path="website/stock-orders" element={<LegacyWebsiteOrdersRedirect />} />
+      <Route path="website/rx-submissions" element={<LegacyWebsiteOrdersRedirect />} />
       <Route
         path="docs"
         element={<Navigate to="/admin/docs/studio" replace />}
@@ -248,10 +333,12 @@ const AdminRoutes = () => (
 
       <Route
         path="knowledge"
-        element={<Navigate to="/admin/knowledge/wiki" replace />}
+        element={<Navigate to="/atlas/sops" replace />}
       />
-      <Route path="knowledge/wiki" element={<AdminWikiPage />} />
-      <Route path="knowledge/wiki/:articleSlug" element={<AdminWikiPage />} />
+      <Route path="knowledge/wiki" element={<AtlasLegacyRedirect spaceId="wiki" />} />
+      <Route path="knowledge/wiki/:articleSlug" element={<AtlasLegacyRedirect spaceId="wiki" />} />
+      <Route path="knowledge/sops" element={<AtlasLegacyRedirect spaceId="sops" />} />
+      <Route path="knowledge/sops/:articleSlug" element={<AtlasLegacyRedirect spaceId="sops" />} />
 
       <Route
         path="settings"
@@ -277,8 +364,33 @@ const AdminRoutes = () => (
           </AdminOnlyRoute>
         }
       />
+      <Route path="settings/bank-payment-portals" element={<LegacyFinanceRedirect />} />
+      <Route path="settings/payment-activity" element={<LegacyFinanceRedirect />} />
+      <Route path="settings/walk-in-payments" element={<LegacyFinanceRedirect />} />
+
       <Route
-        path="settings/bank-payment-portals"
+        path="finance"
+        element={<Navigate to="/admin/finance/costings" replace />}
+      />
+      <Route path="finance/costings" element={<ImportCostingsPage />} />
+      <Route path="finance/costings/new" element={<ShipmentDetailPage />} />
+      <Route path="finance/costings/:id" element={<ShipmentDetailPage />} />
+      <Route
+        path="finance/costings/reports"
+        element={<CostingsReportsPage />}
+      />
+      <Route path="finance/statements" element={<StatementDeliveryPreviewPage />} />
+      <Route
+        path="finance/payment-activity"
+        element={
+          <AdminOnlyRoute>
+            <PaymentActivityPage />
+          </AdminOnlyRoute>
+        }
+      />
+      <Route path="finance/walk-in-payments" element={<WalkInPaymentsPage />} />
+      <Route
+        path="finance/bank-payment-portals"
         element={
           <AdminOnlyRoute>
             <BankPaymentPortalsPage />
@@ -315,15 +427,15 @@ const AdminRoutes = () => (
       />
       <Route
         path="rx-lens-prices"
-        element={<Navigate to="/admin/pricing/rx-lenses" replace />}
+        element={<LegacyPricelistRedirect section="rx" />}
       />
       <Route
         path="stock-lens-prices"
-        element={<Navigate to="/admin/pricing/stock-lenses" replace />}
+        element={<LegacyPricelistRedirect section="stock" />}
       />
       <Route
         path="supplies-prices"
-        element={<Navigate to="/admin/pricing/supplies" replace />}
+        element={<LegacyPricelistRedirect section="supplies" />}
       />
       <Route
         path="imports"
@@ -343,15 +455,15 @@ const AdminRoutes = () => (
       />
       <Route
         path="quotations"
-        element={<Navigate to="/admin/website/quotations" replace />}
+        element={<Navigate to="/admin/orders/quotations" replace />}
       />
       <Route
         path="costings/shipments"
-        element={<Navigate to="/admin/pricing/costings" replace />}
+        element={<Navigate to="/admin/finance/costings" replace />}
       />
       <Route
         path="costings/reports"
-        element={<Navigate to="/admin/pricing/costings/reports" replace />}
+        element={<Navigate to="/admin/finance/costings/reports" replace />}
       />
       <Route
         path="parameters"
@@ -367,23 +479,23 @@ const AdminRoutes = () => (
       />
       <Route
         path="wiki"
-        element={<Navigate to="/admin/knowledge/wiki" replace />}
+        element={<Navigate to="/atlas/wiki" replace />}
       />
       <Route
         path="content"
-        element={<Navigate to="/admin/website/content" replace />}
+        element={<Navigate to="/atlas/website" replace />}
       />
       <Route
         path="erp/contacts"
-        element={<Navigate to="/admin/contacts" replace />}
+        element={<LegacyCrmRedirect />}
       />
       <Route
         path="erp/config/contact-tags"
-        element={<Navigate to="/admin/contacts/config/tags" replace />}
+        element={<LegacyCrmRedirect />}
       />
       <Route
         path="erp/config/industries"
-        element={<Navigate to="/admin/contacts/config/industries" replace />}
+        element={<LegacyCrmRedirect />}
       />
       <Route
         path="erp/crm"
@@ -395,7 +507,7 @@ const AdminRoutes = () => (
       />
       <Route
         path="erp/website"
-        element={<Navigate to="/admin/website/content" replace />}
+        element={<Navigate to="/atlas/website" replace />}
       />
       <Route
         path="history"

@@ -102,3 +102,27 @@ export function onPortalEmulationChange(listener: () => void) {
   window.addEventListener(EVENT, listener);
   return () => window.removeEventListener(EVENT, listener);
 }
+
+const EMULATION_TAB_KEY = "cv.portalEmulationTabSession";
+
+/**
+ * True when THIS tab is a "signed in as" preview tab. The admin opens
+ * emulation in a new tab, so the customer session must never be written to the
+ * shared localStorage the admin's own tab reads — otherwise signing in as the
+ * customer here silently replaces the admin's session everywhere on this
+ * origin. The marker is set from the one-time token in the preview URL and
+ * lives in sessionStorage so it survives reloads inside this tab only.
+ */
+export function isPortalEmulationTab() {
+  if (typeof window === "undefined") return false;
+  try {
+    if (window.sessionStorage.getItem(EMULATION_TAB_KEY) === "1") return true;
+    if (new URLSearchParams(window.location.search).has("emulate_token_hash")) {
+      window.sessionStorage.setItem(EMULATION_TAB_KEY, "1");
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}

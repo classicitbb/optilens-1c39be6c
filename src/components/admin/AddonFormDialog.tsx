@@ -39,6 +39,7 @@ const CATEGORIES = [
 { value: "ar_coating", label: "AR Coating" },
 { value: "prism", label: "Prism" },
 { value: "high_power", label: "High Power" },
+{ value: "repairs", label: "Repairs" },
 { value: "other", label: "Other" }];
 
 
@@ -53,6 +54,8 @@ const defaultForm: AddonFormData = {
   auto_rule: null,
   is_active: true,
   show_on_website: false,
+  is_popular: false,
+  stock_orderable: false,
   sort_order: 0,
   supplier_id: null
 };
@@ -92,7 +95,7 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
       setForm({
         name: addon.name, sku: addon.sku, category: addon.category, description: addon.description,
         cost: addon.cost, price: addon.price, is_auto: addon.is_auto, auto_rule: addon.auto_rule,
-        is_active: addon.is_active, show_on_website: addon.show_on_website, sort_order: addon.sort_order,
+        is_active: addon.is_active, show_on_website: addon.show_on_website, is_popular: addon.is_popular ?? false, stock_orderable: addon.stock_orderable ?? false, sort_order: addon.sort_order,
         supplier_id: addon.supplier_id
       });
       setRuleText(addon.auto_rule ? JSON.stringify(addon.auto_rule, null, 2) : "");
@@ -351,6 +354,12 @@ const AddonFormDialog = ({ open, onOpenChange, addon, addons, onSubmit, onSubmit
                   </label>
                   <label className="flex items-center gap-1.5 text-xs">
                     <Switch checked={form.show_on_website} onCheckedChange={(v) => set("show_on_website", v)} /> Website
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs" title="Staff can add it to a stock order even when it is not on the website (needs a price above 0)">
+                    <Switch checked={form.stock_orderable} onCheckedChange={(v) => set("stock_orderable", v)} /> Stock order
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs" title="Shown first in the Rx order form">
+                    <Switch checked={form.is_popular} onCheckedChange={(v) => set("is_popular", v)} /> Popular
                   </label>
                   <label className="flex items-center gap-1.5 text-xs">
                     <Switch checked={form.is_auto} onCheckedChange={handleAutoToggle} /> Auto-Apply

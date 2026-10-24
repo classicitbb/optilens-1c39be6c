@@ -57,8 +57,15 @@ const publicVariantColumns = [
 export const useProductVariants = (productType?: StoreProductType, productId?: string, options?: { activeOnly?: boolean }) => {
   const activeOnly = options?.activeOnly ?? true;
   return useQuery<ProductVariant[]>({
-    queryKey: ["store-product-variants", productType, productId],
+    queryKey: ["store-product-variants", productType, productId, activeOnly],
     enabled: Boolean(productType && productId),
+    // Refresh every eight hours while open, and check again on return.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 8 * 60 * 60 * 1000,
+    refetchIntervalInBackground: true,
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_store_product_variants_public", {
         p_product_type: productType,

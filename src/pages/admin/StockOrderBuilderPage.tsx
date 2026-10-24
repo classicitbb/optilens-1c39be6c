@@ -1,3 +1,4 @@
+import { upperCaseInput } from "@/lib/upperCaseInput";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import {
 } from "@/hooks/useStockOrderBuilder";
 import { useBBDUSDRate } from "@/hooks/usePricelistVersions";
 
-// Stock Order Builder (/admin/website/stock-orders) — staff tool for
+// Stock Order Builder (/admin/orders/stock-orders) — staff tool for
 // building SKU-identified stock orders and releasing them to Innova.
 //
 // It sells what the website sells: the published store items and their
@@ -193,7 +194,7 @@ const StockOrderBuilderPage = () => {
     );
   }, [combinedCatalog, searchQuery]);
 
-  // Product Tunnel: /admin/website/stock-orders?highlight=type:id opens the
+  // Product Tunnel: /admin/orders/stock-orders?highlight=type:id opens the
   // matching add-item panel once an account is selected (the catalog is
   // account-scoped, so there's nothing meaningful to highlight before then).
   const highlightParam = searchParams.get("highlight");
@@ -366,7 +367,6 @@ const StockOrderBuilderPage = () => {
       });
       return;
     }
-    setStaged(null);
     const key = `${product.product_type}:${product.product_id}:${variant?.id ?? "base"}:${side}`;
     setLines((prev) => {
       const existing = prev.find((l) => l.key === key);
@@ -395,14 +395,12 @@ const StockOrderBuilderPage = () => {
     const lineIndex = lines.findIndex((line) => line.key === key);
     const removedLine = lines[lineIndex];
     if (!removedLine) return;
-    setStaged(null);
     setLines((prev) => prev.filter((l) => l.key !== key));
     toast({
       title: `${removedLine.description} removed`,
       description: "The order total has been updated.",
       action: (
         <ToastAction altText={`Restore ${removedLine.description}`} onClick={() => {
-          setStaged(null);
           setLines((current) => {
             if (current.some((line) => line.key === removedLine.key)) return current;
             const restored = [...current];
@@ -416,7 +414,6 @@ const StockOrderBuilderPage = () => {
     });
   };
   const updateLine = (key: string, patch: Partial<OrderLine>) => {
-    setStaged(null);
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   };
 
@@ -590,7 +587,7 @@ const StockOrderBuilderPage = () => {
     return (
       <div className="flex h-40 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
         <p>This historical stock quotation has no linked Stock Order Builder draft, so it is read-only.</p>
-        <Link className="linkbtn" to="/admin/website/quotations">Back to quotations</Link>
+        <Link className="linkbtn" to="/admin/orders/quotations">Back to quotations</Link>
       </div>
     );
   }
@@ -602,7 +599,7 @@ const StockOrderBuilderPage = () => {
            <div className="stock-order-heading">
              <div className="stock-order-toolbar" data-annotation-ui>
                <Button variant="ghost" size="sm" className="stock-order-back" asChild>
-                 <Link to="/admin/website/quotations"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back</Link>
+                 <Link to="/admin/orders/quotations"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back</Link>
                </Button>
                <h1>Stock order form</h1>
                <div className="stock-order-toolbar-actions">
@@ -652,12 +649,12 @@ const StockOrderBuilderPage = () => {
               <div className="field stock-order-detail-field stock-order-detail-field-po">
                 <label htmlFor="stock-order-po-number">PO number <span className="opt-tag">optional</span></label>
                 <p id="stock-order-po-number-hint" className="stock-order-field-hint">Your purchase order or internal tracking number.</p>
-                <input ref={poNumberRef} id="stock-order-po-number" name="poNumber" autoComplete="off" spellCheck={false} aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="e.g. PO-1048…" />
+                <input ref={poNumberRef} id="stock-order-po-number" name="poNumber" autoComplete="off" spellCheck={false} aria-describedby="stock-order-po-number-hint" value={poNumber} onChange={(e) => upperCaseInput(e, setPoNumber)} onKeyDown={advanceFromPoNumber} onBlur={collapseOrderDetailsOnBlur} onClick={(e) => e.stopPropagation()} placeholder="e.g. PO-1048…" />
               </div>
               <div className="field stock-order-detail-field stock-order-detail-field-reference">
-                <label htmlFor="stock-order-reference">Order reference</label>
+                <label htmlFor="stock-order-reference">Order reference <span aria-hidden="true" className="text-destructive">*</span><span className="sr-only"> required</span></label>
                 <p id="stock-order-reference-hint" className="stock-order-field-hint">A customer-facing or staff note that identifies this order.</p>
-                <input ref={orderReferenceRef} id="stock-order-reference" name="orderReference" autoComplete="off" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => setOrderReference(e.target.value)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale or phone order…" />
+                <input ref={orderReferenceRef} id="stock-order-reference" name="orderReference" autoComplete="off" required aria-required="true" aria-describedby="stock-order-reference-hint" value={orderReference} onChange={(e) => upperCaseInput(e, setOrderReference)} onKeyDown={advanceFromOrderReference} onBlur={collapseOrderDetailsOnBlur} placeholder="e.g. counter sale or phone order…" />
               </div>
             </div>
           </div>}
@@ -689,7 +686,7 @@ const StockOrderBuilderPage = () => {
                       <th scope="row">{index + 1}</th>
                       <td className="stock-order-line-sku">{line.sku}</td>
                       <td className="stock-order-line-description"><span>{line.description}</span></td>
-                      <td><input name={`line-${index + 1}-reference`} autoComplete="off" aria-label={`Reference for line ${index + 1}`} placeholder="Optional…" value={line.customerRef} onChange={(e) => updateLine(line.key, { customerRef: e.target.value })} /></td>
+                      <td><input name={`line-${index + 1}-reference`} autoComplete="off" aria-label={`Reference for line ${index + 1}`} placeholder="Optional…" value={line.customerRef} onChange={(e) => upperCaseInput(e, (v) => updateLine(line.key, { customerRef: v }))} /></td>
                       <td><input name={`line-${index + 1}-quantity`} autoComplete="off" aria-label={`Quantity for line ${index + 1}`} type="number" inputMode="numeric" min={1} value={line.quantity} onChange={(e) => updateLine(line.key, { quantity: Math.max(1, Number(e.target.value) || 1) })} /></td>
                       <td className="stock-order-money">
                         <span>{money(line.unitPrice)}</span>
@@ -757,13 +754,13 @@ const StockOrderBuilderPage = () => {
           </div>
           <div className="stock-order-action-buttons">
             {staged && (
-              <Link className="linkbtn" to="/admin/website/quotations">View quotations</Link>
+              <Link className="linkbtn" to="/admin/orders/quotations">View quotations</Link>
             )}
             <button className="btn btn-ghost" type="button" disabled={!staged || !stageItems.length} onClick={() => setShowPreview((v) => !v)}>{showPreview ? "Hide preview" : "Preview file"}</button>
             <button className="btn btn-ghost" type="button" disabled={!staged || !stageItems.length || hasUnsavedChanges || autosaveStatus === "error" || saveAsQuoteMutation.isPending} onClick={handleSaveAsQuotation}>
               {saveAsQuoteMutation.isPending ? "Saving quotation…" : "Save as quotation"}
             </button>
-            <button className="btn btn-primary" type="button" disabled={!staged || !stageItems.length || hasUnsavedChanges || isSavingStockOrder || autosaveStatus === "error" || releaseMutation.isPending} aria-describedby="stock-submit-gate" title={!staged ? "The order will be ready when its first change has been saved." : !stageItems.length ? "Add a product before submitting the order." : hasUnsavedChanges ? "Wait for changes to save before submitting." : undefined} onClick={handleRelease}>
+            <button className="btn btn-primary" type="button" disabled={!staged || !orderReference.trim() || !stageItems.length || hasUnsavedChanges || isSavingStockOrder || autosaveStatus === "error" || releaseMutation.isPending} aria-describedby="stock-submit-gate" title={!orderReference.trim() ? "Enter the required order reference." : !staged ? "The order will be ready when its first change has been saved." : !stageItems.length ? "Add a product before submitting the order." : hasUnsavedChanges ? "Wait for changes to save before submitting." : undefined} onClick={handleRelease}>
               {releaseMutation.isPending ? "Submitting…" : "Submit order"}
             </button>
           </div>

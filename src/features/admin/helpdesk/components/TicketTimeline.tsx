@@ -1,4 +1,5 @@
 import { useHelpdeskMessages } from "../hooks/useHelpdeskMessages";
+import { useHelpdeskAttachments } from "../hooks/useHelpdeskAttachments";
 import { useHelpdeskTicketTimeline } from "../hooks/useHelpdeskTicketTimeline";
 import type { HelpdeskTicketMessage } from "../hooks/useHelpdeskMessages";
 import type { HelpdeskTicketEvent } from "../hooks/useHelpdeskTicketTimeline";
@@ -6,7 +7,9 @@ import { TicketMessageBubble } from "./TicketMessageBubble";
 import { TicketActivityEntry } from "./TicketActivityEntry";
 import { TicketOpeningMessage } from "./TicketOpeningMessage";
 import { useLiveHelpdeskTicketUpdates } from "../hooks/useLiveHelpdeskUpdates";
+import { useScrollToLatestMessage } from "../hooks/useScrollToLatestMessage";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
 type TimelineItem =
@@ -20,8 +23,10 @@ interface TicketTimelineProps {
 
 export const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
   const ticketId = ticket.id;
+  const { user } = useAuth();
   useLiveHelpdeskTicketUpdates(ticketId);
   const { data: messages = [], isLoading: loadingMessages } = useHelpdeskMessages(ticketId);
+  const { data: attachments = [] } = useHelpdeskAttachments(ticketId);
   const { data: events = [], isLoading: loadingEvents } = useHelpdeskTicketTimeline(ticketId);
 
   const isLoading = loadingMessages || loadingEvents;
@@ -31,6 +36,15 @@ export const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
     ...messages.map((m) => ({ kind: "message" as const, ts: new Date(m.sent_at).getTime(), data: m })),
     ...events.map((e) => ({ kind: "activity" as const, ts: new Date(e.created_at).getTime(), data: e })),
   ].sort((a, b) => a.ts - b.ts || (a.kind === "opening" ? -1 : b.kind === "opening" ? 1 : 0));
+
+  const latest = items[items.length - 1];
+  // A message from anyone else reads from its first line down; your own send
+  // just needs the thread to sit at the bottom.
+  const latestIsIncoming = latest?.kind === "message" && latest.data.sender_user_id !== user?.id;
+  const latestRef = useScrollToLatestMessage(
+    isLoading ? undefined : `${latest?.kind}-${latest?.ts}-${items.length}`,
+    latestIsIncoming ? "start" : "end",
+  );
 
   if (isLoading) {
     return (
@@ -43,14 +57,21 @@ export const TicketTimeline = ({ ticket }: TicketTimelineProps) => {
 
   return (
     <div className="flex flex-col gap-3 py-4">
-      {items.map((item) => {
-        if (item.kind === "opening") {
-          return <TicketOpeningMessage key={`opening-${item.data.id}`} ticket={item.data} />;
-        }
-        if (item.kind === "message") {
-          return <TicketMessageBubble key={`msg-${item.data.id}`} message={item.data} />;
-        }
-        return <TicketActivityEntry key={`evt-${item.data.id}`} event={item.data} />;
+      {items.map((item, index) => {
+        const isLatest = index === items.length - 1;
+        const content =
+          item.kind === "opening" ? (
+            <TicketOpeningMessage ticket={item.data} attachments={attachments.filter((attachment) => !attachment.message_id)} />
+          ) : item.kind === "message" ? (
+            <TicketMessageBubble message={item.data} attachments={attachments.filter((attachment) => attachment.message_id === item.data.id)} />
+          ) : (
+            <TicketActivityEntry event={item.data} />
+          );
+        return (
+          <div key={`${item.kind}-${item.data.id}`} ref={isLatest ? latestRef : undefined}>
+            {content}
+          </div>
+        );
       })}
     </div>
   );

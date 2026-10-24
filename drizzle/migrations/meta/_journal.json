@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791819117002,
+      "tag": "0000_restrict_public_bucket_listing",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791819782034,
+      "tag": "0001_tighten_reference_table_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791901828851,
+      "tag": "0002_fix_select_contacts_for_enrichment_bigint",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792162801357,
+      "tag": "0003_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792543434289,
+      "tag": "0004_new_portal_features_disabled",
+      "breakpoints": true
+    }
+  ]
+}

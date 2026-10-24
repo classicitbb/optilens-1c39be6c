@@ -61,7 +61,6 @@ const UsersPage = () => {
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [createName, setCreateName] = useState("");
-  const [createSendWelcomeEmail, setCreateSendWelcomeEmail] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -179,7 +178,7 @@ const UsersPage = () => {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <AdminPageHeader icon={Shield} title="User Management">
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Open Contacts" onClick={() => navigate("/admin/erp/contacts")}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Open Contacts" onClick={() => navigate("/admin/crm/contacts")}>
             <ContactRound className="h-3.5 w-3.5" />
           </Button>
         </AdminPageHeader>
@@ -188,7 +187,7 @@ const UsersPage = () => {
             <Mail className="h-3.5 w-3.5" />
             Invite
           </Button>
-          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setCreateEmail(""); setCreatePassword(""); setCreateName(""); setCreateSendWelcomeEmail(false); setCreateOpen(true); }}>
+          <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setCreateEmail(""); setCreatePassword(""); setCreateName(""); setCreateOpen(true); }}>
             <UserPlus className="h-3.5 w-3.5" />
             Add User
           </Button>
@@ -245,8 +244,8 @@ const UsersPage = () => {
                     ) : user.contact_id ? (
                       <button
                         className="text-[13px] font-medium hover:underline cursor-pointer text-left text-[hsl(var(--admin-table-fg))]"
-                        onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}
-                        title="Open linked contact"
+                        onClick={() => navigate(`/admin/website/portals?account=${encodeURIComponent(`user:${user.user_id}`)}`)}
+                        title="Open portal account"
                       >
                         {userName}
                       </button>
@@ -335,7 +334,7 @@ const UsersPage = () => {
                           </>
                         )}
                         {user.contact_id && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Open linked contact" onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Open linked contact" onClick={() => navigate(`/admin/crm/contacts?contact=${encodeURIComponent(user.contact_id!)}`)}>
                             <ContactRound className="h-3.5 w-3.5" />
                           </Button>
                         )}
@@ -539,10 +538,6 @@ const UsersPage = () => {
               onChange={(e) => setCreatePassword(e.target.value)}
               className="h-8 text-xs"
             />
-            <label className="flex items-center gap-2 text-xs text-[hsl(var(--admin-muted-fg))] cursor-pointer">
-              <Checkbox checked={createSendWelcomeEmail} onCheckedChange={(v) => setCreateSendWelcomeEmail(v === true)} />
-              Send the welcome email to this address now
-            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -552,7 +547,7 @@ const UsersPage = () => {
               disabled={createUser.isPending || !createEmail.includes("@") || createPassword.length < 12}
               onClick={async () => {
                 try {
-                  await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined, sendWelcomeEmail: createSendWelcomeEmail });
+                  await createUser.mutateAsync({ email: createEmail, password: createPassword, displayName: createName || undefined });
                   toast({ title: "User created", description: `Account created for ${createEmail}.` });
                   setCreateOpen(false);
                 } catch (err) {

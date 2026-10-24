@@ -132,6 +132,16 @@ const ProductHubPage = () => {
         .update({ show_on_website: true, is_active: true })
         .eq("id", productId);
       if (error) throw error;
+
+      const { error: overrideError } = await (supabase.from("store_product_overrides") as any).upsert(
+        {
+          product_type: productType,
+          product_id: productId,
+          is_published: true,
+        },
+        { onConflict: "product_type,product_id" },
+      );
+      if (overrideError) throw overrideError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lenses"] });

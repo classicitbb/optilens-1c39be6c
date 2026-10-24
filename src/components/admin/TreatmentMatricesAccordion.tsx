@@ -42,7 +42,7 @@ import { useRxPricingStructure } from "@/hooks/useRxPricingStructure";
 import { buildMatrixRowKey, buildMatrixSectionLabel } from "@/features/admin/rx-pricing/structure";
 import { usePriceHierarchy } from "@/hooks/usePriceHierarchy";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
-import { buildCombos, excludeLensFromAnchor, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
+import { buildCombos, bulkSetAnchorExclusion, lensIdFor, upsertPricingItems, type ComboWithProvenance } from "@/lib/pricing/combos";
 import { pricedMatrix } from "@/lib/pricing/engine";
 import { categoryKeyFor, groupingKeyFor, materialKeyFor } from "@/lib/pricing/groupingMap";
 import { APPROVED } from "@/lib/pricing/classifier";
@@ -80,7 +80,7 @@ interface AutoPricePlanItem {
   // rather than hunting the row down in the catalog separately.
   anchorSupplier: string;
   anchorCost: number;
-  anchorLensId: string | null;
+  anchorLensIds: string[];
 }
 
 interface AutoPricePlan {
@@ -661,7 +661,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
 
         const lensName = combo.provenance[row.preferredSupplier]?.sourceName ?? row.preferredSupplier;
         const allocatedBbd = fxRate > 0 ? row.priceUSD! / fxRate : row.priceUSD!;
-        const anchorLensId = lensIdFor(combo, row.anchorSupplier);
+        const anchorLensIds = combo.provenance[row.anchorSupplier]?.lensIds ?? [];
 
         items.push({
           groupingKey,
@@ -676,7 +676,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
           allocatedBbd: Math.round(allocatedBbd * 100) / 100,
           anchorSupplier: row.anchorSupplier,
           anchorCost: row.anchorCost!,
-          anchorLensId,
+          anchorLensIds,
         });
       }
 
@@ -704,11 +704,15 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
   };
 
   const excludeAnchorAndRecompute = async (item: AutoPricePlanItem) => {
-    if (!item.anchorLensId) return;
+    if (!item.anchorLensIds.length) return;
     setAutoPriceComputing(true);
     try {
-      await excludeLensFromAnchor(item.anchorLensId, `Excluded during Auto Price review (was anchor for ${item.groupingName} / ${item.categoryName} / ${item.materialKey})`);
-      toast({ title: "Supplier excluded", description: `${item.anchorSupplier}'s price no longer counts toward the anchor for this cell. Recomputing…` });
+      await bulkSetAnchorExclusion(
+        item.anchorLensIds,
+        true,
+        `Excluded during Auto Price review (${item.anchorSupplier} anchor for ${item.groupingName} / ${item.categoryName} / ${item.materialKey})`
+      );
+      toast({ title: "Supplier excluded", description: `${item.anchorSupplier}'s matching rows no longer count toward this cell's anchor. Recomputing…` });
       await computeAutoPricePlan();
     } catch (error: any) {
       toast({ title: "Exclude failed", description: error.message, variant: "destructive" });
@@ -1399,7 +1403,7 @@ const TreatmentMatricesAccordion = ({ versionId, showUSD, fxRate, onPendingChang
                           size="sm"
                           variant="ghost"
                           className="h-6 px-1.5 text-[10px] gap-1 text-destructive hover:text-destructive"
-                          disabled={autoPriceComputing || autoPriceApplying || !item.anchorLensId}
+                          disabled={autoPriceComputing || autoPriceApplying || !item.anchorLensIds.length}
                           onClick={() => excludeAnchorAndRecompute(item)}
                           title={`Exclude ${item.anchorSupplier} from this cell's anchor calculation and recompute`}
                         >

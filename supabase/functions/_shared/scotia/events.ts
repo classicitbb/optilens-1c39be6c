@@ -1,40 +1,13 @@
 // ============================================================
-// Scotia eCom+ — gateway diagnostics log
+// Scotia eCom+ — payment activity event log
 // ------------------------------------------------------------
-// Records what we signed and exactly what Fiserv sent back, into
+// Stores only reconciliation-safe scalar event fields in
 // public.scotia_gateway_events (staff-readable, service-role writable).
-//
-// Never stores the shared secret, the computed hash, or card data:
-// REDACT_KEYS are stripped before anything is written.
+// Gateway request/response parameter bags are deliberately never retained.
 // ============================================================
 
 export type ScotiaEventKind = "prepare" | "return" | "notify" | "probe";
 export type ScotiaEventOutcome = "ok" | "hash_invalid" | "declined" | "error";
-
-const REDACT_KEYS = new Set([
-  "cardnumber",
-  "cardnumberenc",
-  "cvv2",
-  "cvm",
-  "track1",
-  "track2",
-  "expmonth",
-  "expyear",
-  "sharedsecret",
-  "hashextended",
-  "hash",
-]);
-
-/** Strip card/secret material from a raw parameter bag before persisting. */
-export function redactParams(params: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
-  if (!params) return null;
-  return Object.fromEntries(
-    Object.entries(params).map(([key, value]) => [
-      key,
-      REDACT_KEYS.has(key.toLowerCase()) ? "[redacted]" : value,
-    ]),
-  );
-}
 
 export interface ScotiaEventRow {
   kind: ScotiaEventKind;
@@ -50,8 +23,8 @@ export interface ScotiaEventRow {
   terminalId?: string | null;
   endpointUrl?: string | null;
   httpStatus?: number | null;
-  requestParams?: Record<string, unknown> | null;
-  responseParams?: Record<string, unknown> | null;
+  amount?: number | null;
+  currency?: string | null;
   notes?: string | null;
 }
 
@@ -77,8 +50,8 @@ export async function logScotiaEvent(admin: unknown, row: ScotiaEventRow): Promi
       terminal_id: row.terminalId ?? null,
       endpoint_url: row.endpointUrl ?? null,
       http_status: row.httpStatus ?? null,
-      request_params: redactParams(row.requestParams),
-      response_params: redactParams(row.responseParams),
+      amount: row.amount ?? null,
+      currency: row.currency ?? null,
       notes: row.notes ?? null,
     });
     if (error) console.error("scotia events: insert failed", error);

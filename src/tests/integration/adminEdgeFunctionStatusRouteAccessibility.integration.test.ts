@@ -14,8 +14,9 @@ describe("admin edge-function status route accessibility", () => {
     const routes = fs.readFileSync(path.resolve(process.cwd(), "src/routes/admin/AdminRoutes.tsx"), "utf8");
     const settingsApp = fs.readFileSync(path.resolve(process.cwd(), "src/features/admin/core/config/apps.ts"), "utf8");
 
-    expect(routes).toContain('const EdgeFunctionStatusPage = lazy(() => import("@/pages/admin/settings/EdgeFunctionStatusPage"));');
-    expect(routes).toContain('<Route path="settings/edge-functions" element={<EdgeFunctionStatusPage />} />');
+    expect(routes).toContain('const EdgeFunctionStatusPage = lazyWithRetry(() => import("@/pages/admin/settings/EdgeFunctionStatusPage")');
+    expect(routes).toContain('path="settings/edge-functions"');
+    expect(routes).toContain('element={<EdgeFunctionStatusPage />}');
     expect(settingsApp).toContain("{ label: 'Edge Function Status', route: '/admin/settings/edge-functions'");
   });
 });

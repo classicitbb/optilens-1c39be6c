@@ -7,6 +7,7 @@ import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 
 const Profile = lazyWithRetry(() => import("@/pages/Profile"));
 const MyAccountSection = lazyWithRetry(() => import("@/components/account/sections/MyAccountSection"));
+const RxOrderDetailPage = lazyWithRetry(() => import("@/features/rx-order/orders/RxOrderDetailPage"));
 const MyOrdersSection = lazyWithRetry(() => import("@/components/account/sections/MyOrdersSection"));
 const QuoteFormSection = lazyWithRetry(() => import("@/components/account/sections/QuoteFormSection"));
 const HelpdeskTicketsSection = lazyWithRetry(() => import("@/components/account/sections/HelpdeskTicketsSection"));
@@ -47,6 +48,7 @@ const PortalRoutes = () => {
         <Route index element={<Profile />} />
         <Route path="account" element={<MyAccountSection />} />
         <Route path="orders" element={<MyOrdersSection />} />
+        <Route path="orders/rx/:id" element={<RxOrderDetailPage />} />
         <Route path="address-book" element={<Navigate to="/profile/account#address-book" replace />} />
         <Route path="payment-methods" element={<Navigate to="/profile/account#payment-methods" replace />} />
         <Route path="quotes" element={<PortalFeatureGate feature="quotes"><QuoteFormSection /></PortalFeatureGate>} />

@@ -4,6 +4,8 @@ import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowed
 import { getIpHintFromRequest, getUserAgentFromRequest, logSecurityAuditEvent } from "../_shared/security/auditLogger.ts";
 import { getSmtpConfig, isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 import { sendManagedEmail } from "../_shared/email/managed-send.ts";
+import { buildDossier, isSalesInquiry, type Dossier } from "../_shared/leads/dossier.ts";
+import { findContactByEmail, gatherLeadHistory, matchOrCreateSalesContact, type ContactMatch } from "../_shared/leads/gather.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-client-info, apikey, content-type",
@@ -12,11 +14,23 @@ const corsPolicy = createCorsPolicy({
 
 const FEEDBACK_EMAIL_FALLBACK = "russell@classicvisions.net";
 const SITE_NAME = "Classic Visions";
+const ADMIN_BASE_URL = Deno.env.get("ADMIN_BASE_URL") ?? "https://admin.classicvisions.net";
+/** The signup flow already sends its own confirmation email, so no second one. */
+const NO_CONFIRMATION_TYPES = new Set(["auth_onboarding_interest"]);
 
 const MAX_SUBMISSIONS_PER_HOUR = 5;
 const MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR = 3;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_MESSAGE_LENGTH = 4000;
+const ATTACHMENT_TYPES = new Set([
+  "image/png", "image/jpeg", "image/gif", "image/webp",
+  "application/pdf", "text/plain", "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/wav", "audio/x-wav", "audio/webm", "audio/ogg",
+]);
 
 const inquirySchema = z.object({
   inquiryType: z.string().trim().min(1).max(50).default("contact"),
@@ -51,7 +65,7 @@ Deno.serve(async (req) => {
 
   try {
     const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (Number.isFinite(contentLength) && contentLength > 20_000) {
+    if (Number.isFinite(contentLength) && contentLength > (req.headers.get("content-type")?.includes("multipart/form-data") ? 51 * 1024 * 1024 : 20_000)) {
       return new Response(JSON.stringify({ error: "Payload too large" }), {
         status: 413,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -70,7 +84,35 @@ Deno.serve(async (req) => {
       console.warn("SMTP not configured (SMTP_HOST / SMTP_USER / SMTP_PASS missing) — emails will not send");
     }
 
-    const payload = inquirySchema.parse(await req.json());
+    // Enforce the body cap even for chunked requests without Content-Length.
+    const maxBodyBytes = req.headers.get("content-type")?.includes("multipart/form-data") ? 51 * 1024 * 1024 : 20_000;
+    const reader = req.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let bodyBytes = 0;
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bodyBytes += value.byteLength;
+        if (bodyBytes > maxBodyBytes) {
+          await reader.cancel();
+          return new Response(JSON.stringify({ error: "Payload too large" }), {
+            status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        chunks.push(value);
+      }
+    }
+    const body = new Blob(chunks as BlobPart[]);
+    const parsedBody = new Response(body, { headers: { "Content-Type": req.headers.get("content-type") || "application/json" } });
+    const multipart = req.headers.get("content-type")?.includes("multipart/form-data") ? await parsedBody.formData() : null;
+    const payload = inquirySchema.parse(multipart ? JSON.parse(String(multipart.get("submission"))) : await parsedBody.json());
+    const files = multipart ? multipart.getAll("files") : [];
+    if (files.length > 5 || files.some((file) => !(file instanceof File) || file.size === 0 || file.size > 10485760 || !ATTACHMENT_TYPES.has(file.type))) {
+      return new Response(JSON.stringify({ error: "Attach up to five supported photos, documents or audio files, 10 MB each." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const sourcePath = new URL(req.url).pathname;
     const ipHint = getIpHintFromRequest(req);
     const userAgent = getUserAgentFromRequest(req) ?? "unknown";
@@ -191,57 +233,30 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
-    // Price-list requests are sales enquiries. Create a CRM lead before the
-    // ticket, while preserving an established customer's existing lifecycle.
+    // Sales enquiries (price list, trade account, portal signup) become CRM
+    // leads before the ticket, preserving an established customer's lifecycle.
+    // The match is list-aware and never throws: a failed lookup must not stop
+    // the owner from hearing about the lead.
     let contactId: string | null = null;
-    if (payload.inquiryType === "price_list") {
-      const { data: existingContact, error: contactLookupError } = await supabase
-        .from("contacts")
-        .select("id,is_customer,pipeline,stage")
-        .ilike("email", payload.email)
-        .maybeSingle();
-      if (contactLookupError) throw contactLookupError;
-
-      if (existingContact) {
-        contactId = existingContact.id;
-        if (!existingContact.is_customer && (!existingContact.pipeline || !existingContact.stage)) {
-          const { error: contactUpdateError } = await supabase
-            .from("contacts")
-            .update({ pipeline: "opticals", stage: "qualifying", stage_entered_at: new Date().toISOString() })
-            .eq("id", existingContact.id);
-          if (contactUpdateError) throw contactUpdateError;
-        }
-      } else {
-        const { data: lead, error: leadInsertError } = await supabase
-          .from("contacts")
-          .insert({
-            name: payload.name,
-            email: payload.email,
-            phone: payload.phone || null,
-            business_name: payload.businessName || null,
-            type: "individual",
-            status: "lead",
-            pipeline_stage: "Qualified",
-            pipeline: "opticals",
-            stage: "qualifying",
-            stage_entered_at: new Date().toISOString(),
-            is_customer: false,
-          })
-          .select("id")
-          .single();
-        if (leadInsertError) throw leadInsertError;
-        contactId = lead.id;
-      }
+    let contactMatch: ContactMatch = { contact: null, created: false };
+    if (isSalesInquiry(payload.inquiryType)) {
+      contactMatch = await matchOrCreateSalesContact(supabase, {
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone || null,
+        businessName: payload.businessName || null,
+        inquiryType: payload.inquiryType,
+      });
+      contactId = contactMatch.contact?.id ?? null;
     }
+
+    let attachmentError: string | null = files.length ? "The support ticket could not be created." : null;
+    let createdTicket: { id: string; number: string } | null = null;
 
     // Create helpdesk ticket so submissions appear in the helpdesk overview
     try {
       if (!contactId) {
-        const { data: matchedContact } = await supabase
-          .from("contacts")
-          .select("id")
-          .ilike("email", payload.email)
-          .maybeSingle();
+        const matchedContact = await findContactByEmail(supabase, payload.email);
         if (matchedContact) contactId = matchedContact.id;
       }
 
@@ -251,6 +266,7 @@ Deno.serve(async (req) => {
         trade_account: `Trade Account: ${titleName}`,
         "website-design-lead": `Website Design Lead: ${titleName}`,
         price_list: `Price List Request: ${titleName}`,
+        auth_onboarding_interest: `Portal Signup: ${titleName}`,
         zenvue_wholesale: `ZenVue Wholesale: ${titleName}`,
       };
       const ticketTitle = TICKET_TITLE_LABELS[payload.inquiryType]
@@ -283,6 +299,7 @@ Deno.serve(async (req) => {
       if (ticketErr) {
         console.error("Helpdesk ticket insert error:", ticketErr);
       } else {
+        createdTicket = { id: ticket.id, number: ticketNumber };
         await supabase.from("helpdesk_ticket_events").insert({
           ticket_id: ticket.id,
           event_type: "ticket_created",
@@ -294,6 +311,27 @@ Deno.serve(async (req) => {
             inquiry_type: payload.inquiryType,
           },
         });
+        attachmentError = null;
+        try {
+          for (const entry of files) {
+            const file = entry as File;
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-100) || "file";
+            const path = `${ticket.id}/public-inquiry/${crypto.randomUUID()}-${safeName}`;
+            const { error: uploadError } = await supabase.storage.from("helpdesk-attachments").upload(path, file, { contentType: file.type, upsert: false });
+            if (uploadError) throw uploadError;
+            const { error: metadataError } = await supabase.from("helpdesk_ticket_attachments").insert({
+              ticket_id: ticket.id, uploaded_by_user_id: null, file_name: file.name.slice(0, 255),
+              mime_type: file.type, byte_size: file.size, storage_path: path,
+            });
+            if (metadataError) {
+              await supabase.storage.from("helpdesk-attachments").remove([path]);
+              throw metadataError;
+            }
+          }
+        } catch (error) {
+          console.error("Public inquiry attachment upload failed", error);
+          attachmentError = "One or more files could not be attached. The request was saved.";
+        }
         console.log(`Helpdesk ticket ${ticketNumber} created from ${payload.inquiryType} form (contact: ${contactId ?? "none"})`);
       }
     } catch (ticketCreateErr) {
@@ -302,8 +340,9 @@ Deno.serve(async (req) => {
 
     // Only gates the customer-facing confirmation — the admin notification
     // always goes out regardless of the submitter's portal notification setting.
-    const confirmationDisabled = await isAutoNotificationsDisabled(supabase, payload.email);
-    if (confirmationDisabled) {
+    const skipConfirmation = NO_CONFIRMATION_TYPES.has(payload.inquiryType);
+    const confirmationDisabled = skipConfirmation || await isAutoNotificationsDisabled(supabase, payload.email);
+    if (confirmationDisabled && !skipConfirmation) {
       await supabase.from("email_send_log").insert({
         message_id: crypto.randomUUID(),
         template_name: "inquiry-confirmation",
@@ -323,6 +362,9 @@ Deno.serve(async (req) => {
       );
       const { template: confirmationTemplate } = await import(
         "../_shared/transactional-email-templates/inquiry-confirmation.tsx"
+      );
+      const { template: leadAlertTemplate } = await import(
+        "../_shared/transactional-email-templates/lead-alert.tsx"
       );
 
       const sendRenderedEmail = async (
@@ -352,8 +394,47 @@ Deno.serve(async (req) => {
       };
 
 
-      await Promise.all([
-        sendRenderedEmail(
+      // Sales enquiries get the full lead summary; everything else, and any
+      // failure assembling or sending the summary, falls back to the plain
+      // notification so the owner is always told.
+      const sendOwnerAlert = async () => {
+        if (isSalesInquiry(payload.inquiryType)) {
+          try {
+            const history = await gatherLeadHistory(supabase, {
+              email: payload.email,
+              contactId,
+              inquiryId: insertedInquiry.id,
+              ticketId: createdTicket?.id ?? null,
+            });
+            const dossier: Dossier = buildDossier({
+              inquiry: {
+                id: insertedInquiry.id,
+                type: payload.inquiryType,
+                name: payload.name,
+                email: payload.email,
+                phone: payload.phone || "",
+                businessName: payload.businessName || "",
+                message: payload.message,
+                notes: payload.notes || "",
+                pageSlug: payload.pageSlug,
+                sourceChannel: payload.sourceChannel,
+                submittedAt: insertedInquiry.created_at,
+              },
+              contact: contactMatch.contact,
+              contactWasCreated: contactMatch.created,
+              history,
+              ticket: createdTicket,
+              adminBaseUrl: ADMIN_BASE_URL,
+            });
+            await sendRenderedEmail("lead-alert", resolvedRecipient, leadAlertTemplate, { dossier }, `lead-alert-${insertedInquiry.id}`, payload.email);
+            return;
+          } catch (leadAlertErr) {
+            console.error("Lead alert failed; falling back to plain notification", {
+              error: leadAlertErr instanceof Error ? leadAlertErr.message : String(leadAlertErr),
+            });
+          }
+        }
+        await sendRenderedEmail(
           "contact-inquiry-notification",
           resolvedRecipient,
           notificationTemplate,
@@ -371,7 +452,11 @@ Deno.serve(async (req) => {
           },
           `contact-inquiry-${insertedInquiry.id}`,
           payload.email,
-        ),
+        );
+      };
+
+      await Promise.all([
+        sendOwnerAlert(),
         ...(confirmationDisabled ? [] : [
           sendRenderedEmail(
             "inquiry-confirmation",
@@ -393,7 +478,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id }), {
+    return new Response(JSON.stringify({ success: true, inquiryId: insertedInquiry.id, attachmentError }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

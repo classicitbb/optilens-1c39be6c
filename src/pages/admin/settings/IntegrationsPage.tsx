@@ -16,6 +16,10 @@ import InnovationsSyncStatusCard from "@/components/admin/InnovationsSyncStatusC
 import { GatekeeperIntegrationTab } from "@/components/admin/GatekeeperIntegrationTab";
 import { prepareScotiaPayment, redirectToScotiaPayment, type PreparePaymentInput } from "@/lib/payments/scotiaConnect";
 import AiAgentProviderCard, { type AiAgentSettingsRow } from "./AiAgentProviderCard";
+import CopilotFactsCard from "./CopilotFactsCard";
+import AssistantMemoryCard from "./AssistantMemoryCard";
+import DocumentAiIntegrationCard from "./DocumentAiIntegrationCard";
+import AiSpendCard from "./AiSpendCard";
 import { QboIntegrationCard } from "@/components/admin/QboIntegrationCard";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,6 +88,7 @@ const statusMeta: Record<GatewayStatus, { label: string; className: string }> = 
 const fmt = (value: string | null | undefined) => (value ? new Date(value).toLocaleString() : "—");
 
 export default function IntegrationsPage() {
+  const [activeTab, setActiveTab] = useState("services");
   const { realRole, isLoading: roleLoading } = useAdminRole();
   const isAdmin = realRole === "admin";
   const qc = useQueryClient();
@@ -352,11 +357,12 @@ export default function IntegrationsPage() {
         </Badge>
       </div>
 
-      <Tabs defaultValue="services" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="services">Service integrations</TabsTrigger>
           <TabsTrigger value="gatekeeper">Gatekeeper</TabsTrigger>
           <TabsTrigger value="ai-agents">AI Agents</TabsTrigger>
+          <TabsTrigger value="ai-spend">AI spend</TabsTrigger>
         </TabsList>
         <TabsContent value="services" className="space-y-4">
       <InnovationsSyncStatusCard />
@@ -611,6 +617,7 @@ export default function IntegrationsPage() {
           <GatekeeperIntegrationTab />
         </TabsContent>
         <TabsContent value="ai-agents" className="space-y-4">
+          <DocumentAiIntegrationCard />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -651,7 +658,7 @@ export default function IntegrationsPage() {
               key={row.provider}
               provider={row.provider}
               row={row}
-              canTest={row.provider === "anthropic"}
+              canTest={row.provider === "anthropic" || row.provider === "openai"}
               onRemoveDraft={() => {}}
             />
           ))}
@@ -660,11 +667,15 @@ export default function IntegrationsPage() {
               key={slug}
               provider={slug}
               row={null}
-              canTest={slug === "anthropic"}
+              canTest={slug === "anthropic" || slug === "openai"}
               onRemoveDraft={() => setDraftProviders((prev) => prev.filter((p) => p !== slug))}
             />
           ))}
+
+          <AssistantMemoryCard enabled={isAdmin} />
+          <CopilotFactsCard enabled={isAdmin} />
         </TabsContent>
+        <TabsContent value="ai-spend"><AiSpendCard enabled={isAdmin} onOpenConfig={() => setActiveTab("ai-agents")} /></TabsContent>
       </Tabs>
     </div>
   );

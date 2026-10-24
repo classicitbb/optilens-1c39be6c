@@ -1,11 +1,14 @@
 import { format } from "date-fns";
 import { Mail } from "lucide-react";
 import { useNavigate } from "react-router";
-import ReactMarkdown from "react-markdown";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import type { HelpdeskAttachment } from "@/lib/helpdeskAttachments";
 import type { HelpdeskTicketDetail } from "../hooks/useHelpdeskTicketDetail";
 
 interface TicketOpeningMessageProps {
   ticket: HelpdeskTicketDetail;
+  attachments?: HelpdeskAttachment[];
 }
 
 const assistantContextMarker = "Assistant context:";
@@ -146,7 +149,7 @@ const splitAssistantContext = (description: string) => {
 };
 
 /** The original ticket request is a conversation item, not header metadata. */
-export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
+export const TicketOpeningMessage = ({ ticket, attachments = [] }: TicketOpeningMessageProps) => {
   const navigate = useNavigate();
   const time = format(new Date(ticket.created_at), "MMM d, h:mm a");
   const senderLabel = ticket.partner_contact?.name ?? ticket.customer_email ?? "Customer";
@@ -157,8 +160,8 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
       <div className="max-w-[80%] rounded-xl border border-border bg-muted px-4 py-3 text-foreground">
         <p className="text-sm font-semibold leading-6">{ticket.title}</p>
         {body && (
-          <div className="prose prose-sm mt-2 max-w-none leading-6 text-foreground [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-            <ReactMarkdown>{body}</ReactMarkdown>
+          <div className="mt-2">
+            <RichMarkdown content={body} />
           </div>
         )}
         {context && (
@@ -168,8 +171,13 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
           </div>
         )}
         {trailingDetails && (
-          <div className="prose prose-sm mt-3 max-w-none leading-6 text-foreground [&_p]:my-0 [&_ul]:my-2 [&_ol]:my-2">
-            <ReactMarkdown>{trailingDetails}</ReactMarkdown>
+          <div className="mt-3">
+            <RichMarkdown content={trailingDetails} />
+          </div>
+        )}
+        {attachments.length > 0 && (
+          <div className="mt-3">
+            <HelpdeskImageAttachments ticketId={ticket.id} attachments={attachments} onFilesChange={() => undefined} disabled readOnly />
           </div>
         )}
       </div>
@@ -179,7 +187,7 @@ export const TicketOpeningMessage = ({ ticket }: TicketOpeningMessageProps) => {
           <button
             type="button"
             className="underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onClick={() => navigate(`/admin/erp/contacts?contact=${encodeURIComponent(ticket.partner_contact!.id)}`)}
+            onClick={() => navigate(`/admin/crm/contacts?contact=${encodeURIComponent(ticket.partner_contact!.id)}`)}
             title="Open contact"
           >
             {senderLabel}

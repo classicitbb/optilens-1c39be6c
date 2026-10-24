@@ -60,6 +60,7 @@ describe("combosFromRows", () => {
     expect(combos).toHaveLength(1);
     expect(combos[0].suppliers["TOG Rx Lab"]).toBe(12);
     expect(combos[0].provenance["TOG Rx Lab"].rowCount).toBe(3);
+    expect(combos[0].provenance["TOG Rx Lab"].lensIds).toHaveLength(3);
     // lensIdFor must track the SAME row the cheapest cost came from, so
     // allocating "TOG Rx Lab" for this combo points at the $12 row, not
     // whichever row happened to be seen first.

@@ -6,9 +6,10 @@ import Auth from "@/pages/Auth";
 const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signUp: vi.fn(),
+  resend: vi.fn(),
   resetPasswordForEmail: vi.fn(),
   toast: vi.fn(),
-  insert: vi.fn(),
+  submitInquiry: vi.fn(),
   oAuth: vi.fn(),
   authState: {
     user: null as null | { id: string; email?: string; user_metadata?: Record<string, unknown> },
@@ -39,12 +40,14 @@ vi.mock("@/integrations/lovable/index", () => ({
   },
 }));
 
+vi.mock("@/lib/publicInquiry", () => ({
+  submitPublicInquiry: mocks.submitInquiry,
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: () => ({
-      insert: mocks.insert,
-    }),
     auth: {
+      resend: mocks.resend,
       resetPasswordForEmail: mocks.resetPasswordForEmail,
     },
   },
@@ -98,14 +101,16 @@ describe("Auth page onboarding flow", () => {
     mocks.authState.user = null;
     mocks.signIn.mockReset();
     mocks.signUp.mockReset();
+    mocks.resend.mockReset();
     mocks.resetPasswordForEmail.mockReset();
     mocks.toast.mockReset();
-    mocks.insert.mockReset();
+    mocks.submitInquiry.mockReset();
     mocks.oAuth.mockReset();
     mocks.signIn.mockResolvedValue({ error: null });
     mocks.signUp.mockResolvedValue({ error: null });
+    mocks.resend.mockResolvedValue({ error: null });
     mocks.resetPasswordForEmail.mockResolvedValue({ error: null });
-    mocks.insert.mockResolvedValue({ error: null });
+    mocks.submitInquiry.mockResolvedValue({ success: true });
     mocks.oAuth.mockResolvedValue({ error: null });
   });
 
@@ -117,8 +122,8 @@ describe("Auth page onboarding flow", () => {
     expect(screen.getByText("Individual visitor looking for lens guidance")).toBeInTheDocument();
   });
 
-  it("completes professional product signup and shows email confirmation panel", async () => {
-    renderAuth("/auth?mode=signup&audience=professional&redirect=%2Fstore");
+  it.each(["/store", "/shared/pages/11111111-1111-4111-8111-111111111111"])("completes signup and retains %s for email confirmation", async (destination) => {
+    renderAuth(`/auth?mode=signup&audience=professional&redirect=${encodeURIComponent(destination)}`);
 
     fireEvent.change(screen.getByLabelText("Full Name"), { target: { value: "Jordan Smith" } });
     fireEvent.change(screen.getByLabelText("Phone Number"), { target: { value: "+1 246 555 0101" } });
@@ -143,15 +148,23 @@ describe("Auth page onboarding flow", () => {
         organizationName: "Vision Center",
         audience: "professional",
         interestIntent: "products",
-      }));
+      }), destination);
     });
 
     await waitFor(() => {
-      expect(mocks.insert).toHaveBeenCalled();
+      expect(mocks.submitInquiry).toHaveBeenCalledWith(expect.objectContaining({
+        inquiryType: "auth_onboarding_interest",
+        email: "jordan@example.com",
+        businessName: "Vision Center",
+        pageSlug: "/auth",
+      }));
       expect(screen.getByText("Confirm your email")).toBeInTheDocument();
       expect(screen.getByText(/We sent a confirmation link to jordan@example.com/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Resend confirmation email" })).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByRole("button", { name: "Resend confirmation email" }));
+    await waitFor(() => expect(mocks.resend).toHaveBeenCalledWith({ type: "signup", email: "jordan@example.com",
+      options: { emailRedirectTo: `${window.location.origin}${destination}` } }));
   });
 
   it("signs in and returns to the requested route", async () => {
@@ -166,6 +179,27 @@ describe("Auth page onboarding flow", () => {
       expect(screen.getByText("Store Page")).toBeInTheDocument();
     });
   });
+
+  it("opens Google sign-in through the managed OAuth helper", async () => {
+    renderAuth("/auth?mode=signin");
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    await waitFor(() => {
+      expect(mocks.oAuth).toHaveBeenCalledWith("google", { redirect_uri: window.location.origin });
+    });
+  });
+
+  it("opens Microsoft sign-in through the managed OAuth helper", async () => {
+    renderAuth("/auth?mode=signin");
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue with Microsoft" }));
+
+    await waitFor(() => {
+      expect(mocks.oAuth).toHaveBeenCalledWith("microsoft", { redirect_uri: window.location.origin });
+    });
+  });
+
 
   it("advances from email to password and signs in with Enter", async () => {
     renderAuth("/auth?mode=signin&redirect=%2Fstore");

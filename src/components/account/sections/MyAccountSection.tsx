@@ -367,10 +367,10 @@ const MyAccountSection = () => {
       </div>
 
       <div className="max-w-3xl space-y-4">
-          <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
-            <CardContent className="space-y-4 p-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-md bg-primary/10 p-2 text-primary">
+          <Card className="overflow-hidden border-0 bg-white shadow-sm transition-all hover:shadow-md dark:bg-slate-950 md:border">
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-start gap-4">
+                <div className="rounded-xl bg-primary/10 p-3 text-primary transition-colors hover:bg-primary/20">
                   <User className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -434,9 +434,9 @@ const MyAccountSection = () => {
                   <p className="truncate text-xs text-muted-foreground">{user?.email || "No email on file"}</p>
                 </div>
               </div>
-              <dl className="grid gap-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <AtSign className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <dl className="grid gap-4 text-sm mt-2">
+                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
+                  <AtSign className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
                   <div className="min-w-0 flex-1">
                     <dt className="text-xs text-muted-foreground">Email</dt>
                     {editingEmail ? (
@@ -497,8 +497,8 @@ const MyAccountSection = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
+                  <Phone className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
                   <div className="min-w-0 flex-1">
                     <dt className="text-xs text-muted-foreground">Phone</dt>
                     {editingProfileField === "phone" ? (
@@ -559,8 +559,8 @@ const MyAccountSection = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
+                  <Building2 className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
                   <div className="min-w-0 flex-1">
                     <dt className="text-xs text-muted-foreground">Organization</dt>
                     {editingProfileField === "organization_name" ? (
@@ -621,8 +621,8 @@ const MyAccountSection = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <IdCard className="h-4 w-4 text-muted-foreground" />
+                <div className="group flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors hover:bg-muted/50">
+                  <IdCard className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
                   <div className="min-w-0 flex-1">
                     <dt className="text-xs text-muted-foreground">ERP account</dt>
                     {identity?.accountNumber ? (
@@ -677,10 +677,10 @@ const MyAccountSection = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
-            <CardContent className="space-y-3 p-4">
+          <Card className="overflow-hidden border-0 bg-white shadow-sm transition-all hover:shadow-md dark:bg-slate-950 md:border">
+            <CardContent className="space-y-4 p-5">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">Workflow status</h3>
               </div>
               <p className="text-sm text-muted-foreground">{identity?.portalAccessNote || "Complete setup to create your CRM contact and customer workflow."}</p>
@@ -708,10 +708,10 @@ const MyAccountSection = () => {
           </div>
 
           {reauthSent ? (
-            <Card className="border-0 bg-white shadow-sm dark:bg-slate-950 md:border">
-              <CardContent className="space-y-3 p-4">
+            <Card className="overflow-hidden border-0 bg-white shadow-sm transition-all hover:shadow-md dark:bg-slate-950 md:border">
+              <CardContent className="space-y-4 p-5">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-primary" />
+                  <KeyRound className="h-5 w-5 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">Update password</h3>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -766,8 +766,8 @@ const MyAccountSection = () => {
           ) : null}
 
           {missingRequirements.length ? (
-            <Card className="border-amber-400/50 bg-amber-50/40 shadow-sm dark:bg-amber-950/20">
-              <CardContent className="space-y-2 p-4">
+            <Card className="overflow-hidden border-amber-400/50 bg-amber-50/40 shadow-sm transition-all hover:shadow-md dark:bg-amber-950/20">
+              <CardContent className="space-y-3 p-5">
                 <p className="text-sm font-medium text-foreground">Profile setup required</p>
                 <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                   {missingRequirements.map((item) => (

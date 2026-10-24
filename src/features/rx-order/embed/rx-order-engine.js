@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 // ══════════════════════════════════════════════════════════════════════════
 // Rx Order Form engine — ported VERBATIM from rx-order-form-prototype.html
 // (v3). The UI, on-screen flow, validation, OMA tracing, coach, clash logic
@@ -183,6 +183,11 @@ const lensTriple=side=>side==='b'?{m:S.m2,d:S.d2,c:S.c2}:{m:S.m,d:S.d,c:S.c};
 const lensComplete=side=>{const t=lensTriple(side);return !!(t.m&&t.d&&t.c);};
 /* Sides that must be chosen before the lens section is complete. */
 const activeSides=()=>splitActive()?['a','b']:['a'];
+/* Splitting exists to give each eye a DIFFERENT lens — an identical pick on
+   both sides is either a mistake (meant to turn split off) or a duplicate
+   entry, so it blocks completion the same as a missing field would. */
+const splitLensesDuplicate=()=>splitActive()&&lensComplete('a')&&lensComplete('b')
+  &&S.m===S.m2&&S.d===S.d2&&S.c===S.c2;
 const namedLens=side=>{
   const t=lensTriple(side);
   const m=MATERIALS.find(x=>x.id===t.m), d=DESIGNS.find(x=>x.id===t.d), c=COLOURS.find(x=>x.id===t.c);
@@ -247,6 +252,17 @@ const COMBO_DEFS={
   c2:{inputId:'colour2', listId:'colourList2', all:COLOURS, poolKey:'cols',side:'b'}
 };
 const comboKeysFor=side=>Object.keys(COMBO_DEFS).filter(k=>COMBO_DEFS[k].side===side);
+/* Colour only chains on into the OS trio while a split Rx is actually active —
+   otherwise there's no OS side to land in and it should end the chain like
+   colour-without-split always has. */
+function comboNextKey(k){
+  if(k==='m') return 'd';
+  if(k==='d') return 'c';
+  if(k==='c') return splitActive()?'m2':null;
+  if(k==='m2') return 'd2';
+  if(k==='d2') return 'c2';
+  return null;
+}
 /* Each list keeps a direct element reference (and its original parent, to
    restore into) captured once here — once opened it moves to document.body
    (see openCombo), so it can no longer be found via $()/$$(), which only
@@ -345,7 +361,13 @@ function fillLensSelects(){
   const split=splitActive();
   const nmA=namedLens('a'), nmB=split?namedLens('b'):null;
   const tail='<br><span style="opacity:.8">Named material → design → option, the way it prints on your pricelist.</span>';
-  if(split){
+  const duplicate=splitLensesDuplicate();
+  const lensCallout=$('#lensName').closest('.callout');
+  if(lensCallout) lensCallout.classList.toggle('gold',duplicate);
+  const lensIcon=$('#lensNameIcon'); if(lensIcon) lensIcon.textContent=duplicate?'⚠':'ⓘ';
+  if(duplicate){
+    $('#lensName').innerHTML=`<b>OD and OS are the same lens</b> — ${nmA}. Choose a different material, design or colour for one eye, or turn off "Different lens for each eye" if that's intended.`;
+  } else if(split){
     $('#lensName').innerHTML=(nmA||nmB)
       ? `<b>OD (right)</b> ${nmA||'<span style="opacity:.7">not chosen yet</span>'}<br><b>OS (left)</b> ${nmB||'<span style="opacity:.7">not chosen yet</span>'}${tail}`
       : 'Pick a material, design and colour for each eye. The two sides choose independently.';
@@ -640,9 +662,19 @@ function buildPopular(){
 }
 function optKey(e,sel){
   const list=$$(sel), i=list.indexOf(e.currentTarget);
-  if(e.key===' '||e.key==='Enter'){ e.preventDefault(); e.currentTarget.click(); }
-  if(e.key==='ArrowRight'||e.key==='ArrowDown'){ e.preventDefault(); (list[i+1]||list[0]).focus(); }
-  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ e.preventDefault(); (list[i-1]||list[list.length-1]).focus(); }
+  if(e.key===' '){ e.preventDefault(); e.currentTarget.click(); }
+  /* Enter always moves on to the "Done" button, whether or not a popular
+     choice was picked — Space is the only key that toggles an option. */
+  else if(e.key==='Enter'){ e.preventDefault(); focusTreatDone(); }
+  else if(e.key==='ArrowRight'||e.key==='ArrowDown'){ e.preventDefault(); (list[i+1]||list[0]).focus(); }
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){ e.preventDefault(); (list[i-1]||list[list.length-1]).focus(); }
+}
+/* Lands keyboard flow on the treatments "Done" toggle and flashes it until
+   the user actually confirms with Space — Enter alone must not confirm,
+   since Enter is also how you leave the field once it IS confirmed. */
+function focusTreatDone(){
+  const b=$('#treatConfirm'); if(!b) return;
+  b.focus(); b.classList.add('flashcue');
 }
 function buildTreatList(){
   const term=($('#treatSearch').value||'').toLowerCase();
@@ -715,58 +747,69 @@ function renderTintCfg(){
 }
 
 /* ---------- Chemistrie configurator ----------
-   Option list and prices are a first pass — confirm against the Chemistrie page.
-   Up to 3 clips per order, each with its own type/colour/magnet/bridge/crystal. */
+   Lab instructions only until a priced catalogue item and fulfillment contract
+   exist. Up to 3 clips per order, each with its own configuration. */
 const CHEM_TYPES=[
-  {id:'sun',    n:'Chemistrie Sun',    d:'Magnetic sunlens overlay',            p:96},
-  {id:'blue',   n:'Chemistrie Blue',   d:'Blue-light filtering overlay',        p:78},
-  {id:'readers',n:'Chemistrie Readers',d:'Magnetic near-add overlay',           p:84},
-  {id:'drive',  n:'Chemistrie Drive',  d:'Contrast-boosting driving overlay',   p:104}
+  {id:'sun',    n:'Chemistrie Sun',    d:'Magnetic sunlens overlay'},
+  {id:'blue',   n:'Chemistrie Blue',   d:'Blue-light filtering overlay'},
+  {id:'readers',n:'Chemistrie Readers',d:'Magnetic near-add overlay'},
+  {id:'drive',  n:'Chemistrie Drive',  d:'Contrast-boosting driving overlay'}
 ];
 const CHEM_COLOURS=[{id:'Grey',n:'Grey',hex:'#6B7280'},{id:'Brown',n:'Brown',hex:'#92400E'},
   {id:'G-15',n:'G-15',hex:'#4B5320'},{id:'Blue',n:'Blue',hex:'#1E40AF'},
   {id:'Copper',n:'Copper',hex:'#B45309'},{id:'Amber',n:'Amber',hex:'#D97706'},
   {id:'Pink',n:'Pink',hex:'#DB2777'},{id:'Purple',n:'Purple',hex:'#7C3AED'}];
-const CHEM_MIRRORS=[{id:'silver',n:'Silver Mirror',p:26,hex:'#C0C0C0'},
-  {id:'gold',n:'Gold Mirror',p:26,hex:'#D4AF37'},{id:'blue',n:'Blue Mirror',p:26,hex:'#3B82F6'},
-  {id:'green',n:'Green Mirror',p:26,hex:'#16A34A'},{id:'rosegold',n:'Rose Gold Mirror',p:30,hex:'#C7849C'},
-  {id:'red',n:'Red Mirror',p:30,hex:'#DC2626'},{id:'orange',n:'Orange Mirror',p:30,hex:'#EA580C'},
-  {id:'purple',n:'Purple Mirror',p:30,hex:'#9333EA'}];
-const CHEM_MAGNETS=[{id:'Black',n:'Black',hex:'#1A1A1A'},{id:'Silver',n:'Silver',hex:'#A8A9AD'},
+const CHEM_MIRRORS=[{id:'silver',n:'Silver Mirror',hex:'#C0C0C0'},
+  {id:'gold',n:'Gold Mirror',hex:'#D4AF37'},{id:'blue',n:'Blue Mirror',hex:'#3B82F6'},
+  {id:'green',n:'Green Mirror',hex:'#16A34A'},{id:'rosegold',n:'Rose Gold Mirror',hex:'#C7849C'},
+  {id:'red',n:'Red Mirror',hex:'#DC2626'},{id:'orange',n:'Orange Mirror',hex:'#EA580C'},
+  {id:'purple',n:'Purple Mirror',hex:'#9333EA'}];
+const CHEM_MAGNETS=[{id:'Silver',n:'Silver',hex:'#A8A9AD'},
   {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'}];
 const CHEM_BRIDGES=[{id:'Bronze',n:'Bronze',hex:'#CD7F32'},{id:'Gunmetal',n:'Gunmetal',hex:'#2C3E50'},
   {id:'Gold',n:'Gold',hex:'#D4AF37'},{id:'Silver',n:'Silver',hex:'#A8A9AD'},{id:'Black',n:'Black',hex:'#1A1A1A'}];
-const CHEM_CRYSTALS=[{id:'hematite',n:'Hematite Crystals',p:22,hex:'#55565A'},
-  {id:'hyacinth',n:'Hyacinth Crystals',p:22,hex:'#D22630'},
-  {id:'crystal-gold',n:'Crystal Gold Crystals',p:22,hex:'#D4AF37'},
-  {id:'cobalt',n:'Cobalt Crystals',p:22,hex:'#2453B3'},
-  {id:'aquamarine',n:'Aquamarine Crystals',p:22,hex:'#35B7E7'},
-  {id:'emerald',n:'Emerald Crystals',p:22,hex:'#009B77'},
-  {id:'olivine',n:'Olivine Crystals',p:22,hex:'#6B8E23'},
-  {id:'amethyst',n:'Amethyst Crystals',p:22,hex:'#8E55B7'},
-  {id:'fireopal',n:'Fireopal Crystals',p:26,hex:'#F36C21'},
-  {id:'rose',n:'Rose Crystals',p:22,hex:'#EFA0B5'},
-  {id:'topaz',n:'Topaz Crystals',p:22,hex:'#D99A27'},
-  {id:'diamond',n:'Diamond Crystals',p:26,hex:'#F5F7FA'}];
+const CHEM_CRYSTALS=[{id:'hematite',n:'Hematite Crystals',hex:'#55565A'},
+  {id:'hyacinth',n:'Hyacinth Crystals',hex:'#D22630'},
+  {id:'crystal-gold',n:'Crystal Gold Crystals',hex:'#D4AF37'},
+  {id:'cobalt',n:'Cobalt Crystals',hex:'#2453B3'},
+  {id:'aquamarine',n:'Aquamarine Crystals',hex:'#35B7E7'},
+  {id:'emerald',n:'Emerald Crystals',hex:'#009B77'},
+  {id:'olivine',n:'Olivine Crystals',hex:'#6B8E23'},
+  {id:'amethyst',n:'Amethyst Crystals',hex:'#8E55B7'},
+  {id:'fireopal',n:'Fireopal Crystals',hex:'#F36C21'},
+  {id:'rose',n:'Rose Crystals',hex:'#EFA0B5'},
+  {id:'topaz',n:'Topaz Crystals',hex:'#D99A27'},
+  {id:'diamond',n:'Diamond Crystals',hex:'#F5F7FA'}];
 const CHEM_MAX_CLIPS=3;
+const CHEM_READER_POWERS=Array.from({length:9},(_,i)=>(.5+i*.25).toFixed(2));
+const CHEM_BLUE_POWERS=Array.from({length:9},(_,i)=>(i*.25).toFixed(2));
+const CHEM_GRADIENTS=[
+  {id:'Amber',n:'Amber',hex:'#D97706'},
+  {id:'Violet Rose',n:'Violet Rose',hex:'#A855A2'},
+  {id:'Dark Brown',n:'Dark Brown',hex:'#5C3426'},
+  {id:'Rouge',n:'Rouge',hex:'#A33349'},
+  {id:'Dark Grey',n:'Dark Grey',hex:'#4B5563'},
+  {id:'Violet Grey',n:'Violet Grey',hex:'#77718B'},
+  {id:'Crimson Grey',n:'Crimson Grey',hex:'#805768'},
+  {id:'Medium Brown',n:'Medium Brown',hex:'#8B5E3C'}
+];
 let chemClipSeq=0;
 function newChemClip(){
   const used=new Set(S.chemClips.map(c=>c.type));
   const free=CHEM_TYPES.find(t=>!used.has(t.id));
   const type=(free||CHEM_TYPES[0]).id;
-  return {id:'clip'+(++chemClipSeq),type,colour:'',mirror:'',
-    polarised:type==='sun',add:'',magnet:'Black',bridge:'Black',crystal:'none'};
+  return {id:'clip'+(++chemClipSeq),type,colour:'',mirror:'',gradient:'',
+    polarised:type==='sun',add:'',magnet:'Silver',bridge:'Black',crystal:'none'};
 }
 function chemClipComplete(c){
   if(!c||!c.type) return false;
-  if(c.type==='readers'){
-    const add=parseNum(c.add,true);
-    return add!==null&&add>=.25&&add<=4.5;
-  }
+  if(c.type==='readers') return CHEM_READER_POWERS.includes(c.add);
+  if(c.type==='blue') return CHEM_BLUE_POWERS.includes(c.add);
+  if(c.type==='drive') return true;
   const hasSolid=!!c.colour, hasMirror=!!c.mirror;
-  return hasSolid!==hasMirror && (c.type!=='sun'||c.polarised===true);
+  return Number(hasSolid)+Number(hasMirror)+Number(!!c.gradient)===1;
 }
-function chemClipKey(c){ return [c.type,c.colour,c.mirror,c.polarised,c.add,c.magnet,c.bridge,c.crystal].join('|'); }
+function chemClipKey(c){ return [c.type,c.colour,c.mirror,c.gradient,c.polarised,c.add,c.magnet,c.bridge,c.crystal].join('|'); }
 function chemDuplicateIds(){
   const seen=new Map(), dupes=new Set();
   S.chemClips.forEach(c=>{ const k=chemClipKey(c); if(seen.has(k)){ dupes.add(c.id); dupes.add(seen.get(k)); } else seen.set(k,c.id); });
@@ -777,7 +820,7 @@ function chemSwatchHTML(c,field,label,items,placeholder,disabled){
   const dot=x=>x?`<span class="chem-swatch-dot" style="--swatch:${x.hex}" aria-hidden="true"></span>`:'';
   return `<div class="field"><label>${label}</label>
     <details class="chem-swatch-select ${disabled?'disabled':''}" data-chem-field="${field}">
-      <summary aria-disabled="${disabled?'true':'false'}"><span>${current?.n||placeholder}</span>${dot(current)}<span class="chem-swatch-chevron" aria-hidden="true">⌄</span></summary>
+      <summary aria-disabled="${disabled?'true':'false'}"><span>${current?.n||placeholder}</span>${dot(current)}<span class="chem-swatch-chevron" aria-hidden="true"></span></summary>
       <div class="chem-swatch-menu" role="listbox" aria-label="${label.replace(/<[^>]*>/g,'')}">
         <button type="button" role="option" aria-selected="${!c[field]}" data-clip="${c.id}" data-swatch-field="${field}" data-swatch-value=""><span>${placeholder}</span></button>
         ${items.map(x=>`<button type="button" role="option" aria-selected="${c[field]===x.id}" data-clip="${c.id}" data-swatch-field="${field}" data-swatch-value="${x.id}"><span>${x.n}</span>${dot(x)}</button>`).join('')}
@@ -797,15 +840,15 @@ function chemClipCardHTML(c,i){
         <div class="opt ${c.type===x.id?'sel':''}" data-clip="${c.id}" data-chem="${x.id}" tabindex="0">
           <div class="on">${x.n}</div><div class="od">${x.d}</div></div>`).join('')}</div>
       <div class="grid g3" style="margin-top:13px">
-        ${t.id!=='readers'?`
-        ${chemSwatchHTML(c,'colour',`${t.id==='sun'?'Solid polarised':'Solid lens colour'} <span class="req">*</span>`,CHEM_COLOURS,'Select a colour',!!c.mirror)}
-        ${chemSwatchHTML(c,'mirror',`${t.id==='sun'?'Mirror polarised':'Mirror finish'} <span class="req">*</span>`,CHEM_MIRRORS,'Select a mirror finish',!!c.colour)}`:''}
-        ${t.id==='sun'||t.id==='drive'?`
-        <div class="field"><label>Polarised</label>
-          <select data-clip="${c.id}" data-field="polarised" ${t.id==='sun'?'disabled aria-disabled="true"':''}><option value="no" ${!c.polarised?'selected':''}>No</option><option value="yes" ${c.polarised?'selected':''}>Yes</option></select></div>`:''}
-        ${t.id==='readers'?`
-        <div class="field"><label>Near add <span class="req">*</span></label>
-          <input type="text" inputmode="decimal" data-clip="${c.id}" data-field="add" value="${c.add||''}" placeholder="+2.00"></div>`:''}
+        ${t.id==='sun'?`
+        ${chemSwatchHTML(c,'colour','Solid polarised <span class="req">*</span>',CHEM_COLOURS,'Select a colour',!!c.mirror||!!c.gradient)}
+        ${chemSwatchHTML(c,'mirror','Mirror polarised <span class="req">*</span>',CHEM_MIRRORS,'Select a mirror finish',!!c.colour||!!c.gradient)}
+        ${chemSwatchHTML(c,'gradient','Gradient sunlens <span class="req">*</span>',CHEM_GRADIENTS,'Select a gradient',!!c.colour||!!c.mirror)}`:''}
+        ${t.id==='readers'||t.id==='blue'?`
+        <div class="field"><label>${t.id==='blue'?'Blue light power':'Reader power'} <span class="req">*</span></label>
+          <select data-clip="${c.id}" data-field="add"><option value="">Choose power…</option>
+          ${(t.id==='blue'?CHEM_BLUE_POWERS:CHEM_READER_POWERS).map(p=>`<option value="${p}" ${c.add===p?'selected':''}>${p==='0.00'?'Plano':'+'+p}</option>`).join('')}</select></div>`:''}
+        ${t.id==='drive'?'<div class="hint chem-fixed-option">Night Drive is supplied in its fixed, non-polarised rose tint.</div>':''}
       </div>
       <div class="blk" style="margin:13px 0 8px">Clip hardware</div>
       <div class="grid g3">
@@ -834,7 +877,7 @@ function renderChemCfg(){
       </div>`;
   $$('#chemCfg [data-chem]').forEach(el=>el.addEventListener('click',()=>{
     const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(clip&&clip.type!==el.dataset.chem){
-      clip.type=el.dataset.chem; clip.colour=''; clip.mirror=''; clip.add=''; clip.polarised=clip.type==='sun'; render();
+      clip.type=el.dataset.chem; clip.colour=''; clip.mirror=''; clip.gradient=''; clip.add=''; clip.polarised=clip.type==='sun'; render();
     }
   }));
   $$('#chemCfg [data-field]').forEach(el=>{
@@ -842,8 +885,9 @@ function renderChemCfg(){
       const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(!clip) return;
       const f=el.dataset.field;
       clip[f]=f==='polarised'?(e.target.value==='yes'):e.target.value;
-      if(f==='colour'&&clip.colour) clip.mirror='';
-      if(f==='mirror'&&clip.mirror) clip.colour='';
+      if(f==='colour'&&clip.colour){ clip.mirror=''; clip.gradient=''; }
+      if(f==='mirror'&&clip.mirror){ clip.colour=''; clip.gradient=''; }
+      if(f==='gradient'&&clip.gradient){ clip.colour=''; clip.mirror=''; }
       if(clip.type==='sun') clip.polarised=true;
       render();
     });
@@ -852,8 +896,9 @@ function renderChemCfg(){
     const clip=S.chemClips.find(x=>x.id===el.dataset.clip); if(!clip) return;
     const f=el.dataset.swatchField;
     clip[f]=el.dataset.swatchValue;
-    if(f==='colour'&&clip.colour) clip.mirror='';
-    if(f==='mirror'&&clip.mirror) clip.colour='';
+    if(f==='colour'&&clip.colour){ clip.mirror=''; clip.gradient=''; }
+    if(f==='mirror'&&clip.mirror){ clip.colour=''; clip.gradient=''; }
+    if(f==='gradient'&&clip.gradient){ clip.colour=''; clip.mirror=''; }
     render();
   }));
   $$('#chemCfg [data-rmclip]').forEach(b=>b.addEventListener('click',()=>{
@@ -875,15 +920,17 @@ function chemChoiceName(items,id,fallback){
 function chemClipParts(c){
   const type=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
   const parts=[type.n];
-  if(type.id==='readers'){
+  if(type.id==='readers'||type.id==='blue'){
     const nearAdd=parseNum(c.add,true);
-    parts.push('Near add: '+(nearAdd===null?'—':sgn(nearAdd)));
-  } else {
+    parts.push((type.id==='blue'?'Blue light power: ':'Reader power: ')+(nearAdd===null?'—':nearAdd===0?'Plano':sgn(nearAdd)));
+  } else if(type.id==='sun') {
     if(c.colour) parts.push('Solid polarised: '+chemChoiceName(CHEM_COLOURS,c.colour,c.colour));
     if(c.mirror) parts.push('Mirror polarised: '+chemChoiceName(CHEM_MIRRORS,c.mirror,c.mirror));
+    if(c.gradient) parts.push('Gradient polarised: '+chemChoiceName(CHEM_GRADIENTS,c.gradient,c.gradient));
   }
-  if(type.id==='sun'||type.id==='drive') parts.push('Polarised: '+(c.polarised?'Yes':'No'));
-  parts.push('Magnet: '+chemChoiceName(CHEM_MAGNETS,c.magnet,'Black'));
+  if(type.id==='drive') parts.push('Fixed rose tint · non-polarised');
+  if(type.id==='sun') parts.push('Polarised: Yes');
+  parts.push('Magnet: '+chemChoiceName(CHEM_MAGNETS,c.magnet,'Silver'));
   parts.push('Bridge: '+chemChoiceName(CHEM_BRIDGES,c.bridge,'Black'));
   parts.push('Crystal: '+chemChoiceName(CHEM_CRYSTALS,c.crystal,'None'));
   return parts;
@@ -901,24 +948,6 @@ function stripChemNotes(value){
 function notesWithChemistrie(manualNotes){
   return [stripChemNotes(manualNotes),chemLabNotes()].filter(Boolean).join('\n\n');
 }
-function chemPriceLines(){
-  return S.chemClips.map((c,i)=>{
-    const t=CHEM_TYPES.find(x=>x.id===c.type)||CHEM_TYPES[0];
-    let v=t.p, bits=[t.n];
-    if(t.id!=='readers'){
-      const mir=CHEM_MIRRORS.find(x=>x.id===c.mirror);
-      if(mir&&mir.p){ v+=mir.p; bits.push(mir.n); }
-      if(c.colour) bits.push(CHEM_COLOURS.find(x=>x.id===c.colour)?.n||c.colour);
-    }
-    if((t.id==='sun'||t.id==='drive')&&c.polarised){ v+=34; bits.push('polarised'); }
-    if(c.magnet&&c.magnet!=='Black') bits.push(c.magnet+' magnet');
-    if(c.bridge&&c.bridge!=='Black') bits.push(c.bridge+' bridge');
-    const cr=CHEM_CRYSTALS.find(x=>x.id===c.crystal);
-    if(cr&&cr.id!=='none'){ v+=cr.p||0; bits.push(cr.n); }
-    return {n:'Chemistrie layer'+(S.chemClips.length>1?' '+(i+1):''), i:bits.join(' · '), v, rm:{type:'chem',id:c.id}};
-  });
-}
-
 /* ---------- suggestions ---------- */
 function suggestions(){
   if(S.suggOff) return [];
@@ -1004,23 +1033,33 @@ function price(){
        equals the delta vs Clear (which is always up:0 and simply shows no line) —
        the label now says so explicitly, per feedback asking "how much extra is it". */
   });
+  /* Every coating and the oversize-blank surcharge is applied to each physical
+     lens, same as the lens itself and its colour upcharge above — one line per
+     eye, each at half the pair price, so the total is unchanged but the detail
+     matches what actually gets ground. Chemistrie remains lab instructions in
+     the payload and must not create a priced quote line. */
+  const eyesForAddon=S.eyes==='pair'?['od','os']:[activeEyes()[0]];
+  const addonShare=eyesForAddon.length===2?0.5:1;
   Array.from(S.treat).forEach(id=>{const t=TREAT.find(x=>x.id===id); if(t){
     let detail=t.c;
     if(/^tn-/.test(id)){ detail=S.tintCfg.colour+(/grad/.test(id)?` · ${S.tintCfg.gradTop}→${S.tintCfg.gradBottom}%`:` · ${S.tintCfg.density}%`); }
-    lines.push({n:t.n,i:detail,v:t.p + (/^tn-/.test(id)&&S.tintCfg.match?9:0),rm:{type:'treat',id}});
+    const val=(t.p + (/^tn-/.test(id)&&S.tintCfg.match?9:0))*addonShare;
+    eyesForAddon.forEach(eye=>lines.push({n:`${eye==='od'?'OD':'OS'} ${t.n}`,i:detail,v:val,rm:{type:'treat',id},eye}));
   }});
-  chemPriceLines().forEach(l=>lines.push(l));
   const eyes=activeEyes().map(readRow);
   const prism=Math.max(...eyes.map(r=>r.prism||0),0);
   if(prism>0) lines.push({n:'Prism',i:prism.toFixed(2)+'Δ ground in',v:16+prism*4});
   const dia=effDiam();
-  if(dia>=75) lines.push({n:'Oversize blank',i:dia+' mm',v:dia>=80?32:22});
+  if(dia>=75){
+    const blankVal=(dia>=80?32:22)*addonShare;
+    eyesForAddon.forEach(eye=>lines.push({n:`${eye==='od'?'OD':'OS'} Oversize blank`,i:dia+' mm',v:blankVal,eye}));
+  }
   const hi=Math.max(...eyes.map(r=>Math.abs(r.sph||0)),0);
   if(hi>6) lines.push({n:'High-power surfacing',i:'beyond ±6.00',v:18});
   if(S.scope!=='uncut'){
-    const mt=$('#mount').value, base=mt==='rimless'?42:(mt==='supra'?31:17);
+    const mt=$('#mount').value, base=mt==='rimless'?42:(mt==='grooved'?31:17);
     lines.push({n:S.scope==='remote'?'Remote edge to trace':'Glazing & mounting',
-      i:mt==='rimless'?'Rimless drill mount':(mt==='supra'?'Supra / nylon':'Full rim'),
+      i:mt==='rimless'?'Rimless drill mount':(mt==='grooved'?'Grooved / nylon':(mt==='metal'?'Metal':'Plastic')),
       v:S.scope==='remote'?base+6:base});
   }
   let sub=lines.reduce((a,l)=>a+l.v,0);
@@ -1036,15 +1075,16 @@ function secValid(){
   const patient=!!$('#pfirst').value.trim()&&!!$('#plast').value.trim();
   const frame=!!$('#fname').value.trim()&&!!$('#mount').value&&num('fa')!==null&&num('fb')!==null&&num('fed')!==null&&num('fdbl')!==null
     &&limitErrors().length===0
-    &&(!S.shape||S.shapeOk)
+    &&(!S.shape||S.shapeOk||S.scope!=='remote')
     &&(S.scope!=='remote'||!!S.file);
-  const lens=activeSides().every(lensComplete);
-  const rxOk=rows.every(x=>x.r.sph!==null&&Math.abs(x.r.sph)<=25)
+  const lens=activeSides().every(lensComplete)&&!splitLensesDuplicate();
+  const rxOk=rows.every(x=>x.r.sph!==null&&x.r.sph>=-25&&x.r.sph<=18)
     &&rows.every(x=>!x.r.cyl||x.r.cyl===0||(x.r.axis!==null&&x.r.axis>=1&&x.r.axis<=180))
     &&(!needsAdd()||rows.every(x=>x.r.add!==null&&x.r.add>=.25&&x.r.add<=4.5))
     &&rows.every(x=>x.r.pd!==null&&x.r.pd>=20&&x.r.pd<=45)
     &&(!needsNearPD()||rows.every(x=>x.r.npd!==null&&x.r.npd>=18&&x.r.npd<=45))
-    &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35))
+    &&(!needsHt()||rows.every(x=>x.r.ht!==null&&x.r.ht>=(isProg()?14:12)&&x.r.ht<=35&&x.r.ht<=(parseNum($('#fb').value)??Infinity)))
+    &&rows.every(x=>x.r.prism===null||x.r.prism<=10)
     &&errors().length===0;
   const chemOk=S.chemClips.every(chemClipComplete)&&chemDuplicateIds().size===0&&addonIssues().length===0;
   return {'sec-patient':patient,'sec-frame':frame,'sec-lens':lens,'sec-rx':rxOk,'sec-treat':chemOk,'sec-notes':true};
@@ -1053,6 +1093,17 @@ const SECTION_IDS=['sec-patient','sec-frame','sec-lens','sec-rx','sec-treat','se
 const selectLabel=id=>{
   const el=$('#'+id);
   return el?.selectedOptions?.[0]?.textContent?.trim()||el?.value||'';
+};
+const summaryEscape=value=>String(value??'').replace(/[&<>"']/g,ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
+const summaryField=(label,value)=>`<div class="summary-field"><span class="summary-label">${summaryEscape(label)}</span><span class="summary-value">${summaryEscape(value||'—')}</span></div>`;
+/* Mount values changed after drafts and assistant handoffs had already been
+   persisted. Normalize at replay so old payloads remain valid and new payloads
+   never leave the select at selectedIndex -1. */
+const normalizeMount=mount=>{
+  const value=String(mount||'').toLowerCase();
+  if(value==='supra') return 'grooved';
+  if(value==='full') return 'plastic';
+  return ['plastic','metal','grooved','rimless'].includes(value)?value:'plastic';
 };
 function sectionHasCapturedData(id){
   if(id==='sec-patient'||id==='sec-frame'||id==='sec-lens'||id==='sec-rx') return true;
@@ -1078,18 +1129,40 @@ function orderIsEmpty(){
   return patientBlank&&frameBlank&&lensBlank&&rxBlank&&treatBlank&&notesBlank;
 }
 function shouldOfferGoToDrafts(){ return !!ADAPTER.hasSavedDrafts&&orderIsEmpty(); }
-/* sec-rx and sec-treat need real line breaks (values crammed onto one line
-   were unreadable) — those two return HTML and are rendered via innerHTML;
-   everything else stays plain text since patient/frame names are free-typed. */
+/* Structured summaries are escaped before insertion; patient remains plain text. */
 function sectionSummary(id){
   if(id==='sec-patient'){
     const ref=$('#ref').value.trim();
     return [$('#pfirst').value.trim()+' '+$('#plast').value.trim(),ref&&'Ref '+ref].filter(Boolean).join(' · ');
   }
-  if(id==='sec-frame') return [$('#fname').value.trim(),`${$('#fa').value} × ${$('#fb').value} mm`, `DBL ${$('#fdbl').value} mm`,S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut'].filter(Boolean).join(' · ');
-  if(id==='sec-lens') return splitActive()
-    ? `OD ${namedLens('a')||'—'}  │  OS ${namedLens('b')||'—'}`
-    : (namedLens('a')||'');
+  if(id==='sec-frame'){
+    const mountSel=$('#mount'), mount=mountSel.selectedIndex>0?mountSel.options[mountSel.selectedIndex].text:'';
+    const shape=activeShape();
+    const geometry=shape?shapeGeometry(shape):null;
+    const shapeName=S.shapeSrc==='standard'?STD_SHAPES.find(s=>s.id===S.stdShape)?.n:(S.file?.name||'Uploaded trace');
+    const preview=geometry?`<div class="summary-shape" aria-label="${summaryEscape(shapeName||'Frame shape')} preview">${S.shapeSrc==='standard'?shapeThumb(S.stdShape,54):miniThumb(geometry)}</div>`:'';
+    return `<div class="summary-fields frame-summary-fields"><div class="summary-frame-source">${preview}
+      ${summaryField(S.scope==='remote'?'Shape / trace':'Supplied by',S.scope==='remote'?(shapeName||'—'):selectLabel('fsource'))}</div>
+      ${summaryField('Frame', $('#fname').value.trim())}${summaryField('Mount',mount)}
+      ${summaryField('A', $('#fa').value)}${summaryField('B', $('#fb').value)}${summaryField('ED', $('#fed').value)}${summaryField('DBL', $('#fdbl').value)}
+      ${summaryField('Job type',S.scope==='remote'?'Remote edge':S.scope==='glaze'?'Full glaze':'Uncut')}
+    </div>`;
+  }
+  if(id==='sec-lens'){
+    const visionLbl=S.vision==='mf'?'Multifocal/Progressive':'Single vision';
+    const eyesLbl=S.eyes==='pair'?(splitActive()?'Pair · different lens each eye':'Pair'):(S.eyes==='od'?'Right only':'Left only');
+    const purposeLbl=S.vision==='sv'?({dist:'Distance',read:'Reading',inter:'Intermediate'}[S.purpose]||''):'';
+    const lensFields=side=>{
+      const t=lensTriple(side), m=MATERIALS.find(x=>x.id===t.m), d=DESIGNS.find(x=>x.id===t.d), c=COLOURS.find(x=>x.id===t.c);
+      return `${summaryField('Material',m?.n)}${summaryField('Style',d?.v==='mf'?(d?.prog?'Progressive':'Bifocal'):'Single vision')}${summaryField('Design',d?.n)}${summaryField('Option',c?.n)}`;
+    };
+    return `<div class="summary-fields">${summaryField('Vision type',visionLbl)}${summaryField('Eyes to supply',eyesLbl)}${purposeLbl?summaryField('Rx purpose',purposeLbl):''}
+      ${splitActive()?`${summaryField('Right eye','OD')}${lensFields('a')}${summaryField('Left eye','OS')}${lensFields('b')}`:lensFields('a')}
+      ${summaryField('Blank diameter',$('#diam').value?$('#diam').value+' mm':'—')}
+      ${isProg()?summaryField('Corridor length',$('#corridor').value+' mm'):''}
+      ${summaryField('Base curve',$('#basecurve').value==='auto'?"Lab's choice":$('#basecurve').value)}
+    </div>`;
+  }
   if(id==='sec-rx'){
     const htLbl=S.vision!=='mf'?'OC Ht':(isProg()?'Fitting Ht':'Segment Ht');
     const columns=[['sph','Sphere'],['cyl','Cylinder'],['axis','Axis']];
@@ -1123,13 +1196,14 @@ function sectionSummary(id){
       return `<b>${t.n}</b> — ${detail}`;
     }).filter(Boolean);
     S.chemClips.forEach((clip,index)=>items.push(`<b>Chemistrie clip ${index+1}</b> — ${chemClipParts(clip).join(' · ')}`));
-    return items.join('<br>');
+    return items.length?items.join('<br>'):'No coatings, add-ons, or extras';
   }
   return [selectLabel('service'),selectLabel('delivery'),($('#notes').value.trim()||chemLabNotes())&&'Lab notes added'].filter(Boolean).join(' · ');
 }
-const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-rx','sec-treat']);
+const MULTILINE_SUMMARY_SECTIONS=new Set(['sec-frame','sec-lens','sec-rx','sec-treat']);
 function syncSectionCollapse(V){
   const justCollapsed=[];
+  const focusedSection=document.activeElement?.closest?.('.card[data-step]');
   SECTION_IDS.forEach(id=>{
     const section=$('#'+id); if(!section) return;
     /* A section only folds once it is actually complete. In particular, a
@@ -1139,7 +1213,7 @@ function syncSectionCollapse(V){
     const complete=!!V[id]&&sectionHasCapturedData(id);
     const wasCollapsed=S.collapsedSections.has(id);
     if(!complete){ S.collapsedSections.delete(id); S.editingSections.delete(id); }
-    else if(!S.editingSections.has(id)&&!section.contains(document.activeElement)) S.collapsedSections.add(id);
+    else if(!S.editingSections.has(id)&&focusedSection&&focusedSection!==section) S.collapsedSections.add(id);
     const collapsed=S.collapsedSections.has(id);
     if(collapsed&&!wasCollapsed) justCollapsed.push(section);
     section.classList.toggle('section-collapsed',collapsed);
@@ -1170,25 +1244,46 @@ function openSection(id){
   S.collapsedSections.delete(id); S.editingSections.add(id); render();
   section.scrollIntoView?.({behavior:'smooth',block:'start'});
   setTimeout(()=>{
-    const field=section.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled])');
+    /* skip hidden fields (e.g. the file inputs behind drag-and-drop zones) —
+       focusing one silently fails and leaves activeElement on <body>, which
+       reads as "focus left the section" and immediately re-collapses it. */
+    const fields=[...section.querySelectorAll('input:not([disabled]),select:not([disabled]),textarea:not([disabled])')];
+    const field=fields.find(f=>f.offsetParent!==null);
     if(field) field.focus();
   },0);
 }
 function errors(){
   const out=[];
+  const frameB=parseNum($('#fb').value);
+  const anyStarted=activeEyes().some(eye=>Object.entries(readRow(eye)).some(([key,value])=>key!=='base'&&value!==null));
   activeEyes().forEach(e=>{
     const r=readRow(e), E=e.toUpperCase();
+    if(!anyStarted) return;
+    if(r.sph===null) out.push({t:`${E} sphere is required.`,e,f:'sph'});
     if(r.sph!==null&&(r.sph>18||r.sph<-25)) out.push({t:`${E} sphere is outside the producible range (+18.00 to -25.00).`,e,f:'sph'});
     if(r.cyl!==null&&Math.abs(r.cyl)>8) out.push({t:`${E} cylinder beyond -8.00 needs a lab consult.`,e,f:'cyl'});
+    if(r.cyl&&r.axis===null) out.push({t:`${E} axis is required when cylinder is entered.`,e,f:'axis'});
+    if(r.axis!==null&&(r.axis<1||r.axis>180)) out.push({t:`${E} axis must be from 1 to 180.`,e,f:'axis'});
+    if(needsAdd()&&(r.add===null||r.add<.25)) out.push({t:`${E} add must be at least +0.25.`,e,f:'add'});
     if(r.add!==null&&r.add>4.5) out.push({t:`${E} add above +4.50 is not producible.`,e,f:'add'});
+    if(r.pd===null||r.pd<20||r.pd>45) out.push({t:`${E} distance PD must be 20–45 mm.`,e,f:'pd'});
+    if(needsNearPD()&&(r.npd===null||r.npd<18||r.npd>45)) out.push({t:`${E} near PD must be 18–45 mm.`,e,f:'npd'});
+    if(needsHt()&&(r.ht===null||r.ht<(isProg()?14:12)||r.ht>35)) out.push({t:`${E} ${isProg()?'fitting':'segment'} height must be ${isProg()?14:12}–35 mm.`,e,f:'ht'});
+    if(needsHt()&&frameB!==null&&r.ht!==null&&r.ht>frameB) out.push({t:`${E} fitting height ${r.ht.toFixed(1)} mm exceeds the frame B measurement of ${frameB.toFixed(1)} mm.`,e,f:'ht'});
+    if(r.prism!==null&&r.prism>10) out.push({t:`${E} prism cannot exceed 10.00Δ in any base direction.`,e,f:'prism'});
     if(r.prism&&r.prism>0&&!r.base) out.push({t:`${E} prism needs a base direction.`,e,f:'base'});
-    if(needsHt()&&isProg()&&r.ht!==null&&r.ht<14) out.push({t:`${E} fitting height ${r.ht.toFixed(1)} mm — progressives cannot be cut below 14 mm.`,e,f:'ht'});
     if(needsNearPD()&&r.npd!==null&&r.pd!==null&&r.npd>r.pd) out.push({t:`${E} near PD is wider than distance PD — check the measurement.`,e,f:'npd'});
   });
   return out;
 }
 function warnings(){
   const out=[];
+  const frameB=parseNum($('#fb').value);
+  if(needsHt()&&frameB!==null) activeEyes().forEach(e=>{
+    const ht=readRow(e).ht;
+    if(ht!==null&&ht<=frameB&&ht>=frameB-3&&!S.warnOff.has('ht-'+e))
+      out.push({id:'ht-'+e,t:`${e.toUpperCase()} fitting height is within 3 mm of frame B (${frameB.toFixed(1)} mm). Check the measurement; this is allowed if intentional.`});
+  });
   if(S.eyes==='pair'){
     const a=readRow('od').sph, b=readRow('os').sph;
     if(a!==null&&b!==null&&a*b<0&&!S.warnOff.has('sign'))
@@ -1265,7 +1360,9 @@ function render(){
   $('#mCur').textContent=show?'order total':'Pricing not shown on this account';
   $('#qSub').textContent=!show?'confirmed with you before production'
     :(!ready?'choose a lens to start pricing'
-      :unpriced?'this lens is not on your pricelist — save as a draft and we will quote it'
+      :unpriced?(ADAPTER.blockUnpricedOrders
+        ?'this lens is not on your pricelist — save as a draft and we will quote it'
+        :'this lens is not on your pricelist — you can still order it and it will be priced when processed')
       :(S.eyes==='pair'?'per pair':(S.eyes==='od'?'right lens only':'left lens only'))
         +(indicative?` · ${S.cur} shown for guidance, billed in USD`:' · updates as you type'));
   const amt=$('#qAmt'); amt.textContent=onRequest?'on request':(show?money(total):'——');
@@ -1338,16 +1435,25 @@ function render(){
   $$('#vList li').forEach(li=>li.addEventListener('click',()=>{const t=rootEl.querySelector(li.dataset.go); if(t&&!t.classList.contains('hide')) t.scrollIntoView({behavior:'smooth',block:'start'});}));
   $('#vBar').style.width=Math.round(checks.filter(k=>k.ok).length/checks.length*100)+'%';
   const valid=checks.every(k=>k.ok);
-  /* An unpriced combination cannot go to the cart — there is no price to charge,
-     so the only route is a draft we quote back. Flagged for assistance so it
-     reaches the same follow-up queue as any other help request. The mutation
-     sits above the assist-list render below, so it lands in this same pass. */
+  /* An unpriced combination is still orderable: the quote here is only an
+     indication, and Innovations prices the job when it receives it. The order
+     goes through with no charge on this side and is flagged for assistance so
+     it reaches the same follow-up queue as any other help request; the
+     customer sees the priced total under My Orders once it is invoiced. The
+     mutation sits above the assist-list render below, so it lands in this same
+     pass.
+     ADAPTER.blockUnpricedOrders switches that off: submit is blocked and the
+     only route is a draft we quote back (the quote-only rule in
+     docs/rx-order-innovations-catalogue.md §2.4). */
   const {unpriced:noPrice}=price();
   if(noPrice) S.assists.add(UNPRICED_ASSIST); else S.assists.delete(UNPRICED_ASSIST);
   ['#submitBtn','#submitBtn2'].forEach(s=>{
     const b=$(s);
-    b.disabled=!valid||noPrice;
-    b.title=noPrice?'This lens is not priced on your account — save it as a draft and we will quote it.':'';
+    const blocked=noPrice&&!!ADAPTER.blockUnpricedOrders;
+    b.disabled=!valid||blocked;
+    b.title=!noPrice?'':(blocked
+      ?'This lens is not priced on your account — save it as a draft and we will quote it.'
+      :'This lens is not on your pricelist — it will be priced when your order is processed.');
   });
 
   const goToDrafts=shouldOfferGoToDrafts();
@@ -1529,7 +1635,11 @@ Object.entries(COMBO_DEFS).forEach(([k,def])=>{
     else if(e.key==='Enter'){
       e.preventDefault();
       const pick=comboActive[k]>=0?items[comboActive[k]]:(items.length===1?items[0]:null);
-      if(pick) pickCombo(k,pick.id); else input.blur();
+      if(pick){
+        pickCombo(k,pick.id);
+        const nextKey=comboNextKey(k);
+        if(nextKey) focusAcross($('#'+COMBO_DEFS[nextKey].inputId)); else input.blur();
+      } else input.blur();
     } else if(e.key==='Escape'){
       e.preventDefault();
       const item=COMBO_DEFS[k].all.find(x=>x.id===S[k]); input.value=item?item.n:'';
@@ -1571,6 +1681,91 @@ docListen('click',e=>{
 winListen('scroll',e=>{ if(e.target&&e.target.closest&&e.target.closest('.cblist')) return; closeAllCombos(); },true);
 winListen('resize',closeAllCombos);
 
+/* ---------- restyled <select> dropdowns ----------
+   A plain <select>'s closed control already matches the theme (custom
+   chevron, dark background, rounded corners — see the `select{appearance:
+   none;...}` rule), but its OPEN option list is native OS chrome no CSS can
+   reach, so every select in the form popped up looking like a different app
+   from the material/design/colour combos right next to it. This intercepts
+   the native popup and draws the exact same .cblist/.cbopt panel those
+   combos use instead. The <select> itself stays the single source of truth —
+   it's never hidden or replaced, only driven through its own value/
+   selectedIndex and real 'input'/'change' events — so every existing
+   listener elsewhere in this file that reads a select or listens for its
+   change keeps working untouched. */
+const RESTYLED_SELECTS=new Map();
+function restyleSelect(select){
+  if(!select||RESTYLED_SELECTS.has(select)) return;
+  const list=document.createElement('div');
+  list.className='cblist'; list.setAttribute('role','listbox');
+  select.insertAdjacentElement('afterend',list);
+  const home=list.parentElement;
+  let active=-1;
+  const opts=()=>Array.from(select.options).filter(o=>!o.disabled);
+  function renderList(){
+    const vis=opts();
+    active=vis.findIndex(o=>o.index===select.selectedIndex);
+    list.innerHTML=vis.length
+      ? vis.map((o,i)=>`<div class="cbopt ${o.index===select.selectedIndex?'sel':''} ${i===active?'act':''}" data-idx="${o.index}">${o.text}</div>`).join('')
+      : `<div class="cbnone">No options</div>`;
+  }
+  function markActive(){ Array.from(list.children).forEach((el,i)=>el.classList.toggle('act',i===active)); const el=list.children[active]; if(el&&el.scrollIntoView) el.scrollIntoView({block:'nearest'}); }
+  function position(){ const r=select.getBoundingClientRect(); list.style.left=r.left+'px'; list.style.top=(r.bottom+4)+'px'; list.style.width=r.width+'px'; }
+  function isOpen(){ return list.classList.contains('on'); }
+  function open(){
+    RESTYLED_SELECTS.forEach((v,el)=>{ if(el!==select) v.close(); });
+    closeAllCombos();
+    if(list.parentElement!==comboPortalRoot()) comboPortalRoot().appendChild(list);
+    renderList(); position(); list.classList.add('on');
+  }
+  function close(){
+    list.classList.remove('on');
+    if(list.parentElement&&list.parentElement!==home) home.appendChild(list);
+  }
+  /* Commit only sets the value and fires the real events — advancing focus
+     afterward is the caller's choice, matching the combos (a mouse pick never
+     auto-advances; only Enter does). */
+  function commit(index){ select.selectedIndex=index; select.dispatchEvent(new Event('input',{bubbles:true})); select.dispatchEvent(new Event('change',{bubbles:true})); close(); }
+  select.addEventListener('mousedown',e=>{ e.preventDefault(); select.focus(); isOpen()?close():open(); });
+  select.addEventListener('keydown',e=>{
+    if(!isOpen()){
+      /* Enter is left alone here — closed, a select behaves like any other
+         field in the Enter chain (see advanceFocus) and just moves on. Only
+         the keys that natively open a select take over. */
+      if(e.key!==' '&&e.key!=='ArrowDown'&&e.key!=='ArrowUp') return;
+      e.preventDefault(); e.stopPropagation(); open(); return;
+    }
+    if(e.key==='ArrowDown'){ e.preventDefault(); e.stopPropagation(); active=Math.min(active+1,opts().length-1); markActive(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); e.stopPropagation(); active=Math.max(active-1,0); markActive(); }
+    else if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); const o=opts()[active]; if(o) commit(o.index); advanceFocus(select); }
+    else if(e.key===' '){ e.preventDefault(); e.stopPropagation(); const o=opts()[active]; if(o) commit(o.index); }
+    else if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
+  });
+  list.addEventListener('mousedown',e=>{ const opt=e.target.closest('.cbopt'); if(!opt) return; e.preventDefault(); commit(Number(opt.dataset.idx)); });
+  select.addEventListener('blur',()=>setTimeout(close,120));
+  RESTYLED_SELECTS.set(select,{close,reposition:()=>{ if(isOpen()) position(); }});
+}
+$$('select').forEach(restyleSelect);
+docListen('click',e=>{ if(e.target.closest('select')||e.target.closest('.cblist')) return; RESTYLED_SELECTS.forEach(v=>v.close()); });
+winListen('scroll',e=>{ if(e.target&&e.target.closest&&e.target.closest('.cblist')) return; RESTYLED_SELECTS.forEach(v=>v.close()); },true);
+winListen('resize',()=>RESTYLED_SELECTS.forEach(v=>v.close()));
+
+/* OS Base is the last Rx field worth stopping at on the way to Treatments —
+   Prism still flows into it normally (it's the very next cell in the row),
+   but from Base both Enter and Tab skip straight to the first popular
+   treatment instead of parking on the plus-cyl checkbox in between. Base is
+   optional unless a prism value was entered (validated separately), so this
+   fires whether or not a direction was actually chosen. */
+(()=>{
+  const osBase=cell('os','base'); if(!osBase) return;
+  osBase.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&!(e.key==='Tab'&&!e.shiftKey)) return;
+    e.preventDefault(); e.stopPropagation();
+    const first=$('#popOpts .opt');
+    if(first) focusAcross(first);
+  });
+})();
+
 /* ---------- Rx tools ---------- */
 $('#copyOD').addEventListener('click',()=>{
   const a=rowEls('od'), b=rowEls('os');
@@ -1587,8 +1782,30 @@ docListen('focus',e=>{ if(e.target.matches&&e.target.matches('input[inputmode]')
 docListen('mouseup',e=>{ if(armed===e.target){ e.preventDefault(); armed=null; } },true);
 
 /* ---------- keyboard flow ---------- */
+/* Enter/Tab chains jump straight to the next field regardless of section
+   boundaries. If that field lives in a section that's already collapsed
+   (edited earlier, then completed and folded shut), focusing it silently —
+   the field is still in the DOM, just clipped to zero height — would leave
+   the cursor somewhere invisible. Expand that section open first so keying
+   through actually shows where you land. */
+function focusAcross(el){
+  if(!el) return;
+  const section=el.closest&&el.closest('.card[data-step]');
+  if(section&&section.classList.contains('section-collapsed')){
+    S.collapsedSections.delete(section.id); S.editingSections.add(section.id); render();
+  }
+  el.focus();
+  if(el.select) try{ el.select(); }catch(err){}
+}
 function focusables(){
   return $$('input,select,textarea').filter(el=>!el.disabled&&el.tabIndex!==-1&&el.offsetParent!==null&&!el.closest('#annoUI')&&!el.closest('.sdraw')&&!el.closest('.scrim')&&el.type!=='file');
+}
+/* Shared by the generic Enter chain below and by the restyled-select Enter
+   handler (see "restyled selects" further up) — both just mean "go to
+   whatever's next", so they share one idea of what "next" is. */
+function advanceFocus(el){
+  const list=focusables(), n=list[list.indexOf(el)+1];
+  if(n) focusAcross(n);
 }
 docListen('keydown',e=>{
   if(e.key!=='Enter') return;
@@ -1597,8 +1814,7 @@ docListen('keydown',e=>{
   e.preventDefault();
   if(t.dataset.f) normalise(t);
   if(t.dataset.pf) normalisePlus(t);
-  const list=focusables(), n=list[list.indexOf(t)+1];
-  if(n){ n.focus(); if(n.select) try{n.select();}catch(err){} }
+  advanceFocus(t);
 });
 docListen('blur',e=>{
   if(e.target.dataset&&e.target.dataset.f) normalise(e.target);
@@ -1612,10 +1828,20 @@ $('#plusCylOn').addEventListener('change',e=>{
 });
 
 /* ---------- treatments drawer ---------- */
+function closeTreatDrawer(){ $('#treatDrawer').classList.remove('on'); }
+function outsideTreatments(target){
+  return !$('#treatDrawer').contains(target)&&!$('#openTreat').closest('.card-b').contains(target);
+}
 $('#openTreat').addEventListener('click',()=>{ buildTreatList(); $('#treatDrawer').classList.add('on'); });
-$('#treatClose').addEventListener('click',()=>$('#treatDrawer').classList.remove('on'));
-$('#treatDone').addEventListener('click',()=>$('#treatDrawer').classList.remove('on'));
+$('#treatClose').addEventListener('click',closeTreatDrawer);
+$('#treatDone').addEventListener('click',closeTreatDrawer);
 $('#treatSearch').addEventListener('input',buildTreatList);
+docListen('pointerdown',e=>{
+  if($('#treatDrawer').classList.contains('on')&&outsideTreatments(e.target)) closeTreatDrawer();
+},true);
+docListen('focusin',e=>{
+  if($('#treatDrawer').classList.contains('on')&&outsideTreatments(e.target)) closeTreatDrawer();
+});
 
 /* ---------- coach ---------- */
 const COACH={
@@ -1673,7 +1899,7 @@ docListen('click',e=>{
 /* ---------- clear helpers ---------- */
 const SECFIELDS={
   patient:['pfirst','plast','ref'],
-  frame:['fname','fa','fb','fed','fdbl','ftemple'],
+  frame:['fname','fa','fb','fed','fdbl'],
   lens:[], rx:[], treat:[], notes:['notes']
 };
 function clearSection(k){
@@ -1690,13 +1916,14 @@ function clearSection(k){
 }
 $$('.clear-sec').forEach(b=>b.addEventListener('click',()=>clearSection(b.dataset.sec)));
 $$('[data-edit-section]').forEach(b=>b.addEventListener('click',()=>openSection(b.dataset.editSection)));
+$$('.section-summary').forEach(s=>s.addEventListener('click',()=>openSection(s.closest('.card[data-step]').id)));
 docListen('focusout',e=>{
   const section=e.target.closest?.('.card[data-step]');
   if(!section) return;
   setTimeout(()=>{
     if(!section.contains(document.activeElement)){
       S.editingSections.delete(section.id);
-      render();
+      if(document.activeElement?.closest?.('.card[data-step]')) render();
     }
   },0);
 });
@@ -2932,8 +3159,8 @@ function shapeThumb(id, size){
   const lib = SHAPELIB[id];
   if (!lib) return `<svg width="${size}" height="${size*0.7}" viewBox="0 0 100 70"><rect x="6" y="10" width="88" height="50" rx="14" fill="none" stroke="hsl(213 20% 78%)" stroke-width="3" stroke-dasharray="5 5"/></svg>`;
   const pts = scaleOutline(radiiToXY(lib.points.R, lib.angles.R), 92, 62);
-  return `<svg width="${size}" height="${size*0.7}" viewBox="-50 -35 100 70">
-    <path d="${outlinePath(pts,false)}" fill="hsl(213 66% 13% / .06)" stroke="hsl(213 66% 13%)" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
+  return `<svg width="${size}" height="${size*0.7}" viewBox="-50 -35 100 70" style="color:var(--fg)">
+    <path d="${outlinePath(pts,false)}" fill="currentColor" fill-opacity=".06" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
 }
 function buildShapePick(){
   const box = $('#shapePick');
@@ -2989,6 +3216,10 @@ function liveMetrics(){
 function updatePreview(){
   const sh = activeShape();
   const pb = $('#previewBlock');
+  /* the trace/points verification is only meaningful when the lab is cutting to a
+     trace (remote edge) — for uncut and full glaze the shape tile plus the auto
+     ED above is all that's needed. */
+  if (S.scope !== 'remote') { pb.classList.add('hide'); $('#shapePreview').innerHTML=''; return; }
   if (!sh) {
     if (S.file) {  /* a file is attached but yielded no usable outline — say so rather than show nothing */
       pb.classList.remove('hide');
@@ -3033,7 +3264,7 @@ function updatePreview(){
         <span class="needbadge" style="margin-left:auto;background:var(--teal-soft);border-color:hsl(188 71% 36% / .3);color:var(--teal)">
           ${sh.points.R.length} points</span>
       </div>
-      <div class="pv-canvas ${g.ghost?'ghost':''}">${generateOMASVG(sh,{showDimensions:true})}</div>
+      ${S.shapeSrc==='standard'?'':`<div class="pv-canvas ${g.ghost?'ghost':''}">${generateOMASVG(sh,{showDimensions:true})}</div>`}
       <div class="pv-stats">
         <div class="pv-stat"><div class="k">A width</div><div class="v">${g.a.toFixed(2)} mm</div></div>
         <div class="pv-stat"><div class="k">B height</div><div class="v">${g.b.toFixed(2)} mm</div></div>
@@ -3069,13 +3300,13 @@ function collapseFrame(){
   fs.classList.toggle('hide', !done);
   if (!done) { fs.innerHTML=''; return; }
   const g = shapeGeometry(activeShape()), m = g.metrics;
-  const mount = $('#mount').options[$('#mount').selectedIndex].text;
+  const mount = selectLabel('mount')||'Plastic';
   fs.innerHTML = `
     <div class="summary">
       <div style="min-width:0">
         <div class="st">✓ ${$('#fname').value || 'Frame'} — ${mount}</div>
         <div class="sd">A ${g.a.toFixed(2)} · B ${g.b.toFixed(2)} · ED ${m.ed.toFixed(2)} @ ${m.edAxis.toFixed(1)}°
-          · DBL ${g.dbl.toFixed(2)}${$('#ftemple').value?' · Temple '+$('#ftemple').value:''} mm</div>
+          · DBL ${g.dbl.toFixed(2)} mm</div>
       </div>
       <button class="btn btn-ghost btn-sm" id="frameEdit">Edit frame</button>
     </div>`;
@@ -3088,8 +3319,8 @@ function collapseFrame(){
 /** small outline chip used by the collapsed strip */
 function miniThumb(g){
   const pts = scaleOutline(g.ptsR, 92, 62);
-  return `<svg width="40" height="28" viewBox="-50 -35 100 70">
-    <path d="${outlinePath(pts,false)}" fill="hsl(213 66% 13% / .07)" stroke="hsl(213 66% 13%)" stroke-width="3" stroke-linejoin="round"/></svg>`;
+  return `<svg width="40" height="28" viewBox="-50 -35 100 70" style="color:var(--fg)">
+    <path d="${outlinePath(pts,false)}" fill="currentColor" fill-opacity=".07" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>`;
 }
 
 /* ---------- order payload — one bundle for draft, cart and reorder ---------- */
@@ -3110,7 +3341,7 @@ function buildPayload(){
     frame: {
       name:$('#fname').value, mount:$('#mount').value, source:$('#fsource').value,
       a:parseNum($('#fa').value), b:parseNum($('#fb').value), ed:parseNum($('#fed').value),
-      dbl:parseNum($('#fdbl').value), temple:parseNum($('#ftemple').value)
+      dbl:parseNum($('#fdbl').value)
     },
     shape: sh ? {
       source:S.shapeSrc, standardId:S.stdShape||null, file:S.file?S.file.name:null,
@@ -3171,9 +3402,9 @@ function restorePayload(p,{newOrderNumber=false}={}){
     $$('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed', b.dataset[key]===S[key]));
   });
   $('#ref').value=p.reference||''; $('#pfirst').value=p.patient.first||''; $('#plast').value=p.patient.last||'';
-  $('#fname').value=p.frame.name||''; $('#mount').value=p.frame.mount||'full';
-  ['a','b','ed','dbl','temple'].forEach((k,i)=>{
-    const el=$(['#fa','#fb','#fed','#fdbl','#ftemple'][i]);
+  $('#fname').value=p.frame.name||''; $('#mount').value=normalizeMount(p.frame.mount);
+  ['a','b','ed','dbl'].forEach((k,i)=>{
+    const el=$(['#fa','#fb','#fed','#fdbl'][i]);
     el.value = p.frame[k]!=null ? p.frame[k] : '';
   });
   if(p.shape){
@@ -3191,9 +3422,12 @@ function restorePayload(p,{newOrderNumber=false}={}){
   S.chemClips=Array.isArray(p.chemistrie) ? p.chemistrie.map(c=>({
     ...c,
     id:c.id||'clip'+(++chemClipSeq),
-    colour:c.colour||'',
-    mirror:c.mirror==='none'?'':(c.mirror||''),
-    polarised:c.type==='sun'?true:!!c.polarised,
+    colour:c.type==='sun'?(c.colour||''):'',
+    mirror:c.type==='sun'&&c.mirror!=='none'?(c.mirror||''):'',
+    gradient:c.type==='sun'?(c.gradient||''):'',
+    add:(c.type==='blue'||c.type==='readers')&&c.add!==''&&c.add!=null?Number(c.add).toFixed(2):'',
+    magnet:c.magnet==='Black'?'Silver':(c.magnet||'Silver'),
+    polarised:c.type==='sun',
   })) : [];
   Object.entries(p.rx||{}).forEach(([e,r])=>{
     rowEls(e).forEach(i=>{ const v=r[i.dataset.f]; i.value=(v===null||v===undefined)?'':v; });
@@ -3526,12 +3760,12 @@ $('#btnTraceDemo').addEventListener('click',()=>{
   toast('Loaded 1471.oma trace sample — shape & dimensions auto-populated');
 });
 $('#btnClearAll').addEventListener('click',()=>{ if(confirm('Clear the whole form?')) { clearAll(); toast('Form cleared'); } });
-$('#discardDraft').addEventListener('click',()=>{ if(confirm('Discard this draft and clear the form?')){ clearAll(); toast('Draft discarded'); } });
+$('#discardDraft').addEventListener('click',()=>{ if(confirm('Discard this draft and clear the form?')){ ADAPTER.onDraftDiscarded?.(); clearAll(); toast('Draft discarded'); } });
 function fillDemo(quiet){
   S.vision='mf'; $$('#visionSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.vision==='mf'));
   applyLens('1.60','pg-enh','clear');
   $('#pfirst').value='Marcus'; $('#plast').value='Grant'; $('#ref').value='JOB-2291';
-  $('#fname').value='Ray-Ban RB5154'; $('#mount').value='full'; $('#fa').value='52'; $('#fb').value='38'; $('#fdbl').value='18'; $('#ftemple').value='140';
+  $('#fname').value='Ray-Ban RB5154'; $('#mount').value='plastic'; $('#fa').value='52'; $('#fb').value='38'; $('#fdbl').value='18';
   S.edTouched=false;
   const v={od:{sph:'-325',cyl:'1-',axis:'175',add:'2',prism:'',base:'',pd:'64',npd:'',ht:'22'},
            os:{sph:'-275',cyl:'-075',axis:'185',add:'2',prism:'',base:'',pd:'',npd:'',ht:'22'}};
@@ -3638,7 +3872,7 @@ $('#printBtn').addEventListener('click',()=>{
   <h2>Lens</h2><div class="kv"><span>Lens</span><div>${lensNm}</div>
   <span>Blank</span><div>${effDiam()} mm</div>
   <span>Treatments</span><div>${tr.length?tr.join(', '):'None'}</div>
-  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} Temple ${$('#ftemple').value||'—'} · ${$('#mount').options[$('#mount').selectedIndex].text}</div>
+  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} · ${selectLabel('mount')||'Plastic'}</div>
   <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${$('#delivery').value}</div>
   ${(function(){ const notes=notesWithChemistrie($('#notes').value); return notes?`<span>Notes</span><div>${notes.replace(/</g,'&lt;')}</div>`:''; })()}</div>
   ${S.pricesOn?`<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub*c.rate)}</span></div>`
@@ -3663,6 +3897,7 @@ const canSubmitDirect=()=>!!ADAPTER.canSubmitDirect&&!!ADAPTER.onSubmittedDirect
 function syncTreatConfirm(){
   const b=$('#treatConfirm'); if(!b) return;
   b.setAttribute('aria-pressed', S.treatConfirmed?'true':'false');
+  if(S.treatConfirmed) b.classList.remove('flashcue');
   const label=$('#treatConfirmLabel');
   if(label) label.textContent=S.treat.size||S.chemClips.length
     ? 'Done — these are all the coatings for this job'
@@ -3690,6 +3925,7 @@ function syncSubmitMode(){
 }
 
 let submitInFlight=false;
+let lastSubmittedPayload=null;
 async function submit(){
   if(submitInFlight) return;
   const V=secValid();
@@ -3727,6 +3963,7 @@ async function submit(){
   submitInFlight=true;
   try{
     const __p=stashOrder('submitted');
+    lastSubmittedPayload=__p;
     if(direct) await ADAPTER.onSubmittedDirect(__p);
     else if(ADAPTER.onSubmitted) await ADAPTER.onSubmitted(__p);
     $('#scrim').classList.add('on');
@@ -3739,7 +3976,7 @@ async function submit(){
 }
 $('#submitBtn').addEventListener('click',()=>{void submit();});
 $('#submitBtn2').addEventListener('click',()=>{void submit();});
-$$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
+$$('#scrim .choice').forEach(b=>b.addEventListener('click',async()=>{
   const n=b.dataset.next; $('#scrim').classList.remove('on');
   if(n==='another'){
     // A blank in-place reset (clearAll) keeps this quote's id, and the cart's
@@ -3749,11 +3986,16 @@ $$('#scrim .choice').forEach(b=>b.addEventListener('click',()=>{
     if(ADAPTER.onAnother) ADAPTER.onAnother();
     else setTimeout(()=>{ clearAll(); toast('New blank Rx order · previous job is in your cart'); },260);
   }
-  else if(n==='duplicate') toast('Prototype: cart now holds 2 copies of this Rx — edit either with the pencil');
+  else if(n==='duplicate'){
+    if(!ADAPTER.onDuplicate){ toast('Duplicate wiring not enabled on this surface'); return; }
+    try{ await ADAPTER.onDuplicate(lastSubmittedPayload); toast('Duplicated — a second copy is in your cart'); }
+    catch(err){ console.error('Rx order duplicate failed',err); toast('Could not duplicate this order'+(err&&err.message?': '+err.message:'')+'. Please try again.'); }
+  }
   else if(n==='checkout'){ if(ADAPTER.onCheckout) ADAPTER.onCheckout(); else toast('Checkout wiring not enabled on this surface'); }
   else { if(ADAPTER.onStore) ADAPTER.onStore(); else toast('Store return not enabled on this surface'); }
 }));
 $('#scrim').addEventListener('click',e=>{ if(e.target===$('#scrim')) $('#scrim').classList.remove('on'); });
+$('#scrimClose').addEventListener('click',()=>{ $('#scrim').classList.remove('on'); });
 docListen('keydown',e=>{ if(e.key!=='Escape') return;
   $('#scrim').classList.remove('on'); $('#treatDrawer').classList.remove('on'); $('#coachDrawer').classList.remove('on'); });
 
@@ -3779,11 +4021,19 @@ $('#treatConfirm').addEventListener('click',()=>{
   render();
   if(S.treatConfirmed) toast('Coatings confirmed');
 });
+/* Enter here only advances once Space has confirmed the toggle — otherwise
+   it would let you tab through without ever actually confirming coatings. */
+$('#treatConfirm').addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  e.preventDefault();
+  if(S.treatConfirmed) focusAcross($('#service'));
+});
+$('#treatConfirm').addEventListener('blur',e=>{ e.currentTarget.classList.remove('flashcue'); });
 $('#notesConfirmed').addEventListener('change',e=>{
   S.notesConfirmed=e.target.checked; render();
 });
 /* patient and frame names print on lab tickets — the lab standardises on caps. */
-['pfirst','plast','fname'].forEach(id=>{
+['pfirst','plast','ref','fname','notes'].forEach(id=>{
   const el=$('#'+id);
   el.addEventListener('input',()=>{
     const pos=el.selectionStart;
@@ -3798,13 +4048,11 @@ $('#chemOn').addEventListener('change',e=>{
   toast(e.target.checked?'Chemistrie layer added — configure it below':'Chemistrie layer removed');
 });
 
-/* remove a treatment or Chemistrie clip straight from the live quote — the base
-   lens line (material · design · colour) has no rm data, so it can't be removed here. */
+/* Remove a treatment from the live quote. The base lens has no rm data. */
 $('#qLines').addEventListener('click',e=>{
   const b=e.target.closest('.qline-rm'); if(!b) return;
   const {rmtype,rmid}=b.dataset;
   if(rmtype==='treat'){ toggleTreat(rmid); toast('Removed from the order'); }
-  else if(rmtype==='chem'){ S.chemClips=S.chemClips.filter(c=>c.id!==rmid); render(); toast('Clip removed'); }
 });
 
 /* ---------- settings gear ---------- */

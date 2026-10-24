@@ -4,11 +4,15 @@ import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
 import AdminTopBar from "./AdminTopBar";
 import HelpPanel from "./HelpPanel";
 import { pathnameToContextSlug } from "@/lib/adminContexts";
+import { useScrollingClass } from "@/hooks/useScrollingClass";
+import { useAdminBodyClass } from "@/hooks/useAdminBodyClass";
 
 const AdminDocsLayout = () => {
   const [helpOpen, setHelpOpen] = useState(false);
   const location = useLocation();
   const contextSlug = pathnameToContextSlug(location.pathname);
+  useScrollingClass();
+  useAdminBodyClass();
 
   return (
     <AdminRoleProvider>

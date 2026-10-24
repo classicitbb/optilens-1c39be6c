@@ -41,7 +41,7 @@ const ContactTagsConfigPage = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link to="/admin/erp/contacts">
+          <Link to="/admin/crm/contacts">
             <Button variant="ghost" size="icon" className="h-8 w-8"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <AdminPageHeader icon={Tag} title="Contact Tags" />

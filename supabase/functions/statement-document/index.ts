@@ -1,6 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { downloadOneDrivePdf } from "../_shared/microsoft/graphOneDrive.ts";
-
 Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
@@ -9,11 +7,16 @@ Deno.serve(async (req) => {
   if (!user) return new Response("Unauthorized", { status: 401 });
   const statementId = new URL(req.url).searchParams.get("statement_id");
   if (!statementId) return new Response("statement_id is required", { status: 400 });
+  const wantsDownload = new URL(req.url).searchParams.get("download") === "1";
   const { data: profile } = await supabase.from("profiles").select("crm_customer_id").eq("user_id", user.id).maybeSingle();
-  const { data: job } = await supabase.from("statement_document_jobs").select("one_drive_item_id,pdf_filename").eq("innovations_statement_id", statementId).maybeSingle();
+  const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "operator"]).limit(1);
+  const isStaff = Boolean(roles?.length);
+  const { data: job } = await supabase.from("statement_document_jobs").select("storage_bucket,storage_path,pdf_filename").eq("innovations_statement_id", statementId).maybeSingle();
   const { data: statement } = await supabase.from("statements").select("customer_id,void").eq("innovations_statement_id", statementId).maybeSingle();
-  if (!profile?.crm_customer_id || !statement || statement.void || statement.customer_id !== profile.crm_customer_id || !job?.one_drive_item_id) return new Response("Not found", { status: 404 });
-  const file = await downloadOneDrivePdf(job.one_drive_item_id);
-  if (!file.ok || !file.body) return new Response("Document unavailable", { status: 502 });
-  return new Response(file.body, { headers: { "content-type": "application/pdf", "content-disposition": `inline; filename="${job.pdf_filename ?? `Statement-${statementId}.pdf`}"`, "cache-control": "private, no-store" } });
+  if (!isStaff && (!profile?.crm_customer_id || !statement || statement.void || statement.customer_id !== profile.crm_customer_id)) return new Response("Not found", { status: 404 });
+  if (!statement || statement.void || !job?.storage_path) return new Response("Document unavailable", { status: 404 });
+  const file = await supabase.storage.from(job.storage_bucket ?? "statement-pdfs").download(job.storage_path);
+  if (file.error || !file.data) return new Response("Document unavailable", { status: 502 });
+  const disposition = isStaff || wantsDownload ? "attachment" : "inline";
+  return new Response(file.data.stream(), { headers: { "content-type": "application/pdf", "content-disposition": `${disposition}; filename="${job.pdf_filename ?? `Statement-${statementId}.pdf`}"`, "cache-control": "private, no-store" } });
 });

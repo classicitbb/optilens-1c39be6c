@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type LiveHelpdeskEvent = {
   ticket_id?: string;
-  kind?: "message_created" | "customer_message" | "ticket_created" | "ticket_updated";
+  kind?: "message_created" | "message_updated" | "customer_message" | "ticket_created" | "ticket_updated";
 };
 
 const invalidateTicket = (queryClient: ReturnType<typeof useQueryClient>, ticketId: string) => {
@@ -31,6 +31,7 @@ export const useLiveHelpdeskTicketUpdates = (ticketId: string | undefined) => {
     const channel = supabase
       .channel(`helpdesk:ticket:${ticketId}`, { config: { private: true } })
       .on("broadcast", { event: "message_created" }, () => invalidateTicket(queryClient, ticketId))
+      .on("broadcast", { event: "message_updated" }, () => invalidateTicket(queryClient, ticketId))
       .on("broadcast", { event: "ticket_updated" }, () => invalidateTicket(queryClient, ticketId))
       .subscribe();
 

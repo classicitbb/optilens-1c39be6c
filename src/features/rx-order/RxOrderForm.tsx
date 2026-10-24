@@ -625,11 +625,11 @@ export const RxOrderForm = ({ quoteId, surface, account, actions }: RxOrderFormP
             {actions.cart && " Adding to cart lets you pay by card or place it on the account at checkout — once paid/confirmed, the order queues for submission to Innovations (staff release each one)."}
           </p>
           <div className="flex gap-2 justify-end flex-wrap">
-            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { toast({ title: "Draft saved", description: `Quote ${quote.quote_number}` }); navigate(surface === "admin" ? "/admin/website/quotations" : "/profile/quotes"); }}>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { toast({ title: "Draft saved", description: `Quote ${quote.quote_number}` }); navigate(surface === "admin" ? "/admin/orders/quotations" : "/profile/quotes"); }}>
               Save Draft & Close
             </Button>
             {actions.print && surface === "admin" && (
-              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => navigate(`/admin/website/quotations/${quoteId}`)}>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => navigate(`/admin/orders/quotations/${quoteId}`)}>
                 <Printer className="h-3.5 w-3.5" /> Open in Quotations (print)
               </Button>
             )}

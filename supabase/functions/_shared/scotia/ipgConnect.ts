@@ -120,23 +120,46 @@ export async function validateResponseHash(
    *  own store id, so an empty echo must not fail authenticity. */
   expectedStorename?: string,
 ): Promise<{ valid: boolean; expected: string; received: string }> {
-  // The S2S notification posts `notification_hash`; the browser return leg
-  // posts `response_hash`. Same string-to-hash contract for both.
+  // The browser return leg posts `response_hash`, built from the documented
+  // five-field string: approval_code|chargetotal|currency|txndatetime|storename.
+  //
+  // The server-to-server notification posts `notification_hash` instead, and
+  // the gateway builds that from the SAME fields in a different order —
+  // chargetotal|currency|txndatetime|storename|approval_code — with the store
+  // id the gateway holds (the notification never echoes `storename`).
+  // Confirmed against a live production notification for store 811812100987.
+  const isNotification = !response.response_hash && !!response.notification_hash;
   const received = response.response_hash ?? response.notification_hash ?? "";
 
   const storenames = [response.storename ?? "", expectedStorename ?? ""]
     .filter((s, i, arr) => s !== "" && arr.indexOf(s) === i);
   if (storenames.length === 0) storenames.push("");
 
-  let expected = "";
+  const stringsToHash: string[] = [];
+  if (isNotification) {
+    for (const storename of storenames) {
+      stringsToHash.push([
+        response.chargetotal ?? "",
+        response.currency ?? "",
+        response.txndatetime ?? "",
+        storename,
+        response.approval_code ?? "",
+      ].join("|"));
+    }
+  }
+
   for (const storename of storenames) {
-    const stringToHash = [
+    stringsToHash.push([
       response.approval_code ?? "",
       response.chargetotal ?? "",
       response.currency ?? "",
       response.txndatetime ?? "",
       storename,
-    ].join("|");
+    ].join("|"));
+  }
+
+  let expected = "";
+  for (const stringToHash of stringsToHash) {
     const candidate = await hmacSha256Base64(stringToHash, sharedSecret);
     if (!expected) expected = candidate;
     if (timingSafeEqual(candidate, received)) {
@@ -144,6 +167,7 @@ export async function validateResponseHash(
     }
   }
   return { valid: false, expected, received };
+
 }
 
 /** Constant-time string comparison to avoid hash-timing leaks. */
@@ -165,6 +189,17 @@ export function isSoftDecline(associationResponseCode: string): boolean {
   return SOFT_RESPONSE_CODES.has((associationResponseCode ?? "").trim());
 }
 
+/**
+ * True when the buyer pressed Cancel on the hosted payment page rather than
+ * being declined. Fiserv reports this as fail_rc 5993 ("Cancelled by user"),
+ * also echoed in approval_code as "N:-5993:...".
+ */
+export function isUserCancelled(response: Record<string, string>): boolean {
+  if ((response.fail_rc ?? "").trim() === "5993") return true;
+  if (/^N:-?5993\b/.test(response.approval_code ?? "")) return true;
+  return /cancel+ed by (the )?user/i.test(response.fail_reason ?? "");
+}
+
 /** Approved transactions return association code "00". */
 export function isApproved(associationResponseCode: string): boolean {
   return (associationResponseCode ?? "").trim() === "00";
@@ -175,6 +210,8 @@ export interface ScotiaResponseClassification {
   hashValid: boolean;
   approved: boolean;
   softDecline: boolean;
+  /** Buyer cancelled on the hosted page — not an issuer decline. */
+  cancelled: boolean;
   associationResponseCode: string;
   failRc: string | null;
   oid: string | null;
@@ -218,6 +255,7 @@ export async function classifyScotiaResponse(
     hashValid: valid,
     approved,
     softDecline: !approved && isSoftDecline(associationCode),
+    cancelled: !approved && isUserCancelled(response),
     associationResponseCode: associationCode,
     failRc: response.fail_rc ?? null,
     oid: response.oid ?? null,
@@ -238,5 +276,49 @@ export async function classifyScotiaResponse(
       },
       sharedSecretLength: sharedSecret.length,
     },
+  };
+}
+
+/**
+ * Formats `txndatetime` in the gateway's required `YYYY:MM:DD-hh:mm:ss` shape,
+ * in the store's own timezone.
+ */
+export function txnDateTime(timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return `${get("year")}:${get("month")}:${get("day")}-${get("hour")}:${get("minute")}:${get("second")}`;
+}
+
+/**
+ * The always-present sale fields. Shared by every caller that signs a form —
+ * staff checkout and probes in `scotia-payment`, and the customer-device walk-in
+ * flows in `walkin-pay` — so there is exactly one definition of what gets signed.
+ *
+ * Typed structurally rather than against ScotiaConfig to keep this module free
+ * of imports; it must stay safe to reason about in isolation.
+ */
+export function baseSaleParams(
+  cfg: { storeId: string; timezone: string },
+  opts: { chargetotal: string; responseSuccessURL: string; responseFailURL: string },
+): Record<string, string> {
+  return {
+    chargetotal: opts.chargetotal,
+    checkoutoption: DEFAULT_CHECKOUT_OPTION,
+    // Required by the Scotia hosted-page contract for this site. The store is
+    // set up for Barbados dollars (052); keep this fixed even if an old
+    // credential-store row still has another value.
+    currency: "052",
+    language: "en_GB",
+    hash_algorithm: ALWAYS_HASH_ALGORITHM,
+    responseFailURL: opts.responseFailURL,
+    responseSuccessURL: opts.responseSuccessURL,
+    storename: cfg.storeId,
+    timezone: cfg.timezone,
+    txndatetime: txnDateTime(cfg.timezone),
+    txntype: "sale",
   };
 }

@@ -11,6 +11,8 @@ export interface HelpdeskTicketMessage {
   sender_email: string | null;
   sent_at: string;
   created_at: string;
+  edited_at: string | null;
+  retracted_at: string | null;
 }
 
 export const helpdeskMessageQueryKeys = {
@@ -24,7 +26,7 @@ export const useHelpdeskMessages = (ticketId: string | undefined) => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_ticket_messages")
-        .select("id,ticket_id,direction,body,sender_user_id,sender_name,sender_email,sent_at,created_at")
+        .select("id,ticket_id,direction,body,sender_user_id,sender_name,sender_email,sent_at,created_at,edited_at,retracted_at")
         .eq("ticket_id", ticketId)
         .order("sent_at", { ascending: true });
 

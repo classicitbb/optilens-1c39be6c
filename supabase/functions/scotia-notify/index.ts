@@ -25,6 +25,8 @@ import { getScotiaConfig, supabaseAdmin, type ScotiaConfig } from "../_shared/sc
 import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
+import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
+import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
 
 function ok(body: Record<string, unknown> = { received: true }): Response {
   return new Response(JSON.stringify(body), {
@@ -61,7 +63,7 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
       return new Response("Method not allowed", { status: 405 });
     }
 
-    let response: Record<string, string> = {};
+    const response: Record<string, string> = {};
     try {
       const ct = req.headers.get("content-type") ?? "";
       if (ct.includes("application/json")) {
@@ -102,12 +104,13 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
           storeId: cfg.storeId,
           env: cfg.env,
           failReason: "Response hash did not validate",
-          responseParams: response,
+          amount: result.chargetotal ? Number(result.chargetotal) : null,
+          currency: result.currency,
         });
         return ok({ received: true, settled: false, reason: "bad_hash" });
       }
 
-      // Diagnostics: exact parameters and failure code from the S2S callback.
+      // Keep only scalar reconciliation fields; never retain callback payloads.
       await logScotiaEvent(supabaseAdmin, {
         kind: "notify",
         outcome: result.approved ? "ok" : "declined",
@@ -118,7 +121,8 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
         associationResponseCode: result.associationResponseCode,
         failRc: result.failRc,
         failReason: response.fail_reason ?? null,
-        responseParams: response,
+        amount: result.chargetotal ? Number(result.chargetotal) : null,
+        currency: result.currency,
       });
 
 
@@ -136,6 +140,7 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
         save_token: !!result.hosteddataid,
         currency: result.currency,
         chargetotal: result.chargetotal,
+        gateway_transaction_id: response.ipgTransactionId ?? response.transaction_id ?? response.transactionId ?? null,
         source: "notification",
       };
 
@@ -149,7 +154,26 @@ export function makeHandler(deps: NotifyDeps): (req: Request) => Promise<Respons
           console.error("scotia-notify: settle_statement_payment failed", { paymentId, error });
           return ok({ received: true, settled: false, reason: "rpc_error" });
         }
+        if (result.approved) {
+          await sendStatementPaymentReceipt(deps.admin as never, paymentId);
+        }
         return ok({ received: true, settled: true, flow: "statement", approved: result.approved });
+      }
+
+      if (oid.startsWith("WALKIN-")) {
+        const paymentId = oid.slice("WALKIN-".length);
+        const { error } = await deps.admin.rpc("settle_walk_in_payment", {
+          p_payment_id: paymentId,
+          p_gateway: gatewayPayload,
+        });
+        if (error) {
+          console.error("scotia-notify: settle_walk_in_payment failed", { paymentId, error });
+          return ok({ received: true, settled: false, reason: "rpc_error" });
+        }
+        if (result.approved) {
+          await sendWalkInPaymentReceipt(deps.admin as never, paymentId);
+        }
+        return ok({ received: true, settled: true, flow: "walk_in", approved: result.approved });
       }
 
       const { data: order, error: orderError } = await deps.admin

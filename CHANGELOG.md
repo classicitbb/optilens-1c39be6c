@@ -1,8 +1,281 @@
 # Changelog
 
+## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
+
+### Release Notes
+- Professional visitors can jump to common tasks, compare their current supplier's landed costs with a Classic Visions quote using their own figures, and follow the steps from application through account setup. Trade applications now collect a payment preference, two required supplier references (a third is optional), or a requested starter limit without implying credit is automatically approved. Unverified island transit-time claims were removed; shipping timing and costs are confirmed for the destination and shipment.
+
+### Technical Changelog
+- Added a professional-home task finder, customer/account journey, client-side quote worksheet, and credit-application intake notes. The comparison calculates only complete entries in the selected shared currency and does not fetch or save rates or quotes. Credit requests remain subject to office review; the public inquiry path is unchanged. Updated freight and Caribbean ordering guidance to avoid unsupported service estimates. Focused tests and production build pass; not published from this branch.
+
+## 2026-10-23 — Frame repairs as staff-only stock-order addons
+
+### Release Notes
+- The 25 active Innovations "2 Frame Repairs" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor.
+
+### Technical Changelog
+- New `addons.stock_orderable` flag (add-on editor "Stock order" switch). `get_stock_order_catalog`, `resolve_stock_order_price` and `_price_stock_order_items` accept a priced stock_orderable add-on for staff and fall back to `addons.price`. `resolve_stock_order_price` now reads `addons.price`/`cost` instead of the non-existent `sell_price`/`base_price`. `isRxOrderableAddon` excludes `repairs`. Migration `20261023120000_frame_repairs_addons.sql` is applied live; seed is idempotent on category + SKU.
+
+## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
+
+### Release Notes
+- PDFs open in the browser's own viewer on desktop (search, print, thumbnails); phones and tablets keep the built-in page viewer. CSV and Excel (.xlsx) attachments can now be previewed as a grid, with sheet tabs, from admin email and helpdesk tickets.
+
+### Technical Changelog
+- PdfViewer uses an unsandboxed iframe on a blob URL when navigator.pdfViewerEnabled and a fine pointer are present, else pdf.js. frame-src gains blob: (http-header-policy.json, vercel.json re-synced). New spreadsheetPreview lib and SpreadsheetPreview/SpreadsheetPreviewDialog components (read-excel-file, lazy-loaded; 200 rows, 40 columns, 1 MB csv / 5 MB xlsx caps) replace the email-only CsvPreview and open helpdesk csv/xlsx attachments. Legacy .xls still downloads.
+
+## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
+
+### Release Notes
+- Simple two-note alert sound with shared cross-tab cooldown, mute and test controls. Stock grids check database quantities every eight hours while open, plus mount/focus/reconnect. Portal lists overlap independent reads and defer account details until selection.
+
+### Technical Changelog
+- Shared Web Audio/Locks/storage coordination; one sound per attention batch. Separate active-only variant cache entries. One-minute portal caches and optional detail-hook enabled flags. Focused tests, build and TypeScript pass; existing full-suite/lint failures remain. No deployment or hosted write.
+
+
+## 2026-10-20 — Hot-lead summary and signup lead capture (local source)
+
+### Release Notes
+- Trade-account, price-list and portal-signup requests now create or match a CRM lead and email the owner one lead summary: what they said, fit, history, a suggested next move, a reply-by time (4 business hours, Barbados) and one-tap reply, WhatsApp, CRM and approval links. Portal signups previously produced no owner email, ticket or CRM record. No migration; the contact-inquiry function needs a redeploy.
+
+### Technical Changelog
+- contact-inquiry matches CRM contacts list-aware and literally (_shared/crm/contactEmailMatch.ts) instead of ilike().maybeSingle(), never throws on a lookup failure, and sends the new lead-alert template (assembled by _shared/leads/dossier.ts, I/O in gather.ts) with fallback to the plain notification. Auth.tsx sends the signup lead through submitPublicInquiry (auth_onboarding_interest); that type skips the duplicate customer confirmation. Unit tests cover matching, business-hours maths, notes parsing and every dossier section.
+
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
+### Technical Changelog
+- Share switch and assigned-pricelist controls across both settings surfaces in src/pages/admin/WebsitePortalsPage.tsx; retain existing inherited access and explicit override writes. Stage an INSERT-only profile trigger in supabase/migrations/20261020214927_new_portal_features_disabled.sql; do not backfill existing users or change sensitive tag gates.
+
+
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
+### Technical Changelog
+- Define feature-owned allowlisted tab/billType links and per-user browser recency; synchronize Studio navigation through a mount-scoped event listener. Preserve file/invitation handoffs and prevent initial billing-type navigation from autosaving over the open file. Scope outer-radius overrides to semantic Studio container classes and the admin top bar.
+
+
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Signed-in localhost development sessions use the shared same-origin data transport across loopback ports; live invoice import was verified without changing production CORS or permissions.
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
+### Technical Changelog
+- Add a Vite loopback-only Supabase HTTP proxy with existing bearer/apikey forwarding and verified Node/system-CA TLS. Keep the real project URL/session keys and direct production transport. Cover HTTP request semantics and local-origin restrictions.
+- Reuse the account-scoped live invoice gateway through a native-mount loader. Resolve accounts from statement references or selected customer, fail on unavailable prices, label header/line differences, detach imported drafts and preserve original invoice numbers on explicit save. No backend, schema or authorization change.
+
+## 2026-10-19 — Stock entry and selector visibility (local source)
+
+### Release Notes
+- Fresh stock-order links open the shared Rx form in Stock / supplies mode. Saved stock quotes/product highlights retain the existing editor. Lens lists escape scrolling panels and fit the viewport; segmented choices have contrasting light/dark states. Browser lens-grid/local-line checks passed without saving/submitting. Not published.
+
+### Technical Changelog
+- Route new stock visits through the canonical Rx form with initialOrderType; preserve quote/highlight links. Reuse Radix Popover positioning and portals for shared searchable lens lists; add scoped theme selection styles. All 1,620 tests, TypeScript, lint, build and route smoke pass.
+
+Stock prototype selected design (2026-10-19, local only): retained only the chosen Rx supplies layout, deleted alternate designs/navigation, compacted identification to labelled fields, and adopted actual admin workspace tokens with Rx-sized controls and admin fonts. No publication or real order connection.
+
+Stock prototype annotation refinement (2026-10-19, local only): removed the duplicate supplies card, retained the preferred order form, reused Rx toggles/searchable any-order lens selectors and the store's compact power grid. Optional grid action wording leaves existing store behavior unchanged. No live catalog, cart or order connection.
+
+Stock / supplies prototype (2026-10-19, local only): added a separate seeded design study with an order-sheet baseline and two alternate layouts, merged patient/order reference, optional PO/instructions, shared category supplies browser, lens variant grids, pricelist scenarios and simulated scanner/review. No application route, backend connection or production publication.
+
+Rx sidebar alignment (2026-10-17, local source): the self-contained Rx form no longer pushes the account menu down. Only the Rx sidebar uses normal-flow positioning; other routes retain their existing sticky menu. Not published.
+
+Rx uncut supply/introduction (2026-10-17, local source): frame supply is fixed to Uncut for uncut jobs, including saved/loaded orders; Full glaze retains the normal supply selector. The portal instruction sentence scrolls with the form beneath the fixed title. Not published.
+
+Portal Rx scroll frame (2026-10-17, local source): page title stays fixed; form content scrolls beneath pinned order controls and steps. The desktop quote stays within the frame and scrolls internally if long. Sticky offsets follow wrapping controls and frame resizing. Not published.
+
+Pricelist education (2026-10-17, local source): compact edit pencil, design-trait popovers linked to the public lens guides, and plain-English treatment tooltips. Progressive/photochromic definitions now share source data with those guides. Not published.
+
+Pricelist tablet/currency update (2026-10-17, local source): compact 320px popup, persistent tap interaction, close control and 44px touch targets. EUR/XCD display options reuse existing indicative rates when not configured; configured rates win. Retail display amounts convert with the selected currency, euro symbols render correctly, and CSV remains numeric. Not published.
+
+Pricelist selected-lens correction (2026-10-17, local source): popups now use the editor-selected lens ID and its confirmed primary alias, rather than every alias sharing a price band. Clear / Progressive - Best / 1.50 now shows Plastic 1.50 / Endless Steady / SRCoated alone. Unresolved mappings do not choose substitutes. No pricing rule or database write.
+
+My Orders invoice totals (2026-10-17, local source): lab-order and delivery-invoice detail tables now total their line amounts in BBD. Missing amounts do not produce a misleading partial total. Browser checked; not published.
+
+Pricelist lens handoff (2026-10-17, local source): combined popup shows actual Rx-form lens selections, includes retail-price editing, and opens a new account-priced Rx draft for enabled customers. Multiple matches require a choice; existing inquiry and staff read-only behavior retained. Not published.
+
+Rx/pricelist annotations (2026-10-17, local source): restored customer printing, teal category headers, contextual price/unavailable-option tooltips and an optional unsaved BBD gross-margin estimate for fully priced visible quotes. Not published.
+
+Homepage copy (2026-10-17, local source): clearer trade-account and lens-explorer headings, expanded shared lens-category labels, and updated patient optician/FAQ introductions. Existing layout retained; search prose regenerated. Not published.
+
+Atlas production release (2026-10-08): scoped layout, stable identifiers and authenticated sharing/audit release deployed with the named migration. No page was enabled for sharing; target-specific end-to-end and email-confirmation checks remain unperformed. See docs/agent/HANDOFF.md.
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-19 — Integrated stock / supplies form (local source)
+
+### Plan
+- Bring the approved prototype into the existing admin Stock / supplies section and order published service items within the same form.
+
+### Release Notes
+- The admin new-order form now embeds compact patient/reference, PO and instructions fields, a shared supplies/services category browser, account-priced lens selectors and variant grid, editable lines and a review-before-submit flow. Service request is removed from the order-type menu. Local source only; no production publication or real order submitted during verification.
+
+### Technical Changelog
+- `src/features/rx-order/form/StockServicePanel.tsx` uses the existing catalog/save/release hooks; new StockItemBrowser, StockLensBrowser and pure stock quantity conversion support the UI. Account changes remount the panel; stock mode cancels Rx autosave. Pair quantities map to server lens units and chiral pairs use both eye OPCs. `src/hooks/useStockOrderBuilder.ts` retains variant availability fields and identifies ambiguous chiral scans. Lens identities/reference labels are read from existing safe RPCs/tables without schema, credential or authorization changes.
+
+## 2026-10-19 — Staff Rx submit and staff pricing access (local source)
+
+### Plan
+- Let staff submit orders from the admin Rx form (`/admin/orders/rx/new`) without the order landing in their own cart, and make sure every admin/operator profile qualifies for portal pricing.
+
+### Release Notes
+- On the admin Rx form the button now reads "Send for submission". It sends the saved order to Rx Orders > Ready to release, where staff release it to the lab. It no longer adds the order to the staff member's cart.
+- Admin and operator profiles are approved for portal pricing against the Retail account, so store and pricelist prices show for staff. This was a data change on the live database only.
+
+### Technical Changelog
+- `RxOrderEditPage` passes `submitToQueue` to `RxForm`, calling new `submit_rx_order_to_queue(p_quote_id)` (staff-only, same hand-off as `submit_reviewed_rx_capture` without a capture job). Migration `20261019120000_submit_rx_order_to_queue.sql` was applied live through the Lovable MCP; `anon` execute is revoked.
+- Live data: manual portal approval and Retail (776) link set on cvre, gregory.morris, lisa.k, randall and kennyhu; Lisa Jordan unarchived with her Retail membership activated. Kenny Hunte stays pending until he verifies his email.
+
+## 2026-10-15 — Email Previews resend (local source)
+
+### Release Notes
+- The Email delivery status log on Email Previews has a Resend button on each message. The dialog pre-fills the original address so it can be corrected, and when it is changed it offers to replace the old address on matching CRM contacts. Not yet deployed.
+
+### Technical Changelog
+- `sendManagedEmail` stores each rendered message in new service-role-only `email_resend_payloads` (skipped for attachments); `docstudio-api` adds `email/resend-info` and `email/resend`, and `email/health` rows carry `can_resend`. Contacts are updated only after the corrected address accepts the mail. Migration `20261015120000_email_resend_payloads.sql` and the function are not applied/deployed.
+
+## 2026-10-08 — Atlas layout and authenticated sharing (local source)
+
+### Release Notes
+- Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending.
+
+### Technical Changelog
+- Synchronized browser preference snapshots and account-scoped sidebar keys; nullable full_width persists through the single page-editor/source path and projects to the shared reader after migration. New UUID page slugs preserve existing stored URLs; null-slug rows retain ID routing and current legacy-title aliases. Sharing RPC checks enabled/live/authenticated state, withholds drafts/secrets/locks, and transactionally appends an administrator-only audit. Registration confirmation retains a safe same-origin destination. Named migration applied; hosted schema/grants verified, with isolated PostgreSQL and focused frontend regression checks.
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+### Release Notes
+- Lead Finder recognises existing CRM contacts and customers, leaves current customers out of results (with a count and a Show current customers toggle), lets you link or correct matches, records Connection strength separately from the AI score, and can create a follow-up task. Migration, function deployment and frontend publication are pending approval.
+
+### Technical Changelog
+- New pure matcher `lead-intelligence/crmMatching.ts` runs before the result limit; new tables `lead_discovery_identities/links/reviews` and RPCs `lead_finder_confirm_link/mark_customer/clear_link/save_lead` replace the name-based upsert with one advisory-locked, idempotent transaction.
+
+## 2026-10-07 — CRM research provider (local source)
+
+### Release Notes
+- Manual contact research now uses OpenAI web search and presents cited AI suggestions for review. Scheduled Google Places enrichment remains separate. Production release and live lookup verification are pending.
+
+### Technical Changelog
+- Replaced Firecrawl with Responses `web_search`, server-only `OPENAI_API_KEY` and optional `CRM_RESEARCH_OPENAI_MODEL`. Required search evidence, bounded requests and citation-only links preserve the draft review flow.
+
+
+## 2026-10-07 — Doc Studio recipients, signatures and labels (local source)
+
+### Release Notes
+- Search recipients and dismiss the list with outside click, focus loss or Escape while retaining To. Signatures have editable HTML tiles, image copy/download and direct email insertion. Labels have square corners and shipping/customer modes with editable headings.
+
+### Technical Changelog
+- Added cleaned-up picker listeners, dual clipboard formats, a 224px PNG logo, dependency-free 3x image export, and legacy-safe label payload fields. Public logo deployment and actual email-client validation remain pending. See docs/doc-studio-signature-compatibility.md.
+
+## 2026-10-07 — CRM contact editor (local source)
+
+### Release Notes
+- Company search accepts typing and Enter; contact email lists are validated; Save stays open and Save & Close closes after successful persistence. Public-web research presents sources and candidate emails for review.
+
+### Technical Changelog
+- Added editable combobox and shared email parser; guarded the complete save pipeline and retained persisted account links. Manual research uses existing enrichment auth and server-only Firecrawl configuration. Innovations salesperson producer mapping/writeback and recipient-consumer audit remain pending; no production release verified.
+
+## 2026-10-07 — Admin attention dropdown
+
+### Release Notes
+- Admin attention count moves beside the bell and opens a right-aligned vertical dropdown. Close with X, Escape or outside click; unresolved items remain available.
+
+### Technical Changelog
+- Shared AdminTopBar mounts one Radix attention popover for Admin and Atlas; all items scroll vertically and existing Snooze behavior remains.
+
+## 2026-10-05 — Iris wiki formatting
+
+### Release Notes
+- Iris replies, proposal previews and accepted editor content preserve headings, emphasis, lists, checklists, tables and code. Selection replacements retain rich text. Local source change only; production publication requires approval.
+
+### Technical Changelog
+- `src/features/atlas/iris/irisBlocks.ts` converts Markdown with unified, remark-parse and remark-gfm; the reply uses WikiArticleRenderer and selection acceptance inserts canonical Tiptap nodes and marks.
+
 > Indexed summary entry point. Detailed source entries live in `docs/changelog/` and are aggregated here for backward compatibility.
 
-All notable major updates to this project are tracked in date-stamped, human-readable format.
+## 2026-10-05 — Atlas: one workspace for the wiki, procedures and website content
+
+### Release Notes
+- **Atlas** is a new full-screen workspace at `/atlas` that replaces Knowledge → Wiki, Knowledge → SOPs and Website → Pages / Content. It has three spaces: **Wiki**, **SOPs** (the published wiki pages, read-only until you choose Edit) and **Website** (knowledge-base articles, FAQs and legal pages). Old links keep working and open the same page in Atlas.
+- **Website** is a database: switch between **Table**, **Board** and **Gallery**, use the All articles / Knowledge Base / FAQ / Legal / Blog tabs, filter by status, sort and search titles. Tick rows to **Publish**, **Move to draft** or **Archive** them in bulk; a page that fails the publish checks is named and left alone. Drag a card to **Published** on the Board (it stays put if the checks fail). Click a row to open a side peek with the same editor as a full page. Legal pages stay locked to their fixed slots and keep appearing on the site.
+- Sections in the wiki sidebar can now be **renamed** and **deleted** (a deleted section's pages stay, at the top level).
+- Atlas can be **installed** from Chrome or Edge as its own window, and appears in the app launcher with *New page* and *Website content* shortcuts. Admin search finds pages by title **and** by text inside them, and opens the result in Atlas.
+- **Iris** has a panel (Ctrl+J, the sidebar, the selection toolbar, the block menu, `/`): summarize a page, turn steps into a checklist, find related pages, draft an FAQ entry, improve or shorten a selection, or ask a question. Iris only proposes: nothing reaches the page until you press **Accept**. Offline, Iris pauses and the page stays editable.
+- **Export** a space (Ctrl+K → Export) as a zip of Markdown and JSON files laid out by section and parent. **Import dry run** (Ctrl+K) reads a ClickUp export and reports what an import would create and lose; it imports nothing.
+- New pages open ready to type in, and renaming a new page no longer drops you back to the wiki home.
+
+### Technical Changelog
+- Added `src/features/atlas/` (moved from `src/components/workspace`, `AdminWikiPage` and `useWikiWorkspacePrefs`): `config.ts` (the one place for product name, base path, install colours and launcher shortcuts), `spaces.ts` (space registry: scope, views, saved views, schema-driven properties, per-space capability rules, Iris draft targets), `capabilities.ts` (pure rule evaluation), `host.ts` (host-supplied option sets, embeds, workspace name and Iris provider), `templates.ts` (slash-menu templates, replacing the business-named group), `pageTree.ts`, `exportSpace.ts`, `AtlasApp.tsx` (standalone shell, manifest link, service-worker registration, access gate), `AtlasWorkspace.tsx`, `database/*` (Table/Board/Gallery, peek, bulk publish), `iris/*`, `import/*`.
+- Storage sits behind `AtlasSource` (`source/types.ts`); `helpArticlesSource.ts` is the only module that touches `help_articles`. `usePageEditor` is the single editing session (autosave, publish, discard) used by the full page and the peek. Publish is gated by `validateForSave` (`validateCanonicalDocument` + `validateWikiBuildVersionForPublish`), shared by the editor, bulk publish and the board.
+- Routes: `/atlas`, `/atlas/:space`, `/atlas/:space/:articleSlug` (standalone-shell layout, `AdminProtectedRoute`). `/admin/knowledge/wiki|sops[/:slug]` and `/admin/website/content` redirect through `AtlasLegacyRedirect` preserving slug and query (`articleId` resolves to a slug). Deleted `ContentManagerPage`, `AdminSopsPage`, `WikiContentPanel`, `useContentArticles`/`useSopArticles` hooks, `buildSopTree`, `buildAdminHelpCenterTree` and `toAdminWikiArticlePath`. `apps.ts` `knowledge` app became `atlas`; launcher, dashboard, top bar, help panel, edit links, global search, `PATH_FEATURE_MAP`, context options and the smoke script were updated.
+- Migration `20261005130000_help_articles_space.sql` adds nullable `help_articles.space` (backfilled `wiki` / `website`, indexed) and was applied to the hosted project through the Lovable MCP; reads fall back to `content_type` when it is missing. The backfill's UPDATE fired the `updated_at` trigger, so all 51 rows show the migration time.
+- PWA: `public/atlas.webmanifest` (built from `config.ts` by `npm run atlas:assets`, guarded by a unit test), generated icons, and `public/atlas-sw.js` (app shell only, cache-first for `/assets/`, network-first navigations). CSP already allowed `manifest-src`/`worker-src` `'self'`.
+- Iris: `src/config/atlasIris.ts` asks the existing companion assistant (`generateAssistantAnswer`, same engine, same `companion-assistant` function and identity); spend is recorded by that function's `recordAiSpend`. `companion-assistant` now trusts Atlas page evidence only for an authenticated staff user (`taskContext.kind = "atlas"`); other callers are grounded on the public knowledge base as before. **Source only: the function needs deploying.**
+- Regenerated `platformFacts.generated.ts` for the renamed app. Added tests under `src/tests/unit/atlas/` and `atlasRouteAccessibility.integration.test.ts`, including a guard that `src/features/atlas` has no business vocabulary and imports no database client outside `source/`.
+
+## 2026-10-05 — Admin workspace theme, wiki workspace and block editor
+
+### Release Notes
+- Every admin screen now shares one workspace look: off-white paper and navy in dark mode, teal accents, Plus Jakarta Sans for text and JetBrains Mono for labels, codes and SKUs. The old brown and gold admin palette is gone. Scrollbars stay hidden until you scroll.
+- **Knowledge → Wiki** is now a three-pane workspace: a resizable page tree (drag to reorder or nest), favorites, trash, a Ctrl+K search over titles, page text and website content, and a right panel for page history.
+- Pages are edited as blocks. Type `/` for headings, lists, to-dos, toggles, quotes, callouts, code, tables, images and page links; type `@` to mention a page, person or date; select text for bold, italic, underline, strikethrough, code, link and colour. Drag the grip beside any block to move it.
+- Pages save themselves 800 ms after you stop typing. On a published page your edits go to an unpublished draft: visitors keep seeing the published version until you choose **Update**, and **Discard changes** drops the draft. Page settings (summary, link target, section, parent, order, contexts) apply straight away; the slug is locked while a page is published. Lists can be nested with Tab and Shift+Tab. Version history and unpublished drafts are now live on the hosted project.
+
+### Technical Changelog
+- Added `src/styles/workspace.css` (`--ws-*` tokens) and re-pointed every `--admin-*` variable and the shadcn overrides to them. `body.ws-admin` carries the tokens to portaled popovers and dialogs; `useScrollingClass` toggles `.is-scrolling` for the auto-hiding scrollbar.
+- Added `src/components/workspace/*` (shell, page tree, palette, right panel, `BlockEditor` and its editor/ folder) on Tiptap. New dependencies: `@tiptap/extension-table` and `@tiptap/suggestion`, pinned to the installed 3.31.3.
+- Extended the canonical document (`BlogBlockNode` / `BlogInlineNode`) with callout, toggle, todo, code, divider, table and pageLink blocks and code, strike, underline, colour and mention inlines. `tiptapDocToCanonical` / `canonicalToTiptapDoc` in `wikiCanonical.ts` are the only bridge; unknown blocks round-trip through an `unknownBlock` node and render a visible fallback. `validateCanonicalDocument` now rejects unknown block types.
+- Page moves, renames and status changes use `patchArticle` / `moveArticles` (no version row). Autosave (`buildAutosaveUpdate`) writes settings to the live row, the body to the live row for unpublished pages, and the body to `draft_title` / `draft_body_json` / `draft_saved_at` for published pages. Migration `20261005120000_help_articles_draft_copy.sql` adds those nullable columns; until it is applied the admin detects their absence, keeps published-page body edits local and warns before leaving. Lists store a `depths` array (todo items a `depth`) and are nested by `src/lib/listDepth.ts`. `20261005121000_help_article_versions_table.sql` creates `help_article_versions` (RLS, indexes) without the slug and baseline rewrites of `20260308193000`, which would change 39 existing URLs. Both new migrations were applied to the hosted project on 2026-10-05. Document comparisons use `src/lib/stableJson.ts`, since jsonb reorders keys. Publish still runs `validateCanonicalDocument` and `validateWikiBuildVersionForPublish`, now against the block text as Markdown.
+
+## 2026-09-17 — Customer-device walk-in payments
+
+### Release Notes
+- **Settings → Walk-in Payments** now offers three ways to take a payment: **Take card now** (unchanged, uses the shop device), **Publish link** (the customer scans the counter QR code and types a short code the cashier reads out) and **Request by email** (the customer gets a one-time pay link, valid 72 hours, and can pay from anywhere).
+- The staff screen updates by itself the moment the customer's payment goes through, so the cashier knows when to hand over the glasses.
+- A walk-in can also pay with no staff involvement by scanning the counter QR code and entering their own amount, between BBD $20 and BBD $500. These appear in a **needs matching** list on the same page so they can be attached to an order.
+- Walk-in payment amounts are now recorded in Barbados dollars, which is what the bank has always charged; receipts previously showed the raw code `840`.
+- The self-service option is available only once Cloudflare Turnstile keys are configured. Until then it is hidden and refuses to start payments; the assisted and email options do not depend on it.
+
+### Technical Changelog
+- Added the `walkin-pay` Edge Function (`verify_jwt = false`, authenticated by hashed one-time token in code) as the only anonymous path to a walk-in payment, plus public `/pay` and `/pay/result` routes, `src/lib/payments/walkInPay.ts`, a fail-closed Turnstile widget, and the staff publish panel, live-payment hook and unmatched-payment queue.
+- Migration `20260917101500_customer_device_walk_in_payments.sql` adds `origin`, hashed link/claim-code columns, expiry, single-use and matching state to `walk_in_payments`; adds `walk_in_payment_settings` and a durable `public_payment_attempts` rate-limit table; adds the publish, resolve, self-serve, match and attempt-recording RPCs; corrects the `currency` CHECK from `'840'` to `'052'` with a backfill; and publishes the table for realtime.
+- Link tokens and claim codes are stored only as SHA-256 hashes and returned in plaintext once. `anon` has no access to `walk_in_payments` or the public RPCs; wrong, expired, spent and non-existent links all return one identical message. `scotia-payment` stays JWT-verified and staff-gated, so order, statement and staff walk-in signing are unchanged, and `scotia-return` now routes customer-originated walk-ins to `/pay/result`. No PAN, CVV, expiry or card token is accepted anywhere.
+
+## 2026-09-11 — Safe pricelist saves and resilient operational workflows
+
+### Release Notes
+- Renaming or re-saving a pricelist no longer rewrites line prices. Percentage changes preserve manually entered prices by default, while **Replace all line prices** is an explicit destructive choice.
+- Gatekeeper status polling now has production-only controls, bounded outage backoff, and a pre-send Rx fallback to Innovations. Shipment supplier selection preserves fields already entered, and Helpdesk attachment failures no longer obscure successful ticket creation.
+
+### Technical Changelog
+- Added override provenance and safe materialization, Gatekeeper outage/fallback state and service-only RPCs, production-environment route guards, source-aware manual override writes, and focused unit/integration/SQL regressions.
+- Status pulls retain existing order state during 503 outages and emit one degraded-state notification. Only prescription submissions that fail before a Gatekeeper order POST can be requeued; stock and post-start failures remain unchanged.
+
+## 2026-09-04 — Walk-in payment customer email and receipt printing
+
+### Release Notes
+- Walk-in card payments at **Settings → Walk-in Payments** now support an optional customer email field.
+- Upon payment completion, a receipt is automatically emailed to the customer.
+- Staff members are immediately prompted with a confirmation modal asking if they would like to print a physical receipt, and can re-print or resend the receipt email at any time.
+
+### Technical Changelog
+- Added `customer_email` column to `public.walk_in_payments` table and updated `create_walk_in_payment` to store and validate customer email.
+- `sendWalkInPaymentReceipt` delivers transactional receipts to the customer email with fallback and copy to staff, and supports forced resending.
+- Added `send-walkin-receipt` authenticated staff action in `scotia-payment`.
+
+## 2026-09-04 — Scotia payment confirmations and saved statement cards
+
+### Release Notes
+- Administrators now have **Settings → Payment Activity**, a compact Scotia card-payment confirmation list showing only when a payment happened, its reference, type, amount, and result.
+- Statement amounts remain on one line, and customers can opt in to securely save a card before they continue to Scotiabank.
+
+### Technical Changelog
+- `scotia_payment_activity` is a security-invoker projection over staff-RLS gateway events; gateway request/response bags are cleared and no gateway payload, card details, expiry, token, or failure diagnostics enter the browser.
+- Statement settlement now saves a provider-issued token only after a signed approved callback and records only its saved-method relationship on the payment intent.
 
 ## 2026-08-27 — Continuous CRM contact enrichment
 
@@ -506,3 +779,31 @@ All notable major updates to this project are tracked in date-stamped, human-rea
 - Updated `scripts/admin_smoke_and_error_checks.mjs` with additional route and snippet assertions.
 - Preserved runtime log format contract checks for `[runtime-error] <timestamp> | <source> | <title> | <detail> | <route>`.
 - Added this date-stamped changelog structure for future major updates.
+
+## 2026-10-09 — Public support attachments (local source)
+
+Contact us and Get support now allow public Iris requests to carry photos, documents and audio through browse, paste and drop. Chat attachments carry into the request. Local source only; migration/function/frontend release pending.
+
+## 2026-10-09 — Public support form layout (local source)
+
+### Release Notes
+- Public support form sections retain their natural height and scroll when files exceed the available Iris window height, preventing attachment rows from overlapping fields.
+
+### Technical Changelog
+- Disabled shrinking on direct request-form sections and removed the zero-basis growing request-details container in `src/components/assistant/CompanionAssistant.tsx`.
+
+## 2026-10-09 — Iris visitor guidance (local)
+
+Fixed frame/policy prompts being treated as account lookups, automatic dispenser assumptions on public pages, and generated answers missing from follow-up history. Frame, coating and policy starters now answer directly with a relevant clarifying question and links. The guided lens flow retains the selected audience and gives use-specific guidance instead of promising an automatic Rx match. Search the site uses grounded site answers rather than the clipped, retrieval-free web endpoint. No backend deployment or data change. Local browser confirms the three starter replies and screen-use guide; live generated follow-ups from localhost returned a controlled fallback and remain unverified. Focused tests pass; full suite has unrelated admin credential-contract and Rx integration failures.
+
+## 2026-10-09 — Portal ticket sends (local source)
+
+### Release Notes
+- Admin contact order questions default to notifying the selected contact, with the staff member as sender/owner and existing audience rules preserved.
+- Failed support sends retain the draft and show an error; post-creation timeline/email failures warn without inviting duplicate tickets.
+- Mobile forms have 16px input text, 44px buttons and a bounded scrolling admin dialog. Local source only; publication and named email verification require approval.
+- Long portal ticket titles truncate with ellipsis inside their row; full text remains available on hover and when opening the ticket.
+
+### Technical Changelog
+- Guarded concurrent form sends; report skipped email recipients and preserve created ticket IDs after secondary failures.
+- No Edge Function, migration, authorization or environment changes.

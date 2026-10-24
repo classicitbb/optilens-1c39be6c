@@ -103,18 +103,20 @@ export const useOperatorAttentionAlerts = () => {
       }
     }
 
-    if (isOperatorAttentionSnoozed(snoozedUntil, now)) return;
+    if (snoozeQuery.isLoading || isOperatorAttentionSnoozed(snoozedUntil, now)) return;
 
+    const soundIds: string[] = [];
     for (const item of items) {
       const startedAt = alertStartedAt.current.get(item.id) ?? now;
       alertStartedAt.current.set(item.id, startedAt);
       const lastSoundAt = soundedAt.current.get(item.id);
       if (now - startedAt < SOUND_WINDOW_MS && (!lastSoundAt || now - lastSoundAt >= SOUND_INTERVAL_MS)) {
-        playAlertJingle();
+        soundIds.push(`attention:${item.id}:${Math.floor(now / CHECK_INTERVAL_MS)}`);
         soundedAt.current.set(item.id, now);
       }
     }
-  }, [items, now, snoozedUntil]);
+    if (soundIds.length) void playAlertJingle(soundIds);
+  }, [items, now, snoozedUntil, snoozeQuery.isLoading]);
 
   const snooze = (durationMs: number) => {
     const until = Date.now() + durationMs;

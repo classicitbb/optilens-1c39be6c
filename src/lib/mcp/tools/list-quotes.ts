@@ -17,6 +17,7 @@ export default defineTool({
     let q = supabase
       .from("quotes")
       .select("id,quote_number,quote_type,status,customer_name,contact_name,contact_email,currency,valid_until,lead_time_days,grand_total,created_at")
+      .eq("is_test", false)
       .order("created_at", { ascending: false })
       .limit(limit ?? 10);
     if (status) q = q.eq("status", status);

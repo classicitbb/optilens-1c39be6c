@@ -56,7 +56,7 @@ const ORIGIN = "https://classicvisions.lovable.app";
  * in both deploy and health gates. `_shared` is source-only and not deployable.
  */
 const FUNCTIONS = readdirSync(resolve(process.cwd(), "supabase/functions"), { withFileTypes: true })
-  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_"))
+  .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_") && entry.name !== "node_modules")
   .map((entry) => entry.name)
   .sort();
 
@@ -80,6 +80,20 @@ const NO_CORS_FUNCTIONS = new Set([
   // design. Accept any non-5xx response as evidence the function booted.
   "statement-document",
   "statement-document-worker",
+  // Scheduler-invoked workers with no browser caller at all, so no CORS
+  // contract to keep. Both answer POST only and return 405 to anything else,
+  // including the preflight they will never receive:
+  //   · helpdesk-notify-worker — drains helpdesk_notification_queue every 15
+  //     minutes (migration 20260929160000), authed by X-Scheduler-Secret.
+  //   · rx-capture-purge — daily pg_cron retention purge (migration
+  //     20261001161000), authed by the token in rx_capture_settings.
+  // Their 405 is the function booting and routing correctly, which is all this
+  // probe can assert for them.
+  "helpdesk-notify-worker",
+  "rx-capture-purge",
+  // Telnyx (Iris voice assistant) take-message webhook: server-to-server POST
+  // only, authed by X-Iris-Secret; 405 to anything else.
+  "iris-take-message",
 ]);
 
 

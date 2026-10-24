@@ -109,6 +109,18 @@ const normalizeIdentity = (
   featureOverrides,
 });
 
+/**
+ * Per-account membership overrides (portal_membership_feature_overrides) win
+ * where set; the per-user overrides the admin Portals page edits
+ * (customer_portal_feature_overrides) fill every other key. Mirrors the
+ * live-data-gateway precedence — without the fallback, a membership row with
+ * no override for e.g. "order-prices" silently hid a feature staff had enabled.
+ */
+export const resolvePortalFeatureOverrides = (
+  userOverrides: Partial<Record<PortalFeature, boolean>>,
+  membershipOverrides: Partial<Record<PortalFeature, boolean>>,
+): Partial<Record<PortalFeature, boolean>> => ({ ...userOverrides, ...membershipOverrides });
+
 export const canAccessPortalFeature = (identity: PortalIdentity | null, feature: PortalFeature) => {
   if (!identity) return false;
   const override = identity.featureOverrides?.[feature];
@@ -121,6 +133,9 @@ export const canAccessPortalFeature = (identity: PortalIdentity | null, feature:
   }
   // Off by default: prices only show once staff explicitly enables it for a customer.
   if (feature === "order-prices") return override === true;
+  // Off by default while the Rx form is rebuilt: staff use it in admin, and a
+  // customer only gets it when staff explicitly enable it as a pilot.
+  if (feature === "rx-order") return override === true;
   if (override === true) return true;
   if (feature === "private-orders") return identity.portalAccessStatus === "approved_customer";
   return identity.portalAccessStatus === "approved_customer";
@@ -359,7 +374,7 @@ export const usePortalIdentity = () => {
       ordersUseBillToAccount: activeMembership.ordersUseBillToAccount,
       canAccessPricing: activeMembership.canAccessPricing,
       canAccessStatements: activeMembership.canAccessStatements,
-      featureOverrides: activeMembership.featureOverrides,
+      featureOverrides: resolvePortalFeatureOverrides(query.data.featureOverrides, activeMembership.featureOverrides),
     };
   }, [activeMembership, query.data]);
 

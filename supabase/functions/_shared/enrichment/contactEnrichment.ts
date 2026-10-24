@@ -155,7 +155,7 @@ export const enrichContact = async (
 
   let match;
   try {
-    match = await findPlaceForContact(apiKey, buildPlaceQuery(contact));
+    match = await findPlaceForContact(apiKey, buildPlaceQuery(contact), label(contact));
   } catch (error) {
     const detail = error instanceof Error ? error.message : "lookup failed";
     return { ...base, outcome: "error", detail, attemptId: await recordAttempt({ outcome: "error", error: detail }) };

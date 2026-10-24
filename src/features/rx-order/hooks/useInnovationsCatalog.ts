@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CatalogAlias } from "../embed/innovations-catalog";
 import { buildPriceLookup, type PriceLookup } from "../pricing/matrixPricing";
 import { buildEngineCurrencies, type EngineCurrency } from "../pricing/currencies";
+import type { PricelistLensAliasLink } from "../pricing/pricelistLenses";
 
 // The Rx order form's two data sources under the Innovations-as-catalogue model
 // (docs/rx-order-innovations-catalogue.md): what may be ordered, and what it
@@ -10,17 +11,45 @@ import { buildEngineCurrencies, type EngineCurrency } from "../pricing/currencie
 
 const PAGE = 1000; // PostgREST caps every response at 1000 rows regardless of .limit()
 
+/** Confirmed mappings limited to lenses selected on the assigned grid. */
+export const usePricelistLensAliasLinks = (lensIds: string[]) => {
+  const ids = [...new Set(lensIds)].sort();
+  return useQuery<PricelistLensAliasLink[]>({
+    queryKey: ["pricelist-selected-lens-aliases", ids],
+    enabled: ids.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const all: PricelistLensAliasLink[] = [];
+      for (let offset = 0; offset < ids.length; offset += 100) {
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await supabase.from("lens_alias_map")
+            .select("lens_id, innovations_alias, is_primary")
+            .in("lens_id", ids.slice(offset, offset + 100))
+            .not("confirmed_at", "is", null)
+            .order("id").range(from, from + PAGE - 1);
+          if (error) throw error;
+          all.push(...(data ?? []));
+          if (!data || data.length < PAGE) break;
+        }
+      }
+      return all;
+    },
+  });
+};
+
 /** Everything Innovations currently publishes as available. */
-export const useInnovationsCatalogAliases = () =>
+export const useInnovationsCatalogAliases = (enabled = true) =>
   useQuery<CatalogAlias[]>({
     queryKey: ["innovations-catalog-aliases"],
+    enabled,
     staleTime: 10 * 60_000,
     queryFn: async () => {
       const all: CatalogAlias[] = [];
       for (let from = 0; ; from += PAGE) {
-        const { data, error } = await (supabase.from("innovations_lens_aliases") as any)
+        // An RPC (no suppliers column) — customers cannot read the raw table.
+        // Not in the generated types until the next regeneration, hence the cast.
+        const { data, error } = await (supabase.rpc as any)("get_rx_catalog_aliases")
           .select("alias, style_code, style_description, color_code, color_description, mf_type, pricing_key")
-          .eq("is_active", true)
           .order("alias")
           .range(from, from + PAGE - 1);
         if (error) throw error;

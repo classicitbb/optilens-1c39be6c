@@ -1,3 +1,4 @@
+import { upperCaseInput } from "@/lib/upperCaseInput";
 import { useState, useEffect } from "react";
 import { useRxDetails, QuoteLine } from "@/hooks/useQuotes";
 import { useToast } from "@/hooks/use-toast";
@@ -188,7 +189,7 @@ export const PrescriptionSection = ({ lensLine, onSaved }: { lensLine: QuoteLine
 
       <div>
         <label className="text-[10px] font-medium text-muted-foreground block mb-0.5">Rx Notes</label>
-        <Textarea value={form.rx_notes} onChange={set("rx_notes")} className="text-xs min-h-[40px]" />
+        <Textarea value={form.rx_notes} onChange={(e) => upperCaseInput(e, (v) => setForm((f) => ({ ...f, rx_notes: v })))} className="text-xs min-h-[40px]" />
       </div>
 
       <div className="flex justify-end pt-1">

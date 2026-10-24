@@ -49,6 +49,8 @@
     emTagline: 'Classic Visions — wholesale optical supply, Barbados.',
     emDisclaimer: 'You are receiving this email as a valued Classic Visions trade partner. This message and any attachments are confidential.',
     docType: 'business',
+    ltRule: 'gold',
+    ltSpacing: 'comfortable',
     ltDate: '',
     ltRecipient: 'Mr. David Brathwaite\nBrathwaite Optical\nBridgetown, Barbados',
     ltSubject: 'Your June wholesale order',
@@ -63,6 +65,7 @@
     smFormat: 'instagram', smStyle: 'navy', smHeadline: 'Vision starts here.', smHeadlineAlign: 'left', smHeadlineItalic: false, smBody: '', smSub: '', smHandle: '@classicvisions', smPostLib: [],
     copied: '', libraryDelete: null,
     // Shipping label
+    slMode: 'shipping', slFromCaption: 'From', slToCaption: 'Ship to',
     slFromName: 'Classic Visions', slFromAddr: 'Worthing, Christ Church\nBarbados', slFromPhone: '+1 246 433-4928',
     slToName: '', slToCompany: '', slToAddr: '', slToPhone: '', slCarrier: '', slService: '', slTracking: '', slWeight: '', slDims: '', slNote: '',
     // Customer statement
@@ -79,6 +82,7 @@
     bkBankName: '', bkAccName: 'Classic Visions', bkAccNo: '', bkBranch: '', bkSwift: '', bkNote: '',
     // Billing — unified Invoice / Quotation / Pro Forma / Receipt
     billType: 'invoice', blNumber: '', blDate: '', blDue: '', blPO: '',
+    innovationsInvoiceNumber: '', innovationsSourceInvoiceNumber: '', innovationsInvoiceLoading: false, innovationsInvoiceMessage: '',
     blToName: '', blToCompany: '', blToAddr: '', blToAttn: '',
     blCurrency: 'BBD', blVatEnabled: true, blVatRate: '17.5',
     blDiscount: '', blShipping: '',
@@ -97,12 +101,16 @@
     fileSaveState: 'DB save ready', fileSaveDialogOpen: false, fileSaveDialogKind: '', fileSaveDialogMode: 'save', fileSaveDialogType: '', fileSaveDialogName: '', fileSaveDialogError: '', fileShareOpen: false, fileShareKind: '', fileShareId: '', fileShareName: '', fileShareUsers: [], fileCollaborators: [], fileShareUserId: '', fileShareAccess: 'view',
     emailSendOpen: false, emailContactsOpen: false, emailCcOpen: false, emailBccOpen: false, emailSending: false, emailSendError: '',
     emailFromLabel: 'Classic Visions <support@classicvisions.net>', emailDefaultReplyTo: '', emailReplyTo: '', emailTo: '', emailCc: '', emailBcc: '', emailSubject: '',
-    emailContacts: [], staffInviteDraft: false,
+    emailContacts: [], emailContactSearch: '', staffInviteDraft: false,
     dsCustomers: [],
     selectedStatementCustomer: '', selectedShipCustomer: '', selectedBillingCustomer: ''
   };
 
   componentDidMount() {
+    const studioSearch = location.search;
+    document.addEventListener('pointerdown', this.dismissEmailContacts, true);
+    document.addEventListener('focusin', this.dismissEmailContacts, true);
+    document.addEventListener('keydown', this.emailContactsKey, true);
     this.loadLogos();
     try {
       const raw = localStorage.getItem(this.KEY);
@@ -137,11 +145,25 @@
     this.loadBillShareUsers();
     setTimeout(() => { this._billingReady = true; }, 900);
     this.scheduleControlMetadata();
+    this._studioNavigationReady = true;
+    if (!this.applyStudioLocation(studioSearch)) this.notifyStudioNavigation();
   }
 
   componentDidUpdate() {
     this.scheduleControlMetadata();
     this.focusLibraryDeleteDialog();
+    // The native admin file manager (src/features/admin/doc-studio/files)
+    // renders My Files from this state; tell it when anything changed.
+    try { window.dispatchEvent(new CustomEvent('ds:files-state')); } catch (e) {}
+    this.notifyStudioNavigation();
+  }
+
+  componentWillUnmount() {
+    super.componentWillUnmount?.();
+    document.removeEventListener('pointerdown', this.dismissEmailContacts, true);
+    document.removeEventListener('focusin', this.dismissEmailContacts, true);
+    document.removeEventListener('keydown', this.emailContactsKey, true);
+    cancelAnimationFrame(this._controlMetadataFrame);
   }
 
   scheduleControlMetadata = () => {
@@ -193,7 +215,7 @@
     };
 
     root.querySelectorAll('input.cv-in, textarea.cv-in, select.cv-in').forEach((control) => {
-      const label = labelFor(control);
+      const label = control.getAttribute('aria-label') || labelFor(control);
       const key = this.slug(label);
       const occurrence = (names.get(key) || 0) + 1;
       names.set(key, occurrence);
@@ -221,7 +243,7 @@
   };
 
   // ---------- persistence ----------
-  persist = () => { try { const { copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
+  persist = () => { try { const { innovationsInvoiceLoading, innovationsInvoiceMessage, copied, libraryDelete, brandOpen, dlOpen, docxOpen, dsCustomers, emailContacts, emailContactSearch, emailSendOpen, emailContactsOpen, emailCcOpen, emailBccOpen, emailSending, emailSendError, emailTo, emailCc, emailBcc, emailSubject, staffInviteDraft, billingFiles, sharedBillingFiles, myFiles, billShareUsers, fileShareUsers, billingFilesLoaded, myFilesLoaded, fileSaveDialogOpen, fileSaveDialogKind, fileSaveDialogMode, fileSaveDialogType, fileSaveDialogName, fileSaveDialogError, fileShareOpen, billShareOpen, ...rest } = this.state; if (staffInviteDraft) { delete rest.emBody; } localStorage.setItem(this.KEY, JSON.stringify(rest)); } catch (e) {} };
   persistSoon = () => { clearTimeout(this._pt); this._pt = setTimeout(this.persist, 350); };
   set = (k, v) => { this.setState({ [k]: v }, () => { this.persistSoon(); if (this.isBillingField(k)) this.scheduleBillingAutosave(); if (this.isCurrentFileField(k)) this.scheduleFileAutosave(); if (this.isIssuerField(k)) this.saveDocStudioSettingsSoon(); }); };
   toast = (m) => { this.setState({ copied: m }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ copied: '' }), 2200); };
@@ -312,8 +334,26 @@
       emailSubject: s.emailSubject || this.emailSubjectLine()
     }));
   };
-  closeEmailSend = () => this.setState({ emailSendOpen: false, emailSendError: '', emailSending: false });
-  toggleEmailContacts = () => this.setState(s => ({ emailContactsOpen: !s.emailContactsOpen }));
+  closeEmailSend = () => this.setState({ emailSendOpen: false, emailContactsOpen: false, emailContactSearch: '', emailSendError: '', emailSending: false });
+  toggleEmailContacts = () => this.setState(s => ({ emailContactsOpen: !s.emailContactsOpen, emailContactSearch: '' }), () => {
+    if (this.state.emailContactsOpen) requestAnimationFrame(() => document.getElementById('ds-contact-search')?.focus());
+  });
+  dismissEmailContacts = (event) => {
+    if (!this.state.emailContactsOpen) return;
+    if (event.target?.closest?.('#ds-contact-picker, #ds-contact-toggle')) return;
+    this.setState({ emailContactsOpen: false });
+  };
+  emailContactsKey = (event) => {
+    if (!this.state.emailContactsOpen || event.key !== 'Escape') return;
+    event.preventDefault(); event.stopPropagation();
+    this.setState({ emailContactsOpen: false }, () => document.getElementById('ds-contact-toggle')?.focus());
+  };
+  setEmailContactSearch = (event) => this.setState({ emailContactSearch: event.target.value });
+  filteredEmailContacts = () => {
+    const query = String(this.state.emailContactSearch || '').trim().toLowerCase();
+    return (this.state.emailContacts || []).filter(c => c?.email && `${c.name || ''} ${c.email}`.toLowerCase().includes(query))
+      .slice().sort((a, b) => String(a.name || a.email).localeCompare(String(b.name || b.email)));
+  };
   showEmailCc = () => this.setState({ emailCcOpen: true });
   showEmailBcc = () => this.setState({ emailBccOpen: true });
   setEmailTo = (e) => this.setState({ emailTo: e.target.value, emailSendError: '' });
@@ -374,16 +414,37 @@
   };
   exportLetterWord = () => {
     this.setState({ docxOpen: false });
-    // Word opens an HTML document and renders it with full CSS fidelity, so the
-    // file matches the preview and stays fully editable. Office namespaces tell
-    // Word to treat it as a Word document.
+    const esc = this.esc;
+    const title = esc(this.state.ltSubject || (this.brand().name + ' Letter'));
+    const name = this.slug(this.state.ltSubject || 'classic-visions-letter') + '.doc';
+    const exporter = window.__dcLetterWordExport;
+    if (exporter) {
+      // MHTML archive: the letterhead lockup and the contact strip become real
+      // Word header/footer sub-documents, so they repeat on every page and are
+      // edited in Word's header/footer area. Body text stays plain, editable text.
+      const logoPng = this.logoPng('navy');
+      const usesEmbeddedLogo = typeof logoPng === 'string' && logoPng.indexOf('data:image/png;base64,') === 0;
+      const doc = exporter.buildLetterWordFile({
+        title,
+        bodyHtml: this.letterBodyHtml({ word: true }),
+        headerFirst: this.letterHeaderHtml({ word: true, logoSrc: usesEmbeddedLogo ? exporter.LOGO_URL : undefined }),
+        headerCont: this.letterHeaderHtml({ word: true, variant: 'cont' }),
+        footer: this.letterFooterHtml({ word: true }),
+        logoPng: usesEmbeddedLogo ? logoPng : '',
+      });
+      this.downloadFile(name, doc, 'application/msword');
+      this.toast('Downloaded Word document');
+      return;
+    }
+    // Fallback: plain Word-readable HTML (no separate header/footer parts).
     const inner = this.letterDocHtml().replace(/^[\s\S]*?<html[^>]*>/i, '').replace(/<\/html>\s*$/i, '');
     const doc = '<html xmlns:o="urn:schemas-microsoft-com:office:office" '
       + 'xmlns:w="urn:schemas-microsoft-com:office:word" '
       + 'xmlns="http://www.w3.org/TR/REC-html40">' + inner + '</html>';
-    this.downloadFile(this.slug(this.state.ltSubject || 'classic-visions-letter') + '.doc', doc, 'application/msword');
+    this.downloadFile(name, doc, 'application/msword');
     this.toast('Downloaded Word document');
   };
+
   openLetterGoogleDocs = async () => {
     this.setState({ docxOpen: false });
     await this.copyRich(this.buildLetter());
@@ -606,6 +667,28 @@
     this.setState({ tab: k, ...reset }, this.persistSoon);
   };
 
+  applyStudioLocation = (search) => {
+    const params = new URLSearchParams(search || '');
+    const tab = params.get('tab'), type = params.get('billType');
+    if (params.has('billingDocument') || params.has('staffInvite') || !['files', 'email', 'letter', 'signature', 'social', 'billing', 'shiplabel', 'statement'].includes(tab)) return false;
+    this.switchTab(tab);
+    if (tab === 'billing' && ['invoice', 'quote', 'proforma', 'receipt'].includes(type) && type !== this.state.billType) {
+      // Navigation changes the draft's view, never autosaves a type conversion
+      // over the previously opened billing document.
+      clearTimeout(this._billAutosaveTimer);
+      this.setState({ billType: type, blNumber: this.peekBillNumber(type), currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '', currentBillingAccess: 'owner', currentBillingIsOwner: true, billCollaborators: [], billShareOpen: false }, this.persistSoon);
+    }
+    return true;
+  };
+
+  notifyStudioNavigation = () => {
+    if (!this._studioNavigationReady) return;
+    const key = this.state.tab + ':' + (this.state.tab === 'billing' ? this.state.billType : '');
+    if (key === this._lastStudioNavigation) return;
+    this._lastStudioNavigation = key;
+    try { window.dispatchEvent(new CustomEvent('ds:navigation', { detail: { tab: this.state.tab, billType: this.state.billType } })); } catch (e) {}
+  };
+
   composeNewEmail = () => {
     this.syncTiny('email');
     this.destroyTiny('email');
@@ -700,14 +783,14 @@
   fitFont = (base, scale, min) => Math.max(min || 8, Math.round(base * scale));
   clampTextStyle = () => 'overflow-wrap:anywhere;word-break:normal;hyphens:auto';
 
-  styleBody = (html) => {
-    const fit = this.fitScale(html, 1700, .72);
+  styleBody = (html, opts = {}) => {
+    const fit = opts.letter ? 1 : this.fitScale(html, 1700, .72);
     const p = this.fitFont(15, fit, 10), h2 = this.fitFont(17, fit, 12), h3 = this.fitFont(14.5, fit, 11), li = this.fitFont(15, fit, 10);
     const map = {
       H1: `font:800 ${this.fitFont(21, fit, 13)}px/1.2 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin:${Math.round(26*fit)}px 0 ${Math.round(10*fit)}px;${this.clampTextStyle()}`,
       H2: `font:700 ${h2}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.01em;color:#0B1E35;margin:${Math.round(24*fit)}px 0 ${Math.round(8*fit)}px;${this.clampTextStyle()}`,
       H3: `font:700 ${h3}px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin:${Math.round(20*fit)}px 0 ${Math.round(6*fit)}px;${this.clampTextStyle()}`,
-      P: `font:400 ${p}px/1.62 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round(14*fit)}px;${this.clampTextStyle()}`,
+      P: `font:400 ${p}px/${opts.compact ? '1.5' : '1.62'} 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round((opts.compact ? 10 : 14)*fit)}px;${this.clampTextStyle()}`,
       UL: `margin:0 0 ${Math.round(14*fit)}px;padding-left:${Math.round(22*fit)}px`, OL: `margin:0 0 ${Math.round(14*fit)}px;padding-left:${Math.round(22*fit)}px`,
       LI: `font:400 ${li}px/1.55 'Plus Jakarta Sans',Arial,sans-serif;color:#3d4a57;margin:0 0 ${Math.round(6*fit)}px;${this.clampTextStyle()}`,
       A: "color:#1A8A9C;text-decoration:underline",
@@ -759,7 +842,7 @@
     const txt = scheme === 'dark' ? '#F4F2ED' : '#0B1E35';
     const sub = scheme === 'dark' ? '#C89130' : '#1A8A9C';
     const size = big ? 58 : 48; const word = big ? '21px' : '18px';
-    const src = this.logoPng(scheme === 'dark' ? 'linen' : 'navy');
+    const src = opts.src || this.logoPng(scheme === 'dark' ? 'linen' : 'navy');
     return `<table role="presentation" cellpadding="0" cellspacing="0" style="display:inline-block;vertical-align:middle;border-collapse:collapse"><tr><td style="vertical-align:middle"><img src="${src}" width="${size}" height="${size}" alt="Classic Visions" style="display:block;width:${size}px;height:${size}px;border:0"></td><td style="vertical-align:middle;padding-left:13px;text-align:left"><div style="font:800 ${word}/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.04em;color:${txt}">CLASSIC VISIONS</div><div style="font:700 8.5px/1.4 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.3em;color:${sub};margin-top:6px">OPTICAL · BARBADOS</div></td></tr></table>`;
   };
 
@@ -815,78 +898,181 @@
   };
 
   // ---------- LETTER ----------
-  buildLetter = () => {
-    const d = this.state, b = this.brand(), esc = this.esc;
-    const head = `<div style="padding:46px 60px 0">
+  letterRuleHtml = (margin) => {
+    const style = this.state.ltRule || 'gold';
+    if (style === 'none') return '';
+    const color = style === 'teal' ? '#1A8A9C' : '#C89130';
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:${margin}"><tr><td style="border:0;border-top:1px solid ${color};padding:0;font-size:0;line-height:0">&nbsp;</td></tr></table>`;
+  };
+  // Header / footer markup is shared by the on-screen preview and the Word
+  // export. In the export the same blocks are lifted into genuine Word header
+  // and footer parts, so page padding is dropped (Word page margins own it).
+  letterHeaderHtml = (opts) => {
+    opts = opts || {};
+    const b = this.brand(), esc = this.esc;
+    const pad = opts.word ? '0' : '46px 60px 0';
+    if (opts.variant === 'cont') {
+      return `<div style="padding:${opts.word ? '0' : '24px 60px 0'}">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+          <td style="font:800 11px/1.4 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;color:#0B1E35">CLASSIC VISIONS</td>
+          <td style="text-align:right;font:400 10.5px/1.4 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${opts.word ? `Page <span style="mso-field-code:PAGE">2</span>` : 'Page 2'}</td>
+        </tr></table>
+        ${this.letterRuleHtml('8px 0 0')}
+      </div>`;
+    }
+    return `<div style="padding:${pad}">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
-        <td style="vertical-align:middle">${this.lockup('light', { big: true })}</td>
+        <td style="vertical-align:middle">${this.lockup('light', { big: true, src: opts.logoSrc })}</td>
         <td style="vertical-align:middle;text-align:right;font:400 11.5px/1.75 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c">${esc(b.phone)}<br>${esc(b.email)}<br>${esc(b.web)}</td>
       </tr></table>
-      <div style="height:2px;background:#C89130;margin:22px 0 0;font-size:0;line-height:0">&nbsp;</div>
+      ${this.letterRuleHtml('22px 0 0')}
     </div>`;
+  };
+
+  letterFooterHtml = (opts) => {
+    opts = opts || {};
+    const b = this.brand(), esc = this.esc;
+    const pageLine = opts.word
+      ? `<div style="text-align:center;font:400 10px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#a2a9b3;margin-top:4px">Page <span style="mso-field-code:PAGE">1</span> of <span style="mso-field-code:NUMPAGES">1</span></div>`
+      : '';
+    const rule = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:14px"><tr><td style="border-top:1px solid #ece9e0;font-size:0;line-height:0">&nbsp;</td></tr></table>`;
+    return `<div style="padding:${opts.word ? '0' : '34px 60px 42px'}">${rule}<div style="text-align:center;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(b.name)} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)} &nbsp;·&nbsp; ${esc(b.web)}</div>${pageLine}</div>`;
+  };
+
+  letterBodyHtml = (opts) => {
+    opts = opts || {};
+    const d = this.state, esc = this.esc;
+    const px = opts.word ? '0' : '60px';
     let inner = '';
     if (d.docType === 'memo') {
       const row = (l, v) => `<tr><td style="font:700 11px/1.9 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#1A8A9C;padding-right:20px;vertical-align:top">${l}</td><td style="font:400 13.5px/1.8 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(v)}</td></tr>`;
-      inner = `<div style="padding:32px 60px 8px">
+      inner = `<div style="padding:32px ${px} 8px">
         <div style="font:800 23px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin-bottom:22px">MEMORANDUM</div>
         <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${row('To', d.ltTo)}${row('From', d.ltFrom)}${row('Date', d.ltDate)}${row('Re', d.ltRe)}</table>
-        <div style="height:1px;background:#ece9e0;margin:20px 0 4px"></div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:20px 0 4px"><tr><td style="border-top:1px solid #ece9e0;font-size:0;line-height:0">&nbsp;</td></tr></table>
       </div>`;
     } else if (d.docType === 'announcement') {
-      inner = `<div style="padding:36px 60px 0;text-align:center">
+      inner = `<div style="padding:36px ${px} 0;text-align:center">
         <div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#1A8A9C;margin-bottom:14px">${esc(d.ltEyebrow)}</div>
         <h1 style="font:800 28px/1.14 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:-.02em;color:#0B1E35;margin:0 0 8px">${esc(d.ltSubject)}</h1>
         <div style="font:400 12px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(d.ltDate)}</div>
-        <div style="width:44px;height:3px;background:#C89130;margin:20px auto 0;font-size:0;line-height:0">&nbsp;</div>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:44px;border-collapse:collapse;margin:20px auto 0"><tr><td style="border-top:3px solid #C89130;font-size:0;line-height:0">&nbsp;</td></tr></table>
       </div>`;
     } else {
-      inner = `<div style="padding:32px 60px 0">
+      inner = `<div style="padding:32px ${px} 0">
         <div style="font:400 13px/1 'Plus Jakarta Sans',Arial,sans-serif;color:#5b6b7c;margin-bottom:20px">${esc(d.ltDate)}</div>
         <div style="font:400 13.5px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-bottom:18px">${(d.ltRecipient || '').split('\n').map(esc).join('<br>')}</div>
         ${d.ltSubject ? `<div style="font:700 13.5px/1.5 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-bottom:6px">Re: ${esc(d.ltSubject)}</div>` : ''}
       </div>`;
     }
-    const amount = (d.docType === 'collection' && d.ltAmount) ? `<div style="margin:6px 60px 2px;border:1px solid #C89130;border-radius:8px;padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px">${esc(d.ltAmount)}</div></div>` : '';
-    const bodyHtml = `<div style="padding:16px 60px 0">${this.styleBody(d.ltBody)}</div>`;
-    const sign = d.docType === 'memo' ? '' : `<div style="padding:10px 60px 0">
+    const amountRadius = opts.word ? '' : 'border-radius:8px;';
+    const amount = (d.docType === 'collection' && d.ltAmount) ? `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:6px ${px} 2px"><tr><td style="border:1px solid #C89130;${amountRadius}padding:14px 20px;background:#fbf6ec"><div style="font:700 11px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#1A8A9C">Amount due</div><div style="font:800 24px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;margin-top:6px;white-space:nowrap">${esc(d.ltAmount)}</div></td></tr></table>` : '';
+    const compact = d.ltSpacing === 'compact';
+    const bodyHtml = `<div style="padding:${compact ? '10px' : '16px'} ${px} 0">${this.styleBody(d.ltBody, { compact, letter: true })}</div>`;
+    const sign = d.docType === 'memo' ? '' : `<div style="padding:10px ${px} 0">
       <p style="font:400 14px/1.7 'Plus Jakarta Sans',Arial,sans-serif;color:#1c2b3a;margin:0 0 40px">Sincerely,</p>
       <div style="font:700 14px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35">${esc(d.ltSignName)}</div>
       <div style="font:600 12.5px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#1A8A9C">${esc(d.ltSignTitle)}</div>
     </div>`;
-    const foot = `<div style="padding:34px 60px 42px"><div style="height:1px;background:#ece9e0;margin-bottom:14px"></div><div style="text-align:center;font:400 11px/1.6 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0">${esc(b.name)} &nbsp;·&nbsp; ${esc(b.phone)} &nbsp;·&nbsp; ${esc(b.email)} &nbsp;·&nbsp; ${esc(b.web)}</div></div>`;
-    return `<div style="width:680px;max-width:680px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">${head}${inner}${amount}${bodyHtml}${sign}${foot}</div>`;
+    return `${inner}${amount}${bodyHtml}${sign}`;
   };
+
+  buildLetter = () => {
+    return `<div style="width:680px;max-width:680px;margin:0 auto;background:#fff;font-family:'Plus Jakarta Sans',Arial,sans-serif;box-shadow:0 10px 40px -10px rgba(11,30,53,.18)">${this.letterHeaderHtml()}${this.letterBodyHtml()}${this.letterFooterHtml()}</div>`;
+  };
+
 
   // ---------- SIGNATURE ----------
   buildSignature = () => {
-    const d = this.state, esc = this.esc;
-    const fit = this.fitScale([d.sgName, d.sgTitle, d.sgPhone, d.sgEmail, d.sgWeb, d.sgTagline].join(' '), 160, .68);
-    const nameSz = this.fitFont(16, fit, 11), bodySz = this.fitFont(12, fit, 9), labelSz = this.fitFont(10, fit, 8);
-    const mono = d.sgLogo ? `<td style="vertical-align:top;padding-right:18px"><img src="${this.logoPng('navy')}" width="56" height="56" alt="Classic Visions" style="display:block;width:56px;height:56px;border:0"></td>` : '';
-    return `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:'Plus Jakarta Sans',Arial,sans-serif;max-width:520px;table-layout:fixed"><tr>
-      ${mono}
-      <td style="vertical-align:top;border-left:2px solid #C89130;padding-left:18px;max-width:430px">
-        <div style="font:800 ${nameSz}px/1.16 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.sgName)}</div>
-        <div style="font:600 ${bodySz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#1A8A9C;margin-top:2px;${this.clampTextStyle()}">${esc(d.sgTitle)}</div>
-        <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#0B1E35;margin:${Math.round(10*fit)}px 0">CLASSIC VISIONS</div>
-        <div style="font:400 ${bodySz}px/1.55 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">
-          ${d.sgPhone ? `${esc(d.sgPhone)}<br>` : ''}
-          ${d.sgEmail ? `<a href="mailto:${esc(d.sgEmail)}" style="color:#1A8A9C;text-decoration:none">${esc(d.sgEmail)}</a><br>` : ''}
-          ${d.sgWeb ? `<a href="https://${esc(d.sgWeb)}" style="color:#1A8A9C;text-decoration:none">${esc(d.sgWeb)}</a>` : ''}
-        </div>
-        ${d.sgTagline ? `<div style="font:italic 400 ${this.fitFont(11, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#8a93a0;margin-top:${Math.round(9*fit)}px;${this.clampTextStyle()}">${esc(d.sgTagline)}</div>` : ''}
-      </td>
+    const d = this.state, esc = (value) => this.esc(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    // A public HTTPS raster survives more email clients than SVG/data URIs.
+    const logo = 'https://www.classicvisions.net/ds/assets/signature-logo.png';
+    const website = String(d.sgWeb || '').trim();
+    const url = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+    const link = (href, label) => `<a href="${esc(href)}" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#176d7a;text-decoration:underline">${esc(label)}</a>`;
+    const row = (html, style = '') => `<tr><td bgcolor="#ffffff" style="padding:0;background-color:#ffffff;color:#0B1E35;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;word-break:break-word;${style}">${html}</td></tr>`;
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="border-collapse:collapse;border:0;background-color:#ffffff;color:#0B1E35;font-family:Arial,Helvetica,sans-serif;width:420px;max-width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt"><tr>
+      ${d.sgLogo ? `<td width="80" bgcolor="#ffffff" valign="top" style="padding:16px 12px;background-color:#ffffff;border:0"><img src="${logo}" width="56" height="56" alt="Classic Visions" style="display:block;width:56px;height:56px;border:0;background-color:#ffffff"></td>` : ''}
+      <td bgcolor="#ffffff" valign="top" style="padding:16px;border:0;border-left:2px solid #C89130;background-color:#ffffff"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%">
+        ${row(esc(d.sgName), 'font-size:16px;font-weight:bold;line-height:22px;')}
+        ${d.sgTitle ? row(esc(d.sgTitle), 'color:#176d7a;') : ''}
+        ${row('CLASSIC VISIONS', 'padding-top:8px;padding-bottom:6px;font-size:11px;font-weight:bold;letter-spacing:1px;')}
+        ${d.sgPhone ? row(link(`tel:${String(d.sgPhone).replace(/[^+\d]/g, '')}`, d.sgPhone)) : ''}
+        ${d.sgEmail ? row(link(`mailto:${d.sgEmail}`, d.sgEmail)) : ''}
+        ${website ? row(link(url, website)) : ''}
+        ${d.sgTagline ? row(esc(d.sgTagline), 'padding-top:8px;color:#41525f;font-style:italic;font-size:12px;') : ''}
+      </table></td>
     </tr></table>`;
   };
-  buildSignatureBoard = () => `<div style="background:#fff;border:1px solid #e7e4db;border-radius:12px;padding:36px 40px;box-shadow:0 10px 40px -10px rgba(11,30,53,.12)">${this.buildSignature()}</div>`;
+  buildSignatureBoard = () => this.buildSignature().replace('https://www.classicvisions.net/ds/assets/signature-logo.png', '/ds/assets/signature-logo.png');
+  downloadSignatureHtml = () => this.downloadFile(this.slug(this.state.sgName || 'signature') + '-signature.html', `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email signature</title></head><body>${this.buildSignature()}</body></html>`, 'text/html;charset=utf-8');
+  insertSignatureInEmail = () => {
+    this.syncActive();
+    this.set('emBody', this.state.emBody + '<p><br></p>' + this.buildSignature());
+    this.switchTab('email');
+    this.toast('Signature added to the email draft');
+  };
+  signaturePngBlob = async () => {
+    const d = this.state, canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const x = d.sgLogo ? 108 : 18, width = 420, textWidth = width - x - 18;
+    const lines = [];
+    const add = (text, font, color, gap = 0) => {
+      if (!text) return;
+      ctx.font = font;
+      let line = '';
+      // Character wrapping also preserves very long addresses without clipping.
+      for (const ch of String(text)) {
+        if (ctx.measureText(line + ch).width > textWidth && line) { lines.push({ text: line, font, color, gap }); line = ''; gap = 0; }
+        line += ch;
+      }
+      lines.push({ text: line, font, color, gap });
+    };
+    add(d.sgName, 'bold 16px Arial', '#0B1E35');
+    add(d.sgTitle, '13px Arial', '#176d7a');
+    add('CLASSIC VISIONS', 'bold 11px Arial', '#0B1E35', 8);
+    [d.sgPhone, d.sgEmail, d.sgWeb].forEach(text => add(text, '13px Arial', '#176d7a'));
+    add(d.sgTagline, 'italic 12px Arial', '#41525f', 8);
+    const height = Math.max(96, 32 + lines.reduce((sum, line) => sum + 22 + line.gap, 0));
+    canvas.width = width * 3; canvas.height = height * 3;
+    ctx.scale(3, 3); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#C89130'; ctx.fillRect(x - 16, 0, 2, height);
+    if (d.sgLogo) {
+      const logo = new Image();
+      await new Promise((resolve, reject) => { logo.onload = resolve; logo.onerror = reject; logo.src = '/ds/assets/signature-logo.png'; });
+      ctx.drawImage(logo, 12, 16, 56, 56);
+    }
+    let y = 16;
+    ctx.textBaseline = 'top';
+    lines.forEach(line => { y += line.gap; ctx.font = line.font; ctx.fillStyle = line.color; ctx.fillText(line.text, x, y); y += 22; });
+    return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed')), 'image/png'));
+  };
+  downloadSignatureImage = async () => {
+    try { this.downloadFile(this.slug(this.state.sgName || 'signature') + '-signature.png', await this.signaturePngBlob(), 'image/png'); }
+    catch (error) { this.toast('Image export failed. Try downloading HTML instead.'); }
+  };
+  copySignatureImage = async () => {
+    try {
+      if (!navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': this.signaturePngBlob() })]);
+      this.toast('Signature image copied — paste into your email');
+    } catch (error) { this.toast('Image copy was blocked. Use Download PNG, then insert the image in your email.'); }
+  };
+  setLabelMode = (event) => {
+    const mode = event.target.value === 'customer' ? 'customer' : 'shipping';
+    const oldCaption = this.state.slMode === 'customer' ? 'Customer' : 'Ship to';
+    this.setState({ slMode: mode, slToCaption: this.state.slToCaption === oldCaption ? (mode === 'customer' ? 'Customer' : 'Ship to') : this.state.slToCaption }, this.persist);
+  };
 
   // ---------- copy / print ----------
   copyRich = async (html) => {
+    const plain = document.createElement('div');
+    plain.innerHTML = html.replace(/<br\s*\/?\s*>|<\/tr>|<\/p>/gi, '\n');
     try {
       if (navigator.clipboard && window.ClipboardItem) {
         await navigator.clipboard.write([new ClipboardItem({
           'text/html': new Blob([html], { type: 'text/html' }),
-          'text/plain': new Blob([html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()], { type: 'text/plain' })
+          'text/plain': new Blob([(plain.textContent || '').replace(/[ \t]+/g, ' ').replace(/[ \t]*\n[ \t]*/g, '\n').replace(/\n\s*\n/g, '\n').trim()], { type: 'text/plain' })
         })]);
       } else throw new Error('no-clip');
     } catch (e) {
@@ -895,16 +1081,19 @@
       tmp.innerHTML = html; document.body.appendChild(tmp);
       const r = document.createRange(); r.selectNode(tmp);
       const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
-      try { document.execCommand('copy'); } catch (er) {}
+      let copied = false;
+      try { copied = document.execCommand('copy'); } catch (er) {}
       sel.removeAllRanges(); tmp.remove();
+      if (!copied) { this.toast('Copy was blocked. Download HTML, open it, then select and copy the signature.'); return false; }
     }
     this.toast('Copied — paste into your email or doc');
+    return true;
   };
   copyNow = () => {
     const t = this.state.tab;
     if (t === 'files') { this.toast('Open a file to preview it'); return; }
     if (t === 'social') { this.openSmFull(); return; }
-    if (t === 'shiplabel') { this.printDoc(this.buildShippingLabel(), 'Shipping Label'); return; }
+    if (t === 'shiplabel') { this.printDoc(this.buildShippingLabel(), this.state.slMode === 'customer' ? 'Customer Label' : 'Shipping Label'); return; }
     if (t === 'statement') { this.printDoc(this.state.stType === 'advanced' ? this.buildAdvancedStatement() : this.buildStatement(), 'Customer Statement'); return; }
     if (t === 'billing') { this.printDoc(this.buildBilling(), this.billMeta().title, this.state.billPaperSize || 'letter'); return; }
     this.copyRich(t === 'email' ? this.buildEmail() : t === 'letter' ? this.buildLetter() : this.buildSignature());
@@ -971,7 +1160,7 @@
     return;
     const name = prompt('Name this letterhead template:'); if (!name) return;
     const ltBody = this.letterEditor ? this.letterEditor.innerHTML : this.state.ltBody;
-    const k = ['docType', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe'];
+    const k = ['docType', 'ltRule', 'ltSpacing', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe'];
     const fields = { ltBody }; k.forEach(x => fields[x] = this.state[x]);
     this.setState(s => ({ letterLib: [...s.letterLib, { id: Date.now() + '', name, fields }] }), this.persist);
     this.toast('Template saved');
@@ -1060,7 +1249,7 @@
   // ---------- view helpers ----------
   tabStyle = (active) => `padding:7px 16px;border:0;border-radius:7px;cursor:pointer;font:700 12.5px/1 'Plus Jakarta Sans',sans-serif;background:${active ? '#F4F2ED' : 'transparent'};color:${active ? '#0B1E35' : '#cdd8e4'};transition:.15s`;
   segStyle = (active) => `flex:1;padding:9px 6px;border-radius:8px;border:1px solid ${active ? '#0B1E35' : '#d9d7cf'};background:${active ? '#0B1E35' : '#fff'};color:${active ? '#fff' : '#0B1E35'};font:700 11.5px/1.2 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-align:center;transition:.15s`;
-  seg = (key, opts) => opts.map(o => ({ label: o.l, style: this.segStyle(this.state[key] === o.k), onClick: () => this.set(key, o.k) }));
+  seg = (key, opts) => opts.map(o => ({ label: o.l, pressed: this.state[key] === o.k, style: this.segStyle(this.state[key] === o.k), onClick: () => this.set(key, o.k) }));
 
 
   // ---------- customer reference data ----------
@@ -1204,33 +1393,34 @@
   // ---------- SHIPPING LABEL build ----------
   buildShippingLabel = () => {
     const d = this.state, esc = this.esc;
+    const customer = d.slMode === 'customer';
     const total = [d.slFromName,d.slFromAddr,d.slFromPhone,d.slToName,d.slToCompany,d.slToAddr,d.slToPhone,d.slCarrier,d.slService,d.slTracking,d.slWeight,d.slDims,d.slNote].join(' ');
     const fit = this.fitScale(total, 520, .58);
     const labelSz = this.fitFont(9, fit, 7), bodySz = this.fitFont(12, fit, 8), nameSz = this.fitFont(14, fit, 9), pad = this.fitFont(16, fit, 9);
-    const box = (label, val) => val ? `<div style="margin-bottom:${Math.max(2, Math.round(4*fit))}px"><span style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">${label}: </span><span style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(val)}</span></div>` : '';
-    return `<div style="width:432px;max-width:432px;font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#fff;border:2px solid #0B1E35;border-radius:10px;overflow:visible;box-shadow:0 6px 24px -8px rgba(11,30,53,.25);box-sizing:border-box">
-      <div style="background:#0B1E35;padding:${Math.round(14*fit)}px 20px;display:flex;align-items:center;gap:12px">
+    const box = (label, val) => val ? `<div style="border-radius:0;margin-bottom:${Math.max(2, Math.round(4*fit))}px"><span style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">${label}: </span><span style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(val)}</span></div>` : '';
+    return `<div style="border-radius:0;width:432px;max-width:432px;font-family:'Plus Jakarta Sans',Arial,sans-serif;background:#fff;border:2px solid #0B1E35;border-radius:0;overflow:visible;box-shadow:0 6px 24px -8px rgba(11,30,53,.25);box-sizing:border-box">
+      <div style="border-radius:0;background:#0B1E35;padding:${Math.round(14*fit)}px 20px;display:flex;align-items:center;gap:12px">
         <img src="/ds/assets/logo_linen.svg" width="36" height="36" alt="" style="display:block;width:36px;height:36px">
-        <div><div style="font:800 ${this.fitFont(13, fit, 9)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.06em;color:#F4F2ED">CLASSIC VISIONS</div><div style="font:700 ${this.fitFont(8, fit, 6)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.22em;color:#C89130;margin-top:4px">OPTICAL · BARBADOS</div></div>
-        ${d.slCarrier || d.slService ? `<div style="margin-left:auto;text-align:right;max-width:145px"><div style="font:700 ${this.fitFont(13, fit, 8)}px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#F4F2ED;${this.clampTextStyle()}">${esc(d.slCarrier)}</div><div style="font:400 ${this.fitFont(11, fit, 7)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#8fa3b8;${this.clampTextStyle()}">${esc(d.slService)}</div></div>` : ''}
+        <div><div style="border-radius:0;font:800 ${this.fitFont(13, fit, 9)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.06em;color:#F4F2ED">CLASSIC VISIONS</div><div style="border-radius:0;font:700 ${this.fitFont(8, fit, 6)}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.22em;color:#C89130;margin-top:4px">OPTICAL · BARBADOS</div></div>
+        ${!customer && (d.slCarrier || d.slService) ? `<div style="border-radius:0;margin-left:auto;text-align:right;max-width:145px"><div style="border-radius:0;font:700 ${this.fitFont(13, fit, 8)}px/1.1 'Plus Jakarta Sans',Arial,sans-serif;color:#F4F2ED;${this.clampTextStyle()}">${esc(d.slCarrier)}</div><div style="border-radius:0;font:400 ${this.fitFont(11, fit, 7)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#8fa3b8;${this.clampTextStyle()}">${esc(d.slService)}</div></div>` : ''}
       </div>
-      <div style="display:flex">
-        <div style="flex:1;min-width:0;padding:${pad}px 20px;border-right:1px solid #e7e4db">
-          <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:${Math.round(8*fit)}px">From</div>
-          <div style="font:600 ${this.fitFont(13, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slFromName)}</div>
-          <div style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slFromAddr)}</div>
+      <div style="border-radius:0;display:flex">
+        ${!customer ? `<div style="border-radius:0;flex:1;min-width:0;padding:${pad}px 20px;border-right:1px solid #e7e4db">
+          <div style="border-radius:0;font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C;margin-bottom:${Math.round(8*fit)}px">${esc(d.slFromCaption || 'From')}</div>
+          <div style="border-radius:0;font:600 ${this.fitFont(13, fit, 8)}px/1.35 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slFromName)}</div>
+          <div style="border-radius:0;font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slFromAddr)}</div>
           ${box('Tel', d.slFromPhone)}
-        </div>
-        <div style="flex:1;min-width:0;padding:${pad}px 20px">
-          <div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#0B1E35;margin-bottom:${Math.round(8*fit)}px">Ship to</div>
-          <div style="font:700 ${nameSz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slToName)}</div>
-          ${d.slToCompany ? `<div style="font:600 ${this.fitFont(12.5, fit, 8)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">${esc(d.slToCompany)}</div>` : ''}
-          <div style="font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slToAddr)}</div>
+        </div>` : ''}
+        <div style="border-radius:0;flex:1;min-width:0;padding:${pad}px 20px">
+          <div style="border-radius:0;font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#0B1E35;margin-bottom:${Math.round(8*fit)}px">${esc(d.slToCaption || (customer ? 'Customer' : 'Ship to'))}</div>
+          <div style="border-radius:0;font:700 ${nameSz}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;${this.clampTextStyle()}">${esc(d.slToName)}</div>
+          ${d.slToCompany ? `<div style="border-radius:0;font:600 ${this.fitFont(12.5, fit, 8)}px/1.25 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;${this.clampTextStyle()}">${esc(d.slToCompany)}</div>` : ''}
+          <div style="border-radius:0;font:400 ${bodySz}px/1.38 'Plus Jakarta Sans',Arial,sans-serif;color:#41525f;white-space:pre-wrap;${this.clampTextStyle()}">${esc(d.slToAddr)}</div>
           ${box('Tel', d.slToPhone)}
         </div>
       </div>
-      ${d.slTracking ? `<div style="padding:${Math.round(10*fit)}px 20px;background:#f7f5ef;border-top:1px solid #e7e4db;display:flex;align-items:center;gap:12px"><div style="font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">Tracking</div><div style="font:700 ${this.fitFont(14, fit, 9)}px/1.15 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;letter-spacing:.03em;${this.clampTextStyle()}">${esc(d.slTracking)}</div></div>` : ''}
-      ${d.slWeight || d.slDims || d.slNote ? `<div style="padding:${Math.round(10*fit)}px 20px;border-top:1px solid #e7e4db;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">${box('Weight', d.slWeight)}${box('Dims', d.slDims)}${d.slNote?`<div style="margin-left:auto;max-width:100%;font:600 ${this.fitFont(11, fit, 7)}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#C89130;font-style:italic;${this.clampTextStyle()}">${esc(d.slNote)}</div>`:''}</div>` : ''}
+      ${!customer && d.slTracking ? `<div style="border-radius:0;padding:${Math.round(10*fit)}px 20px;background:#f7f5ef;border-top:1px solid #e7e4db;display:flex;align-items:center;gap:12px"><div style="border-radius:0;font:700 ${labelSz}px/1 'Plus Jakarta Sans',Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#1A8A9C">Tracking</div><div style="border-radius:0;font:700 ${this.fitFont(14, fit, 9)}px/1.15 'Plus Jakarta Sans',Arial,sans-serif;color:#0B1E35;letter-spacing:.03em;${this.clampTextStyle()}">${esc(d.slTracking)}</div></div>` : ''}
+      ${(!customer && (d.slWeight || d.slDims)) || d.slNote ? `<div style="border-radius:0;padding:${Math.round(10*fit)}px 20px;border-top:1px solid #e7e4db;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">${!customer ? box('Weight', d.slWeight) + box('Dims', d.slDims) : ''}${d.slNote?`<div style="border-radius:0;margin-left:auto;max-width:100%;font:600 ${this.fitFont(11, fit, 7)}px/1.3 'Plus Jakarta Sans',Arial,sans-serif;color:#C89130;font-style:italic;${this.clampTextStyle()}">${esc(d.slNote)}</div>`:''}</div>` : ''}
     </div>`;
   };
 
@@ -1524,6 +1714,30 @@
     receipt:  { title: 'RECEIPT',            prefix: 'RCT', toLabel: 'Received from', dueLabel: '',            showBank: false, showPay: true,  note: '' }
   };
   billMeta = () => this.BILL_META[this.state.billType] || this.BILL_META.invoice;
+  importInnovationsInvoice = async () => {
+    if (this.state.innovationsInvoiceLoading || !this.canEditBillingFile() || !['invoice', 'quote'].includes(this.state.billType)) return;
+    const number = String(this.state.innovationsInvoiceNumber || '').trim();
+    const type = this.state.billType, fileId = this.state.currentBillingDocumentId;
+    const snapshot = JSON.stringify(this.billingSnapshot());
+    clearTimeout(this._billAutosaveTimer);
+    this.setState({ innovationsInvoiceLoading: true, innovationsInvoiceMessage: 'Loading Innovations invoice…' });
+    try {
+      if (!window.__docStudioLoadInvoice) throw new Error('Invoice import is available in the admin Doc Studio.');
+      const fields = await window.__docStudioLoadInvoice(number, this.state.selectedBillingCustomer || '');
+      if (type !== this.state.billType || fileId !== this.state.currentBillingDocumentId || snapshot !== JSON.stringify(this.billingSnapshot())) throw new Error('The document changed while loading. Import again to fill the current template.');
+      // Import as an independent local draft, never autosave over the open file.
+      clearTimeout(this._billAutosaveTimer);
+      this.setState({ ...fields, innovationsSourceInvoiceNumber: String(Number(number)),
+        blNumber: type === 'invoice' ? String(Number(number)) : this.peekBillNumber('quote'),
+        currentBillingDocumentId: '', currentBillingVersion: '', currentBillingDocumentName: '',
+        currentBillingAccess: 'owner', currentBillingIsOwner: true, billCollaborators: [], billShareOpen: false,
+        billSaveState: 'Imported draft — review and save',
+        innovationsInvoiceLoading: false, innovationsInvoiceMessage: 'Invoice ' + number + ' imported. Review the customer, lines and source notes before saving.'
+      }, this.persist);
+    } catch (error) {
+      this.setState({ innovationsInvoiceLoading: false, innovationsInvoiceMessage: error.message || 'Invoice import failed. Try again.' });
+    }
+  };
   peekBillNumber = (type) => { const m = this.BILL_META[type] || this.BILL_META.invoice; const seq = (this.state.billSeq && this.state.billSeq[type]) || 1; return `${m.prefix}-${String(seq).padStart(4, '0')}`; };
   nextBillNumber = () => {
     const type = this.state.billType, m = this.BILL_META[type] || this.BILL_META.invoice;
@@ -1554,7 +1768,7 @@
     return { blRows: blank ? [row] : [...rows, row] };
   }, this.billingChanged);
 
-  BILL_FILE_KEYS = ['billType', 'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blCurrency', 'blVatEnabled', 'blVatRate', 'blDiscount', 'blShipping', 'blRows', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes', 'billPaperSize', 'bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote', 'selectedBillingCustomer'];
+  BILL_FILE_KEYS = ['innovationsSourceInvoiceNumber', 'billType', 'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blCurrency', 'blVatEnabled', 'blVatRate', 'blDiscount', 'blShipping', 'blRows', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes', 'billPaperSize', 'bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote', 'selectedBillingCustomer'];
   BILL_DRAFT_KEYS = this.BILL_FILE_KEYS;
   isBillingField = (k) => this.BILL_FILE_KEYS.includes(k);
   canEditBillingFile = () => this.state.currentBillingAccess !== 'view';
@@ -1679,10 +1893,10 @@
   };
   FILE_KEYS = {
     email: ['emHeader', 'emFooter', 'emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'emBody'],
-    letter: ['docType', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe', 'ltBody'],
+    letter: ['docType', 'ltRule', 'ltSpacing', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltEyebrow', 'ltAmount', 'ltTo', 'ltFrom', 'ltRe', 'ltBody'],
     signature: ['sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'sgLogo'],
     social: ['smFormat', 'smStyle', 'smHeadline', 'smHeadlineAlign', 'smHeadlineItalic', 'smBody', 'smSub', 'smHandle'],
-    shiplabel: ['slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
+    shiplabel: ['slMode', 'slFromCaption', 'slToCaption', 'slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'selectedShipCustomer'],
     statement: ['stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stCurrency', 'stOpenBal', 'stRows', 'stNote', 'selectedStatementCustomer']
   };
   isCurrentFileField = (key) => this.state.currentFileKind === 'file' && this.state.currentFileId && this.FILE_KEYS[this.state.currentFileType]?.includes(key);
@@ -1697,9 +1911,8 @@
       const settings = data.settings || {};
       const patch = {};
       ['bAddress', 'bRegNo', 'bVatReg', 'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote'].forEach(k => {
-        // Only adopt values that are actually set. Company settings default to
-        // '' for unseeded issuer fields, and blindly applying those blanked out
-        // bank details that had been saved in the Studio.
+        // Only adopt non-empty values: unseeded company settings default to
+        // '' and would otherwise wipe bank/letterhead details already saved.
         if (typeof settings[k] === 'string' && settings[k].trim() !== '') patch[k] = settings[k];
       });
       if (settings.blCurrency) patch.blCurrency = settings.blCurrency;
@@ -1743,16 +1956,22 @@
     return data.billingNumber || '';
   };
 
+  // Billing documents arrive with documentName/billingNumber, not fileType/
+  // fileName; without this they listed as "Untitled · undefined".
+  normalizeListedFile = (f) => f && f.kind === 'billing'
+    ? Object.assign({}, f, { fileType: 'billing', fileName: f.fileName || f.documentName || f.billingNumber || 'Untitled billing document' })
+    : f;
+
   loadMyFiles = async () => {
     try {
       const data = await this.docApi('/api/docstudio/my-files');
-      this.setState({ myFiles: data.files || [], myFilesLoaded: true, fileSaveState: 'DB save ready' });
+      this.setState({ myFiles: (data.files || []).map(this.normalizeListedFile), myFilesLoaded: true, myFilesError: '', fileSaveState: 'DB save ready' });
     } catch (e) {
-      this.setState({ myFiles: [], myFilesLoaded: false, fileSaveState: 'Local recovery only' });
+      this.setState({ myFiles: [], myFilesLoaded: false, myFilesError: (e && e.message) || 'Could not load files', fileSaveState: 'Local recovery only' });
     }
   };
 
-  refreshMyFiles = () => { this.loadMyFiles(); this.loadBillingFiles(); };
+  refreshMyFiles = () => Promise.all([this.loadMyFiles(), this.loadBillingFiles()]);
 
   loadFileShareUsers = async () => {
     try {
@@ -1780,7 +1999,7 @@
     if (type === 'letter') return d.ltSubject || this.TYPE_LABELS.letter;
     if (type === 'signature') return d.sgName || 'Email signature';
     if (type === 'social') return d.smHeadline || 'Social post';
-    if (type === 'shiplabel') return d.slToCompany || d.slToName ? 'Ship label - ' + (d.slToCompany || d.slToName) : 'Ship label';
+    if (type === 'shiplabel') return d.slToCompany || d.slToName ? (d.slMode === 'customer' ? 'Customer label - ' : 'Ship label - ') + (d.slToCompany || d.slToName) : (d.slMode === 'customer' ? 'Customer label' : 'Ship label');
     if (type === 'statement') return d.stCustomer ? 'Statement - ' + d.stCustomer : 'Statement';
     return 'Doc Studio file';
   };
@@ -1862,13 +2081,14 @@
 
   applyFile = (file) => {
     const type = file.fileType;
-    const fields = file.content || {};
+    const fields = file.fileType === 'shiplabel' ? { slMode: 'shipping', slFromCaption: 'From', slToCaption: 'Ship to', ...file.content } : (file.content || {});
     const cur = this.state.tab;
     this.syncTiny(cur);
     this.destroyTiny(cur);
     this.setState({
       ...fields,
       tab: type,
+      ...(type === 'letter' ? { ltRule: ['gold', 'teal', 'none'].includes(fields.ltRule) ? fields.ltRule : 'gold', ltSpacing: fields.ltSpacing === 'compact' ? 'compact' : 'comfortable' } : {}),
       currentFileId: file.id || '',
       currentFileKind: 'file',
       currentFileType: type,
@@ -2089,6 +2309,7 @@
     const fields = doc.content || {};
     this._suspendBillingAutosave = true;
     this.setState({
+      innovationsSourceInvoiceNumber: '',
       ...fields,
       currentBillingDocumentId: doc.id || '',
       currentBillingVersion: doc.version || '',
@@ -2113,7 +2334,7 @@
       this.setState({ billSaveState: 'Saving...' });
       // A new document takes its number from the shared sequence at save time,
       // not from the placeholder shown while drafting.
-      if (!id) {
+      if (!id && !(this.state.billType === 'invoice' && this.state.innovationsSourceInvoiceNumber && this.state.blNumber === this.state.innovationsSourceInvoiceNumber)) {
         try {
           const reserved = await this.reserveBillingNumber(this.state.billType);
           if (reserved) await new Promise(done => this.setState({ blNumber: reserved }, done));
@@ -2177,9 +2398,13 @@
     try {
       this.setState({ billSaveState: 'Saving...' });
       const id = this.state.currentBillingDocumentId;
-      const data = id
-        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id) + '/autosave', { method: 'PUT', body: this.billFilePayload() })
+      let data = id
+        ? await this.docApi('/api/docstudio/billing-documents/' + encodeURIComponent(id) + '/autosave', { method: 'POST', body: this.billFilePayload() })
         : await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload() });
+      if (data && data.missing) {
+        // The open document was deleted elsewhere; keep the user's work as a new draft.
+        data = await this.docApi('/api/docstudio/billing-documents', { method: 'POST', body: this.billFilePayload() });
+      }
       this.applyBillingDocument(data.document);
       this.loadBillingFiles();
       this.loadMyFiles();
@@ -2385,7 +2610,7 @@
   renderVals() {
     const d = this.state;
     const f = {};
-    ['emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltTo', 'ltFrom', 'ltRe', 'ltEyebrow', 'ltAmount', 'sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'smHeadline', 'smSub', 'smHandle', 'plCustomer', 'plAttn', 'plDate', 'plValidity', 'plNote', 'slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stOpenBal', 'stNote',
+    ['emEyebrow', 'emPreheader', 'emHeading', 'emCta', 'emCtaUrl', 'emHeroUrl', 'emTagline', 'emDisclaimer', 'ltDate', 'ltRecipient', 'ltSubject', 'ltSignName', 'ltSignTitle', 'ltTo', 'ltFrom', 'ltRe', 'ltEyebrow', 'ltAmount', 'sgName', 'sgTitle', 'sgPhone', 'sgEmail', 'sgWeb', 'sgTagline', 'smHeadline', 'smSub', 'smHandle', 'plCustomer', 'plAttn', 'plDate', 'plValidity', 'plNote', 'slFromCaption', 'slToCaption', 'slFromName', 'slFromAddr', 'slFromPhone', 'slToName', 'slToCompany', 'slToAddr', 'slToPhone', 'slCarrier', 'slService', 'slTracking', 'slWeight', 'slDims', 'slNote', 'stCustomer', 'stAccount', 'stAddr', 'stFrom', 'stTo', 'stOpenBal', 'stNote',
       'blNumber', 'blDate', 'blDue', 'blPO', 'blToName', 'blToCompany', 'blToAddr', 'blToAttn', 'blVatRate', 'blDiscount', 'blShipping', 'blPaidMethod', 'blPaidRef', 'blAmountPaid', 'blNotes',
       'bkBankName', 'bkAccName', 'bkAccNo', 'bkBranch', 'bkSwift', 'bkNote',
       'stStatementDate', 'stStatementNo', 'stCurrentDue', 'stAging1', 'stAging2', 'stAging3', 'stAging4', 'stNewBalance',
@@ -2406,7 +2631,9 @@
     });
     let previewNode;
     if (tab === 'files') {
-      previewNode = React.createElement('div', { style: { height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }, dangerouslySetInnerHTML: { __html: this.buildFileBrowserHtml(filteredFiles, d.myFilesViewMode || 'grid', d.myFilesSortCol || 'date', d.myFilesSortDir != null ? d.myFilesSortDir : -1, d.fileAccessFilter || '') } });
+      // Empty slot: the admin app portals its native React file manager in.
+      // buildFileBrowserHtml remains only as a reference implementation.
+      previewNode = React.createElement('div', { id: 'ds-native-files-slot', key: 'ds-native-files-slot', style: { height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' } });
     } else if (tab === 'social') {
       const smFmt = this.SM_FMTS[d.smFormat||'instagram'];
       const smScale = Math.min(680/smFmt.w, 555/smFmt.h);
@@ -2470,10 +2697,7 @@
       .sort((a, b) => this.customerLabel(a).localeCompare(this.customerLabel(b)))
       .map(c => ({ account: c.account || '', label: this.customerLabel(c) }));
     const selectedEmailSet = new Set(this.splitEmails(d.emailTo).map(v => v.toLowerCase()));
-    const emailContactOptions = (d.emailContacts || [])
-      .filter(c => c && c.email)
-      .slice()
-      .sort((a, b) => String(a.name || a.email || '').localeCompare(String(b.name || b.email || '')))
+    const emailContactOptions = this.filteredEmailContacts()
       .map(c => ({
         name: c.name || c.email,
         email: c.email,
@@ -2547,18 +2771,21 @@
       isFiles: tab === 'files', isEmail: tab === 'email', isLetter: tab === 'letter', isSig: tab === 'signature', isSocial: tab === 'social', isShiplabel: tab === 'shiplabel', isStatement: tab === 'statement', isBilling: tab === 'billing',
       f, tabs, tabBarNodeA: _mkTabBar(), tabBarNodeB: _mkTabBar(), previewNode,
       showPreviewHeader: tab !== 'files',
-      previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? 'Shipping label preview' : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
+      previewTitle: tab === 'files' ? 'File manager' : tab === 'email' ? 'Email preview' : tab === 'letter' ? 'Document preview' : tab === 'social' ? (this.SM_FMTS[d.smFormat||'instagram'].label + ' preview') : tab === 'shiplabel' ? (d.slMode === 'customer' ? 'Customer label preview' : 'Shipping label preview') : tab === 'statement' ? 'Statement preview' : tab === 'billing' ? (this.billMeta().title.charAt(0) + this.billMeta().title.slice(1).toLowerCase() + ' preview') : 'Signature preview',
       showEmailFileIdentity: tab === 'email',
       activeEmailFileName: d.currentFileKind === 'file' && d.currentFileType === 'email' ? (d.currentFileName || 'Untitled email') : 'Unsaved email',
       activeEmailFileStatus: d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? 'Unsaved' : d.currentFileIsTemplate ? 'Template' : 'File',
       activeEmailFileBadgeStyle: `padding:4px 7px;border-radius:999px;background:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#f1ede5' : d.currentFileIsTemplate ? '#dceef0' : '#e7edf5'};color:${d.currentFileKind !== 'file' || d.currentFileType !== 'email' ? '#7a715f' : d.currentFileIsTemplate ? '#176d7a' : '#415b7a'};font:700 10px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap`,
       copyLabel: tab === 'files' ? 'Open file' : tab === 'email' ? 'Copy for email' : tab === 'letter' ? 'Open in Word / Google Docs' : tab === 'social' ? 'Open full size' : tab === 'shiplabel' ? 'Print label' : tab === 'statement' ? 'Print statement' : tab === 'billing' ? 'Print / PDF' : 'Copy signature',
+      downloadSignatureHtml: this.downloadSignatureHtml, downloadSignatureImage: this.downloadSignatureImage, copySignatureImage: this.copySignatureImage, insertSignatureInEmail: this.insertSignatureInEmail,
+      slMode: d.slMode || 'shipping', isShippingMode: d.slMode !== 'customer', setLabelMode: this.setLabelMode, labelRecipientCaption: d.slMode === 'customer' ? 'Customer' : 'Ship to',
       copyNow: this.copyNow, printLetter: this.printLetter,
       composeNewEmail: this.composeNewEmail, openEmailSend: this.openEmailSend,
       emailSendOpen: d.emailSendOpen, closeEmailSend: this.closeEmailSend,
       emailFromLabel: d.emailFromLabel || 'Classic Visions <support@classicvisions.net>',
       emailReplyTo: d.emailReplyTo || '', emailTo: d.emailTo || '', emailCc: d.emailCc || '', emailBcc: d.emailBcc || '', emailSubject: d.emailSubject || this.emailSubjectLine(),
       setEmailReplyTo: this.setEmailReplyTo, setEmailTo: this.setEmailTo, setEmailCc: this.setEmailCc, setEmailBcc: this.setEmailBcc, setEmailSubject: this.setEmailSubject,
+      emailContactSearch: d.emailContactSearch, setEmailContactSearch: this.setEmailContactSearch, emailContactsExpanded: d.emailContactsOpen ? 'true' : 'false',
       emailContactsOpen: d.emailContactsOpen, toggleEmailContacts: this.toggleEmailContacts, emailContactOptions, noEmailContacts: emailContactOptions.length === 0,
       emailCcOpen: d.emailCcOpen, emailBccOpen: d.emailBccOpen, showEmailCc: this.showEmailCc, showEmailBcc: this.showEmailBcc,
       emailCcBtnStyle: `height:30px;padding:0 13px;border:1px solid ${d.emailCcOpen ? '#0B1E35' : '#d9d7cf'};border-radius:8px;background:${d.emailCcOpen ? '#0B1E35' : '#fff'};color:${d.emailCcOpen ? '#fff' : '#0B1E35'};font:700 11.5px/1 'Plus Jakarta Sans',sans-serif;cursor:pointer`,
@@ -2611,6 +2838,8 @@
       emHeaderOpts: this.seg('emHeader', [{ k: 'navy', l: 'Navy band' }, { k: 'minimal', l: 'Minimal' }, { k: 'teal', l: 'Teal edge' }]),
       emFooterOpts: this.seg('emFooter', [{ k: 'navy', l: 'Navy' }, { k: 'linen', l: 'Light' }]),
       docTypeOpts: this.seg('docType', [{ k: 'business', l: 'Business' }, { k: 'announcement', l: 'Announcement' }, { k: 'collection', l: 'Collection' }, { k: 'memo', l: 'Memo' }]),
+      letterRuleOpts: this.seg('ltRule', [{ k: 'gold', l: 'Gold rule' }, { k: 'teal', l: 'Teal rule' }, { k: 'none', l: 'No rule' }]),
+      letterSpacingOpts: this.seg('ltSpacing', [{ k: 'comfortable', l: 'Comfortable' }, { k: 'compact', l: 'Compact' }]),
       isMemo: d.docType === 'memo', notMemo: d.docType !== 'memo', isAnnounce: d.docType === 'announcement', isBizColl, isCollection: d.docType === 'collection',
       showSubject: d.docType !== 'memo', subjectLabel: d.docType === 'announcement' ? 'Title' : 'Subject (Re:)',
       emailLib, letterLib, sigLib, snippetItems, letterheadBlocks,
@@ -2667,6 +2896,14 @@
       })),
       addStRow: this.addStRow,
       // ---- billing ----
+      showInvoiceImport: ['invoice', 'quote'].includes(d.billType),
+      innovationsInvoiceNumber: d.innovationsInvoiceNumber || '',
+      onInnovationsInvoiceNumber: (e) => this.setState({ innovationsInvoiceNumber: e.target.value }),
+      importInnovationsInvoice: this.importInnovationsInvoice,
+      invoiceImportDisabled: !!d.innovationsInvoiceLoading || !this.canEditBillingFile(),
+      invoiceImportLabel: d.innovationsInvoiceLoading ? 'Loading…' : 'Import invoice',
+      innovationsInvoiceLoading: !!d.innovationsInvoiceLoading,
+      innovationsInvoiceMessage: d.innovationsInvoiceMessage || '',
       billTypeOpts, billTitle: bm.title, isReceipt: d.billType === 'receipt', notReceipt: d.billType !== 'receipt',
       showBank: bm.showBank, billDueLabel: bm.dueLabel || 'Valid until', hasDue: !!bm.dueLabel,
       billCurrencyOpts: this.seg('blCurrency', [{ k: 'BBD', l: 'BBD' }, { k: 'USD', l: 'USD' }]),

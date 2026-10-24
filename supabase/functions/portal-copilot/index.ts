@@ -13,14 +13,17 @@ import {
   type CrmOrderHealth,
   type CrmScanContact,
 } from "../_shared/copilot/crmOpportunityScan.ts";
-import { COPILOT_SYSTEM_CONTEXT, PLATFORM_ROUTES } from "../_shared/copilot/platformFacts.generated.ts";
+import { PLATFORM_ROUTES } from "../_shared/copilot/platformFacts.generated.ts";
 import { LOOKUP_TOOLS, LOOKUP_TOOL_NAMES, dispatchLookupTool } from "../_shared/copilot/lookupTools.ts";
 import { ADMIN_RESOURCE_TOOLS, ADMIN_RESOURCE_TOOL_NAMES, dispatchAdminResourceTool } from "../_shared/copilot/adminResources.ts";
 import { DOC_STUDIO_TOOLS, DOC_STUDIO_TOOL_NAMES, dispatchDocStudioTool } from "../_shared/copilot/docStudioTools.ts";
 import { PLATFORM_TOOLS, PLATFORM_TOOL_NAMES, dispatchPlatformTool } from "../_shared/copilot/platformTools.ts";
 import { ENRICHMENT_TOOLS, ENRICHMENT_TOOL_NAMES, dispatchEnrichmentTool } from "../_shared/copilot/enrichmentTools.ts";
-import { resolveClaudeCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
+import { HELPDESK_TOOLS, HELPDESK_TOOL_NAMES, dispatchHelpdeskTool } from "../_shared/copilot/helpdeskTools.ts";
+import { resolveClaudeCredentials, resolveProviderCredentials } from "../_shared/copilot/aiAgentCredentials.ts";
 import { identityPreamble } from "../_shared/aiIdentity.ts";
+import { recordAiSpend } from "../_shared/aiSpend.ts";
+import { ADMIN_COPILOT_SYSTEM_PROMPT } from "../_shared/copilot/prompts.ts";
 
 const corsPolicy = createCorsPolicy({
   allowHeaders: "authorization, x-admin-auth-token, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -72,8 +75,8 @@ const audit = async (
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 
-const callClaude = (apiKey: string, model: string, body: JsonRecord) =>
-  fetch(ANTHROPIC_API_URL, {
+const callClaude = async (apiKey: string, model: string, body: JsonRecord) => {
+  const response = await fetch(ANTHROPIC_API_URL, {
     method: "POST",
     headers: {
       "x-api-key": apiKey,
@@ -82,6 +85,10 @@ const callClaude = (apiKey: string, model: string, body: JsonRecord) =>
     },
     body: JSON.stringify({ model, ...body }),
   });
+  const payload = response.ok ? await response.clone().json().catch(() => null) : null;
+  await recordAiSpend({ provider: "anthropic", product: "api", functionName: "portal-copilot", model, httpStatus: response.status, usage: payload?.usage });
+  return response;
+};
 
 const claudeErrorMessage = async (response: Response) => {
   if (response.status === 429) return "AI rate limit reached. Try again shortly.";
@@ -110,23 +117,14 @@ const ROUTER_TOOLS = [
   },
 ] as const;
 
-const COPILOT_PERSONA = `${identityPreamble("admin operations")}
-
-Your role in this workspace:
-- Assist an internal administrator as a proactive operations partner. Be conversational, remember the thread, and complete the work you are asked to do instead of pushing it back to the admin. When useful, surface a concise decision, material risk, owner, dependency, and next action; do not manufacture urgency or perform work beyond the supplied tools and approvals.
-- You have read and write access to every admin module through the admin_* resource tools: call admin_list_resources when you are unsure which resource covers a request, then search, read, create or update records directly.
-- Ordinary changes execute immediately with no approval step. Deletes and price-bearing changes come back as an approval proposal — present that clearly and let the admin approve it.
-- Also use the dedicated ERP portal rollout and CRM opportunity scan workflows when the request matches them. Chain several tool calls in one turn when a task needs it, and only ask a clarifying question when the request is genuinely ambiguous or a required identifier is missing.
-- For Doc Studio billing documents — invoices, quotes, pro formas and receipts — use docstudio_create_document rather than writing the table directly. It resolves the customer, the company letterhead and bank details, the VAT rate, the next document number and the line totals itself, so do not ask the admin for anything it can look up, do not invent a document number, and never calculate a total yourself. Documents are created as drafts and are inert until a human opens them; after creating one, give the admin the returned link and a one-line summary of the totals, and mention only the fields the tool reports as genuinely unresolved.`;
-
-const COPILOT_SYSTEM_PROMPT = `${COPILOT_PERSONA}\n\n${COPILOT_SYSTEM_CONTEXT}`;
+const COPILOT_SYSTEM_PROMPT = ADMIN_COPILOT_SYSTEM_PROMPT;
 
 const WORKFLOW_BY_TOOL_NAME: Record<string, "erp_portal_rollout" | "crm_opportunity_scan"> = {
   start_erp_portal_rollout: "erp_portal_rollout",
   start_crm_opportunity_scan: "crm_opportunity_scan",
 };
 
-const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS];
+const COPILOT_TOOLS = [...ROUTER_TOOLS, ...LOOKUP_TOOLS, ...ADMIN_RESOURCE_TOOLS, ...DOC_STUDIO_TOOLS, ...PLATFORM_TOOLS, ...ENRICHMENT_TOOLS, ...HELPDESK_TOOLS];
 const MAX_LOOKUP_ITERATIONS = 8;
 
 type RouteResult =
@@ -179,7 +177,8 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
       || ADMIN_RESOURCE_TOOL_NAMES.has(use.name as any)
       || DOC_STUDIO_TOOL_NAMES.has(use.name as any)
       || PLATFORM_TOOL_NAMES.has(use.name as any)
-      || ENRICHMENT_TOOL_NAMES.has(use.name as any));
+      || ENRICHMENT_TOOL_NAMES.has(use.name as any)
+      || HELPDESK_TOOL_NAMES.has(use.name as any));
     if (lookupUses.length === 0) {
       const text = claudeTextFromContent(blocks);
       return { ok: true, result: { kind: "reply", text: text || "I'm not sure how to help with that yet — could you rephrase?", runId: preparedRunId } };
@@ -190,6 +189,8 @@ ${pageContext}` : COPILOT_SYSTEM_PROMPT;
         const input = (use.input ?? {}) as Record<string, unknown>;
         const output = PLATFORM_TOOL_NAMES.has(use.name as any)
           ? dispatchPlatformTool(use.name as string, input)
+          : HELPDESK_TOOL_NAMES.has(use.name as any)
+          ? await dispatchHelpdeskTool(db, use.name as string, input, actorUserId)
           : ENRICHMENT_TOOL_NAMES.has(use.name as any)
           ? await dispatchEnrichmentTool(db, use.name as string, input, actorUserId)
           : DOC_STUDIO_TOOL_NAMES.has(use.name as any)
@@ -689,8 +690,8 @@ Deno.serve(async (req) => {
         // conversation yet. Attach it now, or loadState cannot see it.
         const queuedRunId = route?.kind === "reply" ? route.runId ?? null : null;
         if (queuedRunId) {
-          await db.from("copilot_runs").update({ conversation_id: chatConversation.id }).eq("id", queuedRunId);
-          await audit(db, actorUserId, "crm_enrichment_queued", { runId: queuedRunId });
+          const { data: queuedRun } = await db.from("copilot_runs").update({ conversation_id: chatConversation.id }).eq("id", queuedRunId).select("workflow").maybeSingle();
+          await audit(db, actorUserId, queuedRun?.workflow === "helpdesk_ticket" ? "helpdesk_ticket_created" : "crm_enrichment_queued", { runId: queuedRunId });
         }
         return jsonResponse(req, 200, await loadState(db, actorUserId, chatConversation.id, queuedRunId));
       }
@@ -934,15 +935,47 @@ Deno.serve(async (req) => {
     }
 
     if (operation === "test-ai-agent") {
+      const testProvider = (body as { provider?: unknown })?.provider === "openai" ? "openai" : "anthropic";
       const recordTest = async (success: boolean, errorMessage: string | null) => {
         const { error: recordError } = await db.rpc("record_ai_agent_test", {
-          p_provider: "anthropic",
+          p_provider: testProvider,
           p_success: success,
           p_error_message: errorMessage,
         });
         // Never fail the test request just because the audit write failed.
         if (recordError) console.warn("record_ai_agent_test failed", recordError.message ?? recordError);
       };
+
+      if (testProvider === "openai") {
+        const { apiKey, model } = await resolveProviderCredentials(db, "openai");
+        if (!apiKey || !model) {
+          const message = "No API key or model is configured.";
+          await recordTest(false, message);
+          return jsonResponse(req, 200, { ok: false, error: message });
+        }
+        try {
+          // Model lookup is free: it verifies the key and that the model exists for this account.
+          const response = await fetch(`https://api.openai.com/v1/models/${encodeURIComponent(model)}`, {
+            headers: { Authorization: `Bearer ${apiKey}` },
+          });
+          let errorMessage: string | null = null;
+          if (!response.ok) {
+            const payload = await response.json().catch(() => null);
+            const detail = typeof payload?.error?.message === "string" ? payload.error.message : "";
+            errorMessage = response.status === 401
+              ? "OpenAI rejected the API key."
+              : response.status === 404
+                ? `OpenAI does not offer the model "${model}" to this account.`
+                : `OpenAI returned ${response.status}${detail ? `: ${detail.slice(0, 200)}` : ""}`;
+          }
+          await recordTest(response.ok, errorMessage);
+          return jsonResponse(req, 200, { ok: response.ok, error: errorMessage ?? undefined });
+        } catch (providerError) {
+          const errorMessage = providerError instanceof Error ? providerError.message : "Provider request failed";
+          await recordTest(false, errorMessage);
+          return jsonResponse(req, 200, { ok: false, error: errorMessage });
+        }
+      }
 
       const { apiKey, model } = await resolveClaudeCredentials(db);
       if (!apiKey || !model) {

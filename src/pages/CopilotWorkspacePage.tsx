@@ -1,6 +1,8 @@
 import PortalCopilotPage from "@/pages/admin/PortalCopilotPage";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
+import { useScrollingClass } from "@/hooks/useScrollingClass";
+import { useAdminBodyClass } from "@/hooks/useAdminBodyClass";
 
 /**
  * Standalone Copilot workspace.
@@ -9,6 +11,8 @@ import { AdminRoleProvider } from "@/contexts/AdminRoleContext";
  * the admin top bar, but no admin sidebar.
  */
 export default function CopilotWorkspacePage() {
+  useScrollingClass();
+  useAdminBodyClass();
   return (
     <AdminRoleProvider>
       <div className="admin-tool flex h-screen w-full flex-col overflow-hidden rounded-none">

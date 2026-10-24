@@ -33,6 +33,9 @@ describe("Rx order flow rules", () => {
     // A standard shape is the cheapest way to get the preview panel rendered.
     const withShape = (frame: Record<string, string> = {}) => {
       const h = mountRxOrder().fillValidOrder({ frame: { a: "", b: "", dbl: "", ...frame } });
+      // The shape-verification panel only exists on remote edge: uncut and full
+      // glaze never cut to the trace, so there is nothing to verify against.
+      h.segment("scopeSeg", "scope", "remote");
       const pick = h.host.querySelector<HTMLElement>("#shapePick [data-sid]");
       expect(pick, "standard shape picker rendered no options").toBeTruthy();
       pick!.click();
@@ -100,12 +103,15 @@ describe("Rx order flow rules", () => {
       h.destroy();
     });
 
-    it("folds once the dispenser says the selection is finished", () => {
+    it("folds a confirmed selection when another panel receives focus", () => {
       const h = mountRxOrder().fillValidOrder();
       h.toggleTreatment(TREATMENTS.superAr);
       h.field<HTMLButtonElement>("#treatConfirm")?.click();
 
       expect(h.state.treatConfirmed).toBe(true);
+      expect(h.field("#sec-treat")?.classList.contains("section-collapsed")).toBe(false);
+      h.field("#notes")?.focus();
+      h.engine.refreshData();
       expect(h.field("#sec-treat")?.classList.contains("section-collapsed")).toBe(true);
 
       h.destroy();
@@ -118,6 +124,8 @@ describe("Rx order flow rules", () => {
       expect(h.field("#sec-treat")?.classList.contains("section-collapsed")).toBe(false);
 
       h.field<HTMLButtonElement>("#treatConfirm")?.click();
+      h.field("#notes")?.focus();
+      h.engine.refreshData();
       expect(h.field("#sec-treat")?.classList.contains("section-collapsed")).toBe(true);
 
       h.destroy();

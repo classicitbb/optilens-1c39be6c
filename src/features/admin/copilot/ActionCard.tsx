@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AlertCircle, Check, Globe, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
+import { Link } from "react-router";
+import { AlertCircle, ArrowUpRight, Check, Globe, LifeBuoy, Loader2, Mail, RotateCcw, Save, UserRoundSearch, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { CopilotMarkdown } from "./CopilotMarkdown";
+import { resolveActionRecordLink } from "./recordLinks";
 import type { CopilotAction } from "./api";
 
 export const statusLabel = (status: string) => status.replaceAll("_", " ");
@@ -34,13 +36,13 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
 
   const isEmail = action.action_type === "send_portal_invite" || action.action_type === "send_docstudio_email";
   const isEnrichment = action.action_type === "apply_contact_enrichment";
-  // Enrichment findings are evidence, not a draft — there is nothing to edit,
-  // so it must never look unsaved or the Approve button stays disabled.
+  const isTicket = action.action_type === "create_support_ticket";
   const changed = isEnrichment
     ? false
-    : isEmail
-    ? subject !== (action.payload.subject ?? "") || body !== (action.payload.body ?? "")
-    : taskContent !== (action.payload.taskContent ?? "");
+    : isEmail || isTicket
+      ? subject !== (action.payload.subject ?? "") || body !== (action.payload.body ?? "")
+      : taskContent !== (action.payload.taskContent ?? "");
+  const recordLink = resolveActionRecordLink(action);
   const partialAccountCreated = action.result?.portalAccountCreated === true && action.result?.emailQueued === false;
 
   return (
@@ -48,8 +50,8 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
       <CardHeader className="space-y-2 pb-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 gap-2">
-            <div className={cn("mt-0.5 p-1", isEmail ? "bg-sky-100 text-sky-700" : isEnrichment ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700")}>
-              {isEmail ? <Mail className="h-3 w-3" /> : isEnrichment ? <Globe className="h-3 w-3" /> : <UserRoundSearch className="h-3 w-3" />}
+            <div className={cn("mt-0.5 p-1", isEmail ? "bg-sky-100 text-sky-700" : isTicket ? "bg-violet-100 text-violet-700" : "bg-amber-100 text-amber-700")}>
+              {isEmail ? <Mail className="h-3 w-3" /> : isTicket ? <LifeBuoy className="h-3 w-3" /> : <UserRoundSearch className="h-3 w-3" />}
             </div>
             <div className="min-w-0">
               <CardTitle className="text-xs font-semibold">{action.title}</CardTitle>
@@ -71,50 +73,40 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
       </CardHeader>
       <CardContent className="space-y-2">
         {isEnrichment ? (
-          <div className="space-y-2 border bg-muted/20 p-2">
+          <div className="space-y-2 border bg-muted/20 p-2 text-xs">
             <div className="flex flex-wrap items-center gap-1">
-              {action.payload.matchConfidence != null ? (
-                <Badge variant="outline" className="text-[10px]">Match confidence {Math.round(action.payload.matchConfidence * 100)}%</Badge>
-              ) : null}
-              {action.payload.retrievedAt ? (
-                <Badge variant="outline" className="text-[10px]">Retrieved {new Date(action.payload.retrievedAt).toLocaleDateString()}</Badge>
-              ) : null}
+              {action.payload.contactLabel ? <Badge variant="outline" className="text-[10px]">{action.payload.contactLabel}</Badge> : null}
+              {action.payload.source ? <Badge variant="outline" className="text-[10px]">Source: {action.payload.source.replace("_", " ")}</Badge> : null}
+              {typeof action.payload.matchConfidence === "number" ? <Badge variant="outline" className="text-[10px]">Match: {Math.round(action.payload.matchConfidence * 100)}%</Badge> : null}
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              These values contradict what is already stored, so nothing has been written. Blank fields were filled automatically.
-            </p>
-            <div className="overflow-x-auto">
+            {action.payload.findings?.length ? (
               <table className="w-full text-[11px]">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    <th className="pb-1 pr-2 font-medium">Field</th>
-                    <th className="pb-1 pr-2 font-medium">Currently</th>
-                    <th className="pb-1 pr-2 font-medium">Public listing says</th>
-                  </tr>
+                <thead className="text-muted-foreground">
+                  <tr><th className="py-0.5 text-left font-medium">Field</th><th className="py-0.5 text-left font-medium">Current</th><th className="py-0.5 text-left font-medium">Proposed</th><th className="py-0.5 text-right font-medium">Confidence</th></tr>
                 </thead>
                 <tbody>
-                  {(action.payload.findings ?? []).map((finding) => (
-                    <tr key={finding.findingId} className="border-t border-border/50 align-top">
-                      <td className="py-1 pr-2 font-medium">{finding.field}</td>
-                      <td className="py-1 pr-2 text-muted-foreground">{finding.oldValue || <span className="italic">blank</span>}</td>
-                      <td className="py-1 pr-2">{finding.newValue}</td>
+                  {action.payload.findings.map((finding) => (
+                    <tr key={finding.findingId} className="border-t">
+                      <td className="py-0.5 pr-2">{finding.field}</td>
+                      <td className="py-0.5 pr-2 text-muted-foreground">{finding.oldValue || "—"}</td>
+                      <td className="py-0.5 pr-2 font-medium">{finding.newValue}</td>
+                      <td className="py-0.5 text-right text-muted-foreground">{Math.round(finding.confidence * 100)}%</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            ) : <p className="text-muted-foreground">No findings attached to this proposal.</p>}
             {action.payload.sourceUrl ? (
-              <p className="text-[11px]">
-                <span className="text-muted-foreground">Source: </span>
-                <a href={action.payload.sourceUrl} target="_blank" rel="noreferrer noopener" className="underline underline-offset-2">
-                  Google Places listing
-                </a>
-              </p>
+              <a href={action.payload.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] underline">
+                <Globe className="h-3 w-3" /> View source
+              </a>
             ) : null}
           </div>
-        ) : isEmail ? (
+        ) : isEmail || isTicket ? (
           <div className="space-y-2 border bg-muted/20 p-2">
-            {action.action_type === "send_docstudio_email" ? (
+            {isTicket ? (
+              <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Queue</span><span>Helpdesk · internal, no customer email sent</span></div>
+            ) : action.action_type === "send_docstudio_email" ? (
               <div className="grid gap-0.5 text-xs sm:grid-cols-[7rem_1fr]"><span className="text-muted-foreground">Recipients</span><span>{(action.payload.recipients ?? []).join(", ")}</span></div>
             ) : (
               <>
@@ -123,11 +115,11 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
               </>
             )}
             <div className="space-y-0.5">
-              <Label htmlFor={`subject-${action.id}`} className="text-[11px]">Subject</Label>
+              <Label htmlFor={`subject-${action.id}`} className="text-[11px]">{isTicket ? "Ticket title" : "Subject"}</Label>
               <Input id={`subject-${action.id}`} value={subject} onChange={(event) => setSubject(event.target.value)} className="h-6 text-xs" />
             </div>
             <div className="space-y-0.5">
-              <Label htmlFor={`body-${action.id}`} className="text-[11px]">Email draft</Label>
+              <Label htmlFor={`body-${action.id}`} className="text-[11px]">{isTicket ? "Description" : "Email draft"}</Label>
               <Textarea id={`body-${action.id}`} value={body} onChange={(event) => setBody(event.target.value)} rows={4} className="text-xs" />
             </div>
           </div>
@@ -163,10 +155,19 @@ export const ActionCard = ({ action, busy, onDecide, onSave }: ActionCardProps) 
           </div>
         )}
 
+        {recordLink ? (
+          <Button asChild size="sm" variant="outline" className="h-6 text-xs">
+            <Link to={recordLink.href}>
+              {recordLink.label}
+              <ArrowUpRight className="ml-1 h-3 w-3" />
+            </Link>
+          </Button>
+        ) : null}
+
         {canAct ? (
           <div className="flex flex-wrap items-center gap-1.5">
             {changed ? (
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => onSave(action, isEmail ? { subject, body } : { taskContent })} className="h-6 text-xs">
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => onSave(action, isEmail || isTicket ? { subject, body } : { taskContent })} className="h-6 text-xs">
                 <Save className="mr-1 h-3 w-3" /> Save edit
               </Button>
             ) : null}

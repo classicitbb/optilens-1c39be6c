@@ -65,6 +65,8 @@ interface ListCatalogTabProps {
   renderSaveBar?: (saveBar: React.ReactNode) => void;
   /** Emits current in-editor rows so external previews can update without save */
   onRowsChange?: (rows: Omit<PricelistCatalogRow, "id">[]) => void;
+  /** Reports whether this editor has local work that has not been saved yet. */
+  onDirtyChange?: (isDirty: boolean) => void;
   /** A catalog item id to open-and-scroll-to on load (Product Tunnel deep link) */
   highlightItemId?: string | null;
 }
@@ -82,6 +84,7 @@ const ListCatalogTab = ({
   onSaved,
   renderSaveBar,
   onRowsChange,
+  onDirtyChange,
   highlightItemId
 }: ListCatalogTabProps) => {
   const navigate = useNavigate();
@@ -119,6 +122,20 @@ const ListCatalogTab = ({
   const [addonRows, setAddonRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [supplyRows, setSupplyRows] = useState<Map<string, CatalogRow[]>>(new Map());
   const [isDirty, setIsDirty] = useState(false);
+
+  // Live mirrors of the working copy, so the "reload from database" effect
+  // below can merge fresh server prices in without clobbering in-flight edits.
+  const lensRowsRef = useRef(lensRows);
+  lensRowsRef.current = lensRows;
+  const addonRowsRef = useRef(addonRows);
+  addonRowsRef.current = addonRows;
+  const supplyRowsRef = useRef(supplyRows);
+  supplyRowsRef.current = supplyRows;
+  // Last snapshot of each row as the server had it, keyed by row_key. A local
+  // row that differs from its snapshot is a user edit and must survive a
+  // refetch triggered by another editor (e.g. the Stock Order SKUs tab).
+  const lastServerRowsRef = useRef<Map<string, CatalogRow>>(new Map());
+
   const [editingDesc, setEditingDesc] = useState<{key: string;value: string;} | null>(null);
   const [editingPrice, setEditingPrice] = useState<{key: string;value: string;} | null>(null);
   const [sortState, setSortState] = useState<Map<string, {col: string;dir: SortDir;}>>(new Map());
@@ -170,6 +187,10 @@ const ListCatalogTab = ({
 
   const isLoading = lLoading || aLoading || sLoading || rowsLoading;
   const hasPending = (pendingMatrixRowKeys?.size ?? 0) > 0;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty || hasPending);
+  }, [hasPending, isDirty, onDirtyChange]);
   const activeVersion = useMemo(
     () => pricelistVersions.find((version) => version.id === versionId) ?? null,
     [pricelistVersions, versionId],
@@ -180,11 +201,19 @@ const ListCatalogTab = ({
     setHasViewed(true);
   }, []);
 
-  // When savedRows changes, reset local state from DB
+  // When savedRows changes, refresh the working copy from the database —
+  // merging, not replacing: untouched rows pick up the newest saved price
+  // (including edits made on the Stock Order SKUs tab), while rows the user is
+  // mid-way through editing keep their typed value.
   useEffect(() => {
-    if (!versionId) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
+    const resetAll = () => {
+      lastServerRowsRef.current = new Map();
+      setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);
+    };
+    if (!versionId) {resetAll();return;}
     if (!savedRows) return;
-    if (savedRows.length === 0) {setLensRows(new Map());setAddonRows(new Map());setSupplyRows(new Map());setIsDirty(false);return;}
+    if (savedRows.length === 0) {resetAll();return;}
+
     const newLens = new Map<string, CatalogRow[]>();
     const newAddon = new Map<string, CatalogRow[]>();
     const newSupply = new Map<string, CatalogRow[]>();
@@ -224,8 +253,51 @@ const ListCatalogTab = ({
       if (r.row_type === "addon") {const arr = newAddon.get(r.section) ?? [];arr.push(row);newAddon.set(r.section, arr);} else
       {const arr = newSupply.get(r.section) ?? [];arr.push(row);newSupply.set(r.section, arr);}
     }
-    setLensRows(newLens);setAddonRows(newAddon);setSupplyRows(newSupply);setIsDirty(false);
+
+    const prevServer = lastServerRowsRef.current;
+    const nextServer = new Map<string, CatalogRow>();
+    for (const map of [newLens, newAddon, newSupply]) {
+      map.forEach((rows) => rows.forEach((r) => nextServer.set(r.key, r)));
+    }
+
+    let keptLocalEdit = false;
+    const merge = (incoming: Map<string, CatalogRow[]>, local: Map<string, CatalogRow[]>) => {
+      const localByKey = new Map<string, CatalogRow>();
+      local.forEach((rows) => rows.forEach((r) => localByKey.set(r.key, r)));
+      const merged = new Map<string, CatalogRow[]>();
+      incoming.forEach((rows, section) => {
+        merged.set(
+          section,
+          rows.map((serverRow) => {
+            const localRow = localByKey.get(serverRow.key);
+            const snapshot = prevServer.get(serverRow.key);
+            const edited =
+              !!localRow && !!snapshot &&
+              (localRow.bbd !== snapshot.bbd || localRow.description !== snapshot.description);
+            if (!edited) return serverRow;
+            keptLocalEdit = true;
+            return { ...localRow!, section: serverRow.section };
+          }),
+        );
+      });
+      // Rows added locally and not yet saved must not disappear on a refetch.
+      local.forEach((rows, section) => {
+        for (const r of rows) {
+          if (nextServer.has(r.key) || prevServer.has(r.key)) continue;
+          keptLocalEdit = true;
+          merged.set(section, [...(merged.get(section) ?? []), r]);
+        }
+      });
+      return merged;
+    };
+
+    const mergedLens = merge(newLens, lensRowsRef.current);
+    const mergedAddon = merge(newAddon, addonRowsRef.current);
+    const mergedSupply = merge(newSupply, supplyRowsRef.current);
+    lastServerRowsRef.current = nextServer;
+    setLensRows(mergedLens);setAddonRows(mergedAddon);setSupplyRows(mergedSupply);setIsDirty(keptLocalEdit);
   }, [savedRows, versionId, allLenses, allAddons, allSupplies, fxRate, rxCategoryMap]);
+
 
   /* ── Default rows from catalog ── */
   const defaultLensRows = useMemo<Map<string, CatalogRow[]>>(() => {
@@ -351,10 +423,21 @@ const ListCatalogTab = ({
 
     let sortOrder = 0;
     const rows: Omit<PricelistCatalogRow, "id">[] = [];
+    const seenRowKeys = new Set<string>();
+
+    // The database enforces uniqueness on (pricelist_version_id,
+    // catalog_type, row_key). Older imports can leave the editor with the
+    // same row key more than once, so do not send a conflicting insert batch.
+    // Keep the first occurrence so the existing list order remains stable.
+    const appendRow = (row: Omit<PricelistCatalogRow, "id">) => {
+      if (seenRowKeys.has(row.row_key)) return;
+      seenRowKeys.add(row.row_key);
+      rows.push(row);
+    };
 
     for (const [sec, secRows] of effectiveLensRows) {
       for (const r of secRows) {
-        rows.push({
+        appendRow({
           pricelist_version_id: versionId,
           catalog_type: catalogType,
           row_key: r.key,
@@ -370,7 +453,7 @@ const ListCatalogTab = ({
 
     for (const [sec, secRows] of effectiveAddonRows) {
       for (const r of secRows) {
-        rows.push({
+        appendRow({
           pricelist_version_id: versionId,
           catalog_type: catalogType,
           row_key: r.key,
@@ -386,7 +469,7 @@ const ListCatalogTab = ({
 
     for (const [sec, secRows] of effectiveSupplyRows) {
       for (const r of secRows) {
-        rows.push({
+        appendRow({
           pricelist_version_id: versionId,
           catalog_type: catalogType,
           row_key: r.key,
@@ -486,6 +569,7 @@ const ListCatalogTab = ({
       const { error: updateOverrideError } = await (supabase.from("pricelist_line_overrides") as any)
         .update({
           overridden_price_bbd: overridePrice,
+          override_source: "manual",
           updated_at: new Date().toISOString(),
         })
         .eq("id", (existingOverride as any).id);
@@ -498,6 +582,7 @@ const ListCatalogTab = ({
           reference_id: refId,
           overridden_price_bbd: overridePrice,
           reason: "Price list editor override",
+          override_source: "manual",
         });
       if (createOverrideError) throw createOverrideError;
     }
@@ -753,7 +838,15 @@ const ListCatalogTab = ({
   const handleSave = async () => {
     if (!versionId) {toast({ title: "No version selected", variant: "destructive" });return;}
     const rows = buildPersistedRows();
-    saveRows.mutate(rows, {
+    // Baseline = what this tab last read from the database. Rows unchanged
+    // against it are skipped on save, so a stale tab can't undo an edit made
+    // on the Stock Order SKUs tab (or by another user) in the meantime.
+    const baseline = new Map<string, { bbd_price: number | null; display_description: string }>();
+    lastServerRowsRef.current.forEach((row, key) => {
+      baseline.set(key, { bbd_price: row.bbd ?? null, display_description: row.description });
+    });
+    saveRows.mutate({ rows, baseline }, {
+
       onSuccess: () => {
         setIsDirty(false);
         onSaved?.();
@@ -1121,25 +1214,27 @@ const ListCatalogTab = ({
               <span className="ml-auto text-xs font-normal opacity-60">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
             </div>
             <div className="border-t border-border">
-              <button className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors bg-muted/10" onClick={() => toggleSection(accKey)}>
-                <div className="flex items-center gap-2">
-                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                  <span className="text-sm font-semibold text-foreground">{category}</span>
-                </div>
-                <div className="flex items-center gap-2">
+              <div className="flex w-full items-center bg-muted/10 hover:bg-muted/30 transition-colors">
+                <button
+                  className="flex min-w-0 flex-1 items-center justify-between px-4 py-2.5 text-left"
+                  onClick={() => toggleSection(accKey)}
+                >
+                  <span className="flex items-center gap-2">
+                    {isOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                    <span className="text-sm font-semibold text-foreground">{category}</span>
+                  </span>
                   <span className="text-xs text-muted-foreground">{rowCount} {rowCount === 1 ? "item" : "items"}</span>
-                  <button
-                    className="flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border border-border hover:bg-muted/50 transition-colors no-print"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPickerTarget({ section: primarySectionKey, rowKey: "", mode: "add-lens" });
-                      setLensPickerOpen(true);
-                    }}
-                  >
-                    <Plus className="h-3 w-3" /> Add Line
-                  </button>
-                </div>
-              </button>
+                </button>
+                <button
+                  className="mr-4 flex shrink-0 items-center gap-1 rounded border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted/50 transition-colors no-print"
+                  onClick={() => {
+                    setPickerTarget({ section: primarySectionKey, rowKey: "", mode: "add-lens" });
+                    setLensPickerOpen(true);
+                  }}
+                >
+                  <Plus className="h-3 w-3" /> Add Line
+                </button>
+              </div>
 
               {isOpen && (
                 <div className="border-t border-border">

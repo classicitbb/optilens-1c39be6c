@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   CreditCard,
   ExternalLink,
+  Pencil,
   Eye,
   LifeBuoy,
   Mail,
@@ -25,6 +26,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { buildPricelistEditorPath } from "@/features/pricelists/routes";
+import { portalFeatureToggleValue } from "@/lib/portalFeatureToggleValue";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
@@ -35,6 +39,9 @@ import { useCustomerAddresses } from "@/hooks/useCustomerAddresses";
 import { useCustomerPaymentMethods } from "@/hooks/useCustomerPaymentMethods";
 import ContactsPage from "@/pages/admin/erp/ContactsPage";
 import { PortalApprovalsQueue } from "@/components/admin/PortalApprovalsQueue";
+import CustomerOrdersPanel from "@/components/admin/CustomerOrdersPanel";
+import AssignedPricelistsSection from "@/components/account/sections/AssignedPricelistsSection";
+import CustomerStatementsPanel from "@/components/admin/CustomerStatementsPanel";
 import { usePricelistVersions } from "@/hooks/usePricelistVersions";
 import AddressBookSection from "@/components/account/sections/AddressBookSection";
 import PaymentMethodsSection from "@/components/account/sections/PaymentMethodsSection";
@@ -51,6 +58,7 @@ import { describePortalFeatureOverrideError } from "@/lib/portalFeatureOverrideE
 import { detectFeatureOverrideConflicts } from "@/lib/portalFeatureConflicts";
 import type { CheckoutFormData } from "@/components/CheckoutDialog";
 import { paginate } from "@/lib/pagination";
+import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
 
 interface PortalCustomerListItem {
   userId: string;
@@ -76,7 +84,11 @@ interface PortalCustomerListItem {
   // Admin-recorded manual invitation, kept separate from the Supabase invite
   // email above: staff often invite a customer from their own mailbox.
   manualInviteEmailSentAt: string | null;
+  // Staff logins (admin/operator/viewer) appear here when they are also linked
+  // to a customer, but the backend refuses to emulate them.
+  isStaffRole?: boolean;
 }
+
 
 interface PortalCustomerDetail extends PortalCustomerListItem {
   featureOverrides: Record<string, boolean>;
@@ -84,6 +96,7 @@ interface PortalCustomerDetail extends PortalCustomerListItem {
   // Company contact linked to this customer account — where an account-wide
   // access tag should live so every person at the account inherits it.
   companyContactId: string | null;
+  ordersUseBillToAccount: boolean;
   canAccessStatements: boolean;
   canAccessPricing: boolean;
   cartItems: Array<{
@@ -179,7 +192,7 @@ const FEATURE_DESCRIPTIONS: Record<(typeof FEATURE_KEYS)[number], string> = {
   "live-order-status": "Approved customer access for live lab and delivery status.",
   statements: "Requires Approved Access to Statement or CEO tag; disabled override can still block it.",
   "order-prices": "Off by default. Enable to show item prices and totals on this customer's Order status and lab shipment views.",
-  "rx-order": "Approved customer access to the portal Rx order form in this profile.",
+  "rx-order": "Off by default. Turn on to give this customer the Rx order form (pilot).",
 };
 
 type AccountStatusFilter = "approved" | "pending_profile" | "pending_approval" | "active" | "all";
@@ -251,7 +264,8 @@ const WebsitePortalsPage = () => {
   };
 
   const customersQuery = useQuery({
-    queryKey: ["website-portals-customers"],
+    queryKey: ["website-portals-customers", users],
+    staleTime: 60_000,
     queryFn: async () => {
       const portalUserIds = users.map((entry) => entry.user_id);
       const [{ data, error }, { data: erpCustomers, error: erpCustomersError }] = await Promise.all([
@@ -269,6 +283,49 @@ const WebsitePortalsPage = () => {
       ]);
       if (error) throw error;
       if (erpCustomersError) throw erpCustomersError;
+
+      const profileMap = new Map(
+        ((data ?? []) as Record<string, any>[]).map((row) => [
+          String(row.user_id),
+          row,
+        ]),
+      );
+
+      const customerRoleAccounts = users.filter((entry) => {
+        const profile = profileMap.get(entry.user_id);
+        // Include unassigned logins as portal candidates. An admin can link a
+        // newly created or signed-up user to a customer from this screen;
+        // staff-only roles remain out of the customer operations surface.
+        const isStaffRole = entry.role === "admin" || entry.role === "operator" || entry.role === "viewer";
+        return !isStaffRole || typeof profile?.crm_customer_id === "number";
+      });
+      const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
+
+      const activityPromise = Promise.all([
+        (supabase as any)
+          .from("cart_items")
+          .select("user_id,quantity")
+          .in("user_id", customerUserIds),
+        (supabase as any)
+          .from("abandoned_cart_alerts")
+          .select("user_id,status")
+          .in("user_id", customerUserIds)
+          .eq("status", "open"),
+        (supabase as any)
+          .from("user_presence")
+          .select("user_id,status,last_heartbeat_at")
+          .in("user_id", customerUserIds),
+        // Every account a login has been granted, not just their single
+        // default profiles.crm_customer_id pointer — a login may hold active
+        // memberships on several customer accounts (e.g. a manager across
+        // branches). Without this, a granted secondary account never shows up
+        // as "linked" here even though the grant succeeded.
+        (supabase as any)
+          .from("portal_account_memberships")
+          .select("user_id,customer_id")
+          .in("user_id", customerUserIds)
+          .eq("status", "active"),
+      ]);
 
       const erpCustomerRows = (erpCustomers ?? []) as Array<Record<string, any>>;
       const erpCustomerIds = erpCustomerRows.map((customer) => Number(customer.id)).filter(Number.isFinite);
@@ -344,48 +401,7 @@ const WebsitePortalsPage = () => {
         if (typeof contact.contact.id === "string") customerIdByContactId.set(contact.contact.id, contact.customerId);
       }
 
-      const profileMap = new Map(
-        ((data ?? []) as Record<string, any>[]).map((row) => [
-          String(row.user_id),
-          row,
-        ]),
-      );
-
-      const customerRoleAccounts = users.filter((entry) => {
-        const profile = profileMap.get(entry.user_id);
-        // Include unassigned logins as portal candidates. An admin can link a
-        // newly created or signed-up user to a customer from this screen;
-        // staff-only roles remain out of the customer operations surface.
-        const isStaffRole = entry.role === "admin" || entry.role === "operator" || entry.role === "viewer";
-        return !isStaffRole || typeof profile?.crm_customer_id === "number";
-      });
-      const customerUserIds = customerRoleAccounts.map((entry) => entry.user_id);
-
-      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }, { data: membershipRows, error: membershipError }] = await Promise.all([
-        (supabase as any)
-          .from("cart_items")
-          .select("user_id,quantity")
-          .in("user_id", customerUserIds),
-        (supabase as any)
-          .from("abandoned_cart_alerts")
-          .select("user_id,status")
-          .in("user_id", customerUserIds)
-          .eq("status", "open"),
-        (supabase as any)
-          .from("user_presence")
-          .select("user_id,status,last_heartbeat_at")
-          .in("user_id", customerUserIds),
-        // Every account a login has been granted, not just their single
-        // default profiles.crm_customer_id pointer — a login may hold active
-        // memberships on several customer accounts (e.g. a manager across
-        // branches). Without this, a granted secondary account never shows up
-        // as "linked" here even though the grant succeeded.
-        (supabase as any)
-          .from("portal_account_memberships")
-          .select("user_id,customer_id")
-          .in("user_id", customerUserIds)
-          .eq("status", "active"),
-      ]);
+      const [{ data: cartRows, error: cartError }, { data: alertRows, error: alertError }, { data: presenceRows, error: presenceError }, { data: membershipRows, error: membershipError }] = await activityPromise;
 
       if (cartError) throw cartError;
       if (alertError) throw alertError;
@@ -435,6 +451,8 @@ const WebsitePortalsPage = () => {
             emailConfirmedAt: entry.email_confirmed_at,
             inviteSentAt: entry.invited_at,
             manualInviteEmailSentAt: typeof profile?.portal_invite_email_sent_at === "string" ? profile.portal_invite_email_sent_at : null,
+            isStaffRole: entry.role === "admin" || entry.role === "operator" || entry.role === "viewer",
+
           } satisfies PortalCustomerListItem;
           return {
             id: `user:${entry.user_id}`,
@@ -598,7 +616,7 @@ const WebsitePortalsPage = () => {
   }, [contactEditor, selectedAccount, selectedAccountId, searchParams]);
 
   const detailQuery = useQuery({
-    queryKey: ["website-portals-customer-detail", selectedCustomer?.userId, selectedAccount?.crmCustomerId, selectedAccount?.accountNumber],
+    queryKey: ["website-portals-customer-detail", selectedCustomer?.userId, selectedAccount?.crmCustomerId, selectedAccount?.accountNumber, contactEditor?.contactId],
     enabled: !!selectedCustomer,
     queryFn: async () => {
       if (!selectedCustomer) return null;
@@ -612,6 +630,18 @@ const WebsitePortalsPage = () => {
       const syncedContactId = typeof syncedRow?.crm_contact_id === "string" ? syncedRow.crm_contact_id : selectedCustomer.crmContactId;
       const syncedPortalAccessStatus = typeof syncedRow?.portal_access_status === "string" ? syncedRow.portal_access_status : selectedCustomer.portalAccessStatus;
       const syncedPortalAccessNote = typeof syncedRow?.portal_access_note === "string" ? syncedRow.portal_access_note : selectedCustomer.portalAccessNote;
+
+      // Tickets can be linked to the edited contact, the portal user's synced
+      // contact, an account they belong to, or only carry the requester's email.
+      const { data: visibleContactRows, error: visibleContactsError } = await (supabase.rpc as any)("helpdesk_visible_contact_ids", { p_user_id: selectedCustomer.userId });
+      if (visibleContactsError) throw visibleContactsError;
+      const accountContactIds = ((visibleContactRows ?? []) as Array<string | { helpdesk_visible_contact_ids: string }>)
+        .map((row) => (typeof row === "string" ? row : row.helpdesk_visible_contact_ids));
+      const ticketContactIds = [...new Set([syncedContactId, selectedAccount?.crmContactId, contactEditor?.contactId, ...accountContactIds].filter((id): id is string => !!id))];
+      const ticketFilters = ticketContactIds.length ? [`partner_contact_id.in.(${ticketContactIds.join(",")})`] : [];
+      if (selectedCustomer.email) {
+        ticketFilters.push(`customer_email.ilike."${selectedCustomer.email.replace(/[\\%_"]/g, "\\$&")}"`);
+      }
 
       const [{ data: featureRows, error: featureError }, { data: cartRows, error: cartError }, { data: alerts, error: alertsError }, { data: inquiries, error: inquiriesError }, { data: quotes, error: quotesError }, { data: tickets, error: ticketsError }, { data: customerRow, error: customerError }, { data: canAccessPricing, error: pricingAccessError }, { data: canAccessStatements, error: statementsAccessError }] = await Promise.all([
         (supabase as any)
@@ -640,18 +670,18 @@ const WebsitePortalsPage = () => {
           .eq("contact_email", selectedCustomer.email)
           .order("created_at", { ascending: false })
           .limit(20),
-        syncedContactId
+        ticketFilters.length
           ? (supabase as any)
               .from("helpdesk_tickets")
               .select("id,ticket_number,title,source_channel,created_at")
-              .eq("partner_contact_id", syncedContactId)
+              .or(ticketFilters.join(","))
               .order("created_at", { ascending: false })
               .limit(20)
           : Promise.resolve({ data: [], error: null }),
         syncedCustomerId
           ? (supabase as any)
               .from("customers")
-              .select("assigned_pricelist_id,account_number,contact_id")
+              .select("assigned_pricelist_id,account_number,contact_id,portal_orders_use_bill_to_account")
               .eq("id", syncedCustomerId)
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
@@ -686,6 +716,7 @@ const WebsitePortalsPage = () => {
         assignedPricelistId: typeof (customerRow as any)?.assigned_pricelist_id === "number" ? (customerRow as any).assigned_pricelist_id : null,
         accountNumber: typeof (customerRow as any)?.account_number === "string" ? (customerRow as any).account_number : selectedAccount?.accountNumber ?? null,
         companyContactId: typeof (customerRow as any)?.contact_id === "string" ? (customerRow as any).contact_id : null,
+        ordersUseBillToAccount: (customerRow as any)?.portal_orders_use_bill_to_account === true,
         cartItems: (cartRows ?? []) as PortalCustomerDetail["cartItems"],
         abandonedAlerts: (alerts ?? []) as PortalCustomerDetail["abandonedAlerts"],
         inquiries: (inquiries ?? []) as PortalCustomerDetail["inquiries"],
@@ -719,9 +750,9 @@ const WebsitePortalsPage = () => {
     },
   });
 
-  const { orders, loading: ordersLoading, createOrder, refetch: refetchOrders } = useOrders(selectedCustomer?.userId ?? undefined);
-  const { addresses, defaultShipping, defaultBilling, refetch: refetchAddresses } = useCustomerAddresses(selectedCustomer?.userId ?? undefined);
-  const { paymentMethods, defaultPaymentMethod, refetch: refetchPaymentMethods } = useCustomerPaymentMethods(selectedCustomer?.userId ?? undefined);
+  const { orders, loading: ordersLoading, createOrder, refetch: refetchOrders } = useOrders(selectedCustomer?.userId ?? undefined, { enabled: !!selectedCustomer });
+  const { addresses, defaultShipping, defaultBilling, refetch: refetchAddresses } = useCustomerAddresses(selectedCustomer?.userId ?? undefined, { enabled: !!selectedCustomer });
+  const { paymentMethods, defaultPaymentMethod, refetch: refetchPaymentMethods } = useCustomerPaymentMethods(selectedCustomer?.userId ?? undefined, { enabled: !!selectedCustomer });
 
   const upsertFeatureOverride = useMutation({
     mutationFn: async ({ featureKey, enabled }: { featureKey: string; enabled: boolean }) => {
@@ -762,21 +793,6 @@ const WebsitePortalsPage = () => {
     },
     onError: (error: any) => toast({ title: "Error", description: error.message || "Failed to clear override.", variant: "destructive" }),
   });
-
-  // Feature overrides are tri-state (unset/true/false), but a two-state toggle
-  // that only ever upserts true/false can never express "unset" — the button
-  // showed "Default" for both a genuinely unset row and an explicit
-  // enabled=false row, so staff had no reliable way to tell an override was
-  // disabled, and every click just flipped straight back to enabled=true.
-  // Cycle unset -> enabled -> disabled -> unset (via clearFeatureOverride) so
-  // "Disabled" is its own visible, sticky state.
-  const cycleFeatureOverride = (feature: string, current: boolean | undefined) => {
-    if (current === undefined) upsertFeatureOverride.mutate({ featureKey: feature, enabled: true });
-    else if (current === true) upsertFeatureOverride.mutate({ featureKey: feature, enabled: false });
-    else clearFeatureOverride.mutate(feature);
-  };
-  const featureOverrideStateLabel = (current: boolean | undefined) =>
-    current === undefined ? "Default" : current ? "Enabled" : "Disabled";
 
   // A disabled override silently wins over an access-granting tag (see
   // can_access_customer_portal_feature): if it's false, the feature stays
@@ -820,7 +836,7 @@ const WebsitePortalsPage = () => {
         description: error.message || "Failed to update account number.",
         variant: "destructive",
         action: isConflict ? (
-          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/contacts?erpCustomer=${error.result.conflict_customer_id}`)}>
+          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/crm/contacts?erpCustomer=${error.result.conflict_customer_id}`)}>
             Open contacts
           </ToastAction>
         ) : undefined,
@@ -1016,13 +1032,6 @@ const WebsitePortalsPage = () => {
   });
 
   useEffect(() => {
-    if (!selectedCustomer?.userId) return;
-    refetchAddresses();
-    refetchPaymentMethods();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCustomer?.userId]);
-
-  useEffect(() => {
     if (!detailQuery.data) return;
     setProfileDraft({
       full_name: detailQuery.data.fullName || "",
@@ -1143,6 +1152,15 @@ const WebsitePortalsPage = () => {
 
   const emulatePortalAccount = useCallback(async (account: PortalAccountRecord) => {
     if (!account.portalUser) return;
+    if (account.portalUser.isStaffRole) {
+      toast({
+        title: "Staff logins cannot be emulated",
+        description: "This login has a staff role (admin, operator or viewer). Only customer portal logins can be previewed from here.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const label = account.fullName || account.email || "customer";
     try {
       const { data: { session: adminSession }, error: sessionError } = await supabase.auth.getSession();
@@ -1236,6 +1254,58 @@ const WebsitePortalsPage = () => {
     setProvisioningPassword("");
   };
 
+  const renderFeatureToggle = (feature: (typeof FEATURE_KEYS)[number] | "auto-notifications") => {
+    if (!detailQuery.data) return null;
+    const detail = detailQuery.data;
+    const label = feature === "auto-notifications" ? "Auto notifications" : FEATURE_LABELS[feature];
+    const description = feature === "auto-notifications"
+      ? "Order confirmations, welcome emails, statements, and inquiry replies."
+      : FEATURE_DESCRIPTIONS[feature];
+    const enabled = portalFeatureToggleValue(feature, detail.featureOverrides, {
+      approved: detail.portalAccessStatus === "approved_customer",
+      pricing: detail.canAccessPricing,
+      statements: detail.canAccessStatements,
+    });
+    return (
+      <label key={feature} className="flex min-h-11 cursor-pointer items-center justify-between gap-3 py-2">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">{label}</span>
+          <span className="block text-xs text-muted-foreground">{description}</span>
+        </span>
+        <Switch
+          aria-label={label}
+          checked={enabled}
+          disabled={upsertFeatureOverride.isPending || clearFeatureOverride.isPending}
+          onCheckedChange={(checked) => upsertFeatureOverride.mutate({ featureKey: feature, enabled: checked })}
+        />
+      </label>
+    );
+  };
+
+  const renderAssignedPricelist = () => {
+    if (!detailQuery.data) return null;
+    const id = detailQuery.data.assignedPricelistId;
+    return (
+      <div className="space-y-2">
+        <Label>Assigned pricelist</Label>
+        <div className="flex items-center gap-2">
+          <Select value={id ? String(id) : "none"} onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))} disabled={assignPricelist.isPending}>
+            <SelectTrigger className="min-w-0 flex-1"><SelectValue placeholder="Select a pricelist" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No assigned pricelist</SelectItem>
+              {pricelistVersions.map((version) => <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {id ? (
+            <Button asChild variant="outline" size="sm">
+              <Link to={buildPricelistEditorPath(id, "rx")} aria-label="Edit assigned pricelist"><Pencil className="mr-2 h-4 w-4" />Edit</Link>
+            </Button>
+          ) : <Button variant="outline" size="sm" disabled><Pencil className="mr-2 h-4 w-4" />Edit</Button>}
+        </div>
+      </div>
+    );
+  };
+
   const portalSettings = !selectedAccount ? null : !selectedCustomer && selectedAccount.linkedPortalUsers.length > 0 ? (
     <Card className="shadow-none hover:shadow-none">
       <CardHeader>
@@ -1300,6 +1370,8 @@ const WebsitePortalsPage = () => {
       <TabsList className="flex w-full flex-wrap justify-start gap-2">
         <TabsTrigger value="operations">Operations</TabsTrigger>
         <TabsTrigger value="orders">Orders</TabsTrigger>
+        <TabsTrigger value="pricelist">Pricelist</TabsTrigger>
+        <TabsTrigger value="statements">Statements</TabsTrigger>
         <TabsTrigger value="addresses">Addresses</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
         <TabsTrigger value="support">Support</TabsTrigger>
@@ -1332,29 +1404,8 @@ const WebsitePortalsPage = () => {
                   </ul>
                 </div>
               ) : null}
-              {FEATURE_KEYS.map((feature) => {
-                const current = detailQuery.data.featureOverrides[feature];
-                return <Button
-                  key={feature}
-                  type="button"
-                  variant={current === true ? "default" : current === false ? "destructive" : "outline"}
-                  className="w-full justify-between"
-                  onClick={() => cycleFeatureOverride(feature, current)}
-                >
-                  {FEATURE_LABELS[feature]}<span className="text-xs">{featureOverrideStateLabel(current)}</span>
-                </Button>;
-              })}
-              <div className="border-t pt-2">
-                {(() => {
-                  const autoNotificationsEnabled = detailQuery.data.featureOverrides["auto-notifications"] !== false;
-                  return (
-                    <Button type="button" variant={autoNotificationsEnabled ? "default" : "outline"} className="w-full justify-between" onClick={() => upsertFeatureOverride.mutate({ featureKey: "auto-notifications", enabled: !autoNotificationsEnabled })}>
-                      Auto notifications<span className="text-xs">{autoNotificationsEnabled ? "Enabled" : "Disabled"}</span>
-                    </Button>
-                  );
-                })()}
-                <p className="mt-1 text-xs text-muted-foreground">Order confirmations, welcome emails, statements, and inquiry replies sent to this address. Turn off for a private test or troubleshooting account.</p>
-              </div>
+              {FEATURE_KEYS.map(renderFeatureToggle)}
+              <div className="border-t pt-2">{renderFeatureToggle("auto-notifications")}</div>
             </CardContent>
           </Card>
           <Card className="shadow-none hover:shadow-none">
@@ -1363,7 +1414,7 @@ const WebsitePortalsPage = () => {
               <Button variant="outline" className="w-full justify-start" onClick={async () => { try { await resetPassword.mutateAsync(detailQuery.data.email); toast({ title: "Reset sent", description: "Password reset email has been sent." }); } catch (error: any) { toast({ title: "Error", description: error.message || "Failed to send reset email.", variant: "destructive" }); } }} disabled={!detailQuery.data.email || resetPassword.isPending}>
                 <Mail className="mr-2 h-4 w-4" />{resetPassword.isPending ? "Sending reset…" : "Send password reset"}
               </Button>
-              <div className="space-y-2"><Label>Assigned pricelist</Label><Select value={detailQuery.data.assignedPricelistId ? String(detailQuery.data.assignedPricelistId) : "none"} onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))}><SelectTrigger><SelectValue placeholder="Select a pricelist" /></SelectTrigger><SelectContent><SelectItem value="none">No assigned pricelist</SelectItem>{pricelistVersions.map((version) => <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>)}</SelectContent></Select></div>
+              {renderAssignedPricelist()}
               <div className="space-y-2"><Label>Innovations account number</Label><div className="flex gap-2"><Input value={accountNumberDraft} onChange={(event) => setAccountNumberDraft(event.target.value)} placeholder="e.g. RETAIL" disabled={!detailQuery.data.crmCustomerId} /><Button size="sm" variant="outline" onClick={() => updateAccountNumber.mutate(accountNumberDraft)} disabled={updateAccountNumber.isPending || !detailQuery.data.crmCustomerId || normalizeAccountNumberInput(accountNumberDraft) === normalizeAccountNumberInput(detailQuery.data.accountNumber)}>{updateAccountNumber.isPending ? "Saving…" : "Save"}</Button></div></div>
             </CardContent>
           </Card>
@@ -1374,10 +1425,21 @@ const WebsitePortalsPage = () => {
         </div>
       </TabsContent>
 
-      <TabsContent value="orders"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Orders and payments</CardTitle></CardHeader><CardContent className="space-y-2">{ordersLoading ? <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" /> : orders.length ? orders.map((order) => <div key={order.id} className="flex items-center justify-between rounded border px-3 py-2 text-sm"><span>#{order.id.slice(0, 8).toUpperCase()} · {order.status}</span><Badge variant="outline">{formatMoney(order.totalAmount)}</Badge></div>) : <p className="text-sm text-muted-foreground">No orders on file.</p>}</CardContent></Card></TabsContent>
+      <TabsContent value="orders">
+        <CustomerOrdersPanel
+          target={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, ordersUseBillToAccount: detailQuery.data.ordersUseBillToAccount }}
+          contactId={contactEditor?.contactId ?? detailQuery.data.crmContactId}
+        />
+      </TabsContent>
+      <TabsContent value="pricelist">
+        <AssignedPricelistsSection staffTarget={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, assignedPricelistId: detailQuery.data.assignedPricelistId }} />
+      </TabsContent>
+      <TabsContent value="statements">
+        <CustomerStatementsPanel target={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} contactId={detailQuery.data.crmContactId} />
+      </TabsContent>
       <TabsContent value="addresses"><AddressBookSection targetUserId={selectedCustomer.userId} title="Customer addresses" description="Update saved checkout addresses." /></TabsContent>
       <TabsContent value="payments"><PaymentMethodsSection targetUserId={selectedCustomer.userId} title="Saved payment methods" description="Manage saved payment methods for this customer." /></TabsContent>
-      <TabsContent value="support"><div className="grid gap-4 xl:grid-cols-3"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Helpdesk tickets</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => <div key={ticket.id} className="rounded border p-2 text-sm"><p className="font-medium">{ticket.ticket_number}</p><p className="text-muted-foreground">{ticket.title}</p></div>) : <p className="text-sm text-muted-foreground">No linked tickets.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Submitted forms</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.inquiries.length ? detailQuery.data.inquiries.map((inquiry) => <div key={inquiry.id} className="rounded border p-2 text-sm"><p className="font-medium">{inquiry.inquiry_type}</p><p className="line-clamp-2 text-muted-foreground">{inquiry.message || "No message"}</p></div>) : <p className="text-sm text-muted-foreground">No form submissions.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Quote requests</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.quotes.length ? detailQuery.data.quotes.map((quote) => <div key={quote.id} className="rounded border p-2 text-sm"><p className="font-medium">{quote.quote_number}</p><p className="text-muted-foreground">{formatMoney(quote.grand_total)} · {quote.status}</p></div>) : <p className="text-sm text-muted-foreground">No quote requests.</p>}</CardContent></Card></div></TabsContent>
+      <TabsContent value="support"><div className="grid gap-4 xl:grid-cols-3"><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Helpdesk tickets</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => <Link key={ticket.id} to={ticketHref(ticket.id)} className="block rounded border p-2 text-sm hover:bg-muted/50"><p className="font-medium text-primary">{ticket.ticket_number}</p><p className="text-muted-foreground">{ticket.title}</p></Link>) : <p className="text-sm text-muted-foreground">No linked tickets.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Submitted forms</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.inquiries.length ? detailQuery.data.inquiries.map((inquiry) => <div key={inquiry.id} className="rounded border p-2 text-sm"><p className="font-medium">{inquiry.inquiry_type}</p><p className="line-clamp-2 text-muted-foreground">{inquiry.message || "No message"}</p></div>) : <p className="text-sm text-muted-foreground">No form submissions.</p>}</CardContent></Card><Card className="shadow-none hover:shadow-none"><CardHeader><CardTitle className="text-base">Quote requests</CardTitle></CardHeader><CardContent className="space-y-2">{detailQuery.data.quotes.length ? detailQuery.data.quotes.map((quote) => <div key={quote.id} className="rounded border p-2 text-sm"><p className="font-medium">{quote.quote_number}</p><p className="text-muted-foreground">{formatMoney(quote.grand_total)} · {quote.status}</p></div>) : <p className="text-sm text-muted-foreground">No quote requests.</p>}</CardContent></Card></div></TabsContent>
     </Tabs>
   );
 
@@ -1477,8 +1539,9 @@ const WebsitePortalsPage = () => {
                                 size="sm"
                                 variant="ghost"
                                 className="h-6 px-2 text-[11px]"
-                                title="Sign in as this customer portal account"
-                                disabled={emulatePortalUser.isPending}
+                                title={user.isStaffRole ? "Staff logins cannot be emulated" : "Sign in as this customer portal account"}
+                                disabled={emulatePortalUser.isPending || user.isStaffRole}
+
                                 onClick={(event) => { event.stopPropagation(); emulatePortalAccount(account); }}
                               >
                                 <Eye className="mr-1 h-3 w-3" /> {emulatePortalUser.isPending ? "Signing in…" : "Emulate"}
@@ -1514,7 +1577,7 @@ const WebsitePortalsPage = () => {
                         <ContextMenuItem onSelect={() => account.crmContactId && openPortalContactEditor(account, "details")} disabled={!account.crmContactId}>Edit contact</ContextMenuItem>
                         <ContextMenuItem onSelect={() => openPortalContact(account)}>Edit portal</ContextMenuItem>
                         <ContextMenuSeparator />
-                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
+                        <ContextMenuItem onSelect={() => emulatePortalAccount(account)} disabled={!account.portalUser || account.portalUser.isStaffRole || emulatePortalUser.isPending}>Emulate</ContextMenuItem>
                         <ContextMenuItem onSelect={() => toggleManualInviteEmail(account)} disabled={!account.portalUser || setManualInviteEmailSent.isPending}>
                           {account.portalUser?.manualInviteEmailSentAt ? "Clear invitation mark" : "Mark invitation email sent"}
                         </ContextMenuItem>
@@ -1736,6 +1799,8 @@ const WebsitePortalsPage = () => {
                   <TabsTrigger value="operations">Operations</TabsTrigger>
                   <TabsTrigger id="portal-profile-tab" value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
+                  <TabsTrigger value="pricelist">Pricelist</TabsTrigger>
+                  <TabsTrigger value="statements">Statements</TabsTrigger>
                   <TabsTrigger value="addresses">Addresses</TabsTrigger>
                   <TabsTrigger value="payments">Payments</TabsTrigger>
                   <TabsTrigger value="support">Support</TabsTrigger>
@@ -1755,45 +1820,8 @@ const WebsitePortalsPage = () => {
                         <div className="space-y-3 rounded-xl border p-4">
                           <p className="text-sm font-semibold text-foreground">Feature access overrides</p>
                           <div className="space-y-2">
-                            {FEATURE_KEYS.map((feature) => {
-                              const current = detailQuery.data.featureOverrides[feature];
-                              const stateClassName = current === true
-                                ? "border-primary bg-primary/5"
-                                : current === false
-                                  ? "border-destructive bg-destructive/5"
-                                  : "border-border";
-                              const labelClassName = current === false ? "text-destructive" : "text-primary";
-                              return (
-                                <button
-                                  key={feature}
-                                  type="button"
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${stateClassName}`}
-                                  onClick={() => cycleFeatureOverride(feature, current)}
-                                >
-                                  <span>
-                                    <span className="block text-sm font-medium text-foreground">{FEATURE_LABELS[feature]}</span>
-                                    <span className="block text-xs text-muted-foreground">{FEATURE_DESCRIPTIONS[feature]}</span>
-                                  </span>
-                                  <span className={`text-xs font-semibold ${labelClassName}`}>{featureOverrideStateLabel(current)}</span>
-                                </button>
-                              );
-                            })}
-                            {(() => {
-                              const autoNotificationsEnabled = detailQuery.data.featureOverrides["auto-notifications"] !== false;
-                              return (
-                                <button
-                                  type="button"
-                                  className={`flex w-full items-center justify-between rounded-lg border px-3 py-3 text-left ${autoNotificationsEnabled ? "border-primary bg-primary/5" : "border-border"}`}
-                                  onClick={() => upsertFeatureOverride.mutate({ featureKey: "auto-notifications", enabled: !autoNotificationsEnabled })}
-                                >
-                                  <span>
-                                    <span className="block text-sm font-medium text-foreground">Auto notifications</span>
-                                    <span className="block text-xs text-muted-foreground">Order confirmations, welcome emails, statements, and inquiry replies. Turn off for a private test or troubleshooting account.</span>
-                                  </span>
-                                  <span className="text-xs font-semibold text-primary">{autoNotificationsEnabled ? "Enabled" : "Disabled"}</span>
-                                </button>
-                              );
-                            })()}
+                            {FEATURE_KEYS.map(renderFeatureToggle)}
+                            <div className="border-t pt-2">{renderFeatureToggle("auto-notifications")}</div>
                           </div>
                         </div>
 
@@ -1850,7 +1878,7 @@ const WebsitePortalsPage = () => {
                               {!detailQuery.data.crmContactId ? (
                                 <div className="mt-2 flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground">
                                   <span>No CRM contact is linked yet. Link or create one to keep the person record complete.</span>
-                                  <Button type="button" size="sm" variant="link" className="h-auto p-0" onClick={() => navigate("/admin/contacts")}>Open Contacts</Button>
+                                  <Button type="button" size="sm" variant="link" className="h-auto p-0" onClick={() => navigate("/admin/crm/contacts")}>Open Contacts</Button>
                                 </div>
                               ) : null}
                               {renderSensitiveAccessLine("pricelists")}
@@ -1860,23 +1888,7 @@ const WebsitePortalsPage = () => {
                               <Mail className="mr-2 h-4 w-4" />
                               {resetPassword.isPending ? "Sending reset…" : "Send password reset"}
                             </Button>
-                            <div className="space-y-2">
-                              <Label>Assigned pricelist</Label>
-                              <Select
-                                value={detailQuery.data.assignedPricelistId ? String(detailQuery.data.assignedPricelistId) : "none"}
-                                onValueChange={(value) => assignPricelist.mutate(value === "none" ? null : Number(value))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a pricelist" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">No assigned pricelist</SelectItem>
-                                  {pricelistVersions.map((version) => (
-                                    <SelectItem key={version.id} value={String(version.id)}>{version.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            {renderAssignedPricelist()}
                             <div className="space-y-2">
                               <Label>Account number</Label>
                               <div className="flex items-center gap-2">
@@ -1963,7 +1975,7 @@ const WebsitePortalsPage = () => {
                                   <div>
                                     <p className="font-medium text-foreground">{alert.total_items} item(s) • {formatMoney(alert.total_amount)}</p>
                                     <p className="text-xs text-muted-foreground">Detected {formatDateTime(alert.first_detected_at)} • last seen {formatDateTime(alert.last_detected_at)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Email outbox: {alert.email_outbox_id ? "queued" : "not queued"} • Ticket: {alert.helpdesk_ticket_id ? "created" : "missing"}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">Email outbox: {alert.email_outbox_id ? "queued" : "not queued"} • Ticket: {alert.helpdesk_ticket_id ? <Link to={ticketHref(alert.helpdesk_ticket_id)} className="text-primary underline-offset-2 hover:underline">open</Link> : "missing"}</p>
                                   </div>
                                   {alert.status === "open" ? (
                                     <Button variant="outline" size="sm" onClick={() => resolveAlert.mutate(alert.id)} disabled={resolveAlert.isPending}>Resolve</Button>
@@ -2041,29 +2053,18 @@ const WebsitePortalsPage = () => {
                 </TabsContent>
 
                 <TabsContent value="orders" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
-                  <Card className="shadow-none hover:shadow-none">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Package className="h-5 w-5" />
-                        Orders & payments
-                      </CardTitle>
-                      <CardDescription>Review customer-initiated and staff-assisted orders, including payment summaries.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {ordersLoading ? <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /> : orders.length ? orders.map((order) => (
-                        <div key={order.id} className="rounded-xl border p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-semibold text-foreground">Order #{order.id.slice(0, 8).toUpperCase()}</p>
-                              <p className="text-xs text-muted-foreground">{formatDateTime(order.createdAt)} • {order.status}</p>
-                              <p className="mt-2 text-sm text-muted-foreground">{order.payments[0] ? `${order.payments[0].provider.toUpperCase()} • ${order.payments[0].cardBrand ?? "Card"} •••• ${order.payments[0].cardLast4 ?? "0000"}` : "No payment recorded"}</p>
-                            </div>
-                            <Badge variant="outline">{formatMoney(order.totalAmount)}</Badge>
-                          </div>
-                        </div>
-                      )) : <p className="text-sm text-muted-foreground">No orders on file yet.</p>}
-                    </CardContent>
-                  </Card>
+                  <CustomerOrdersPanel
+                    target={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, ordersUseBillToAccount: detailQuery.data.ordersUseBillToAccount }}
+                    contactId={detailQuery.data.crmContactId}
+                  />
+                </TabsContent>
+
+                <TabsContent value="pricelist" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <AssignedPricelistsSection staffTarget={{ userId: detailQuery.data.userId, crmCustomerId: detailQuery.data.crmCustomerId, assignedPricelistId: detailQuery.data.assignedPricelistId }} />
+                </TabsContent>
+
+                <TabsContent value="statements" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
+                  <CustomerStatementsPanel target={{ crmCustomerId: detailQuery.data.crmCustomerId, accountNumber: detailQuery.data.accountNumber, customerName: detailQuery.data.organizationName || detailQuery.data.fullName || null }} contactId={detailQuery.data.crmContactId} />
                 </TabsContent>
 
                 <TabsContent value="addresses" className="mt-0 min-h-0 flex-1 overflow-y-auto pr-1">
@@ -2094,11 +2095,11 @@ const WebsitePortalsPage = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {detailQuery.data.tickets.length ? detailQuery.data.tickets.map((ticket) => (
-                          <div key={ticket.id} className="rounded-lg border p-3 text-sm">
-                            <p className="font-medium text-foreground">{ticket.ticket_number}</p>
+                          <Link key={ticket.id} to={ticketHref(ticket.id)} className="block rounded-lg border p-3 text-sm hover:bg-muted/50">
+                            <p className="font-medium text-primary">{ticket.ticket_number}</p>
                             <p className="text-muted-foreground">{ticket.title}</p>
                             <p className="mt-1 text-xs text-muted-foreground">{ticket.source_channel} • {formatDateTime(ticket.created_at)}</p>
-                          </div>
+                          </Link>
                         )) : <p className="text-sm text-muted-foreground">No helpdesk tickets linked yet.</p>}
                       </CardContent>
                     </Card>

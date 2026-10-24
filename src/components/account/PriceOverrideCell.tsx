@@ -3,6 +3,7 @@ import { Check, FileSignature, Pencil, RotateCcw, ShoppingCart, X } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { formatPricelistMoney } from "./pricelistCurrencies";
 
 interface PriceOverrideCellAction {
   type: "cart" | "rx";
@@ -29,9 +30,14 @@ interface PriceOverrideCellProps {
   // price columns. Keep the displayed amount centered even when edit actions
   // are available at the edge of the cell.
   centered?: boolean;
+  // Staff viewing a customer's pricelist: show the plain price with no
+  // editing, since overrides belong to the signed-in viewer, not the customer.
+  readOnly?: boolean;
+  /** Inside a price-details popover the edit controls stay visible. */
+  controlsVisible?: boolean;
 }
 
-const formatOverride = (price: number, currencyCode: string) => `${currencyCode} $${price.toFixed(2)}`;
+const formatOverride = (price: number, currencyCode: string) => `${currencyCode} ${formatPricelistMoney(price, currencyCode)}`;
 
 const hoverActionSurfaceClass =
   "flex items-center gap-0.5 rounded-md border border-border/70 bg-background/95 p-0.5 shadow-md backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100";
@@ -71,10 +77,16 @@ const PriceOverrideCell = ({
   action,
   useRowHoverGroup,
   centered = false,
+  readOnly = false,
+  controlsVisible = false,
 }: PriceOverrideCellProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const groupClass = useRowHoverGroup ? "" : "group";
+
+  if (readOnly) {
+    return <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>;
+  }
 
   if (editing) {
     const parsed = Number(draft);
@@ -92,19 +104,20 @@ const PriceOverrideCell = ({
           step="0.01"
           autoFocus
           placeholder="0.00"
+          aria-label="Your retail price"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") commit();
             if (event.key === "Escape") setEditing(false);
           }}
-          className="h-7 w-24 text-right"
+          className={cn("h-7 w-24 text-right", controlsVisible && "h-11 text-base")}
         />
         <div className={cn("flex items-center gap-1", centered && "absolute right-0")}>
-          <Button type="button" size="icon" variant="ghost" className="h-6 w-6" disabled={!valid || isSaving} onClick={commit}>
+          <Button type="button" size="icon" variant="ghost" className={cn("h-6 w-6", controlsVisible && "h-11 w-11")} aria-label="Save retail price" disabled={!valid || isSaving} onClick={commit}>
             <Check className="h-3.5 w-3.5" />
           </Button>
-          <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(false)}>
+          <Button type="button" size="icon" variant="ghost" className={cn("h-6 w-6", controlsVisible && "h-11 w-11")} aria-label="Cancel retail price edit" onClick={() => setEditing(false)}>
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -116,13 +129,13 @@ const PriceOverrideCell = ({
     return (
       <div className={cn("flex items-center gap-1.5", centered ? "relative justify-center" : "justify-end", groupClass)}>
         <span className="font-semibold text-foreground">{formatOverride(override.custom_price, override.currency_code)}</span>
-        <div className={cn(hoverActionSurfaceClass, centered && "absolute right-0")}>
+        <div className={cn(hoverActionSurfaceClass, centered && "absolute right-0", controlsVisible && "pointer-events-auto opacity-100")}>
           {action && <ActionButton action={action} />}
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+            className={cn("h-6 w-6 text-muted-foreground hover:text-foreground", controlsVisible && "relative h-7 w-7 before:absolute before:-inset-2 before:content-['']")}
             title="Edit your price"
             onClick={(event) => {
               stop(event);
@@ -130,13 +143,13 @@ const PriceOverrideCell = ({
               setEditing(true);
             }}
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="!h-2.5 !w-2.5" />
           </Button>
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+            className={cn("h-6 w-6 text-muted-foreground hover:text-destructive", controlsVisible && "h-11 w-11")}
             title="Remove your price"
             onClick={(event) => {
               stop(event);
@@ -157,13 +170,13 @@ const PriceOverrideCell = ({
   return (
     <div className={cn("flex items-center gap-1.5", centered ? "relative justify-center" : "justify-end", groupClass)}>
       <span className={cn(pricesHidden && "select-none blur-sm")}>{wholesaleDisplay}</span>
-      <div className={cn(hoverActionSurfaceClass, centered && "absolute right-0")}>
+      <div className={cn(hoverActionSurfaceClass, centered && "absolute right-0", controlsVisible && "pointer-events-auto opacity-100")}>
         {action && <ActionButton action={action} />}
         <Button
           type="button"
           size="icon"
           variant="ghost"
-          className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className={cn("h-6 w-6 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100", controlsVisible && "relative h-7 w-7 opacity-100 before:absolute before:-inset-2 before:content-['']")}
           title={override ? "Edit your price" : "Enter your own retail price"}
           onClick={(event) => {
             stop(event);
@@ -171,14 +184,14 @@ const PriceOverrideCell = ({
             setEditing(true);
           }}
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="!h-2.5 !w-2.5" />
         </Button>
         {override && (
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            className="h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+            className={cn("h-6 w-6 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100", controlsVisible && "opacity-100")}
             title="Remove your price"
             onClick={(event) => {
               stop(event);

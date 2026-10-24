@@ -11,7 +11,7 @@ import DocStudioEmbed from "@/features/admin/doc-studio/DocStudioEmbed";
  */
 const DocStudioPage = () => {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="doc-studio-page flex min-h-0 flex-1 flex-col overflow-hidden">
       <EmailDeliveryHealthBanner />
       <DocStudioEmbed />
     </div>

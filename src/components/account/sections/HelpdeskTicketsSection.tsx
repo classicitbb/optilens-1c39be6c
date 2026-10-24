@@ -35,7 +35,7 @@ const HelpdeskTicketsSection = () => {
   useEffect(() => {
     if (!prefill?.prefillTitle && !prefill?.prefillDescription) return;
     openAssistant({ profile: "portal_support", formKind: "portal_support", formValues: { issueType: prefill.prefillTitle ?? "", summary: prefill.prefillDescription ?? "" } });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [location.state, openAssistant, prefill?.prefillDescription, prefill?.prefillTitle]);
   const { data: tickets = [] } = useQuery({
     queryKey: ["customer-helpdesk", effectiveUserId, identity?.crmContactId],
@@ -47,11 +47,17 @@ const HelpdeskTicketsSection = () => {
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (identity?.crmContactId) {
-        query = query.eq("partner_contact_id", identity.crmContactId);
-      } else {
-        query = query.eq("owner_user_id", effectiveUserId ?? user.id);
-      }
+      // Own contact tickets plus account-wide tickets of the companies this
+      // login belongs to (also covers staff viewing as the customer).
+      const viewerId = effectiveUserId ?? user.id;
+      const { data: contactIds, error: contactIdsError } = await (supabase.rpc as any)("helpdesk_visible_contact_ids", { p_user_id: viewerId });
+      if (contactIdsError) throw contactIdsError;
+      const visibleContactIds = ((contactIds ?? []) as Array<string | { helpdesk_visible_contact_ids: string }>)
+        .map((row) => (typeof row === "string" ? row : row.helpdesk_visible_contact_ids))
+        .filter(Boolean);
+      query = visibleContactIds.length
+        ? query.or(`owner_user_id.eq.${viewerId},partner_contact_id.in.(${visibleContactIds.join(",")})`)
+        : query.eq("owner_user_id", viewerId);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -60,7 +66,7 @@ const HelpdeskTicketsSection = () => {
   });
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
           <LifeBuoy className="h-5 w-5" />
@@ -88,12 +94,12 @@ const HelpdeskTicketsSection = () => {
           {tickets.map((ticket) => (
             <button
               key={ticket.id}
-              className="w-full rounded-lg border p-3 text-sm text-left hover:bg-muted/40 transition-colors flex items-center justify-between gap-2"
+              className="w-full min-w-0 rounded-lg border p-3 text-sm text-left hover:bg-muted/40 transition-colors flex items-center justify-between gap-2"
               onClick={() => navigate(`/profile/helpdesk/${ticket.id}`)}
             >
-              <div>
-                <p className="font-medium">{ticket.ticket_number} · {ticket.title}</p>
-                <p className="text-muted-foreground">{ticket.closed_at ? "Closed" : "Open"} · {new Date(ticket.created_at).toLocaleString()}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium" title={`${ticket.ticket_number} · ${ticket.title}`}>{ticket.ticket_number} · {ticket.title}</p>
+                <p className="break-words text-muted-foreground">{ticket.closed_at ? "Closed" : "Open"} · {new Date(ticket.created_at).toLocaleString()}</p>
               </div>
               <ChevronRight size={14} className="shrink-0 text-muted-foreground" />
             </button>

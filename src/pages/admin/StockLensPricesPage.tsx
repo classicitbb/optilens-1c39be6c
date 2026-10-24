@@ -1,111 +1,88 @@
-import { useState, useRef, ReactNode } from "react";
-import { useSearchParams } from "react-router";
-
-import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
+import { type ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import StockSkuPricingTab from "@/components/admin/StockSkuPricingTab";
 import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
+import { useBBDUSDRate, type PricelistVersion } from "@/hooks/usePricelistVersions";
 import type { PricelistCatalogRow } from "@/hooks/usePricelistCatalogRows";
 
-// Namespaced per pricelist page — a single shared "admin-selected-version-id"
-// key used to silently clobber whichever pricelist page was opened last.
-const VERSION_STORAGE_KEY = "admin-selected-version-id:stock";
+interface StockLensPricesPageProps {
+  version: PricelistVersion;
+  showUSD: boolean;
+  highlightItemId?: string | null;
+  onDirtyChange?: (isDirty: boolean) => void;
+  headerActionsElement?: HTMLElement | null;
+}
 
-const StockLensPricesPage = () => {
+const StockLensPricesPage = ({ version, showUSD, highlightItemId, onDirtyChange, headerActionsElement }: StockLensPricesPageProps) => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
-  const { data: versions } = usePricelistVersions();
-  const [searchParams] = useSearchParams();
-  const highlightItemId = searchParams.get("id");
-  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
-    const stored = localStorage.getItem(VERSION_STORAGE_KEY);
-    return stored ? Number(stored) : null;
-  });
-
-  const handleVersionChange = (id: number | null) => {
-    setSelectedVersionId(id);
-    if (id !== null) localStorage.setItem(VERSION_STORAGE_KEY, String(id));
-  };
-  const [showUSD, setShowUSD] = useState(false);
-  const previewFormat = "list" as const;
-  const previewRef = useRef<HTMLDivElement>(null);
   const [saveBar, setSaveBar] = useState<ReactNode>(null);
   const [liveCatalogRows, setLiveCatalogRows] = useState<Omit<PricelistCatalogRow, "id">[] | null>(null);
+  const [listDirty, setListDirty] = useState(false);
+  const [skuDirty, setSkuDirty] = useState(false);
 
-  const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
-  const resolvedId = activeVersion?.id ?? null;
-
-  const handlePreviewClick = () => {
-    setTimeout(() => {
-      previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  };
+  useEffect(() => {
+    onDirtyChange?.(listDirty || skuDirty);
+  }, [listDirty, onDirtyChange, skuDirty]);
 
   return (
-    <VersionSelectorPanel
-      pageTitle="Stock Lens Prices"
-      pageSubtitle="Semi-finished stock lenses for wholesale (WSPL). Grouped by MF Type."
-      selectedVersionId={selectedVersionId}
-      onVersionChange={handleVersionChange}
-      showUSD={showUSD}
-      onShowUSDChange={setShowUSD}
-      onPreviewClick={handlePreviewClick}
-      saveBar={saveBar}
-      exportBar={resolvedId && activeVersion ? (
-        <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} catalogType="stock" />
-      ) : undefined}
-    >
-      {resolvedId && activeVersion && (
-        <Tabs defaultValue="wspl" className="w-full">
-          <TabsList>
-            <TabsTrigger value="wspl">WSPL Stock List</TabsTrigger>
-            <TabsTrigger value="stock-skus">Stock Order SKUs</TabsTrigger>
-          </TabsList>
+    <div className="space-y-2">
+      {headerActionsElement
+        ? createPortal(
+            <div className="flex flex-wrap items-center justify-end gap-2 no-print">
+              <RxExportBar version={version} showUSD={showUSD} fxRate={fxRate} catalogType="stock" />
+              {saveBar}
+            </div>,
+            headerActionsElement,
+          )
+        : null}
 
-          <TabsContent value="wspl">
-            <div className="space-y-4">
-              <ListCatalogTab
-                pageName="Stock Lens Prices"
-                fxRate={fxRate}
-                showUSD={showUSD}
-                catalogType="stock"
-                lensFilter="wspl"
-                showTreatmentsAddons={false}
-                pageTitle={activeVersion?.name ?? "Stock Lens Pricelist"}
-                versionId={resolvedId}
-                renderSaveBar={setSaveBar}
-                onRowsChange={setLiveCatalogRows}
-                highlightItemId={highlightItemId}
-              />
+      <Tabs defaultValue="wspl" className="w-full">
+        <TabsList>
+          <TabsTrigger value="wspl">WSPL Stock List</TabsTrigger>
+          <TabsTrigger value="stock-skus">Stock Order SKUs</TabsTrigger>
+        </TabsList>
 
-              {/* Live Preview */}
-              <div ref={previewRef} className="mt-6">
-                <PdfPreviewShell
-                  title={`${activeVersion.name} — Stock Lens Preview`}
-                  formatLabel="List"
-                >
-                  <PricelistLivePreview
-                    version={activeVersion}
-                    previewFormat={previewFormat}
-                    showUSD={showUSD}
-                    fxRate={fxRate}
-                    catalogType="stock"
-                    liveCatalogRows={liveCatalogRows}
-                  />
-                </PdfPreviewShell>
-              </div>
+        <TabsContent value="wspl" forceMount className="data-[state=inactive]:hidden">
+          <div className="space-y-4">
+            <ListCatalogTab
+              pageName="Stock Lens Prices"
+              fxRate={fxRate}
+              showUSD={showUSD}
+              catalogType="stock"
+              lensFilter="wspl"
+              showTreatmentsAddons={false}
+              pageTitle={version.name}
+              versionId={version.id}
+              renderSaveBar={setSaveBar}
+              onRowsChange={setLiveCatalogRows}
+              highlightItemId={highlightItemId}
+              onDirtyChange={setListDirty}
+            />
+
+            <div className="mt-6">
+              <PdfPreviewShell title={`${version.name} — Stock Lens Preview`} formatLabel="List">
+                <PricelistLivePreview
+                  version={version}
+                  previewFormat="list"
+                  showUSD={showUSD}
+                  fxRate={fxRate}
+                  catalogType="stock"
+                  liveCatalogRows={liveCatalogRows}
+                />
+              </PdfPreviewShell>
             </div>
-          </TabsContent>
+          </div>
+        </TabsContent>
 
-          <TabsContent value="stock-skus">
-            <StockSkuPricingTab versionId={resolvedId} />
-          </TabsContent>
-        </Tabs>
-      )}
-    </VersionSelectorPanel>
+        <TabsContent value="stock-skus" forceMount className="data-[state=inactive]:hidden">
+          <StockSkuPricingTab versionId={version.id} onDirtyChange={setSkuDirty} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

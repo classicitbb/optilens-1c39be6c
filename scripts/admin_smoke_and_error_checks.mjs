@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 
 const PORT = Number(process.env.SMOKE_PORT ?? 4173);
@@ -15,10 +15,10 @@ const ROUTES = [
   "/admin/pricing/publisher",
   "/admin/pricing/publisher-old",
   "/admin/pricing/publisher/demo-id",
-  "/admin/pricing/costings",
-  "/admin/pricing/costings/new",
-  "/admin/pricing/costings/demo-id",
-  "/admin/pricing/costings/reports",
+  "/admin/finance/costings",
+  "/admin/finance/costings/new",
+  "/admin/finance/costings/demo-id",
+  "/admin/finance/costings/reports",
   "/admin/pricing/reference",
   "/admin/pricing/imports",
   "/admin/pricing/settings",
@@ -47,6 +47,16 @@ const ROUTES = [
   "/admin/crm/activities",
   "/admin/crm/proposals",
   "/admin/crm/catalog-publisher",
+  "/admin/crm/contacts",
+  "/admin/crm/contacts?contact=demo-id",
+  "/admin/crm/leads",
+  "/admin/crm/leads/finder",
+  "/admin/crm/leads/campaigns",
+  "/admin/crm/leads/reports",
+  "/admin/crm/settings",
+  "/admin/crm/settings?section=leads",
+  "/admin/contacts/demo-id",
+  "/admin/copilot/leads-assistant",
   "/admin/helpdesk",
   "/admin/helpdesk/tickets",
   "/admin/helpdesk/teams",
@@ -59,7 +69,12 @@ const ROUTES = [
   "/admin/website/store/lens-assistant",
   "/admin/knowledge",
   "/admin/knowledge/wiki",
+  "/admin/knowledge/sops",
   "/admin/knowledge/help",
+  "/atlas",
+  "/atlas/wiki",
+  "/atlas/sops",
+  "/atlas/website",
   "/admin/settings",
   "/admin/settings/company",
   "/admin/settings/users",
@@ -101,7 +116,7 @@ const ROUTES = [
 const REQUIRED_SNIPPETS = [
   {
     file: "src/App.tsx",
-    snippets: ["<GlobalErrorLogger />", "<AdminRoutes />"],
+    snippets: ["<GlobalErrorLogger />", "<AdminRoutes />", "path=\"/admin/*\"", "<AdminProtectedRoute>"],
   },
   {
     file: "src/routes/admin/AdminRoutes.tsx",
@@ -109,7 +124,7 @@ const REQUIRED_SNIPPETS = [
   },
   {
     file: "src/pages/Auth.tsx",
-    snippets: ["Welcome back", "Sign In", "Forgot your password?"],
+    snippets: ["Welcome back", "Sign In", "Forgot your password?", "form.handleSubmit(handleContinueFromDetails)", "await signIn(", "await signInWithMagicLink("],
   },
   {
     file: "src/hooks/use-toast.ts",
@@ -125,11 +140,11 @@ const REQUIRED_SNIPPETS = [
   },
   {
     file: "src/pages/admin/leads/LeadFinderPage.tsx",
-    snippets: ["Lead Finder", "Search & Score"],
+    snippets: ["Lead Finder", "Find leads", "runSearch(brief)"],
   },
   {
     file: "src/pages/admin/crm/CrmPipelinePage.tsx",
-    snippets: ["CRM Pipeline", "Manual Opportunity Intake"],
+    snippets: ['title="Pipeline"', "Classify business contacts into the pipeline", "classify.mutateAsync("],
   },
   {
     file: "src/pages/admin/RuntimeErrorsPage.tsx",
@@ -147,22 +162,25 @@ const REQUIRED_SNIPPETS = [
 ];
 
 const IMPLEMENTED_ADMIN_ROUTE_SNIPPETS = [
-  { path: "leads", snippet: 'path="leads" element={<MyLeadsPage />}' },
-  { path: "leads/finder", snippet: 'path="leads/finder" element={<LeadFinderPage />}' },
+  { path: "crm/leads", snippet: 'path="crm/leads" element={<MyLeadsPage />}' },
+  { path: "crm/leads/finder", snippet: 'path="crm/leads/finder" element={<LeadFinderPage />}' },
   { path: "crm/pipeline", snippet: 'path="crm/pipeline" element={<CrmPipelinePage />}' },
-  { path: "knowledge/wiki", snippet: 'path="knowledge/wiki" element={<AdminWikiPage />}' },
-  { path: "website/content", snippet: 'path="website/content" element={<ContentManagerPage />}' },
-  { path: "sales/proposals", snippet: 'path="sales/proposals" element={<CatalogPublisherV2Page />}' },
+  { path: "knowledge/wiki", snippet: 'path="knowledge/wiki" element={<AtlasLegacyRedirect spaceId="wiki" />}' },
+  { path: "knowledge/sops", snippet: 'path="knowledge/sops" element={<AtlasLegacyRedirect spaceId="sops" />}' },
+  { path: "website/content", snippet: 'path="website/content" element={<AtlasLegacyRedirect spaceId="website" />}' },
+  { path: "crm/proposals", snippet: 'path="crm/proposals" element={<CatalogPublisherV2Page />}' },
   { path: "settings/runtime-errors", snippet: 'path="settings/runtime-errors" element={<RuntimeErrorsPage />}' },
 ];
 
 const LEGACY_REDIRECT_EXPECTATIONS = [
-  { legacy: "pricing/publisher-old", canonical: "/admin/pricing/publisher", snippet: 'path="pricing/publisher-old" element={<Navigate to="/admin/pricing/publisher" replace />}' },
+  { legacy: "catalogpub-old", canonical: "/admin/pricing/publisher", snippet: 'path="catalogpub-old" element={<Navigate to="/admin/pricing/publisher" replace />}' },
   { legacy: "catalog", canonical: "/admin/pricing/catalog", snippet: 'path="catalog" element={<Navigate to="/admin/pricing/catalog" replace />}' },
   { legacy: "imports", canonical: "/admin/pricing/imports", snippet: 'path="imports" element={<Navigate to="/admin/pricing/imports" replace />}' },
   { legacy: "users", canonical: "/admin/settings/users", snippet: 'path="users" element={<Navigate to="/admin/settings/users" replace />}' },
   { legacy: "erp/crm", canonical: "/admin/crm/dashboard", snippet: 'path="erp/crm" element={<Navigate to="/admin/crm/dashboard" replace />}' },
-  { legacy: "catalog-publisher", canonical: "/admin/sales/proposals", snippet: 'path="catalog-publisher" element={<Navigate to="/admin/sales/proposals" replace />}' },
+  { legacy: "catalog-publisher", canonical: "/admin/crm/proposals", snippet: 'path="catalog-publisher" element={<Navigate to="/admin/crm/proposals" replace />}' },
+  { legacy: "leads", canonical: "/admin/crm/leads", snippet: 'path="leads" element={<LegacyCrmRedirect />}' },
+  { legacy: "leads/finder", canonical: "/admin/crm/leads/finder", snippet: 'path="leads/finder" element={<LegacyCrmRedirect />}' },
 ];
 
 const DEV_SERVER_ERROR_PATTERNS = [
@@ -261,7 +279,7 @@ async function checkImplementedRoutesAreNotPlaceholder() {
   const failures = [];
 
   for (const { path, snippet } of IMPLEMENTED_ADMIN_ROUTE_SNIPPETS) {
-    if (!appSource.includes(snippet)) {
+    if (!appSource.replace(/\s+/g, "").includes(snippet.replace(/\s+/g, ""))) {
       failures.push(`expected implemented route '${path}' to map to concrete page component`);
     }
   }
@@ -278,7 +296,7 @@ async function checkLegacyRedirects() {
   const failures = [];
 
   for (const { legacy, canonical, snippet } of LEGACY_REDIRECT_EXPECTATIONS) {
-    if (!appSource.includes(snippet)) {
+    if (!appSource.replace(/\s+/g, "").includes(snippet.replace(/\s+/g, ""))) {
       failures.push(`legacy route '${legacy}' should redirect to '${canonical}'`);
     }
   }
@@ -291,15 +309,15 @@ async function checkLegacyRedirects() {
 }
 
 async function checkRoleScopedRouteAccessWiring() {
-  const appSource = await readFile("src/routes/admin/AdminRoutes.tsx", "utf8");
+  const appSource = (await readFile("src/routes/admin/AdminRoutes.tsx", "utf8")).replace(/\s+/g, "");
 
   const runtimeErrorsSnippet = 'path="settings/runtime-errors" element={<RuntimeErrorsPage />}';
-  if (!appSource.includes(runtimeErrorsSnippet)) {
+  if (!appSource.includes(runtimeErrorsSnippet.replace(/\s+/g, ""))) {
     throw new Error("Runtime errors route wiring changed: expected '/admin/settings/runtime-errors' to remain directly accessible under AdminProtectedRoute.");
   }
 
   const integrationsSnippet = 'path="settings/integrations" element={<AdminOnlyRoute><IntegrationsPage /></AdminOnlyRoute>}';
-  if (!appSource.includes(integrationsSnippet)) {
+  if (!appSource.includes(integrationsSnippet.replace(/\s+/g, ""))) {
     throw new Error("Integrations route wiring changed: expected '/admin/settings/integrations' to remain wrapped in AdminOnlyRoute.");
   }
 
@@ -312,11 +330,11 @@ async function main() {
   // shell:false while preserving the same behavior on macOS/Linux.
   const npmExecPath = process.env.npm_execpath;
   const devServer = npmExecPath
-    ? spawn(process.execPath, [npmExecPath, "run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT)], {
+    ? spawn(process.execPath, [npmExecPath, "run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, CI: "1" },
     })
-    : spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT)], {
+    : spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], {
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, CI: "1" },
   });
@@ -358,7 +376,13 @@ async function main() {
 
     console.log("\nSmoke harness passed.");
   } finally {
-    devServer.kill("SIGTERM");
+    if (process.platform === "win32" && devServer.pid) {
+      // Killing npm alone leaves its Vite child holding the output pipes open.
+      // Terminate only this harness's process tree, so the command can finish.
+      spawnSync("taskkill", ["/PID", String(devServer.pid), "/T", "/F"], { stdio: "ignore" });
+    } else {
+      devServer.kill("SIGTERM");
+    }
   }
 }
 

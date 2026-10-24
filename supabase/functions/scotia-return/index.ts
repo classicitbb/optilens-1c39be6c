@@ -14,6 +14,8 @@
 // Routing (by the `oid` we sent at `prepare` time):
 //   • "STMT-<account_payments.id>" → statement/balance payment
 //                                      → settle_statement_payment (service role)
+//   • "WALKIN-<walk_in_payments.id>" → staff walk-in payment
+//                                      → settle_walk_in_payment (service role)
 //   • otherwise, an orders.id (uuid) → checkout order
 //                                      → settle_scotia_payment (service role)
 //
@@ -24,11 +26,18 @@
 import { classifyScotiaResponse } from "../_shared/scotia/ipgConnect.ts";
 import { getScotiaConfig, siteOrigin, supabaseAdmin } from "../_shared/scotia/config.ts";
 import { queuePaidOrderFulfillmentEmail } from "../_shared/email/paid-order-fulfillment.ts";
+import { sendStatementPaymentReceipt } from "../_shared/email/statement-payment-receipt.ts";
+import { sendWalkInPaymentReceipt } from "../_shared/email/walk-in-payment-receipt.ts";
 import { logScotiaEvent } from "../_shared/scotia/events.ts";
 
 
 const CHECKOUT_RETURN_PATH = "/order-complete";
 const STATEMENT_RETURN_PATH = "/profile/statements";
+const WALK_IN_RETURN_PATH = "/admin/settings/walk-in-payments";
+// A walk-in paid on the customer's own phone must not be sent to the admin
+// shell — an anonymous browser cannot load it. Those land on the public result
+// page instead. Which one applies is decided by the row's `origin`.
+const WALK_IN_PUBLIC_RETURN_PATH = "/pay/result";
 const ORDER_COMPLETE_PATH = (orderId: string) => `/order/${orderId}`;
 
 // The buyer may have started checkout on the apex site, the admin host, or a
@@ -61,6 +70,27 @@ function resolveOrigin(req: Request): string {
   return siteOrigin();
 }
 
+/**
+ * Staff-terminal walk-ins return to the admin page they were started from;
+ * every customer-device origin returns to the public result page. Defaults to
+ * the admin path so an unreadable row can never strand a staff member.
+ */
+async function walkInReturnPath(oid: string): Promise<string> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("walk_in_payments")
+      .select("origin")
+      .eq("payment_reference", oid)
+      .maybeSingle();
+    return data?.origin && data.origin !== "staff_terminal"
+      ? WALK_IN_PUBLIC_RETURN_PATH
+      : WALK_IN_RETURN_PATH;
+  } catch (err) {
+    console.error("scotia-return: could not resolve walk-in origin", err);
+    return WALK_IN_RETURN_PATH;
+  }
+}
+
 function redirect(req: Request, path: string, params: Record<string, string>): Response {
   const url = new URL(path, resolveOrigin(req));
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -72,7 +102,7 @@ Deno.serve(async (req) => {
     return redirect(req, CHECKOUT_RETURN_PATH, { scotia: "error" });
   }
 
-  let response: Record<string, string> = {};
+  const response: Record<string, string> = {};
   try {
     const form = await req.formData();
     for (const [key, value] of form.entries()) {
@@ -85,7 +115,11 @@ Deno.serve(async (req) => {
 
   const oid = (response.oid ?? "").trim();
   const isStatementFlow = oid.startsWith("STMT-");
-  const returnPath = isStatementFlow ? STATEMENT_RETURN_PATH : CHECKOUT_RETURN_PATH;
+  const isWalkInFlow = oid.startsWith("WALKIN-");
+  const walkInPath = isWalkInFlow ? await walkInReturnPath(oid) : WALK_IN_RETURN_PATH;
+  const returnPath = isStatementFlow
+    ? STATEMENT_RETURN_PATH
+    : isWalkInFlow ? walkInPath : CHECKOUT_RETURN_PATH;
 
   if (!oid) {
     console.error("scotia-return: gateway response missing oid", response);
@@ -102,17 +136,8 @@ Deno.serve(async (req) => {
     const result = await classifyScotiaResponse(response, cfg.sharedSecret, cfg.storeId);
 
     if (!result.hashValid) {
-      // debugHash is safe to log: HMAC digests, not the shared secret, and
-      // response_hash already travels in plaintext from Fiserv. Temporary —
-      // remove once the mismatch is diagnosed.
-      // Also dump every raw field Fiserv actually sent (masking anything
-      // card-like) — storename came back empty on the last attempt, so we
-      // need to see the true field name/shape rather than guess again.
-      const REDACT_KEYS = new Set(["cardnumber", "cvm", "cvv2", "track1", "track2"]);
-      const rawFields = Object.fromEntries(
-        Object.entries(response).map(([k, v]) => [k, REDACT_KEYS.has(k.toLowerCase()) ? "[redacted]" : v]),
-      );
-      console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash, rawFields });
+      // Log only validation metadata; never emit the bank callback payload.
+      console.error("scotia-return: response hash did not validate", { oid, ...result.debugHash });
       await logScotiaEvent(supabaseAdmin, {
         kind: "return",
         outcome: "hash_invalid",
@@ -121,7 +146,8 @@ Deno.serve(async (req) => {
         env: cfg.env,
         failRc: result.failRc,
         failReason: "Response hash did not validate",
-        responseParams: response,
+        amount: result.chargetotal ? Number(result.chargetotal) : null,
+        currency: result.currency,
       });
       return redirect(req, returnPath, { scotia: "error" });
     }
@@ -142,11 +168,14 @@ Deno.serve(async (req) => {
       save_token: !!result.hosteddataid,
       currency: result.currency,
       chargetotal: result.chargetotal,
+      gateway_transaction_id: response.ipgTransactionId ?? response.transaction_id ?? response.transactionId ?? null,
     };
 
-    const outcome = result.approved ? "success" : "declined";
+    // A buyer pressing Cancel on the hosted page is not a card decline —
+    // report it separately so the SPA doesn't tell them their card failed.
+    const outcome = result.approved ? "success" : result.cancelled ? "cancelled" : "declined";
 
-    // Diagnostics: exact parameters and failure code the gateway returned.
+    // Keep only scalar reconciliation fields; never retain callback payloads.
     await logScotiaEvent(supabaseAdmin, {
       kind: "return",
       outcome: result.approved ? "ok" : "declined",
@@ -157,7 +186,8 @@ Deno.serve(async (req) => {
       associationResponseCode: result.associationResponseCode,
       failRc: result.failRc,
       failReason: response.fail_reason ?? null,
-      responseParams: response,
+      amount: result.chargetotal ? Number(result.chargetotal) : null,
+      currency: result.currency,
     });
 
 
@@ -171,10 +201,38 @@ Deno.serve(async (req) => {
         console.error("scotia-return: settle_statement_payment failed", { paymentId, error });
         return redirect(req, returnPath, { scotia: "error" });
       }
+      const { data: settledPayment, error: savedCardLookupError } = await supabaseAdmin
+        .from("account_payments")
+        .select("card_saved_at")
+        .eq("id", paymentId)
+        .maybeSingle();
+      if (savedCardLookupError) {
+        console.error("scotia-return: saved-card status lookup failed", { paymentId, savedCardLookupError });
+      }
+      if (result.approved) {
+        await sendStatementPaymentReceipt(supabaseAdmin as never, paymentId);
+      }
       return redirect(req, returnPath, {
         scotia: outcome,
         ...(result.chargetotal ? { amt: String(result.chargetotal) } : {}),
+        ...(settledPayment?.card_saved_at ? { card_saved: "true" } : {}),
       });
+    }
+
+    if (isWalkInFlow) {
+      const paymentId = oid.slice("WALKIN-".length);
+      const { error } = await supabaseAdmin.rpc("settle_walk_in_payment", {
+        p_payment_id: paymentId,
+        p_gateway: gatewayPayload,
+      });
+      if (error) {
+        console.error("scotia-return: settle_walk_in_payment failed", { paymentId, error });
+        return redirect(req, returnPath, { scotia: "error" });
+      }
+      if (result.approved) {
+        await sendWalkInPaymentReceipt(supabaseAdmin as never, paymentId);
+      }
+      return redirect(req, returnPath, { scotia: outcome, payment: paymentId });
     }
 
     // Checkout order flow — settle_scotia_payment's ownership check trusts

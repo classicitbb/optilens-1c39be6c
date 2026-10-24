@@ -40,15 +40,15 @@ interface RxEyeRow {
   ht: null;
 }
 
-// assistant frameType → the engine's #mount select values. "sports" has no
-// mount of its own in the form; a wrap is still a full rim as far as the lab is
-// concerned, and the frame name field carries the rest.
+// assistant frameType → the engine's current #mount select values. "sports"
+// has no mount of its own in the form, so use the form's default full-rim
+// material; the frame name field carries the rest.
 const MOUNT_BY_FRAME_TYPE: Record<LensRecommendationInput["frameType"], string> = {
-  "full-rim": "full",
-  "semi-rimless": "supra",
+  "full-rim": "plastic",
+  "semi-rimless": "grooved",
   rimless: "rimless",
-  sports: "full",
-  "": "full",
+  sports: "plastic",
+  "": "plastic",
 };
 
 // assistant primaryUse → the engine's #purposeSeg values. Only reading and
@@ -112,7 +112,7 @@ export const buildRxPrefillPayload = (draft: RxOrderDraft): RxOrderPrefillPayloa
     },
     frame: {
       name: "",
-      mount: MOUNT_BY_FRAME_TYPE[input.frameType] ?? "full",
+      mount: MOUNT_BY_FRAME_TYPE[input.frameType] ?? "plastic",
       source: "",
       a: input.frameA,
       b: input.frameB,

@@ -28,7 +28,7 @@ describe("operator attention state", () => {
       tickets: [{ id: "t1", ticket_number: "TCK-1", title: "Ticket", stage_id: null, deadline: null, closed_at: null }],
       tasks: [{ id: "a1", activity_type: "Task", due_at: "2026-07-29T15:00:00.000Z", status: "open" }],
     });
-    expect(items.map((item) => item.href)).toEqual(["/admin/helpdesk/tickets/t1", "/admin/crm/activities?urgency=overdue"]);
+    expect(items.map((item) => item.href)).toEqual(["?ticket=t1", "/admin/crm/activities?urgency=overdue"]);
   });
 
   it("temporarily snoozes the banner without changing the handled-state rules", () => {

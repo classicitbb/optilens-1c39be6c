@@ -34,9 +34,7 @@ const merge = (winner: LeadCandidate, other: LeadCandidate): LeadCandidate => ({
   google_reviews_count: winner.google_reviews_count ?? other.google_reviews_count ?? null,
   formatted_address: winner.formatted_address ?? other.formatted_address ?? null,
   source_snippet: winner.source_snippet ?? other.source_snippet ?? null,
-  source_provider: winner.source_provider === other.source_provider
-    ? winner.source_provider
-    : `${winner.source_provider}+${other.source_provider}`,
+  source_provider: mergeSourceProviders(winner.source_provider, other.source_provider),
 });
 
 const locationsAgree = (a: LeadCandidate, b: LeadCandidate) => {
@@ -114,4 +112,10 @@ export function buildSearchTasks(plan: SearchPlan): SearchTask[] {
   }
 
   return tasks;
+}
+
+/** Union of provider ids, each listed once, e.g. "google_places+firecrawl_search". */
+export function mergeSourceProviders(a?: string | null, b?: string | null): string | null {
+  const ids = [...new Set([a, b].flatMap((v) => (v ?? "").split("+")).map((v) => v.trim()).filter(Boolean))];
+  return ids.length ? ids.join("+") : null;
 }

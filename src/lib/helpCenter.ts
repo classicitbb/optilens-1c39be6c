@@ -1,17 +1,14 @@
 import { toWikiRendererDocument } from "@/components/admin/WikiArticleRenderer";
-import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
+import type { BlogCanonicalContent, BlogInlineNode } from "@/components/blog/BlogPostRenderer";
 import {
   CURATED_KNOWLEDGE_ARTICLES,
   KNOWLEDGE_CATEGORY_META,
   KNOWLEDGE_CATEGORY_ORDER,
   type CuratedKnowledgeArticle,
   type KnowledgeCategoryId,
-  formatKnowledgeCategoryTitle,
   resolveKnowledgeCategoryId,
 } from "@/data/knowledgeCenter";
 import type { ContentArticle } from "@/hooks/useContentArticles";
-import type { HelpArticle } from "@/hooks/useHelpArticles";
-import type { WikiHeading } from "@/hooks/useWikiHeadings";
 
 export type HelpCenterKind = "section" | "article" | "link";
 
@@ -136,6 +133,57 @@ export const extractCanonicalHeadings = (content?: BlogCanonicalContent | null) 
     })
     .filter((heading) => heading.text.length > 0);
 
+const inlineToText = (nodes: BlogInlineNode[]): string =>
+  nodes
+    .map((node) => (node.type === "text" ? node.text : "children" in node ? inlineToText(node.children) : ""))
+    .join("");
+
+/** Flatten canonical body content to plain prose, dropping headings and images. */
+export const extractCanonicalPlainText = (content?: BlogCanonicalContent | null): string =>
+  (content?.blocks ?? [])
+    .map((block) => {
+      if (block.type === "paragraph" || block.type === "blockquote") return inlineToText(block.children);
+      if (block.type === "list") return block.items.map(inlineToText).join(" ");
+      return "";
+    })
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Legacy `content` is stored as HTML or markdown depending on the article's age. */
+const stripLegacyMarkup = (raw: string) =>
+  raw
+    .replace(/<[^>]+>/g, " ")
+    .replace(/[#*_>`|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const EXCERPT_MAX_CHARS = 160;
+
+/**
+ * Summary of last resort. Previously this fell back to the article's *category
+ * title*, which rendered a label like "Pricing Engine" in the slot reserved for
+ * a description. An excerpt of the body is always more useful, and an empty
+ * string is still better than a misleading one.
+ */
+export const toSummaryExcerpt = (
+  bodyJson?: BlogCanonicalContent | null,
+  legacyContent?: string | null,
+): string => {
+  const source = extractCanonicalPlainText(bodyJson) || stripLegacyMarkup(legacyContent ?? "");
+  if (!source) return "";
+  if (source.length <= EXCERPT_MAX_CHARS) return source;
+
+  // Prefer a sentence boundary, then a word boundary, before hard-truncating.
+  const window = source.slice(0, EXCERPT_MAX_CHARS + 1);
+  const sentenceEnd = window.search(/[.!?](\s|$)/);
+  if (sentenceEnd > 60) return window.slice(0, sentenceEnd + 1);
+
+  const lastSpace = window.lastIndexOf(" ");
+  return `${window.slice(0, lastSpace > 60 ? lastSpace : EXCERPT_MAX_CHARS).trimEnd()}...`;
+};
+
 const createSectionNode = (categoryId: KnowledgeCategoryId): HelpCenterNode => ({
   id: `section:${categoryId}`,
   title: KNOWLEDGE_CATEGORY_META[categoryId].title,
@@ -175,11 +223,15 @@ const toPublicArticleNode = (article: ContentArticle): HelpCenterNode => {
   const meta = parseHelpEntrySummary(article.summary ?? article.description ?? "");
   const slug = toKnowledgeArticleSlug({ id: article.id, title: article.title, slug: article.slug });
   const categoryId = article.content_type === "faq" ? "faq" : resolveKnowledgeCategoryId(article.category);
+  const bodyJson = toWikiRendererDocument({
+    bodyJson: article.body_json as BlogCanonicalContent | null,
+    legacyContent: article.content,
+  });
   return {
     id: article.id,
     title: article.title,
     slug,
-    summary: meta.summary || article.description || formatKnowledgeCategoryTitle(article.category || "knowledge"),
+    summary: meta.summary || article.description || toSummaryExcerpt(bodyJson, article.content),
     kind: meta.kind,
     categoryId,
     parentId: (article.parent_id as string | null | undefined) ?? null,
@@ -199,7 +251,7 @@ const toPublicArticleNode = (article: ContentArticle): HelpCenterNode => {
     visibility: (article.visibility ?? "public") as HelpCenterNode["visibility"],
     sortOrder: article.sort_order ?? 0,
     content: article.content,
-    bodyJson: toWikiRendererDocument({ bodyJson: article.body_json as BlogCanonicalContent | null, legacyContent: article.content }),
+    bodyJson,
     updatedAt: article.updated_at,
     children: [],
     source: "cms",
@@ -254,94 +306,4 @@ export const buildPublicHelpCenterTree = (articles: ContentArticle[]): HelpCente
   }
 
   return { sections, nodes, nodeById, nodeBySlug };
-};
-
-const toAdminManagedNode = (article: HelpArticle): HelpCenterNode => {
-  const meta = parseHelpEntrySummary(article.summary);
-  return {
-    id: article.id,
-    title: article.title,
-    slug: toKnowledgeArticleSlug({ id: article.id, title: article.title, slug: article.slug }),
-    summary: meta.summary,
-    kind: meta.kind,
-    categoryId: resolveKnowledgeCategoryId(article.category || "start-here"),
-    parentId: article.parent_id ?? null,
-    href: meta.href,
-    keywords: [article.title, article.summary ?? "", article.slug ?? ""]
-      .join(" ")
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean),
-    status: article.status ?? "draft",
-    visibility: article.context_slugs.includes("knowledge/wiki") ? "internal" : "draft",
-    sortOrder: article.sort_order ?? 0,
-    content: article.content,
-    bodyJson: toWikiRendererDocument({ bodyJson: article.body_json, legacyContent: article.content }),
-    updatedAt: article.updated_at,
-    children: [],
-    source: "cms",
-    legacyAnchors: [article.slug ?? "", article.id].filter(Boolean),
-  };
-};
-
-export const buildAdminHelpCenterTree = (headings: WikiHeading[], articles: HelpArticle[]): HelpCenterTree => {
-  const headingNodes = headings.map((heading) => ({
-    id: `heading:${heading.id}`,
-    title: heading.title,
-    slug: heading.slug,
-    summary: `Section for ${heading.title}`,
-    kind: "section" as const,
-    categoryId: resolveKnowledgeCategoryId(heading.slug),
-    parentId: null,
-    keywords: [heading.title.toLowerCase()],
-    status: "published" as const,
-    visibility: "internal" as const,
-    sortOrder: heading.sort_order ?? 0,
-    children: [] as HelpCenterNode[],
-    source: "heading" as const,
-    legacyAnchors: [heading.slug],
-  }));
-
-  const articleNodes = articles.map(toAdminManagedNode);
-  const nodeById = new Map<string, HelpCenterNode>();
-  const nodeBySlug = new Map<string, HelpCenterNode>();
-  const headingById = new Map(headings.map((heading) => [heading.id, `heading:${heading.id}`]));
-
-  for (const node of [...headingNodes, ...articleNodes]) {
-    nodeById.set(node.id, node);
-    if (node.kind !== "section") nodeBySlug.set(node.slug, node);
-  }
-
-  const topLevelArticles: HelpCenterNode[] = [];
-
-  for (const node of articleNodes) {
-    if (node.parentId && nodeById.has(node.parentId)) {
-      nodeById.get(node.parentId)!.children.push(node);
-      continue;
-    }
-
-    const article = articles.find((item) => item.id === node.id);
-    const headingNodeId = article?.section_id ? headingById.get(article.section_id) : undefined;
-    if (headingNodeId && nodeById.has(headingNodeId)) {
-      nodeById.get(headingNodeId)!.children.push(node);
-      continue;
-    }
-
-    topLevelArticles.push(node);
-  }
-
-  for (const headingNode of headingNodes) {
-    headingNode.children.sort((left, right) => left.sortOrder - right.sortOrder || left.title.localeCompare(right.title));
-  }
-
-  topLevelArticles.sort((left, right) => left.sortOrder - right.sortOrder || left.title.localeCompare(right.title));
-
-  const sections = [...headingNodes, ...topLevelArticles];
-
-  return {
-    sections,
-    nodes: [...headingNodes, ...articleNodes],
-    nodeById,
-    nodeBySlug,
-  };
 };

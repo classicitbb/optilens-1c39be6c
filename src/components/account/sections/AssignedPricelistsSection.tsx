@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { useNavigate } from "react-router";
+import { useOptionalCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeDollarSign, Download, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,18 +17,27 @@ import { usePortalRxPricingStructure } from "@/hooks/usePortalRxPricingStructure
 import { MATERIAL_COLUMNS } from "@/hooks/useMatrixAllocations";
 import { useUserPriceOverrides } from "@/hooks/useUserPriceOverrides";
 import { useUserCurrencyPreference } from "@/hooks/useUserCurrencyPreference";
-import { useCartContext } from "@/contexts/CartContext";
+import { useOptionalCartContext } from "@/contexts/CartContext";
 import { getStableStoreProductCartId } from "@/hooks/useStoreProducts";
 import { compareMaterialOrder } from "@/lib/sortOrder";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import PriceOverrideCell from "@/components/account/PriceOverrideCell";
+import { RxPricelistCell } from "@/components/account/RxPricelistCell";
+import { PricelistDesignInfo } from "@/components/account/PricelistDesignInfo";
+import { treatmentEducation } from "@/components/account/pricelistEducation";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useInnovationsCatalogAliases, usePricelistLensAliasLinks } from "@/features/rx-order/hooks/useInnovationsCatalog";
+import { indexPricelistLenses, pricelistLensOrderPath } from "@/features/rx-order/pricing/pricelistLenses";
+import { cellKey } from "@/features/rx-order/pricing/matrixPricing";
+import { pricelistCurrencies, convertPricelistAmount, formatPricelistMoney, type PricelistCurrency } from "@/components/account/pricelistCurrencies";
 
 interface MatrixRow {
   category: string;
   material_index: string;
   treatment_type: string;
   allocated_price_bbd: number;
+  lens_id?: string | null;
 }
 
 interface CatalogRow {
@@ -46,17 +56,9 @@ interface AssignedPricelistDetails {
   updated_at: string | null;
 }
 
-interface PortalCurrencyOption {
-  currencyCode: string;
-  bbdPerUnit: number;
-  isDefault: boolean;
-}
-
 const buildCatalogRowKey = (row: Pick<CatalogRow, "catalog_type" | "row_key">) => `catalog:${row.catalog_type}:${row.row_key}`;
 const buildMatrixRowKey = (groupingKey: string, categoryKey: string, columnKey: string) =>
   `matrix:${groupingKey}:${categoryKey}:${columnKey}`;
-
-const money = (value: number) => `$${value.toFixed(2)}`;
 
 const escapeCsvCell = (value: string) => (/[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
 const toCsv = (rows: string[][]) => rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n");
@@ -95,17 +97,34 @@ const isLabSupplyRow = (row: CatalogRow) => {
   return section === "lab" || section === "lab supplies";
 };
 
-const AssignedPricelistsSection = () => {
-  const { identity } = usePortalIdentity();
+// Set when staff view a customer's pricelist from the admin (no emulation):
+// the RPCs are scoped to this customer, and the viewer's own retail
+// overrides and cart actions are left out.
+export type StaffPricelistTarget = {
+  userId: string;
+  crmCustomerId: number | null;
+  assignedPricelistId: number | null;
+};
+
+const NO_OVERRIDES = new Map<string, { row_key: string; custom_price: number; currency_code: string }>();
+
+const AssignedPricelistsSection = ({ staffTarget }: { staffTarget?: StaffPricelistTarget } = {}) => {
+  const navigate = useNavigate();
+  const portal = usePortalIdentity();
+  const identity = staffTarget ?? portal.identity;
   const assignedPricelistId = identity?.assignedPricelistId ?? null;
   const hasPricelist = typeof assignedPricelistId === "number";
-  const [pricesHidden, setPricesHidden] = useState(true);
-  const { overrides, setOverride, clearOverride } = useUserPriceOverrides();
+  const { data: lensAliases, isLoading: lensCatalogLoading, isError: lensCatalogError } = useInnovationsCatalogAliases(hasPricelist);
+  const canStartRxOrder = !staffTarget && identity?.crmCustomerId != null && portal.canAccessFeature("rx-order");
+  const [pricesHidden, setPricesHidden] = useState(!staffTarget);
+  const { overrides: ownOverrides, setOverride, clearOverride } = useUserPriceOverrides();
+  const overrides = staffTarget ? NO_OVERRIDES : ownOverrides;
   const { preferredCurrency, setPreference: setCurrencyPreference } = useUserCurrencyPreference();
-  const { addToCart } = useCartContext();
-  const { openAssistant } = useCompanionAssistant();
+  // Absent in the admin; the cart and Rx quote actions are hidden for staff.
+  const cart = useOptionalCartContext();
+  const assistant = useOptionalCompanionAssistant();
 
-  const { data: currencyOptions = [] } = useQuery<PortalCurrencyOption[]>({
+  const { data: configuredCurrencies = [] } = useQuery<PricelistCurrency[]>({
     queryKey: ["portal-pricing-currency-settings"],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("portal_pricing_currency_settings");
@@ -121,13 +140,21 @@ const AssignedPricelistsSection = () => {
     staleTime: 5 * 60_000,
   });
 
+  const currencyOptions = useMemo(() => pricelistCurrencies(configuredCurrencies), [configuredCurrencies]);
   const currencyByCode = useMemo(() => new Map(currencyOptions.map((option) => [option.currencyCode, option])), [currencyOptions]);
   const defaultCurrency = currencyOptions.find((option) => option.isDefault)?.currencyCode ?? currencyOptions[0]?.currencyCode ?? FALLBACK_CURRENCY;
   const currency = preferredCurrency && currencyByCode.has(preferredCurrency) ? preferredCurrency : defaultCurrency;
-  const displayMoney = (bbd: number) => {
+  const displayAmount = (bbd: number) => {
     const amount = Number(bbd);
     const rate = currencyByCode.get(currency)?.bbdPerUnit;
-    return money(rate ? amount / rate : amount);
+    return rate ? amount / rate : amount;
+  };
+  const displayMoney = (bbd: number) => formatPricelistMoney(displayAmount(bbd), currency);
+  const displayOverride = (rowKey: string) => {
+    const original = overrides.get(rowKey);
+    if (!original) return undefined;
+    const converted = convertPricelistAmount(original.custom_price, original.currency_code, currency, currencyOptions);
+    return converted == null ? undefined : { custom_price: Number(converted.toFixed(2)), currency_code: currency };
   };
 
   // Stock lenses & supplies -> straight into the store cart, priced at the
@@ -137,7 +164,7 @@ const AssignedPricelistsSection = () => {
   const addCatalogRowToCart = (row: CatalogRow) => {
     if (!row.item_id) return;
     const productType = row.row_type as "lens" | "supply" | "addon";
-    addToCart({
+    cart?.addToCart({
       id: getStableStoreProductCartId({ id: row.item_id, product_type: productType }),
       name: row.display_description,
       price: row.bbd_price,
@@ -146,14 +173,13 @@ const AssignedPricelistsSection = () => {
     });
   };
 
-  // RX lens designs & add-ons -> no structured Rx-cart exists today, so this
-  // opens the assistant's quote request form pre-filled with the row details.
-  const addToRxQuoteRequest = (description: string, bbdPrice: number) => {
-    openAssistant({
+  // Add-ons and customers without Rx access retain the existing inquiry path.
+  const addToRxQuoteRequest = (description: string, bbdPrice: number | null) => {
+    assistant?.openAssistant({
       formKind: "quote_request",
       formValues: {
         requestTitle: description,
-        summary: `${description} — wholesale BBD $${bbdPrice.toFixed(2)}. Please quote pricing and lead time.`,
+        summary: `${description}${bbdPrice == null ? "" : ` — wholesale BBD $${bbdPrice.toFixed(2)}`}. Please quote pricing and lead time.`,
       },
     });
   };
@@ -165,11 +191,12 @@ const AssignedPricelistsSection = () => {
   );
 
   const { data: canAccessLabPricing = false } = useQuery<boolean>({
-    queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null],
+    queryKey: ["portal-can-access-lab-pricing", identity?.crmCustomerId ?? null, staffTarget?.userId ?? null],
     enabled: hasPricelist,
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("can_access_customer_lab_pricing", {
         p_customer_id: identity?.crmCustomerId ?? null,
+        ...(staffTarget ? { p_user_id: staffTarget.userId } : {}),
       });
       if (error) throw error;
       return data === true;
@@ -193,6 +220,10 @@ const AssignedPricelistsSection = () => {
       return (data ?? []) as MatrixRow[];
     },
   });
+
+  const selectedLensIds = rows.flatMap((row) => row.lens_id ? [row.lens_id] : []);
+  const lensLinks = usePricelistLensAliasLinks(selectedLensIds);
+  const lensesByCell = useMemo(() => indexPricelistLenses(lensAliases ?? [], rows, lensLinks.data ?? []), [lensAliases, rows, lensLinks.data]);
 
   const { data: addonRows = [], isLoading: addonsLoading } = useQuery<CatalogRow[]>({
     queryKey: ["portal-assigned-pricelist-addons", assignedPricelistId, identity?.crmCustomerId ?? null],
@@ -321,7 +352,7 @@ const AssignedPricelistsSection = () => {
         visibleCols.forEach((column) => {
           const price = priceByKey.get(`${grouping.key}::${category.key}::${column.key}`);
           if (price != null) {
-            csvRows.push(["RX Lens Prices", grouping.name, category.name, column.key, displayMoney(price).replace(/^\$/, "")]);
+            csvRows.push(["RX Lens Prices", grouping.name, category.name, column.key, displayAmount(price).toFixed(2)]);
           }
         });
       });
@@ -330,7 +361,7 @@ const AssignedPricelistsSection = () => {
     const addCatalogSection = (label: string, sections: Map<string, CatalogRow[]>) => {
       sections.forEach((sectionRows, sectionName) => {
         sectionRows.forEach((row) => {
-          csvRows.push([label, sectionName, row.display_description, "", displayMoney(row.bbd_price).replace(/^\$/, "")]);
+          csvRows.push([label, sectionName, row.display_description, "", displayAmount(row.bbd_price).toFixed(2)]);
         });
       });
     };
@@ -357,10 +388,10 @@ const AssignedPricelistsSection = () => {
   };
 
   const accordionTriggerClass =
-    "rounded-md bg-muted-foreground px-4 py-3 text-sm font-bold uppercase tracking-wide text-white transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-white";
+    "rounded-md bg-secondary px-4 py-3 text-sm font-bold uppercase tracking-wide text-secondary-foreground transition-all hover:no-underline hover:brightness-110 data-[state=open]:rounded-b-none [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-secondary-foreground";
 
   const countBadge = (count: number, noun: string) => (
-    <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-white">
+    <span className="rounded-full bg-secondary-foreground/15 px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-secondary-foreground">
       {count} {noun}{count === 1 ? "" : "s"}
     </span>
   );
@@ -401,21 +432,22 @@ const AssignedPricelistsSection = () => {
                             key={`${section}-${index}`}
                             className={cn(
                               "group border-b last:border-b-0",
-                              isCartRow && "cursor-pointer hover:bg-muted/50",
+                              isCartRow && !staffTarget && "cursor-pointer hover:bg-muted/50",
                             )}
-                            onClick={isCartRow ? rowAction.onClick : undefined}
+                            onClick={isCartRow && !staffTarget ? rowAction.onClick : undefined}
                           >
                             <td className="px-4 py-2 font-medium text-foreground">{row.display_description}</td>
                             <td className="px-3 py-2 text-right font-semibold text-foreground">
                               <PriceOverrideCell
                                 wholesaleDisplay={displayMoney(row.bbd_price)}
                                 pricesHidden={pricesHidden}
-                                override={overrides.get(rowKey)}
+                                override={displayOverride(rowKey)}
                                 onSave={(price) => setOverride.mutate({ rowKey, price, currencyCode: currency })}
                                 onClear={() => clearOverride.mutate(rowKey)}
                                 isSaving={setOverride.isPending}
-                                action={rowAction}
+                                action={staffTarget ? undefined : rowAction}
                                 useRowHoverGroup
+                                readOnly={!!staffTarget}
                               />
                             </td>
                           </tr>
@@ -472,7 +504,7 @@ const AssignedPricelistsSection = () => {
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold text-foreground">Pricelists</h2>
           <p className="text-sm text-muted-foreground">
-            Your assigned wholesale pricing{updatedAt ? ` · updated ${new Date(updatedAt).toLocaleDateString()}` : ""}.
+            {staffTarget ? "Assigned wholesale pricing for this customer" : "Your assigned wholesale pricing"}{updatedAt ? ` · updated ${new Date(updatedAt).toLocaleDateString()}` : ""}.
           </p>
         </div>
       </header>
@@ -484,19 +516,20 @@ const AssignedPricelistsSection = () => {
             {canAccessLabPricing && <TabsTrigger value="stock">Stock Lenses</TabsTrigger>}
             <TabsTrigger value="supplies">Supplies</TabsTrigger>
           </TabsList>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={currency} onValueChange={(code) => setCurrencyPreference.mutate(code)}>
-              <SelectTrigger className="h-8 w-24 text-xs font-medium" aria-label="Display currency">
+              <SelectTrigger className="h-11 w-40 text-xs font-medium" aria-label="Display currency">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {currencyOptions.map((option) => (
-                  <SelectItem key={option.currencyCode} value={option.currencyCode}>
-                    {option.currencyCode}
+                  <SelectItem key={option.currencyCode} value={option.currencyCode} className="min-h-11">
+                    {option.currencyCode}{option.indicative ? " (estimate)" : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {currencyByCode.get(currency)?.indicative && <span className="text-xs text-muted-foreground">Estimated conversion</span>}
             {hasAnyPrices && (
               <Button variant="outline" size="sm" className="gap-2" onClick={() => setCsvDialogOpen(true)}>
                 <Download className="h-4 w-4" />
@@ -543,12 +576,14 @@ const AssignedPricelistsSection = () => {
                 <Accordion type="multiple" defaultValue={[groupings[0].grouping.key]} className="w-full space-y-2">
                   {groupings.map(({ grouping, visibleCols, activeCategories }) => (
                     <AccordionItem key={grouping.id} value={grouping.key} className="border-b-0">
+                      <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild>
                       <AccordionTrigger className={accordionTriggerClass}>
                         <span className="flex items-center gap-2">
                           {grouping.name}
                           {countBadge(activeCategories.length, "design")}
                         </span>
                       </AccordionTrigger>
+                      </TooltipTrigger>{treatmentEducation[grouping.key] && <TooltipContent side="top" className="max-w-80 text-xs leading-relaxed"><p>{treatmentEducation[grouping.key].summary}</p></TooltipContent>}</Tooltip></TooltipProvider>
                       <AccordionContent className="pb-0">
                         <div className="overflow-x-auto rounded-b-md border border-t-0">
                           <table className="w-full text-sm">
@@ -565,29 +600,25 @@ const AssignedPricelistsSection = () => {
                             <tbody>
                               {activeCategories.map((category) => (
                                 <tr key={category.id} className="border-b last:border-b-0">
-                                  <td className="px-4 py-2 font-medium text-foreground">{category.name}</td>
+                                  <td className="px-4 py-2 font-medium text-foreground"><PricelistDesignInfo categoryKey={category.key} name={category.name} /></td>
                                   {visibleCols.map((column) => {
                                     const price = priceByKey.get(`${grouping.key}::${category.key}::${column.key}`);
                                     const rowKey = buildMatrixRowKey(grouping.key, category.key, column.key);
+                                    const lensDetails = `${category.name} · Material: ${column.key} · Colour / treatment: ${grouping.name}`;
                                     return (
                                       <td key={column.key} className="px-3 py-2 text-center font-semibold text-foreground">
-                                        {price != null ? (
-                                          <PriceOverrideCell
-                                            wholesaleDisplay={displayMoney(price)}
-                                            pricesHidden={pricesHidden}
-                                            override={overrides.get(rowKey)}
-                                            onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
-                                            onClear={() => clearOverride.mutate(rowKey)}
-                                            isSaving={setOverride.isPending}
-                                            centered
-                                            action={{
-                                              type: "rx",
-                                              onClick: () => addToRxQuoteRequest(`${grouping.name} — ${category.name}, index ${column.key}`, price),
-                                            }}
-                                          />
-                                        ) : (
-                                          "—"
-                                        )}
+                                        <RxPricelistCell
+                                          context={lensDetails}
+                                          lenses={lensesByCell.get(cellKey(grouping.key, category.key, column.key)) ?? []}
+                                          catalogLoading={lensCatalogLoading || lensLinks.isLoading} catalogError={lensCatalogError || lensLinks.isError}
+                                          price={price ?? null} wholesaleDisplay={price == null ? "—" : displayMoney(price)}
+                                          pricesHidden={pricesHidden} currency={currency} currencyIndicative={currencyByCode.get(currency)?.indicative} override={displayOverride(rowKey)}
+                                          onSave={(p) => setOverride.mutate({ rowKey, price: p, currencyCode: currency })}
+                                          onClear={() => clearOverride.mutate(rowKey)} isSaving={setOverride.isPending}
+                                          readOnly={!!staffTarget} canStartOrder={canStartRxOrder}
+                                          onStartOrder={(lens) => navigate(pricelistLensOrderPath(lens.alias))}
+                                          onRequestQuote={(description) => addToRxQuoteRequest(description, price ?? null)}
+                                        />
                                       </td>
                                     );
                                   })}

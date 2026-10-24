@@ -2,6 +2,142 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-23 — Frame repairs as staff-only stock-order addons
+
+### Release Notes
+- The 25 active Innovations "2 Frame Repairs" items are now add-ons of type Repairs. They are not shown on the website, and staff can add them to stock orders for any account once they have a price. Items without a price stay out of stock orders until one is set in the add-on editor.
+
+## 2026-10-22 — Native PDF viewer and spreadsheet previews (local source)
+
+### Release Notes
+- PDFs open in the browser's own viewer on desktop (search, print, thumbnails); phones and tablets keep the built-in page viewer. CSV and Excel (.xlsx) attachments can now be previewed as a grid, with sheet tabs, from admin email and helpdesk tickets.
+
+## 2026-10-20 — Alert bell, stock refresh and portal loading (local source)
+
+### Release Notes
+- Simple two-note alert sound with shared cross-tab cooldown, mute and test controls. Stock grids check database quantities every eight hours while open, plus mount/focus/reconnect. Portal lists overlap independent reads and defer account details until selection.
+
+## 2026-10-20 — Hot-lead summary and signup lead capture (local source)
+
+### Release Notes
+- Trade-account, price-list and portal-signup requests now create or match a CRM lead and email the owner one lead summary: what they said, fit, history, a suggested next move, a reply-by time (4 business hours, Barbados) and one-tap reply, WhatsApp, CRM and approval links. Portal signups previously produced no owner email, ticket or CRM record. No migration; the contact-inquiry function needs a redeploy.
+
+## 2026-10-20 — Portal switches and assigned pricelist editor
+
+### Release Notes
+- Portal settings use enable/disable switches and an Edit link opens the selected pricelist. Existing customer access is preserved. All-off defaults for new accounts require the separately approved database migration.
+
+## 2026-10-20 — Doc Studio shortcuts and square workspace (local source)
+
+### Release Notes
+- The dashboard Doc Studio tile has direct links to recently used sections, opening the selected module immediately. Studio outer panels and the shared admin header have square corners at every screen size; existing control styles remain. Not published.
+
+## 2026-10-20 — Doc Studio Innovations invoice import (local source)
+
+### Release Notes
+- Invoice and Quotation can fill a separate editable draft from an Innovations invoice number. Customer selection handles invoices absent from synced statements. Source amounts and invoice provenance are preserved without adding VAT again. Not published.
+
+## 2026-10-19 — Stock entry and selector visibility (local source)
+
+### Release Notes
+- Fresh stock-order links open the shared Rx form in Stock / supplies mode. Saved stock quotes/product highlights retain the existing editor. Lens lists escape scrolling panels and fit the viewport; segmented choices have contrasting light/dark states. Browser lens-grid/local-line checks passed without saving/submitting. Not published.
+
+## 2026-10-19 — Integrated stock / supplies form (local source)
+
+### Release Notes
+- The admin new-order form now embeds compact patient/reference, PO and instructions fields, a shared supplies/services category browser, account-priced lens selectors and variant grid, editable lines and a review-before-submit flow. Service request is removed from the order-type menu. Local source only; no production publication or real order submitted during verification.
+
+## 2026-10-19 — Staff Rx submit and staff pricing access (local source)
+
+### Release Notes
+- On the admin Rx form the button now reads "Send for submission". It sends the saved order to Rx Orders > Ready to release, where staff release it to the lab. It no longer adds the order to the staff member's cart.
+- Admin and operator profiles are approved for portal pricing against the Retail account, so store and pricelist prices show for staff. This was a data change on the live database only.
+
+## 2026-10-15 — Email Previews resend (local source)
+
+### Release Notes
+- Email Previews can resend a logged email, optionally to a corrected address, and fix that address on the matching CRM contact. Only emails sent after deployment can be resent. Not yet deployed.
+
+## 2026-10-08 — Atlas layout and authenticated sharing (local source)
+
+### Release Notes
+- Atlas saves page width, remembers sidebar width per signed-in user in the browser, keeps generated page/shared-link identifiers stable across title changes, and prepares an explicitly enabled read-only page link for any signed-in website account. Administrators can revoke sharing and inspect account/page/version/time access. The approved Atlas migration and frontend are deployed. Sharing stays disabled until explicitly enabled per page. Target-specific end-to-end sharing/signup verification remains pending.
+
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+### Release Notes
+- Lead Finder now matches results to the CRM, excludes current customers, supports linking an existing contact (even with a different name), Connection strength and follow-up tasks. Not yet deployed.
+
+## 2026-10-07 — CRM research provider (local source)
+
+### Release Notes
+- Research public web uses OpenAI web search with source links and candidate email suggestions. Review the cited pages before adding details and Save to persist draft changes. Function deployment and live verification are pending.
+
+## 2026-10-07 — Doc Studio recipients, signatures and labels (local source)
+
+### Release Notes
+- Search and dismiss the recipient picker without losing To. Edit/copy/download a signature tile or insert it in an email draft. Switch square labels between shipping and customer layouts and edit their headings. Deployment and email-client proof remain pending.
+
+## 2026-10-07 — CRM contact editor (local source)
+
+### Release Notes
+
+## 2026-10-07 — Admin attention dropdown
+
+### Release Notes
+
+## 2026-10-05 — Iris wiki formatting
+
+### Release Notes
+- Iris replies, proposal previews and accepted editor content preserve headings, emphasis, lists, checklists, tables and code. Selection replacements retain rich text. Local source change only; production publication requires approval.
+
+## 2026-10-05 — Atlas: one workspace for the wiki, procedures and website content
+
+### Release Notes
+- **Atlas** is a new full-screen workspace at `/atlas` that replaces Knowledge → Wiki, Knowledge → SOPs and Website → Pages / Content. It has three spaces: **Wiki**, **SOPs** (the published wiki pages, read-only until you choose Edit) and **Website** (knowledge-base articles, FAQs and legal pages). Old links keep working and open the same page in Atlas.
+- **Website** is a database: switch between **Table**, **Board** and **Gallery**, use the All articles / Knowledge Base / FAQ / Legal / Blog tabs, filter by status, sort and search titles. Tick rows to **Publish**, **Move to draft** or **Archive** them in bulk; a page that fails the publish checks is named and left alone. Drag a card to **Published** on the Board (it stays put if the checks fail). Click a row to open a side peek with the same editor as a full page. Legal pages stay locked to their fixed slots and keep appearing on the site.
+- Sections in the wiki sidebar can now be **renamed** and **deleted** (a deleted section's pages stay, at the top level).
+- Atlas can be **installed** from Chrome or Edge as its own window, and appears in the app launcher with *New page* and *Website content* shortcuts. Admin search finds pages by title **and** by text inside them, and opens the result in Atlas.
+- **Iris** has a panel (Ctrl+J, the sidebar, the selection toolbar, the block menu, `/`): summarize a page, turn steps into a checklist, find related pages, draft an FAQ entry, improve or shorten a selection, or ask a question. Iris only proposes: nothing reaches the page until you press **Accept**. Offline, Iris pauses and the page stays editable.
+- **Export** a space (Ctrl+K → Export) as a zip of Markdown and JSON files laid out by section and parent. **Import dry run** (Ctrl+K) reads a ClickUp export and reports what an import would create and lose; it imports nothing.
+- New pages open ready to type in, and renaming a new page no longer drops you back to the wiki home.
+
+## 2026-10-05 — Admin workspace theme, wiki workspace and block editor
+
+### Release Notes
+- Every admin screen now shares one workspace look: off-white paper and navy in dark mode, teal accents, Plus Jakarta Sans for text and JetBrains Mono for labels, codes and SKUs. The old brown and gold admin palette is gone. Scrollbars stay hidden until you scroll.
+- **Knowledge → Wiki** is now a three-pane workspace: a resizable page tree (drag to reorder or nest), favorites, trash, a Ctrl+K search over titles, page text and website content, and a right panel for page history.
+- Pages are edited as blocks. Type `/` for headings, lists, to-dos, toggles, quotes, callouts, code, tables, images and page links; type `@` to mention a page, person or date; select text for bold, italic, underline, strikethrough, code, link and colour. Drag the grip beside any block to move it.
+- Pages save themselves 800 ms after you stop typing. On a published page your edits go to an unpublished draft: visitors keep seeing the published version until you choose **Update**, and **Discard changes** drops the draft. Page settings (summary, link target, section, parent, order, contexts) apply straight away; the slug is locked while a page is published. Lists can be nested with Tab and Shift+Tab. Version history and unpublished drafts are now live on the hosted project.
+
+## 2026-09-17 — Customer-device walk-in payments
+
+### Release Notes
+- **Settings → Walk-in Payments** now offers three ways to take a payment: **Take card now** (unchanged, uses the shop device), **Publish link** (the customer scans the counter QR code and types a short code the cashier reads out) and **Request by email** (the customer gets a one-time pay link, valid 72 hours, and can pay from anywhere).
+- The staff screen updates by itself the moment the customer's payment goes through, so the cashier knows when to hand over the glasses.
+- A walk-in can also pay with no staff involvement by scanning the counter QR code and entering their own amount, between BBD $20 and BBD $500. These appear in a **needs matching** list on the same page so they can be attached to an order.
+- Walk-in payment amounts are now recorded in Barbados dollars, which is what the bank has always charged; receipts previously showed the raw code `840`.
+- The self-service option is available only once Cloudflare Turnstile keys are configured. Until then it is hidden and refuses to start payments; the assisted and email options do not depend on it.
+
+## 2026-09-11 — Safe pricelist saves and resilient operational workflows
+
+### Release Notes
+- Renaming or re-saving a pricelist no longer rewrites line prices. Percentage changes preserve manually entered prices by default, while **Replace all line prices** is an explicit destructive choice.
+- Gatekeeper status polling now has production-only controls, bounded outage backoff, and a pre-send Rx fallback to Innovations. Shipment supplier selection preserves fields already entered, and Helpdesk attachment failures no longer obscure successful ticket creation.
+
+## 2026-09-04 — Walk-in payment customer email and receipt printing
+
+### Release Notes
+- Walk-in card payments at **Settings → Walk-in Payments** now support capturing the customer's email address.
+- When payment is received, a receipt email is sent to the customer, and the staff member is prompted on screen with a print dialog to print a physical copy.
+- Staff can also resend the receipt email or reprint the physical receipt from the completed payment card.
+
+## 2026-09-04 — Scotia payment confirmations and saved statement cards
+
+### Release Notes
+- Administrators now have **Settings → Payment Activity**, a compact Scotia card-payment confirmation list showing only when a payment happened, its reference, type, amount, and result.
+- Statement amounts remain on one line, and customers can opt in to securely save a card before they continue to Scotiabank.
+
 ## 2026-08-27 — Continuous CRM contact enrichment
 
 ### Release Notes
@@ -29,7 +165,7 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-08-18 — Statement document automation
 
 ### Release Notes
-- New Innovations statements can be rendered as Letter PDFs, stored in the governed OneDrive folder hierarchy, and downloaded through the authenticated portal.
+- New Innovations statements can be rendered as Letter PDFs, stored in private website-managed storage, and downloaded through authenticated staff or customer portal access.
 
 ## 2026-08-15 — Canonical stock quotations
 
@@ -263,5 +399,22 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 
 ## 2026-02-28 — Automated QA Harness + Runtime Logging Hardening
+
+### Release Notes
+
+## 2026-10-09 — Public support attachments (local source)
+
+### Release Notes
+
+## 2026-10-09 — Public support form layout (local source)
+
+### Release Notes
+- Public support form sections retain their natural height and scroll when files exceed the available Iris window height, preventing attachment rows from overlapping fields.
+
+## 2026-10-09 — Iris visitor guidance (local)
+
+### Release Notes
+
+## 2026-10-09 — Portal ticket sends (local source)
 
 ### Release Notes

@@ -100,7 +100,7 @@ describe("admin function policy", () => {
     });
   });
 
-  it("honors an explicit sendEmail/sendWelcomeEmail choice instead of defaulting", () => {
+  it("honors an explicit invite email choice without adding a pricelist email option", () => {
     expect(
       validateAdminFunctionRequest({
         actorRole: "admin",
@@ -113,14 +113,13 @@ describe("admin function policy", () => {
       validateAdminFunctionRequest({
         actorRole: "admin",
         action: "create-user",
-        payload: { email: "customer@example.com", password: "strong-passphrase-123", sendWelcomeEmail: false },
+        payload: { email: "customer@example.com", password: "strong-passphrase-123", sendWelcomeEmail: true },
       }),
     ).toEqual({
       action: "create-user",
       email: "customer@example.com",
       password: "strong-passphrase-123",
       displayName: undefined,
-      sendWelcomeEmail: false,
     });
   });
 

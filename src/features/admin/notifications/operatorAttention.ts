@@ -1,3 +1,4 @@
+import { ticketHref } from "@/features/admin/helpdesk/ticketLinks";
 export interface AttentionTicket {
   id: string;
   ticket_number: string;
@@ -50,7 +51,7 @@ export const getOperatorAttentionItems = ({
     kind: "ticket" as const,
     title: ticket.title,
     detail: `Helpdesk ${ticket.ticket_number}`,
-    href: `/admin/helpdesk/tickets/${ticket.id}`,
+    href: ticketHref(ticket.id),
   })),
   ...tasks.filter((task) => isTaskAttentionRequired(task, now)).map((task) => ({
     id: `task:${task.id}`,

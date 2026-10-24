@@ -12,7 +12,7 @@ describe("admin email previews route accessibility", () => {
     const routes = fs.readFileSync(path.resolve(process.cwd(), "src/routes/admin/AdminRoutes.tsx"), "utf8");
     const settingsApp = fs.readFileSync(path.resolve(process.cwd(), "src/features/admin/core/config/apps.ts"), "utf8");
 
-    expect(routes).toContain('const EmailPreviewsPage = lazy(() => import("@/pages/admin/settings/EmailPreviewsPage"));');
+    expect(routes).toContain('const EmailPreviewsPage = lazyWithRetry(() => import("@/pages/admin/settings/EmailPreviewsPage")');
     expect(routes).toContain('<Route path="settings/email-previews" element={<EmailPreviewsPage />} />');
     expect(settingsApp).toContain("{ label: 'Email Previews', route: '/admin/settings/email-previews'");
   });

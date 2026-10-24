@@ -21,7 +21,7 @@ const WHAT_CHANGED_SECTIONS = [
   {
     id: "what-changed-quotes",
     title: "Quotes",
-    route: "/admin/website/quotations",
+    route: "/admin/orders/quotations",
     note: "Quote lifecycle, pricing/GP calculations, print/export changes.",
   },
   {

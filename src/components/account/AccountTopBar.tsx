@@ -20,11 +20,17 @@ import { CartSheet } from "@/components/CartSheet";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import AccountSwitcher from "@/features/portal-account-access/AccountSwitcher";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import AnnotateToggleItem from "@/features/annotate/AnnotateToggleItem";
+import { ANNOTATE_UI_ATTR } from "@/features/annotate/annotator";
+import { useAnnotator } from "@/features/annotate/useAnnotator";
 
 interface AccountTopBarProps {
   displayName: string;
   onSignOut: () => void;
 }
+
+// Marks the profile menu as annotator UI so it stays usable (and unannotatable) while annotating.
+const ANNOTATE_UI = { [ANNOTATE_UI_ATTR]: "" };
 
 const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const location = useLocation();
@@ -32,6 +38,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { hasAvailableSupport } = useSupportAvailability();
   const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useCompanionAssistant();
   const { hasAccess } = useUserRole();
+  const { annotator, isActive: isAnnotating } = useAnnotator(hasAccess);
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSearch, setMobileSearch] = useState("");
@@ -165,6 +172,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                     variant="ghost"
                     className="h-9 shrink-0 gap-2 rounded-md px-2 text-sm font-medium text-foreground hover:bg-muted"
                     aria-label={`Open account menu for ${formattedDisplayName}`}
+                    {...ANNOTATE_UI}
                   >
                     <span className="max-w-[220px] truncate">{formattedDisplayName}</span>
                     <Avatar className="h-7 w-7">
@@ -174,7 +182,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 p-1.5">
+                <DropdownMenuContent align="end" className="w-48 p-1.5" {...ANNOTATE_UI}>
                   <DropdownMenuItem asChild className="gap-2 rounded-md px-2.5 py-2 text-sm">
                     <Link to="/profile/account">
                       <KeyRound className="h-4 w-4" />
@@ -182,12 +190,15 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                     </Link>
                   </DropdownMenuItem>
                   {hasAccess ? (
-                    <DropdownMenuItem asChild className="gap-2 rounded-md px-2.5 py-2 text-sm">
-                      <Link to="/admin">
-                        <Shield className="h-4 w-4" />
-                        Admin
-                      </Link>
-                    </DropdownMenuItem>
+                    <div className="flex items-center gap-1">
+                      <DropdownMenuItem asChild className="flex-1 gap-2 rounded-md px-2.5 py-2 text-sm">
+                        <Link to="/admin">
+                          <Shield className="h-4 w-4" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                      <AnnotateToggleItem annotator={annotator} isActive={isAnnotating} />
+                    </div>
                   ) : null}
                   <DropdownMenuItem onSelect={onSignOut} className="gap-2 rounded-md px-2.5 py-2 text-sm">
                     <LogOut className="h-4 w-4" />

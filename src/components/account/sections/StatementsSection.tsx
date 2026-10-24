@@ -7,6 +7,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useWebsiteFeature } from "@/hooks/useWebsiteFeatures";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { isScotiaEnabled, prepareScotiaPayment, redirectToScotiaPayment, SCOTIA_RETURN_URL } from "@/lib/payments/scotiaConnect";
 import {
@@ -101,6 +102,11 @@ interface LiveStatementResponse {
   statement: StatementRow;
   lines: StatementLineRow[];
   retrieved_at: string;
+}
+
+interface LiveInvoiceResponse {
+  invoice: { id: number; invoice_date?: string | null; patient?: string | null; total?: number | null } | null;
+  lines: Array<{ id?: number | string | null; description: string | null; quantity: number | null; unit_price: number | null; amount: number | null }>;
 }
 
 interface BankPortal {
@@ -339,8 +345,17 @@ const StatementTemplate = ({
   );
 };
 
-const StatementsSection = () => {
-  const { identity, emulation } = usePortalIdentity();
+// Set when staff view a customer's statements from the admin (no emulation):
+// the gateway serves this customer's data and the Pay Balance action is hidden.
+export type StaffStatementsTarget = {
+  crmCustomerId: number | null;
+  accountNumber: string | null;
+  customerName: string | null;
+};
+
+const StatementsSection = ({ staffTarget }: { staffTarget?: StaffStatementsTarget } = {}) => {
+  const portal = usePortalIdentity();
+  const identity = staffTarget ?? portal.identity;
   const crmCustomerId = identity?.crmCustomerId ?? null;
   // Under admin emulation the gateway must serve the emulated customer's data.
   const websiteCustomerId = typeof crmCustomerId === "number" ? crmCustomerId : undefined;
@@ -362,6 +377,7 @@ const StatementsSection = () => {
   // Buyer choices inside the Pay dialog.
   const [payMethod, setPayMethod] = useState<"card" | "bank">("card");
   const [amountSource, setAmountSource] = useState<"current" | "statement" | "custom">("current");
+  const [saveCardForFuturePayments, setSaveCardForFuturePayments] = useState(false);
 
   const [scotiaError, setScotiaError] = useState<string | null>(null);
   const [statementPreviewOpen, setStatementPreviewOpen] = useState(false);
@@ -369,6 +385,7 @@ const StatementsSection = () => {
   const [selectedStatementId, setSelectedStatementId] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [selectedInvoiceLine, setSelectedInvoiceLine] = useState<StatementLineRow | null>(null);
 
   const liveAccountQuery = useQuery({
     queryKey: ["live-innovations-customer-account", crmCustomerId],
@@ -501,6 +518,12 @@ const StatementsSection = () => {
   const linesLoading = usingFallback ? fallbackLinesQuery.isLoading : linesQuery.isLoading;
   const linesError = usingFallback ? fallbackLinesQuery.error : linesQuery.error;
   const linesIsError = usingFallback ? fallbackLinesQuery.isError : linesQuery.isError;
+  const invoiceQuery = useQuery({
+    queryKey: ["live-innovations-invoice", selectedInvoiceLine?.invoice_id, crmCustomerId],
+    enabled: !!selectedInvoiceLine?.invoice_id,
+    queryFn: ({ signal }) => requestLiveData<LiveInvoiceResponse>("innovations.customer_invoice", { invoice_id: selectedInvoiceLine!.invoice_id }, { signal, websiteCustomerId, localFallbackTarget }),
+    retry: 1,
+  });
 
   useEffect(() => {
     if (searchParams.get("download") !== "1" || !activeStatementId) return;
@@ -601,22 +624,9 @@ const StatementsSection = () => {
   const cardBypassPublic = useWebsiteFeature("card_payments_bypass_public", false);
   const cardApprovalBypassed = cardBypassPublic.enabled || (isAdmin && cardBypassAdmin.enabled);
 
-  // Statements are BBD; the Scotia gateway only ever charges USD. This reads
-  // the same admin-configured rate the create_pending_statement_payment RPC
-  // converts with (pricing_settings is staff-only, so a customer's browser
-  // can't select it directly — get_active_usd_fx_rate exposes just the rate).
-  // Preview only: the RPC recomputes and is the authority on the real charge.
-  const usdFxRateQuery = useQuery({
-    queryKey: ["active-usd-fx-rate"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)("get_active_usd_fx_rate");
-      if (error) throw error;
-      return typeof data === "number" && data > 0 ? data : null;
-    },
-    staleTime: 5 * 60_000,
-  });
-  const usdFxRate = usdFxRateQuery.data ?? null;
-  const bbdToUsd = (bbdAmount: number) => (usdFxRate ? bbdAmount / usdFxRate : null);
+  // Statements and card payments are both in Barbados dollars — the Scotia
+  // store is provisioned in BBD, so no currency conversion happens anywhere.
+
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -681,6 +691,7 @@ const StatementsSection = () => {
     setDialogMode("pay");
     setPayMethod(cardPaymentsEnabled ? "card" : "bank");
     setAmountSource("current");
+    setSaveCardForFuturePayments(false);
     setPayAmount(currentBalance > 0 ? currentBalance.toFixed(2) : "");
     setPaymentModalOpen(true);
   };
@@ -696,10 +707,9 @@ const StatementsSection = () => {
     setScotiaError(null);
     setCardStep("paying");
     try {
-      // Statement balances are BBD; the RPC converts to the USD amount Scotia
-      // actually charges (using pricing_settings.fx_rates — the same rate the
-      // rest of the pricing engine uses) and returns both, plus the rate used,
-      // so we never send the raw BBD figure to the card gateway.
+      // Statement balances are BBD and the Scotia store is provisioned in BBD,
+      // so the gateway is charged the same Barbados-dollar figure the customer
+      // sees. The RPC persists the payable amount and is the authority on it.
       const { data, error } = await (supabase.rpc as any)("create_pending_statement_payment", {
         p_amount: parsedPayAmount,
         p_statement_id: activeStatementId,
@@ -710,10 +720,11 @@ const StatementsSection = () => {
       if (error || !row?.payment_id) throw new Error(error?.message || "Could not start payment.");
 
       const prepared = await prepareScotiaPayment({
-        chargetotal: Number(row.amount_usd),
+        chargetotal: Number(row.amount_bbd ?? row.amount_usd),
         responseSuccessURL: SCOTIA_RETURN_URL,
         responseFailURL: SCOTIA_RETURN_URL,
         orderId: `STMT-${row.payment_id}`,
+        assignToken: saveCardForFuturePayments,
       });
       redirectToScotiaPayment(prepared);
       // No further code runs — the page is navigating away.
@@ -724,9 +735,10 @@ const StatementsSection = () => {
   };
 
   // ── Returning from Scotia (full-page redirect back via scotia-return) ──
-  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "error" | null;
+  const scotiaReturn = searchParams.get("scotia") as "success" | "declined" | "cancelled" | "error" | null;
   const returnedAmount = Number(searchParams.get("amt") ?? "");
   const returnedAmountValid = Number.isFinite(returnedAmount) && returnedAmount > 0;
+  const cardSaved = searchParams.get("card_saved") === "true";
 
   useEffect(() => {
     if (!scotiaReturn) return;
@@ -809,13 +821,15 @@ const StatementsSection = () => {
           </AlertDescription>
         </Alert>
       )}
-      {(scotiaReturn === "declined" || scotiaReturn === "error") && (
+      {(scotiaReturn === "declined" || scotiaReturn === "cancelled" || scotiaReturn === "error") && (
         <Alert variant="destructive" role="alert">
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             <span>
               {scotiaReturn === "declined"
                 ? "Your card was declined. No payment was made."
+                : scotiaReturn === "cancelled"
+                ? "Payment cancelled. No payment was made."
                 : "We couldn't confirm your payment. No payment was made."}
             </span>
             <Button variant="outline" size="sm" onClick={openPaymentModal}>
@@ -851,7 +865,7 @@ const StatementsSection = () => {
             </div>
           )}
           <p className="text-xs text-muted-foreground dark:text-slate-400">
-            Statement and account balances are in Barbados Dollars (BBD). Card payments are charged in USD at the current exchange rate.
+            Statement and account balances are in Barbados Dollars (BBD). Card payments are charged in BBD.
           </p>
 
           <div className="flex flex-wrap gap-3 items-end justify-between">
@@ -874,12 +888,14 @@ const StatementsSection = () => {
               </Select>
             </div>
             <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-              <Button
-                onClick={openPaymentModal}
-                className="flex-1 h-10 sm:flex-none bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
-              >
-                Pay Balance
-              </Button>
+              {staffTarget ? null : (
+                <Button
+                  onClick={openPaymentModal}
+                  className="flex-1 h-10 sm:flex-none bg-primary hover:bg-primary/90 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                >
+                  Pay Balance
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="icon"
@@ -956,7 +972,7 @@ const StatementsSection = () => {
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="patient" label="Patient" /></th>
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="payment_method" label="Payment Method" /></th>
                   <th className="px-4 py-3 text-left text-foreground dark:text-slate-50"><SortHeader column="reference" label="Reference" /></th>
-                  <th className="px-4 py-3 text-right text-foreground dark:text-slate-50"><SortHeader column="amount" label="Amount" /></th>
+                  <th className="min-w-32 whitespace-nowrap px-4 py-3 text-right text-foreground dark:text-slate-50"><SortHeader column="amount" label="Amount" /></th>
                   <th className="px-4 py-3 text-right text-foreground dark:text-slate-50">Actions</th>
                 </tr>
               </thead>
@@ -964,7 +980,7 @@ const StatementsSection = () => {
                 {sortedLines.map((line) => {
                   const patientLabel = line.patient?.trim() || "patient";
                   return (
-                    <tr key={line.id ?? lineDetail(line)} className="border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30">
+                    <tr key={line.id ?? lineDetail(line)} onClick={() => line.invoice_id && setSelectedInvoiceLine(line)} className={`border-b transition-colors hover:bg-muted/30 dark:border-slate-700 dark:hover:bg-slate-900/30 ${line.invoice_id ? "cursor-pointer" : ""}`}>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.order_type_name || "—"}</td>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{fmtDate(line.post_date)}</td>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.invoice_id ?? "—"}</td>
@@ -972,7 +988,7 @@ const StatementsSection = () => {
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.patient || "—"}</td>
                       <td className="px-4 py-3 text-foreground dark:text-slate-50">{line.payment_method || "—"}</td>
                       <td className="px-4 py-3 font-medium text-foreground dark:text-slate-50">{lineDetail(line)}</td>
-                      <td className="px-4 py-3 text-right font-medium text-foreground dark:text-slate-50">{bbd(line.amount)}</td>
+                      <td className="min-w-32 whitespace-nowrap px-4 py-3 text-right font-medium text-foreground dark:text-slate-50">{bbd(line.amount)}</td>
                       <td className="px-4 py-3 text-right">
                         <InquireButton
                           label="Ask about this line"
@@ -1007,6 +1023,14 @@ const StatementsSection = () => {
         )}
       </Card>
 
+      <Dialog open={!!selectedInvoiceLine} onOpenChange={(open) => !open && setSelectedInvoiceLine(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Invoice #{selectedInvoiceLine?.invoice_id}</DialogTitle><DialogDescription>Item descriptions and prices from your posted invoice.</DialogDescription></DialogHeader>
+          {invoiceQuery.isLoading ? <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div> : invoiceQuery.isError ? <Alert variant="destructive"><AlertDescription>{invoiceQuery.error instanceof Error ? invoiceQuery.error.message : "Invoice details could not be loaded."}</AlertDescription></Alert> : invoiceQuery.data?.lines?.length ? <div className="overflow-x-auto rounded-md border"><table className="w-full text-sm"><thead><tr className="bg-muted/50"><th className="px-3 py-2 text-left">Description</th><th className="px-3 py-2 text-right">Qty</th><th className="px-3 py-2 text-right">Price</th><th className="px-3 py-2 text-right">Amount</th></tr></thead><tbody>{invoiceQuery.data.lines.map((item, index) => <tr className="border-t" key={item.id ?? index}><td className="px-3 py-2">{item.description || "—"}</td><td className="px-3 py-2 text-right">{item.quantity ?? "—"}</td><td className="px-3 py-2 text-right">{item.unit_price == null ? "—" : bbd(item.unit_price)}</td><td className="px-3 py-2 text-right font-medium">{item.amount == null ? "—" : bbd(item.amount)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">This invoice has no itemized lines available from the billing connector yet.</p>}
+          {selectedInvoiceLine ? <InquireButton label="Ask about this invoice" title={`Question about invoice ${selectedInvoiceLine.invoice_id}`} description={[`Invoice ID: ${selectedInvoiceLine.invoice_id}`, `Patient: ${selectedInvoiceLine.patient || "—"}`, "", "Invoice items:", ...(invoiceQuery.data?.lines ?? []).map((item) => `${item.description || "Item"} — ${bbd(item.amount)}`), "", "Question: "].join("\n")} className="self-end" /> : null}
+        </DialogContent>
+      </Dialog>
+
       {/* Payment Modal */}
       <Dialog
         open={paymentModalOpen}
@@ -1029,7 +1053,7 @@ const StatementsSection = () => {
             </DialogTitle>
             <DialogDescription className="dark:text-slate-400">
               {dialogMode === "result" && scotiaReturn === "success"
-                ? `Payment received${returnedAmountValid ? `: $${money(returnedAmount)} USD` : ""}`
+                ? `Payment received${returnedAmountValid ? `: ${bbd(returnedAmount)}` : ""}`
                 : `Current balance: ${bbd(currentBalance)}`}
             </DialogDescription>
           </DialogHeader>
@@ -1040,9 +1064,10 @@ const StatementsSection = () => {
                 <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden="true" />
                   <AlertDescription className="text-emerald-900 dark:text-emerald-300">
-                    Thank you for your payment{returnedAmountValid ? ` of $${money(returnedAmount)} USD` : ""}. A receipt has
+                    Thank you for your payment{returnedAmountValid ? ` of ${bbd(returnedAmount)}` : ""}. A receipt has
                     been emailed to you. Your payment will appear on your account once it has been verified with the
                     bank, and we'll send a confirmation as soon as that happens.
+                    {cardSaved ? " Your card was saved securely for future payments." : ""}
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -1051,6 +1076,8 @@ const StatementsSection = () => {
                   <AlertDescription>
                     {scotiaReturn === "declined"
                       ? "Your card was declined. No payment was taken."
+                      : scotiaReturn === "cancelled"
+                      ? "You cancelled the payment. No payment was taken."
                       : "We couldn't confirm your payment. No payment was taken."}
                   </AlertDescription>
                 </Alert>
@@ -1118,10 +1145,7 @@ const StatementsSection = () => {
                 />
                 {payAmountValid && (
                   <p className="text-[11px] text-muted-foreground">
-                    {bbd(parsedPayAmount)}
-                    {usdFxRate
-                      ? ` ≈ $${money(bbdToUsd(parsedPayAmount))} USD if you pay by card (rate: 1 USD = ${usdFxRate.toFixed(2)} BBD)`
-                      : " — bank transfer is billed in BBD; card payment amounts are converted to USD"}
+                    {bbd(parsedPayAmount)} — charged in Barbados dollars, by card or bank transfer
                   </p>
                 )}
               </div>
@@ -1163,6 +1187,17 @@ const StatementsSection = () => {
           {/* ── Card payment (Scotia eCom+, redirect mode) ── */}
           {payMethod === "card" && cardPaymentsEnabled ? (
             <div className="space-y-3">
+              <label htmlFor="statement-save-card" className="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm">
+                <Checkbox
+                  id="statement-save-card"
+                  checked={saveCardForFuturePayments}
+                  onCheckedChange={(checked) => setSaveCardForFuturePayments(checked === true)}
+                />
+                <span>
+                  <span className="block font-medium">Save this card securely for future payments</span>
+                  <span className="block text-xs text-muted-foreground">Your card details stay with Scotiabank. We never store your full card number or CVV.</span>
+                </span>
+              </label>
               <Button
                 className="w-full h-10 gap-2"
                 disabled={!payAmountValid || cardStep === "paying"}
@@ -1175,13 +1210,13 @@ const StatementsSection = () => {
                 )}
                 {cardStep === "paying"
                   ? "Redirecting to Scotiabank…"
-                  : payAmountValid && usdFxRate
-                    ? `Pay $${money(bbdToUsd(parsedPayAmount))} USD by card`
+                  : payAmountValid
+                    ? `Pay ${bbd(parsedPayAmount)} by card`
                     : "Pay by card"}
               </Button>
               {cardStep !== "paying" && payAmountValid && (
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Charged in USD · pays off {bbd(parsedPayAmount)} of your balance
+                  Charged in BBD · pays off {bbd(parsedPayAmount)} of your balance
                 </p>
               )}
               {cardStep !== "paying" && (

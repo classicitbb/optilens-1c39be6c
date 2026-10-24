@@ -15,15 +15,15 @@ describe("Rx order account presentation", () => {
     expect(data.branches[0]).toMatchObject({ cur: "BBD", prices: false });
   });
 
-  it("promotes Blue Defense and Super AR but not Back AR by catalogue order", () => {
-    const addon = (id: string, name: string) => ({
+  it("promotes the add-ons flagged popular, whatever they are called", () => {
+    const addon = (id: string, name: string, is_popular = false) => ({
       id, name, sku: id, category: "ar_coating", description: "", cost: 0, price: 10,
       is_auto: false, auto_rule: null, is_active: true, show_on_website: true, sort_order: 0,
-      supplier_id: null, supplier_name: null, created_at: "", updated_at: "",
+      supplier_id: null, supplier_name: null, created_at: "", updated_at: "", is_popular,
     });
     const { data } = buildEngineData({
       ...base,
-      addons: [addon("back", "BACK AR (For Polarised)"), addon("blue", "BLUE DEFENSE AR+"), addon("super", "SUPER AR")] as any,
+      addons: [addon("back", "BACK AR (For Polarised)"), addon("blue", "BLUE DEFENSE AR+", true), addon("super", "SUPER AR", true)] as any,
     });
 
     expect(data.treatments.map(({ n, pop }) => [n, pop])).toEqual([

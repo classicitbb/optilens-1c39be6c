@@ -1,4 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
+import { recordAiSpend } from "../../_shared/aiSpend.ts";
 // Thin wrapper over the Lovable AI gateway for forced-tool-call requests.
 //
 // Every AI step in lead-intelligence wants the same thing: a structured object
@@ -42,6 +44,9 @@ export async function callGatewayTool<T>(
       tool_choice: { type: "function", function: { name: tool.name } },
     }),
   });
+
+  const metering = response.ok ? await response.clone().json().catch(() => null) : null;
+  await recordAiSpend({ provider: "lovable-ai", product: "gateway", functionName: "lead-intelligence", model: MODEL, httpStatus: response.status, usage: metering?.usage });
 
   if (!response.ok) {
     const body = await response.text();

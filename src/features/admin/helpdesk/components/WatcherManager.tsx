@@ -41,7 +41,8 @@ export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
   const internalUserOptions = useMemo(
     () =>
       knownUsers
-        .filter((user) => Boolean(user.user_id))
+        // Only staff accounts can watch as internal users.
+        .filter((user) => Boolean(user.user_id) && (user.role === "admin" || user.role === "operator"))
         .map((user) => {
           const primaryLabel = user.display_name?.trim() || user.email || user.user_id;
           const secondaryLabel = user.email && user.email !== primaryLabel ? user.email : user.user_id;
@@ -96,31 +97,16 @@ export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
           <Eye size={12} />
           Watchers
         </Label>
-        <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setShowForm(!showForm)}>
-          <Plus size={11} className="mr-1" />
-          Add
-        </Button>
-      </div>
+        <Popover open={showForm} onOpenChange={(open) => (open ? setShowForm(true) : resetForm())}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-6 text-xs px-2">
+              <Plus size={11} className="mr-1" />
+              Add
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" side="left" collisionPadding={16} className="w-80 p-0">
 
-      {watchers.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {watchers.map((w) => (
-            <Badge key={w.id} variant="secondary" className="text-xs gap-1 pr-1 group">
-              {displayLabel(w)}
-              {w.is_permanent && <span title="Permanent watcher">*</span>}
-              <button
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
-                onClick={() => removeWatcher.mutate({ watcherId: w.id, ticketId })}
-              >
-                <X size={10} />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {showForm && (
-        <div className="rounded-md border border-border bg-muted/30 p-3 space-y-3 text-sm">
+        <div className="p-3 space-y-3 text-sm">
           <div className="space-y-1">
             <Label className="text-xs">Type</Label>
             <div className="flex gap-2 flex-wrap">
@@ -243,6 +229,25 @@ export const WatcherManager = ({ ticketId }: WatcherManagerProps) => {
               Cancel
             </Button>
           </div>
+        </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {watchers.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {watchers.map((w) => (
+            <Badge key={w.id} variant="secondary" className="text-xs gap-1 pr-1 group">
+              {displayLabel(w)}
+              {w.is_permanent && <span title="Permanent watcher">*</span>}
+              <button
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
+                onClick={() => removeWatcher.mutate({ watcherId: w.id, ticketId })}
+              >
+                <X size={10} />
+              </button>
+            </Badge>
+          ))}
         </div>
       )}
     </div>

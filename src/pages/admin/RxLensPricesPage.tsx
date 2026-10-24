@@ -1,66 +1,45 @@
-import { useState, useCallback, useRef, ReactNode } from "react";
-import { useSearchParams } from "react-router";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import VersionSelectorPanel from "@/components/admin/VersionSelectorPanel";
 import TreatmentMatricesAccordion from "@/components/admin/TreatmentMatricesAccordion";
 import ListCatalogTab from "@/components/admin/ListCatalogTab";
 import RxExportBar from "@/components/admin/RxExportBar";
 import PricelistLivePreview from "@/components/admin/PricelistLivePreview";
-// RxAddonsExtrasEditor removed — addons are managed inside ListCatalogTab
-import { useBBDUSDRate, usePricelistVersions } from "@/hooks/usePricelistVersions";
+import { useBBDUSDRate, type PricelistVersion } from "@/hooks/usePricelistVersions";
 import { usePriceMatrix } from "@/hooks/usePriceMatrix";
 import { useMaterialUpgrades } from "@/hooks/useMaterialUpgrades";
-import { usePricelistCatalogRows } from "@/hooks/usePricelistCatalogRows";
 import PdfPreviewShell from "@/components/admin/PdfPreviewShell";
 import { Button } from "@/components/ui/button";
-import { Save, Loader2 } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// Namespaced per pricelist page — a single shared "admin-selected-version-id"
-// key used to silently clobber whichever pricelist page was opened last.
-const VERSION_STORAGE_KEY = "admin-selected-version-id:rx";
+interface RxLensPricesPageProps {
+  version: PricelistVersion;
+  showUSD: boolean;
+  highlightItemId?: string | null;
+  onDirtyChange?: (isDirty: boolean) => void;
+  headerActionsElement?: HTMLElement | null;
+}
 
-const RxLensPricesPage = () => {
+const RxLensPricesPage = ({ version, showUSD, highlightItemId, onDirtyChange, headerActionsElement }: RxLensPricesPageProps) => {
   const { data: fxRate = 0.5 } = useBBDUSDRate();
-  const { data: versions } = usePricelistVersions();
-  const [searchParams] = useSearchParams();
-  const highlightItemId = searchParams.get("id");
-  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(() => {
-    const stored = localStorage.getItem(VERSION_STORAGE_KEY);
-    return stored ? Number(stored) : null;
-  });
-
-  const handleVersionChange = (id: number | null) => {
-    setSelectedVersionId(id);
-    if (id !== null) localStorage.setItem(VERSION_STORAGE_KEY, String(id));
-  };
-  const [showUSD, setShowUSD] = useState(false);
-  // A tunnel link into a specific catalog row lands on the Price List tab —
-  // the matrix tab (the default) has no id-addressable rows to land on.
   const [activeTab, setActiveTab] = useState<string>(highlightItemId ? "catalog" : "matrix");
-
-  // Pending matrix→catalog row keys
   const [pendingMatrixRowKeys, setPendingMatrixRowKeys] = useState<Set<string>>(new Set());
   const hasPending = pendingMatrixRowKeys.size > 0;
-
-  // Live Preview
   const [previewFormat, setPreviewFormat] = useState<"matrix" | "list">("list");
   const [showSummaryRows, setShowSummaryRows] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
-
-  // Save bar from ListCatalogTab (catalog tab)
   const [catalogSaveBar, setCatalogSaveBar] = useState<ReactNode>(null);
-
+  const [catalogDirty, setCatalogDirty] = useState(false);
   const { toast } = useToast();
 
-  const activeVersion = versions?.find((v) => v.id === selectedVersionId) ?? versions?.[0] ?? null;
-  const resolvedId = activeVersion?.id ?? null;
-
-  // Hooks for global Save All (matrix tab)
   const { data: matrixRows, saveMutation: saveMatrix } = usePriceMatrix();
   const { data: materialUpgrades, saveMutation: saveMaterialUpgrades } = useMaterialUpgrades();
-  const { saveRows: saveCatalogRows } = usePricelistCatalogRows(resolvedId, "rx");
+
+  useEffect(() => {
+    onDirtyChange?.(hasPending || catalogDirty);
+  }, [catalogDirty, hasPending, onDirtyChange]);
 
   const handlePendingChange = useCallback((keys: Set<string>) => {
     setPendingMatrixRowKeys(new Set(keys));
@@ -71,40 +50,29 @@ const RxLensPricesPage = () => {
   }, []);
 
   const handleSaveAll = async () => {
-    const promises: Promise<any>[] = [];
-    if (matrixRows && matrixRows.length > 0) {
-      promises.push(saveMatrix.mutateAsync(matrixRows));
-    }
-    if (materialUpgrades && materialUpgrades.length > 0) {
-      promises.push(saveMaterialUpgrades.mutateAsync(materialUpgrades));
-    }
+    const promises: Promise<unknown>[] = [];
+    if (matrixRows && matrixRows.length > 0) promises.push(saveMatrix.mutateAsync(matrixRows));
+    if (materialUpgrades && materialUpgrades.length > 0) promises.push(saveMaterialUpgrades.mutateAsync(materialUpgrades));
     try {
       await Promise.all(promises);
       setPendingMatrixRowKeys(new Set());
       toast({ title: "All changes saved", description: "Price matrix, material upgrades, and catalog saved." });
-    } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : "The price changes could not be saved.";
+      toast({ title: "Save failed", description, variant: "destructive" });
     }
   };
 
   const isSavingAll = saveMatrix.isPending || saveMaterialUpgrades.isPending;
-
-  const handlePreviewClick = (versionId: number) => {
-    setTimeout(() => {
-      previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  };
-
-  // Matrix tab save bar
   const matrixSaveBar = (
     <div className="flex items-center justify-between gap-2 flex-wrap no-print">
       <div className="flex items-center gap-1">
-        {hasPending && (
+        {hasPending ? (
           <span className="flex items-center gap-1.5 text-xs text-destructive">
             <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
             {pendingMatrixRowKeys.size} pending sync{pendingMatrixRowKeys.size > 1 ? "s" : ""}
           </span>
-        )}
+        ) : null}
       </div>
       <Button
         size="sm"
@@ -119,115 +87,75 @@ const RxLensPricesPage = () => {
       </Button>
     </div>
   );
-
   const activeSaveBar = activeTab === "catalog" ? catalogSaveBar : matrixSaveBar;
 
   return (
-    <VersionSelectorPanel
-      pageTitle="RX Lens Prices"
-      pageSubtitle="Manage RX lens pricelist versions — matrix, price list, treatments and add-ons."
-      selectedVersionId={selectedVersionId}
-      onVersionChange={handleVersionChange}
-      showUSD={showUSD}
-      onShowUSDChange={setShowUSD}
-      onPreviewClick={handlePreviewClick}
-      saveBar={resolvedId && activeVersion ? activeSaveBar : undefined}
-      exportBar={resolvedId && activeVersion ? (
-        <RxExportBar version={activeVersion} showUSD={showUSD} fxRate={fxRate} catalogType="rx" />
-      ) : undefined}
-    >
-      {resolvedId && activeVersion && (
-        <div className="space-y-2">
-          {/* Tabs: Price Matrix | List Catalog */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-2">
-            <TabsList className="h-7">
-              <TabsTrigger value="matrix" className="text-[11px] h-6 px-2.5">Price Matrix Editor</TabsTrigger>
-              <TabsTrigger value="catalog" className="text-[11px] h-6 px-2.5 relative">
-                Price List Editor
-                {hasPending && (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive ring-1 ring-background" />
-                )}
-              </TabsTrigger>
-            </TabsList>
+    <div className="space-y-2">
+      {headerActionsElement
+        ? createPortal(
+            <div className="flex flex-wrap items-center justify-end gap-2 no-print">
+              <RxExportBar version={version} showUSD={showUSD} fxRate={fxRate} catalogType="rx" />
+              {activeSaveBar}
+            </div>,
+            headerActionsElement,
+          )
+        : null}
 
-            <TabsContent value="matrix" className="space-y-2 mt-1">
-              <TreatmentMatricesAccordion
-                versionId={resolvedId}
-                showUSD={showUSD}
-                fxRate={fxRate}
-                onPendingChange={handlePendingChange}
-              />
-            </TabsContent>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-2">
+        <TabsList className="h-7">
+          <TabsTrigger value="matrix" className="text-[11px] h-6 px-2.5">Price Matrix Editor</TabsTrigger>
+          <TabsTrigger value="catalog" className="text-[11px] h-6 px-2.5 relative">
+            Price List Editor
+            {hasPending ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive ring-1 ring-background" /> : null}
+          </TabsTrigger>
+        </TabsList>
 
-            <TabsContent value="catalog" className="mt-1">
-              <ListCatalogTab
-                pageName="RX Lens Prices"
-                fxRate={fxRate}
-                showUSD={showUSD}
-                catalogType="rx"
-                lensFilter="pricelist"
-                showTreatmentsAddons={true}
-                pageTitle={activeVersion?.name ?? "RX Pricelist"}
-                versionId={resolvedId}
-                pendingMatrixRowKeys={pendingMatrixRowKeys}
-                onSaved={handleCatalogSaved}
-                renderSaveBar={setCatalogSaveBar}
-                highlightItemId={highlightItemId}
-              />
-            </TabsContent>
-          </Tabs>
+        <TabsContent value="matrix" forceMount className="space-y-2 mt-1 data-[state=inactive]:hidden">
+          <TreatmentMatricesAccordion versionId={version.id} showUSD={showUSD} fxRate={fxRate} onPendingChange={handlePendingChange} />
+        </TabsContent>
 
-          {/* Add-ons & Extras are managed inside ListCatalogTab's catalog tab */}
+        <TabsContent value="catalog" forceMount className="mt-1 data-[state=inactive]:hidden">
+          <ListCatalogTab
+            pageName="RX Lens Prices"
+            fxRate={fxRate}
+            showUSD={showUSD}
+            catalogType="rx"
+            lensFilter="pricelist"
+            showTreatmentsAddons
+            pageTitle={version.name}
+            versionId={version.id}
+            pendingMatrixRowKeys={pendingMatrixRowKeys}
+            onSaved={handleCatalogSaved}
+            renderSaveBar={setCatalogSaveBar}
+            highlightItemId={highlightItemId}
+            onDirtyChange={setCatalogDirty}
+          />
+        </TabsContent>
+      </Tabs>
 
-          {/* ── Live Preview Section ──────────────────────────────────────────── */}
-          <div ref={previewRef} className="mt-6">
-            <PdfPreviewShell
-              title={`${activeVersion.name} — Preview`}
-              formatLabel={previewFormat === "matrix" ? "Matrix" : "List"}
-              headerRight={
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>
-                      Matrix
-                    </span>
-                    <Switch
-                      checked={previewFormat === "list"}
-                      onCheckedChange={(v) => setPreviewFormat(v ? "list" : "matrix")}
-                      aria-label="Toggle preview format"
-                    />
-                    <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>
-                      List
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-medium transition-colors ${showSummaryRows ? "text-primary" : "text-muted-foreground"}`}>
-                      Summary rows on
-                    </span>
-                    <Switch
-                      checked={showSummaryRows}
-                      onCheckedChange={setShowSummaryRows}
-                      aria-label="Toggle preview summary rows"
-                    />
-                    <span className={`text-xs font-medium transition-colors ${!showSummaryRows ? "text-primary" : "text-muted-foreground"}`}>
-                      Summary rows off
-                    </span>
-                  </div>
-                </div>
-              }
-            >
-              <PricelistLivePreview
-                version={activeVersion}
-                previewFormat={previewFormat}
-                showUSD={showUSD}
-                fxRate={fxRate}
-                catalogType="rx"
-                showSummaryRows={showSummaryRows}
-              />
-            </PdfPreviewShell>
-          </div>
-        </div>
-      )}
-    </VersionSelectorPanel>
+      <div ref={previewRef} className="mt-6">
+        <PdfPreviewShell
+          title={`${version.name} — Preview`}
+          formatLabel={previewFormat === "matrix" ? "Matrix" : "List"}
+          headerRight={
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium transition-colors ${previewFormat === "matrix" ? "text-primary" : "text-muted-foreground"}`}>Matrix</span>
+                <Switch checked={previewFormat === "list"} onCheckedChange={(value) => setPreviewFormat(value ? "list" : "matrix")} aria-label="Toggle preview format" />
+                <span className={`text-xs font-medium transition-colors ${previewFormat === "list" ? "text-primary" : "text-muted-foreground"}`}>List</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium transition-colors ${showSummaryRows ? "text-primary" : "text-muted-foreground"}`}>Summary rows on</span>
+                <Switch checked={showSummaryRows} onCheckedChange={setShowSummaryRows} aria-label="Toggle preview summary rows" />
+                <span className={`text-xs font-medium transition-colors ${!showSummaryRows ? "text-primary" : "text-muted-foreground"}`}>Summary rows off</span>
+              </div>
+            </div>
+          }
+        >
+          <PricelistLivePreview version={version} previewFormat={previewFormat} showUSD={showUSD} fxRate={fxRate} catalogType="rx" showSummaryRows={showSummaryRows} />
+        </PdfPreviewShell>
+      </div>
+    </div>
   );
 };
 

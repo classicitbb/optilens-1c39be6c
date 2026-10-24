@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSmtpConfig } from "../_shared/email/smtp.ts";
 import { sendManagedEmail } from "../_shared/email/managed-send.ts";
+import { parseEmailList, replaceEmailInList } from "../_shared/email/contactEmailList.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -352,6 +353,85 @@ serve(async (req) => {
       return json({ ok: true, messageIds });
     }
 
+    // Resend from the delivery log (Email Previews). The log keeps the rendered
+    // message in email_resend_payloads; resend-info tells the dialog which CRM
+    // contacts hold the original address, resend sends it again, optionally to
+    // a corrected address, and then fixes that address on those contacts.
+    const contactsWithEmail = async (email: string): Promise<Array<{ id: string; name: string; email: string }>> => {
+      const { data, error } = await supabase.from("contacts").select("id,name,email").ilike("email", `%${email}%`).limit(50);
+      if (error) throw error;
+      const key = email.toLowerCase();
+      return (data ?? []).filter((c) => parseEmailList(c.email).some((e) => e.toLowerCase() === key));
+    };
+
+    if (route[0] === "email" && route[1] === "resend-info" && method === "POST") {
+      const messageId = text(body.messageId, 100);
+      if (!messageId) return json({ error: "messageId is required" }, 400);
+      const { data: payload, error: payloadError } = await supabase
+        .from("email_resend_payloads")
+        .select("recipient_email,subject")
+        .eq("message_id", messageId)
+        .maybeSingle();
+      if (payloadError) throw payloadError;
+      if (!payload) return json({ error: "This email was not stored, so it can't be resent." }, 404);
+      const contacts = await contactsWithEmail(payload.recipient_email);
+      return json({
+        recipientEmail: payload.recipient_email,
+        subject: payload.subject,
+        contacts: contacts.map((c) => ({ id: c.id, name: c.name })),
+      });
+    }
+
+    if (route[0] === "email" && route[1] === "resend" && method === "POST") {
+      const messageId = text(body.messageId, 100);
+      if (!messageId) return json({ error: "messageId is required" }, 400);
+      const recipient = String(body.recipientEmail ?? "").trim();
+      if (!emailRegex.test(recipient)) return json({ error: `Invalid email address: ${recipient}` }, 400);
+
+      const { data: payload, error: payloadError } = await supabase
+        .from("email_resend_payloads")
+        .select("recipient_email,from_address,reply_to,subject,html,text_body")
+        .eq("message_id", messageId)
+        .maybeSingle();
+      if (payloadError) throw payloadError;
+      if (!payload) return json({ error: "This email was not stored, so it can't be resent." }, 404);
+      const { data: original } = await supabase
+        .from("email_send_log")
+        .select("template_name")
+        .eq("message_id", messageId)
+        .limit(1)
+        .maybeSingle();
+
+      const newMessageId = crypto.randomUUID();
+      const result = await sendManagedEmail(supabase, {
+        messageId: newMessageId,
+        to: recipient,
+        from: payload.from_address ?? undefined,
+        replyTo: payload.reply_to ?? undefined,
+        subject: payload.subject,
+        html: payload.html,
+        text: payload.text_body ?? undefined,
+        label: original?.template_name ?? "resend",
+        idempotencyKey: newMessageId,
+        logMetadata: { send_mode: "manual", resend_of: messageId, initiated_by: userId },
+      });
+      if (result.status === "failed") throw new Error(result.error);
+      if (result.status === "suppressed") return json({ ok: false, reason: "email_suppressed" });
+
+      // Only correct the CRM once the corrected address has actually accepted mail.
+      const updatedContacts: string[] = [];
+      if (body.updateContacts === true && recipient.toLowerCase() !== payload.recipient_email.toLowerCase()) {
+        for (const contact of await contactsWithEmail(payload.recipient_email)) {
+          const next = replaceEmailInList(contact.email, payload.recipient_email, recipient);
+          if (next === null) continue;
+          const { error: updateError } = await supabase.from("contacts").update({ email: next }).eq("id", contact.id);
+          if (updateError) throw updateError;
+          updatedContacts.push(contact.name);
+        }
+      }
+      return json({ ok: true, messageId: newMessageId, updatedContacts });
+    }
+
     // The Audit Log consumes the shared delivery trail. One email can create
     // several log rows as it moves from pending to sent/failed, so return one
     // row per message with both its queued time and latest delivery state.
@@ -405,6 +485,13 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(200);
       if (logError) throw logError;
+
+      // Which of these messages still have a stored body to resend.
+      const messageIds = [...new Set((rows ?? []).map((r) => r.message_id).filter(Boolean))];
+      const { data: stored } = messageIds.length
+        ? await supabase.from("email_resend_payloads").select("message_id").in("message_id", messageIds)
+        : { data: [] };
+      const resendable = new Set((stored ?? []).map((r) => r.message_id));
 
       const { data: state } = await supabase
         .from("email_send_state")
@@ -476,7 +563,7 @@ serve(async (req) => {
         rateLimitedUntil,
         // Scoped to a scrollable admin panel, not a paginated log — 200 rows
         // comfortably covers at least a day's worth of normal send volume.
-        recent: list.slice(0, 200),
+        recent: list.slice(0, 200).map((r) => ({ ...r, can_resend: resendable.has(r.message_id) })),
       });
     }
 
@@ -677,7 +764,11 @@ serve(async (req) => {
       }
 
       const { data: current, error: curErr } = await supabase.from("docstudio_files").select("*").eq("id", id).is("deleted_at", null).single();
-      if (curErr || !current) return json({ error: "File not found" }, 404);
+      if (curErr || !current) {
+        // Autosave against a deleted record is an expected client state, not a failure.
+        if (method === "POST" && isAutosave) return json({ missing: true });
+        return json({ error: "File not found" }, 404);
+      }
 
       if (method === "POST" && isAutosave) {
         const { data, error } = await supabase
@@ -752,7 +843,11 @@ serve(async (req) => {
       }
 
       const { data: current, error: curErr } = await supabase.from("docstudio_billing_documents").select("*").eq("id", id).is("deleted_at", null).single();
-      if (curErr || !current) return json({ error: "Document not found" }, 404);
+      if (curErr || !current) {
+        // Autosave against a deleted record is an expected client state, not a failure.
+        if (isAutosave && (method === "POST" || method === "PUT")) return json({ missing: true });
+        return json({ error: "Document not found" }, 404);
+      }
 
       if (method === "POST" && isAutosave) {
         const { data, error } = await supabase

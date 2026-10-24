@@ -1,0 +1,19 @@
+# Doc Studio context
+
+The established `/admin/docs/studio` layout mounts `DocStudioEmbed` and the precompiled class in `public/ds/studio-logic.js`, using `public/ds/studio.html` as its template. The isolated native v2 gateway is a separate implementation; do not change it to repair the established layout. Do not edit generated `public/ds/support.js`.
+
+Presentation-table styles are isolated from admin grid/table styling in DocStudioEmbed. The shell also supplies generic div radii; printed label descendants must explicitly set border-radius:0. Preserve this isolation when changing signatures or labels.
+
+The signature uses email-safe inline tables, a 4× hosted PNG logo and standard fonts. Image export is a dependency-free 3× canvas tile with long-field wrapping. HTML and image output deliberately differ in link/text accessibility; see `docs/doc-studio-signature-compatibility.md` for research and deployment/client verification limits.
+
+Recipient-picker document listeners must clean up at unmount. Selection writes directly into To; dismissing must never discard addresses. The saved `shiplabel` payload includes slMode, slFromCaption and slToCaption, with shipping defaults for legacy files.
+
+The current checkout is served on port 8081; another checkout was observed on port 8080. Verify the actual server process before assuming localhost serves this source. No new service, connector or environment variable is required for these improvements.
+
+Focused verification: `npx vitest run --coverage=false src/tests/unit/docStudioRecipientSignatureLabel.test.ts src/tests/unit/docStudioLetterhead.test.ts src/tests/unit/nativeDocStudio.unit.test.ts`.
+
+My Files is a native React panel (`files/FileManager.tsx`, helpers in `files/docFiles.ts`) portalled into the empty `#ds-native-files-slot` the studio renders on its files tab. It reads `window._dsApp.state` (myFiles, fileTypeFilter, fileSearch) on the `ds:files-state` event fired from componentDidUpdate, and calls the studio's openFile/rename/share/delete/refreshMyFiles. `buildFileBrowserHtml` is legacy and unused. Iris can list files via the `docstudio_search_files` copilot tool (read-only).
+
+Innovations invoice import: `innovationsInvoice.ts` connects the established runtime via a mount-scoped loader. Account resolution uses synced statement references or the selected billing customer; exact item lines use the existing account-scoped live gateway. Import fills an independent local draft and does not autosave over the open file. Source invoice provenance persists in `innovationsSourceInvoiceNumber`; explicit invoice saves preserve that number. Source totals reconcile through a labelled adjustment if necessary, without guessing a tax breakdown. Focused tests: `src/tests/unit/docStudioInnovationsInvoice.test.ts`.
+
+Section shortcuts: navigation.ts maps allowlisted tab/billType queries to module buttons and browser-local, signed-in-user recent ordering. ds:navigation synchronizes the existing canonical URL; preserve billingDocument/staffInvite precedence and avoid billing autosave when applying a deep link. NATIVE_CSS squares only outer structural surfaces, including the page health-banner wrapper; preserve control and document radii. Focused verification: src/tests/unit/docStudioNavigation.test.ts.

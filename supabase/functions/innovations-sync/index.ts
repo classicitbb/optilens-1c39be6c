@@ -15,10 +15,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
+import { applyLocalResolution, mapExtractionToDraft } from "../_shared/rx-capture/extraction.ts";
 import { TEMPLATES } from "../_shared/transactional-email-templates/registry.ts";
 import { isAutoNotificationsDisabled } from "../_shared/email/smtp.ts";
 import { sendManagedEmail } from "../_shared/email/managed-send.ts";
 import { buildOrderHashref, canonicalOrderFor, type OrderKind } from "../_shared/orders/hashref.ts";
+import { deactivateLensAlias, isInactiveLensAliasTombstone, upsertActiveLensAliases } from "./lens-aliases.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -86,6 +88,7 @@ const ENTITIES: Record<string, EntityConfig> = {
       "innovations_parent_customer_id",
       "name",
       "business_name",
+      "salesperson",
       "email",
       "phone",
       "street",
@@ -319,7 +322,7 @@ function pick(row: Record<string, unknown>, allow: string[]): Record<string, unk
 // Bump this on every meaningful change. GET /innovations-sync/version is public
 // and unauthenticated precisely so a deploy can be verified from anywhere — if
 // this string doesn't change after a deploy, the deploy did not land.
-const VERSION = "2026-08-12.1-unified-order-dispatch";
+const VERSION = "2026-10-01.1-rx-captures-ingest";
 const MAX_RECORDS_PER_REQUEST = 1000;
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
@@ -370,7 +373,7 @@ async function writeCustomerWithEmailFallback(
 }
 
 async function upsertCustomerRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null; emailConflict?: string }> {
   const { data: byInnovationsId, error: lookupErr } = await supabase
@@ -421,7 +424,7 @@ async function upsertCustomerRow(
 }
 
 async function upsertContactRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null; emailConflict?: string }> {
   const { data: existing, error: lookupErr } = await supabase
@@ -452,7 +455,7 @@ async function upsertContactRow(
 // idea as upsertCustomerRow's fallback, just one direction: customers always
 // sync before statements/balances in a given run).
 async function resolveCustomerLink(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   innovationsCustomerId: unknown,
 ): Promise<{ customer_id: number | null; account_number: string | null }> {
   const { data } = await supabase
@@ -465,7 +468,7 @@ async function resolveCustomerLink(
 }
 
 async function upsertStatementRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null; isNew: boolean }> {
   const link = await resolveCustomerLink(supabase, row.innovations_customer_id);
@@ -490,7 +493,7 @@ async function upsertStatementRow(
 }
 
 async function enqueueStatementDocumentJob(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   statementRow: Record<string, unknown>,
   options: { suppress?: boolean } = {},
 ): Promise<void> {
@@ -510,7 +513,7 @@ async function enqueueStatementDocumentJob(
 }
 
 async function upsertBalanceRow(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   row: Record<string, unknown>,
 ): Promise<{ error: { message: string } | null }> {
   const link = await resolveCustomerLink(supabase, row.innovations_customer_id);
@@ -525,7 +528,7 @@ async function upsertBalanceRow(
 // enqueues directly — that function requires a privileged user JWT, and this
 // receiver only ever has a service-role context (x-api-key auth).
 async function enqueueStatementReadyEmail(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   statementRow: Record<string, unknown>,
 ): Promise<void> {
   try {
@@ -655,6 +658,71 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true });
     }
     return json({ error: "Unsupported _requests operation." }, 404);
+  }
+
+  // ── Rx capture ingest: an order captured and reviewed at the office
+  // (optilens-local RX Capture) joins the website's capture queue as a draft
+  // for staff to open in the Rx form. Idempotent on local_order_id. ──
+  if (entity === "_rx_captures") {
+    if (!scopes.includes("customers:write")) {
+      return json({ error: "Missing required scope: customers:write" }, 403);
+    }
+    if (req.method !== "POST" || id !== "ingest") return json({ error: "Unsupported _rx_captures operation." }, 404);
+    const body = (await req.json().catch(() => null)) as any;
+    const localOrderId = typeof body?.localOrderId === "string" ? body.localOrderId.trim() : "";
+    if (!localOrderId || !body?.normalizedOrder || typeof body.normalizedOrder !== "object") {
+      return json({ error: "Body must be { localOrderId, normalizedOrder, resolution?, images?: [{ name, mimeType, base64 }] }." }, 400);
+    }
+    const { data: existing } = await supabase.from("rx_capture_jobs").select("id").eq("local_order_id", localOrderId).maybeSingle();
+    if (existing) return json({ ok: true, id: (existing as any).id, duplicate: true });
+
+    // The office customer number is the ERP account number on the website.
+    const customerNumber = String(body.resolution?.customerNumber ?? "").trim();
+    let accountId: number | null = null;
+    if (customerNumber) {
+      const { data: byNumber } = await supabase.from("customers").select("id").eq("account_number", customerNumber).limit(1).maybeSingle();
+      accountId = (byNumber as any)?.id ?? null;
+    }
+
+    const allowed: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+    const stored: string[] = [];
+    let firstMime: string | null = null;
+    let firstName: string | null = null;
+    for (const image of Array.isArray(body.images) ? body.images.slice(0, 2) : []) {
+      const ext = allowed[String(image?.mimeType ?? "")];
+      if (!ext || typeof image?.base64 !== "string") continue;
+      const bytes = Uint8Array.from(atob(image.base64), (c) => c.charCodeAt(0));
+      if (bytes.byteLength > 12 * 1024 * 1024) continue;
+      const path = `local/${localOrderId}/${stored.length + 1}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("rx-captures").upload(path, bytes, { contentType: image.mimeType, upsert: true });
+      if (upErr) return json({ error: "Image upload failed", detail: upErr.message }, 500);
+      if (!stored.length) { firstMime = image.mimeType; firstName = typeof image.name === "string" ? image.name.slice(0, 200) : null; }
+      stored.push(path);
+    }
+
+    const draft = applyLocalResolution(mapExtractionToDraft(body.normalizedOrder), body.resolution);
+    const { data: job, error: jobErr } = await supabase.from("rx_capture_jobs").insert({
+      source: "local_capture",
+      local_order_id: localOrderId,
+      account_id: accountId,
+      status: "ready",
+      storage_path: stored[0] ?? null,
+      extra_paths: stored.slice(1),
+      mime_type: firstMime,
+      file_name: firstName,
+      extraction: body.normalizedOrder,
+      draft: draft.payload,
+      model: "optilens-local",
+    }).select("id").single();
+    if (jobErr) {
+      // lost a race with a retry of the same order
+      if (/rx_capture_jobs_local_order_uidx|duplicate key/i.test(jobErr.message)) {
+        const { data: again } = await supabase.from("rx_capture_jobs").select("id").eq("local_order_id", localOrderId).maybeSingle();
+        if (again) return json({ ok: true, id: (again as any).id, duplicate: true });
+      }
+      return json({ error: "Could not save the capture", detail: jobErr.message }, 500);
+    }
+    return json({ ok: true, id: (job as any).id, account_resolved: accountId !== null, images: stored.length });
   }
 
   // ── Rx submission outbox (office worker pulls approved submissions,
@@ -826,6 +894,38 @@ Deno.serve(async (req: Request) => {
   // Kept separate from `errors` so they never inflate the failure count.
   const warnings: string[] = [];
 
+  // Reconciliation deletions are minimal `{ alias, is_active: false,
+  // synced_at }` records. Updating an existing row preserves its mandatory
+  // catalogue fields; inserting an unknown tombstone would create invalid,
+  // invented catalogue data and is deliberately a non-failing no-op.
+  const lensAliasTombstones = entity === "lens_aliases"
+    ? mapped.filter(isInactiveLensAliasTombstone)
+    : [];
+  const genericMapped = entity === "lens_aliases"
+    ? mapped.filter((row) => !isInactiveLensAliasTombstone(row))
+    : mapped;
+  if (!dryRun && lensAliasTombstones.length) {
+    for (const row of lensAliasTombstones) {
+      const result = await deactivateLensAlias(supabase as any, row);
+      if (result.error) {
+        failed++;
+        if (errors.length < 5) errors.push(`${row[cfg.required]}: ${result.error.message || "tombstone update failed"}`);
+        await supabase.from("innovations_sync_dead_letters").insert({
+          entity,
+          external_id: String(row[cfg.required]),
+          api_key_id: key.id,
+          last_error: result.error.message || "tombstone update failed",
+          source_payload: row,
+          status: "pending",
+        });
+      } else if (result.missing) {
+        warnings.push(`${row[cfg.required]}: inactive tombstone ignored because the alias is not present in the receiver`);
+      } else {
+        upserted++;
+      }
+    }
+  }
+
   if (!dryRun && mapped.length && (entity === "customers" || entity === "contacts")) {
     // Customer and contact rows resolve individually. Customers may need to
     // adopt a pre-existing website row; both entities preserve populated CRM
@@ -895,18 +995,22 @@ Deno.serve(async (req: Request) => {
         upserted++;
       }
     }
-  } else if (!dryRun && mapped.length) {
+  } else if (!dryRun && genericMapped.length) {
     // Try a single batch upsert; on failure, isolate per-row and dead-letter.
-    const { error: batchErr } = await supabase
-      .from(cfg.table)
-      .upsert(mapped, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
+    const { error: batchErr } = entity === "lens_aliases"
+      ? await upsertActiveLensAliases(supabase as any, genericMapped)
+      : await supabase
+        .from(cfg.table)
+        .upsert(genericMapped, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
     if (!batchErr) {
-      upserted = mapped.length;
+      upserted += genericMapped.length;
     } else {
-      for (const row of mapped) {
-        let { error: rowErr } = await supabase
-          .from(cfg.table)
-          .upsert(row, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
+      for (const row of genericMapped) {
+        let { error: rowErr } = entity === "lens_aliases"
+          ? await upsertActiveLensAliases(supabase as any, [row])
+          : await supabase
+            .from(cfg.table)
+            .upsert(row, { onConflict: cfg.conflictKey, ignoreDuplicates: false });
         // Contacts have a unique-name constraint (used by CRM name-upserts, so it
         // stays). ERP names legitimately repeat — on a name collision, retry once
         // with a unique suffix so the person still lands as a distinct row.

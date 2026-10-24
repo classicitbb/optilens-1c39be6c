@@ -13,7 +13,7 @@ describe("admin NPS dashboard route accessibility", () => {
     const websiteApp = fs.readFileSync(path.resolve(process.cwd(), "src/features/admin/core/config/apps.ts"), "utf8");
     const permissions = fs.readFileSync(path.resolve(process.cwd(), "src/hooks/useRolePermissions.ts"), "utf8");
 
-    expect(routes).toContain('const NpsDashboardPage = lazy(() => import("@/pages/admin/NpsDashboardPage"));');
+    expect(routes).toContain('const NpsDashboardPage = lazyWithRetry(() => import("@/pages/admin/NpsDashboardPage"));');
     expect(routes).toContain('<Route path="website/nps" element={<NpsDashboardPage />} />');
     expect(websiteApp).toContain("{ label: 'Customer Feedback (NPS)', route: '/admin/website/nps'");
     expect(permissions).toContain('"/admin/website/nps": "website"');

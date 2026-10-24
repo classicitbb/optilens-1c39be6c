@@ -11,7 +11,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useLiveHelpdeskTicketUpdates } from "@/features/admin/helpdesk/hooks/useLiveHelpdeskUpdates";
+import { useScrollToLatestMessage } from "@/features/admin/helpdesk/hooks/useScrollToLatestMessage";
 import NpsPrompt from "@/components/feedback/NpsPrompt";
+import { HelpdeskImageAttachments } from "@/components/account/HelpdeskImageAttachments";
+import { uploadHelpdeskFiles, type HelpdeskAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
+import { HelpdeskMessageAuthorControls, RETRACTED_MESSAGE_LABEL } from "@/components/account/HelpdeskMessageActions";
+
+// Mirrors the 15 minutes enforced by lock_own_helpdesk_message; the database is the authority.
+const CUSTOMER_EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 const HelpdeskTicketDetailSection = () => {
   const { ticketId } = useParams<{ ticketId: string }>();
@@ -20,6 +28,9 @@ const HelpdeskTicketDetailSection = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [replyBody, setReplyBody] = useState("");
+  const [replyImages, setReplyImages] = useState<File[]>([]);
+  const [composerKey, setComposerKey] = useState(0);
+  const [imageError, setImageError] = useState<string | null>(null);
   useLiveHelpdeskTicketUpdates(ticketId);
 
   const { data: ticket, isLoading: loadingTicket } = useQuery({
@@ -46,16 +57,30 @@ const HelpdeskTicketDetailSection = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("helpdesk_ticket_messages")
-        .select("id,direction,body,sender_name,sender_email,sent_at")
+        .select("id,direction,body,sender_user_id,sender_name,sender_email,sent_at,edited_at,retracted_at")
         .eq("ticket_id", ticketId)
         .in("direction", ["inbound", "outbound"])
         .order("sent_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as Array<{
         id: string; direction: "inbound" | "outbound";
-        body: string; sender_name: string | null; sender_email: string | null; sent_at: string;
+        body: string; sender_user_id: string | null; sender_name: string | null; sender_email: string | null; sent_at: string;
+        edited_at: string | null; retracted_at: string | null;
       }>;
     },
+  });
+
+  const latestMessage = messages[messages.length - 1];
+  // A support reply reads from its first line down; your own send just needs
+  // the thread to sit at the bottom, next to the reply box.
+  const latestMessageRef = useScrollToLatestMessage(
+    loadingMessages ? undefined : `${latestMessage?.id ?? "none"}-${messages.length}`,
+    latestMessage?.direction === "outbound" ? "start" : "end",
+  );
+
+  const { data: attachments = [] } = useQuery({
+    queryKey: ["portal-helpdesk-attachments", ticketId], enabled: !!ticketId && !!user,
+    queryFn: async () => { const { data, error } = await (supabase as any).from("helpdesk_ticket_attachments").select("*").eq("ticket_id", ticketId).order("created_at"); if (error) throw error; return (data ?? []) as HelpdeskAttachment[]; },
   });
 
   const closeTicket = useMutation({
@@ -74,7 +99,7 @@ const HelpdeskTicketDetailSection = () => {
   });
 
   const sendReply = useMutation({
-    mutationFn: async (body: string) => {
+    mutationFn: async ({ body, images }: { body: string; images: File[] }) => {
       const { data, error } = await (supabase.rpc as any)("send_helpdesk_ticket_message", {
         p_ticket_id: ticketId,
         p_body: body,
@@ -82,11 +107,16 @@ const HelpdeskTicketDetailSection = () => {
         p_internal_note: false,
       });
       if (error) throw error;
-      return Array.isArray(data) ? data[0] : data;
+      const message = Array.isArray(data) ? data[0] : data;
+      if (images.length) await uploadHelpdeskFiles(ticketId!, images, message.id);
+      return message;
     },
     onSuccess: () => {
       setReplyBody("");
+      setReplyImages([]);
+      setComposerKey((key) => key + 1);
       qc.invalidateQueries({ queryKey: ["portal-helpdesk-messages", ticketId] });
+      qc.invalidateQueries({ queryKey: ["portal-helpdesk-attachments", ticketId] });
       toast({ title: "Reply sent" });
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
@@ -130,7 +160,7 @@ const HelpdeskTicketDetailSection = () => {
             </div>
             <CardTitle className="text-lg leading-tight">{ticket.title}</CardTitle>
             {ticket.description && (
-              <p className="text-sm text-muted-foreground mt-1">{ticket.description}</p>
+              <div className="text-sm text-muted-foreground mt-1"><RichMarkdown content={ticket.description.replace(/\n\nAssistant context:\n[\s\S]*$/u, "")} /></div>
             )}
           </div>
         </div>
@@ -149,21 +179,39 @@ const HelpdeskTicketDetailSection = () => {
           ) : (
             messages.map((msg) => {
               const isCustomer = msg.direction === "inbound";
+              const retracted = !!msg.retracted_at;
+              const withinWindow = Date.now() - new Date(msg.sent_at).getTime() <= CUSTOMER_EDIT_WINDOW_MS;
+              const canChange = !isClosed && !retracted && withinWindow && !!user && msg.sender_user_id === user.id;
+              const msgAttachments = retracted ? [] : attachments.filter((attachment) => attachment.message_id === msg.id);
               return (
-                <div key={msg.id} className={`flex w-full flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}>
-                  <div
-                    className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
-                      isCustomer
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground border border-border"
-                    }`}
-                  >
-                    {msg.body}
-                  </div>
-                  <span className="text-xs text-muted-foreground px-1">
-                    {isCustomer ? "You" : "Support"} · {format(new Date(msg.sent_at), "MMM d, h:mm a")}
-                  </span>
-                </div>
+                <HelpdeskMessageAuthorControls key={msg.id} ticketId={ticket.id} messageId={msg.id} body={msg.body} audience="support">
+                  {({ editor, actions }) => (
+                    <div
+                      ref={msg.id === latestMessage?.id ? latestMessageRef : undefined}
+                      className={`flex w-full flex-col gap-1 ${isCustomer ? "items-end" : "items-start"}`}
+                    >
+                      {canChange && editor ? editor : (
+                        <div
+                          className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+                            isCustomer
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-foreground border border-border"
+                          }`}
+                        >
+                          {retracted ? <span className="italic opacity-70">{RETRACTED_MESSAGE_LABEL}</span> : msg.body}
+                        </div>
+                      )}
+                      {msgAttachments.length ? <HelpdeskImageAttachments ticketId={ticket.id} attachments={msgAttachments} onFilesChange={() => undefined} disabled readOnly /> : null}
+                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
+                        <span>
+                          {isCustomer ? "You" : "Support"} · {format(new Date(msg.sent_at), "MMM d, h:mm a")}
+                          {msg.edited_at && !retracted ? " · edited" : ""}
+                        </span>
+                        {canChange ? <><span>·</span>{actions}</> : null}
+                      </span>
+                    </div>
+                  )}
+                </HelpdeskMessageAuthorControls>
               );
             })
           )}
@@ -177,7 +225,24 @@ const HelpdeskTicketDetailSection = () => {
               className="min-h-[80px] resize-none text-sm"
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
+              onPaste={(event) => {
+                const images = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith("image/"));
+                if (!images.length) return;
+                const error = validateHelpdeskFiles(images);
+                setImageError(error);
+                if (!error) { event.preventDefault(); setReplyImages(images); }
+              }}
+              onDrop={(event) => {
+                const images = Array.from(event.dataTransfer.files).filter((file) => file.type.startsWith("image/"));
+                if (!images.length) return;
+                event.preventDefault();
+                const error = validateHelpdeskFiles(images);
+                setImageError(error);
+                if (!error) setReplyImages(images);
+              }}
             />
+            <HelpdeskImageAttachments key={composerKey} ticketId={ticket.id} attachments={[]} onFilesChange={(files) => { setImageError(null); setReplyImages(files); }} disabled={sendReply.isPending} />
+            {imageError ? <p className="text-xs text-destructive">{imageError}</p> : null}
             <div className="flex items-center justify-between gap-3">
               <Button
                 variant="outline"
@@ -190,8 +255,8 @@ const HelpdeskTicketDetailSection = () => {
               </Button>
               <Button
                 size="sm"
-                onClick={() => sendReply.mutate(replyBody.trim())}
-                disabled={sendReply.isPending || !replyBody.trim()}
+                onClick={() => sendReply.mutate({ body: replyBody.trim() || "File attached", images: replyImages })}
+                disabled={sendReply.isPending || (!replyBody.trim() && !replyImages.length)}
               >
                 <Send size={13} className="mr-1.5" />
                 Send reply

@@ -8,7 +8,7 @@ import { Save, Loader2 } from "lucide-react";
 import { useHelpArticles } from "@/hooks/useHelpArticles";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ADMIN_CONTEXT_OPTIONS } from "@/lib/adminContexts";
+import { ASSIGNABLE_CONTEXT_OPTIONS } from "@/lib/adminContexts";
 import RichTextEditor from "./RichTextEditor";
 import WikiArticleRenderer from "./WikiArticleRenderer";
 
@@ -60,7 +60,7 @@ const WikiArticleEditDialog = ({
   }, [article, wikiHeadings]);
 
   // Show all context options in editor — admins should assign articles to any page
-  const visibleContextOptions = ADMIN_CONTEXT_OPTIONS;
+  const visibleContextOptions = ASSIGNABLE_CONTEXT_OPTIONS;
 
   const toggleContext = (slug: string) => {
     setForm((prev) => {

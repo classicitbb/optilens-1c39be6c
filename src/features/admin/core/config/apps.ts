@@ -1,16 +1,16 @@
 import {
   DollarSign, Users, Target, LifeBuoy, Globe, BookOpen, Settings,
-  Package, Eye, Layers, BoxSelect, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
-  ListChecks,
-  FileEdit,
-  Contact, Tags, Factory,
+  Package, Eye, FileText, Ship, BarChart3, Database, Upload, SlidersHorizontal, GitCompare,
+  ListChecks, Camera,
+  FileEdit, FileCheck2,
+  Contact, Tags,
   Search, UserCheck, Megaphone, PieChart, Bot, Wrench,
   Kanban, CalendarCheck, Inbox,
   LayoutDashboard,
   Ticket, MessageSquare, UsersRound, ShieldCheck,
-  Layout, Palette, UserCircle, Store, Glasses,
-  BookMarked, HelpCircle,
-  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile,
+  Layout, Palette, UserCircle, Store, Glasses, ShoppingCart,
+  BookMarked, ClipboardList, HelpCircle,
+  Building2, UserCog, Lock, ScrollText, Plug, AlertTriangle, Key, Landmark, Mail, Activity, Smile, CreditCard, Wallet,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -27,11 +27,14 @@ export const ADMIN_APPS = {
     key: 'copilot' as const,
     title: 'Copilot Workspace',
     icon: Bot,
-    baseRoute: '/copilot',
+    // The workspace itself is full-screen at /copilot; AI tools that use the
+    // admin shell live under /admin/copilot so this sidebar shows for them.
+    baseRoute: '/admin/copilot',
     defaultRoute: '/copilot',
     featurePrefix: 'copilot',
     sidebarItems: [
       { label: 'Open Workspace', route: '/copilot', icon: Bot },
+      { label: 'Leads Assistant', route: '/admin/copilot/leads-assistant', icon: Target },
     ] satisfies SidebarItem[],
   },
   pricing: {
@@ -43,47 +46,14 @@ export const ADMIN_APPS = {
     featurePrefix: 'pricing',
     sidebarItems: [
       { label: 'Product Catalog', route: '/admin/pricing/catalog', icon: Package },
-      { label: 'RX Lens Prices', route: '/admin/pricing/rx-lenses', icon: Eye },
-      { label: 'Stock Lens Prices', route: '/admin/pricing/stock-lenses', icon: Layers },
-      { label: 'Supplies Prices', route: '/admin/pricing/supplies', icon: BoxSelect },
+      { label: 'Pricelists', route: '/admin/pricing/pricelists', icon: Tags },
       { label: 'Supplier Compare', route: '/admin/pricing/compare', icon: GitCompare },
       { label: 'Lens Classification', route: '/admin/pricing/classification', icon: ListChecks },
       { label: 'Lens Catalog Builder', route: '/admin/pricing/publisher', icon: FileText },
-      { label: 'Import Costings', route: '/admin/pricing/costings', icon: Ship },
-      { label: 'Costing Reports', route: '/admin/pricing/costings/reports', icon: BarChart3 },
       { label: 'Reference Data', route: '/admin/pricing/reference', icon: Database },
       { label: 'Alias Mapping', route: '/admin/pricing/alias-mapping', icon: GitCompare },
       { label: 'Imports', route: '/admin/pricing/imports', icon: Upload },
       { label: 'Pricing Settings', route: '/admin/pricing/settings', icon: SlidersHorizontal },
-    ] satisfies SidebarItem[],
-  },
-  contacts: {
-    key: 'contacts' as const,
-    title: 'Contacts',
-    icon: Users,
-    baseRoute: '/admin/contacts',
-    defaultRoute: '/admin/contacts',
-    featurePrefix: 'contacts',
-    sidebarItems: [
-      { label: 'All Contacts', route: '/admin/contacts', icon: Contact },
-      { label: 'Tags Config', route: '/admin/contacts/config/tags', icon: Tags },
-      { label: 'Industries Config', route: '/admin/contacts/config/industries', icon: Factory },
-    ] satisfies SidebarItem[],
-  },
-  leads: {
-    key: 'leads' as const,
-    title: 'Leads',
-    icon: Target,
-    baseRoute: '/admin/leads',
-    defaultRoute: '/admin/leads/finder',
-    featurePrefix: 'leads',
-    sidebarItems: [
-      { label: 'Lead Finder', route: '/admin/leads/finder', icon: Search },
-      { label: 'My Leads', route: '/admin/leads', icon: UserCheck },
-      { label: 'Campaigns & Sequences', route: '/admin/leads/campaigns', icon: Megaphone },
-      { label: 'Audit Reports', route: '/admin/leads/reports', icon: PieChart },
-      { label: 'AI Assistant', route: '/admin/leads/ai', icon: Bot },
-      { label: 'Settings', route: '/admin/leads/settings', icon: Wrench },
     ] satisfies SidebarItem[],
   },
   crm: {
@@ -92,13 +62,34 @@ export const ADMIN_APPS = {
     icon: Target,
     baseRoute: '/admin/crm',
     defaultRoute: '/admin/crm/dashboard',
-    featurePrefix: 'crm',
+    // No `crm` permission rows exist; `contacts` is held by every staff role
+    // (viewer: view-only), so it gates the combined Contacts/Leads/CRM app.
+    featurePrefix: 'contacts',
     sidebarItems: [
       { label: 'Dashboard', route: '/admin/crm/dashboard', icon: LayoutDashboard },
       { label: 'Pipeline', route: '/admin/crm/pipeline', icon: Kanban },
-      { label: 'Proposals', route: '/admin/crm/proposals', icon: FileEdit },
-      { label: 'Outbox', route: '/admin/crm/outbox', icon: Inbox },
+      { label: 'Contacts', route: '/admin/crm/contacts', icon: Contact },
+      { label: 'My Leads', route: '/admin/crm/leads', icon: UserCheck },
+      { label: 'Lead Finder', route: '/admin/crm/leads/finder', icon: Search },
+      { label: 'Campaigns & Sequences', route: '/admin/crm/leads/campaigns', icon: Megaphone },
+      { label: 'Lead Audit Reports', route: '/admin/crm/leads/reports', icon: PieChart },
       { label: 'Activities', route: '/admin/crm/activities', icon: CalendarCheck },
+      { label: 'Outbox', route: '/admin/crm/outbox', icon: Inbox },
+      { label: 'Proposals', route: '/admin/crm/proposals', icon: FileEdit },
+      { label: 'CRM Settings', route: '/admin/crm/settings', icon: Wrench },
+    ] satisfies SidebarItem[],
+  },
+  email: {
+    key: 'email' as const,
+    title: 'Email',
+    icon: Mail,
+    baseRoute: '/admin/email',
+    defaultRoute: '/admin/email',
+    // Same gate as CRM: every staff role holds `contacts`. The mail bridge
+    // itself only serves admin and operator sessions.
+    featurePrefix: 'contacts',
+    sidebarItems: [
+      { label: 'Mail', route: '/admin/email', icon: Mail },
     ] satisfies SidebarItem[],
   },
   helpdesk: {
@@ -114,6 +105,40 @@ export const ADMIN_APPS = {
       { label: 'Config', route: '/admin/helpdesk/config', icon: Settings },
     ] satisfies SidebarItem[],
   },
+  orders: {
+    key: 'orders' as const,
+    title: 'Orders',
+    icon: ShoppingCart,
+    baseRoute: '/admin/orders',
+    defaultRoute: '/admin/orders',
+    featurePrefix: 'orders',
+    sidebarItems: [
+      { label: 'Orders', route: '/admin/orders', icon: Package },
+      { label: 'Quotations', route: '/admin/orders/quotations', icon: FileEdit },
+      { label: 'Rx Order Form', route: '/admin/orders/rx/new', icon: Eye },
+      { label: 'Rx Capture', route: '/admin/orders/rx-capture', icon: Camera },
+      { label: 'Stock Order Builder', route: '/admin/orders/stock-orders', icon: Package },
+      { label: 'Rx Orders', route: '/admin/orders/rx', icon: ClipboardList },
+    ] satisfies SidebarItem[],
+  },
+  finance: {
+    key: 'finance' as const,
+    title: 'Finance',
+    icon: Wallet,
+    baseRoute: '/admin/finance',
+    defaultRoute: '/admin/finance/costings',
+    // No `finance` permission exists yet; `costings` is the finance feature every
+    // staff role already holds, so launcher visibility matches the old Pricing entry.
+    featurePrefix: 'costings',
+    sidebarItems: [
+      { label: 'Import Costings', route: '/admin/finance/costings', icon: Ship },
+      { label: 'Costing Reports', route: '/admin/finance/costings/reports', icon: BarChart3 },
+      { label: 'Statement Delivery', route: '/admin/finance/statements', icon: FileCheck2 },
+      { label: 'Payment Activity', route: '/admin/finance/payment-activity', icon: CreditCard },
+      { label: 'Walk-in Payments', route: '/admin/finance/walk-in-payments', icon: Landmark },
+      { label: 'Bank Payment Portals', route: '/admin/finance/bank-payment-portals', icon: Landmark },
+    ] satisfies SidebarItem[],
+  },
   website: {
     key: 'website' as const,
     title: 'Website',
@@ -126,7 +151,7 @@ export const ADMIN_APPS = {
       { label: 'Store / Products', route: '/admin/website/store', icon: Store },
       { label: 'Orders', route: '/admin/website/orders', icon: Package },
       { label: 'Lens Assistant Rules', route: '/admin/website/store/lens-assistant', icon: Glasses },
-      { label: 'Pages / Content', route: '/admin/website/content', icon: Layout },
+      { label: 'Pages / Content', route: '/atlas/website', icon: Layout },
       { label: 'Quotations', route: '/admin/website/quotations', icon: FileEdit },
       { label: 'Rx Order Form', route: '/admin/website/quotations/new-rx', icon: Eye },
       { label: 'Stock Order Builder', route: '/admin/website/stock-orders', icon: Package },
@@ -147,15 +172,19 @@ export const ADMIN_APPS = {
       { label: 'Studio', route: '/admin/docs/studio', icon: FileEdit },
     ] satisfies SidebarItem[],
   },
-  knowledge: {
-    key: 'knowledge' as const,
-    title: 'Knowledge',
+  // Atlas is a standalone full-screen app (like the Copilot workspace), so it has no admin-shell
+  // sidebar; these items feed search, launcher pins and permission lookups.
+  atlas: {
+    key: 'atlas' as const,
+    title: 'Atlas',
     icon: BookOpen,
-    baseRoute: '/admin/knowledge',
-    defaultRoute: '/admin/knowledge/wiki',
-    featurePrefix: 'knowledge',
+    baseRoute: '/atlas',
+    defaultRoute: '/atlas/wiki',
+    featurePrefix: 'wiki',
     sidebarItems: [
-      { label: 'Wiki', route: '/admin/knowledge/wiki', icon: BookMarked },
+      { label: 'Wiki', route: '/atlas/wiki', icon: BookMarked },
+      { label: 'SOPs', route: '/atlas/sops', icon: ClipboardList },
+      { label: 'Website content', route: '/atlas/website', icon: Layout },
     ] satisfies SidebarItem[],
   },
   settings: {
@@ -172,7 +201,6 @@ export const ADMIN_APPS = {
       { label: 'Audit Log', route: '/admin/settings/audit', icon: ScrollText },
       { label: 'Integrations', route: '/admin/settings/integrations', icon: Plug },
       { label: 'API Keys', route: '/admin/settings/api-keys', icon: Key },
-      { label: 'Bank Payment Portals', route: '/admin/settings/bank-payment-portals', icon: Landmark },
       { label: 'Runtime Errors', route: '/admin/settings/runtime-errors', icon: AlertTriangle },
       { label: 'System Releases', route: '/admin/settings/releases', icon: BookMarked },
       { label: 'Email Previews', route: '/admin/settings/email-previews', icon: Mail },

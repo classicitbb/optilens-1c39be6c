@@ -3,7 +3,8 @@ import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSave
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import ContactNotesEditor from "@/components/crm/ContactNotesEditor";
+import type { Editor } from "@tiptap/core";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,13 +21,16 @@ import { AccessDeploymentAssistantDialog } from "@/components/admin/AccessDeploy
 import { AccessDeploymentTrainingDialog, hasCompletedAccessDeploymentTraining } from "@/components/admin/AccessDeploymentTrainingDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useContactEnrichment } from "@/features/admin/crm/hooks/useContactEnrichment";
+import { CompanyCombobox } from "@/features/admin/crm/CompanyCombobox";
+import { PublicWebResearch } from "@/features/admin/crm/PublicWebResearch";
+import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
-import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { paginate } from "@/lib/pagination";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
+import { ContactEmailHistory } from "@/features/admin/email/ContactEmailHistory";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -312,7 +316,7 @@ const FILTER_LABELS: Record<FilterMode, string> = {
 type ContactsPageProps = {
   /** Renders the existing Contacts editor as an overlay without changing routes. */
   embeddedContactId?: string | null;
-  embeddedInitialTab?: "details" | "account-settings" | "portal-settings" | "notes";
+  embeddedInitialTab?: "details" | "account-settings" | "portal-settings" | "notes" | "email";
   /** Portal operations for this contact, supplied by Website Portals. */
   embeddedPortalSettings?: ReactNode;
   onEmbeddedClose?: () => void;
@@ -495,13 +499,10 @@ const ContactsPage = ({
 }: ContactsPageProps) => {
   const { data: contactsData, isLoading } = useContacts();
   const contacts = contactsData ?? EMPTY_CONTACTS;
-  const { users: adminUsers } = useAdminUsers();
   const salespersonOptions = useMemo(
     () =>
-      adminUsers
-        .filter((u) => u.role === "admin" || u.role === "operator")
-        .map((u) => u.display_name || u.full_name || u.email || u.user_id),
-    [adminUsers],
+      [...new Set(contacts.map((contact) => contact.salesperson?.trim()).filter((name): name is string => Boolean(name)))].sort(),
+    [contacts],
   );
 
   // Bulk lookup for the ERP-resolved parent-customer link (contacts.linked_customer_id
@@ -549,8 +550,10 @@ const ContactsPage = ({
     return () => window.clearTimeout(handle);
   }, [search]);
   const [editContact, setEditContact] = useState<Partial<Contact> | null>(null);
+  const [isSavingContact, setIsSavingContact] = useState(false);
+  const savingContactRef = useRef(false);
   const enrichContact = useContactEnrichment();
-  const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes">("details");
+  const [editTab, setEditTab] = useState<"details" | "account-settings" | "portal-settings" | "notes" | "email">("details");
   // The portals page clears its account query parameter as the embedded dialog
   // closes. Do not treat that parent URL update as a request to reopen the
   // same embedded contact before the parent unmounts this editor.
@@ -560,7 +563,14 @@ const ContactsPage = ({
   const [showArchived, setShowArchived] = useState(false);
   const [collapsedCountryGroups, setCollapsedCountryGroups] = useState<Record<string, boolean>>({});
   const [dictationLanguage, setDictationLanguage] = useState<string>(typeof navigator !== "undefined" ? navigator.language : "en-US");
+  const notesEditorRef = useRef<Editor | null>(null);
   const appendDictationTranscript = useCallback((transcript: string) => {
+    const notesEditor = notesEditorRef.current;
+    if (notesEditor && !notesEditor.isDestroyed) {
+      const hasText = notesEditor.getText().trim().length > 0;
+      notesEditor.chain().focus("end").insertContent(`${hasText ? " " : ""}${transcript}`).run();
+      return;
+    }
     setEditContact((previous) => {
       if (!previous) return previous;
       const notes = previous.notes?.trimEnd() ?? "";
@@ -710,7 +720,7 @@ const ContactsPage = ({
     if (!contact) return;
     if (embeddedContactId) openedEmbeddedContactRef.current = embeddedContactId;
     setEditContact(contact);
-    setEditTab(embeddedContactId ? embeddedInitialTab : searchParams.get("tab") === "account-settings" ? "account-settings" : "details");
+    setEditTab(embeddedContactId ? embeddedInitialTab : searchParams.get("tab") === "account-settings" ? "account-settings" : searchParams.get("tab") === "email" ? "email" : "details");
     setInitialParentId(contact.parent_id ?? null);
     setSelectedTagIds([]);
     setBusinessCardFile(null);
@@ -1474,7 +1484,8 @@ const ContactsPage = ({
     });
   };
 
-  const handleSave = async () => {
+  const handleSave = async (closeAfterSave = false) => {
+    if (savingContactRef.current) return;
     if (!editContact?.name) {
       toast({ title: "Name is required", variant: "destructive" });
       return;
@@ -1487,7 +1498,11 @@ const ContactsPage = ({
     }
 
     let nextParentId = editContact.parent_id ?? null;
+    let persistedLinks: Partial<Contact> = {};
     try {
+      const email = normalizeContactEmails(editContact.email ?? "");
+      savingContactRef.current = true;
+      setIsSavingContact(true);
       // If new contact, insert and get id back
       let contactId = editContact.id;
       if (!contactId) {
@@ -1495,7 +1510,7 @@ const ContactsPage = ({
           .insert({
             name: editContact.name,
             is_company: editContact.is_company ?? true,
-            email: editContact.email ?? "",
+            email,
             phone: editContact.phone ?? "",
             street: editContact.street ?? "",
             street2: editContact.street2 ?? "",
@@ -1507,6 +1522,7 @@ const ContactsPage = ({
             website: editContact.website ?? "",
             industry_id: editContact.industry_id ?? null,
             notes: editContact.notes ?? "",
+            ...(editContact.notes_doc ? { notes_doc: editContact.notes_doc } : {}),
             salesperson: editContact.salesperson ?? "",
             parent_id: editContact.parent_id ?? null,
             is_archived: editContact.is_archived ?? false,
@@ -1524,8 +1540,10 @@ const ContactsPage = ({
           .single();
         if (insErr) throw insErr;
         contactId = inserted.id;
+        // Retain the identity even if a later tag/account operation fails.
+        setEditContact((current) => current ? { ...current, id: contactId, email } : current);
       } else {
-        await saveContact.mutateAsync(editContact);
+        await saveContact.mutateAsync({ ...editContact, email });
       }
 
       // Save tags
@@ -1547,7 +1565,7 @@ const ContactsPage = ({
         if (!existing) {
           const { data: insertedCustomer, error: custErr } = await (supabase.from("customers") as any).insert({
             name: editContact.name,
-            email: editContact.email?.trim() || null,
+            email: parseContactEmails(email)[0] || null,
             phone: editContact.phone ?? null,
             address: [editContact.street, editContact.city, editContact.state, editContact.country_code].filter(Boolean).join(", ") || null,
             type: "Customer",
@@ -1610,6 +1628,7 @@ const ContactsPage = ({
             .update(updatePayload)
             .eq("id", contactId as any);
           if (linkError) throw linkError;
+          persistedLinks = updatePayload as Partial<Contact>;
         }
       }
 
@@ -1620,8 +1639,13 @@ const ContactsPage = ({
       qc.invalidateQueries({ queryKey: ["contact-by-id", nextParentId] });
       qc.invalidateQueries({ queryKey: ["customers-list"] });
       toast({ title: editContact.id ? "Contact updated" : "Contact created" });
-      closeEditDialog();
-      setInitialParentId(null);
+      if (closeAfterSave) {
+        closeEditDialog();
+        setInitialParentId(null);
+      } else {
+        setEditContact((current) => current ? { ...current, ...persistedLinks, id: contactId, parent_id: nextParentId, email } : current);
+        setInitialParentId(nextParentId);
+      }
       setBusinessCardFile(null);
       if (businessCardInputRef.current) {
         businessCardInputRef.current.value = "";
@@ -1633,11 +1657,14 @@ const ContactsPage = ({
         description: e.message,
         variant: "destructive",
         action: isConflict ? (
-          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/erp/contacts?erpCustomer=${e.result.conflict_customer_id}`)}>
+          <ToastAction altText="Open ERP account" onClick={() => navigate(`/admin/crm/contacts?erpCustomer=${e.result.conflict_customer_id}`)}>
             Open contacts
           </ToastAction>
         ) : undefined,
       });
+    } finally {
+      savingContactRef.current = false;
+      setIsSavingContact(false);
     }
   };
 
@@ -2114,8 +2141,8 @@ const ContactsPage = ({
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editContact} onOpenChange={(v) => !v && closeEditDialog()}>
-        <DialogContent className="max-w-[95vw] w-[900px] p-0 gap-0 overflow-hidden flex flex-col" style={{ height: "calc(100svh - 24px)", maxHeight: "calc(100svh - 24px)" }}>
+      <Dialog open={!!editContact} onOpenChange={(v) => !v && !savingContactRef.current && closeEditDialog()}>
+        <DialogContent className="max-w-[95vw] w-[1200px] p-0 gap-0 overflow-hidden flex flex-col" style={{ height: "calc(100svh - 24px)", maxHeight: "calc(100svh - 24px)" }}>
           {editContact && (() => {
             const currentIndex = filtered.findIndex((c) => c.id === editContact.id);
             const canGoPrev = editContact.id && currentIndex > 0;
@@ -2158,12 +2185,12 @@ const ContactsPage = ({
                           {currentIndex + 1} / {filtered.length}
                         </span>
                         <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-                          disabled={!canGoPrev}
+                          disabled={!canGoPrev || isSavingContact}
                           onClick={() => canGoPrev && goTo(filtered[currentIndex - 1])}>
                           <ChevronLeft className="h-3.5 w-3.5" />
                         </Button>
                         <Button type="button" variant="outline" size="icon" className="h-6 w-6"
-                          disabled={!canGoNext}
+                          disabled={!canGoNext || isSavingContact}
                           onClick={() => canGoNext && goTo(filtered[currentIndex + 1])}>
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Button>
@@ -2174,9 +2201,10 @@ const ContactsPage = ({
 
                 {/* Body with tabs */}
                 <Tabs
+                  inert={isSavingContact || undefined}
                   value={editTab}
                   onValueChange={(value) => {
-                    const nextTab = value as "details" | "account-settings" | "portal-settings" | "notes";
+                    const nextTab = value as "details" | "account-settings" | "portal-settings" | "notes" | "email";
                     setEditTab(nextTab);
                     if (!embeddedContactId && searchParams.has("contact")) {
                       const nextParams = new URLSearchParams(searchParams);
@@ -2191,6 +2219,7 @@ const ContactsPage = ({
                     <TabsTrigger value="account-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Account Settings</TabsTrigger>
                     {embeddedPortalSettings ? <TabsTrigger value="portal-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Portal Settings</TabsTrigger> : null}
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
+                    {editContact?.id ? <TabsTrigger value="email" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Email</TabsTrigger> : null}
                   </TabsList>
 
                   <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
@@ -2221,13 +2250,8 @@ const ContactsPage = ({
                         {!editContact.is_company && (
                           <div>
                             <label className="text-[11px] font-medium mb-0.5 block">Parent Company</label>
-                            <Select value={editContact.parent_id ?? "none"} onValueChange={(v) => setEditContact({ ...editContact, parent_id: v === "none" ? null : v })}>
-                              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select company" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">None</SelectItem>
-                                {companies.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
-                              </SelectContent>
-                            </Select>
+                            <CompanyCombobox key={editContact.id ?? "new"} companies={companies} value={editContact.parent_id ?? null}
+                              onChange={(parent_id) => setEditContact({ ...editContact, parent_id })} />
                           </div>
                         )}
                         {!editContact.is_company && (
@@ -2259,8 +2283,10 @@ const ContactsPage = ({
                           </div>
                         )}
                         <div>
-                          <label className="text-[11px] font-medium mb-0.5 block">Email</label>
-                          <Input className="h-7 text-xs" value={editContact.email ?? ""} onChange={(e) => setEditContact({ ...editContact, email: e.target.value })} />
+                          <label htmlFor="contact-emails" className="text-[11px] font-medium mb-0.5 block">Email addresses</label>
+                          <Input id="contact-emails" aria-describedby="contact-emails-help" inputMode="email" autoCapitalize="none" spellCheck={false}
+                            className="h-7 text-xs" value={editContact.email ?? ""} onChange={(e) => setEditContact({ ...editContact, email: e.target.value })} />
+                          <p id="contact-emails-help" className="text-[10px] text-muted-foreground">Separate addresses with commas, semicolons or colons. Put the primary email first.</p>
                         </div>
                         <div>
                           <label className="text-[11px] font-medium mb-0.5 block">Phone</label>
@@ -2270,6 +2296,8 @@ const ContactsPage = ({
                           <label className="text-[11px] font-medium mb-0.5 block">Website</label>
                           <Input className="h-7 text-xs" value={editContact.website ?? ""} onChange={(e) => setEditContact({ ...editContact, website: e.target.value })} />
                         </div>
+                        {editContact.id && <PublicWebResearch key={editContact.id} contactId={editContact.id} emails={editContact.email ?? ""}
+                          onEmails={(email) => setEditContact({ ...editContact, email })} />}
                         <div>
                           <label className="text-[11px] font-medium mb-0.5 block">Salesperson</label>
                           <Select
@@ -2287,6 +2315,7 @@ const ContactsPage = ({
                               ))}
                             </SelectContent>
                           </Select>
+                          <p className="text-[10px] text-muted-foreground">Salesperson names recorded on contacts. Innovations salesperson sync is pending.</p>
                         </div>
                       </div>
 
@@ -2680,6 +2709,12 @@ const ContactsPage = ({
                     </TabsContent>
                   ) : null}
 
+                  {editContact?.id ? (
+                    <TabsContent value="email" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                      <ContactEmailHistory email={editContact.email} />
+                    </TabsContent>
+                  ) : null}
+
                   <TabsContent value="notes" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <Button
@@ -2711,11 +2746,14 @@ const ContactsPage = ({
                       )}
                       {dictation.error && <span className="text-[11px] text-destructive">{dictation.error}</span>}
                     </div>
-                    <Textarea
-                      className="text-xs min-h-[120px] resize-none"
-                      placeholder="Add notes about this contact…"
-                      value={editContact.notes ?? ""}
-                      onChange={(e) => setEditContact({ ...editContact, notes: e.target.value })}
+                    <ContactNotesEditor
+                      key={editContact.id ?? "new"}
+                      notes={editContact.notes ?? ""}
+                      notesDoc={editContact.notes_doc}
+                      onChange={(doc, text) => setEditContact((current) => (current ? { ...current, notes: text, notes_doc: doc } : current))}
+                      onEditor={(notesEditor) => {
+                        notesEditorRef.current = notesEditor;
+                      }}
                     />
                     <div className="border rounded-md p-3 space-y-2" style={{ borderColor: "hsl(var(--border))" }}>
                       <div className="flex items-center gap-2 text-xs font-medium">
@@ -2785,10 +2823,10 @@ const ContactsPage = ({
                           size="sm"
                           className="text-xs h-7 gap-1"
                           disabled={enrichContact.isPending}
-                          title="Look this business up on Google Places and fill in any blank public details"
+                          title="Search Google Places for public business details. This does not search person profiles across the web."
                           onClick={() => enrichContact.mutate({ contactId: editContact.id! })}
                         >
-                          <Globe className="h-3 w-3" /> {enrichContact.isPending ? "Enriching…" : "Enrich from public web"}
+                          <Globe className="h-3 w-3" /> {enrichContact.isPending ? "Enriching…" : "Find business details"}
                         </Button>
                         <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
                           <Trash2 className="h-3 w-3" /> Delete
@@ -2797,9 +2835,12 @@ const ContactsPage = ({
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={closeEditDialog}>Cancel</Button>
-                    <Button size="sm" className="h-7 text-xs" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={handleSave} disabled={saveContact.isPending}>
-                      {saveContact.isPending ? "Saving..." : "Save"}
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={closeEditDialog} disabled={isSavingContact}>Cancel</Button>
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => void handleSave()} disabled={isSavingContact}>
+                      {isSavingContact ? "Saving..." : "Save"}
+                    </Button>
+                    <Button size="sm" className="h-7 text-xs" style={{ background: "hsl(168 76% 42%)", color: "white" }} onClick={() => void handleSave(true)} disabled={isSavingContact}>
+                      Save & Close
                     </Button>
                   </div>
                 </div>

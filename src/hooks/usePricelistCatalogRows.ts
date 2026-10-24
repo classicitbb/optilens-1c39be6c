@@ -36,30 +36,93 @@ export const usePricelistCatalogRows = (
   });
 
   const saveRows = useMutation({
-    mutationFn: async (rows: Omit<PricelistCatalogRow, "id">[]) => {
+    mutationFn: async (
+      input:
+        | Omit<PricelistCatalogRow, "id">[]
+        | {
+            rows: Omit<PricelistCatalogRow, "id">[];
+            /** What this editor last read from the database, keyed by row_key.
+             *  Rows unchanged against this baseline are never written, so a tab
+             *  holding a stale copy can't undo an edit made elsewhere. */
+            baseline?: Map<string, { bbd_price: number | null; display_description: string }>;
+          }
+    ) => {
       if (!versionId) return;
-      // Delete all existing rows for this version + catalog_type, but only
-      // the row_types this editor actually manages (lens/addon/supply).
-      // catalog_type='stock' is a shared bucket — the Stock Order Builder's
-      // pricing tab also writes row_type='stock_variant' rows into it
-      // (see 20260811000000_stock_order_pricing_and_outbox.sql). A blanket
-      // delete-by-catalog_type here would silently wipe that pricing every
-      // time someone saves the WSPL Stock Lens Prices page. Scope the wipe
-      // to the row_types ListCatalogTab actually rebuilds below.
-      const { error: delErr } = await (supabase.from("pricelist_catalog_rows") as any)
-        .delete()
-        .eq("pricelist_version_id", versionId)
-        .eq("catalog_type", catalogType)
-        .in("row_type", ["lens", "addon", "supply"]);
-      if (delErr) throw delErr;
+      const rows = Array.isArray(input) ? input : input.rows;
+      const baseline = Array.isArray(input) ? undefined : input.baseline;
 
-      // Insert current rows
-      if (rows.length > 0) {
-        const { error: insErr } = await (supabase.from("pricelist_catalog_rows") as any)
-          .insert(rows as any[]);
-        if (insErr) throw insErr;
+      // Deduplicate defensively — the DB enforces uniqueness on
+      // (pricelist_version_id, catalog_type, row_key).
+      const byKey = new Map<string, Omit<PricelistCatalogRow, "id">>();
+      for (const row of rows) if (!byKey.has(row.row_key)) byKey.set(row.row_key, row);
+      const nextRows = [...byKey.values()];
+      const keepKeys = new Set(nextRows.map((r) => r.row_key));
+
+
+      // Remove only the rows this editor manages (lens/addon/supply) that are
+      // no longer present. catalog_type='stock' is a shared bucket — the Stock
+      // Order Builder writes row_type='stock_variant' rows into it, so a
+      // blanket delete-by-catalog_type would silently wipe that pricing.
+      const { data: existing, error: existingErr } = await (supabase.from("pricelist_catalog_rows") as any)
+        .select("row_key,row_type,section,display_description,bbd_price,item_id,sort_order")
+        .eq("pricelist_version_id", versionId)
+        .eq("catalog_type", catalogType);
+      if (existingErr) throw existingErr;
+
+      const staleKeys = ((existing ?? []) as { row_key: string; row_type: string }[])
+        .filter((r) => ["lens", "addon", "supply"].includes(r.row_type) && !keepKeys.has(r.row_key))
+        .map((r) => r.row_key);
+
+      if (staleKeys.length > 0) {
+        const { error: delErr } = await (supabase.from("pricelist_catalog_rows") as any)
+          .delete()
+          .eq("pricelist_version_id", versionId)
+          .eq("catalog_type", catalogType)
+          .in("row_key", staleKeys);
+        if (delErr) throw delErr;
       }
+
+      // Upsert only the rows that actually differ from what is currently in
+      // the database. Sending untouched rows would let a stale working copy
+      // push an older price over one just saved elsewhere (e.g. the Stock
+      // Order SKUs tab writing the same lens-<uuid> row).
+      const serverByKey = new Map(
+        ((existing ?? []) as any[]).map((r) => [r.row_key as string, r]),
+      );
+      const changed = nextRows.filter((row) => {
+        const server = serverByKey.get(row.row_key);
+        if (!server) return true;
+        const base = baseline?.get(row.row_key);
+        if (base) {
+          const basePrice = base.bbd_price == null ? null : Number(base.bbd_price);
+          const localPrice = row.bbd_price == null ? null : Number(row.bbd_price);
+          // Untouched by this editor — leave whatever is in the database alone.
+          if (basePrice === localPrice && base.display_description === row.display_description) {
+            return false;
+          }
+        }
+
+        const serverPrice = server.bbd_price == null ? null : Number(server.bbd_price);
+        const rowPrice = row.bbd_price == null ? null : Number(row.bbd_price);
+        return (
+          serverPrice !== rowPrice ||
+          server.display_description !== row.display_description ||
+          server.section !== row.section ||
+          server.row_type !== row.row_type ||
+          (server.item_id ?? null) !== (row.item_id ?? null) ||
+          Number(server.sort_order ?? 0) !== Number(row.sort_order ?? 0)
+        );
+
+      });
+
+      if (changed.length > 0) {
+        const { error: upErr } = await (supabase.from("pricelist_catalog_rows") as any)
+          .upsert(changed as any[], { onConflict: "pricelist_version_id,catalog_type,row_key" });
+        if (upErr) throw upErr;
+      }
+
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["pricelist-catalog-rows", versionId, catalogType],

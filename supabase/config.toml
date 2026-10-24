@@ -1,17 +1,38 @@
-project_id = "dzsalnvmlvjoatryhqfz"
+# The live Lovable Cloud project that serves the app. It must match
+# VITE_SUPABASE_URL, the index.html preconnect, .lovable/mcp/manifest.json and
+# the projectRef in supabase/functions/mcp/index.ts — the deploy-all job in
+# .github/workflows/edge-function-release.yml parses this value to decide where
+# every edge function goes. It previously read "dzsalnvmlvjoatryhqfz", the
+# unfinished Datamation destination from
+# docs/lovable-cloud-to-supabase-migration-runbook.md, which sent deploys to a
+# project that does not serve the app.
+project_id = "xstmeirxhfbiyayrrsob"
 
 [functions]
+  [functions.shipment-binder]
+    verify_jwt = true
+  [functions.document-ai]
+    verify_jwt = true
   [functions.admin-user-management]
     verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.contact-inquiry]
     verify_jwt = false
+  # Telnyx voice assistant (Iris) take-message webhook; authed by X-Iris-Secret.
+  [functions.iris-take-message]
+    verify_jwt = false
   [functions.companion-assistant]
     verify_jwt = false
   [functions.portal-copilot]
     verify_jwt = false
   [functions.voice-transcribe]
+    verify_jwt = false
+  [functions.rx-capture-extract]
+    verify_jwt = true
+  [functions.rx-capture-purge]
+    verify_jwt = false
+  [functions.rx-order-notify]
     verify_jwt = false
 
   [functions.crm-draft-outreach]
@@ -32,8 +53,13 @@ project_id = "dzsalnvmlvjoatryhqfz"
     verify_jwt = false
   [functions.helpdesk-email]
     verify_jwt = false
+  [functions.helpdesk-inbound-status]
+    verify_jwt = true
   [functions.helpdesk-followup]
     verify_jwt = false
+  [functions.helpdesk-notify-worker]
+    verify_jwt = false
+    # Scheduled by migration 20260929160000_helpdesk_account_audience (*/15)
     # Schedule separately with Supabase Cron / pg_cron: */15 * * * *
   [functions.customer-onboarding]
     verify_jwt = true
@@ -44,6 +70,12 @@ verify_jwt = false
 # Innovations -> CV outbound sync receiver. Auth is x-api-key in code
 # (verify_api_key + per-resource write scope), so the platform JWT gate is off.
 # MUST stay false: the office optilens-local caller sends no Authorization header.
+[functions.walkin-pay]
+verify_jwt = false
+# Customer-device walk-in payments. The caller is an anonymous phone, so there
+# is no JWT to verify; authorization is the one-time link token / claim code,
+# checked in code against a stored SHA-256 hash. Self-serve additionally
+# requires Cloudflare Turnstile and fails closed without TURNSTILE_SECRET_KEY.
 [functions.statement-document-worker]
 verify_jwt = false
 # Internal worker authentication is performed with STATEMENT_DOCUMENT_WORKER_SECRET.
@@ -51,6 +83,13 @@ verify_jwt = false
 verify_jwt = false
 # Customer session authorization is performed inside the function so the portal
 # can call it with its Supabase bearer token.
+[functions.statement-document-approve]
+verify_jwt = false
+# Staff/admin authorization is performed in-function; approval only queues the
+# already-uploaded PDF for the protected worker and never sends from the browser.
+[functions.statement-document-prepare-period]
+verify_jwt = false
+# Admin/operator authorization is performed in-function; dry_run defaults to true.
   # On-demand CV Web -> office gateway. Browser requests authenticate in code;
   # the OptiLens agent uses a scoped x-api-key, so the platform JWT gate is off.
   # MUST stay verify_jwt = false (gateway-level 401s break the on-prem agent).
@@ -87,6 +126,10 @@ verify_jwt = false
   # DHL credentials are tested only by an authenticated admin; all carrier
   # operations remain server-side so Basic Auth can never reach the browser.
   [functions.dhl-express]
+    verify_jwt = true
+  # Read-only Copilot facts/prompt display for Settings -> Integrations -> AI
+  # Agents. Admin-only via requirePrivilegedAccess; no writes, no side effects.
+  [functions.copilot-facts]
     verify_jwt = true
   # Gatekeeper connects and sends explicitly released Rx orders. It does its
   # own admin-role check and keeps the one-time PIN/JWT/bearer token server-side.

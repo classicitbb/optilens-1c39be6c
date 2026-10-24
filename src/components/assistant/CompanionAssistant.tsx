@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import ReactMarkdown from "react-markdown";
 import { Link, useLocation } from "react-router";
-import { ExternalLink, Eye, EyeOff, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, FileText, GripHorizontal, History, Loader2, MessageCircle, MessageSquarePlus, Mic, MicOff, Music, Paperclip, Save, Send, Sparkles, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { COUNTRY_OPTIONS } from "@/lib/locationOptions";
 import { cn } from "@/lib/utils";
+import { RichMarkdown } from "@/components/content/RichMarkdown";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import type { AssistantQuickAction } from "@/features/assistant/CompanionAssistantContext";
 import { COOKIE_PREFERENCES_EVENT, hasGivenConsent } from "@/lib/cookieConsent";
@@ -19,6 +19,7 @@ import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useVoiceEngine } from "@/hooks/useVoiceEngine";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { supabase } from "@/integrations/supabase/client";
+import { HELPDESK_ATTACHMENT_ACCEPT, isAudioAttachment, isImageAttachment, validateHelpdeskFiles } from "@/lib/helpdeskAttachments";
 
 const MessageQuickActions = ({
   quickActions,
@@ -120,14 +121,12 @@ const AssistantResultCard = ({
         )}
       </div>
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
-        <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
-          <div className="prose prose-sm max-w-none text-foreground leading-relaxed [&_p]:mb-2 [&_ul]:mt-1 [&_li]:my-0.5">
-            <ReactMarkdown>{result.answer}</ReactMarkdown>
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/40">Iris&apos;s response</p>
+          <div className="rounded-[20px] border border-secondary/15 bg-secondary/5 px-4 py-3">
+            <RichMarkdown content={result.answer} />
           </div>
         </div>
-      </div>
       {sources.length > 0 ? (
         <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 pt-1">
           {sources.map((link, i) => (
@@ -235,12 +234,16 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
                     {message.attachments?.length ? (
                       <div className="flex flex-wrap gap-1.5">
                         {message.attachments.map((attachment) => (
-                          <img
-                            key={attachment.previewUrl}
-                            src={attachment.previewUrl}
-                            alt={attachment.name}
-                            className="h-24 w-24 rounded-[14px] border border-primary-foreground/25 object-cover"
-                          />
+                          isImageAttachment(attachment.mimeType ?? "image/") ? (
+                            <img
+                              key={attachment.previewUrl}
+                              src={attachment.previewUrl}
+                              alt={attachment.name}
+                              className="h-24 w-24 rounded-[14px] border border-primary-foreground/25 object-cover"
+                            />
+                          ) : (
+                            <AttachmentChip key={attachment.previewUrl} name={attachment.name} mimeType={attachment.mimeType} className="border-primary-foreground/25" />
+                          )
                         ))}
                       </div>
                     ) : null}
@@ -251,9 +254,7 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
                 {message.kind === "text" ? (
                   <div className="space-y-2">
                     <div className="rounded-[20px] rounded-bl-lg border border-border/50 bg-card/80 px-4 py-3 text-sm text-foreground shadow-soft backdrop-blur-md">
-                      <div className="prose prose-sm max-w-none leading-6 text-foreground [&_p]:mb-1.5 [&_ul]:mt-1 [&_li]:my-0.5">
-                        <ReactMarkdown>{message.text}</ReactMarkdown>
-                      </div>
+                      <RichMarkdown content={message.text} />
                       {index > 0 ? (
                         <AssistantFeedbackControls
                           messageId={message.id}
@@ -315,6 +316,20 @@ const AssistantMessageList = ({ onSpeak }: { onSpeak?: (text: string) => void })
         </div>
       </div>
 
+    </div>
+  );
+};
+
+const AttachmentChip = ({ name, mimeType, previewUrl, onRemove, className }: { name: string; mimeType?: string; previewUrl?: string; onRemove?: () => void; className?: string }) => {
+  const type = mimeType ?? "";
+  const Icon = isAudioAttachment(type) ? Music : FileText;
+  return (
+    <div className={cn("flex max-w-full items-center gap-1.5 rounded-lg border px-2 py-1 text-xs", className)}>
+      {isImageAttachment(type) && previewUrl
+        ? <img src={previewUrl} alt={name} className="h-8 w-8 rounded object-cover" />
+        : <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />}
+      <span className="max-w-40 truncate">{name}</span>
+      {onRemove ? <button type="button" className="shrink-0 opacity-70 hover:opacity-100" aria-label={`Remove ${name}`} onClick={onRemove}><X className="h-3.5 w-3.5" /></button> : null}
     </div>
   );
 };
@@ -381,12 +396,20 @@ const requestAreaForPath = (pathname: string) => {
   return "Classic Visions website";
 };
 
-const AssistantRequestForm = () => {
+// Files for the request form live in the window so a drop or paste anywhere in
+// Iris can reach them.
+const AssistantRequestForm = ({ requestFiles, requestFileError, addRequestFiles, removeRequestFile }: {
+  requestFiles: File[];
+  requestFileError: string | null;
+  addRequestFiles: (files: File[]) => void;
+  removeRequestFile: (index: number) => void;
+}) => {
   const location = useLocation();
   const { user } = useAuth();
   const { identity } = usePortalIdentity();
-  const { formState, updateForm, submitForm, submitQuickAction, isSubmitting } = useCompanionAssistant();
+  const { formState, updateForm, submitForm, submitQuickAction, isSubmitting, submissionError } = useCompanionAssistant();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const requestFileInputRef = useRef<HTMLInputElement | null>(null);
   if (!formState) return null;
 
   const isQuoteRequest = formState.kind === "quote_request";
@@ -412,17 +435,18 @@ const AssistantRequestForm = () => {
 
   return (
     <form
-      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
+      className="flex h-full min-h-0 flex-col space-y-4 overflow-y-auto [&>div]:shrink-0 [&_input]:text-base [&_textarea]:text-base sm:[&_input]:text-sm sm:[&_textarea]:text-sm rounded-[22px] border border-primary/25 bg-card/95 p-4 text-sm shadow-soft assistant-scrollbar"
       aria-label={isQuoteRequest ? "Quote request form" : "Support request form"}
       onSubmit={(event) => {
         event.preventDefault();
-        if (canSubmit) void submitForm();
+        if (canSubmit) void submitForm(requestFiles);
       }}
     >
       <div className="space-y-1">
         <p className="font-semibold text-foreground">{isQuoteRequest ? "What would you like a quote for?" : "Review your request before sending"}</p>
         <p className="text-xs leading-5 text-muted-foreground">Nothing is sent until you choose Confirm & send.</p>
       </div>
+      {submissionError ? <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{submissionError}</p> : null}
 
       <div className="grid gap-2 rounded-xl border border-border/60 bg-muted/30 p-3 text-xs">
         <div className="flex items-start justify-between gap-3"><span className="text-muted-foreground">Request area</span><span className="text-right font-medium text-foreground">{requestAreaForPath(location.pathname)}</span></div>
@@ -515,7 +539,7 @@ const AssistantRequestForm = () => {
           />
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col space-y-3">
+        <div className="flex shrink-0 flex-col space-y-3">
           {!isPortalSupport ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2"><Label htmlFor="assistant-requester-name">Your name</Label><Input id="assistant-requester-name" value={formState.name} onChange={(event) => updateForm({ name: event.target.value })} disabled={isSubmitting} /></div>
@@ -532,16 +556,43 @@ const AssistantRequestForm = () => {
             <Label htmlFor="assistant-request-title">Request title</Label>
             <Input id="assistant-request-title" value={formState.issueType} onChange={(event) => updateForm({ issueType: event.target.value })} placeholder="A short title for this request" disabled={isSubmitting} />
           </div>
-          <div className="flex min-h-40 flex-1 flex-col space-y-2">
+          <div className="flex min-h-40 flex-col space-y-2">
             <Label htmlFor="assistant-request-details">What do you need help with?</Label>
             <Textarea id="assistant-request-details" value={formState.summary} onChange={(event) => updateForm({ summary: event.target.value })} placeholder="Type the details of your inquiry here." disabled={isSubmitting} className="min-h-32 flex-1 resize-none overflow-y-auto assistant-scrollbar" />
           </div>
         </div>
       )}
 
+      {!isTradeSignup ? (
+        <div className="space-y-2">
+          <input
+            ref={requestFileInputRef}
+            type="file"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-label="Choose photos, documents or audio"
+            accept={HELPDESK_ATTACHMENT_ACCEPT}
+            onChange={(event) => { addRequestFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }}
+          />
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+            <span>Drop, paste or attach photos, documents or audio (up to 5 files, 10 MB each).</span>
+            <Button type="button" variant="ghost" size="sm" disabled={isSubmitting} onClick={() => requestFileInputRef.current?.click()}><Paperclip className="mr-1 h-4 w-4" />Attach files</Button>
+          </div>
+          {requestFiles.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {requestFiles.map((file, index) => (
+                <AttachmentChip key={`${file.name}-${file.size}-${index}`} name={file.name} mimeType={file.type} onRemove={() => removeRequestFile(index)} />
+              ))}
+            </div>
+          ) : null}
+          {requestFileError ? <p role="alert" className="text-xs text-destructive">{requestFileError}</p> : null}
+        </div>
+      ) : null}
+
       <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-border/50 pt-3">
-        <Button type="button" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
-        <Button type="submit" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
+        <Button type="button" className="min-h-11" variant="outline" onClick={() => submitQuickAction({ type: "cancel_form", label: "Cancel" })} disabled={isSubmitting}>Cancel</Button>
+        <Button type="submit" className="min-h-11" disabled={!canSubmit || isSubmitting}>{isSubmitting ? "Sending…" : "Confirm & send"}</Button>
       </div>
     </form>
   );
@@ -647,21 +698,52 @@ const CompanionAssistant = () => {
     } catch { /* Autoplay policy may suppress the optional chime. */ }
   }, [nudge]);
 
-  const MAX_ATTACHMENTS = 4;
-  const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
-  const [attachments, setAttachments] = useState<{ id: string; name: string; previewUrl: string }[]>([]);
+  const [attachments, setAttachments] = useState<{ id: string; file: File; previewUrl: string }[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const addAttachmentFiles = (files: File[]) => {
-    const images = files.filter((file) => file.type.startsWith("image/") && file.size <= MAX_ATTACHMENT_BYTES);
-    if (!images.length) return;
+    if (!files.length) return;
+    const error = validateHelpdeskFiles([...attachments.map((attachment) => attachment.file), ...files]);
+    setAttachmentError(error);
+    if (error) return;
     setAttachments((current) => [
       ...current,
-      ...images.map((file) => ({ id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`, name: file.name, previewUrl: URL.createObjectURL(file) })),
-    ].slice(0, MAX_ATTACHMENTS));
+      ...files.map((file) => ({ id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`, file, previewUrl: URL.createObjectURL(file) })),
+    ]);
+  };
+
+  const [requestFiles, setRequestFiles] = useState<File[]>([]);
+  const [requestFileError, setRequestFileError] = useState<string | null>(null);
+  const addRequestFiles = (files: File[]) => {
+    if (!files.length) return;
+    const error = validateHelpdeskFiles([...requestFiles, ...files]);
+    setRequestFileError(error);
+    if (!error) setRequestFiles((current) => [...current, ...files]);
+  };
+  const removeRequestFile = (index: number) => {
+    setRequestFileError(null);
+    setRequestFiles((current) => current.filter((_, position) => position !== index));
+  };
+  useEffect(() => {
+    if (!formState) { setRequestFiles([]); setRequestFileError(null); }
+    else if (formState.kind !== "trade_signup" && attachments.length) {
+      setRequestFiles((current) => [...current, ...attachments.map(({ file }) => file)]);
+      setAttachments([]);
+    }
+  }, [formState, attachments]);
+
+  // A drop or paste anywhere in the Iris window goes to the request form when
+  // one is open (and can take files), otherwise to the chat composer.
+  const requestFormTakesFiles = Boolean(formState && formState.kind !== "trade_signup");
+  const routeDroppedFiles = (files: File[]) => {
+    if (historyOpen) return;
+    if (formState) { if (requestFormTakesFiles) addRequestFiles(files); return; }
+    addAttachmentFiles(files);
   };
 
   const removeAttachment = (id: string) => {
+    setAttachmentError(null);
     setAttachments((current) => {
       const target = current.find((attachment) => attachment.id === id);
       if (target) URL.revokeObjectURL(target.previewUrl);
@@ -672,9 +754,10 @@ const CompanionAssistant = () => {
   const submitWithAttachments = () => {
     const trimmed = currentQuery.trim();
     if (!trimmed && attachments.length === 0) return;
-    void submitQuery(trimmed, undefined, undefined, attachments.length ? attachments.map(({ name, previewUrl }) => ({ name, previewUrl })) : undefined);
-    // Object URLs are kept alive so the sent images keep rendering inline in the chat history.
+    void submitQuery(trimmed, undefined, undefined, attachments.length ? attachments.map(({ file, previewUrl }) => ({ name: file.name, previewUrl, mimeType: file.type })) : undefined);
+    // Object URLs are kept alive so the sent files keep rendering inline in the chat history.
     setAttachments([]);
+    setAttachmentError(null);
   };
 
   // Track cookie-consent state so we can hide the launcher while the banner is showing
@@ -747,6 +830,18 @@ const CompanionAssistant = () => {
           ? "h-[min(92vh,48rem)] w-[min(100%,28rem)] rounded-[28px]"
           : "h-full rounded-[28px]",
       )}
+      onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        routeDroppedFiles(Array.from(event.dataTransfer.files));
+      }}
+      onPaste={(event) => {
+        const files = Array.from(event.clipboardData?.files ?? []);
+        if (!files.length) return;
+        event.preventDefault();
+        routeDroppedFiles(files);
+      }}
     >
       <div
         className="flex touch-none items-start justify-between gap-3 border-b border-border/50 px-4 py-4 sm:cursor-move"
@@ -853,7 +948,7 @@ const CompanionAssistant = () => {
             <div className="space-y-2">{savedConversations.map((conversation) => <button key={conversation.id} type="button" className="w-full rounded-lg border p-3 text-left hover:bg-muted" onClick={async () => { await loadConversation(conversation.id); setHistoryOpen(false); }}><p className="truncate text-sm font-medium">{conversation.title}</p><p className="mt-1 text-xs capitalize text-muted-foreground">{conversation.audience} · {new Date(conversation.updated_at).toLocaleString()}</p></button>)}</div>
           </div>
         ) : formState ? (
-          <div className="flex min-h-0 flex-1 p-4"><AssistantRequestForm /></div>
+          <div className="flex min-h-0 flex-1 p-4"><AssistantRequestForm requestFiles={requestFiles} requestFileError={requestFileError} addRequestFiles={addRequestFiles} removeRequestFile={removeRequestFile} /></div>
         ) : <AssistantMessageList onSpeak={voiceEngine.ttsSupported ? voiceEngine.speak : undefined} />}
       </div>
 
@@ -883,14 +978,51 @@ const CompanionAssistant = () => {
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]">
+        {attachments.length || attachmentError ? (
+          <div className="space-y-1.5">
+            {attachments.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {attachments.map((attachment) => (
+                  <AttachmentChip key={attachment.id} name={attachment.file.name} mimeType={attachment.file.type} previewUrl={attachment.previewUrl} className="bg-card/90" onRemove={() => removeAttachment(attachment.id)} />
+                ))}
+              </div>
+            ) : null}
+            {attachmentError ? <p role="alert" className="text-xs text-destructive">{attachmentError}</p> : null}
+          </div>
+        ) : null}
+
+        <div
+          className="rounded-2xl border border-accent/55 bg-card/90 p-1.5 shadow-[0_0_0_1px_hsl(var(--accent)/0.10),0_8px_24px_-14px_hsl(var(--accent)/0.55)] backdrop-blur-md focus-within:border-accent focus-within:shadow-[0_0_0_3px_hsl(var(--accent)/0.16),0_8px_24px_-14px_hsl(var(--accent)/0.65)]"
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="sr-only"
+            tabIndex={-1}
+            aria-label="Choose photos, documents or audio"
+            accept={HELPDESK_ATTACHMENT_ACCEPT}
+            onChange={(event) => { addAttachmentFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }}
+          />
           <div className="flex items-end gap-2">
             <Button
               type="button"
               size="icon"
               variant="ghost"
+              className="ml-1 h-9 w-9 shrink-0 rounded-full text-foreground/60 hover:bg-muted hover:text-foreground"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach photos, documents or audio"
+              aria-label="Attach photos, documents or audio"
+              disabled={isSubmitting}
+            >
+              <Paperclip className="h-4 w-4 text-accent" />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
               className={cn(
-                "ml-1 h-9 w-9 shrink-0 rounded-full transition-all",
+                "h-9 w-9 shrink-0 rounded-full transition-all",
                 voiceInput.isListening
                   ? "voice-listening-indicator voice-mic-active bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : "text-foreground/60 hover:bg-muted hover:text-foreground"
@@ -914,13 +1046,6 @@ const CompanionAssistant = () => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
                   submitWithAttachments();
-                }
-              }}
-              onPaste={(event) => {
-                const files = Array.from(event.clipboardData?.files ?? []).filter((file) => file.type.startsWith("image/"));
-                if (files.length) {
-                  event.preventDefault();
-                  addAttachmentFiles(files);
                 }
               }}
               placeholder={voiceInput.isListening ? "Listening..." : voiceInput.isTranscribing ? "Transcribing your recording..." : "Ask anything"}

@@ -1,0 +1,26 @@
+@import "tailwindcss" source(none);
+@import "../../../styles/workspace.css";
+@source "../form/ui.tsx";
+@source "../form/cards/ComboBox.tsx";
+@source "../../../components/ui";
+@source "../../../components/lenses/LensVariantGrid.tsx";
+@source "./LensPicker.tsx";
+@theme inline {
+  --color-background: hsl(var(--ws-paper));
+  --color-foreground: hsl(var(--ws-ink));
+  --color-border: hsl(var(--ws-line));
+  --color-input: hsl(var(--ws-input-border));
+  --color-muted: hsl(var(--ws-side));
+  --color-muted-foreground: hsl(var(--ws-ink-2));
+  --color-popover: hsl(var(--ws-paper));
+  --color-popover-foreground: hsl(var(--ws-ink));
+  --color-accent: hsl(var(--ws-accent-tint));
+  --color-accent-foreground: hsl(var(--ws-ink));
+  --color-secondary: hsl(var(--ws-accent));
+  --color-primary: hsl(var(--ws-navy));
+  --color-primary-foreground: hsl(var(--ws-accent-fg));
+  --color-ring: hsl(var(--ws-accent));
+  --color-destructive: hsl(var(--ws-c-red));
+  --radius-md: var(--ws-radius-control);
+  --radius-lg: var(--ws-radius-float);
+}

@@ -18,6 +18,11 @@ const checks = [
     args: ["run", "qa:copilot-facts"],
   },
   {
+    name: "Public content search index drift check",
+    command: "npm",
+    args: ["run", "qa:search-index"],
+  },
+  {
     name: "Release ledger drift check",
     command: "npm",
     args: ["run", "qa:release-ledger"],

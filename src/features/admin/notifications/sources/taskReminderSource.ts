@@ -25,6 +25,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
   const { data: draftQuotes } = await (supabase.from("quotes") as any)
     .select("id,updated_at")
     .eq("status", "draft")
+    .eq("is_test", false)
     .order("updated_at", { ascending: false })
     .limit(1);
 
@@ -37,7 +38,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: "You still have a draft quotation pending review or send.",
       createdAt: latestDraftQuote.updated_at,
       severity: "warning",
-      href: "/admin/website/quotations",
+      href: "/admin/orders/quotations",
     });
   }
 
@@ -60,7 +61,7 @@ export async function getTaskReminderNotifications(): Promise<AdminNotificationE
       message: "A campaign packet exists and may still need activation or performance logging.",
       createdAt: latestCampaignProfile.created_at,
       severity: "warning",
-      href: "/admin/leads/campaigns",
+      href: "/admin/crm/leads/campaigns",
     });
   }
 

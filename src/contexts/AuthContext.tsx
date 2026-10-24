@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 import type { AuthAudience, AuthIntent } from "@/lib/authFlow";
+import { getAuthEmailRedirect } from "@/lib/authFlow";
 import { isPortalEmulationActive } from "@/lib/portalEmulation";
 
 export interface AuthSignupDetails {
@@ -18,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, details?: AuthSignupDetails) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, details?: AuthSignupDetails, redirectPath?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithMagicLink: (email: string, redirectTo: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -122,8 +123,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     syncProfileFromUser();
   }, [user]);
 
-  const signUp = useCallback(async (email: string, password: string, details?: AuthSignupDetails) => {
-    const redirectUrl = `${window.location.origin}/`;
+  const signUp = useCallback(async (email: string, password: string, details?: AuthSignupDetails, redirectPath?: string) => {
+    const redirectUrl = getAuthEmailRedirect(window.location.origin, redirectPath);
     
     const { error } = await supabase.auth.signUp({
       email,

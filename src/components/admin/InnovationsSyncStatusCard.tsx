@@ -265,8 +265,8 @@ export default function InnovationsSyncStatusCard() {
                             variant="link"
                             className="h-auto p-0 text-xs text-amber-900 underline"
                             onClick={() => navigate(contactId
-                              ? `/admin/erp/contacts?contact=${encodeURIComponent(contactId)}&tab=account-settings`
-                              : `/admin/erp/contacts?erpCustomer=${id}`)}
+                              ? `/admin/crm/contacts?contact=${encodeURIComponent(contactId)}&tab=account-settings`
+                              : `/admin/crm/contacts?erpCustomer=${id}`)}
                           >
                             #{id} {row.customer_names[index] ?? "Unnamed"}{isErp ? " (ERP)" : " (non-ERP)"}
                           </Button>

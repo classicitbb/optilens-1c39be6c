@@ -44,14 +44,14 @@ export type AssistantMessage =
       role: "user";
       kind: "user";
       text: string;
-      attachments?: { name: string; previewUrl: string }[];
+      attachments?: AssistantOutgoingAttachment[];
     };
 
-export type AssistantOutgoingAttachment = { name: string; previewUrl: string };
+export type AssistantOutgoingAttachment = { name: string; previewUrl: string; mimeType?: string };
 
 export type AssistantFormKind = "retailer_help" | "product_help" | "customer_support" | "portal_support" | "quote_request" | "pricelist_request" | "trade_signup";
 
-export type AssistantTaskKind = "contact" | "support" | "quote" | "policy_help";
+export type AssistantTaskKind = "contact" | "support" | "quote" | "policy_help" | "atlas";
 
 export interface AssistantTaskContext {
   kind: AssistantTaskKind;
@@ -112,13 +112,14 @@ export interface CompanionAssistantContextValue {
   dismissNudge: () => void;
   snoozeNudge: () => void;
   isSubmitting: boolean;
+  submissionError: string | null;
   openDetachedWindow: () => void;
   formState: AssistantFormState | null;
   openForm: (profile?: AssistantProfile, options?: { kind?: AssistantFormKind; values?: Partial<AssistantFormState> }) => void;
   closeForm: () => void;
   cancelForm: () => void;
   updateForm: (patch: Partial<AssistantFormState>) => void;
-  submitForm: () => Promise<void>;
+  submitForm: (files?: File[]) => Promise<void>;
 }
 
 export const CompanionAssistantContext = createContext<CompanionAssistantContextValue | undefined>(undefined);

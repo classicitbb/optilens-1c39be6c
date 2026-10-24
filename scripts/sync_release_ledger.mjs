@@ -126,7 +126,28 @@ function filePathToModuleLabel(filePath) {
   return first || "general";
 }
 
-function buildManifest(latestEntry) {
+function entryKey(entry) {
+  return `${entry.date} — ${entry.title}`;
+}
+
+function isBreakingLine(line) {
+  return /^BREAKING[:\s]/i.test(line) || /\bbreaking change\b/i.test(line);
+}
+
+function bumpVersion(current, { breaking }) {
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(current);
+  const [, majorStr, minorStr] = match ?? ["", "0", "0", "0"];
+  const major = Number(majorStr);
+  const minor = Number(minorStr);
+
+  // Each dated CHANGELOG.md entry is one release. A release note bullet
+  // prefixed "BREAKING:" (or containing "breaking change") bumps major
+  // instead of minor, so the manifest's hasBreakingChanges flag and the
+  // version number stay derived from the same signal.
+  return breaking ? `${major + 1}.0.0` : `${major}.${minor + 1}.0`;
+}
+
+function buildManifest(latestEntry, previousManifest) {
   const releaseDateTimeUtc = new Date(`${latestEntry.date}T00:00:00.000Z`).toISOString();
   const technicalLines = latestEntry.technicalChangelog.map(stripBulletPrefix);
   const moduleNames = Array.from(
@@ -148,14 +169,25 @@ function buildManifest(latestEntry) {
     ? latestEntry.releaseNotes.map(stripBulletPrefix)
     : [latestEntry.title];
 
+  const hasBreakingChanges = [...latestEntry.releaseNotes, ...latestEntry.technicalChangelog]
+    .map(stripBulletPrefix)
+    .some(isBreakingLine);
+
+  const key = entryKey(latestEntry);
+  const isNewEntry = !previousManifest || previousManifest.sourceEntry !== key;
+  const semanticVersion = isNewEntry
+    ? bumpVersion(previousManifest?.semanticVersion ?? packageJson.version, { breaking: hasBreakingChanges })
+    : previousManifest.semanticVersion;
+
   return {
-    semanticVersion: packageJson.version,
+    semanticVersion,
+    sourceEntry: key,
     releaseDateTimeUtc,
     environment: "production",
     releaseSummary,
     moduleImpact,
     migrationNotes: ["No manual data migration is required for this release."],
-    hasBreakingChanges: false,
+    hasBreakingChanges,
   };
 }
 
@@ -170,6 +202,10 @@ function validateManifest(manifest) {
 
   if (typeof manifest.semanticVersion !== "string" || !SEMVER_REGEX.test(manifest.semanticVersion)) {
     fail("semanticVersion must be a valid semantic version string");
+  }
+
+  if (typeof manifest.sourceEntry !== "string" || manifest.sourceEntry.trim().length === 0) {
+    fail("sourceEntry must be a non-empty string (the CHANGELOG.md entry this release was generated from)");
   }
 
   if (typeof manifest.releaseDateTimeUtc !== "string" || !ISO_DATETIME_REGEX.test(manifest.releaseDateTimeUtc)) {
@@ -262,13 +298,12 @@ const mergedEntries = changelogEntries.map((entry) => {
 });
 
 const latestEntry = mergedEntries[0];
-const generatedManifest = buildManifest(latestEntry);
+// Parsed leniently (not validated) so a pre-versioning manifest without
+// `sourceEntry` still counts as "no matching previous release" and
+// triggers a version bump, rather than throwing.
+const previousManifest = releaseManifestRaw ? JSON.parse(releaseManifestRaw) : null;
+const generatedManifest = buildManifest(latestEntry, previousManifest);
 validateManifest(generatedManifest);
-
-if (releaseManifestRaw) {
-  const existingManifest = JSON.parse(releaseManifestRaw);
-  validateManifest(existingManifest);
-}
 
 const generatedReleaseNotes = [
   "# Release Notes",
@@ -344,11 +379,23 @@ const manifestChanged = fs.existsSync(RELEASE_MANIFEST_PATH)
 
 const wikiChanged = hasInlineWikiLedger ? writeIfNeeded(WIKI_CONTENT_PATH, generatedWiki) : false;
 
-if (mode === "check" && (releaseChanged || manifestChanged || wikiChanged)) {
+const packageJsonVersionChanged = packageJson.version !== generatedManifest.semanticVersion;
+if (packageJsonVersionChanged) {
+  const nextPackageJsonRaw = fs.readFileSync(PACKAGE_JSON_PATH, "utf8").replace(
+    /^(\s*"version":\s*")[^"]*(",?\s*)$/m,
+    `$1${generatedManifest.semanticVersion}$2`,
+  );
+  if (mode === "write") {
+    fs.writeFileSync(PACKAGE_JSON_PATH, nextPackageJsonRaw, "utf8");
+  }
+}
+
+if (mode === "check" && (releaseChanged || manifestChanged || wikiChanged || packageJsonVersionChanged)) {
   const outOfSyncTargets = [
     releaseChanged ? "docs/release-notes.md" : null,
     manifestChanged ? "docs/releases/manifest/current.json" : null,
     wikiChanged ? "src/data/wikiContent.ts" : null,
+    packageJsonVersionChanged ? "package.json" : null,
   ].filter(Boolean);
 
   console.error(

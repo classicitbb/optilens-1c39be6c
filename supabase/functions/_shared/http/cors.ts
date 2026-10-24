@@ -4,7 +4,20 @@ export type CorsPolicy = {
   allowHeaders: string;
   allowMethods: string;
   allowedOrigins: Set<string>;
+  /** Extra origins matched by pattern; only functions that opt in get them. */
+  originPatterns?: RegExp[];
 };
+
+/** Any port on localhost or 127.0.0.1, and any Lovable preview or project host. */
+export const DEV_ORIGIN_PATTERNS: RegExp[] = [
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/,
+  /^https:\/\/([a-z0-9-]+\.)+lovable\.app$/,
+  /^https:\/\/([a-z0-9-]+\.)+lovableproject\.com$/,
+];
+
+function isOriginAllowed(origin: string, policy: CorsPolicy): boolean {
+  return policy.allowedOrigins.has(origin) || (policy.originPatterns ?? []).some((pattern) => pattern.test(origin));
+}
 
 function parseOriginList(value: string | undefined): string[] {
   return (value ?? "")
@@ -41,6 +54,7 @@ function getDefaultOriginsForEnv(environment: string): string[] {
     "https://classicvisions.net",
     "https://www.classicvisions.net",
     "https://admin.classicvisions.net",
+    "https://qbo.classicvisions.net",
     "https://classicvisions.lovable.app",
     "https://optilens.lovable.app",
     "https://d568bffd-cdad-4066-b271-1e09c9a376d6.lovableproject.com",
@@ -48,6 +62,8 @@ function getDefaultOriginsForEnv(environment: string): string[] {
     // The public portal is served locally on these exact origins during
     // authenticated, real-browser verification against cloud functions.
     "http://localhost:8081",
+    // Lovable sandbox dev server, used for signed-in end-to-end checks.
+    "http://localhost:8080",
     "http://127.0.0.1:8081",
     // Exact WSL/host bridge origin used by the local production-preview server.
     // Keep this exact rather than permitting arbitrary private-network origins.
@@ -95,8 +111,9 @@ function getAllowedOrigins(): Set<string> {
   return new Set(origins);
 }
 
-export function createCorsPolicy(overrides?: Partial<Pick<CorsPolicy, "allowHeaders" | "allowMethods">>): CorsPolicy {
+export function createCorsPolicy(overrides?: Partial<Pick<CorsPolicy, "allowHeaders" | "allowMethods" | "originPatterns">>): CorsPolicy {
   return {
+    originPatterns: overrides?.originPatterns,
     allowHeaders:
       overrides?.allowHeaders ??
       "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -107,7 +124,7 @@ export function createCorsPolicy(overrides?: Partial<Pick<CorsPolicy, "allowHead
 
 export function getCorsHeaders(req: Request, policy: CorsPolicy): Record<string, string> {
   const requestOrigin = req.headers.get("origin");
-  const isAllowedOrigin = !!requestOrigin && policy.allowedOrigins.has(requestOrigin);
+  const isAllowedOrigin = !!requestOrigin && isOriginAllowed(requestOrigin, policy);
 
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": policy.allowHeaders,
@@ -129,7 +146,7 @@ export function rejectDisallowedOrigin(req: Request, policy: CorsPolicy): Respon
     return null;
   }
 
-  if (!policy.allowedOrigins.has(requestOrigin)) {
+  if (!isOriginAllowed(requestOrigin, policy)) {
     return new Response(JSON.stringify({ error: "Origin not allowed" }), {
       status: 403,
       headers: {

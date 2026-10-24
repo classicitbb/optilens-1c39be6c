@@ -44,10 +44,10 @@ export const toProfileAddress = (address?: CustomerAddress | null): ProfileAddre
   country: address?.country ?? EMPTY_ADDRESS.country,
 });
 
-export const useCustomerAddresses = (targetUserId?: string) => {
+export const useCustomerAddresses = (targetUserId?: string, options?: { enabled?: boolean }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const effectiveUserId = targetUserId ?? user?.id ?? null;
+  const effectiveUserId = options?.enabled === false ? null : targetUserId ?? user?.id ?? null;
 
   const query = useQuery({
     queryKey: ["customer-addresses", effectiveUserId],

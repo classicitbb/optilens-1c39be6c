@@ -35,7 +35,7 @@ confirmed against `public/app.js` in pricelist-automation):
 2. **Audit** — kick out an expensive supplier's row (BS1-02's `excluded_from_anchor`, already
    built — note it's finer-grained than the local tool's `(supplier, combo)` disable pair, since
    it targets one `lenses` row directly), or manually link a missing combo via the existing 🔍
-   search (already live in `/admin/pricing/rx-lenses` — keep it as the manual-override path for
+   search (available from `/admin/pricing/pricelists` after choosing a version's RX tab — keep it as the manual-override path for
    gaps the classifier doesn't reach).
 3. **Save** vs. **Save As New** — Save commits to the currently-open pricelist; Save As New
    always creates a fresh copy, optionally against a different customer. This is BS1-04's
@@ -67,7 +67,7 @@ produced (`pricelist_versions` + `matrix_allocations` + the new `pricelists`/`pr
    exclusion is now `lenses.excluded_from_anchor` (BS1-02), filtered upstream in
    `fetchApprovedLensRows()` before combos are even built, so there's no separate disabled-overrides
    layer to carry over. Whole-combo disable remains the open question below.
-5. [x] Build **Auto Price** in `/admin/pricing/rx-lenses`'s matrix editor
+5. [x] Build **Auto Price** in the selected version's RX matrix editor under `/admin/pricing/pricelists`
    (`TreatmentMatricesAccordion.tsx`). Done 2026-07-15: computes a plan (classify live `lenses` →
    `pricedMatrix()` → map onto real grouping/category/material keys via `groupingMap.ts` → skip
    cells already manually linked → resolve the *preferred*-supplier's `lens_id` via `lensIdFor()`,

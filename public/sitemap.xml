@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <!-- Core -->
   <url>
     <loc>https://www.classicvisions.net/</loc>
     <changefreq>weekly</changefreq>
@@ -10,74 +8,75 @@
   <url>
     <loc>https://www.classicvisions.net/professionals</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/patients</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/find-a-retailer</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/knowledge</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.classicvisions.net/optical-retail-websites</loc>
+    <loc>https://www.classicvisions.net/find-a-retailer/barbados</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/about-us</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/blog</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/rx-lab-services</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/vizionize-cleaner</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/photochromic</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
-  <!-- Legal -->
   <url>
     <loc>https://www.classicvisions.net/privacy-policy</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/terms</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/legal/cookie-policy</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/legal/disclaimer</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/legal/accessibility</loc>
-    <changefreq>yearly</changefreq>
-    <priority>0.4</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
-
-  <!-- Professionals sub-pages -->
   <url>
     <loc>https://www.classicvisions.net/professionals/returns-replacements</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.classicvisions.net/professionals/dispensing-tips</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.classicvisions.net/professionals/freight-delivery-policy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -87,39 +86,47 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://www.classicvisions.net/professionals/caribbean-lens-ordering-guide</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/professionals/freight-delivery-policy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.classicvisions.net/professionals/repairs-policy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/professionals/tracing-cutting-guide</loc>
+    <loc>https://www.classicvisions.net/dispensing-tips</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/professionals/lab-process-overview</loc>
+    <loc>https://www.classicvisions.net/patients/lens-differences</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-  <url>
-    <loc>https://www.classicvisions.net/professionals/lens-ordering-tips</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- Patients sub-pages -->
   <url>
     <loc>https://www.classicvisions.net/patients/progressive-lenses</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/patients/caring-for-lenses</loc>
+    <loc>https://www.classicvisions.net/patients/anti-fatigue-lenses</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/patients/computer-use</loc>
+    <loc>https://www.classicvisions.net/patients/caring-for-glasses</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/patients/computer-mobile-use</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -129,31 +136,34 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/patients/eye-exams</loc>
+    <loc>https://www.classicvisions.net/patients/regular-eye-exams</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/patients/night-driving</loc>
+    <loc>https://www.classicvisions.net/patients/night-driving-aids</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
-  <!-- Lenses -->
+  <url>
+    <loc>https://www.classicvisions.net/patients/prescription-lens-cost</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
   <url>
     <loc>https://www.classicvisions.net/lenses/lens-types</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/lenses/progressive</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/lenses/single-vision</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/lenses/bifocals</loc>
@@ -186,7 +196,7 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.classicvisions.net/lenses/tints</loc>
+    <loc>https://www.classicvisions.net/lenses/tints-fashion-colors</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -200,8 +210,26 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
-  <!-- Coatings -->
+  <url>
+    <loc>https://www.classicvisions.net/lenses/sport</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/lenses/led-pro</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/lenses/specialty</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.classicvisions.net/coatings</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
   <url>
     <loc>https://www.classicvisions.net/coatings/ultraclear-ar</loc>
     <changefreq>monthly</changefreq>
@@ -232,12 +260,10 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
-  <!-- Zenvue -->
   <url>
     <loc>https://www.classicvisions.net/zenvue</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.classicvisions.net/zenvue/brilliance</loc>
@@ -264,5 +290,4 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
-
 </urlset>

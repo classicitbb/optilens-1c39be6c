@@ -68,7 +68,7 @@ describe("instant submit for credit-approved accounts", () => {
 
     it("still refuses to submit an unpriced lens", () => {
       const adapter = directAdapter();
-      const h = mountRxOrder({ ...adapter, lensPrice: () => null }).fillValidOrder();
+      const h = mountRxOrder({ ...adapter, lensPrice: () => null, blockUnpricedOrders: true }).fillValidOrder();
 
       expect(h.submitEnabled()).toBe(false);
 

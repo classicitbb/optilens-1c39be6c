@@ -170,7 +170,7 @@ export const shouldAskAudienceClarifier = ({
   if (authenticated || requestedAudience) return false;
   const text = normalizeText(query);
   if (route.startsWith("/patients") || route.startsWith("/professionals") || route.startsWith("/dispensing-tips") || route.startsWith("/find-a-retailer")) return false;
-  return !includesAny(text, ["patient", "dispenser", "optician", "optical professional", "for my practice", "for my patient"]);
+  return includesAny(text, ["lens", "lenses", "coating", "glasses", "frame"]) && !includesAny(text, ["patient", "dispenser", "optician", "optical professional", "for my practice", "for my patient"]);
 };
 
 const buildRetailerPath = (marketSlug: string) =>

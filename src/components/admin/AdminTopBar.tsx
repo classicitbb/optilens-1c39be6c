@@ -6,8 +6,8 @@ import { useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  LayoutGrid, HelpCircle, ExternalLink, LogOut,
-  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, Pencil, ArrowLeft, Settings } from
+  HelpCircle, ExternalLink, LogOut,
+  BookOpen, User, Download, Eye, X, Sun, Moon, Monitor, ArrowLeft, Settings } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,7 +19,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import GlobalSearch from "./GlobalSearch";
 import AppLauncher from "./AppLauncher";
 import NotificationBell from "./NotificationBell";
+import OperatorAttentionAlert from "./OperatorAttentionAlert";
 import TopBarActionCluster from "@/components/shared/TopBarActionCluster";
+import AnnotateMenu from "@/features/annotate/AnnotateMenu";
 import { capitalizeDisplayName, resolveUserAvatar, resolveUserFullName } from "@/lib/profileData";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -27,24 +29,25 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const ROUTE_LABELS: [string, string][] = [
+["/atlas", "Atlas"],
 ["/admin/pricing/publisher", "Pricing · Lens Catalog Builder"],
 ["/admin/pricing/catalog", "Pricing · Product Catalog"],
-["/admin/pricing/rx-lenses", "Pricing · RX Lens Prices"],
-["/admin/pricing/stock-lenses", "Pricing · Stock Lens Prices"],
-["/admin/pricing/supplies", "Pricing · Supplies Prices"],
+["/admin/pricing/pricelists", "Pricing · Pricelists"],
 ["/admin/pricing/imports", "Pricing · Imports"],
 ["/admin/pricing/reference", "Pricing · Reference Data"],
-["/admin/pricing/costings", "Costings"],
+["/admin/finance/costings", "Finance · Costings"],
+["/admin/finance", "Finance"],
 ["/admin/crm/proposals", "CRM · Proposals"],
-["/admin/website/quotations", "Website · Quotations"],
-["/admin/website/orders", "Website · Orders"],
+["/admin/orders/quotations", "Orders · Quotations"],
+["/admin/orders", "Orders"],
 ["/admin/settings/users", "Settings · Users"],
 ["/admin/settings/company", "Settings · Company"],
-["/admin/knowledge/wiki", "Knowledge · Wiki"],
-["/admin/website/content", "Website · Content"],
-["/admin/contacts", "Contacts"],
+["/admin/crm/contacts", "CRM · Contacts"],
+["/admin/crm/leads", "CRM · Leads"],
+["/admin/crm/settings", "CRM · Settings"],
 ["/admin/dashboard", "Launch Pad"],
 ["/admin/crm", "CRM"],
+["/admin/email", "Email"],
 ["/admin/helpdesk", "Helpdesk"],
 ["/admin/settings/audit", "Settings · Audit Log"],
 ["/admin/settings/integrations", "Settings · Integrations"],
@@ -57,13 +60,12 @@ const ROUTE_LABELS: [string, string][] = [
 ["/admin/supplies-prices", "Pricing · Supplies Prices"],
 ["/admin/imports", "Pricing · Imports"],
 ["/admin/reference", "Pricing · Reference Data"],
-["/admin/costings", "Costings"],
-["/admin/quotations", "Website · Quotations"],
+["/admin/costings", "Finance · Costings"],
+["/admin/quotations", "Orders · Quotations"],
 ["/admin/users", "Settings · Users"],
 ["/admin/parameters", "Settings · Company"],
 ["/admin/wiki", "Knowledge · Wiki"],
 ["/admin/content", "Website · Content"],
-["/admin/erp/contacts", "Contacts"],
 ["/admin/erp/crm", "CRM"],
 ["/admin/erp/helpdesk", "Helpdesk"],
 ["/admin/audit-log", "Settings · Audit Log"]];
@@ -104,14 +106,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   const location = useLocation();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [launcherOpen, setLauncherOpen] = useState(() => {
-    const shown = sessionStorage.getItem("admin-launcher-shown");
-    if (!shown) {
-      sessionStorage.setItem("admin-launcher-shown", "1");
-      return true;
-    }
-    return false;
-  });
+  const [launcherOpen, setLauncherOpen] = useState(false);
 
   // PWA install prompt
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -160,7 +155,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   };
 
   const pageLabel = getRouteLabel(location.pathname);
-  const isEditorRoute = /\/publisher\/\d+/.test(location.pathname) || /\/quotations\/[^/]+$/.test(location.pathname);
+  const isEditorRoute = /\/publisher\/\d+/.test(location.pathname) || /\/quotations\/[^/]+$/.test(location.pathname) || /\/pricing\/pricelists\/[^/]+\/(rx|stock|supplies)$/.test(location.pathname);
   const canGoBack = !isEditorRoute && ((window.history.state?.idx ?? 0) > 0);
   const activeTheme = theme ?? "system";
   const cycleTheme = () => {
@@ -179,7 +174,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   return (
     <>
       <header
-        className="admin-surface relative z-30 flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))] focus-within:z-[10000]">
+        className="admin-topbar admin-surface relative z-30 flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))] focus-within:z-[10000]">
 
         {/* ── LEFT GROUP ── */}
         <div className="flex items-center gap-2 shrink-0">
@@ -190,7 +185,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             title="Applications"
             data-apps-toggle>
 
-            <LayoutGrid className="h-[18px] w-[18px] text-[hsl(var(--admin-muted-fg))]" />
+            <svg viewBox="0 0 18 18" fill="currentColor" aria-hidden="true" className="h-[18px] w-[18px] text-[hsl(var(--admin-muted-fg))]">
+              {[3, 9, 15].flatMap((cy) => [3, 9, 15].map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.6" />))}
+            </svg>
           </Button>
 
           <span className="text-sm font-semibold tracking-tight select-none text-[hsl(var(--admin-content-fg))]">
@@ -242,21 +239,9 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
 
             {/* Notifications Bell */}
             <NotificationBell />
+            <OperatorAttentionAlert />
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => navigate("/admin/website/content")}
-                  aria-label="Edit website content"
-                >
-                  <Pencil className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom"><span className="text-xs">Edit content</span></TooltipContent>
-            </Tooltip>
+            <AnnotateMenu />
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -274,6 +259,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => navigate("/admin/settings/company")}
+                  data-navigation-target="/admin/settings/company"
                   aria-label="Settings"
                 >
                   <Settings className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
@@ -317,10 +303,10 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
 
-                <DropdownMenuItem onClick={() => navigate("/admin/wiki")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
+                <DropdownMenuItem onClick={() => navigate("/admin/wiki")} data-navigation-target="/admin/wiki" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <BookOpen className="h-4 w-4" /> Helpdesk / Wiki
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
+                <DropdownMenuItem onClick={() => navigate("/profile")} data-navigation-target="/profile" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <User className="h-4 w-4" /> My Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleInstall} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
@@ -354,7 +340,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
 
                 <DropdownMenuSeparator className="mx-0 my-1.5 bg-border" />
 
-                <DropdownMenuItem onClick={handleSignOut} className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
+                <DropdownMenuItem onClick={handleSignOut} data-navigation-target="/" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <LogOut className="h-4 w-4" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -45,6 +45,9 @@ export const canViewWikiCategory = (
   categoryId: string,
   canView: (feature: Feature) => boolean
 ): boolean => {
+  if (categoryId === "settings-app") {
+    return canView("roles") || canView("integrations") || canView("parameters") || canView("users");
+  }
   const feature = WIKI_CATEGORY_FEATURE_OVERRIDES[categoryId] ?? "wiki";
   return canView(feature);
 };

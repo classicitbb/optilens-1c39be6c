@@ -1085,11 +1085,34 @@ const NativeDocStudio = () => {
         draft.tab === "billing"
           ? docStudioApi.autosaveBilling(draft.id!, payload)
           : docStudioApi.autosaveFile(draft.id!, payload);
-      void request.catch(() =>
+      const draftId = draft.id;
+      const handleMissing = () => {
+        setDraft((current) =>
+          current.id === draftId ? { ...current, id: undefined } : current,
+        );
+        toast.warning(
+          "This document was deleted elsewhere. Your changes are kept — click Save to store them as a new document.",
+        );
+      };
+      void request.then((result) => {
+        if (!result) handleMissing();
+      }).catch((error: { status?: number }) => {
+        if (error?.status === 404) {
+          // The saved copy was deleted (e.g. from another tab). Keep the
+          // content as an unsaved draft so Save creates a fresh document
+          // instead of autosave hammering a missing record.
+          setDraft((current) =>
+            current.id === draftId ? { ...current, id: undefined } : current,
+          );
+          toast.warning(
+            "This document was deleted elsewhere. Your changes are kept — click Save to store them as a new document.",
+          );
+          return;
+        }
         toast.error(
           "Autosave could not reach Doc Studio. Your changes remain in this tab.",
-        ),
-      );
+        );
+      });
     }, 1400);
     return () => {
       if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);

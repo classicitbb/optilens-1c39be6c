@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useScrollCraft } from "@/lib/scrollcraft/useScrollCraft";
 import { Link } from "react-router";
 import {
   AlertCircle,
@@ -112,12 +113,16 @@ const Profile = () => {
           ? "/profile/statements"
           : "/profile/account";
 
-  if (commandCenterQuery.isLoading || identityLoading) {
+  const portalLoading = commandCenterQuery.isLoading || identityLoading;
+  // Re-run when the loading gate lifts: the root div only exists after it.
+  const scrollRef = useScrollCraft([portalLoading]);
+
+  if (portalLoading) {
     return <div className="grid min-h-[420px] place-items-center"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>;
   }
 
   return (
-    <div className="space-y-7">
+    <div ref={scrollRef} className="space-y-7">
       <section className="overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#0b1e35,#125a69)] p-6 text-white shadow-medium sm:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div><p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#efb53a]">Customer command centre</p><h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Welcome, {displayName}</h1><p className="mt-3 max-w-2xl text-white/70">Website orders, Rx drafts, pricing, statements and support for {accountName || "your account"}.</p></div>
@@ -125,7 +130,7 @@ const Profile = () => {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
+      <section data-sc-in data-sc-stagger="70" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account overview">
         <SummaryCard icon={AlertCircle} label="Needs attention" value={String(needsAttention.length)} detail={needsAttention[0] || "Nothing urgent"} tone="amber" to={needsAttentionRoute} />
         <SummaryCard icon={PackageCheck} label="Active orders" value={String(totalActiveOrders)} tone="teal" to="/profile/orders" />
         {data?.drafts.length ? <SummaryCard icon={FileText} label="Saved drafts" value={String(data.drafts.length)} detail="Cart and controlled Rx drafts" to="/profile/drafts" /> : null}
@@ -138,13 +143,13 @@ const Profile = () => {
         <Card className="border-emerald-200 bg-emerald-50/40"><CardHeader className="flex-row items-center gap-3"><ShieldCheck className="h-6 w-6 shrink-0 text-emerald-700" /><div className="min-w-0 flex-1"><CardTitle className="text-lg">Approved customer access</CardTitle><CardDescription>{"\n"}</CardDescription></div><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Dismiss approved customer access message permanently" title="Dismiss permanently" onClick={dismissApprovedAccessNotice}><X className="h-4 w-4" /></Button></CardHeader></Card>
       ) : null}
 
-      <section className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <Card><CardHeader className="flex-row items-center justify-between"><div><CardTitle>Orders in progress</CardTitle><CardDescription>Website checkout orders. Lab job status is tracked on the orders page.</CardDescription></div><Button asChild variant="ghost" size="sm"><Link to="/profile/orders">All orders<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></CardHeader><CardContent className="space-y-3">
-          {activeOrders.length ? activeOrders.slice(0, 5).map((order) => <div key={order.id} className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">Website order #{order.id.slice(0, 8).toUpperCase()}</p><p className="mt-1 text-xs text-muted-foreground">Placed {date(order.createdAt)} · Expected completion is not supplied by this source</p></div><div className="flex items-center gap-3"><Badge variant="outline" className="capitalize">{order.status.replace(/_/g, " ")}</Badge><strong>${money(order.totalAmount)}</strong></div></div>) : <EmptyState title="No website orders in progress" detail="Lab order status is available on your orders page." />}
+      <section data-sc-in data-sc-stagger="70" className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <Card className="overflow-hidden transition-all hover:shadow-md"><CardHeader className="flex-row items-center justify-between bg-muted/20 pb-4"><div><CardTitle>Orders in progress</CardTitle><CardDescription>Website checkout orders. Lab job status is tracked on the orders page.</CardDescription></div><Button asChild variant="ghost" size="sm" className="transition-transform hover:translate-x-1"><Link to="/profile/orders">All orders<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></CardHeader><CardContent className="space-y-3 pt-6">
+          {activeOrders.length ? activeOrders.slice(0, 5).map((order) => <div key={order.id} className="group flex flex-col gap-3 rounded-xl border p-4 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold transition-colors group-hover:text-primary">Website order #{order.id.slice(0, 8).toUpperCase()}</p><p className="mt-1 text-xs text-muted-foreground">Placed {date(order.createdAt)} · Expected completion is not supplied by this source</p></div><div className="flex items-center gap-3"><Badge variant="outline" className="capitalize">{order.status.replace(/_/g, " ")}</Badge><strong>${money(order.totalAmount)}</strong></div></div>) : <EmptyState title="No website orders in progress" detail="Lab order status is available on your orders page." />}
         </CardContent></Card>
 
         {canViewPricelists || canViewStatements ? (
-          <Card><CardHeader><CardTitle>Account & pricing</CardTitle><CardDescription>Customer-scoped information only.</CardDescription></CardHeader><CardContent className="space-y-4 text-sm">
+          <Card className="overflow-hidden transition-all hover:shadow-md"><CardHeader className="bg-muted/20 pb-4"><CardTitle>Account & pricing</CardTitle><CardDescription>Customer-scoped information only.</CardDescription></CardHeader><CardContent className="space-y-4 pt-6 text-sm">
             {canViewPricelists ? <InfoRow label="Assigned pricelist" value={data?.pricelist?.name || "Not assigned"} icon={BadgeDollarSign} /> : null}
             {canViewStatements ? <InfoRow label="Latest statement" value={date(String(data?.latestStatement?.period_end ?? ""))} icon={FileText} /> : null}
             <InfoRow label="Open support requests" value={String(openTickets.length)} icon={LifeBuoy} />
@@ -156,12 +161,12 @@ const Profile = () => {
         ) : null}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card><CardHeader className="flex-row items-center justify-between"><div><CardTitle>Saved work</CardTitle><CardDescription>Resume or repeat without starting over.</CardDescription></div><Button asChild variant="ghost" size="sm"><Link to="/profile/drafts">All drafts<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></CardHeader><CardContent className="space-y-3">{(data?.drafts ?? []).slice(0, 5).map((draft) => <Link key={`${draft.kind}-${draft.id}`} to={draft.kind === "rx" ? `/profile/rx-drafts/${draft.id}` : "/profile/drafts"} className="flex items-center justify-between rounded-lg border p-3 transition hover:bg-muted/50"><span><span className="font-medium">{draft.name}</span><span className="mt-0.5 block text-xs text-muted-foreground">{draft.kind === "rx" ? "Rx draft · not submitted" : "Saved cart"} · {date(draft.updatedAt)}</span></span><RefreshCw className="h-4 w-4 text-muted-foreground" /></Link>)}{!(data?.drafts.length) ? <EmptyState title="No saved work yet" detail="The lens assistant can create your first controlled Rx draft." /> : null}</CardContent></Card>
-        <Card><CardHeader><CardTitle>Messages & support</CardTitle><CardDescription>Latest account notices and support requests.</CardDescription></CardHeader><CardContent className="space-y-3">{openTickets.slice(0, 4).map((ticket) => <Link key={ticket.id} to={`/profile/helpdesk/${ticket.id}`} className="flex items-center justify-between rounded-lg border p-3 transition hover:bg-muted/50"><span><span className="font-medium">{ticket.ticketNumber} · {ticket.title}</span><span className="mt-0.5 block text-xs text-muted-foreground">Open · {date(ticket.createdAt)}</span></span><ArrowRight className="h-4 w-4" /></Link>)}{!openTickets.length ? <EmptyState title="No open support requests" detail="Ask Classic or open a ticket when you need the team." /> : null}<Button variant="outline" className="w-full" onClick={() => openAssistant({ query: "Prepare a technical support request for my account.", autoSubmit: true, profile: "portal_support" })}><Headphones className="mr-2 h-4 w-4" />Get technical help</Button></CardContent></Card>
+      <section data-sc-in data-sc-stagger="70" className="grid gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden transition-all hover:shadow-md"><CardHeader className="flex-row items-center justify-between bg-muted/20 pb-4"><div><CardTitle>Saved work</CardTitle><CardDescription>Resume or repeat without starting over.</CardDescription></div><Button asChild variant="ghost" size="sm" className="transition-transform hover:translate-x-1"><Link to="/profile/drafts">All drafts<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></CardHeader><CardContent className="space-y-3 pt-6">{(data?.drafts ?? []).slice(0, 5).map((draft) => <Link key={`${draft.kind}-${draft.id}`} to={draft.kind === "rx" ? `/profile/rx-drafts/${draft.id}` : "/profile/drafts"} className="group flex items-center justify-between rounded-lg border p-3 transition hover:bg-muted/50"><span><span className="font-medium group-hover:text-primary transition-colors">{draft.name}</span><span className="mt-0.5 block text-xs text-muted-foreground">{draft.kind === "rx" ? "Rx draft · not submitted" : "Saved cart"} · {date(draft.updatedAt)}</span></span><RefreshCw className="h-4 w-4 text-muted-foreground transition-transform group-hover:rotate-180" /></Link>)}{!(data?.drafts.length) ? <EmptyState title="No saved work yet" detail="The lens assistant can create your first controlled Rx draft." /> : null}</CardContent></Card>
+        <Card className="overflow-hidden transition-all hover:shadow-md"><CardHeader className="bg-muted/20 pb-4"><CardTitle>Messages & support</CardTitle><CardDescription>Latest account notices and support requests.</CardDescription></CardHeader><CardContent className="space-y-3 pt-6">{openTickets.slice(0, 4).map((ticket) => <Link key={ticket.id} to={`/profile/helpdesk/${ticket.id}`} className="group flex items-center justify-between rounded-lg border p-3 transition hover:bg-muted/50"><span><span className="font-medium group-hover:text-primary transition-colors">{ticket.ticketNumber} · {ticket.title}</span><span className="mt-0.5 block text-xs text-muted-foreground">Open · {date(ticket.createdAt)}</span></span><ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>)}{!openTickets.length ? <EmptyState title="No open support requests" detail="Ask Classic or open a ticket when you need the team." /> : null}<Button variant="outline" className="w-full transition-colors hover:bg-primary/10 hover:text-primary" onClick={() => openAssistant({ query: "Prepare a technical support request for my account.", autoSubmit: true, profile: "portal_support" })}><Headphones className="mr-2 h-4 w-4" />Get technical help</Button></CardContent></Card>
       </section>
 
-      {recentOrders.length ? <Card><CardHeader><CardTitle>Recently completed</CardTitle><CardDescription>Recent website orders available for reference.</CardDescription></CardHeader><CardContent className="grid gap-3 md:grid-cols-2">{recentOrders.map((order) => <div key={order.id} className="rounded-lg border p-4"><div className="flex items-center justify-between"><strong>#{order.id.slice(0, 8).toUpperCase()}</strong><Badge variant="secondary" className="capitalize">{order.status}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{date(order.updatedAt || order.createdAt)}</p></div>)}</CardContent></Card> : null}
+      {recentOrders.length ? <Card className="overflow-hidden transition-all hover:shadow-md"><CardHeader className="bg-muted/20 pb-4"><CardTitle>Recently completed</CardTitle><CardDescription>Recent website orders available for reference.</CardDescription></CardHeader><CardContent className="grid gap-3 pt-6 md:grid-cols-2">{recentOrders.map((order) => <div key={order.id} className="rounded-lg border p-4 transition-colors hover:bg-muted/30"><div className="flex items-center justify-between"><strong className="transition-colors hover:text-primary">#{order.id.slice(0, 8).toUpperCase()}</strong><Badge variant="secondary" className="capitalize">{order.status}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{date(order.updatedAt || order.createdAt)}</p></div>)}</CardContent></Card> : null}
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />Website data refreshed {date(data?.sources.websiteAsOf)}. Account data {data?.sources.innovationsAsOf ? `last synchronized ${date(data.sources.innovationsAsOf)}` : "does not currently include live Rx job status"}.</p>
       {commandCenterQuery.isError ? <p className="text-sm text-destructive">Some command-centre information could not be loaded. The detailed account sections remain available.</p> : null}

@@ -228,8 +228,8 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     module: "Pricing / Catalog",
     description: "Rx and stock lens catalog, including web_enabled / wspl_enabled channel flags.",
     select: "*",
-    searchColumns: ["name", "description"],
-    writable: ["name", "description", "is_active", "web_enabled", "wspl_enabled", "material_id", "lenstype_id", "finishtype_id", "brand_id"],
+    searchColumns: ["name", "notes"],
+    writable: ["name", "notes", "is_active", "web_enabled", "wspl_enabled", "material_id", "lenstype_id", "finishtype_id", "brand_id"],
     orderBy: "updated_at",
     priceSensitive: true,
   },
@@ -460,6 +460,39 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     priceSensitive: true,
     financialData: true,
   },
+  {
+    key: "shipment_documents",
+    table: "shipment_documents",
+    module: "Costings / Shipment documents",
+    description: "Uploaded shipment source documents. Read metadata only; files remain private and must be reviewed in the costing workspace.",
+    select: "id,shipment_id,source_kind,original_file_name,mime_type,byte_size,created_at",
+    searchColumns: ["original_file_name"],
+    writable: [],
+    orderBy: "created_at",
+    financialData: true,
+  },
+  {
+    key: "shipment_document_extractions",
+    table: "shipment_document_extractions",
+    module: "Costings / Shipment documents",
+    description: "Google Document AI extraction drafts. Treat as unverified evidence: present the extracted fields and ask for approval before using them in a shipment, a charge, or a document template.",
+    select: "id,shipment_id,document_id,document_kind,status,extracted_text,extracted_fields,created_at,approved_at",
+    searchColumns: ["extracted_text"],
+    writable: [],
+    orderBy: "created_at",
+    financialData: true,
+  },
+  {
+    key: "shipment_document_templates",
+    table: "shipment_document_templates",
+    module: "Costings / Shipment documents",
+    description: "Human-approved document-layout templates for shipment evidence. Read them to explain prior mappings; never create or alter a template without a named operator approval.",
+    select: "id,supplier_id,document_kind,fingerprint,approved_field_mapping,usage_count,last_used_at,created_at",
+    searchColumns: [],
+    writable: [],
+    orderBy: "last_used_at",
+    financialData: true,
+  },
 
   // ---------------------------------------- Docs, knowledge & settings
   {
@@ -605,7 +638,7 @@ const HELPDESK_PRIORITY_BY_LABEL: Record<string, number> = {
   critical: 5,
 };
 
-const normalizeHelpdeskPriority = (value: unknown): number => {
+export const normalizeHelpdeskPriority = (value: unknown): number => {
   const label = typeof value === "string" ? value.trim().toLowerCase() : "";
   const numeric = label in HELPDESK_PRIORITY_BY_LABEL ? HELPDESK_PRIORITY_BY_LABEL[label] : Number(value);
   if (!Number.isInteger(numeric) || numeric < 0 || numeric > 5) {
@@ -692,8 +725,12 @@ export const dispatchAdminResourceTool = async (
   name: string,
   input: Record<string, unknown>,
   actorUserId?: string,
+  // Fail closed: a caller that does not resolve the capability never gets
+  // financial resources. Do not remove this parameter — line ~712 depends on it
+  // and dropping it makes every tool call throw at runtime (500).
   access: AdminResourceAccess = { canAccessFinancialData: false },
 ): Promise<AdminToolResult> => {
+
   if (name === "admin_list_resources") {
     const moduleFilter = typeof input.module === "string" ? input.module.toLowerCase() : "";
     const items = ADMIN_RESOURCES

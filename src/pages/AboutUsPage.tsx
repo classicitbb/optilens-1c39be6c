@@ -8,9 +8,13 @@ import Header from "@/components/Header";
 import Products from "@/components/Products";
 import Seo from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
+import { useScrollCraft } from "@/lib/scrollcraft/useScrollCraft";
 
-const AboutUsPage = () => (
-  <div className="min-h-screen bg-background">
+const AboutUsPage = () => {
+  const scrollRef = useScrollCraft();
+  return (
+  <div ref={scrollRef} className="min-h-screen bg-background">
+    <span data-sc-progress aria-hidden="true" />
     <Seo
       title="About Classic Visions | Optical Wholesale Partner"
       description="Learn about Classic Visions, our product lines, the service standards behind our work, and the insights we share with optical professionals."
@@ -19,7 +23,7 @@ const AboutUsPage = () => (
     <Header />
     <main id="main-content">
       <section className="relative overflow-hidden border-b border-border bg-muted/30 py-20 sm:py-28">
-        <div className="container relative mx-auto max-w-4xl px-4 text-center lg:px-8">
+        <div className="container relative mx-auto max-w-6xl px-4 text-center lg:px-8">
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-accent">About Classic Visions</p>
           <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">Built for the people behind better vision.</h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -41,6 +45,7 @@ const AboutUsPage = () => (
     </main>
     <Footer />
   </div>
-);
+  );
+};
 
 export default AboutUsPage;

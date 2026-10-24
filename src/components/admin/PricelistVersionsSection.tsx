@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { usePricelistVersions, CreateVersionInput, PricelistVersion, ChildSection } from "@/hooks/usePricelistVersions";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
 import { useToast } from "@/hooks/use-toast";
@@ -16,11 +17,41 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, Loader2, Copy } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, Copy, Loader2, MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { PricelistAdjustmentSaveDialog } from "./PricelistAdjustmentSaveDialog";
+import { pricelistAdjustmentSignature } from "@/features/pricelists/pricelistAdjustmentSave";
+import { buildPricelistEditorPath, isPricelistEditorSection, type PricelistEditorSection } from "@/features/pricelists/routes";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const BLUE = "hsl(215 65% 50%)";
 const LABEL_COLOR = "hsl(215 15% 40%)";
+const PAGE_SIZE = 25;
+
+type SortField = "name" | "base_currency" | "markup_percent" | "discount_percent" | "created_at";
+type SortDirection = "asc" | "desc";
+
+interface SortableHeadingProps {
+  field: SortField;
+  label: string;
+  activeField: SortField;
+  centered?: boolean;
+  onSort: (field: SortField) => void;
+}
+
+const SortableHeading = ({ field, label, activeField, centered = false, onSort }: SortableHeadingProps) => (
+  <button
+    type="button"
+    className={`inline-flex items-center gap-1 hover:text-primary ${centered ? "justify-center" : ""}`}
+    onClick={() => onSort(field)}
+    aria-label={`Sort by ${label}`}
+  >
+    {label}
+    <ArrowUpDown className={`h-3 w-3 ${activeField === field ? "text-primary" : "text-muted-foreground"}`} />
+  </button>
+);
 
 const SECTION_TYPES = ["rx", "stock", "supplies"] as const;
 const SECTION_LABELS: Record<string, string> = {
@@ -30,14 +61,27 @@ const SECTION_LABELS: Record<string, string> = {
 };
 
 const PricelistVersionsSection = () => {
-  const { data: versions, isLoading, createMutation, deleteMutation, updateMutation } =
+  const { data: versions, isLoading, createMutation, updateMutation, deleteMutation, materializeAdjustmentsMutation } =
     usePricelistVersions();
   const { canEdit, isAdmin } = useAdminRole();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedSectionParam = searchParams.get("section") ?? undefined;
+  const requestedSection: PricelistEditorSection = isPricelistEditorSection(requestedSectionParam)
+    ? requestedSectionParam
+    : "rx";
+  const requestedItemId = searchParams.get("id");
+  const [search, setSearch] = useState("");
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
 
   // Dialog state
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState<PricelistVersion | null>(null);
+  const [originalAdjustmentSignature, setOriginalAdjustmentSignature] = useState<string | null>(null);
+  const [adjustmentSaveOpen, setAdjustmentSaveOpen] = useState(false);
 
   // Form fields
   const [name, setName] = useState("");
@@ -73,6 +117,8 @@ const PricelistVersionsSection = () => {
       supplies: { markup: "0", discount: "0" },
     });
     setEditMode(null);
+    setOriginalAdjustmentSignature(null);
+    setAdjustmentSaveOpen(false);
   };
 
   const openCreate = () => {
@@ -92,9 +138,14 @@ const PricelistVersionsSection = () => {
     setMasterDiscountPct(String(v.master_discount_percent ?? 0));
 
     // Fetch child sections
-    const { data: children } = await (supabase.from("pricelist_child_sections") as any)
+    const { data: children, error } = await (supabase.from("pricelist_child_sections") as any)
       .select("*")
       .eq("pricelist_version_id", v.id);
+    if (error) {
+      toast({ title: "Could not load price adjustments", description: error.message, variant: "destructive" });
+      setEditMode(null);
+      return;
+    }
 
     const newChildState: Record<string, { markup: string; discount: string }> = {
       rx: { markup: "0", discount: "0" },
@@ -102,53 +153,81 @@ const PricelistVersionsSection = () => {
       supplies: { markup: "0", discount: "0" },
     };
     for (const c of children ?? []) {
-      if (newChildState[c.section_type]) {
-        newChildState[c.section_type] = {
+      const sectionKey = SECTION_TYPES.find((key) => SECTION_LABELS[key] === c.section_type);
+      if (sectionKey) {
+        newChildState[sectionKey] = {
           markup: String(c.child_markup_percent ?? 0),
           discount: String(c.child_discount_percent ?? 0),
         };
       }
     }
     setChildSections(newChildState);
+    setOriginalAdjustmentSignature(pricelistAdjustmentSignature({
+      version: v,
+      childSections: SECTION_TYPES.map((section) => ({
+        section_type: SECTION_LABELS[section],
+        child_markup_percent: parseFloat(newChildState[section].markup) || 0,
+        child_discount_percent: parseFloat(newChildState[section].discount) || 0,
+      })),
+    }));
     setOpen(true);
+  };
+
+  const editPayload = () => {
+    const childData: ChildSection[] = SECTION_TYPES.map((st) => ({
+      pricelist_version_id: editMode?.id ?? 0,
+      section_type: SECTION_LABELS[st],
+      child_markup_percent: parseFloat(childSections[st].markup) || 0,
+      child_discount_percent: parseFloat(childSections[st].discount) || 0,
+    }));
+    const updates = {
+      name: name.trim(),
+      base_currency: currency,
+      markup_percent: parseFloat(markupPct) || 0,
+      discount_percent: parseFloat(discountPct) || 0,
+      is_template: isTemplate,
+      format_type: formatType,
+      master_markup_percent: parseFloat(masterMarkupPct) || 0,
+      master_discount_percent: parseFloat(masterDiscountPct) || 0,
+    };
+    return { childData, updates };
+  };
+
+  const finishEdit = () => {
+    setOpen(false);
+    resetForm();
+    toast({ title: "Pricelist updated" });
+  };
+
+  const saveEditedPricelist = (materialize: boolean, replaceManual = false) => {
+    if (!editMode) return;
+    const { childData, updates } = editPayload();
+    setAdjustmentSaveOpen(false);
+    const callbacks = {
+      onSuccess: finishEdit,
+      onError: (e: Error) =>
+        toast({ title: "Error", description: e.message, variant: "destructive" as const }),
+    };
+    if (materialize) {
+      materializeAdjustmentsMutation.mutate({
+        id: editMode.id,
+        updates,
+        childSections: childData,
+        replaceManual,
+      }, callbacks);
+    } else {
+      updateMutation.mutate({ id: editMode.id, updates, childSections: childData }, callbacks);
+    }
   };
 
   const handleSave = () => {
     if (!name.trim()) return;
 
-    const childData: ChildSection[] = SECTION_TYPES.map((st) => ({
-      pricelist_version_id: editMode?.id ?? 0,
-      section_type: st,
-      child_markup_percent: parseFloat(childSections[st].markup) || 0,
-      child_discount_percent: parseFloat(childSections[st].discount) || 0,
-    }));
-
     if (editMode) {
-      updateMutation.mutate(
-        {
-          id: editMode.id,
-          updates: {
-            name: name.trim(),
-            base_currency: currency,
-            markup_percent: parseFloat(markupPct) || 0,
-            discount_percent: parseFloat(discountPct) || 0,
-            is_template: isTemplate,
-            format_type: formatType,
-            master_markup_percent: parseFloat(masterMarkupPct) || 0,
-            master_discount_percent: parseFloat(masterDiscountPct) || 0,
-          },
-          childSections: childData,
-        },
-        {
-          onSuccess: () => {
-            setOpen(false);
-            resetForm();
-            toast({ title: "Pricelist updated" });
-          },
-          onError: (e: any) =>
-            toast({ title: "Error", description: e.message, variant: "destructive" }),
-        }
-      );
+      const { childData, updates } = editPayload();
+      const nextSignature = pricelistAdjustmentSignature({ version: updates, childSections: childData });
+      if (nextSignature === originalAdjustmentSignature) saveEditedPricelist(false);
+      else setAdjustmentSaveOpen(true);
     } else {
       const input: CreateVersionInput = {
         name: name.trim(),
@@ -202,6 +281,39 @@ const PricelistVersionsSection = () => {
     }));
   };
 
+  const filteredVersions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const filtered = query
+      ? (versions ?? []).filter((version) => version.name.toLowerCase().includes(query))
+      : (versions ?? []);
+    return [...filtered].sort((left, right) => {
+      const leftValue = left[sortField];
+      const rightValue = right[sortField];
+      const comparison = typeof leftValue === "number" || typeof rightValue === "number"
+        ? Number(leftValue ?? 0) - Number(rightValue ?? 0)
+        : String(leftValue ?? "").localeCompare(String(rightValue ?? ""));
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [search, sortDirection, sortField, versions]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredVersions.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const visibleVersions = filteredVersions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const toggleSort = (field: SortField) => {
+    setPage(1);
+    if (sortField === field) {
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
+      return;
+    }
+    setSortField(field);
+    setSortDirection(field === "created_at" ? "desc" : "asc");
+  };
+
+  const openPrices = (versionId: number, section: PricelistEditorSection) => {
+    navigate(buildPricelistEditorPath(versionId, section, requestedItemId));
+  };
+
   return (
     <div className="space-y-3">
       {/* Section header */}
@@ -226,21 +338,33 @@ const PricelistVersionsSection = () => {
         )}
       </div>
 
+      {requestedItemId ? (
+        <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          Choose the pricelist version where you want to edit this product's {requestedSection === "rx" ? "RX lens" : requestedSection === "stock" ? "stock lens" : "supplies"} price.
+        </div>
+      ) : null}
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+          placeholder="Search pricelists by name"
+          className="h-8 pl-8 text-xs"
+        />
+      </div>
+
       {/* Table */}
       <div className="border border-border rounded-md overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="text-xs font-bold text-foreground">Name</TableHead>
-              <TableHead className="text-xs font-bold text-center text-foreground">Currency</TableHead>
-              <TableHead className="text-xs font-bold text-center text-foreground">Markup %</TableHead>
-              <TableHead className="text-xs font-bold text-center text-foreground">Discount %</TableHead>
-              <TableHead className="text-xs font-bold text-foreground">Created</TableHead>
-              {canEdit && (
-                <TableHead className="text-xs font-bold text-right text-foreground">
-                  Actions
-                </TableHead>
-              )}
+              <TableHead className="text-xs font-bold text-foreground"><SortableHeading field="name" label="Name" activeField={sortField} onSort={toggleSort} /></TableHead>
+              <TableHead className="text-xs font-bold text-center text-foreground"><SortableHeading field="base_currency" label="Currency" activeField={sortField} centered onSort={toggleSort} /></TableHead>
+              <TableHead className="text-xs font-bold text-center text-foreground"><SortableHeading field="markup_percent" label="Markup %" activeField={sortField} centered onSort={toggleSort} /></TableHead>
+              <TableHead className="text-xs font-bold text-center text-foreground"><SortableHeading field="discount_percent" label="Discount %" activeField={sortField} centered onSort={toggleSort} /></TableHead>
+              <TableHead className="text-xs font-bold text-foreground"><SortableHeading field="created_at" label="Created" activeField={sortField} onSort={toggleSort} /></TableHead>
+              <TableHead className="text-xs font-bold text-right text-foreground">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -251,23 +375,23 @@ const PricelistVersionsSection = () => {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && (!versions || versions.length === 0) && (
+            {!isLoading && visibleVersions.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={6}
                   className="text-center py-6 text-xs text-muted-foreground"
                 >
-                  No pricelist versions yet. Click "+ New Pricelist" to create one.
+                  {search ? "No pricelists match your search." : "No pricelist versions yet. Click \"+ New Pricelist\" to create one."}
                 </TableCell>
               </TableRow>
             )}
-            {versions?.map((v, idx) => (
+            {visibleVersions.map((v, idx) => (
               <TableRow
                 key={v.id}
                 className={idx % 2 === 0 ? "bg-background" : "bg-muted/20"}
               >
                 <TableCell className="text-xs font-semibold text-foreground">
-                  <span className="flex items-center gap-2">
+                  <button type="button" onClick={() => openPrices(v.id, "rx")} className="flex items-center gap-2 text-left hover:text-primary hover:underline">
                     {v.name}
                     {v.is_template && (
                       <Badge
@@ -277,7 +401,7 @@ const PricelistVersionsSection = () => {
                         Template
                       </Badge>
                     )}
-                  </span>
+                  </button>
                 </TableCell>
                 <TableCell className="text-xs text-center">
                   <Badge variant="secondary" className="text-[10px]">
@@ -293,42 +417,53 @@ const PricelistVersionsSection = () => {
                 <TableCell className="text-xs text-muted-foreground">
                   {v.created_at ? format(new Date(v.created_at), "dd MMM yyyy") : "—"}
                 </TableCell>
-                {canEdit && (
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => openEdit(v)}
-                        className="p-1 rounded hover:bg-accent"
-                        title="Edit"
-                      >
-                        <Pencil className="h-3 w-3 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={() => handleDuplicate(v)}
-                        className="p-1 rounded hover:bg-accent"
-                        title="Duplicate"
-                        disabled={createMutation.isPending}
-                      >
-                        <Copy className="h-3 w-3 text-muted-foreground" />
-                      </button>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(v)}
-                          className="p-1 rounded hover:bg-destructive/10"
-                          title="Delete"
-                          disabled={deleteMutation.isPending}
-                        >
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant={requestedSection === "rx" && requestedItemId ? "secondary" : "outline"} size="sm" className="h-7 px-2 text-[10px]" onClick={() => openPrices(v.id, "rx")}>RX</Button>
+                    <Button variant={requestedSection === "stock" && requestedItemId ? "secondary" : "outline"} size="sm" className="h-7 px-2 text-[10px]" onClick={() => openPrices(v.id, "stock")}>Stock</Button>
+                    <Button variant={requestedSection === "supplies" && requestedItemId ? "secondary" : "outline"} size="sm" className="h-7 px-2 text-[10px]" onClick={() => openPrices(v.id, "supplies")}>Supplies</Button>
+                    {canEdit ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`More actions for ${v.name}`}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(v)}><Pencil className="mr-2 h-3.5 w-3.5" />Edit properties</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicate(v)} disabled={createMutation.isPending}><Copy className="mr-2 h-3.5 w-3.5" />Duplicate</DropdownMenuItem>
+                          {isAdmin ? (
+                            <DropdownMenuItem onClick={() => handleDelete(v)} disabled={deleteMutation.isPending} className="text-destructive focus:text-destructive">
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />Delete
+                            </DropdownMenuItem>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      {!isLoading && filteredVersions.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredVersions.length)} of {filteredVersions.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={currentPage === 1}>
+              <ChevronLeft className="h-3.5 w-3.5" /> Previous
+            </Button>
+            <span>Page {currentPage} of {pageCount}</span>
+            <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => setPage((current) => Math.min(pageCount, current + 1))} disabled={currentPage === pageCount}>
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Create / Edit dialog */}
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
@@ -582,10 +717,11 @@ const PricelistVersionsSection = () => {
               disabled={
                 !name.trim() ||
                 createMutation.isPending ||
-                updateMutation.isPending
+                updateMutation.isPending ||
+                materializeAdjustmentsMutation.isPending
               }
             >
-              {(createMutation.isPending || updateMutation.isPending) && (
+              {(createMutation.isPending || updateMutation.isPending || materializeAdjustmentsMutation.isPending) && (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
               )}
               {editMode ? "Save Changes" : "Create Pricelist"}
@@ -593,6 +729,13 @@ const PricelistVersionsSection = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <PricelistAdjustmentSaveDialog
+        open={adjustmentSaveOpen}
+        isPending={materializeAdjustmentsMutation.isPending}
+        onOpenChange={setAdjustmentSaveOpen}
+        onPreserveManual={() => saveEditedPricelist(true, false)}
+        onReplaceAll={() => saveEditedPricelist(true, true)}
+      />
     </div>
   );
 };

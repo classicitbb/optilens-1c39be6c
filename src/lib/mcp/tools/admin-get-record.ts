@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { supabaseForUser, notAuthenticated, ok, fail } from "../supabase";
+import { supabaseForUser, callerCanAccessFinancialData, notAuthenticated, ok, fail } from "../supabase";
 import { dispatchAdminResourceTool } from "../adminResources";
 
 export default defineTool({
@@ -15,7 +15,7 @@ export default defineTool({
   handler: async ({ resource, id }, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated;
     try {
-      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), "admin_get_record", { resource, id });
+      const result = await dispatchAdminResourceTool(supabaseForUser(ctx), "admin_get_record", { resource, id }, undefined, await callerCanAccessFinancialData(ctx));
       return ok(result.data, { resource, record: result.data });
     } catch (error) {
       return fail(error instanceof Error ? error.message : "Lookup failed");

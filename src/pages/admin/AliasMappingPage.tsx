@@ -20,6 +20,7 @@ import {
   type MatchableAlias,
   type MissingReason,
 } from "@/features/alias-mapping/aliasMatching";
+import LensChainPanel from "@/features/alias-mapping/LensChainPanel";
 
 // Alias mapping curation (INNOVA_INTEGRATION_ARCHITECTURE.md §2.2).
 //
@@ -53,6 +54,7 @@ const AliasMappingPage = () => {
   // ?lens=<name> deep link from the catalog's ALIAS column / lens dialog.
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("lens") ?? "");
+  const [view, setView] = useState<"mapping" | "chain">("mapping");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("matched");
   const [expanded, setExpanded] = useState<string | null>(null);
   // lens_id -> the aliases the operator has settled on. Absent = untouched, so
@@ -354,6 +356,31 @@ const AliasMappingPage = () => {
 
   const visibleMatched = filtered.filter((r) => r.status === "matched").length;
 
+  const viewToggle = (
+    <div className="flex items-center gap-1.5" role="group" aria-label="View">
+      <Button size="sm" variant={view === "mapping" ? "default" : "outline"} className="h-7 text-[11px]" onClick={() => setView("mapping")}>
+        Mapping
+      </Button>
+      <Button size="sm" variant={view === "chain" ? "default" : "outline"} className="h-7 text-[11px]" onClick={() => setView("chain")}>
+        Chain status
+      </Button>
+    </div>
+  );
+
+  if (view === "chain") {
+    return (
+      <div className="p-4 flex flex-1 min-h-0 flex-col gap-4">
+        <div className="flex items-center gap-3 flex-wrap shrink-0">
+          <h1 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <Link2 className="h-4 w-4" /> Lens chain status
+          </h1>
+          {viewToggle}
+        </div>
+        <LensChainPanel />
+      </div>
+    );
+  }
+
   return (
     // AdminLayout's <main> is a min-h-0 flex column with overflow-hidden, so
     // claiming flex-1 here lets the table own the leftover height and scroll
@@ -368,6 +395,7 @@ const AliasMappingPage = () => {
         </Badge>
         <Badge variant="outline" className="text-[10px]">{counts.mapped} lenses mapped</Badge>
         <Badge variant="outline" className="text-[10px]">{unusedAliasCount} aliases unused</Badge>
+        {viewToggle}
         <div className="ml-auto flex items-center gap-2">
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter lenses…" className="h-8 text-xs w-56" />
           <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => void recheck()} disabled={isRechecking}>

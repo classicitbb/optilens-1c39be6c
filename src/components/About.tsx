@@ -31,7 +31,7 @@ const About = ({ sectionId = "about", heading = "About Classic Visions" }: { sec
     <section id={sectionId} className="py-16 sm:py-24" aria-label={heading}>
       <div className="container mx-auto px-4 lg:px-8">
         {/* Intro */}
-        <div className="mx-auto mb-12 max-w-3xl text-center sm:mb-16">
+        <div data-sc-in className="mx-auto mb-12 max-w-3xl text-center sm:mb-16">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center">
             <img src={cleanLogoSmooth} alt="Classic Visions" className="h-20 w-20" />
           </div>
@@ -47,12 +47,11 @@ const About = ({ sectionId = "about", heading = "About Classic Visions" }: { sec
         </div>
 
         {/* Stats */}
-        <div className="mb-16 grid grid-cols-2 gap-4 sm:mb-20 sm:gap-6 md:grid-cols-4">
+        <div data-sc-in data-sc-stagger="70" className="mb-16 grid grid-cols-2 gap-4 sm:mb-20 sm:gap-6 md:grid-cols-4">
           {stats.map((stat, index) => (
             <div
               key={stat.label}
-              className="rounded-xl bg-card p-4 text-center shadow-soft opacity-0 animate-fade-in sm:p-6"
-              style={{ animationDelay: `${index * 80}ms` }}
+              className="rounded-xl bg-card p-4 text-center shadow-soft sm:p-6"
             >
               <div className="mb-1 text-2xl font-bold text-accent sm:text-3xl">{stat.value}</div>
               <div className="text-xs text-muted-foreground sm:text-sm">{stat.label}</div>
@@ -77,12 +76,11 @@ const About = ({ sectionId = "about", heading = "About Classic Visions" }: { sec
             </p>
           </div>
 
-          <div className="space-y-4 sm:space-y-6">
+          <div data-sc-in data-sc-stagger="70" className="space-y-4 sm:space-y-6">
             {values.map((item, index) => (
               <div
                 key={item.title}
-                className="flex gap-4 rounded-xl bg-muted/50 p-4 opacity-0 animate-fade-in sm:p-5"
-                style={{ animationDelay: `${index * 100 + 200}ms` }}
+                className="flex gap-4 rounded-xl bg-muted/50 p-4 sm:p-5"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card shadow-soft sm:h-12 sm:w-12">
                   <item.icon className="h-5 w-5 text-accent sm:h-6 sm:w-6" aria-hidden="true" />

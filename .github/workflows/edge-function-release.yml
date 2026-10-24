@@ -24,41 +24,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-all:
-    name: Redeploy all edge functions
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-      - uses: supabase/setup-cli@v3
-        with:
-          version: latest
-      - name: Resolve canonical Supabase project configuration
-        run: |
-          project_ref="$(awk -F'"' '/^project_id = "/ { print $2; exit }' supabase/config.toml)"
-          test -n "$project_ref"
-          echo "SUPABASE_PROJECT_REF=$project_ref" >> "$GITHUB_ENV"
-          echo "VITE_SUPABASE_URL=https://$project_ref.supabase.co" >> "$GITHUB_ENV"
-      - name: Generate the portable MCP Edge Function
-        run: |
-          npm ci
-          npm run mcp:generate
-      - name: Deploy every function in source control
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          test -n "$SUPABASE_ACCESS_TOKEN"
-          test -n "$SUPABASE_PROJECT_REF"
-          find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name '_*' -printf '%f\n' | sort | while read -r function_name; do
-            supabase functions deploy "$function_name" --project-ref "$SUPABASE_PROJECT_REF"
-          done
-
   release-preflight:
     name: Full edge-function preflight
-    needs: deploy-all
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:

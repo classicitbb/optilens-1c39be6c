@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { supabaseForUser, notAuthenticated, ok, fail } from "../supabase";
+import { supabaseForUser, callerCanAccessFinancialData, notAuthenticated, ok, fail } from "../supabase";
 import { dispatchAdminResourceTool } from "../adminResources";
 
 export default defineTool({
@@ -23,7 +23,7 @@ export default defineTool({
         query,
         filters,
         limit,
-      });
+      }, undefined, await callerCanAccessFinancialData(ctx));
       return ok(result.data, { resource, count: Array.isArray(result.data) ? result.data.length : 0, rows: result.data });
     } catch (error) {
       return fail(error instanceof Error ? error.message : "Search failed");

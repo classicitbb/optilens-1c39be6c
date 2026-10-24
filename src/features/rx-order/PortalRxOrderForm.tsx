@@ -1,27 +1,49 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuotes } from "@/hooks/useQuotes";
+import { Link, useSearchParams } from "react-router";
 import { usePortalIdentity } from "@/hooks/usePortalIdentity";
 import { useToast } from "@/hooks/use-toast";
-import RxOrderEmbed from "@/features/rx-order/RxOrderEmbed";
+import RxForm from "@/features/rx-order/form/RxForm";
 import { isEmbeddedRxOrderPayload, resolveResumedRxDraftId, useRxDraft } from "@/features/lens-assistant/api";
 import { buildPrefillBanner, buildRxPrefillPayload } from "@/features/rx-order/prefill/rxOrderPrefill";
+import { useMyRxOrder } from "@/features/rx-order/orders/api";
+import { reorderPayload, rxActions } from "@/features/rx-order/orders/lifecycle";
 
 // Shared portal form used both from the standalone order route and My Account.
-// Keeping order creation here ensures both entry points create and price the
-// same customer-locked RX quote.
+// The quote is not created here: the form creates it on its first real save
+// (save_rx_order), so both entry points price and save the same customer-locked
+// RX quote and merely opening the form leaves nothing behind.
 const PortalRxOrderForm = () => {
   const { toast } = useToast();
-  const { createMutation } = useQuotes();
   const { identity, isLoading: identityLoading, isStaff, canAccessFeature } = usePortalIdentity();
-  const [quoteId, setQuoteId] = useState<string | null>(null);
-  const creatingRef = useRef(false);
-  const [searchParams] = useSearchParams();
+  // Bumped by "Another" to give the form a fresh, quote-less start.
+  const [formKey, setFormKey] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftId = searchParams.get("draft") ?? undefined;
   const { data: draft, isFetched: draftFetched, isError: draftError } = useRxDraft(draftId);
   const draftSettled = !draftId || draftFetched;
+  // ?edit=<quote> reopens an order that has not been released (from My Orders or the cart);
+  // ?from=<quote>&as=reorder|remake starts a new order with the same Rx, lens and coatings.
+  const editId = searchParams.get("edit") ?? undefined;
+  const fromId = searchParams.get("from") ?? undefined;
+  // A pricelist starts a fresh order, never overlays an existing draft/edit.
+  const initialLensAlias = !draftId && !editId && !fromId ? searchParams.get("lens") ?? undefined : undefined;
+  const fromKind = searchParams.get("as") === "remake" ? "remake" : "reorder";
+  const editFromCart = searchParams.get("cart") === "1";
+  const { data: source, isFetched: sourceFetched, isError: sourceError } = useMyRxOrder(editId ?? fromId);
+  const sourceSettled = !(editId ?? fromId) || sourceFetched;
+  const sourceV1 = source?.payload && (source.payload as any).schema === "cv.rxorder/1" ? source.payload : undefined;
+  const editable = !!source && rxActions(source).edit;
+  const sourcePrefill = useMemo(() => {
+    if (!sourceV1 || !source) return undefined;
+    if (editId) return editable ? sourceV1 : undefined;
+    return reorderPayload(sourceV1, fromKind, source.rx_order_number);
+  }, [sourceV1, source, editId, editable, fromKind]);
+  const sourceBanner = !sourcePrefill || !source ? undefined
+    : editId ? `Editing Rx order <b>${source.rx_order_number != null ? `#${source.rx_order_number}` : ""}</b>. You can change it until Classic Visions releases it to the lab.`
+    : fromKind === "remake" ? `Remake / warranty of Rx order <b>${source.rx_order_number != null ? `#${source.rx_order_number}` : ""}</b>. Check the frame details before sending.`
+    : `Reorder of Rx order <b>${source.rx_order_number != null ? `#${source.rx_order_number}` : ""}</b>: same prescription, lens and coatings. Choose the new frame.`;
+  // A draft made from an order that was in the cart keeps its quote, so resubmitting re-uses it.
+  const draftQuoteId = typeof (draft?.input_payload as any)?.quoteId === "string" ? (draft!.input_payload as any).quoteId as string : undefined;
   const isEmbeddedDraft = isEmbeddedRxOrderPayload(draft?.input_payload);
   const prefill = useMemo(() => (
     !draft ? undefined : isEmbeddedDraft ? draft.input_payload : buildRxPrefillPayload(draft)
@@ -30,8 +52,11 @@ const PortalRxOrderForm = () => {
     !draft ? undefined : isEmbeddedDraft ? `Resuming saved Rx order for <b>${draft.name}</b>.` : buildPrefillBanner(draft)
   ), [draft, isEmbeddedDraft]);
 
+  // Submitting to the cart retires the draft on purpose; that is not "no longer exists".
+  const draftSeen = useRef<string | null>(null);
+  if (draft) draftSeen.current = draftId ?? null;
   useEffect(() => {
-    if (draftId && draftFetched && !draft) {
+    if (draftId && draftFetched && !draft && draftSeen.current !== draftId) {
       toast({
         title: "Saved Rx not loaded",
         description: draftError
@@ -44,30 +69,6 @@ const PortalRxOrderForm = () => {
 
   const lockedAccountId: number | null = identity?.crmCustomerId ?? null;
 
-  const { data: quote } = useQuery({
-    queryKey: ["rx-order-quote-header", quoteId],
-    enabled: !!quoteId,
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("quotes") as any)
-        .select("id, quote_number").eq("id", quoteId).single();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  useEffect(() => {
-    if (quoteId || creatingRef.current || identityLoading) return;
-    if (lockedAccountId == null && !isStaff) return;
-    creatingRef.current = true;
-    createMutation.mutate(
-      { quote_type: "RX", account_id: lockedAccountId },
-      {
-        onSuccess: (quote) => setQuoteId(quote.id),
-        onError: (error: any) => toast({ title: "Could not start an Rx order", description: error.message, variant: "destructive" }),
-      },
-    );
-  }, [quoteId, lockedAccountId, identityLoading, isStaff]); // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!identityLoading && lockedAccountId == null && !isStaff) {
     return (
       <div className="p-12 text-center text-sm text-muted-foreground">
@@ -77,24 +78,42 @@ const PortalRxOrderForm = () => {
     );
   }
 
-  return quoteId && draftSettled ? (
-    <RxOrderEmbed
-      quoteId={quoteId}
-      quoteNumber={quote?.quote_number}
+  if (editId && sourceFetched && (sourceError || !source)) {
+    return <div className="p-12 text-center text-sm text-muted-foreground">That Rx order could not be opened. <Link to="/profile/orders" className="font-medium text-primary hover:underline">Back to order history</Link></div>;
+  }
+  if (editId && source && !editable) {
+    return <div className="p-12 text-center text-sm text-muted-foreground">This order has already been released to the lab, so it can no longer be edited. <Link to={`/profile/orders/rx/${editId}`} className="font-medium text-primary hover:underline">See its progress</Link></div>;
+  }
+
+  const ready = !identityLoading && (lockedAccountId != null || isStaff) && draftSettled && sourceSettled;
+
+  return ready ? (
+    <RxForm
+      key={`${formKey}:${editId ?? fromId ?? draftId ?? initialLensAlias ?? "new"}`}
+      quoteId={editId ?? draftQuoteId ?? null}
+      editFromCart={editFromCart}
       surface="portal"
+      introduction="Enter the prescription, frame and patient details to prepare an Rx order."
       lockedAccountId={lockedAccountId}
       checkoutPath="/checkout"
       storePath="/store"
-      onStartAnother={() => { setQuoteId(null); creatingRef.current = false; }}
-      prefill={prefill}
-      prefillBanner={prefillBanner}
+      onStartAnother={() => {
+        if (initialLensAlias) {
+          const next = new URLSearchParams(searchParams);
+          next.delete("lens");
+          setSearchParams(next, { replace: true });
+        }
+        setFormKey((k) => k + 1);
+      }}
+      initialLensAlias={initialLensAlias}
+      prefill={sourcePrefill ?? prefill}
+      prefillBanner={sourceBanner ?? prefillBanner ?? (initialLensAlias ? "Started from your pricelist. Current account pricing applies; add the patient, prescription and frame details to complete your draft." : undefined)}
       resumedDraftId={resolveResumedRxDraftId(draftId, draft?.input_payload)}
       pricesVisible={isStaff || canAccessFeature("order-prices")}
       // Credit-approved customers place Rx jobs straight onto their account.
       // Staff do not: an order placed from the admin surface still belongs in
       // the cart, where the account it bills is an explicit choice.
       allowDirectSubmit={!isStaff && identity?.paymentTerms === "credit"}
-      currency="BBD"
     />
   ) : (
     <div className="p-12 text-center text-sm text-muted-foreground">

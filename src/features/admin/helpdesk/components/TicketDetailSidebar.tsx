@@ -162,19 +162,6 @@ export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
           </Select>
         )}
 
-        {/* Close ticket button — works independently, always available */}
-        {!isAlreadyClosed && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
-            onClick={() => closeTicket.mutate({ ticketId: ticket.id })}
-            disabled={closeTicket.isPending}
-          >
-            <CheckCircle2 size={13} />
-            {closeTicket.isPending ? "Closing…" : "Close Ticket"}
-          </Button>
-        )}
       </div>
 
       {/* Priority */}
@@ -307,6 +294,19 @@ export const TicketDetailSidebar = ({ ticket }: TicketDetailSidebarProps) => {
 
       {/* Watchers */}
       <WatcherManager ticketId={ticket.id} />
+      {/* Close ticket — pinned to the bottom-left of the sidebar */}
+      {!isAlreadyClosed && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-auto self-start h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600"
+          onClick={() => closeTicket.mutate({ ticketId: ticket.id })}
+          disabled={closeTicket.isPending}
+        >
+          <CheckCircle2 size={13} />
+          {closeTicket.isPending ? "Closing…" : "Close Ticket"}
+        </Button>
+      )}
     </aside>
   );
 };

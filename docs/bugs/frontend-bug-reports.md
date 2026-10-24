@@ -1,6 +1,156 @@
 # Frontend Bug Reports
 
+## 2026-10-22 - PDF viewer limits and missing spreadsheet previews
+
+The pdf.js viewer drew every PDF to canvas, so desktop users lost search, print and thumbnails; desktop now uses the browser viewer. Excel attachments had no preview at all and csv previews existed only in admin email; both formats now preview in email and helpdesk. Not browser-verified: the handbook and evidence pages require sign-in, so the native iframe path and the helpdesk dialog were covered by typecheck, unit tests and build only. Known limit: legacy .xls and files over the size caps download instead of previewing.
+
+## 2026-10-22 - Red CI on main
+
+PR Validation failed on a lint error (preserve-caught-error in the Rx workspace release path), release ledger drift (CHANGELOG entry used a hyphen instead of an em dash, so it was never parsed), and the dependency audit (vite, follow-redirects). Separately, the `/~oauth` rewrite had been lost from vercel.json in a later merge and the Rx workspace tests still expected the pre-2026-10-19 default tab, placeholder and an unmocked stock-release hook. All fixed; lint, tsc and the full test suite pass locally. Supersedes the 2026-10-20 note about remaining Rx workspace/OAuth failures.
+
+## 2026-10-20 - Overlapping alert audio and portal request waterfalls
+
+Attention previously played a jingle per outstanding item in every tab. Shared two-note playback now coalesces batches and serializes same-origin tabs with cooldown/storage. Portal list previously waited through independent reads and loaded signed-in-admin details without selection. Regression test reproduced sequential metadata loading before parallelization; idle detail reads now have a focused no-request test. Stock refresh has an eight-hour timer regression and cache-selection coverage. Admin/product pages render with live reads; bell controls and test button exercised. Actual audible multi-tab playback is covered synthetically, and the requested 5-10x speedup has no browser baseline. Existing Rx workspace/email recipient/OAuth test failures and Rx workspace lint error remain.
+
+
+Signup lead capture (2026-10-20, local source): professional portal signups wrote straight to public_inquiries, so no owner email, ticket or CRM contact followed. They now go through contact-inquiry. Also fixed there: a duplicate-email ilike().maybeSingle() lookup could throw after the inquiry was saved and skip the owner email; secondary addresses in a contact's email list were never matched.
+
+Portal controls (2026-10-20): replaced ambiguous three-state cycling with stable enabled/disabled switches, while retaining inherited settings for existing accounts. Both portal settings surfaces now link to the assigned editor. Browser connection timed out, so rendered verification is pending. New-account default trigger is staged, not applied.
+
+
+Doc Studio dashboard/outer corners (2026-10-20): the tile previously hid its only sidebar entry and offered no direct section buttons. Feature-owned section links now open the exact tab/type and order recent sections first per browser/user. Invalid query targets are ignored and existing file/invitation links remain authoritative. Inherited 4px outer div radii are explicitly zeroed on structural Studio containers; the shared admin header is square. No blanket descendant-radius reset is used.
+
+
+Local gateway CORS repair (2026-10-20): the hosted live-data function returned 403 Origin not allowed for http://127.0.0.1:5173 even though other local ports were allowed. The development proxy now provides a same-origin transport without production CORS changes. Node enterprise-root trust is resolved with the existing OS trust store, never insecure TLS. Signed-in localhost successfully imported invoice 81799; a mismatched account/invoice response still leaves the template intact.
+
+
+Doc Studio invoice import (2026-10-20): missing invoice lines/amounts, account ambiguity, offline connector and edits during loading leave the current template intact with an explanatory message. Read-only shared files cannot import. Source-header/line differences are explicit adjustments because the existing connector does not expose their tax/discount breakdown. Invoices absent from statement sync require selecting the customer. Live read verification is recorded in docs/agent/HANDOFF.md; no production release.
+
+
+Stock entry/pickers (2026-10-19, local source): repaired fresh stock URL routing, low-contrast segmented choices, and lens menus clipped by modal/form overflow. Authenticated browser verified both themes, actual catalog narrowing, power grid and a temporary local pair line removed without persistence. Search/keyboard and portal placement regression coverage pass; saved-stock editor contracts remain.
+
+Stock form integration (2026-10-19, local source): replaced the old stock panel with the approved compact form; removed separate service order selection and exposed published service/addon items alongside supplies. Added explicit pair-to-lens conversion, chiral per-eye OPC checks, ambiguous product/diameter selection, exact-variant fallback for duplicate grid cells, account-remount isolation and an Rx-autosave guard in stock mode. Tests mock persistence and cover mixed services, pair quantities, required reference, failed-save/no-release, and unpriced scan refusal. Real catalog/selector/grid and local line handoff checked without saving or submitting. No migration, auth or publication.
+
+Selected prototype design follow-up (2026-10-19): removed excess identification heading/help/spacing and all competing layouts/navigation. Direct workspace-token and font imports now replace the approximate prototype palette. Existing seeded order behavior and real shared Rx/store UI components remain. Production forms/data are untouched.
+
+Prototype annotation follow-up (2026-10-19): duplicate supplies introduction removed, dropdown vision/eyes replaced by shared Rx toggles, sequential-only selectors replaced with actual searchable Rx components and pure any-order narrowing, and oversized matrix replaced with the store component. The shared grid gains only an optional action label; store behavior defaults remain unchanged. No real order or cart connection.
+
+Stock / supplies design study (2026-10-19, local only): the requested workflow is captured in a separate seeded prototype rather than changing the live order forms. Browser checks cover category supply addition, gated lens variants, mixed totals, required reference, simulated sync/scanner and pricelist visibility. All 1,611 existing tests pass; full lint has zero errors; app and standalone builds pass. Camera decode/hardware, production pricing/availability, selling-unit mappings and real submission remain outside this design study. Existing uncommitted production-form edits predate this task and are preserved.
+
+Rx sidebar displacement (2026-10-17, local source): retaining `sticky top-16` inside the bounded Rx content row pushed the menu down 64px. The Rx-only sidebar is now in normal flow with relative positioning for its collapse control. Browser comparison with Saved Drafts confirms the usual menu height below the header. Other routes retain their existing positioning.
+
+Rx frame supply/introduction (2026-10-17, local source): uncut jobs incorrectly offered shipping/stock frame sources. They now show a disabled Uncut value, with matching loaded/saved/summary normalization. Full-glaze selection remains editable. The instruction sentence moved from the fixed header into the form scroller. Regression tests cover scope transitions and stale saved sources; browser checks used the no-write fixture for synthetic inputs.
+
+Portal Rx scroll annotations (2026-10-17, local source): the shared page scroller let the title move away and sticky form panels overlap the account/frame boundary. A route-specific bounded form scroller and measured sticky group now hold the title, toolbar, steps, and desktop quote within their intended frame. The quote max-height subtracts bottom padding to avoid being pushed above the controls near the form end.
+
+Pricelist education (2026-10-17, local source): reduced the retail pencil glyph/button while retaining an expanded tap area. Added design distinctions and treatment explanations grounded in existing lens pages; progressive/photochromic copy shares source data with the public guides. Unknown categories retain plain labels rather than invented traits. No pricing or authorization changes.
+
+Pricelist display follow-up (2026-10-17, local source): reduced oversized details, added explicit touch dismissal and larger touch targets, and exposed EUR/XCD with estimate labels. Retail overrides now convert from their stored currency instead of being relabelled or displaying an incorrect euro dollar sign. Missing source rates hide an unconvertible override display without changing the stored value. Local browser and focused regression checks pass; physical tablet hardware was not exercised.
+
+My Orders invoice totals (2026-10-17, local source): both invoice dialogs previously omitted a line total. The shared footer now shows it without multiplying extended amounts by quantity. Regression cases include both annotated examples, credits, zero lines, displayed rounding, missing amounts, and empty invoices. No source billing record was changed.
+
+Pricelist popup follow-up (2026-10-17, local source): the old tooltip repeated a price-band intersection instead of actual orderable lens names. The popup now follows the editor-selected lens ID and its confirmed primary alias instead of listing all aliases sharing the band; missing/error catalog results cannot create a guessed selection. Retail edits stay separate from the account price. Local desktop/mobile popup verification and mocked draft/autosave checks pass. Full-suite unrelated failures: adminResourceColumns' stale description KNOWN_BROKEN entry, Atlas reader's stale 720px expectation, and emailRecipientInput's missing CRM option during the broad run.
+
+Rx/pricelist annotations (2026-10-17, local source): customer printing was missing because the React form exposed its print action only in admin. A portal-only current-form print button now reuses the same sheet without an explicit save. Its price-visibility gate remains enforced. Existing form autosave is independent of printing; entering synthetic data in a live form created a draft during verification, which the user requested leaving for review. Remaining tests used the no-network fixture bench. No order was submitted.
+
+Homepage annotations (2026-10-17, local source): requested wording corrected and browser checked in both audience views. Comment 7 supersedes Comment 6's mixed pronouns. Full-suite checks have two unrelated stale expectations: shared Atlas width expects 720px instead of 920px, and admin lens columns still list the removed description issue in KNOWN_BROKEN. No homepage test failure reported.
+
+Atlas local source (2026-10-08): repaired browser preference synchronization and per-user sidebar isolation; width stays through Update/reload. New generated identifiers and explicit shared links remain stable through renames. Shared published pages require website sign-in, permit forwarded links, and record administrator-visible account/page/version/time access. Draft/unshared/inactive/locked/secret pages are denied by the audited RPC. Sharing migration and frontend are not released; see docs/agent/HANDOFF.md.
+
+CRM follow-up (2026-10-07, local source): contact Places lookups now use Places API (New) searchText and details endpoints, header credentials and explicit field masks. Business-name similarity is scored separately from location search context; ambiguity thresholds stay intact. Manual research combines Google Places listing details with OpenAI cited web sources when configured, records one attempt per provider, and shows unavailable/failed providers alongside successful results. Google errors count as failed enrichment rather than Nothing new found, including responses from older deployments. Scheduled enrichment remains Google-only. Deployment, Places API (New) enablement/key restrictions and billable live lookup verification remain pending; no Google configuration or credential changes were made.
+
+## 2026-10-15 — Email Previews resend (local source)
+
+Known limits: the ERP-synced `customers` table is not updated, and an Innovations sync may restore a contact's old address. A suppressed corrected address is reported and leaves contacts unchanged. Migration and function deploy pending; no email was sent during development.
+
+## 2026-10-07 — Lead Finder CRM matching and follow-up (local source)
+
+Lead Finder previously upserted contacts by name, so a differently named existing contact produced a duplicate and customers were re-surfaced. Local source adds recognition, exclusion and an idempotent explicit save. Live behaviour of the new SQL is unverified until the migration is applied and exercised on a database.
+
+## 2026-10-07 — CRM research provider replacement
+
+Manual research depended on Firecrawl configuration. Local source now uses OpenAI Responses web_search with citation metadata, bounded calls and no automatic contact writes. Mocked tests cover unsafe/missing citations, incomplete and ungrounded responses, no-match, source bounds and private provider-error handling. Live configuration and deployed research behavior remain unverified.
+
+
+## 2026-10-07 — Doc Studio recipient picker, signature portability and label layout
+
+Local source repair: picker searches and dismisses without dropping selected addresses; signature no longer depends on SVG/data-URI logo or web fonts and has explicit copy/export fallbacks; square shipping/customer label layouts and editable headings are available. Email-client paste/delivery and publication are pending verification. No email was sent.
+
+## 2026-10-07 — CRM contact editor comments
+
+Replaced the unsearchable company picker, added validated email lists and distinct Save / Save & Close actions, and exposed broader public-web source suggestions separately from Google Places. Eight focused tests pass; authenticated browser verification on port 8081 confirms typing/filtering and Enter selection with the real dialog. The office contact query omits salesperson; inbound address fields already exist. Actual source metadata, blank-row dry-run evidence, revision-checked reverse integration, recipient audit and deployment verification remain outstanding. Port 8080 belongs to a different checkout.
+
+## 2026-10-07 — Admin attention dropdown
+
+The centered attention banner obscured dashboard content and had no direct close control. It is now a right-aligned vertical popover beside the bell, with explicit X and keyboard/outside dismissal. Eight focused tests pass; isolated browser checks confirm placement and dismissal. The full suite hit an untouched Rx domain timeout; authenticated dashboard inspection was blocked by browser URL policy.
+
+## 2026-10-05 — Iris wiki Markdown displayed literally
+
+The reply bubble rendered raw text, and selection acceptance flattened formatted proposals into a plain string, collapsing line breaks. Replies now use the shared wiki renderer, Markdown converts to canonical blocks through remark, and replacement inserts structured Tiptap content. Regression coverage checks rendered replies, accepted blocks and the editor round trip. Existing stored drafts are left untouched.
+
+## 2026-10-05 — Atlas: slug rename bounce, hidden sidebar button, mixed wiki tree
+- Area: Atlas (formerly Knowledge → Wiki / SOPs / Website → Content).
+- Impact: (1) renaming a brand-new page changed its slug and the page vanished into the wiki home, because the URL moved before the page list knew the new slug (and the old URL was already unknown); (2) the "open sidebar" button sat under the sticky top bar, so a collapsed sidebar had no usable way back; (3) new pages did not open in edit mode; (4) the wiki tree listed public website articles alongside internal pages; (5) saving a page whose row had no stored slug wrote a slug derived from its title, changing its URL; (6) the Content Manager wrote `content` without `body_json` or history, diverging from the wiki.
+- Resolution: the page stays pinned by id during a slug change and the list is refreshed before navigating; the button is raised and bordered; new pages open in edit mode; each space reads only its own rows; a `null` slug is left untouched; one editor and one write path serve all spaces and `ContentManagerPage` is deleted.
+- Regression prevention: unit tests for space scopes and capabilities (a user who could not edit/publish website content before still cannot), the page tree, database view model, bulk publish validation, Iris proposals, import dry run, export and the manifest; a route accessibility test; and a guard that Atlas code has no business vocabulary and no database client outside the source adapter. Not verified: the install prompt and service worker (the in-app browser cannot register one), and a live Iris reply (the function enforces same-origin CORS and the deployed version grounds only on public articles until the source change is deployed).
+
+## 2026-10-05 — Wiki deep links, publish metadata check and history-table failures
+- Area: Knowledge → Wiki.
+- Impact: opening an article URL on a fresh load could be redirected to the wiki home before articles had loaded; the publish build-version check ran against HTML and never matched `- **Build version:**` lines; saving a page failed (after the article itself was updated) when `help_article_versions` was missing on the hosted project.
+- Resolution: the unknown-slug redirect waits for the article query to succeed; the check runs against the block text as Markdown; a missing history table is logged and the save completes. Move, rename and status changes no longer create versions.
+- Regression prevention: unit tests cover the canonical/Tiptap round trip (including nested lists), validation, Markdown export, the autosave row builder and renderer parity for every block type; the renderer parity test now runs under Vitest. Applied to the hosted project on 2026-10-05: `20261005121000_help_article_versions_table.sql` (the structure from `20260308193000` without its slug and baseline rewrites, which would change 39 existing URLs) and `20261005120000_help_articles_draft_copy.sql`. A save still says when no version was recorded, for projects without the table. Autosave compares documents with `stableStringify`, because jsonb reorders keys and a plain `JSON.stringify` comparison re-saved every 800 ms.
+
+## 2026-09-30 — Doc Studio email bar could not be dismissed
+
+Fixed in local source: added a labelled SVG close control and tab-session dismissal. Dismissal leaves delivery polling/audit data intact and does not hide a newer attempt or status. Production release remains pending approval.
+
+
+## 2026-09-30 — Preview toolbar icons and labels
+
+The preview toolbar relied on remote font ligatures and a fixed-height, non-wrapping row. Inline SVG action icons now avoid font-load failures. Shared CSS lets controls and labels wrap; 640px browser QA exposed and resolved the long export-button overflow. No save/share/delete action was exercised during QA.
+
+## 2026-09-30 — Stray letterhead lines and blank email text
+
+Admin table-cell borders/padding/hover styles leaked into native Studio layout tables; a computed-style regression reproduced this and a scoped reset fixes it. Long letters no longer shrink body typography. Image-only HTML caused the managed text converter to return whitespace; a mocked provider reproduced `missing_parameter: text`, now prevented by readable fallback text. Deployed-code inspection was permission-denied; the historical send remains unverified. See the letterhead review and handoff.
+
 Track frontend regressions and customer-facing issues.
+
+## 2026-09-26 — Rx progression hid blockers and compressed summaries
+- Area: portal Rx order form, section progression and Chemistrie configuration.
+- Impact: Enter could leave the patient panel before the optional reference; completed headers folded unexpectedly; unlabelled summaries required reopening sections; Rx gates could stay locked without explaining the invalid value. Chemistrie offered unsupported options and a free-text reader power.
+- Resolution: tie section folding to focus moving into another panel, render labelled frame/lens summaries and a selected shape preview, show missing/out-of-range Rx values, cap prism at 10Δ, and check fitting height against frame B. Replace Chemistrie controls with type-specific manufacturer choices.
+- Regression prevention: focused integration tests cover collapse timing, summary content, Chemistrie choices, prism and fitting-height limits, and missing second-eye fields; a local browser check verified the Enter chain and frame layout.
+
+## 2026-09-11 — Pricelist saves erased manual line prices
+- Area: pricelist version dialogs and `materialize_pricelist_adjustments`.
+- Impact: a rename, re-save, or 0% adjustment could delete every hand-entered override in an affected section.
+- Root cause: the materialization function deleted overrides by child section without recording whether an operator or bulk operation created them.
+- Resolution: add `manual`/`bulk_adjustment` provenance, avoid materialization for metadata-only saves, preserve manual keys by default, and reserve replace-all behavior for a separately confirmed action.
+- Regression prevention: source and SQL tests cover unchanged metadata, 0%, generated replacement, manual preservation, and replace-all behavior without deduplicating existing keys.
+
+## 2026-09-11 — Gatekeeper outages repeatedly failed status refresh
+- Area: Gatekeeper connection, scheduled/manual status polling, and Rx dispatch.
+- Impact: a stored staging connection returned repeated 503 responses, produced recurring alerts, and left lab status pulls unusable.
+- Resolution: keep staging disabled, require a fresh production connection, add durable exponential backoff and one degraded-state warning, and allow service-only requeue to Innovations only before an Rx order POST starts.
+- Regression prevention: policy and outcome tests distinguish pre-send Rx failures from stock and post-start failures; database guards prevent environment changes from silently enabling a route.
+
+## 2026-09-11 — Supplier selection and attachment errors discarded successful work
+- Area: shipment costing supplier defaults and assistant-created Helpdesk tickets.
+- Impact: selecting a supplier could blank Type/Commodity; an attachment error could make a successfully created ticket look like a failed submission.
+- Resolution: merge supplier history only into fields that remain blank and ignore stale requests. Preserve the existing post-ticket attachment guard and verify that the one created ticket still opens with a warning.
+- Regression prevention: focused tests cover stale/default merges, five-file and size validation, storage failure, single ticket creation, navigation, and warning state.
+
+## 2026-09-04 — Walk-in payment lacked customer email capture and print prompt
+- Area: staff walk-in card payments at `/admin/settings/walk-in-payments` and receipt email delivery.
+- Impact: staff could not record customer email for walk-in payments; receipt emails were only sent to the staff creator's profile, and staff were not prompted to print a receipt upon completion.
+- Resolution: added `customer_email` column to `walk_in_payments`, updated `create_walk_in_payment` and `WalkInPaymentsPage` to capture and validate email, updated `sendWalkInPaymentReceipt` to deliver receipts to customer email, and added a print prompt dialog upon payment settlement.
+- Regression prevention: `staffWalkInPayments.integration.test.ts` asserts customer email capture in migration, UI form, receipt display, email delivery, and print prompt modal.
+
+## 2026-09-04 — Statement amount wrapping and missing safe payment confirmation
+- Area: customer statement table, Scotia return flow, and Settings administration.
+- Impact: BBD statement amounts could wrap onto two lines, and staff had no concise way to confirm a card-payment outcome without accessing gateway diagnostics.
+- Resolution: keep Amount cells non-wrapping; add an admin-only, display-safe activity projection and page; request card saving before the provider-hosted checkout rather than after card entry.
+- Regression prevention: the activity page is limited to the safe projection fields, while the settlement function remains idempotent and saves a token only after a signed approved callback.
 
 ## 2026-08-27 — Enrichment writes were silently reverted, and Enrich All did nothing
 - Area: CRM contacts, the Innovations preserve trigger, and the Leads bulk-action bar.
@@ -249,3 +399,36 @@ Track frontend regressions and customer-facing issues.
 - Surface: `/lenses/led-pro`
 - Symptom: an interrupted merge left conflict markers in `src/pages/lenses/LedProPage.tsx`, which broke both lint and production build.
 - Resolution: resolved the page to a single embedded-demo implementation and restored the page to valid TSX so validation can complete.
+
+### Walk-in payments stored the wrong currency code
+- Surface: `Settings → Walk-in Payments`, walk-in receipt emails
+- Symptom: `walk_in_payments.currency` was CHECK-constrained to `'840'` (USD) while the Edge Function signed `'052'` (BBD) and the UI printed BBD, so the receipt email rendered the literal string `840 $482.00`.
+- Resolution: corrected the constraint and default to `'052'` and backfilled existing rows in `20260917101500_customer_device_walk_in_payments.sql`. The gateway behaviour is unchanged; only the stored and displayed code was wrong.
+
+### Card had to be handed across the counter to be charged
+- Surface: `Settings → Walk-in Payments`
+- Symptom: the only way to take a walk-in card payment was on the shop's own device, so customers who did not want to hand over their card, and customers who were not present at all, could not pay.
+- Resolution: added assisted claim-code, emailed-link and self-service paths through a new `walkin-pay` Edge Function, leaving the existing on-device flow in place as a fallback.
+
+### Self-serve payment could not have reached the gateway safely
+- Surface: public `/pay`
+- Symptom: `scotia-payment` requires a JWT and a staff role, and the shared rate limiter is per-isolate memory that resets on every cold start — so exposing form signing to anonymous callers through it would have risked a card-testing oracle across order, statement and walk-in flows alike.
+- Resolution: anonymous signing lives in a separate `walkin-pay` function authenticated by hashed one-time token, with a database-backed per-IP limiter, database-enforced amount bounds, a fail-closed Turnstile check and an admin kill switch. `scotia-payment` is unchanged for existing flows.
+
+Atlas release verification (2026-10-08): the scoped frontend and named sharing migration are deployed. The live Share dialog stays disabled until explicit enablement; administrator history loads empty, an unassigned token denies content, and sidebar width survives reload. No production page mutation, successful sharing/audit or signup test was performed. See docs/agent/HANDOFF.md for complete evidence and limits.
+
+## 2026-10-09 — Public support attachments (local source)
+
+Fixed locally: public customer_support requests hid file controls and discarded chat attachments because only portal tickets had an upload path. Public multipart ingestion now stores private ticket files; failed uploads warn without hiding the saved request. 27 focused tests pass. Real browser automation timed out; hosted upload/read checks remain pending.
+
+Public support form follow-up (2026-10-09): request sections retain their natural height and the form scrolls when attachments exceed the available Iris window height. This prevents file rows from overlapping name, title and details fields.
+
+## 2026-10-09 — Iris visitor guidance (local)
+
+Fixed frame/policy prompts being treated as account lookups, automatic dispenser assumptions on public pages, and generated answers missing from follow-up history. Frame, coating and policy starters now answer directly with a relevant clarifying question and links. The guided lens flow retains the selected audience and gives use-specific guidance instead of promising an automatic Rx match. Search the site uses grounded site answers rather than the clipped, retrieval-free web endpoint. No backend deployment or data change. Local browser confirms the three starter replies and screen-use guide; live generated follow-ups from localhost returned a controlled fallback and remain unverified. Focused tests pass; full suite has unrelated admin credential-contract and Rx integration failures.
+
+## 2026-10-09 — Portal ticket sends (local source)
+
+Admin contact order questions now default to notifying the selected contact, retain the signed-in staff owner and existing account audience rules, and block missing recipients. Iris shows creation errors and retains the draft for retry. Timeline and email failures after ticket creation warn without failing the existing ticket; skipped email recipients are reported. Concurrent confirmations are guarded. Mobile forms use 16px input text, 44px buttons and a bounded scrolling admin dialog; life-buoy targets are 44px below the desktop breakpoint. No Edge Function, migration, authorization or environment changes. Frontend publication and named live email verification remain pending approval.
+
+Ticket title follow-up (2026-10-09, local): portal Helpdesk list rows and their text flex child now allow shrinking. The title uses one-line ellipsis with a full-title hover attribute; stored text and ticket navigation stay unchanged. Status/date can wrap on narrow screens. This ships with the pending portal send repair.

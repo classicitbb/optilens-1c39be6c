@@ -7,18 +7,25 @@ import { ADMIN_APPS } from "@/features/admin/core/config/apps";
 describe("admin stock order builder route accessibility", () => {
   it("registers the canonical stock order route", () => {
     expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({
-      id: "admin.website.stock-orders",
-      path: "/admin/website/stock-orders",
+      id: "admin.orders.stock-orders",
+      path: "/admin/orders/stock-orders",
       authMode: "admin",
       status: "active",
     }));
   });
 
-  it("keeps Orders and Pages / Content as the third and fourth Website buttons", () => {
-    expect(ADMIN_APPS.website.sidebarItems.slice(0, 4).map((item) => item.label)).toEqual([
+  it("groups order handling in the Orders app, not Website", () => {
+    expect(ADMIN_APPS.orders.sidebarItems.map((item) => item.label)).toEqual([
+      "Orders",
+      "Quotations",
+      "Rx Order Form",
+      "Rx Capture",
+      "Stock Order Builder",
+      "Rx Orders",
+    ]);
+    expect(ADMIN_APPS.website.sidebarItems.slice(0, 3).map((item) => item.label)).toEqual([
       "Website Portals",
       "Store / Products",
-      "Orders",
       "Pages / Content",
     ]);
   });
@@ -33,15 +40,18 @@ describe("admin stock order builder route accessibility", () => {
     const search = read("src/components/admin/GlobalSearch.tsx");
     const labScopeMigration = read("supabase/migrations/20260811010000_scope_stock_order_accounts_to_labs.sql");
 
-    expect(routes).toContain('const StockOrderBuilderPage = lazy(() => import("@/pages/admin/StockOrderBuilderPage"));');
-    expect(routes).toContain('<Route path="website/stock-orders" element={<StockOrderBuilderPage />} />');
-    expect(apps).toContain("{ label: 'Stock Order Builder', route: '/admin/website/stock-orders'");
-    expect(navigation).toContain('id: "admin.website.stock-orders"');
+    expect(routes).toContain('const StockOrderBuilderPage = lazyWithRetry(() => import("@/pages/admin/StockOrderBuilderPage")');
+    expect(routes).toContain('<Route path="orders/stock-orders" element={<StockOrderEntry />} />');
+    expect(routes).toContain('params.has("quote") || params.has("highlight")');
+    expect(routes).toContain('params.set("type", "stock")');
+    expect(routes).toContain('to={`/admin/orders/rx/new?${params}`}');
+    expect(apps).toContain("{ label: 'Stock Order Builder', route: '/admin/orders/stock-orders'");
+    expect(navigation).toContain('id: "admin.orders.stock-orders"');
     expect(navigation).toContain('shortcutKey: "stock-order"');
-    expect(launcher).toContain('defaultRoute: "/admin/website/stock-orders"');
+    expect(launcher).toContain('defaultRoute: "/admin/orders/stock-orders"');
     expect(search).toContain("APP_ROUTE_REGISTRY");
     expect(search).toContain('route.domain === "admin-console"');
-    expect(permissions).toContain('"/admin/website/stock-orders": "website"');
+    expect(permissions).toContain('"/admin/orders/stock-orders": "orders"');
     expect(labScopeMigration).toContain("lower(btrim(tag.name)) = 'is lab'");
   });
 
@@ -59,11 +69,25 @@ describe("admin stock order builder route accessibility", () => {
     expect(page).not.toContain('value="gatekeeper"');
     expect(hook).toContain('supabase.rpc as any)("save_stock_order_draft"');
     expect(hook).toContain("p_submission_id: input.submissionId ?? null");
-    expect(hook).toContain('p_dispatch_provider: "innovations"');
+    expect(hook).toContain("p_dispatch_provider: provider");
+    expect(hook).toContain('provider = "innovations"');
     expect(migration).toContain("CREATE FUNCTION public.save_stock_order_draft(");
     expect(migration).toContain("IF jsonb_array_length(COALESCE(p_items, '[]'::jsonb)) > 0 THEN");
     expect(migration).toContain("AND status IN ('staged', 'failed')");
     expect(migration).toContain("IF p_dispatch_provider <> 'innovations' THEN");
+  });
+
+  it("keeps one persisted draft while lines change and records the stock-lens pricing repair", () => {
+    const read = (file: string) => fs.readFileSync(path.resolve(process.cwd(), file), "utf8");
+    const page = read("src/pages/admin/StockOrderBuilderPage.tsx");
+    const migration = read("supabase/migrations/20260909203000_fix_ha_stock_order_catalog.sql");
+
+    expect(page.match(/setStaged\(null\)/g)).toHaveLength(2);
+    expect(migration).toContain("btrim(c.name)");
+    expect(migration).toContain("round(v_price / 2, 2)");
+    expect(migration).toContain("round(v_unit_price / 2, 2)");
+    expect(migration).toContain("0209536846");
+    expect(migration).toContain("0024408072");
   });
 
   it("uses a protected non-zero price resolver and creates linked canonical quotations", () => {
@@ -95,10 +119,10 @@ describe("admin stock order builder route accessibility", () => {
     const editor = read("src/pages/admin/QuoteEditorPage.tsx");
     const builder = read("src/pages/admin/StockOrderBuilderPage.tsx");
 
-    expect(list).toContain('navigate("/admin/website/stock-orders")');
-    expect(list).toContain('`/admin/website/stock-orders?quote=${encodeURIComponent(q.id)}`');
-    expect(editor).toContain('navigate(`/admin/website/stock-orders?quote=${encodeURIComponent(quote.id)}`, { replace: true })');
-    expect(editor).toContain('navigate(`/admin/website/quotations/rx/${quote.id}`, { replace: true })');
+    expect(list).toContain('navigate("/admin/orders/stock-orders")');
+    expect(list).toContain('`/admin/orders/stock-orders?quote=${encodeURIComponent(q.id)}`');
+    expect(editor).toContain('navigate(`/admin/orders/stock-orders?quote=${encodeURIComponent(quote.id)}`, { replace: true })');
+    expect(editor).toContain('navigate(`/admin/orders/rx/${quote.id}/edit`, { replace: true })');
     expect(builder).toContain('useStockOrderDraftForQuote(quoteId)');
   });
 
@@ -125,7 +149,7 @@ describe("admin stock order builder route accessibility", () => {
     expect(page).toContain('name="orderReference"');
     expect(page).toContain('name="scanCode"');
     expect(page).toContain("<ToastAction");
-    expect(page).toContain('to="/admin/website/quotations"');
+    expect(page).toContain('to="/admin/orders/quotations"');
     expect(styles).toContain(".stock-order-panel-result.is-unavailable");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toContain("@media (max-width: 1220px)");

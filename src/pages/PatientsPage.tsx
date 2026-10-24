@@ -65,6 +65,12 @@ const tipItems = [
     description:
       "Comprehensive eye exams support early detection and keep your prescription updated as your visual needs change over time.",
   },
+  {
+    title: "How Much Do Prescription Lenses Cost?",
+    to: "/patients/prescription-lens-cost",
+    description:
+      "See what drives the price of prescription lenses, from lens type and material to coatings, and how to compare quotes.",
+  },
 ];
 
 const faqs = [

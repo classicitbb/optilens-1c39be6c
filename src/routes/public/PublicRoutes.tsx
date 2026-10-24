@@ -20,6 +20,7 @@ const OpticalRetailWebsitesPage = lazyWithRetry(() => import("@/pages/OpticalRet
 const RxLabServicesPage = lazyWithRetry(() => import("@/pages/RxLabServicesPage"));
 const LabLinkEmbedPage = lazyWithRetry(() => import("@/pages/LabLinkEmbedPage"));
 const Knowledge = lazyWithRetry(() => import("@/pages/Knowledge"));
+const SharedPageViewer = lazyWithRetry(() => import("@/features/atlas/components/SharedPageViewer"));
 const LegalPage = lazyWithRetry(() => import("@/pages/LegalPage"));
 const LensDesignGuidePage = lazyWithRetry(() => import("@/pages/LensDesignGuidePage"));
 const CoatingsLandingPage = lazyWithRetry(() => import("@/pages/coatings/CoatingsLandingPage"));
@@ -38,11 +39,13 @@ const CaringForGlassesPage = lazyWithRetry(() => import("@/pages/patients/Caring
 const ComputerMobileUsePage = lazyWithRetry(() => import("@/pages/patients/ComputerMobileUsePage"));
 const SunlightProtectionPage = lazyWithRetry(() => import("@/pages/patients/SunlightProtectionPage"));
 const RegularEyeExamsPage = lazyWithRetry(() => import("@/pages/patients/RegularEyeExamsPage"));
+const PrescriptionLensCostPage = lazyWithRetry(() => import("@/pages/patients/PrescriptionLensCostPage"));
 const NightDrivingAidsPage = lazyWithRetry(() => import("@/pages/patients/NightDrivingAidsPage"));
 const ProfessionalsPortalPage = lazyWithRetry(() => import("@/pages/ProfessionalsPortalPage"));
 const ProfessionalsChemistriePage = lazyWithRetry(() => import("@/pages/ProfessionalsChemistriePage"));
 const CustomerSuppliedFramesPolicyPage = lazyWithRetry(() => import("@/pages/professionals/CustomerSuppliedFramesPolicyPage"));
 const DispensingTipsPage = lazyWithRetry(() => import("@/pages/professionals/DispensingTipsPage"));
+const CaribbeanLensOrderingGuidePage = lazyWithRetry(() => import("@/pages/professionals/CaribbeanLensOrderingGuidePage"));
 const FreightDeliveryPolicyPage = lazyWithRetry(() => import("@/pages/professionals/FreightDeliveryPolicyPage"));
 const RepairsPolicyPage = lazyWithRetry(() => import("@/pages/professionals/RepairsPolicyPage"));
 const ReturnsReplacementsPage = lazyWithRetry(() => import("@/pages/professionals/ReturnsReplacementsPage"));
@@ -73,6 +76,8 @@ const ZenvueCompare = lazyWithRetry(() => import("@/pages/zenvue/ZenvueCompare")
 const ZenvueWholesale = lazyWithRetry(() => import("@/pages/zenvue/ZenvueWholesale"));
 const PhotochromicGuidePage = lazyWithRetry(() => import("@/pages/photochromic/PhotochromicGuidePage"));
 const ConnectCardPage = lazyWithRetry(() => import("@/pages/ConnectCardPage"));
+const PayPage = lazyWithRetry(() => import("@/pages/PayPage"));
+const PayResultPage = lazyWithRetry(() => import("@/pages/PayResultPage"));
 const NotFound = lazyWithRetry(() => import("@/pages/NotFound"));
 
 const toRelativePath = (path: string) => path.replace(/^\//, "");
@@ -95,6 +100,8 @@ const PublicRoutes = () => (
     <Route path="blog/:slug" element={<BlogPostPage />} />
     <Route path="assistant/window" element={<CompanionAssistantWindowPage />} />
     <Route path="connect/:slug" element={<ConnectCardPage />} />
+    <Route path="pay" element={<PayPage />} />
+    <Route path="pay/result" element={<PayResultPage />} />
     <Route path="optical-retail-websites" element={<ProtectedRoute><OpticalRetailWebsitesPage /></ProtectedRoute>} />
     <Route path="rx-lab-services" element={<RxLabServicesPage />} />
     <Route path="lens-assistant" element={<Navigate to="/profile/rx-order" replace />} />
@@ -111,6 +118,7 @@ const PublicRoutes = () => (
     />
     <Route path="knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
     <Route path="knowledge/:articleSlug" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
+    <Route path="shared/pages/:token" element={<ProtectedRoute><SharedPageViewer /></ProtectedRoute>} />
     <Route path="privacy-policy" element={<LegalPage slug="privacy-policy" />} />
     <Route path="terms" element={<LegalPage slug="terms" />} />
     <Route path="legal/privacy-policy" element={<Navigate to="/privacy-policy" replace />} />
@@ -149,6 +157,7 @@ const PublicRoutes = () => (
     <Route path="patients/computer-mobile-use" element={<ComputerMobileUsePage />} />
     <Route path="patients/sunlight-protection" element={<SunlightProtectionPage />} />
     <Route path="patients/regular-eye-exams" element={<RegularEyeExamsPage />} />
+    <Route path="patients/prescription-lens-cost" element={<PrescriptionLensCostPage />} />
     <Route path="find-a-retailer" element={<FindARetailerPage />} />
     <Route path="find-a-retailer/barbados" element={<BarbadosRetailersPage />} />
     <Route path="patients/find-a-retailer" element={<Navigate to="/find-a-retailer" replace />} />
@@ -156,6 +165,7 @@ const PublicRoutes = () => (
     <Route path="dispensing-tips" element={<DispensingTipsPage />} />
     <Route path="professionals/chemistrie-lens-system" element={<ProfessionalsChemistriePage />} />
     <Route path="professionals/customer-supplied-frames-policy" element={<CustomerSuppliedFramesPolicyPage />} />
+    <Route path="professionals/caribbean-lens-ordering-guide" element={<CaribbeanLensOrderingGuidePage />} />
     <Route path="professionals/freight-delivery-policy" element={<FreightDeliveryPolicyPage />} />
     <Route path="professionals/repairs-policy" element={<RepairsPolicyPage />} />
     <Route path="professionals/returns-replacements" element={<ReturnsReplacementsPage />} />

@@ -60,6 +60,10 @@ export interface RxOrderDraft {
   input_payload: LensRecommendationInput;
   recommendation_snapshot: LensRecommendationResult | null;
   rule_set_id: string | null;
+  /** Customer account the draft belongs to; everyone on it can see the draft. */
+  customer_id?: number | null;
+  /** Display name of the person who started the draft. */
+  created_by_name?: string | null;
   created_at: string;
   updated_at: string;
 }

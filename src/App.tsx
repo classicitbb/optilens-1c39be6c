@@ -4,12 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, Outlet } from "react-router";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-// Dev-only Rx form bench. The conditional has to wrap the import() itself:
-// guarding only the <Route> still leaves a static dynamic-import in the graph,
-// and Rollup emits it as a real chunk — which shipped the bench and its test
-// fixtures to production even though nothing rendered them. import.meta.env.DEV
-// is substituted with a literal false at build time, so this whole branch (and
-// the chunk) is dropped instead.
+// Dev-only, sign-in-free route to the Rx form bench. The conditional has to
+// wrap the import() itself: guarding only the <Route> still leaves a static
+// dynamic-import in the graph. import.meta.env.DEV is substituted with a
+// literal false at build time, so this public route is dropped from production.
+// Staff reach the same bench in production at /admin/orders/rx-test, behind
+// the admin guard (see AdminRoutes).
 const RxOrderPreview = import.meta.env.DEV
   ? lazyWithRetry(() => import("@/features/rx-order/dev/RxOrderPreview"))
   : () => null;
@@ -28,6 +28,7 @@ const PublicRoutes = lazyWithRetry(() => import("@/routes/public/PublicRoutes"))
 const PortalRoutes = lazyWithRetry(() => import("@/routes/portal/PortalRoutes"));
 const OpsRoutes = lazyWithRetry(() => import("@/routes/ops/OpsRoutes"));
 const AdminRoutes = lazyWithRetry(() => import("@/routes/admin/AdminRoutes"));
+const AtlasRoute = lazyWithRetry(() => import("@/routes/atlas/AtlasRoute"));
 const Auth = lazyWithRetry(() => import("@/pages/Auth"));
 const ResetPassword = lazyWithRetry(() => import("@/pages/ResetPassword"));
 const OAuthConsent = lazyWithRetry(() => import("@/pages/OAuthConsent"));
@@ -63,6 +64,15 @@ const CustomerShell = () => (
       <CompanionAssistant />
     </CompanionAssistantProvider>
   </CartProvider>
+);
+
+// Atlas is a standalone full-screen app: staff only, no admin chrome.
+const AtlasProtected = () => (
+  <AdminProtectedRoute>
+    <ErrorBoundary routeLabel="/atlas" homeHref="/admin/dashboard" isStaff>
+      <AtlasRoute />
+    </ErrorBoundary>
+  </AdminProtectedRoute>
 );
 
 const DeferredGlobalWidgets = () => {
@@ -117,6 +127,9 @@ const App = () => (
                   )}
                   <Route path="/ops/*" element={<AdminProtectedRoute><ErrorBoundary routeLabel="/ops" homeHref="/admin/dashboard" isStaff><OpsRoutes /></ErrorBoundary></AdminProtectedRoute>} />
                   <Route path="/admin/*" element={<AdminProtectedRoute><ErrorBoundary routeLabel="/admin" homeHref="/admin/dashboard" isStaff><AdminRoutes /></ErrorBoundary></AdminProtectedRoute>} />
+                  <Route path="/atlas" element={<AtlasProtected />} />
+                  <Route path="/atlas/:space" element={<AtlasProtected />} />
+                  <Route path="/atlas/:space/:articleSlug" element={<AtlasProtected />} />
                   <Route path="/copilot" element={<AdminProtectedRoute><ErrorBoundary routeLabel="/copilot" homeHref="/admin/dashboard" isStaff><CopilotWorkspacePage /></ErrorBoundary></AdminProtectedRoute>} />
 
                   <Route element={<CustomerShell />}>
