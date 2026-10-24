@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import PdfViewer from "@/components/pdf/PdfViewer";
 import RxForm from "@/features/rx-order/form/RxForm";
 import { createCaptureJob, readCapture, captureJobs as jobs } from "./api";
 import { ACCEPT, isAcceptedFile, filesFromClipboard } from "./files";
@@ -203,7 +204,7 @@ function Review({ job, accountName, onBack }: { job: Job; accountName?: string; 
             {!job.storage_path ? <p className="p-6 text-xs text-muted-foreground">No image came with this order.</p>
               : !url ? <p className="p-6 text-xs text-muted-foreground">Loading the original…</p>
               : job.mime_type === "application/pdf"
-                ? <iframe title="Original" src={url} className="h-[85vh] w-full" />
+                ? <PdfViewer url={url} title="Original" className="h-[85vh] border-0" />
                 : <img src={url} alt="The captured sheet" className="w-full" />}
           </div>
           {url && <a href={url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] underline">Open the original in a new tab</a>}
