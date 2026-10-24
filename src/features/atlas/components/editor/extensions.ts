@@ -296,7 +296,15 @@ const Mention = Node.create({
   },
   renderHTML({ node }) {
     const label = String(node.attrs.label ?? "");
-    return ["span", { class: "ws-mention", "data-mention": String(node.attrs.kind) }, node.attrs.kind === "person" ? `@${label}` : label];
+    return [
+      "span",
+      {
+        class: "ws-mention",
+        "data-mention": String(node.attrs.kind),
+        ...(node.attrs.id ? { "data-mention-id": String(node.attrs.id) } : {}),
+      },
+      node.attrs.kind === "person" ? `@${label}` : label,
+    ];
   },
   renderText({ node }) {
     return String(node.attrs.label ?? "");
