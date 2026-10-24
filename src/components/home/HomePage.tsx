@@ -6,6 +6,8 @@ import caribbeanHero from "@/assets/classic-visions-caribbean-team-v2.webp";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import PublicSearchPanel from "@/components/PublicSearchPanel";
+import { TaskFinder, ShippingComparison, RelationshipJourney } from "./CustomerJourney";
+import { useShippingPlannerEnabled } from "./useShippingPlannerEnabled";
 import Seo from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
@@ -105,6 +107,7 @@ const HomePage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const { openAssistant } = useCompanionAssistant();
+  const shippingPlanner = useShippingPlannerEnabled();
   const scrollRef = useScrollCraft([audience]);
 
   const jsonLd = useMemo(() => {
@@ -218,6 +221,7 @@ const HomePage = () => {
       <Header />
 
       <main id="main-content">
+        {isProfessional ? <TaskFinder /> : null}
         {/* ---------------------------------------------------------------- */}
         {/* Hero                                                              */}
         {/* ---------------------------------------------------------------- */}
@@ -375,6 +379,8 @@ const HomePage = () => {
 
         {isProfessional ? (
           <div key="professional" className="animate-fade-in">
+        <RelationshipJourney />
+        {shippingPlanner ? <ShippingComparison /> : null}
 
         {/* ---------------------------------------------------------------- */}
         {/* Partner logo strip — hidden until real assets are supplied         */}
@@ -729,7 +735,7 @@ const HomePage = () => {
                 </h2>
                 <p className="mt-4 text-base leading-7 text-muted-foreground">
                   {isProfessional
-                    ? "The questions practices actually ask us — answered here in full, and marked up so search engines and AI assistants can quote them accurately."
+                    ? "Practical answers about ordering, delivery and working with our team. Need a hand? Call us and we can walk through the same page together."
                     : "What you usually want to know before you visit your optician — answered in plain English."}
                 </p>
                 <div className="mt-8 rounded-2xl border border-border bg-card p-5">

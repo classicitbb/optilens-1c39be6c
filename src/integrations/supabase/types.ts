@@ -11563,6 +11563,8 @@ export type Database = {
           innovations_statement_id: number
           opening_balance: number | null
           payments: number | null
+          transactions: number | null
+          volume_discount: number | null
           portal_emailed_at: string | null
           printed: boolean
           statement_date: string | null
@@ -11593,6 +11595,8 @@ export type Database = {
           innovations_statement_id: number
           opening_balance?: number | null
           payments?: number | null
+          transactions?: number | null
+          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null
@@ -11623,6 +11627,8 @@ export type Database = {
           innovations_statement_id?: number
           opening_balance?: number | null
           payments?: number | null
+          transactions?: number | null
+          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null

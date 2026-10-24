@@ -18,6 +18,7 @@
     "designcraft:doctor": "node scripts/designcraft.mjs doctor",
     "designcraft:mcp": "node scripts/designcraft.mjs mcp",
     "build:dev": "vite build --mode development",
+    "build:sites-preview": "node scripts/build-sites-preview.mjs",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",
     "preview": "vite preview",
