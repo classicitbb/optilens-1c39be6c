@@ -122,6 +122,18 @@ Deno.serve(async (req) => {
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   const source = new URL(req.url).searchParams.get("source") === "manual" ? "manual" : "scheduled";
+
+  // The scheduler runs every 15 minutes. Throttle unauthenticated callers so the
+  // probes and the health-run insert cannot be triggered more than once per 10 minutes.
+  const { data: recentRun } = await db
+    .from("edge_function_health_runs")
+    .select("created_at")
+    .gte("created_at", new Date(Date.now() - 10 * 60_000).toISOString())
+    .limit(1)
+    .maybeSingle();
+  if (recentRun) {
+    return new Response(JSON.stringify({ ok: true, skipped: "recently_checked" }), { status: 200, headers });
+  }
   const checks = [await probeMcp(), await probeCopilot(), await probeSlaSchema(db)];
   const failures = checks.filter((check) => !check.healthy);
 
