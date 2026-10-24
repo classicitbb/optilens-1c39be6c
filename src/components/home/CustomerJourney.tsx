@@ -1,40 +1,64 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowUpRight, CheckCircle2, Phone, Search, Truck } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, ChevronDown, ChevronUp, Phone, Search, Truck } from "lucide-react";
 import { BUSINESS } from "./homeContent";
 import { compareCosts, type CostInputs } from "./journeyCost";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
+import { useShippingPlannerEnabled } from "./useShippingPlannerEnabled";
+import { cn } from "@/lib/utils";
 
 const tasks = [
   { title: "Place an order", detail: "Rx lenses, stock lenses & supplies", href: "/profile/rx-order", keywords: "buy reorder prescription" },
   { title: "Track my order", detail: "Sign in for your order status", href: "/profile/orders", keywords: "tracking delivery lab job" },
   { title: "See products & pricing", detail: "Explore the range; request trade prices", href: "/store", keywords: "catalogue catalog lens glasses coating" },
   { title: "Start a trade account", detail: "Apply and get help setting up", href: "/professionals/trade-account", keywords: "new signup onboarding register" },
-  { title: "Shipping & total costs", detail: "Plan delivery to your island", href: "#shipping", keywords: "freight customs time savings compare supplier" },
+  { title: "Shipping & total costs", detail: "Plan delivery to your location", href: "#shipping", keywords: "freight customs time savings compare supplier" },
   { title: "My account & statements", detail: "Pricing, balances and account help", href: "/profile", keywords: "credit invoice payment balance bill" },
   { title: "Talk to our team", detail: "A person can guide you step by step", href: "/professionals/customer-service", keywords: "help support contact phone office return remake" },
-  { title: "Why Classic Visions?", detail: "Meet your Barbados optical laboratory", href: "#why-classic", keywords: "about trust research who company" },
+  { title: "Why Classic Visions?", detail: "Meet your friendly optical laboratory", href: "#why-classic", keywords: "about trust research who company" },
 ];
 const linkStyle = "inline-flex min-h-11 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-secondary";
 const inputStyle = "mt-2 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2 text-base text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary";
 
+const tabStyle = "pointer-events-auto inline-flex min-h-10 items-center gap-2 rounded-b-xl border border-t-0 border-border bg-background px-5 py-2 text-sm font-semibold text-foreground shadow-md transition hover:text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary";
+
+/** Quick-start drawer, hung from the header bar. The tab sits under the header when closed and under the panel (labelled Close) when open. */
 export function TaskFinder() {
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const shippingPlanner = useShippingPlannerEnabled();
   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const matches = tasks.filter(task => words.every(word => `${task.title} ${task.detail} ${task.keywords}`.toLowerCase().includes(word)));
-  return <section id="quick-start" className="scroll-mt-24 border-b border-border bg-background py-9" aria-labelledby="task-heading">
-    <div className="container mx-auto px-5 sm:px-8">
-      <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-        <div><p className="text-xs font-semibold uppercase tracking-[.2em] text-secondary">Your next step</p><h2 id="task-heading" className="mt-2 font-serif text-3xl">What do you need today?</h2><p className="mt-2 text-muted-foreground">New here or ordering again? Go straight to what you need.</p></div>
-        <label className="block lg:w-96"><span className="text-sm font-medium">Find a task or answer</span><div className="relative"><Search className="absolute right-3 top-5 h-5 w-5 text-muted-foreground" aria-hidden="true"/><input type="search" className={`${inputStyle} pr-10`} value={query} onChange={event => setQuery(event.target.value)} placeholder="Try shipping, credit, order or help" /></div></label>
+  const matches = tasks
+    .filter(task => shippingPlanner || task.href !== "#shipping")
+    .filter(task => words.every(word => `${task.title} ${task.detail} ${task.keywords}`.toLowerCase().includes(word)));
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+  return <div className="pointer-events-none fixed inset-x-0 top-16 z-40 flex flex-col items-center">
+    <section id="quick-start" aria-labelledby="task-heading" aria-hidden={!open} inert={!open} className={cn("pointer-events-auto grid w-full border-b border-border bg-background shadow-lg transition-[grid-template-rows,visibility] duration-300 motion-reduce:transition-none", open ? "visible grid-rows-[1fr]" : "invisible grid-rows-[0fr] border-b-0")}>
+      <div className="min-h-0 overflow-hidden">
+        <div className="max-h-[calc(100dvh-8.5rem)] overflow-y-auto py-9">
+          <div className="container mx-auto px-5 sm:px-8">
+            <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+              <div><p className="text-xs font-semibold uppercase tracking-[.2em] text-secondary">Your next step</p><h2 id="task-heading" className="mt-2 font-serif text-3xl">What do you need today?</h2><p className="mt-2 text-muted-foreground">New here or ordering again? Go straight to what you need.</p></div>
+              <label className="block lg:w-96"><span className="text-sm font-medium">Find a task or answer</span><div className="relative"><Search className="absolute right-3 top-5 h-5 w-5 text-muted-foreground" aria-hidden="true"/><input type="search" className={`${inputStyle} pr-10`} value={query} onChange={event => setQuery(event.target.value)} placeholder="Try shipping, credit, order or help" /></div></label>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {matches.map(task => <a key={task.title} href={task.href} onClick={() => setOpen(false)} className="group rounded-xl border border-border bg-card p-4 transition hover:border-secondary hover:bg-secondary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary"><span className="flex items-center justify-between gap-2 font-semibold">{task.title}<ArrowUpRight className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true"/></span><span className="mt-2 block text-sm text-muted-foreground">{task.detail}</span></a>)}
+            </div>
+            <p role="status" className="mt-3 text-sm text-muted-foreground">{query ? `${matches.length} matching shortcuts. ` : ""}{matches.length === 0 ? <>Try a shorter word, <Link className="underline" to="/knowledge">browse the knowledge centre</Link>, or call us.</> : "Account details and ordering require sign-in and the relevant account access."}</p>
+            <a className={`${linkStyle} mt-2 pl-0 text-secondary`} href={BUSINESS.phoneHref}><Phone className="h-4 w-4" aria-hidden="true"/>Prefer a person? {BUSINESS.phoneDisplay}</a>
+          </div>
+        </div>
       </div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {matches.map(task => <a key={task.title} href={task.href} className="group rounded-xl border border-border bg-card p-4 transition hover:border-secondary hover:bg-secondary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary"><span className="flex items-center justify-between gap-2 font-semibold">{task.title}<ArrowUpRight className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true"/></span><span className="mt-2 block text-sm text-muted-foreground">{task.detail}</span></a>)}
-      </div>
-      <p role="status" className="mt-3 text-sm text-muted-foreground">{query ? `${matches.length} matching shortcuts. ` : ""}{matches.length === 0 ? <>Try a shorter word, <Link className="underline" to="/knowledge">browse the knowledge centre</Link>, or call us.</> : "Account details and ordering require sign-in and the relevant account access."}</p>
-      <a className={`${linkStyle} mt-2 pl-0 text-secondary`} href={BUSINESS.phoneHref}><Phone className="h-4 w-4" aria-hidden="true"/>Prefer a person? {BUSINESS.phoneDisplay}</a>
-    </div>
-  </section>;
+    </section>
+    <button type="button" className={tabStyle} aria-expanded={open} aria-controls="quick-start" onClick={() => setOpen(value => !value)}>
+      {open ? <>Close<ChevronUp className="h-4 w-4" aria-hidden="true"/></> : <>What do you need today?<ChevronDown className="h-4 w-4" aria-hidden="true"/></>}
+    </button>
+  </div>;
 }
 
 const costLabels = ["Products", "Freight / shipping", "Insurance", "Duties & taxes", "Brokerage & local delivery"];
@@ -100,13 +124,14 @@ export function ShippingComparison() {
 }
 
 export function RelationshipJourney() {
+  const shippingPlanner = useShippingPlannerEnabled();
   return <section id="why-classic" className="scroll-mt-24 bg-background py-14" aria-labelledby="relationship-heading"><div className="container mx-auto px-5 sm:px-8">
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-secondary">From first enquiry to your next order</p>
     <h2 id="relationship-heading" className="mt-3 max-w-3xl font-serif text-3xl sm:text-4xl">Caribbean optical supply, with a person to help.</h2>
     <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">Classic Visions is a Barbados-based wholesale optical laboratory. Explore lens options, request a price list and speak with the team before you decide. Already a customer? Keep using your account; ask us to help connect your online access.</p>
     <div className="mt-7 grid gap-4 md:grid-cols-3">{[
       ["Understand your options", "Explore prescriptions, materials, coatings and lab services, with practical guides to help you specify an order.", "/rx-lab-services", "Explore lab services"],
-      ["Check the complete offer", "Compare a written quote, delivery expectations and remake terms against what you buy today.", "#shipping", "Plan costs & delivery"],
+      ["Check the complete offer", "Compare a written quote, delivery expectations and remake terms against what you buy today.", shippingPlanner ? "#shipping" : "/professionals/freight-delivery-policy", shippingPlanner ? "Plan costs & delivery" : "Read delivery guidance"],
       ["Reach the real business", "Our laboratory is in Barbados. Call the office to verify an introduction or get help using the website.", "/professionals/customer-service", "Contact the office"],
     ].map(([title, detail, href, label]) => <div key={title} className="rounded-xl border bg-card p-6"><CheckCircle2 className="h-5 w-5 text-secondary" aria-hidden="true"/><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p><a className={`${linkStyle} mt-3 pl-0 text-secondary`} href={href}>{label} <ArrowUpRight className="h-4 w-4"/></a></div>)}</div>
     <div id="account-journey" className="mt-10 scroll-mt-24 rounded-2xl bg-surface-deep p-6 text-surface-deep-foreground sm:p-8">

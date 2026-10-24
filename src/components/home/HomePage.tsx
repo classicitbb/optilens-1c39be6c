@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import PublicSearchPanel from "@/components/PublicSearchPanel";
 import { TaskFinder, ShippingComparison, RelationshipJourney } from "./CustomerJourney";
+import { useShippingPlannerEnabled } from "./useShippingPlannerEnabled";
 import Seo from "@/components/seo/Seo";
 import { Button } from "@/components/ui/button";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
@@ -106,6 +107,7 @@ const HomePage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const { openAssistant } = useCompanionAssistant();
+  const shippingPlanner = useShippingPlannerEnabled();
   const scrollRef = useScrollCraft([audience]);
 
   const jsonLd = useMemo(() => {
@@ -219,7 +221,7 @@ const HomePage = () => {
       <Header />
 
       <main id="main-content">
-        {isProfessional ? <div className="pt-16"><TaskFinder /></div> : null}
+        {isProfessional ? <TaskFinder /> : null}
         {/* ---------------------------------------------------------------- */}
         {/* Hero                                                              */}
         {/* ---------------------------------------------------------------- */}
@@ -378,7 +380,7 @@ const HomePage = () => {
         {isProfessional ? (
           <div key="professional" className="animate-fade-in">
         <RelationshipJourney />
-        <ShippingComparison />
+        {shippingPlanner ? <ShippingComparison /> : null}
 
         {/* ---------------------------------------------------------------- */}
         {/* Partner logo strip — hidden until real assets are supplied         */}
