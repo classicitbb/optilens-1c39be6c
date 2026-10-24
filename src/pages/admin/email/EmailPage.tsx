@@ -17,6 +17,7 @@ import {
 import { useEmailToTask } from "@/features/admin/email/useEmailToTask";
 import { EmailBody } from "@/features/admin/email/EmailBody";
 import { SpreadsheetPreview } from "@/components/files/SpreadsheetPreview";
+import PdfViewer from "@/components/pdf/PdfViewer";
 import { attachmentPreviewKind } from "@/features/admin/email/attachmentPreview";
 import { ImagePreviewDialog } from "@/components/account/ImagePreviewDialog";
 import { ComposeDialog } from "@/features/admin/email/ComposeDialog";
@@ -250,7 +251,8 @@ const EmailPage = () => {
       if (requestId !== previewRequest.current) return;
       const detected = attachmentPreviewKind(attachment.filename, attachment.content_type || file.type);
       if (detected && (detected.kind === "image" || detected.kind === "pdf")) {
-        setPreview({ attachment, kind: detected.kind, url: URL.createObjectURL(new Blob([file], { type: detected.type })) });
+        const typed = new Blob([file], { type: detected.type });
+        setPreview({ attachment, kind: detected.kind, url: URL.createObjectURL(typed), file: detected.kind === "pdf" ? typed : undefined });
       } else if (detected && (detected.kind === "csv" || detected.kind === "xlsx")) {
         // The viewer reports files over its size limit itself.
         setPreview({ attachment, kind: detected.kind, file });
@@ -467,8 +469,7 @@ const EmailPage = () => {
                       {(preview.kind === "csv" || preview.kind === "xlsx") && preview.file && <SpreadsheetPreview file={preview.file} format={preview.kind} />}
                       {preview.kind === "text" && preview.text !== undefined && <pre className="p-4 text-xs whitespace-pre-wrap break-words">{preview.text}</pre>}
                       {preview.kind === "image" && preview.url && <img src={preview.url} alt={preview.attachment.filename} className="block h-full w-full object-contain p-2" />}
-                      {/* No sandbox: Chrome refuses to run its PDF viewer in a sandboxed frame. The URL is a local blob copy. */}
-                      {preview.kind === "pdf" && preview.url && <iframe title={`Preview ${preview.attachment.filename}`} src={preview.url} className="h-full w-full" />}
+                      {preview.kind === "pdf" && preview.url && <PdfViewer url={preview.url} file={preview.file} title={`Preview ${preview.attachment.filename}`} downloadName={preview.attachment.filename} className="h-full border-0" />}
                     </div>
                   </div>
                 ) : (
