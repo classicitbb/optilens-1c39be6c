@@ -91,6 +91,9 @@ const NO_CORS_FUNCTIONS = new Set([
   // probe can assert for them.
   "helpdesk-notify-worker",
   "rx-capture-purge",
+  // Called only by the FreePBX LAN agent (PBX_AGENT_TOKEN), never by a browser.
+  // Answers POST only and returns 405 to the preflight it will never receive.
+  "pbx-agent",
   // Telnyx (Iris voice assistant) take-message webhook: server-to-server POST
   // only, authed by X-Iris-Secret; 405 to anything else.
   "iris-take-message",
