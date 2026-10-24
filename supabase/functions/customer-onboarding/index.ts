@@ -197,6 +197,10 @@ Deno.serve(async (req) => {
     if (!smokeEmail) {
       return jsonResponse(400, { error: 'email is required' }, corsHeaders)
     }
+    // Smoke runs may only address internal smoke-test mailboxes.
+    if (!/^smoke-test\+[a-z0-9._-]+@classicvisions\.net$/.test(smokeEmail)) {
+      return jsonResponse(400, { error: 'Smoke-test recipient is not allowed' }, corsHeaders)
+    }
     return await enqueueWelcomeEmail(supabase, {
       userId: `smoke-test-${crypto.randomUUID()}`,
       email: smokeEmail,

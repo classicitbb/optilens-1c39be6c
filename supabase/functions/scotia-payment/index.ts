@@ -27,6 +27,7 @@ import {
   getCorsHeaders,
   handleCorsPreflight,
   rejectDisallowedOrigin,
+  isOriginAllowed,
 } from "../_shared/http/cors.ts";
 import { requireAuthenticatedUser, type AuthContext } from "../_shared/http/auth.ts";
 import {
@@ -441,6 +442,16 @@ Deno.serve(async (req) => {
     } else {
       const ownershipError = await assertPaymentOwnership(p.orderId, p.chargetotal, authContext);
       if (ownershipError) return json({ error: ownershipError }, 403, req);
+    }
+
+    // Return URLs must point back at one of this app's own origins so a
+    // signed gateway form can never redirect buyers to a third-party site.
+    for (const u of [p.responseSuccessURL, p.responseFailURL]) {
+      let origin = "";
+      try { origin = new URL(u).origin; } catch { /* invalid */ }
+      if (!origin || !isOriginAllowed(origin, corsPolicy)) {
+        return json({ error: "Return URL is not allowed." }, 400, req);
+      }
     }
 
     const formParams: Record<string, string> = baseSaleParams(cfg, {
