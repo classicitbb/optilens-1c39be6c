@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-24 — FreePBX click-to-call and selective recording (local source)
+
+### Release Notes
+- Contact dialog has a Calls tab: a Call button rings the staff member's own extension, then dials the customer through FreePBX, and shows recorded calls with summary, transcript and playback. Only calls staff choose to record are kept. Needs the migration, `PBX_AGENT_TOKEN`, function deploys and the PBX agent install in `docs/pbx-calls-setup.md`; recording consent and retention steps are required before use. Not applied, deployed or installed.
+
 ## 2026-10-19 — Stock entry and selector visibility (local source)
 
 ### Release Notes

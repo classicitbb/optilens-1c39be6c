@@ -1,5 +1,7 @@
 # Project Status
 
+FreePBX click-to-call and selective recording (2026-10-24, local source): contact dialog has a Calls tab (Call button, recorded calls with summary/transcript/playback). New `call_requests`, `call_recordings`, `staff_extensions` tables and private `call-recordings` bucket in migration `20261024120000_pbx_calls.sql`; edge functions `pbx-calls` (staff) and `pbx-agent` (LAN agent, `PBX_AGENT_TOKEN`); agent in `scripts/pbx-agent/`. Migration, secret, deploys and PBX install are **not done**; Deno type-check and a real PBX/Supabase run were not possible. Unit tests, `tsc` pass; agent exercised against a stub only. See `docs/pbx-calls-setup.md`, including the unconfirmed PBX assumptions and the recording-consent steps required before use.
+
 Lens chain status (2026-10-20, local source): `/admin/pricing/alias-mapping` has a new "Chain status" view that checks every active alias left to right: synced, confirmed CV lens, supplier, reaches a price cell, priced on a pricelist, pricelist assigned to a customer. Innovations-only stages (lens on, price group, Innovations pricelist, cost source) show as grey "not reported yet" until the office pushes them; `docs/lens-chain-office-discovery-brief.md` is the brief for finding those tables. Read-only, no migration or schema change; 8 unit tests, TypeScript pass. Not checked in an authenticated browser against hosted data. Unpriced orders deliberately stay orderable at no charge.
 Stock scanner / pair lines (2026-10-19, local source): the camera scanner now decodes only linear barcodes (Code 128/39/93, Codabar, ITF, EAN, UPC); QR and other 2D symbols are ignored. Adding a Pair of an eye-specific (chiral) lens creates two order lines, Right only and Left only, each with its own OPC, instead of one line of two; symmetric lenses keep one pair line. Browser-driven on EVO (local state only, nothing saved or submitted): 4 supplies and all 41 material/design/colour lens combos, 2,209 lines. VCPL has no stock/supply pricelist rows, so its catalog is empty. Focused tests, tsc and scoped lint pass.
 
@@ -36,7 +38,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-19 (isolated stock/supplies prototype and existing local changes)
+Last updated: 2026-10-24 (FreePBX click-to-call and recording, local source)
 
 RX stock/supplies order UX (2026-10-19, local source): stock/service item entry and order details now open in a modal; instructions are labelled as optional special instructions; order reference is required before saving or releasing. Chiral lens items offer Pair (default), Left, or Right; other items stay Pair. Standalone Stock Order Builder also marks the reference required and blocks submit until entered. Scoped ESLint and production build pass; full lint was interrupted after prolonged no-output execution. No order submitted or deployment performed; see HANDOFF.md.
 
