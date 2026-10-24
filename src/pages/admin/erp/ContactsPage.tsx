@@ -3,7 +3,8 @@ import { useContacts, useContactTags, useContactTagLinks, useIndustries, useSave
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import ContactNotesEditor from "@/components/crm/ContactNotesEditor";
+import type { Editor } from "@tiptap/core";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -562,7 +563,14 @@ const ContactsPage = ({
   const [showArchived, setShowArchived] = useState(false);
   const [collapsedCountryGroups, setCollapsedCountryGroups] = useState<Record<string, boolean>>({});
   const [dictationLanguage, setDictationLanguage] = useState<string>(typeof navigator !== "undefined" ? navigator.language : "en-US");
+  const notesEditorRef = useRef<Editor | null>(null);
   const appendDictationTranscript = useCallback((transcript: string) => {
+    const notesEditor = notesEditorRef.current;
+    if (notesEditor && !notesEditor.isDestroyed) {
+      const hasText = notesEditor.getText().trim().length > 0;
+      notesEditor.chain().focus("end").insertContent(`${hasText ? " " : ""}${transcript}`).run();
+      return;
+    }
     setEditContact((previous) => {
       if (!previous) return previous;
       const notes = previous.notes?.trimEnd() ?? "";
@@ -1514,6 +1522,7 @@ const ContactsPage = ({
             website: editContact.website ?? "",
             industry_id: editContact.industry_id ?? null,
             notes: editContact.notes ?? "",
+            ...(editContact.notes_doc ? { notes_doc: editContact.notes_doc } : {}),
             salesperson: editContact.salesperson ?? "",
             parent_id: editContact.parent_id ?? null,
             is_archived: editContact.is_archived ?? false,
@@ -2737,11 +2746,14 @@ const ContactsPage = ({
                       )}
                       {dictation.error && <span className="text-[11px] text-destructive">{dictation.error}</span>}
                     </div>
-                    <Textarea
-                      className="text-xs min-h-[120px] resize-none"
-                      placeholder="Add notes about this contact…"
-                      value={editContact.notes ?? ""}
-                      onChange={(e) => setEditContact({ ...editContact, notes: e.target.value })}
+                    <ContactNotesEditor
+                      key={editContact.id ?? "new"}
+                      notes={editContact.notes ?? ""}
+                      notesDoc={editContact.notes_doc}
+                      onChange={(doc, text) => setEditContact((current) => (current ? { ...current, notes: text, notes_doc: doc } : current))}
+                      onEditor={(notesEditor) => {
+                        notesEditorRef.current = notesEditor;
+                      }}
                     />
                     <div className="border rounded-md p-3 space-y-2" style={{ borderColor: "hsl(var(--border))" }}>
                       <div className="flex items-center gap-2 text-xs font-medium">

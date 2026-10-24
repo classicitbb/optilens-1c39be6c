@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
 
 export interface Contact {
   id: string;
@@ -25,6 +26,8 @@ export interface Contact {
   instagram_handle: string | null;
   industry_id: string | null;
   notes: string;
+  /** Atlas editor document for the notes; `notes` is its plain-text mirror. Null until first edited. */
+  notes_doc?: BlogCanonicalContent | null;
   salesperson: string;
   is_archived: boolean;
   avatar_url: string;

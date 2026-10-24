@@ -2856,6 +2856,7 @@ export type Database = {
           name: string
           next_action_at: string | null
           notes: string | null
+          notes_doc: Json | null
           parent_id: string | null
           phone: string | null
           pipeline: string | null
@@ -2905,6 +2906,7 @@ export type Database = {
           name: string
           next_action_at?: string | null
           notes?: string | null
+          notes_doc?: Json | null
           parent_id?: string | null
           phone?: string | null
           pipeline?: string | null
@@ -2954,6 +2956,7 @@ export type Database = {
           name?: string
           next_action_at?: string | null
           notes?: string | null
+          notes_doc?: Json | null
           parent_id?: string | null
           phone?: string | null
           pipeline?: string | null
