@@ -1,5 +1,7 @@
 # Project Status
 
+Caribbean customer journey (2026-10-24, local source): the professional homepage now offers common-task shortcuts, transparent customer/account stages, and a client-side delivered-cost comparison worksheet. Trade-account applications capture prepaid, supplier-reference review (two required; third optional), or a requested starter limit; none grants credit automatically. Public freight copy no longer promises unverified transit times; quotes are destination-specific. Focused tests (7), app TypeScript and production build pass; scoped lint has 8 existing warnings in ProfessionalsPortalPage.tsx. Not deployed; shipping rates/transit data and a final credit policy still need office approval before publishing firm quotes or terms.
+
 Alert bell / stock refresh / portal loading (2026-10-20, local source): shared two-note ding dong, six-second same-origin cross-tab cooldown, mute/Test ding dong controls and batched attention sounds. Stock reads refresh on mount/focus/reconnect and every eight hours while mounted (not an office inventory import). Portal loading overlaps independent reads, caches lists for one minute and defers order/address/payment details until account selection. Build, application TypeScript and focused tests pass; full suite retains 12 existing failures and lint retains the Rx workspace error. Live admin timing/audio verification remains pending; see HANDOFF.md. No hosted change.
 
 

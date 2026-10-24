@@ -79,7 +79,7 @@ export const heroPaths = {
     eyebrow: "For opticians, clinics & optical retailers",
     title: "Open a trade account",
     description:
-      "Trade pricing, LabLink ordering, order tracking, and a technical team that answers. Apply once — we handle onboarding from there.",
+      "Start with your business details. Our team confirms your account access, pricing and payment terms, and helps you place your first order.",
     primaryLabel: "Apply for a trade account",
     primaryHref: "/professionals/trade-account",
     secondaryLabel: "Already a customer? Start an Rx order",
@@ -111,8 +111,8 @@ export const heroPaths = {
 export const heroCopy = {
   professional: {
     eyebrow: "Professional Optical laboratory",
-    headline: "Wholesale prescription lenses,",
-    headlineAccent: "produced in the Caribbean.",
+    headline: "Your Caribbean optical",
+    headlineAccent: "supply partner.",
     lede: DEFINITION_SENTENCE,
   },
   visitor: {
@@ -127,8 +127,8 @@ export const heroCopy = {
 export const heroProofPoints = {
   professional: [
     { label: "Lab location", value: "Barbados", icon: MapPin },
-    { label: "Order processing", value: "Same day before 2 PM", icon: Gauge },
-    { label: "Delivery", value: "Caribbean-wide freight", icon: Truck },
+    { label: "Order planning", value: "Confirm timing with our team", icon: Gauge },
+    { label: "Delivery", value: "Destination-specific quotes", icon: Truck },
     { label: "Material range", value: "Index 1.50 – 1.74", icon: Layers },
   ],
   visitor: [
@@ -277,11 +277,11 @@ export const lensExplorer = [
 export const onboardingSteps = [
   {
     number: "01",
-    title: "Apply in a few minutes",
+    title: "Start your application",
     text: "One short trade application. Practice details, who does the ordering, and what you dispense most — nothing you have to dig for.",
     meta: PLACEHOLDERS.accountApprovalTime
       ? `Typically approved in ${PLACEHOLDERS.accountApprovalTime}`
-      : "We confirm receipt the same working day",
+      : "Account access is subject to review",
     href: "/professionals/trade-account",
     linkLabel: "Start the application",
     icon: Building2,
@@ -397,7 +397,7 @@ export const professionalFaqs = [
   {
     question: "How do I place and track a prescription order?",
     answer:
-      "Trade account holders submit prescriptions through the online Rx order form in My Account, or order stock items from the trade store. Every job appears in order tracking with live status from surfacing through dispatch. Orders placed before 2 PM are processed the same day.",
+      "Trade account holders submit prescriptions through the online Rx order form in My Account, or order stock items from the trade store. Every job appears in order tracking with live status from surfacing through dispatch. Confirm production and dispatch timing with the team before committing to a delivery date.",
     links: [
       { label: "Rx order form", href: "/profile/rx-order" },
       { label: "Order tracking", href: "/profile/orders" },

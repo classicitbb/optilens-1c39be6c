@@ -58,8 +58,8 @@ const planning = [
 
 const regions = [
   { region: "Barbados", note: "Local delivery with no import clearance step." },
-  { region: "Eastern Caribbean", note: "Typically 1-3 business days after dispatch for standard freight, subject to uplift and island handoff." },
-  { region: "Western Caribbean", note: "Typically 2-4 business days after dispatch for standard freight, depending on routing and customs release." },
+  { region: "Eastern Caribbean", note: "Ask for a carrier estimate for your destination and planned dispatch date. No approved island-by-island schedule is published." },
+  { region: "Western Caribbean", note: "Ask for a carrier estimate for your destination and planned dispatch date; routing and customs can affect arrival." },
   { region: "Other export lanes", note: "The estimate is confirmed on the order acknowledgement and updated again at dispatch." },
 ];
 
@@ -156,7 +156,7 @@ const CaribbeanLensOrderingGuidePage = () => (
         <section className="mt-10">
           <h2 className="text-2xl font-semibold text-foreground">What to expect by region</h2>
           <p className="mt-3 max-w-4xl text-sm leading-6 text-muted-foreground">
-            These are planning estimates after dispatch, not a promise of carrier performance. Final ETAs depend on uplift, customs clearance, weather and the service level confirmed on the job.
+            These notes explain what needs to be confirmed for your shipment. Final ETAs depend on dispatch readiness, carrier service, customs clearance and weather. Flight frequency alone is not a delivery estimate.
           </p>
           <div className="mt-6 overflow-x-auto rounded-2xl border border-border bg-card">
             <table className="w-full min-w-[560px] text-left text-sm">

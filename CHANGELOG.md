@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
+
+### Release Notes
+- Professional visitors can jump to common tasks, compare their current supplier's landed costs with a Classic Visions quote using their own figures, and follow the steps from application through account setup. Trade applications now collect a payment preference, two required supplier references (a third is optional), or a requested starter limit without implying credit is automatically approved. Unverified island transit-time claims were removed; shipping timing and costs are confirmed for the destination and shipment.
+
+### Technical Changelog
+- Added a professional-home task finder, customer/account journey, client-side quote worksheet, and credit-application intake notes. The comparison calculates only complete entries in the selected shared currency and does not fetch or save rates or quotes. Credit requests remain subject to office review; the public inquiry path is unchanged. Updated freight and Caribbean ordering guidance to avoid unsupported service estimates. Focused tests and production build pass; not published from this branch.
+
 ## 2026-10-23 — Frame repairs as staff-only stock-order addons
 
 ### Release Notes
