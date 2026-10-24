@@ -31,6 +31,7 @@ import {
   type Audience,
 } from "@/components/home/homeContent";
 import { useHomeAudience } from "@/components/home/useHomeAudience";
+import { homeLinkHref, homeLinkLabel, useHomeSignedIn } from "@/components/home/useHomeSignedIn";
 import { useScrollCraft } from "@/lib/scrollcraft/useScrollCraft";
 
 /* -------------------------------------------------------------------------- */
@@ -108,6 +109,7 @@ const HomePage = () => {
   };
   const { openAssistant } = useCompanionAssistant();
   const shippingPlanner = useShippingPlannerEnabled();
+  const signedIn = useHomeSignedIn();
   const scrollRef = useScrollCraft([audience]);
 
   const jsonLd = useMemo(() => {
@@ -298,10 +300,10 @@ const HomePage = () => {
                       </Link>
                     </Button>
                     <Link
-                      to={path.secondaryHref}
+                      to={homeLinkHref(path.secondaryHref, signedIn)}
                       className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-2 text-sm font-semibold text-secondary underline-offset-4 transition hover:underline"
                     >
-                      {path.secondaryLabel}
+                      {signedIn || path.secondaryHref !== "/profile/rx-order" ? path.secondaryLabel : "Already a customer? Sign in"}
                       <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   </div>
@@ -311,11 +313,11 @@ const HomePage = () => {
                       {path.actions.map(({ label, href, icon: Icon }) => (
                         <Link
                           key={label}
-                          to={href}
+                          to={homeLinkHref(href, signedIn)}
                           className="group flex min-h-11 items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
                         >
                           <Icon className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true" />
-                          <span>{label}</span>
+                          <span>{homeLinkLabel(label, href, signedIn)}</span>
                         </Link>
                       ))}
                     </div>
@@ -505,10 +507,10 @@ const HomePage = () => {
                     {meta}
                   </p>
                   <Link
-                    to={href}
+                    to={homeLinkHref(href, signedIn)}
                     className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-secondary underline-offset-4 hover:underline"
                   >
-                    {linkLabel}
+                    {homeLinkLabel(linkLabel, href, signedIn)}
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 </li>
