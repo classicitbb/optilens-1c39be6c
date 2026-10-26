@@ -155,6 +155,9 @@ verify_jwt = false
   # deploys on publish, so this copy makes the OAuth metadata observable now.
   [functions.mcp-staging]
     verify_jwt = false
+
+
+
 [functions.pbx-calls]
 verify_jwt = false
 # Staff click-to-call and recording playback. Authorization is requirePrivilegedAccess

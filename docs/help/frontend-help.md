@@ -364,4 +364,35 @@ Admin contact order questions now default to notifying the selected contact, ret
 
 Ticket title follow-up (2026-10-09, local): portal Helpdesk list rows and their text flex child now allow shrinking. The title uses one-line ellipsis with a full-title hover attribute; stored text and ticket navigation stay unchanged. Status/date can wrap on narrow screens. This ships with the pending portal send repair.
 
+## 2026-10-26 — Private clearance catalogue (local, unpublished)
+
+Prepared the unlisted /clearance route; the random capability token stays in the URL fragment.
+No menu, sitemap or public search entry is added. Tokens are checked by the receiver and
+stored hashed. Anyone holding a valid link can view its sale snapshot; expiry/revocation
+hides availability. Stock, internal costs and write-off notes are never exposed.
+
+Families group exact material/manufacturer/design/colour, with separate diameter matrices.
+Sphere/cylinder grids sell single-vision eaches; base/add grids sell complete multifocal pairs.
+The office calculates pair stock plus matching right/left and omits unmatched multifocal lenses.
+All grid columns are fixed at 80px and all colours use host semantic theme tokens. Cells use plain quantity/price text without badges, inner borders, padding or margins.
+
+Signed-in administrators get a discreet Manage catalogue footer link to /admin/clearance.
+Hide/Show family is an app-owned visibility overlay applied server-side and preserved across
+snapshot refreshes. It does not disable source catalogue lenses or change stock. Non-admin
+link holders cannot change visibility.
+
+A dedicated Edge Function and RLS-protected snapshot/visibility tables are prepared. The
+publisher requires a scoped server-only catalog:write API key; ordinary link reads cannot
+publish. Local migration, function and routes are not deployed/applied. Daily office publishing,
+private-link provisioning and production publication remain subject to explicit approval.
+
 Calls tab (2026-10-24, local source): open a contact and choose Calls to ring your own phone and then the customer. Your admin must give you an extension first. Recorded calls show a summary, transcript and Play button. Not live until the PBX setup is done.
+
+## 2026-10-26 — Private clearance activation
+The owner-approved unlisted catalogue and daily office feed are live. Grids use fixed
+80px columns, plain quantity/price cells, larger table fonts, host theme tokens and a
+compact sans-serif introduction. Admin-only family visibility survives refreshes.
+Token-checked database RPCs keep private stock/cost tables inaccessible. Both scoped
+migrations are applied. Daily 06:00 Barbados publication was exercised unattended and
+positively accepted. Desktop and 360/390px checks passed without page overflow or
+script errors. No source stock/order write, reservation, payment or email occurred.

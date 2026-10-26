@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
+
+### Release Notes
+- Professional visitors can jump to common tasks, compare their current supplier's landed costs with a Classic Visions quote using their own figures, and follow the steps from application through account setup. Trade applications now collect a payment preference, two required supplier references (a third is optional), or a requested starter limit without implying credit is automatically approved. Unverified island transit-time claims were removed; shipping timing and costs are confirmed for the destination and shipment.
+
 ## 2026-10-24 — FreePBX click-to-call and selective recording (local source)
 
 ### Release Notes
@@ -421,5 +426,13 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 
 ## 2026-10-09 — Portal ticket sends (local source)
+
+### Release Notes
+
+## 2026-10-26 — Private clearance catalogue (local, unpublished)
+
+### Release Notes
+
+## 2026-10-26 — Private clearance activation
 
 ### Release Notes
