@@ -385,3 +385,5 @@ A dedicated Edge Function and RLS-protected snapshot/visibility tables are prepa
 publisher requires a scoped server-only catalog:write API key; ordinary link reads cannot
 publish. Local migration, function and routes are not deployed/applied. Daily office publishing,
 private-link provisioning and production publication remain subject to explicit approval.
+
+Calls tab (2026-10-24, local source): open a contact and choose Calls to ring your own phone and then the customer. Your admin must give you an extension first. Recorded calls show a summary, transcript and Play button. Not live until the PBX setup is done.

@@ -21,11 +21,14 @@ export default defineConfig(({ mode }) => {
   plugins: [react(), tailwindcss(), localData.plugin],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   build: {
+    // The oversized chunks are already lazy route/tool chunks (RxForm, schema
+    // inventories), not the initial bundle, so the default 500 kB is just noise.
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       // pdfjs-dist must be bundled. Marking it external left bare specifiers
       // ("pdfjs-dist/legacy/build/pdf.mjs") in the production chunk, which the

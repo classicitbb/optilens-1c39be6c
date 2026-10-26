@@ -7,11 +7,15 @@ import {
   rejectDisallowedOrigin,
 } from "../_shared/http/cors.ts";
 
-const VERSION = "2026-07-16.1";
+const VERSION = "2026-10-24.1";
 const REQUEST_TTL_MS = 60_000;
 const AGENT_ONLINE_MS = 90_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
-const REQUEST_LOG_RETENTION_MS = 14 * 24 * 60 * 60_000;
+const BUSINESS_TIME_ZONE = "America/Barbados";
+const BUSINESS_HOURS_START = 7;
+const BUSINESS_HOURS_END = 19;
+const BUSINESS_POLL_AFTER_MS = 1_700;
+const OFF_HOURS_POLL_AFTER_MS = 7_000;
 const AGENT_SCOPES = new Set(["gateway:agent", "customers:write", "contacts:write"]);
 
 const OPERATIONS = {
@@ -123,7 +127,9 @@ async function authenticateAgent(req: Request, supabase: SupabaseClient) {
   return { key };
 }
 
-async function cleanup(supabase: SupabaseClient) {
+// Only user-driven paths call this. Agent polls skip it: claim_live_data_gateway_request
+// expires stale rows itself, and purging runs from pg_cron (purge_live_data_gateway).
+async function expireStaleRequests(supabase: SupabaseClient) {
   const now = new Date().toISOString();
   await supabase
     .from("live_data_gateway_requests")
@@ -135,11 +141,16 @@ async function cleanup(supabase: SupabaseClient) {
     })
     .in("status", ["pending", "claimed"])
     .lte("expires_at", now);
-  await supabase.from("live_data_gateway_requests").delete().lte("purge_after", now);
-  await supabase
-    .from("live_data_gateway_request_log")
-    .delete()
-    .lt("created_at", new Date(Date.now() - REQUEST_LOG_RETENTION_MS).toISOString());
+}
+
+// Off-hours the on-prem agent is told to poll less often via poll_after_ms.
+function agentPollAfterMs(now = new Date()): number {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", {
+    hour: "numeric",
+    hourCycle: "h23",
+    timeZone: BUSINESS_TIME_ZONE,
+  }).format(now));
+  return hour >= BUSINESS_HOURS_START && hour < BUSINESS_HOURS_END ? BUSINESS_POLL_AFTER_MS : OFF_HOURS_POLL_AFTER_MS;
 }
 
 async function logGatewayRequest(params: { action: string; operation: string | null; statusCode: number; latencyMs: number }) {
@@ -596,7 +607,8 @@ async function handleClientRequest(req: Request, body: JsonObject) {
           p_user_id: auth.user.id,
         });
       if (statementAccessError) {
-        return json(req, { error: "Could not verify statement access.", detail: statementAccessError.message }, 500);
+        console.error("[live-data-gateway] statement access check failed", statementAccessError.message);
+        return json(req, { error: "Could not verify statement access." }, 500);
       }
       if (canAccessStatement !== true) {
         return json(req, { error: "Statements are available only to contacts tagged Approved Access to Statement or CEO." }, 403);
@@ -628,7 +640,7 @@ async function handleClientRequest(req: Request, body: JsonObject) {
     return json(req, { error: "Customer account is not linked to Innovations or OptiLens Local." }, 409);
   }
 
-  await cleanup(auth.supabaseAdminClient);
+  await expireStaleRequests(auth.supabaseAdminClient);
   const onlineAfter = new Date(Date.now() - AGENT_ONLINE_MS).toISOString();
   const { data: agents } = await auth.supabaseAdminClient
     .from("live_data_gateway_agents")
@@ -675,7 +687,7 @@ async function handleClientStatus(req: Request, body: JsonObject) {
   const { auth } = context;
   const requestId = typeof body.request_id === "string" ? body.request_id : "";
   if (!requestId) return json(req, { error: "request_id is required." }, 400);
-  await cleanup(auth.supabaseAdminClient);
+  await expireStaleRequests(auth.supabaseAdminClient);
 
   const { data: row, error } = await auth.supabaseAdminClient
     .from("live_data_gateway_requests")
@@ -753,7 +765,6 @@ async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
   const agentAuth = await authenticateAgent(req, supabase);
   if (agentAuth.response) return agentAuth.response;
   const key = agentAuth.key;
-  await cleanup(supabase);
 
   const action = AGENT_ACTION_ALIASES[rawAction] ?? "";
   if (!action) console.warn("live-data-gateway: unsupported agent action", rawAction);
@@ -787,7 +798,8 @@ async function handleAgent(req: Request, rawAction: string, body: JsonObject) {
     const { data, error } = await supabase.rpc("claim_live_data_gateway_request", { p_agent_key_id: key.id });
     if (error) return json(req, { error: "Could not claim a live-data request.", detail: error.message }, 500);
     const requestRow = Array.isArray(data) ? data[0] ?? null : data ?? null;
-    return json(req, { request: requestRow });
+    // After a claim the agent should poll again immediately; only idle polls get the hint.
+    return json(req, requestRow ? { request: requestRow } : { request: null, poll_after_ms: agentPollAfterMs() });
   }
 
 

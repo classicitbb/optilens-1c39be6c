@@ -31,6 +31,7 @@ import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAcc
 import { paginate } from "@/lib/pagination";
 import { usePushToTalk } from "@/features/admin/copilot/usePushToTalk";
 import { ContactEmailHistory } from "@/features/admin/email/ContactEmailHistory";
+import { ContactCalls } from "@/features/admin/crm/ContactCalls";
 
 const BusinessCardPreview = ({ url, fileName }: { url: string; fileName: string | null }) => {
   const signed = useSignedDataFileUrl(url);
@@ -1098,7 +1099,9 @@ const ContactsPage = ({
   const exportCsv = () => {
     const headers = [...CONTACT_IMPORT_FIELDS];
     const toCsvValue = (value: unknown) => {
-      const str = String(value ?? "");
+      const raw = String(value ?? "");
+      // Neutralize spreadsheet formula injection (=, +, -, @, tab, CR).
+      const str = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
       return str.includes(",") || str.includes('"') || str.includes("\n")
         ? `"${str.replace(/"/g, '""')}"`
         : str;
@@ -2220,6 +2223,7 @@ const ContactsPage = ({
                     {embeddedPortalSettings ? <TabsTrigger value="portal-settings" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Portal Settings</TabsTrigger> : null}
                     <TabsTrigger value="notes" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Notes</TabsTrigger>
                     {editContact?.id ? <TabsTrigger value="email" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Email</TabsTrigger> : null}
+                    {editContact?.id ? <TabsTrigger value="calls" className="text-xs h-7 px-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Calls</TabsTrigger> : null}
                   </TabsList>
 
                   <TabsContent value="details" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
@@ -2712,6 +2716,12 @@ const ContactsPage = ({
                   {editContact?.id ? (
                     <TabsContent value="email" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
                       <ContactEmailHistory email={editContact.email} />
+                    </TabsContent>
+                  ) : null}
+
+                  {editContact?.id ? (
+                    <TabsContent value="calls" className="flex-1 px-4 py-3 m-0 overflow-y-auto">
+                      <ContactCalls contactId={editContact.id} phone={editContact.phone} />
                     </TabsContent>
                   ) : null}
 

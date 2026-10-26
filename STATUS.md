@@ -2,6 +2,9 @@
 
 Private clearance catalogue (2026-10-26, local): unlisted standalone /clearance capability link, optical availability matrices using host theme tokens and equal 80px columns, whole-pair multifocal sales and each-only single vision. Discreet /admin/clearance visibility controls use the existing admin guard and server-verified role; exclusions survive inventory refreshes. Receiver/migration and office dry-run publisher are prepared, not deployed/applied. See docs/clearance-catalogue.md and docs/clearance-catalogue-handoff.md.
 
+Caribbean customer journey (2026-10-24, local source): the professional homepage now offers common-task shortcuts, transparent customer/account stages, and a client-side delivered-cost comparison worksheet. Trade-account applications capture prepaid, supplier-reference review (two required; third optional), or a requested starter limit; none grants credit automatically. Public freight copy no longer promises unverified transit times; quotes are destination-specific. Focused tests (7), app TypeScript and production build pass; scoped lint has 8 existing warnings in ProfessionalsPortalPage.tsx. Not deployed; shipping rates/transit data and a final credit policy still need office approval before publishing firm quotes or terms.
+FreePBX click-to-call and selective recording (2026-10-24, local source): contact dialog has a Calls tab (Call button, recorded calls with summary/transcript/playback). New `call_requests`, `call_recordings`, `staff_extensions` tables and private `call-recordings` bucket in migration `20261024120000_pbx_calls.sql`; edge functions `pbx-calls` (staff) and `pbx-agent` (LAN agent, `PBX_AGENT_TOKEN`); agent in `scripts/pbx-agent/`. Migration, secret, deploys and PBX install are **not done**; Deno type-check and a real PBX/Supabase run were not possible. Unit tests, `tsc` pass; agent exercised against a stub only. See `docs/pbx-calls-setup.md`, including the unconfirmed PBX assumptions and the recording-consent steps required before use.
+
 Alert bell / stock refresh / portal loading (2026-10-20, local source): shared two-note ding dong, six-second same-origin cross-tab cooldown, mute/Test ding dong controls and batched attention sounds. Stock reads refresh on mount/focus/reconnect and every eight hours while mounted (not an office inventory import). Portal loading overlaps independent reads, caches lists for one minute and defers order/address/payment details until account selection. Build, application TypeScript and focused tests pass; full suite retains 12 existing failures and lint retains the Rx workspace error. Live admin timing/audio verification remains pending; see HANDOFF.md. No hosted change.
 
 
@@ -57,7 +60,7 @@ CRM follow-up (2026-10-07, local source): contact Places lookups now use Places 
 > what is broken, and what must not be touched. Update the "Last updated" line
 > whenever you change this file.
 
-Last updated: 2026-10-20 (local alert bell, stock refresh and portal loading verification)
+Last updated: 2026-10-24 (FreePBX click-to-call and recording, local source)
 
 RX stock/supplies order UX (2026-10-19, local source): stock/service item entry and order details now open in a modal; instructions are labelled as optional special instructions; order reference is required before saving or releasing. Chiral lens items offer Pair (default), Left, or Right; other items stay Pair. Standalone Stock Order Builder also marks the reference required and blocks submit until entered. Scoped ESLint and production build pass; full lint was interrupted after prolonged no-output execution. No order submitted or deployment performed; see HANDOFF.md.
 
@@ -372,6 +375,14 @@ Email resend (2026-10-15, local source): the Email Previews delivery log has a R
   regenerated `mcp`, updated `admin-user-management`, and `docstudio-api`
   functions still require deployment before live workflow verification.
 - **Classic Visions MCP deployment** — Codex is registered against the streamable-HTTP endpoint and the local OAuth-protected function exposes three read-only tools. The live endpoint still returns `404 Requested function was not found`; direct deployment is blocked because the currently authenticated Supabase account returns `403` for function access.
+- **On-demand live-data gateway** — the CV Web request/response function,
+  short-lived gateway migration, live Innovations statements/balances, and live
+  OptiLens delivery-status UI are implemented and verified locally. The
+  migration and edge function still need deployment, and the network-hosted
+  OptiLens checkout must be updated before the gateway can be enabled live.
+
+- **Smart customer journey** — first-release code, database migration, controlled lens rules, customer command centre, Rx draft handoff, and route/test coverage are implemented. The migration still needs to be applied to the target Supabase project and an approved rule set must be published before live recommendations are enabled.
+
 - **Catalog editor wizard** — `NewCatalogDialog` component not yet shipped.
   Implementation prompts exist in `plan.md` (Codex handoff sequence). Three
   component prompts + one SQL migration for the `status` column are queued.

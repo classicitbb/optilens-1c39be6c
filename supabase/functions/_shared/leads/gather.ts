@@ -61,20 +61,15 @@ export interface SalesLeadInput {
 /**
  * Match or create the CRM contact for a sales inquiry. Never throws.
  * An established customer keeps their lifecycle; a contact with no pipeline yet
- * is placed in opticals/qualifying; unknown senders become new qualifying leads.
+ * is linked unchanged; unknown senders become new qualifying leads.
  */
 export const matchOrCreateSalesContact = async (db: Db, lead: SalesLeadInput): Promise<ContactMatch> => {
   try {
     const existing = await findContactByEmail(db, lead.email)
     const now = new Date().toISOString()
     if (existing) {
-      if (!existing.is_customer && (!existing.pipeline || !existing.stage)) {
-        const { error } = await db
-          .from('contacts')
-          .update({ pipeline: 'opticals', stage: 'qualifying', stage_entered_at: now })
-          .eq('id', existing.id)
-        if (error) console.error('Contact stage update failed (non-fatal)', error.message)
-      }
+      // An unauthenticated submission must never change an existing contact's
+      // pipeline or stage; staff advance existing contacts from the CRM.
       return { contact: toDossierContact(existing), created: false }
     }
 

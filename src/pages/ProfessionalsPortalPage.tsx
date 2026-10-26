@@ -15,6 +15,8 @@ import { createStructuredHelpdeskTicket } from "@/features/admin/helpdesk/utils/
 import { submitPublicInquiry } from "@/lib/publicInquiry";
 import { LifeBuoy, LogIn } from "lucide-react";
 import { createAuthHref } from "@/lib/authFlow";
+import { CreditApplication } from "@/components/home/CreditApplication";
+import { creditApplicationNotes, emptyCreditApplication } from "@/components/home/creditApplicationLogic";
 
 type RequestFormValues = {
   businessName: string;
@@ -228,6 +230,7 @@ const ProfessionalsPortalPage = () => {
   const [startedAt, setStartedAt] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [monthlyVolume, setMonthlyVolume] = useState("");
+  const [creditApplication, setCreditApplication] = useState(emptyCreditApplication);
   const [formValues, setFormValues] = useState<RequestFormValues>({
     businessName: "",
     contactName: "",
@@ -366,6 +369,11 @@ const ProfessionalsPortalPage = () => {
               onSubmit={async (event) => {
                 event.preventDefault();
                 if (honeypot) return; // spam bot
+                const creditNotes = isTradeAccountPage ? creditApplicationNotes(creditApplication) : null;
+                if (isTradeAccountPage && !creditNotes) {
+                  toast({ title: "Check your credit preference", description: "Provide two different, complete supplier references and authorise the checks, or enter a valid requested starter limit.", variant: "destructive" });
+                  return;
+                }
 
                 setLoading(true);
                 try {
@@ -398,6 +406,7 @@ const ProfessionalsPortalPage = () => {
                   }
 
                   const supplementalNotes = [
+                    creditNotes,
                     website ? `Website: ${website}` : null,
                     isTradeAccountPage && monthlyVolume ? `Monthly Volume: ${monthlyVolume}` : null,
                     isTradeAccountPage && businessType ? `Business Type: ${businessType}` : null,
@@ -428,6 +437,7 @@ const ProfessionalsPortalPage = () => {
                     notes: "",
                   }));
                   setBusinessType("");
+                  setCreditApplication(emptyCreditApplication());
                   setMonthlyVolume("");
                   setHoneypot("");
                   setStartedAt(new Date().toISOString());
@@ -553,6 +563,7 @@ const ProfessionalsPortalPage = () => {
                   </div>
                 </>
               )}
+              {isTradeAccountPage ? <CreditApplication value={creditApplication} onChange={setCreditApplication} /> : null}
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea

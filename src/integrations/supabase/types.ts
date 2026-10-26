@@ -527,12 +527,12 @@ export type Database = {
           is_active: boolean
           is_auto: boolean
           is_popular: boolean
-          stock_orderable: boolean
           name: string
           price: number
           show_on_website: boolean
           sku: string
           sort_order: number
+          stock_orderable: boolean
           supplier_id: string | null
           updated_at: string
         }
@@ -546,12 +546,12 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
-          stock_orderable?: boolean
           name: string
           price?: number
           show_on_website?: boolean
           sku?: string
           sort_order?: number
+          stock_orderable?: boolean
           supplier_id?: string | null
           updated_at?: string
         }
@@ -565,12 +565,12 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
-          stock_orderable?: boolean
           name?: string
           price?: number
           show_on_website?: boolean
           sku?: string
           sort_order?: number
+          stock_orderable?: boolean
           supplier_id?: string | null
           updated_at?: string
         }
@@ -1602,6 +1602,127 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "crm_pipelines"
             referencedColumns: ["key"]
+          },
+        ]
+      }
+      call_recordings: {
+        Row: {
+          activity_id: string | null
+          contact_id: string | null
+          created_at: string
+          direction: string
+          duration_seconds: number | null
+          extension: string | null
+          id: string
+          recorded_at: string
+          remote_number: string | null
+          source_filename: string
+          storage_path: string
+          summary: string | null
+          transcript: string | null
+        }
+        Insert: {
+          activity_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          extension?: string | null
+          id?: string
+          recorded_at: string
+          remote_number?: string | null
+          source_filename: string
+          storage_path: string
+          summary?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          activity_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          extension?: string | null
+          id?: string
+          recorded_at?: string
+          remote_number?: string | null
+          source_filename?: string
+          storage_path?: string
+          summary?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_recordings_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_recordings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_recordings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
+      call_requests: {
+        Row: {
+          claimed_at: string | null
+          contact_id: string | null
+          created_at: string
+          destination: string
+          error: string | null
+          extension: string
+          id: string
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          destination: string
+          error?: string | null
+          extension: string
+          id?: string
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          destination?: string
+          error?: string | null
+          extension?: string
+          id?: string
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
           },
         ]
       }
@@ -11316,6 +11437,24 @@ export type Database = {
           },
         ]
       }
+      staff_extensions: {
+        Row: {
+          created_at: string
+          extension: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extension: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extension?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       staff_public_cards: {
         Row: {
           avatar_url: string | null
@@ -13637,6 +13776,7 @@ export type Database = {
         Args: { p_bank_reference?: string; p_payment_id: string }
         Returns: string
       }
+      contact_ids_by_phone: { Args: { p_last7: string }; Returns: string[] }
       create_api_key: {
         Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
         Returns: Json
@@ -14427,6 +14567,7 @@ export type Database = {
         }
         Returns: Json
       }
+      purge_live_data_gateway: { Args: never; Returns: undefined }
       qbo_consume_rate_limit: {
         Args: {
           p_bucket_key: string

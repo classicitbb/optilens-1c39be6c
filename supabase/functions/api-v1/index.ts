@@ -21,7 +21,7 @@ type ResourceConfig = {
   writeScope: string;
   costFields?: string[]; // stripped from responses
   idType?: "uuid" | "int";
-  insertable?: string[]; // allowlist of writable columns; default = all
+  insertable?: string[]; // allowlist of writable columns; default = none (writes rejected)
   updatable?: string[];
   idColumn?: string; // column used for GET /<resource>/<id>; default "id"
   filterable?: string[]; // query params applied as .eq() filters on list requests
@@ -179,7 +179,8 @@ const CATALOG_TYPES = new Set(["rx", "stock", "buysell"]);
 const CATALOG_ROW_TYPES = new Set(["lens", "addon", "supply"]);
 
 function pickFields(body: Record<string, any>, allowed?: string[]): Record<string, any> {
-  if (!allowed || allowed.length === 0) return body;
+  // Fail closed: a resource without an explicit allowlist accepts no fields.
+  if (!allowed || allowed.length === 0) return {};
   const allow = new Set(allowed);
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(body)) {

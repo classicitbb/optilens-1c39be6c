@@ -159,3 +159,12 @@ verify_jwt = false
 # Link reads validate the capability token; office publication validates its scoped API key.
 [functions.clearance-catalogue]
 verify_jwt = false
+
+[functions.pbx-calls]
+verify_jwt = false
+# Staff click-to-call and recording playback. Authorization is requirePrivilegedAccess
+# (admin/operator) in code, as for voice-transcribe.
+[functions.pbx-agent]
+verify_jwt = false
+# Called by the FreePBX LAN agent, which has no user session. Authorization is the
+# PBX_AGENT_TOKEN shared secret, checked in code.

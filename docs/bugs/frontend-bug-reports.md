@@ -454,3 +454,5 @@ A dedicated Edge Function and RLS-protected snapshot/visibility tables are prepa
 publisher requires a scoped server-only catalog:write API key; ordinary link reads cannot
 publish. Local migration, function and routes are not deployed/applied. Daily office publishing,
 private-link provisioning and production publication remain subject to explicit approval.
+
+Calls tab (2026-10-24, local source): no known defects; not exercised against hosted data or a real PBX. If Call reports no extension, add a `staff_extensions` row for that user.

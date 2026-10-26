@@ -3504,8 +3504,8 @@ function takeFile(f) {
     syncED(); fillDiam();
 
     $('#drop').classList.add('hide');
-    $('#fileList').innerHTML = `<div class="filerow"><div class="fi">${f.name.split('.').pop().toUpperCase()}</div>
-      <div><div class="fn">${f.name}</div><div class="fs">${(f.size / 1024).toFixed(1)} KB · ${omaData ? 'OMA points parsed' : 'trace attached'}</div></div>
+    $('#fileList').innerHTML = `<div class="filerow"><div class="fi">${escH(f.name.split('.').pop().toUpperCase())}</div>
+      <div><div class="fn">${escH(f.name)}</div><div class="fs">${(f.size / 1024).toFixed(1)} KB · ${omaData ? 'OMA points parsed' : 'trace attached'}</div></div>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
         <button type="button" class="btn btn-ghost btn-sm" id="changeFile">Upload new</button>
         <button type="button" class="btn btn-ghost btn-sm" id="rmFile" style="color:var(--danger)">Remove trace</button>
@@ -3832,7 +3832,7 @@ $('#printBtn').addEventListener('click',()=>{
   const lensNm=splitActive()
     ? `OD ${namedLens('a')||'—'} / OS ${namedLens('b')||'—'}`
     : (namedLens('a')||'—');
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rx Order — ${$('#pfirst').value} ${$('#plast').value}</title>
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rx Order — ${escH($('#pfirst').value)} ${escH($('#plast').value)}</title>
   <style>body{font:13px/1.55 ui-sans-serif,system-ui,Segoe UI,Arial;color:#0B1E35;margin:34px;max-width:760px}
   .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0B1E35;padding-bottom:12px;margin-bottom:18px}
   .hd h1{margin:0;font-size:19px}.hd .s{font-size:12px;color:#557;margin-top:3px}
@@ -3846,9 +3846,9 @@ $('#printBtn').addEventListener('click',()=>{
   .sig{margin-top:34px;display:flex;gap:40px}.sig div{flex:1;border-top:1px solid #99a;padding-top:6px;font-size:11px;color:#557}
   .ft{margin-top:26px;font-size:10.5px;color:#889;text-align:center}
   @media print{body{margin:14mm}}</style></head><body>
-  <div class="hd"><div><h1>Rx Order Sheet</h1><div class="s"><b style="font-size:14px">No. ${S.orderNo}</b> · ${$('#ref').value?'Ref '+$('#ref').value+' · ':''}${new Date().toLocaleDateString()} · ${S.scope==='uncut'?'Uncut Rx lenses':S.scope==='remote'?'Remote edge':'Full glaze'}</div></div>
+  <div class="hd"><div><h1>Rx Order Sheet</h1><div class="s"><b style="font-size:14px">No. ${S.orderNo}</b> · ${$('#ref').value?'Ref '+escH($('#ref').value)+' · ':''}${new Date().toLocaleDateString()} · ${S.scope==='uncut'?'Uncut Rx lenses':S.scope==='remote'?'Remote edge':'Full glaze'}</div></div>
   <div class="biz"><b>${S.branch?S.branch.name:'—'}</b>${S.branch?S.branch.info:''}<br>Classic Visions Rx Laboratory</div></div>
-  <h2>Patient</h2><div class="kv"><span>Name</span><div>${$('#pfirst').value} ${$('#plast').value}</div>
+  <h2>Patient</h2><div class="kv"><span>Name</span><div>${escH($('#pfirst').value)} ${escH($('#plast').value)}</div>
   <span>Eyes supplied</span><div>${S.eyes==='pair'?'Pair (OD + OS)':S.eyes==='od'?'Right lens only':'Left lens only'}</div></div>
   <h2>Prescription</h2><table><thead><tr><th></th><th>Sphere</th><th>Cyl</th><th>Axis</th>${needsAdd()?'<th>Add</th>':''}<th>Dist PD</th>${needsNearPD()?'<th>Near PD</th>':''}<th>${htLbl}</th><th>Prism</th><th>Base</th></tr></thead><tbody>${rx}</tbody></table>
   ${pcRows?`<div style="margin-top:8px;font-size:11px;color:#557">As prescribed — plus cylinder form; converted to minus cylinder above for production.</div>
@@ -3869,11 +3869,11 @@ $('#printBtn').addEventListener('click',()=>{
         <span>Verified</span><div>${S.shapeOk?'Confirmed by the dispenser':'NOT confirmed'}</div>
       </div>`;
   })()}
-  <h2>Lens</h2><div class="kv"><span>Lens</span><div>${lensNm}</div>
+  <h2>Lens</h2><div class="kv"><span>Lens</span><div>${escH(lensNm)}</div>
   <span>Blank</span><div>${effDiam()} mm</div>
   <span>Treatments</span><div>${tr.length?tr.join(', '):'None'}</div>
-  <span>Frame</span><div>${$('#fname').value||'—'} · A ${$('#fa').value||'—'} B ${$('#fb').value||'—'} ED ${$('#fed').value||'—'} DBL ${$('#fdbl').value||'—'} · ${selectLabel('mount')||'Plastic'}</div>
-  <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${$('#delivery').value}</div>
+  <span>Frame</span><div>${escH($('#fname').value||'—')} · A ${escH($('#fa').value||'—')} B ${escH($('#fb').value||'—')} ED ${escH($('#fed').value||'—')} DBL ${escH($('#fdbl').value||'—')} · ${selectLabel('mount')||'Plastic'}</div>
+  <span>Service</span><div>${$('#service').options[$('#service').selectedIndex].text} · ${escH($('#delivery').value)}</div>
   ${(function(){ const notes=notesWithChemistrie($('#notes').value); return notes?`<span>Notes</span><div>${notes.replace(/</g,'&lt;')}</div>`:''; })()}</div>
   ${S.pricesOn?`<div class="tot"><span>Quoted price</span><span>${c.sym} ${money(sub*c.rate)}</span></div>`
     :`<div class="tot" style="font-size:12.5px;font-weight:500;color:#557"><span>Pricing not enabled on this account</span><span>Confirmed before production</span></div>`}
@@ -4078,6 +4078,7 @@ function loadAnnoNotes(){ try{ return JSON.parse(localStorage.getItem(ANNO_KEY)|
 function saveAnnoNotes(){ try{ localStorage.setItem(ANNO_KEY, JSON.stringify(annoNotes.map(({el,...rest})=>rest))); }catch(e){} }
 let annoOn=false, annoNotes=loadAnnoNotes(), annoEditId=null, annoPendingEl=null, annoPinsRaf=null;
 
+function escH(s){ return String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function escAnno(s){ return String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch])); }
 function priLabel(p){ return p==='must'?'Must change':p==='idea'?'Idea':"I'd prefer"; }
 function annoLabel(el){

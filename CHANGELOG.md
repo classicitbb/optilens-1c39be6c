@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
+
+### Release Notes
+- Professional visitors can jump to common tasks, compare their current supplier's landed costs with a Classic Visions quote using their own figures, and follow the steps from application through account setup. Trade applications now collect a payment preference, two required supplier references (a third is optional), or a requested starter limit without implying credit is automatically approved. Unverified island transit-time claims were removed; shipping timing and costs are confirmed for the destination and shipment.
+
+### Technical Changelog
+- Added a professional-home task finder, customer/account journey, client-side quote worksheet, and credit-application intake notes. The comparison calculates only complete entries in the selected shared currency and does not fetch or save rates or quotes. Credit requests remain subject to office review; the public inquiry path is unchanged. Updated freight and Caribbean ordering guidance to avoid unsupported service estimates. Focused tests and production build pass; not published from this branch.
+## 2026-10-24 — FreePBX click-to-call and selective recording (local source)
+
+### Release Notes
+- Contact dialog has a Calls tab: a Call button rings the staff member's own extension, then dials the customer through FreePBX, and shows recorded calls with summary, transcript and playback. Only calls staff choose to record are kept. Needs the migration, `PBX_AGENT_TOKEN`, function deploys and the PBX agent install in `docs/pbx-calls-setup.md`; recording consent and retention steps are required before use. Not applied, deployed or installed.
+
+### Technical Changelog
+- Add `call_requests`, `call_recordings`, `staff_extensions`, private `call-recordings` bucket and `contact_ids_by_phone` (migration `20261024120000_pbx_calls.sql`); Edge Functions pbx-calls (staff) and pbx-agent (shared-secret LAN agent); the PBX agent script; shared phone-number and file-name helpers with 11 unit tests. `pbx-agent` is exempt from the smoke preflight probe. TypeScript and build pass; Deno type-check and a real PBX run not possible here.
+
 ## 2026-10-23 — Frame repairs as staff-only stock-order addons
 
 ### Release Notes
