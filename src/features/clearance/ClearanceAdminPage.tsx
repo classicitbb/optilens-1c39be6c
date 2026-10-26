@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {useLocation,Link} from "react-router";
-import {supabase} from "@/integrations/supabase/client";
+import {callCatalogue} from "./transport";
 import {groupFamilies,type ClearanceSnapshot} from "./model";
 import "./clearance.css";
 export default function ClearanceAdminPage(){
@@ -13,7 +13,8 @@ function CatalogueManager({token}:{token:string}){
   useEffect(()=>{
     let active=true;
     if(!validToken)return;
-    supabase.functions.invoke("clearance-catalogue",{body:{action:"admin-list",token}}).then(({data,error})=>{
+    callCatalogue({action:"admin-list",token}).then(({data:raw,error})=>{
+      const data=raw as {snapshot:ClearanceSnapshot;disabled:string[]}|null;
       if(!active)return;
       if(error||!Array.isArray(data?.snapshot?.items)){setError("The catalogue could not be loaded.");return;}
       setSnapshot(data.snapshot);setDisabled(new Set(data.disabled));
@@ -24,8 +25,8 @@ function CatalogueManager({token}:{token:string}){
     if(pending)return;setPending(key);setError("");
     const next=!disabled.has(key);
     try{
-      const {data,error}=await supabase.functions.invoke("clearance-catalogue",{body:{action:"set-visibility",token,familyKey:key,disabled:next}});
-      if(error||data?.ok!==true){setError("Visibility was not saved. Please retry.");return;}
+      const {data,error}=await callCatalogue({action:"set-visibility",token,familyKey:key,disabled:next});
+      if(error||(data as {ok?:boolean}|null)?.ok!==true){setError("Visibility was not saved. Please retry.");return;}
       setDisabled(previous=>{const updated=new Set(previous);if(next)updated.add(key);else updated.delete(key);return updated;});
     }catch{setError("Visibility was not saved. Please retry.");}finally{setPending(null);}
   }

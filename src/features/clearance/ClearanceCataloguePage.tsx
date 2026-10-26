@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, Link } from "react-router";
 import { useUserRole } from "@/hooks/useUserRole";
 import Seo from "@/components/seo/Seo";
-import { supabase } from "@/integrations/supabase/client";
+import {callCatalogue} from "./transport";
 import ClearanceMatrices from "./ClearanceMatrices";
 import { groupFamilies, type ClearanceSnapshot } from "./model";
 import "./clearance.css";
@@ -21,8 +21,8 @@ function CatalogueReader({token}:{token:string}) {
     async function load() {
       if(!validToken||pending)return;pending=true;
       try {
-        const {data,error}=await supabase.functions.invoke("clearance-catalogue",{body:{action:"read",token}});
-        if(active){setNow(Date.now());if(error||!Array.isArray(data?.items)){setSnapshot(null);setFailed(true);}else{setSnapshot(data as ClearanceSnapshot);setSnapshotToken(token);setFailed(false);}}
+        const {data,error}=await callCatalogue({action:"read",token});
+        if(active){setNow(Date.now());if(error||!Array.isArray((data as ClearanceSnapshot | null)?.items)){setSnapshot(null);setFailed(true);}else{setSnapshot(data as ClearanceSnapshot);setSnapshotToken(token);setFailed(false);}}
       }catch{if(active){setSnapshot(null);setFailed(true);}}finally{pending=false;}
     }
     void load();const interval=window.setInterval(()=>{if(active)setNow(Date.now());void load();},60000);

@@ -156,9 +156,7 @@ verify_jwt = false
   [functions.mcp-staging]
     verify_jwt = false
 
-# Link reads validate the capability token; office publication validates its scoped API key.
-[functions.clearance-catalogue]
-verify_jwt = false
+
 
 [functions.pbx-calls]
 verify_jwt = false
