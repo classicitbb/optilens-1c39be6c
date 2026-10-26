@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.22.0",
-  "sourceEntry": "2026-10-24 — FreePBX click-to-call and selective recording (local source)",
+  "semanticVersion": "0.23.0",
+  "sourceEntry": "2026-10-24 — Caribbean customer journey and shipping clarity (local source)",
   "releaseDateTimeUtc": "2026-10-24T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Contact dialog has a Calls tab: a Call button rings the staff member's own extension, then dials the customer through FreePBX, and shows recorded calls with summary, transcript and playback. Only calls staff choose to record are kept. Needs the migration, `PBX_AGENT_TOKEN`, function deploys and the PBX agent install in `docs/pbx-calls-setup.md`; recording consent and retention steps are required before use. Not applied, deployed or installed."
+    "Professional visitors can jump to common tasks, compare their current supplier's landed costs with a Classic Visions quote using their own figures, and follow the steps from application through account setup. Trade applications now collect a payment preference, two required supplier references (a third is optional), or a requested starter limit without implying credit is automatically approved. Unverified island transit-time claims were removed; shipping timing and costs are confirmed for the destination and shipment."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of FreePBX click-to-call and selective recording (local source)."
+      "notes": "Updated as part of Caribbean customer journey and shipping clarity (local source)."
     }
   ],
   "migrationNotes": [

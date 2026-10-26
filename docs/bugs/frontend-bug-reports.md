@@ -456,3 +456,12 @@ publish. Local migration, function and routes are not deployed/applied. Daily of
 private-link provisioning and production publication remain subject to explicit approval.
 
 Calls tab (2026-10-24, local source): no known defects; not exercised against hosted data or a real PBX. If Call reports no extension, add a `staff_extensions` row for that user.
+
+## 2026-10-26 — Private clearance activation
+The owner-approved unlisted catalogue and daily office feed are live. Grids use fixed
+80px columns, plain quantity/price cells, larger table fonts, host theme tokens and a
+compact sans-serif introduction. Admin-only family visibility survives refreshes.
+Token-checked database RPCs keep private stock/cost tables inaccessible. Both scoped
+migrations are applied. Daily 06:00 Barbados publication was exercised unattended and
+positively accepted. Desktop and 360/390px checks passed without page overflow or
+script errors. No source stock/order write, reservation, payment or email occurred.

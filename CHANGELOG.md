@@ -836,3 +836,12 @@ A dedicated Edge Function and RLS-protected snapshot/visibility tables are prepa
 publisher requires a scoped server-only catalog:write API key; ordinary link reads cannot
 publish. Local migration, function and routes are not deployed/applied. Daily office publishing,
 private-link provisioning and production publication remain subject to explicit approval.
+
+## 2026-10-26 — Private clearance activation
+The owner-approved unlisted catalogue and daily office feed are live. Grids use fixed
+80px columns, plain quantity/price cells, larger table fonts, host theme tokens and a
+compact sans-serif introduction. Admin-only family visibility survives refreshes.
+Token-checked database RPCs keep private stock/cost tables inaccessible. Both scoped
+migrations are applied. Daily 06:00 Barbados publication was exercised unattended and
+positively accepted. Desktop and 360/390px checks passed without page overflow or
+script errors. No source stock/order write, reservation, payment or email occurred.

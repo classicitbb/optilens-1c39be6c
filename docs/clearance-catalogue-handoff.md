@@ -1,29 +1,33 @@
-# Clearance handoff
-Status: Incomplete — final publication approval and live verification pending.
+# Clearance release handoff
+Status: Complete — no active handoff.
 
-Current state: website and office code prepared on scoped local branches. Source/sale
-rules, equal-column grids, host theme tokens, unlisted capability link and persistent
-admin family suppression are implemented. No production deployment, migration, token
-provisioning, visibility write, external publish or scheduled task installation occurred.
+The owner explicitly approved activation, daily publishing, private-link/key setup,
+and commit/push on 26 October 2026. The unlisted website route and admin family
+visibility are deployed. Both scoped migrations are applied and registered.
+The office feed is deployed through the guarded updater and runs daily at 06:00
+America/Barbados. An actual unattended run completed with result 0 and a newer
+receiver-accepted snapshot; host health and host tests passed.
 
-Affected website paths: src/features/clearance/, src/routes/clearance/, src/App.tsx,
-src/routes/admin/AdminRoutes.tsx, src/config/routeRegistry.ts, the clearance unit tests,
-supabase/functions/clearance-catalogue/, supabase/config.toml and migration
-20261026192422_private_clearance_catalogue.sql; release/module/help/bug docs and STATUS.md.
-The separate office worktree has the source review, publisher, exporter, tests and installer.
+The source SQL stays read-only. The snapshot tables are private under RLS, link reads
+check a high-entropy capability, publication checks the scoped machine key, and
+management checks the existing authenticated admin role. Private links, key values,
+connection details and host paths are deliberately absent from this repository.
 
-Tests: 12 focused website tests passed, including admin hide/restore and authorization.
-Website lint completed with zero errors (existing warnings). Routing smoke passed.
-The initial full run had 1708 passing tests and 8 suites failing to import the already-declared
-read-excel-file/browser dependency. A normal no-save npm repair failed with
-Cannot read properties of null (reading 'edgesOut'). The locked package was then restored
-through an isolated npm install without changing package.json or package-lock.json.
-Final production build, application TypeScript and Deno Edge Function checks pass. Scoped lint passes with zero warnings. PR-policy checks and routing smoke pass. The 12 catalogue/admin tests and all eight formerly import-blocked suites pass together (42 tests across 9 suites). No package manifest or npm lockfile changes were made.
-Office full suite passed (629/629); focused inventory tests also passed (111/111). Browser review uses extracted real data;
-website receiver/admin tests use mocks and do not prove live access.
+Resolved release issues: current remote main/security work was merged and preserved;
+one missing locked spreadsheet dependency was restored without package file changes;
+the source metadata lookup timeout was removed by loading identities with stock;
+the validator statement timeout was fixed by aggregating the cleaned JSON once.
+The host asset-classification check was fixed by mapping the new catalogue assets.
 
-Remaining gate: explicit production publication, new migration/function and source-to-website
-snapshot write, host-local private-link/key configuration and daily schedule approval.
-No unrelated source-system, auth-account or credential changes are included.
-Next executable action: npm run build, then npm run qa:pr-checks from the website checkout
-after review; follow the documented publication sequence only once explicitly authorized.
+Validation: 14 catalogue/transport/admin tests; 42 earlier catalogue/attachment tests;
+application TypeScript, scoped lint, production build and PR-policy checks passed.
+The initial broad website run had 1708 passing tests and eight import-blocked suites;
+all eight were rerun successfully after the missing dependency was restored.
+Office full suite passed 629 tests; the deployed host suite and health check passed.
+Live desktop and 360/390px checks confirmed real data, contained table scrolling,
+no page overflow or script errors, and noindex/nofollow. Real admin suppression was
+not changed during verification; it remains a deliberate owner action.
+
+Operational guide: docs/clearance-catalogue.md. Publication acknowledgements and
+scheduler diagnostics remain in approved private host configuration, not public docs.
+No remaining implementation or approval gate for the requested activation.

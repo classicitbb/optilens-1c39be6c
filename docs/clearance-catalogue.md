@@ -1,49 +1,66 @@
 # Private clearance catalogue operations
 
-Status: Local implementation; production publication pending.
+Status: Complete — no active handoff.
 
-## Sale data
-Office snapshot prices are BBD per sale unit. The source numeric LensItem.Cost
-is supplier USD per pair, despite its source BBD-each label. Each price is half
-that cost times 2.66; pair price is the pair cost times 2.66. Prices round directly
-at the sale-unit level. Complete multifocal pairs are paired stock plus min(right,left).
-Single-vision eaches count right+left+2*pairs. Unknown or invalid costs/metadata are excluded.
+## Live access and display
+The unlisted /clearance route uses a random 32-byte base64url token in the URL
+fragment. The link itself is kept in approved private configuration and is never
+stored in this public repository. Only the token hash is stored in the database.
+The route has no menu/search/sitemap entry and uses noindex/nofollow. Anyone holding
+the complete link can view; an expired or revoked snapshot returns no availability.
 
-## Private link and visibility
-The canonical route is /clearance with a random 32-byte base64url token in its fragment.
-Only its SHA-256 hash is stored server-side. The route is hidden in the route registry,
-has no menu/search/sitemap entry and uses noindex/nofollow. It is capability-link access:
-anyone with the complete link can view, without needing a website account.
-The standalone route does not mount the shop shell or its assistant.
+Families group material/manufacturer/design/colour/type, with separate diameters.
+Each optical column is 80px. Quantity and BBD price are plain text, without badges.
+The compact header and all grid text use sans-serif and host semantic theme tokens.
+Single vision sells eaches by sphere/cylinder; multifocals sell whole pairs by base/add.
 
-The owner-only footer link opens /admin/clearance retaining the fragment. The existing
-AdminOnlyRoute and server-verified admin role protect visibility writes. Hiding a family
-uses the exact material/manufacturer/design/colour/type key, covers all its diameters and
-persists independently of inventory snapshots. Public reads filter hidden families before
-returning JSON. Restoring a family never changes source data.
+## Sale units and prices
+Owner-confirmed source convention: numeric LensItem.Cost is supplier USD cost PER PAIR,
+despite its BBD-each source presentation. Each selling price is Cost / 2 * 2.66;
+pair selling price is Cost * 2.66, rounded directly per sale unit to two decimals.
+Complete pairs are OnHand_P + min(OnHand_R,OnHand_L). Single-vision eaches are
+OnHand_R + OnHand_L + 2*OnHand_P. Unmatched multifocal lenses, nonpositive costs,
+invalid identities and no-longer-eligible write-off candidates are omitted.
 
-## Prepared receiver
-Function: clearance-catalogue. POST actions read, publish, revoke, admin-list, set-visibility.
-OPTIONS has no side effect. Snapshot and exclusion tables enable RLS and grant no anonymous
-or authenticated table access. The publisher RPC is invoker-only and executable by service_role
-only; the Edge Function checks the existing catalog:write scope. Administrative visibility
-actions require a verified user JWT plus the server-read admin role.
-Publishing cannot reactivate a revoked link or replace a newer snapshot with an older one.
+## Admin family visibility
+A signed-in admin sees Manage catalogue in the footer; /admin/clearance preserves
+the private-link fragment through the existing sign-in guard. Hide/Show family
+affects this sale catalogue only. It covers all diameters of the selected family
+and survives daily snapshot replacement. It never changes stock or source lens status.
+Every visibility change records the authenticated actor and an append-only event.
 
-The office publisher is dry-run by default. Its --commit mode writes one allowlisted snapshot
-over HTTPS. Private key/link configuration stays host-local under OPTILENS_CLEARANCE_PUBLISH_URL,
-OPTILENS_CLEARANCE_API_KEY and OPTILENS_CLEARANCE_LINK_TOKEN. Do not place token values in
-repository files, task arguments, scheduler history, logs or browser client settings.
-Daily installation is prepared in the office repo and is not installed by the build.
+## Database boundary
+Public RPC wrappers clearance_read, clearance_publish_authorized and clearance_manage
+are SECURITY INVOKER functions. Elevated implementations live in the unexposed
+clearance_private schema with fixed empty search paths and explicit token/key/admin checks.
+Snapshot, exclusion and visibility-event tables enable RLS and grant no anonymous
+table reads or direct authenticated updates. Management RPC execution is unavailable to anon;
+the private implementation also checks auth.uid and the current admin role.
 
-## Pending publication sequence
-Review the actual grid draft, then approve the scoped website/office deployment,
-the one new migration/function, private-link provisioning and initial outbound publish,
-and the daily host task. Apply through the established deployment workflows, run the
-mandatory edge smoke suite, then verify missing/invalid/revoked links, the real accepted
-snapshot, server-side family suppression after reload and a scheduled refresh.
-No order, reservation, payment, inventory write or email is part of this feature.
+The publishing RPC verifies the existing catalog:write scope and validates/allowlists
+every sale field. It cannot revive a revoked link or overwrite a newer snapshot.
+Validation builds the JSON result with one aggregation to stay within the normal
+database statement timeout. No Edge Function was added or redeployed.
 
-## Validation
-See the task handoff and local validation logs. Unit tests use mocked connectors.
-No live migration/function call or privileged visibility write has run in this build.
+## Daily operation
+The approved office task runs daily at 06:00 America/Barbados under its unattended
+service identity. It was executed and positively acknowledged by the receiver.
+Snapshots expire after 24 hours; failures cannot silently advertise expired balances.
+The first implementation timed out on separate source identity lookups; identities
+now load in the same bounded read as stock. No source database write occurs.
+
+The office command node scripts/publish-clearance-catalogue.js is dry-run by default.
+--commit publishes. Names: OPTILENS_CLEARANCE_PUBLISH_URL, OPTILENS_CLEARANCE_API_KEY,
+OPTILENS_CLEARANCE_LINK_TOKEN and OPTILENS_CLEARANCE_PUBLIC_KEY. The protected host
+configuration is DPAPI machine-encrypted and ACL-restricted to administrators and SYSTEM.
+No secret is passed in task arguments. Last publication and history are private local records.
+The dedicated machine key has a one-year lifetime and must be rotated before expiry.
+
+## Verified release
+Both scoped migrations are applied and recorded. Real anonymous probes reject admin
+access and invalid links return no data. A real machine publication and an independent
+unattended task run both received positive acceptance. Production desktop and 360/390px
+browser checks show current data, no horizontal page overflow, scrollable wide grids,
+no script errors and noindex/nofollow. The 14 catalogue/transport/admin unit tests pass.
+Authenticated administrator hide/restore is covered by deterministic tests; a real
+signed-in admin mutation was not performed because no product suppression was requested.

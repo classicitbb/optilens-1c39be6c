@@ -21,3 +21,6 @@
 .cc-power-grid td{height:40px}
 .cc-power-stock strong{font-size:16px}
 .cc-power-stock small{font-size:12px;line-height:1.3}
+
+.cc-filters input,.cc-filters select,.cc-admin-search input{font-size:16px}
+.cc-admin-row button{min-height:44px}
