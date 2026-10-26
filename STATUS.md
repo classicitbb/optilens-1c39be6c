@@ -1,5 +1,7 @@
 # Project Status
 
+Private clearance catalogue (2026-10-26, local): unlisted standalone /clearance capability link, optical availability matrices using host theme tokens and equal 80px columns, whole-pair multifocal sales and each-only single vision. Discreet /admin/clearance visibility controls use the existing admin guard and server-verified role; exclusions survive inventory refreshes. Receiver/migration and office dry-run publisher are prepared, not deployed/applied. See docs/clearance-catalogue.md and docs/clearance-catalogue-handoff.md.
+
 Alert bell / stock refresh / portal loading (2026-10-20, local source): shared two-note ding dong, six-second same-origin cross-tab cooldown, mute/Test ding dong controls and batched attention sounds. Stock reads refresh on mount/focus/reconnect and every eight hours while mounted (not an office inventory import). Portal loading overlaps independent reads, caches lists for one minute and defers order/address/payment details until account selection. Build, application TypeScript and focused tests pass; full suite retains 12 existing failures and lint retains the Rx workspace error. Live admin timing/audio verification remains pending; see HANDOFF.md. No hosted change.
 
 

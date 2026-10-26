@@ -15,6 +15,7 @@ function StockOrderEntry() {
   return <Navigate to={`/admin/orders/rx/new?${params}`} replace />;
 }
 
+const ClearanceAdminPage = lazyWithRetry(() => import("@/features/clearance/ClearanceAdminPage"));
 const AdminLayout = lazyWithRetry(() => import("@/components/admin/AdminLayout"));
 
 const AdminHomeRedirect = lazyWithRetry(() => import("@/components/admin/AdminHomeRedirect"),
@@ -218,6 +219,7 @@ const AdminRoutes = () => (
       <Route path="pricing/alias-mapping" element={<AliasMappingPage />} />
       <Route path="pricing/imports" element={<ImportsPage />} />
       <Route path="pricing/settings" element={<PricingSettingsPage />} />
+      <Route path="clearance" element={<AdminOnlyRoute><ClearanceAdminPage /></AdminOnlyRoute>} />
       <Route path="contacts/*" element={<LegacyCrmRedirect />} />
       <Route path="leads" element={<LegacyCrmRedirect />} />
       <Route path="leads/finder" element={<LegacyCrmRedirect />} />

@@ -155,3 +155,7 @@ verify_jwt = false
   # deploys on publish, so this copy makes the OAuth metadata observable now.
   [functions.mcp-staging]
     verify_jwt = false
+
+# Link reads validate the capability token; office publication validates its scoped API key.
+[functions.clearance-catalogue]
+verify_jwt = false

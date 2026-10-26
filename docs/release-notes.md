@@ -418,3 +418,7 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-10-09 — Portal ticket sends (local source)
 
 ### Release Notes
+
+## 2026-10-26 — Private clearance catalogue (local, unpublished)
+
+### Release Notes

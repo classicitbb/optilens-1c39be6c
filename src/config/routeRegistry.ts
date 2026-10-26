@@ -18,6 +18,8 @@ export interface RouteDefinition {
 }
 
 export const APP_ROUTE_REGISTRY: RouteDefinition[] = [
+  { id: "admin.clearance", path: "/admin/clearance", domain: "admin-console", audience: "admin", authMode: "admin", layout: "admin-shell", navGroup: "none", status: "hidden" },
+  { id: "public.clearance", path: "/clearance", domain: "public-site", audience: "public", authMode: "public", layout: "standalone-shell", navGroup: "none", status: "hidden" },
   { id: "public.home", path: "/", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.about-us", path: "/about-us", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
   { id: "public.assistant.window", path: "/assistant/window", domain: "public-site", audience: "public", authMode: "public", layout: "customer-shell", navGroup: "public-main", status: "active" },
