@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -17,6 +17,7 @@ import {
 "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import GlobalSearch from "./GlobalSearch";
+import NewMenu from "./NewMenu";
 import AppLauncher from "./AppLauncher";
 import NotificationBell from "./NotificationBell";
 import OperatorAttentionAlert from "./OperatorAttentionAlert";
@@ -190,9 +191,12 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             </svg>
           </Button>
 
-          <span className="text-sm font-semibold tracking-tight select-none text-[hsl(var(--admin-content-fg))]">
+          <Link
+            to="/admin/dashboard"
+            title="Back to Launch Pad"
+            className="text-sm font-semibold tracking-tight select-none text-[hsl(var(--admin-content-fg))] hover:opacity-80">
             OpticAdmin
-          </span>
+          </Link>
 
           <span className="text-[11px] hidden md:inline-block text-[hsl(var(--admin-muted-fg))]">
             {pageLabel}
@@ -215,6 +219,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             </Button>
           )}
           <GlobalSearch />
+          <NewMenu />
         </div>
 
         {/* ── RIGHT GROUP ── */}

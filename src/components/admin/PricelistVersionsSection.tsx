@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { usePricelistVersions, CreateVersionInput, PricelistVersion, ChildSection } from "@/hooks/usePricelistVersions";
 import { useAdminRole } from "@/contexts/AdminRoleContext";
+import { useLaunchNew } from "@/hooks/useLaunchNew";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -125,6 +126,7 @@ const PricelistVersionsSection = () => {
     resetForm();
     setOpen(true);
   };
+  useLaunchNew(openCreate);
 
   const openEdit = async (v: PricelistVersion) => {
     setEditMode(v);

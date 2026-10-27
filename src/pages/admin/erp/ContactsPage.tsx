@@ -25,6 +25,7 @@ import { CompanyCombobox } from "@/features/admin/crm/CompanyCombobox";
 import { PublicWebResearch } from "@/features/admin/crm/PublicWebResearch";
 import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { useLaunchNew } from "@/hooks/useLaunchNew";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
@@ -1752,6 +1753,7 @@ const ContactsPage = ({
       businessCardInputRef.current.value = "";
     }
   };
+  useLaunchNew((value) => openNew(value === "company"));
 
   const openLinkedImportedCustomerContact = useCallback((customer: ImportedCustomer) => {
     if (!customer.contact_id) return;

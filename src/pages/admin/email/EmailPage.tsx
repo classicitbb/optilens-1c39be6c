@@ -21,6 +21,7 @@ import PdfViewer from "@/components/pdf/PdfViewer";
 import { attachmentPreviewKind } from "@/features/admin/email/attachmentPreview";
 import { ImagePreviewDialog } from "@/components/account/ImagePreviewDialog";
 import { ComposeDialog } from "@/features/admin/email/ComposeDialog";
+import { useLaunchNew } from "@/hooks/useLaunchNew";
 import { CrmContactPanel } from "@/features/admin/email/CrmContactPanel";
 import { EmailAppRail } from "@/features/admin/email/EmailAppRail";
 import { ConnectMailboxDialog, ManageMailboxDialog } from "@/features/admin/email/MailboxDialogs";
@@ -157,6 +158,7 @@ const EmailPage = () => {
   const crmContact = useCrmContactByEmail(crmAddress).data?.[0];
   const emailToTask = useEmailToTask();
   const sendAccount = current?.account_code ?? accountCode ?? "";
+  useLaunchNew(() => openDraft({ ...EMPTY_DRAFT, account: sendAccount }), Boolean(sendAccount));
 
   const run = async (label: string, action: () => Promise<unknown>) => {
     try {
