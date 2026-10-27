@@ -2304,6 +2304,100 @@ export type Database = {
         }
         Relationships: []
       }
+      clearance_catalogue_exclusions: {
+        Row: {
+          disabled: boolean
+          family_key: Json
+          token_hash: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          disabled?: boolean
+          family_key: Json
+          token_hash: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          disabled?: boolean
+          family_key?: Json
+          token_hash?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clearance_catalogue_exclusions_token_hash_fkey"
+            columns: ["token_hash"]
+            isOneToOne: false
+            referencedRelation: "clearance_catalogue_snapshots"
+            referencedColumns: ["token_hash"]
+          },
+        ]
+      }
+      clearance_catalogue_snapshots: {
+        Row: {
+          expires_at: string
+          is_active: boolean
+          snapshot: Json
+          source_as_of: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          expires_at: string
+          is_active?: boolean
+          snapshot: Json
+          source_as_of: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          expires_at?: string
+          is_active?: boolean
+          snapshot?: Json
+          source_as_of?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clearance_catalogue_visibility_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          disabled: boolean
+          family_key: Json
+          id: string
+          token_hash: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          disabled: boolean
+          family_key: Json
+          id?: string
+          token_hash: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          disabled?: boolean
+          family_key?: Json
+          id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clearance_catalogue_visibility_events_token_hash_fkey"
+            columns: ["token_hash"]
+            isOneToOne: false
+            referencedRelation: "clearance_catalogue_snapshots"
+            referencedColumns: ["token_hash"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           bank_account_name: string
@@ -13764,6 +13858,20 @@ export type Database = {
           target: Json
         }[]
       }
+      clearance_manage: {
+        Args: {
+          p_action: string
+          p_disabled?: boolean
+          p_family_key?: Json
+          p_token: string
+        }
+        Returns: Json
+      }
+      clearance_publish_authorized: {
+        Args: { p_api_key: string; p_snapshot: Json; p_token_hash: string }
+        Returns: Json
+      }
+      clearance_read: { Args: { p_token: string }; Returns: Json }
       close_helpdesk_ticket_by_token: {
         Args: { p_token: string }
         Returns: boolean
@@ -14549,6 +14657,10 @@ export type Database = {
           _portal_access_status: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      publish_clearance_catalogue: {
+        Args: { p_snapshot: Json; p_token_hash: string }
         Returns: boolean
       }
       publish_lens_recommendation_rule_set: {
