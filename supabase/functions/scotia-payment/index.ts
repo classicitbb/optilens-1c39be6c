@@ -446,10 +446,18 @@ Deno.serve(async (req) => {
 
     // Return URLs must point back at one of this app's own origins so a
     // signed gateway form can never redirect buyers to a third-party site.
+    // The app's own scotia-return relay (which re-validates its `origin`
+    // param against the allowlist) is also accepted.
+    const supabaseOrigin = (() => {
+      try { return new URL(Deno.env.get("SUPABASE_URL") ?? "").origin; } catch { return ""; }
+    })();
     for (const u of [p.responseSuccessURL, p.responseFailURL]) {
-      let origin = "";
-      try { origin = new URL(u).origin; } catch { /* invalid */ }
-      if (!origin || !isOriginAllowed(origin, corsPolicy)) {
+      let parsed: URL | null = null;
+      try { parsed = new URL(u); } catch { /* invalid */ }
+      const isRelay = !!parsed && !!supabaseOrigin &&
+        parsed.origin === supabaseOrigin &&
+        parsed.pathname === "/functions/v1/scotia-return";
+      if (!parsed || (!isRelay && !isOriginAllowed(parsed.origin, corsPolicy))) {
         return json({ error: "Return URL is not allowed." }, 400, req);
       }
     }
