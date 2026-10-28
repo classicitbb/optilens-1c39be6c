@@ -2,7 +2,7 @@
 
 ## Order release verification - 2026-10-28
 
-PR #651: all 1786 tests pass across 285 files; lint (warnings only), TypeScript, Deno, build, PR checks and smoke pass. Node 20/22 CI and preview deployments are green. Four order migrations are verified/applied and recorded via Lovable; gatekeeper-orders alone is deployed, with hosted Edge smoke passing. Store checkout, direct stock and Rx submissions use the automatic Gatekeeper setting. No agent-created real order transmission, invoice or payment was used in verification. Frontend production publication awaits merge. Historical failures below are superseded by this final run.
+PR #651: all 1786 tests pass across 285 files; lint (warnings only), TypeScript, Deno, build, PR checks and smoke pass. Node 20/22 CI and preview deployments are green. Four order migrations are verified/applied and recorded via Lovable; gatekeeper-orders alone is deployed, with hosted Edge smoke passing. Store checkout, direct stock and Rx submissions use the automatic Gatekeeper setting. No agent-created real order transmission, invoice or payment was used in verification. PR #651 was merged during verification; the final checkout migration is in a separate follow-up. Historical failures below are superseded by this final run.
 
 
 ## Admin mobile navigation and capture - 2026-10-28
