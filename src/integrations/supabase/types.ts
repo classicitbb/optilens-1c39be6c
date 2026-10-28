@@ -527,12 +527,12 @@ export type Database = {
           is_active: boolean
           is_auto: boolean
           is_popular: boolean
-          stock_orderable: boolean
           name: string
           price: number
           show_on_website: boolean
           sku: string
           sort_order: number
+          stock_orderable: boolean
           supplier_id: string | null
           updated_at: string
         }
@@ -546,12 +546,12 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
-          stock_orderable?: boolean
           name: string
           price?: number
           show_on_website?: boolean
           sku?: string
           sort_order?: number
+          stock_orderable?: boolean
           supplier_id?: string | null
           updated_at?: string
         }
@@ -565,12 +565,12 @@ export type Database = {
           is_active?: boolean
           is_auto?: boolean
           is_popular?: boolean
-          stock_orderable?: boolean
           name?: string
           price?: number
           show_on_website?: boolean
           sku?: string
           sort_order?: number
+          stock_orderable?: boolean
           supplier_id?: string | null
           updated_at?: string
         }
@@ -1605,6 +1605,127 @@ export type Database = {
           },
         ]
       }
+      call_recordings: {
+        Row: {
+          activity_id: string | null
+          contact_id: string | null
+          created_at: string
+          direction: string
+          duration_seconds: number | null
+          extension: string | null
+          id: string
+          recorded_at: string
+          remote_number: string | null
+          source_filename: string
+          storage_path: string
+          summary: string | null
+          transcript: string | null
+        }
+        Insert: {
+          activity_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          extension?: string | null
+          id?: string
+          recorded_at: string
+          remote_number?: string | null
+          source_filename: string
+          storage_path: string
+          summary?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          activity_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          extension?: string | null
+          id?: string
+          recorded_at?: string
+          remote_number?: string | null
+          source_filename?: string
+          storage_path?: string
+          summary?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_recordings_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_recordings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_recordings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
+      call_requests: {
+        Row: {
+          claimed_at: string | null
+          contact_id: string | null
+          created_at: string
+          destination: string
+          error: string | null
+          extension: string
+          id: string
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          destination: string
+          error?: string | null
+          extension: string
+          id?: string
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          destination?: string
+          error?: string | null
+          extension?: string
+          id?: string
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_order_health"
+            referencedColumns: ["contact_id"]
+          },
+        ]
+      }
       campaign_activation_performance: {
         Row: {
           campaign_name: string
@@ -2182,6 +2303,100 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      clearance_catalogue_exclusions: {
+        Row: {
+          disabled: boolean
+          family_key: Json
+          token_hash: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          disabled?: boolean
+          family_key: Json
+          token_hash: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          disabled?: boolean
+          family_key?: Json
+          token_hash?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clearance_catalogue_exclusions_token_hash_fkey"
+            columns: ["token_hash"]
+            isOneToOne: false
+            referencedRelation: "clearance_catalogue_snapshots"
+            referencedColumns: ["token_hash"]
+          },
+        ]
+      }
+      clearance_catalogue_snapshots: {
+        Row: {
+          expires_at: string
+          is_active: boolean
+          snapshot: Json
+          source_as_of: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          expires_at: string
+          is_active?: boolean
+          snapshot: Json
+          source_as_of: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          expires_at?: string
+          is_active?: boolean
+          snapshot?: Json
+          source_as_of?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clearance_catalogue_visibility_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          disabled: boolean
+          family_key: Json
+          id: string
+          token_hash: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          disabled: boolean
+          family_key: Json
+          id?: string
+          token_hash: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          disabled?: boolean
+          family_key?: Json
+          id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clearance_catalogue_visibility_events_token_hash_fkey"
+            columns: ["token_hash"]
+            isOneToOne: false
+            referencedRelation: "clearance_catalogue_snapshots"
+            referencedColumns: ["token_hash"]
+          },
+        ]
       }
       company_settings: {
         Row: {
@@ -11316,6 +11531,24 @@ export type Database = {
           },
         ]
       }
+      staff_extensions: {
+        Row: {
+          created_at: string
+          extension: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extension: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extension?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       staff_public_cards: {
         Row: {
           avatar_url: string | null
@@ -11563,8 +11796,6 @@ export type Database = {
           innovations_statement_id: number
           opening_balance: number | null
           payments: number | null
-          transactions: number | null
-          volume_discount: number | null
           portal_emailed_at: string | null
           printed: boolean
           statement_date: string | null
@@ -11595,8 +11826,6 @@ export type Database = {
           innovations_statement_id: number
           opening_balance?: number | null
           payments?: number | null
-          transactions?: number | null
-          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null
@@ -11627,8 +11856,6 @@ export type Database = {
           innovations_statement_id?: number
           opening_balance?: number | null
           payments?: number | null
-          transactions?: number | null
-          volume_discount?: number | null
           portal_emailed_at?: string | null
           printed?: boolean
           statement_date?: string | null
@@ -13631,6 +13858,20 @@ export type Database = {
           target: Json
         }[]
       }
+      clearance_manage: {
+        Args: {
+          p_action: string
+          p_disabled?: boolean
+          p_family_key?: Json
+          p_token: string
+        }
+        Returns: Json
+      }
+      clearance_publish_authorized: {
+        Args: { p_api_key: string; p_snapshot: Json; p_token_hash: string }
+        Returns: Json
+      }
+      clearance_read: { Args: { p_token: string }; Returns: Json }
       close_helpdesk_ticket_by_token: {
         Args: { p_token: string }
         Returns: boolean
@@ -13643,6 +13884,7 @@ export type Database = {
         Args: { p_bank_reference?: string; p_payment_id: string }
         Returns: string
       }
+      contact_ids_by_phone: { Args: { p_last7: string }; Returns: string[] }
       create_api_key: {
         Args: { p_expires_at?: string; p_name: string; p_scopes: string[] }
         Returns: Json
@@ -14417,6 +14659,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      publish_clearance_catalogue: {
+        Args: { p_snapshot: Json; p_token_hash: string }
+        Returns: boolean
+      }
       publish_lens_recommendation_rule_set: {
         Args: { p_rule_set_id: string }
         Returns: undefined
@@ -14433,6 +14679,7 @@ export type Database = {
         }
         Returns: Json
       }
+      purge_live_data_gateway: { Args: never; Returns: undefined }
       qbo_consume_rate_limit: {
         Args: {
           p_bucket_key: string

@@ -1,0 +1,26 @@
+.cc{max-width:1400px;margin:auto;padding:28px clamp(16px,4vw,50px);color:hsl(var(--foreground));background:hsl(var(--background));min-height:100vh}.cc-header{display:flex;justify-content:space-between;gap:20px;padding-bottom:24px;border-bottom:1px solid hsl(var(--border));font-size:12px}.cc-header span:first-child{font-weight:800;letter-spacing:2px}.cc-intro{padding:30px 0}.cc-intro h1{font-size:clamp(32px,4vw,48px);margin:8px 0 14px}.cc-eyebrow{text-transform:uppercase;letter-spacing:1.5px;font-size:10px;font-weight:700;color:hsl(var(--secondary))}.cc-updated,.cc-terms{font-size:12px;color:hsl(var(--muted-foreground));line-height:1.6}.cc-filters{display:flex;flex-wrap:wrap;gap:16px}.cc-filters label,.cc-admin-search{display:flex;flex-direction:column;gap:8px;font-size:12px}.cc-filters label:first-child{flex:1;min-width:200px}.cc-filters input,.cc-filters select,.cc-admin-search input{min-height:44px;padding:10px;border:1px solid hsl(var(--input));background:hsl(var(--card));color:hsl(var(--foreground));border-radius:4px}.cc-count{font-size:13px;padding:18px 0}.cc-family{margin:0 0 28px;border:1px solid hsl(var(--border));background:hsl(var(--card));color:hsl(var(--card-foreground));border-radius:8px;padding:18px}.cc-family-heading{display:flex;justify-content:space-between;gap:20px}.cc-family-heading h2{font-size:18px;margin:6px 0 12px}.cc-family-heading>p{font-size:12px;text-align:right;white-space:nowrap;line-height:1.7}.cc-family h3{font-size:12px;font-weight:400;color:hsl(var(--muted-foreground));margin:12px 0}.cc-power-wrap{overflow:auto;max-height:580px;container-type:inline-size;border:1px solid hsl(var(--border));border-radius:5px}.cc-power-grid{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12px}.cc-power-grid th,.cc-power-grid td{padding:4px;text-align:center;border-right:1px solid hsl(var(--border));border-bottom:1px solid hsl(var(--border));background:hsl(var(--card));color:hsl(var(--card-foreground))}.cc-power-grid th{background:hsl(var(--muted));white-space:nowrap}.cc-power-grid thead{position:sticky;top:0;z-index:3}.cc-power-grid thead th:first-child{position:sticky;left:0;z-index:4}.cc-power-grid tbody th{position:sticky;left:0;z-index:2;font-weight:700}.cc-power-stock{border:1px solid hsl(var(--border));background:hsl(var(--background));border-radius:5px;padding:5px;min-height:43px;margin:2px}.cc-power-stock strong{font-size:14px;display:block;color:hsl(var(--secondary))}.cc-power-stock small{display:block;font-size:9px;color:hsl(var(--muted-foreground));margin-top:3px;white-space:nowrap}.cc-no-stock{color:hsl(var(--muted-foreground));opacity:.6}.cc :focus-visible{outline:3px solid hsl(var(--ring));outline-offset:3px}.cc-admin-link{padding-top:20px;text-align:right;font-size:11px;color:hsl(var(--muted-foreground))}.cc-admin-link a{text-decoration:underline}.cc-admin-search{margin:20px 0}.cc-admin-row{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:16px 0;border-bottom:1px solid hsl(var(--border))}.cc-admin-row p{font-size:12px;color:hsl(var(--muted-foreground))}.cc-admin-row button{border:1px solid hsl(var(--border));padding:10px;background:hsl(var(--card));border-radius:4px;white-space:nowrap}.cc-admin-row button:disabled{opacity:.5}@media(max-width:650px){.cc-family-heading{display:block}.cc-family-heading>p{text-align:left;white-space:normal}.cc-family{padding:12px}}
+
+/* Equal columns stay 80px even when only one power is available. */
+.cc{--clearance-cell-width:80px}
+.cc-family,.cc-power-wrap{border-radius:0}
+.cc-power-wrap{background:hsl(var(--card))}
+.cc-power-grid th,.cc-power-grid td{padding:0;border-radius:0}
+.cc-power-grid th{padding:3px 0;white-space:normal;font-size:10px;line-height:1.3}
+.cc-power-grid td{height:34px;vertical-align:middle}
+.cc-power-stock{border:0;border-radius:0;background:transparent;padding:0;margin:0;min-height:0;line-height:1.15}
+.cc-power-stock strong{font-size:12px;font-weight:600}
+.cc-power-stock small{font-size:9px;margin:0;line-height:1.3}
+
+/* Inherit the host sans-serif family; keep the introduction compact. */
+.cc{font-family:"Plus Jakarta Sans",Arial,Helvetica,sans-serif}
+.cc-intro{padding:16px 0}
+.cc-intro h1{font-size:28px;line-height:1.15;font-weight:650;margin:4px 0 8px}
+.cc-intro>p{font-size:14px;line-height:1.45;margin:5px 0}
+.cc-power-grid{font-size:14px}
+.cc-power-grid th{font-size:13px;line-height:1.35;padding:4px 0}
+.cc-power-grid td{height:40px}
+.cc-power-stock strong{font-size:16px}
+.cc-power-stock small{font-size:12px;line-height:1.3}
+
+.cc-filters input,.cc-filters select,.cc-admin-search input{font-size:16px}
+.cc-admin-row button{min-height:44px}

@@ -40,7 +40,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-function resolveTarget(rawPath: unknown): { path: string } | { error: string } {
+function resolveTarget(rawPath: unknown): { path: string; table?: string } | { error: string } {
   if (typeof rawPath !== "string" || rawPath.trim() === "") {
     return { error: "`path` is required." };
   }
@@ -62,8 +62,11 @@ function resolveTarget(rawPath: unknown): { path: string } | { error: string } {
   if (segments.length !== 1 || !ALLOWED_TABLES.has(segments[0])) {
     return { error: "Path is not allowed." };
   }
-  return { path };
+  return { path, table: segments[0] };
 }
+
+// Tables the gateway may only read. Role assignments are never writable here.
+const READ_ONLY_TABLES = new Set(["user_roles"]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -101,6 +104,10 @@ Deno.serve(async (req) => {
 
   const method = String(payload.method ?? "GET").toUpperCase();
   if (!ALLOWED_METHODS.has(method)) return json({ error: "Method is not allowed." }, 405);
+  const targetTable = (target as { table?: string }).table;
+  if (targetTable && READ_ONLY_TABLES.has(targetTable) && method !== "GET") {
+    return json({ error: "This table is read-only through the gateway." }, 403);
+  }
 
   const headers = new Headers({
     apikey: serviceRoleKey,

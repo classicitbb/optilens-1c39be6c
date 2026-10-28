@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
     console.warn(`${TAG} Acknowledgment email failed:`, ackErr);
   }
 
-  console.log(`${TAG} ✅ Created ticket ${ticketNumber} from ${sender.email} (contact: ${contactId ?? "none"})`);
+  console.log(`${TAG} ✅ Created ticket ${ticketNumber} (contact: ${contactId ?? "none"})`);
 
   return jsonResponse({
     ok: true,

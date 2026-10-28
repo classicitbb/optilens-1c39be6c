@@ -27,6 +27,7 @@ import { fetchContactResearch, formatResearchNote } from "@/features/admin/crm/c
 import { canonicalToSearchText, toCanonicalDocument } from "@/lib/wikiCanonical";
 import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { useLaunchNew } from "@/hooks/useLaunchNew";
 import { supabase } from "@/integrations/supabase/client";
 import { useSignedDataFileUrl } from "@/hooks/useSignedDataFileUrl";
 import { AccountNumberAssignmentError, assignCustomerAccountNumber, normalizeAccountNumberInput } from "@/lib/accountNumberAssignment";
@@ -1127,7 +1128,9 @@ const ContactsPage = ({
   const exportCsv = () => {
     const headers = [...CONTACT_IMPORT_FIELDS];
     const toCsvValue = (value: unknown) => {
-      const str = String(value ?? "");
+      const raw = String(value ?? "");
+      // Neutralize spreadsheet formula injection (=, +, -, @, tab, CR).
+      const str = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
       return str.includes(",") || str.includes('"') || str.includes("\n")
         ? `"${str.replace(/"/g, '""')}"`
         : str;
@@ -1778,6 +1781,7 @@ const ContactsPage = ({
       businessCardInputRef.current.value = "";
     }
   };
+  useLaunchNew((value) => openNew(value === "company"));
 
   const openLinkedImportedCustomerContact = useCallback((customer: ImportedCustomer) => {
     if (!customer.contact_id) return;

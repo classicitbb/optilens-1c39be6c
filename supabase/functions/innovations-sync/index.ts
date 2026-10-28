@@ -941,7 +941,8 @@ Deno.serve(async (req: Request) => {
       }
       if (rowErr) {
         failed++;
-        if (errors.length < 5) errors.push(`${row[cfg.required]}: ${rowErr.message}`);
+        if (errors.length < 5) errors.push(`${row[cfg.required]}: write failed (see dead-letter queue)`);
+          console.error(`[innovations-sync] ${entity} upsert failed`, rowErr.message);
         await supabase.from("innovations_sync_dead_letters").insert({
           entity,
           external_id: String(row[cfg.required]),

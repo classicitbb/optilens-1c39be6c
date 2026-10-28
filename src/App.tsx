@@ -24,6 +24,7 @@ import CompanionAssistant from "@/components/assistant/CompanionAssistant";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PortalRouteErrorBoundary } from "@/components/PortalRouteErrorBoundary";
 
+const ClearanceRoute = lazyWithRetry(() => import("@/routes/clearance/ClearanceRoute"));
 const PublicRoutes = lazyWithRetry(() => import("@/routes/public/PublicRoutes"));
 const PortalRoutes = lazyWithRetry(() => import("@/routes/portal/PortalRoutes"));
 const OpsRoutes = lazyWithRetry(() => import("@/routes/ops/OpsRoutes"));
@@ -132,6 +133,7 @@ const App = () => (
                   <Route path="/atlas/:space/:articleSlug" element={<AtlasProtected />} />
                   <Route path="/copilot" element={<AdminProtectedRoute><ErrorBoundary routeLabel="/copilot" homeHref="/admin/dashboard" isStaff><CopilotWorkspacePage /></ErrorBoundary></AdminProtectedRoute>} />
 
+                  <Route path="/clearance" element={<ClearanceRoute />} />
                   <Route element={<CustomerShell />}>
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/reset-password" element={<ResetPassword />} />

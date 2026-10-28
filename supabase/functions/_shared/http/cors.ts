@@ -15,7 +15,7 @@ export const DEV_ORIGIN_PATTERNS: RegExp[] = [
   /^https:\/\/([a-z0-9-]+\.)+lovableproject\.com$/,
 ];
 
-function isOriginAllowed(origin: string, policy: CorsPolicy): boolean {
+export function isOriginAllowed(origin: string, policy: CorsPolicy): boolean {
   return policy.allowedOrigins.has(origin) || (policy.originPatterns ?? []).some((pattern) => pattern.test(origin));
 }
 
