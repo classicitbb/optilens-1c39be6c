@@ -124,7 +124,7 @@ const REQUIRED_SNIPPETS = [
   },
   {
     file: "src/pages/Auth.tsx",
-    snippets: ["Welcome back", "Sign In", "Forgot your password?", "form.handleSubmit(handleContinueFromDetails)", "await signIn(", "await signInWithMagicLink("],
+    snippets: ["Welcome back", "Sign In", "Forgot password?", "form.handleSubmit(handleContinueFromDetails)", "await signIn(", "await signInWithMagicLink("],
   },
   {
     file: "src/hooks/use-toast.ts",

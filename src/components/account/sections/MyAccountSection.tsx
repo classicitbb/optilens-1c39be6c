@@ -666,7 +666,9 @@ const MyAccountSection = () => {
                   </div>
                 </div>
               </dl>
-              {role ? (
+              {role === "admin" ? (
+                <Button asChild variant="outline" size="sm"><Link to="/admin/dashboard">Admin</Link></Button>
+              ) : role ? (
                 <Badge
                   className="h-5 border-0 px-1.5 py-0 text-[10px] font-medium"
                   style={{ background: roleBadgeStyle[role]?.bg, color: roleBadgeStyle[role]?.color }}

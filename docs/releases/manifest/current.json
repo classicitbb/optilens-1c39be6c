@@ -1,16 +1,18 @@
 {
-  "semanticVersion": "0.24.0",
-  "sourceEntry": "2026-10-28 — Business research in Notes and CI repair (local source)",
+  "semanticVersion": "0.25.0",
+  "sourceEntry": "2026-10-28 — Admin mobile workflow, Gatekeeper delivery and extra invoices",
   "releaseDateTimeUtc": "2026-10-28T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Find business details still fills blank fields from Google Places. It always adds a written market-intel profile (what they do, services, brands, online presence, recent news, published contact details) with source links under the contact's existing Notes; Save keeps it. In the contacts list, select up to 25 contacts and use Add market intel to notes to save it to each one directly. Needs the crm-enrich-contacts deploy and OPENAI_API_KEY for the web part. Not deployed or run against live providers."
+    "Orders can include unpriced published items for later lab appraisal. Gatekeeper is the default sender with a shared auto-transmit switch for new submissions. Staff can issue additional BBD invoices into the customer cart; unpaid charges hold website shipment transitions.",
+    "Mobile admin search opens from a button into a wide field and readable, wrapping result list below the header; desktop retains its inline field.",
+    "Admin dashboard links beside the account-drawer username and on the profile. Shared mobile admin headers move secondary controls into the profile menu; the sidebar opens from an edge tab as a temporary drawer. Rx capture supports repeated camera photos and selecting multiple files, with larger touch controls and refresh for captures from other devices. Frontend pending merge; migrations and gatekeeper-orders deployed and verified."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Business research in Notes and CI repair (local source)."
+      "notes": "Updated as part of Admin mobile workflow, Gatekeeper delivery and extra invoices."
     }
   ],
   "migrationNotes": [

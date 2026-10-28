@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
 import { fieldsMatch } from "@/lib/wildcardMatch";
-import { Search, BookOpen, ArrowRight, PlusCircle, Ticket, User, Activity, LayoutDashboard } from "lucide-react";
+import { X, Search, BookOpen, ArrowRight, PlusCircle, Ticket, User, Activity, LayoutDashboard } from "lucide-react";
 import { wikiCategories } from "@/data/wikiContent";
 import { cn } from "@/lib/utils";
 import { useRolePermissions, PATH_FEATURE_MAP } from "@/hooks/useRolePermissions";
@@ -35,6 +37,9 @@ const humanizeRouteId = (id: string) => id
   .replace(/\b\w/g, (character) => character.toUpperCase());
 
 const GlobalSearch = () => {
+  const isMobile = useIsMobile();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [query, setQuery] = useState("");
   const [mailQuery, setMailQuery] = useState("");
   useEffect(() => {
@@ -327,15 +332,16 @@ const GlobalSearch = () => {
     if (!open) setQuery("");
   }, [open]);
 
+  useEffect(() => {
+    if (isMobile && open) inputRef.current?.focus();
+  }, [isMobile, open]);
+
+  useEffect(() => { setOpen(false); }, [location.key, isMobile]);
+
   // Click outside to close
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(e.target as Node)
-      ) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
@@ -354,11 +360,12 @@ const GlobalSearch = () => {
       if (e.key === "Escape") {
         setOpen(false);
         inputRef.current?.blur();
+        if (isMobile && open) triggerRef.current?.focus();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
+  }, [isMobile, open]);
 
   const selectResult = (result: SearchResult) => {
     if (result.id === "action-create-activity") {
@@ -391,15 +398,19 @@ const GlobalSearch = () => {
   const showDropdown = open && (query.trim().length > 0 || results.length > 0);
 
   return (
-    <div className="relative flex-1 max-w-xl">
+    <div ref={rootRef} className="relative min-w-0 flex-1 max-w-xl">
+      {isMobile && <Button ref={triggerRef} type="button" variant="ghost" size="icon" className="h-7 w-7" aria-label="Search admin" aria-expanded={open} onClick={() => setOpen((value) => !value)}><Search className="h-4 w-4" /></Button>}
+      <div hidden={isMobile && !open} className={isMobile ? "fixed inset-x-3 top-12 z-[200] rounded-lg border bg-background p-2 shadow-xl" : "relative"}>
       <div className="relative">
+
         <Search
           className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none"
           style={{ color: "hsl(215 15% 55%)" }}
         />
         <input
           ref={inputRef}
-          type="text"
+          type="search"
+          aria-label="Search modules, pages and settings"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -408,7 +419,7 @@ const GlobalSearch = () => {
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={inEmail ? "Search inboxes and site… (Ctrl+K)" : "Search modules, pages, settings… (Ctrl+K)"}
-          className="h-7 w-full pl-8 pr-3 text-xs rounded border outline-none transition-all"
+          className="h-11 w-full pl-8 pr-16 text-base rounded border outline-none transition-all md:h-7 md:pr-8 md:text-xs"
           style={{
             borderColor: open ? "hsl(215 65% 60%)" : "hsl(215 15% 82%)",
             background: "hsl(210 20% 97%)",
@@ -418,18 +429,20 @@ const GlobalSearch = () => {
         {query && (
           <button
             onClick={() => { setQuery(""); inputRef.current?.focus(); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs leading-none"
+            aria-label="Clear search"
+            className="absolute right-10 md:right-2 top-1/2 -translate-y-1/2 text-xs leading-none"
             style={{ color: "hsl(215 15% 55%)" }}
           >
             ✕
           </button>
         )}
+        {isMobile && <Button type="button" variant="ghost" size="icon" aria-label="Close search" className="absolute right-1 top-1 h-9 w-9" onClick={() => { setOpen(false); triggerRef.current?.focus(); }}><X className="h-4 w-4" /></Button>}
       </div>
 
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute left-0 top-full mt-1 w-full max-h-80 overflow-y-auto rounded-lg border shadow-xl z-[200] py-1"
+          className="mt-1 max-h-[60dvh] w-full overflow-y-auto rounded-lg border py-1 md:absolute md:left-0 md:top-full md:max-h-80 md:shadow-xl md:z-[200]"
           style={{ background: "hsl(0 0% 100%)", borderColor: "hsl(215 15% 82%)" }}
         >
           {inEmail && mailSearchError && <div className="px-3 py-2 text-xs text-amber-700">Inbox search is temporarily unavailable. Site results are shown below.</div>}
@@ -474,14 +487,14 @@ const GlobalSearch = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <div
-                          className="text-xs font-medium truncate"
+                          className="text-sm font-medium break-words md:text-xs md:truncate"
                           style={{ color: isHighlighted ? "hsl(215 65% 40%)" : "hsl(215 30% 15%)" }}
                         >
                           {result.label}
                         </div>
                         {result.sublabel && (
                           <div
-                            className="text-[10px] truncate"
+                            className="text-xs break-words md:text-[10px] md:truncate"
                             style={{ color: "hsl(215 15% 55%)" }}
                           >
                             {result.sublabel}
@@ -503,6 +516,7 @@ const GlobalSearch = () => {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };

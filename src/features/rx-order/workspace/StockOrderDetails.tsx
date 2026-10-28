@@ -57,11 +57,11 @@ export function StockOrderDetails({ stock, view }: { stock: StockSubmissionRow; 
             <tr key={idx} className="border-b border-border">
               <td className="p-2">{l.description ?? l.product_id ?? "Item"}<div className="font-mono text-muted-foreground">{l.sku ?? "—"}</div>{l.comment && <div>{l.comment}</div>}</td>
               <td className="p-2">{l.side ?? "—"}</td><td className="p-2">{l.quantity ?? "—"}</td>
-              <td className="p-2">{l.unit_price == null ? "—" : money(l.unit_price)}</td>
-              <td className="p-2">{l.unit_price == null || l.quantity == null ? "—" : money(l.unit_price * l.quantity)}</td>
+              <td className="p-2">{l.price_pending ? "Price to be confirmed" : l.unit_price == null ? "—" : money(l.unit_price)}</td>
+              <td className="p-2">{l.price_pending ? "Not yet quoted" : l.unit_price == null || l.quantity == null ? "—" : money(l.unit_price * l.quantity)}</td>
             </tr>
           ))}</tbody>
-          <tfoot><tr className="font-semibold"><td colSpan={4} className="p-2">Total BBD</td><td className="p-2">{stock.payload.order_total == null ? "—" : money(stock.payload.order_total)}</td></tr></tfoot>
+          <tfoot><tr className="font-semibold"><td colSpan={4} className="p-2">{stock.payload.items?.some((line) => line.price_pending) ? "Known-price subtotal BBD" : "Total BBD"}</td><td className="p-2">{stock.payload.order_total == null ? "—" : money(stock.payload.order_total)}</td></tr></tfoot>
         </table>
       </div>
     </div>

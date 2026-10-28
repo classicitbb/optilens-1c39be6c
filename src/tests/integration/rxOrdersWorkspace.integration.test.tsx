@@ -7,6 +7,9 @@ import type { RxSubmissionRow } from "@/features/rx-order/types";
 
 const mocks = vi.hoisted(() => ({ email: vi.fn(), approve: vi.fn(), cancel: vi.fn(), resend: vi.fn(), pull: vi.fn(), navigate: vi.fn(), state: { items: [] as any[] } }));
 
+vi.mock("@/features/rx-order/hooks/useOrderDispatchSettings", () => ({ useOrderDispatchSettings: () => ({ data: { auto_transmit: true }, change: { mutate: vi.fn(), isPending: false } }) }));
+vi.mock("@/hooks/useUserRole", () => ({ useUserRole: () => ({ isAdmin: true, canEdit: true }) }));
+vi.mock("@/features/rx-order/workspace/ExtraInvoiceEditor", () => ({ ExtraInvoiceEditor: () => null }));
 vi.mock("react-router", async (orig) => ({ ...(await orig<typeof import("react-router")>()), useNavigate: () => mocks.navigate }));
 vi.mock("@/hooks/use-toast", () => ({ toast: vi.fn(), useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/hooks/useStockOrderBuilder", () => ({ useReleaseStockOrder: () => ({ mutateAsync: vi.fn(), isPending: false }) }));

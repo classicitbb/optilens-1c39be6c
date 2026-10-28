@@ -46,7 +46,7 @@ function ProductPowers({ product, identity, side, money, onAdd, onDone }: Pick<P
     onDone();
   };
   return <div className="mt-5 space-y-3 rounded-lg border p-3">
-    <div className="flex justify-between gap-4 text-xs"><div><b>{product.name}</b><p className="mt-1 text-muted-foreground">{identity.finish}</p></div><b className="whitespace-nowrap">{money(product.unit_price * (side === 'pair' ? 2 : 1))} / {side === 'pair' ? 'pair' : 'lens'}</b></div>
+    <div className="flex justify-between gap-4 text-xs"><div><b>{product.name}</b><p className="mt-1 text-muted-foreground">{identity.finish}</p></div><b className="whitespace-nowrap">{product.price_source === 'pending_lab_quote' ? 'Price to be confirmed' : money(product.unit_price * (side === 'pair' ? 2 : 1))} / {side === 'pair' ? 'pair' : 'lens'}</b></div>
     {isLoading && <p className="text-xs">Loading available powers…</p>}{error && <p role="alert" className="text-xs text-destructive">Could not load variants. Close and retry.</p>}
     {diameters.length > 1 && <ComboBox label="Diameter" value={diameter} items={diameters.map(id => ({ id, n: id === 'Not specified' ? id : `${id} mm` }))} onPick={setDiameter} />}
     {validation && <p role="alert" className="text-xs text-destructive">{validation}</p>}

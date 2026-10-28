@@ -37,7 +37,7 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
   const { canAccessFeature } = usePortalIdentity();
   const { hasAvailableSupport } = useSupportAvailability();
   const { isOpen: isAssistantOpen, openAssistant, closeAssistant } = useCompanionAssistant();
-  const { hasAccess } = useUserRole();
+  const { hasAccess, isAdmin } = useUserRole();
   const { annotator, isActive: isAnnotating } = useAnnotator(hasAccess);
   const { theme, setTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -221,7 +221,8 @@ const AccountTopBar = ({ displayName, onSignOut }: AccountTopBarProps) => {
                   {formattedDisplayName.slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              <span className="truncate text-sm font-semibold">{formattedDisplayName}</span>
+              <span className="min-w-0 truncate text-sm font-semibold">{formattedDisplayName}</span>
+              {isAdmin && <Button asChild size="sm" variant="outline" className="mr-6 h-8 shrink-0 gap-1 px-2 text-xs"><Link to="/admin/dashboard"><Shield className="h-3.5 w-3.5" />Admin</Link></Button>}
             </SheetTitle>
           </SheetHeader>
 

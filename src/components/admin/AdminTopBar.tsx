@@ -1,3 +1,4 @@
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,6 +103,7 @@ interface AdminTopBarProps {
 
 const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
   const { role, realRole, isImpersonating, impersonatedUserName, stopImpersonation } = useAdminRole();
   const navigate = useNavigate();
   const location = useLocation();
@@ -175,7 +177,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
   return (
     <>
       <header
-        className="admin-topbar admin-surface relative z-30 flex items-center gap-2 px-3 h-11 border-b shrink-0 w-full border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))] focus-within:z-[10000]">
+        className="admin-topbar admin-surface relative z-30 flex items-center gap-1 px-1 md:gap-2 md:px-3 h-11 border-b shrink-0 w-full border-[hsl(var(--admin-border))] bg-[hsl(var(--admin-topbar-bg))] focus-within:z-[10000]">
 
         {/* ── LEFT GROUP ── */}
         <div className="flex items-center gap-2 shrink-0">
@@ -219,7 +221,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             </Button>
           )}
           <GlobalSearch />
-          <NewMenu />
+          {!isMobile && <NewMenu />}
         </div>
 
         {/* ── RIGHT GROUP ── */}
@@ -228,7 +230,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
           utilities={
           <TooltipProvider delayDuration={300}>
             {/* Revert impersonation */}
-            {role !== realRole && isImpersonating &&
+            {!isMobile && role !== realRole && isImpersonating &&
             <Button
               variant="outline"
               size="sm"
@@ -246,11 +248,11 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
             <NotificationBell />
             <OperatorAttentionAlert />
 
-            <AnnotateMenu />
+            {!isMobile && <AnnotateMenu />}
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onHelpToggle} aria-pressed={helpOpen}>
+                <Button variant="ghost" size="icon" className="hidden md:inline-flex h-7 w-7" onClick={onHelpToggle} aria-pressed={helpOpen}>
                   <HelpCircle className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />
                 </Button>
               </TooltipTrigger>
@@ -262,7 +264,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7"
+                  className="hidden md:inline-flex h-7 w-7"
                   onClick={() => navigate("/admin/settings/company")}
                   data-navigation-target="/admin/settings/company"
                   aria-label="Settings"
@@ -275,7 +277,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cycleTheme} aria-label="Toggle theme">
+                <Button variant="ghost" size="icon" className="hidden md:inline-flex h-7 w-7" onClick={cycleTheme} aria-label="Toggle theme">
                   {mounted && (resolvedTheme === "dark" ? <Moon className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" /> : <Sun className="h-3.5 w-3.5 text-[hsl(var(--admin-muted-fg))]" />)}
                 </Button>
               </TooltipTrigger>
@@ -295,7 +297,7 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                     <AvatarImage src={avatarUrl || undefined} alt={displayName} />
                     <AvatarFallback className="bg-[hsl(var(--admin-accent))]/15 font-medium text-[hsl(var(--admin-content-fg))]">{initials}</AvatarFallback>
                   </Avatar>
-                  <span className="text-[11px] font-medium text-[hsl(var(--admin-content-fg))] hidden sm:inline max-w-[220px] truncate">{displayName}</span>
+                  <span className="text-[11px] font-medium text-[hsl(var(--admin-content-fg))] hidden md:inline max-w-[220px] truncate">{displayName}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -308,6 +310,13 @@ const AdminTopBar = ({ helpOpen, onHelpToggle }: AdminTopBarProps) => {
                   <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
 
+                {isMobile && <>
+                  <div className="flex items-center gap-3 px-2.5 py-2"><NewMenu /><TooltipProvider><AnnotateMenu /></TooltipProvider></div>
+                  <DropdownMenuItem onSelect={onHelpToggle}>Help for this page</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigate("/admin/settings/company")}>Settings</DropdownMenuItem>
+                  {isImpersonating && <DropdownMenuItem onSelect={stopImpersonation}>Stop viewing as {impersonatedUserName || role}</DropdownMenuItem>}
+                  <DropdownMenuSeparator />
+                </>}
                 <DropdownMenuItem onClick={() => navigate("/admin/wiki")} data-navigation-target="/admin/wiki" className="gap-3 rounded-xl px-2.5 py-2 text-sm focus:bg-accent/70">
                   <BookOpen className="h-4 w-4" /> Helpdesk / Wiki
                 </DropdownMenuItem>

@@ -1,6 +1,7 @@
 // The detail drawer: what the order is, what it will cost, what was sent to the lab
 // and what came back, and everything that has happened to it. For a capture it also
 // shows the original sheet beside the order.
+import { ExtraInvoiceEditor } from "./ExtraInvoiceEditor";
 import { useMemo, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ExternalLink } from "lucide-react";
@@ -70,6 +71,7 @@ export function RxOrderDrawer({ item, onClose, actions }: { item: WorkspaceItem 
               </TabsList>
 
               <TabsContent value="summary" className="space-y-4">
+                <ExtraInvoiceEditor key={item.key} item={item} />
                 {item.stock ? <StockOrderDetails stock={item.stock} view="summary" /> : <>
                 {imagePath && (
                   <div className="overflow-auto rounded-lg border bg-muted/30">

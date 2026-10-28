@@ -21,8 +21,9 @@ import {
 import { RxOrderDrawer } from "./RxOrderDrawer";
 import { emailCustomer, useRxWorkspace, type CustomerEvent } from "./useRxWorkspace";
 import { useReleaseStockOrder } from "@/hooks/useStockOrderBuilder";
-import { ToastAction } from "@/components/ui/toast";
-import { isNotPricedError, releaseErrorMessage } from "./releaseError";
+import { useOrderDispatchSettings } from "../hooks/useOrderDispatchSettings";
+import { useUserRole } from "@/hooks/useUserRole";
+import { releaseErrorMessage } from "./releaseError";
 
 type Provider = "innovations" | "gatekeeper";
 
@@ -44,6 +45,8 @@ export default function RxOrdersWorkspace() {
   const navigate = useNavigate();
   const ws = useRxWorkspace();
   const stockRelease = useReleaseStockOrder();
+  const dispatch = useOrderDispatchSettings();
+  const { isAdmin } = useUserRole();
   const { approveMutation, resendMutation, cancelMutation, pullStatusesMutation } = ws.outbox;
 
   const [tab, setTab] = useState<WorkspaceTab>("lab");
@@ -59,7 +62,7 @@ export default function RxOrdersWorkspace() {
   const counts = useMemo(() => countByTab(filtered), [filtered]);
   const rows = useMemo(() => filtered.filter((i) => i.tab === tab), [filtered, tab]);
   const open = ws.items.find((i) => i.key === openKey) ?? null;
-  const providerOf = (i: WorkspaceItem): Provider => choices[i.key] ?? i.provider ?? "innovations";
+  const providerOf = (i: WorkspaceItem): Provider => choices[i.key] ?? i.provider ?? "gatekeeper";
 
   const releasable = rows.filter((i) => i.tab === "ready" && (i.submission || i.stock));
   const picked = releasable.filter((i) => selected.has(i.key));
@@ -81,10 +84,7 @@ export default function RxOrdersWorkspace() {
         toast({
           variant: "destructive",
           title: "Release failed",
-          description: isNotPricedError(msg) ? `${msg} Price it on the account's price list, then release again.` : msg,
-          action: isNotPricedError(msg)
-            ? <ToastAction altText="Open price lists" onClick={() => navigate("/admin/pricing/pricelists")}>Open price lists</ToastAction>
-            : undefined,
+          description: msg,
         });
         throw Object.assign(new Error(msg ?? "Release failed"), { cause: e });
       }
@@ -189,6 +189,9 @@ export default function RxOrdersWorkspace() {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="flex items-center gap-2 text-base font-semibold"><Send className="h-4 w-4" /> Rx & Stock Orders</h1>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground" title="New submissions go directly to Gatekeeper. Switch off to test with manual release; existing drafts are not sent.">
+            <Switch checked={dispatch.data?.auto_transmit ?? false} disabled={!isAdmin || dispatch.isLoading || dispatch.change.isPending || !!dispatch.error} aria-label="Auto-transmit new orders to Gatekeeper" onCheckedChange={(enabled) => dispatch.change.mutate(enabled, { onError: (e) => toast({ title: "Could not change transmission", description: e.message, variant: "destructive" }) })} /> Auto-transmit to Gatekeeper
+          </label>
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground" title="Send the customer an email when you release an order">
             <Switch checked={emailOnRelease} onCheckedChange={setEmailOnRelease} aria-label="Email customer when released" /> Email Rx customer when released
           </label>

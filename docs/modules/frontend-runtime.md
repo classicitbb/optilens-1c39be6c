@@ -446,3 +446,11 @@ Token-checked database RPCs keep private stock/cost tables inaccessible. Both sc
 migrations are applied. Daily 06:00 Barbados publication was exercised unattended and
 positively accepted. Desktop and 360/390px checks passed without page overflow or
 script errors. No source stock/order write, reservation, payment or email occurred.
+
+## Admin mobile navigation and capture - 2026-10-28
+
+Local source: admin dashboard links in the account drawer and profile; compact shared mobile admin header with profile overflow; closed-by-default overlay sidebar; repeated camera photos and multi-file Rx capture with larger touch targets and cross-device list refresh. Existing admin-area authorization and capture services are retained. See docs/agent/PROJECT_KNOWLEDGE.md and HANDOFF.md for validation and release limits.
+
+Mobile admin search follow-up (2026-10-28, local source): GlobalSearch collapses to a search button below 768px. Opening focuses a 16px input and shows viewport-wide results beneath the topbar; labels wrap and results scroll within 60dvh. Outside tap, close button, Escape and navigation dismiss it; Escape/close restore button focus. Desktop retains its inline input and Ctrl+K. Search permissions and data sources are unchanged.
+
+Order transmission and supplementary invoices (2026-10-28): unpriced published stock items carry price_pending and lab hold notes; account-only prices, Gatekeeper default and server-driven auto-transmit for new submissions, admin switch with manual mode, and staff-issued itemised BBD invoices payable separately from the customer cart. Website shipping transitions are blocked for unpaid extras/unquoted submissions. Test fixtures and historical drafts are not auto-sent. Existing payment settlement and access controls remain authoritative. See docs/order-transmission-and-extra-invoices.md for operational limits and verification.

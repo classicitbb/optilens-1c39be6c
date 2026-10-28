@@ -304,6 +304,7 @@ const AdminRoutes = () => (
       <Route path="orders/rx/new" element={<RxOrderEditPage />} />
       <Route path="orders/rx/:quoteId/edit" element={<RxOrderEditPage />} />
       <Route path="orders/rx-submissions" element={<RxSubmissionsPage />} />
+      <Route path="website/store/lens-assistant" element={<Navigate to="/admin/orders/rx/settings" replace />} />
       <Route path="orders/rx-capture" element={<RxCapturePage />} />
       <Route path="orders/rx-test" element={<RxOrderTestBench allowLive />} />
       <Route path="website/orders" element={<LegacyWebsiteOrdersRedirect />} />

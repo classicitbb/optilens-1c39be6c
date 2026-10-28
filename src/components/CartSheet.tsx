@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router";
 import { getStoreProductRoute, resolveStoreProductFromCartRef, useStoreProducts } from "@/hooks/useStoreProducts";
 import QuantityInput from "@/components/cart/QuantityInput";
 import StoreProductImage from "@/components/StoreProductImage";
+import { ExtraInvoicesCart } from "@/components/cart/ExtraInvoicesCart";
 import { getCartItemUnit } from "@/lib/cartUnits";
 
 interface CartSheetProps {
@@ -54,12 +55,12 @@ export const CartSheet = ({
       variant={triggerVariant}
       size={triggerSize}
       className={cn("gap-1.5", showLabel && "px-4", className)}
-      aria-label="Go to shop"
+      aria-label="Open cart and invoices"
       asChild
     >
-      <Link to="/store">
+      <Link to="/cart">
         <ShoppingCart className="h-5 w-5" aria-hidden="true" />
-        {showLabel ? <span className="hidden sm:inline">Shop</span> : <span className="sr-only">Shop</span>}
+        {showLabel ? <span className="hidden sm:inline">Cart</span> : <span className="sr-only">Cart</span>}
       </Link>
     </Button>
   );
@@ -112,6 +113,7 @@ export const CartSheet = ({
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto py-4">
+                  <ExtraInvoicesCart />
                   <div className="space-y-3">
                     {items.map((item) => {
                       const linkedProduct = resolveCartItemProduct(item);
