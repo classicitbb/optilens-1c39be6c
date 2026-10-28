@@ -298,16 +298,16 @@ export const onboardingSteps = [
   {
     number: "03",
     title: "Order the way that suits you",
-    text: "Submit an Rx through the online form, order stock from the trade store, or call it in. Same job, same tracking, whichever route you take.",
-    meta: "Rx form, trade store, phone, or LabLink",
+    text: "Once your account is approved, place prescription and stock orders online or call them in — whichever suits you.",
+    meta: "Ordering opens once your account is approved",
     href: "/profile/rx-order",
     linkLabel: "Open the Rx order form",
     icon: ScanEye,
   },
   {
     number: "04",
-    title: "Track it to the door",
-    text: "Live job status from surfacing through dispatch, with freight and delivery handled across the region and a named person to call if anything moves.",
+    title: "Follow it to the door",
+    text: "Stay informed after you order, with freight and delivery handled across the region and a named person to call if anything moves.",
     meta: PLACEHOLDERS.standardTurnaround
       ? `Standard turnaround ${PLACEHOLDERS.standardTurnaround}`
       : "Turnaround varies by Rx, material, and coating",
@@ -364,7 +364,7 @@ export const professionalFaqs = [
   {
     question: "How do I open a trade account with Classic Visions?",
     answer:
-      "Complete the online trade account application with your practice details. Once your account is set up we build a price list around the products you dispense, give you access to the online Rx order form and order tracking, and introduce you to the person who will look after your account.",
+      "Complete the online trade account application with your practice details. Once your account is set up we build a price list around the products you dispense, set up your account access, and introduce you to the person who will look after your account.",
     links: [
       { label: "Apply for a trade account", href: "/professionals/trade-account" },
       { label: "Request a price list", href: "/professionals/price-list-request" },
@@ -397,16 +397,16 @@ export const professionalFaqs = [
   {
     question: "How do I place and track a prescription order?",
     answer:
-      "Trade account holders submit prescriptions through the online Rx order form in My Account, or order stock items from the trade store. Every job appears in order tracking with live status from surfacing through dispatch. Confirm production and dispatch timing with the team before committing to a delivery date.",
+      "Approved trade accounts can place prescription and stock orders online or by phone, and follow their orders after placing them. Confirm production and dispatch timing with the team before committing to a delivery date.",
     links: [
-      { label: "Rx order form", href: "/profile/rx-order" },
-      { label: "Order tracking", href: "/profile/orders" },
+      { label: "Apply for a trade account", href: "/professionals/trade-account" },
+      { label: "Customer service & hours", href: "/professionals/customer-service" },
     ],
   },
   {
     question: "How long does a prescription job take?",
     answer:
-      "Turnaround depends on the prescription, the lens material, and the coatings specified — a stock finished lens leaves far sooner than a high-index progressive with a mirror finish. Your order tracking shows the live status of each job, and your account contact can confirm a date before you commit to a patient.",
+      "Turnaround depends on the prescription, the lens material, and the coatings specified — a stock finished lens leaves far sooner than a high-index progressive with a mirror finish. Your account contact can confirm a date before you commit to a patient.",
     links: [{ label: "Lab process overview", href: "/professionals/lab-process-overview" }],
   },
   {

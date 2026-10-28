@@ -33,6 +33,7 @@ describe("smart customer journey integration contract", () => {
     const page = read("src/pages/LabLinkEmbedPage.tsx");
     expect(page).toContain("src={src}");
     expect(page).toContain('href={src} target="_blank" rel="noopener noreferrer"');
+    expect(page).toContain("Open LabLink");
     expect(page).not.toContain('allow="clipboard-read; clipboard-write"');
   });
 

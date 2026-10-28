@@ -2,23 +2,12 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { parseContactEmails } from "@/lib/contactEmails";
-
-type Source = { title: string; url: string; snippet: string; emails: string[] };
-type Research = { contactId: string; retrievedAt: string; sources: Source[]; warnings?: string[]; skipped?: string; error?: string };
+import { fetchContactResearch } from "./contactResearch";
 
 export function PublicWebResearch({ contactId, emails, onEmails }: { contactId: string; emails: string; onEmails: (value: string) => void }) {
   const [expanded, setExpanded] = useState(false);
-  const research = useMutation({ mutationFn: async () => {
-    const { data, error } = await supabase.functions.invoke("crm-enrich-contacts", { body: { contactId, mode: "research" } });
-    if (error) throw error;
-    const result = data as Research;
-    if (result?.error) throw new Error(result.error);
-    if (result?.skipped === "daily_cap") throw new Error("The daily research limit has been reached. Try again tomorrow.");
-    if (!Array.isArray(result?.sources)) throw new Error("Public web research is unavailable on this deployment.");
-    return result;
-  } });
+  const research = useMutation({ mutationFn: () => fetchContactResearch(contactId) });
   return <div className="space-y-2">
     <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" disabled={research.isPending}
       onClick={() => { setExpanded(true); research.mutate(); }}><Globe className="h-3 w-3" />{research.isPending ? "Researching…" : "Research public web"}</Button>

@@ -29,7 +29,7 @@ describe("on-demand live-data gateway contract", () => {
     const orders = read("src/components/account/sections/MyOrdersSection.tsx");
     expect(statements).toContain('requestLiveData<LiveAccountResponse>("innovations.customer_account"');
     expect(statements).toContain('"innovations.customer_statement"');
-    expect(orders).toMatch(/requestLiveData<LiveDeliveriesResponse>\(\s*"optilens.customer_deliveries"/);
+    expect(orders).toMatch(/requestLiveData<LiveDeliveriesResponse>\(\s*"optilens\.customer_deliveries"/);
   });
 });
 

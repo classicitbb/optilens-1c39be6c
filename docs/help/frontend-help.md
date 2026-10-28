@@ -78,7 +78,7 @@ In Send email, open Contacts and search a name or address. Selection updates To 
 
 ## 2026-10-07 — CRM contact editor
 
-Type a company name in Parent Company; Enter selects the first filtered result and arrow keys move the highlight. Escape cancels the search. Separate email addresses with commas, semicolons or colons; put the primary first. Save keeps the editor open, while Save & Close closes after persistence succeeds. Save before Research public web: it uses stored contact details. Check the linked source and identity before adding a suggested email, then Save the draft. Find business details remains the Google Places action. Website edits currently do not write back to Innovations.
+Type a company name in Parent Company; Enter selects the first filtered result and arrow keys move the highlight. Escape cancels the search. Separate email addresses with commas, semicolons or colons; put the primary first. Save keeps the editor open, while Save & Close closes after persistence succeeds. Save before Research public web: it uses stored contact details. Check the linked source and identity before adding a suggested email, then Save the draft. Find business details fills blank fields from Google Places and always adds a written market-intel profile with source links under the existing Notes, which you keep with Save. Select contacts in the list and choose Add market intel to notes to save it to up to 25 contacts at once. Website edits currently do not write back to Innovations.
 
 ## 2026-10-07 — Admin attention dropdown
 

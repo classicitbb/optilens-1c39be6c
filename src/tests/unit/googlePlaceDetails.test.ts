@@ -44,7 +44,10 @@ describe("Places API (New) contact lookups", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ places: [{ id: "id", displayName: { text: "Specs Optical" } }] })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: "id", displayName: { text: "Specs Optical" }, formattedAddress: "Cheapside" })));
     expect(await researchProvider("google_places", "key", "Specs Optical Barbados", "Specs Optical", "unused"))
-      .toEqual([{ title: "Google Places: Specs Optical", url: "https://www.google.com/maps/place/?q=place_id:id", snippet: "Cheapside", emails: [] }]);
+      .toEqual({
+        sources: [{ title: "Google Places: Specs Optical", url: "https://www.google.com/maps/place/?q=place_id:id", snippet: "Cheapside", emails: [] }],
+        summary: "Specs Optical\n- Address: Cheapside",
+      });
     expect(request).toHaveBeenCalledTimes(2);
   });
 });

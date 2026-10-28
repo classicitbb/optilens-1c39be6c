@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useContactEnrichment } from "@/features/admin/crm/hooks/useContactEnrichment";
 import { CompanyCombobox } from "@/features/admin/crm/CompanyCombobox";
 import { PublicWebResearch } from "@/features/admin/crm/PublicWebResearch";
+import { appendResearchToNotes, fetchContactResearch } from "@/features/admin/crm/contactResearch";
 import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useLaunchNew } from "@/hooks/useLaunchNew";
@@ -307,6 +308,8 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
 const EMPTY_CONTACTS: Contact[] = [];
 const EMPTY_STRING_LIST: string[] = [];
 const CONTACTS_PAGE_SIZE = 100;
+/** Each lookup uses up to two of the 150 daily provider attempts. */
+const MARKET_INTEL_BATCH = 25;
 const FILTER_LABELS: Record<FilterMode, string> = {
   all: "All",
   companies: "Companies",
@@ -579,6 +582,25 @@ const ContactsPage = ({
       return { ...previous, notes: `${notes}${notes ? " " : ""}${transcript}` };
     });
   }, []);
+  // The notes editor reads its document once on mount, so bump this to reload it after an outside append.
+  const [notesRevision, setNotesRevision] = useState(0);
+  const [isFindingDetails, setIsFindingDetails] = useState(false);
+  // Fill blank fields from Google Places, then always add the written market-intel profile under the
+  // existing notes, so a click leaves something to read even when no field changed.
+  const findBusinessDetails = async (contactId: string) => {
+    setIsFindingDetails(true);
+    try {
+      await enrichContact.mutateAsync({ contactId }).catch(() => null);
+      const research = await fetchContactResearch(contactId);
+      setEditContact((current) => (current && current.id === contactId ? { ...current, ...appendResearchToNotes(current, research) } : current));
+      setNotesRevision((revision) => revision + 1);
+      toast({ title: "Market intel added to Notes", description: "Review it on the Notes tab, then Save to keep it." });
+    } catch (error) {
+      toast({ title: "Could not research this business", description: error instanceof Error ? error.message : "Try again later.", variant: "destructive" });
+    } finally {
+      setIsFindingDetails(false);
+    }
+  };
   const dictation = usePushToTalk(appendDictationTranscript, {
     language: dictationLanguage,
     vocabulary: "Classic Visions, Innovations, ERP, portal access, account number, pricelist, lens",
@@ -587,6 +609,37 @@ const ContactsPage = ({
   useEffect(() => {
     dictation.setSettings((current) => ({ ...current, language: dictationLanguage }));
   }, [dictation.setSettings, dictationLanguage]);
+  // Saves straight to each chosen contact (the dialog is closed), one at a time to respect the daily lookup cap.
+  const [marketIntelProgress, setMarketIntelProgress] = useState<{ done: number; total: number } | null>(null);
+  const addMarketIntelToSelected = async () => {
+    const ids = selectedContactIds.slice(0, MARKET_INTEL_BATCH);
+    let added = 0;
+    let stopReason = selectedContactIds.length > ids.length ? `Only the first ${MARKET_INTEL_BATCH} were processed.` : "";
+    try {
+      for (const [index, id] of ids.entries()) {
+        setMarketIntelProgress({ done: index, total: ids.length });
+        try {
+          const research = await fetchContactResearch(id);
+          const { data: row, error: readError } = await (supabase.from("contacts") as any).select("notes,notes_doc").eq("id", id).maybeSingle();
+          if (readError || !row) throw readError ?? new Error("Contact not found");
+          const { error } = await (supabase.from("contacts") as any).update(appendResearchToNotes(row, research)).eq("id", id);
+          if (error) throw error;
+          added++;
+        } catch (error) {
+          stopReason = error instanceof Error ? error.message : "A lookup failed.";
+          if (/daily|limit|unavailable|not configured/i.test(stopReason)) break;
+        }
+      }
+    } finally {
+      setMarketIntelProgress(null);
+      void qc.invalidateQueries({ queryKey: ["contacts"] });
+      toast({
+        title: added ? `Market intel added to ${added} contact${added === 1 ? "" : "s"}` : "No market intel added",
+        description: stopReason || "Open a contact's Notes tab to read it.",
+        variant: added ? "default" : "destructive",
+      });
+    }
+  };
   const businessCardInputRef = useRef<HTMLInputElement>(null);
   const [businessCardFile, setBusinessCardFile] = useState<File | null>(null);
   const [isUploadingBusinessCard, setIsUploadingBusinessCard] = useState(false);
@@ -1959,6 +2012,16 @@ const ContactsPage = ({
         {!isErpAccountsMode && selectedContactIds.length > 0 && (
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-[11px]">{selectedContactIds.length} selected</Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={marketIntelProgress !== null}
+              title={`Research each selected contact on the public web and add a market-intel profile under its notes (up to ${MARKET_INTEL_BATCH} at a time).`}
+              onClick={() => void addMarketIntelToSelected()}
+            >
+              {marketIntelProgress ? `Researching ${marketIntelProgress.done + 1}/${marketIntelProgress.total}…` : "Add market intel to notes"}
+            </Button>
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setBulkAction("archive")}>Archive selected</Button>
             <Button variant="outline" size="sm" className="h-8 text-xs text-red-600" onClick={() => setBulkAction("delete")}>Delete selected</Button>
           </div>
@@ -2759,7 +2822,7 @@ const ContactsPage = ({
                       {dictation.error && <span className="text-[11px] text-destructive">{dictation.error}</span>}
                     </div>
                     <ContactNotesEditor
-                      key={editContact.id ?? "new"}
+                      key={`${editContact.id ?? "new"}-${notesRevision}`}
                       notes={editContact.notes ?? ""}
                       notesDoc={editContact.notes_doc}
                       onChange={(doc, text) => setEditContact((current) => (current ? { ...current, notes: text, notes_doc: doc } : current))}
@@ -2834,11 +2897,11 @@ const ContactsPage = ({
                           variant="ghost"
                           size="sm"
                           className="text-xs h-7 gap-1"
-                          disabled={enrichContact.isPending}
-                          title="Search Google Places for public business details. This does not search person profiles across the web."
-                          onClick={() => enrichContact.mutate({ contactId: editContact.id! })}
+                          disabled={isFindingDetails}
+                          title="Fill blank fields from Google Places. If nothing changes, a written public-web profile is added to Notes."
+                          onClick={() => void findBusinessDetails(editContact.id!)}
                         >
-                          <Globe className="h-3 w-3" /> {enrichContact.isPending ? "Enriching…" : "Find business details"}
+                          <Globe className="h-3 w-3" /> {isFindingDetails ? "Searching…" : "Find business details"}
                         </Button>
                         <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
                           <Trash2 className="h-3 w-3" /> Delete

@@ -10,6 +10,13 @@
 ### Technical Changelog
 - Add server-only dispatch settings, scoped dispatch token, post-commit wakeups and recovery schedule; preserve test isolation and atomic claims without automatic replay/fallback. Add owner-scoped supplementary invoice/payment RPCs and shipping holds. Repair stale QA route/text assertions and forward launcher context-menu trigger props.
 - Reuse the mobile viewport hook and accessible Sheet with focus restoration, outside/Escape dismissal and close on navigation. Add a rear-camera file input alongside the existing multi-file/drop/paste intake; keep each file as its own draft. Poll idle capture lists every 15 seconds, faster while processing. Existing admin-area guards and capture APIs remain. Add intake and drawer tests; update continuity docs.
+## 2026-10-28 — Business research in Notes and CI repair (local source)
+
+### Release Notes
+- Find business details still fills blank fields from Google Places. When that changes nothing or fails, it always adds a written market-intel profile (what they do, services, brands, online presence, recent news, published contact details) with source links under the contact's existing Notes; Save keeps it. In the contacts list, select up to 25 contacts and use Add market intel to notes to save it to each one directly. Needs the crm-enrich-contacts deploy and OPENAI_API_KEY for the web part. Not deployed or run against live providers.
+
+### Technical Changelog
+- crm-enrich-contacts research mode also returns the model's written summary (instructions now ask for a labelled business profile); new `contactResearch.ts` shares the research fetch with Research public web and formats the Notes block, appended to the editor draft and reloading the notes editor. CI repair: `npm audit fix` cleared zod, body-parser, undici and fast-uri advisories (lockfile only); regenerated the public content search index; refreshed six stale contract tests (live-data-gateway selects, lens-assistant hidden redirect, Website sidebar order, LabLink embed copy, launcher shortcut label). Full suite passes locally (1774 tests).
 
 ## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
 

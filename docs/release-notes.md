@@ -7,6 +7,11 @@ Summarized release outcomes for each major date-stamped update.
 ### Release Notes
 - Admin dashboard links beside the account-drawer username and on the profile. Shared mobile admin headers move secondary controls into the profile menu; the sidebar opens from an edge tab as a temporary drawer. Rx capture supports repeated camera photos and selecting multiple files, with larger touch controls and refresh for captures from other devices. Not deployed.
 
+## 2026-10-28 — Business research in Notes and CI repair (local source)
+
+### Release Notes
+- Find business details still fills blank fields from Google Places. When that changes nothing or fails, it always adds a written market-intel profile (what they do, services, brands, online presence, recent news, published contact details) with source links under the contact's existing Notes; Save keeps it. In the contacts list, select up to 25 contacts and use Add market intel to notes to save it to each one directly. Needs the crm-enrich-contacts deploy and OPENAI_API_KEY for the web part. Not deployed or run against live providers.
+
 ## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
 
 ### Release Notes

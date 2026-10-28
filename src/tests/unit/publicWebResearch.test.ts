@@ -44,7 +44,7 @@ describe("Public web contact research", () => {
     try {
       await researchPublicWeb("test-key", "Alex Example", "configured-model");
       expect(fetchMock.mock.calls[0][0]).toBe("https://api.openai.com/v1/responses");
-      expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({ model: "configured-model", store: false, tools: [{ type: "web_search", search_context_size: "low" }], tool_choice: "required", max_tool_calls: 2, max_output_tokens: 2000 });
+      expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({ model: "configured-model", store: false, tools: [{ type: "web_search", search_context_size: "medium" }], tool_choice: "required", max_tool_calls: 4, max_output_tokens: 2500 });
       expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
     } finally { fetchMock.mockRestore(); }
   });
@@ -52,7 +52,7 @@ describe("Public web contact research", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("private-provider-details", { status: 402 }));
     try {
       await expect(researchPublicWeb("test-key", "Alex Example")).rejects.toThrow("Public web search failed (402)");
-      expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({ store: false, max_tool_calls: 2 });
+      expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({ store: false, max_tool_calls: 4 });
     } finally { fetchMock.mockRestore(); }
   });
 });
