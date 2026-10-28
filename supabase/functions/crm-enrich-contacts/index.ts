@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
   if (research) {
     if (!requestedContactId) return reply(400, { error: "Choose a saved contact to research." });
     const { data: contact, error } = await db.from("contacts")
-      .select("id,name,business_name,city,country_code").eq("id", requestedContactId).maybeSingle();
+      .select("id,name,business_name,city,country_code,website").eq("id", requestedContactId).maybeSingle();
     if (error) return reply(500, { error: error.message });
     if (!contact) return reply(404, { error: "Contact not found" });
     const query = buildResearchQuery(contact);

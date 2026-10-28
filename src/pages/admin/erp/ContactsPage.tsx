@@ -23,8 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useContactEnrichment } from "@/features/admin/crm/hooks/useContactEnrichment";
 import { CompanyCombobox } from "@/features/admin/crm/CompanyCombobox";
 import { PublicWebResearch } from "@/features/admin/crm/PublicWebResearch";
-import { fetchContactResearch, formatResearchNote } from "@/features/admin/crm/contactResearch";
-import { canonicalToSearchText, toCanonicalDocument } from "@/lib/wikiCanonical";
+import { appendResearchToNotes, fetchContactResearch } from "@/features/admin/crm/contactResearch";
 import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useLaunchNew } from "@/hooks/useLaunchNew";
@@ -309,6 +308,8 @@ const emptyContact = (isCompany: boolean): Partial<Contact> => ({
 const EMPTY_CONTACTS: Contact[] = [];
 const EMPTY_STRING_LIST: string[] = [];
 const CONTACTS_PAGE_SIZE = 100;
+/** Each lookup uses up to two of the 150 daily provider attempts. */
+const MARKET_INTEL_BATCH = 25;
 const FILTER_LABELS: Record<FilterMode, string> = {
   all: "All",
   companies: "Companies",
@@ -584,23 +585,16 @@ const ContactsPage = ({
   // The notes editor reads its document once on mount, so bump this to reload it after an outside append.
   const [notesRevision, setNotesRevision] = useState(0);
   const [isFindingDetails, setIsFindingDetails] = useState(false);
-  // Fill blank fields from Google Places first. When that changes nothing (or fails), fall back to a
-  // written web profile appended under the existing notes, so a click always leaves something to read.
+  // Fill blank fields from Google Places, then always add the written market-intel profile under the
+  // existing notes, so a click leaves something to read even when no field changed.
   const findBusinessDetails = async (contactId: string) => {
     setIsFindingDetails(true);
     try {
-      const enriched = await enrichContact.mutateAsync({ contactId }).catch(() => null);
-      if (enriched && ((enriched.applied ?? 0) > 0 || (enriched.pendingReview ?? 0) > 0)) return;
+      await enrichContact.mutateAsync({ contactId }).catch(() => null);
       const research = await fetchContactResearch(contactId);
-      const addition = toCanonicalDocument(formatResearchNote(research)).blocks;
-      setEditContact((current) => {
-        if (!current || current.id !== contactId) return current;
-        const existing = toCanonicalDocument(current.notes_doc ?? current.notes);
-        const doc = { ...existing, blocks: [...existing.blocks, ...addition] };
-        return { ...current, notes: canonicalToSearchText(doc), notes_doc: doc };
-      });
+      setEditContact((current) => (current && current.id === contactId ? { ...current, ...appendResearchToNotes(current, research) } : current));
       setNotesRevision((revision) => revision + 1);
-      toast({ title: "Research added to Notes", description: "Review it on the Notes tab, then Save to keep it." });
+      toast({ title: "Market intel added to Notes", description: "Review it on the Notes tab, then Save to keep it." });
     } catch (error) {
       toast({ title: "Could not research this business", description: error instanceof Error ? error.message : "Try again later.", variant: "destructive" });
     } finally {
@@ -615,6 +609,37 @@ const ContactsPage = ({
   useEffect(() => {
     dictation.setSettings((current) => ({ ...current, language: dictationLanguage }));
   }, [dictation.setSettings, dictationLanguage]);
+  // Saves straight to each chosen contact (the dialog is closed), one at a time to respect the daily lookup cap.
+  const [marketIntelProgress, setMarketIntelProgress] = useState<{ done: number; total: number } | null>(null);
+  const addMarketIntelToSelected = async () => {
+    const ids = selectedContactIds.slice(0, MARKET_INTEL_BATCH);
+    let added = 0;
+    let stopReason = selectedContactIds.length > ids.length ? `Only the first ${MARKET_INTEL_BATCH} were processed.` : "";
+    try {
+      for (const [index, id] of ids.entries()) {
+        setMarketIntelProgress({ done: index, total: ids.length });
+        try {
+          const research = await fetchContactResearch(id);
+          const { data: row, error: readError } = await (supabase.from("contacts") as any).select("notes,notes_doc").eq("id", id).maybeSingle();
+          if (readError || !row) throw readError ?? new Error("Contact not found");
+          const { error } = await (supabase.from("contacts") as any).update(appendResearchToNotes(row, research)).eq("id", id);
+          if (error) throw error;
+          added++;
+        } catch (error) {
+          stopReason = error instanceof Error ? error.message : "A lookup failed.";
+          if (/daily|limit|unavailable|not configured/i.test(stopReason)) break;
+        }
+      }
+    } finally {
+      setMarketIntelProgress(null);
+      void qc.invalidateQueries({ queryKey: ["contacts"] });
+      toast({
+        title: added ? `Market intel added to ${added} contact${added === 1 ? "" : "s"}` : "No market intel added",
+        description: stopReason || "Open a contact's Notes tab to read it.",
+        variant: added ? "default" : "destructive",
+      });
+    }
+  };
   const businessCardInputRef = useRef<HTMLInputElement>(null);
   const [businessCardFile, setBusinessCardFile] = useState<File | null>(null);
   const [isUploadingBusinessCard, setIsUploadingBusinessCard] = useState(false);
@@ -1987,6 +2012,16 @@ const ContactsPage = ({
         {!isErpAccountsMode && selectedContactIds.length > 0 && (
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-[11px]">{selectedContactIds.length} selected</Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={marketIntelProgress !== null}
+              title={`Research each selected contact on the public web and add a market-intel profile under its notes (up to ${MARKET_INTEL_BATCH} at a time).`}
+              onClick={() => void addMarketIntelToSelected()}
+            >
+              {marketIntelProgress ? `Researching ${marketIntelProgress.done + 1}/${marketIntelProgress.total}…` : "Add market intel to notes"}
+            </Button>
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setBulkAction("archive")}>Archive selected</Button>
             <Button variant="outline" size="sm" className="h-8 text-xs text-red-600" onClick={() => setBulkAction("delete")}>Delete selected</Button>
           </div>

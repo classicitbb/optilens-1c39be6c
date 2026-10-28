@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { BlogCanonicalContent } from "@/components/blog/BlogPostRenderer";
+import { canonicalToSearchText, toCanonicalDocument } from "@/lib/wikiCanonical";
 
 export type ResearchSource = { title: string; url: string; snippet: string; emails: string[] };
 export type ContactResearch = { contactId: string; retrievedAt: string; sources: ResearchSource[]; summary?: string; warnings?: string[]; skipped?: string; error?: string };
@@ -18,9 +20,16 @@ export function formatResearchNote(research: ContactResearch): string {
   const date = new Date(research.retrievedAt).toISOString().slice(0, 10);
   const links = research.sources.map((source) => `- [${source.title.replace(/[\[\]]/g, "")}](${source.url})`);
   return [
-    `## Business research (${date})`,
-    research.summary?.trim() || "No business profile was returned.",
+    `## Market intel (${date})`,
+    research.summary?.trim() || "No market intel was returned for this contact.",
     ...(links.length ? ["Sources", ...links] : []),
     "AI-assisted public search; verify before relying on it.",
   ].join("\n\n");
+}
+
+/** Appends the research under whatever the contact's notes already hold, keeping existing formatting. */
+export function appendResearchToNotes(current: { notes?: string | null; notes_doc?: BlogCanonicalContent | null }, research: ContactResearch) {
+  const existing = toCanonicalDocument(current.notes_doc ?? current.notes);
+  const doc = { ...existing, blocks: [...existing.blocks, ...toCanonicalDocument(formatResearchNote(research)).blocks] };
+  return { notes: canonicalToSearchText(doc), notes_doc: doc };
 }

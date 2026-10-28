@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-28 - Market intel not reaching contact notes
+
+Find business details only wrote notes when Google Places changed nothing, and the research prompt returned a thin contact-detail list, so users still went to ChatGPT for market intel. It now always appends a market-intel profile, and the contacts list can add it to up to 25 selected contacts. Edge functions deploy only on push to main, so crm-enrich-contacts must be deployed (with OPENAI_API_KEY) before the live button shows the new profile.
+
 ## 2026-10-28 - Red CI on codex/smart-customer-journey
 
 PR Validation failed on dependency audit (zod, body-parser, undici), a stale public content search index, and six contract tests that asserted outdated strings after earlier refactors. Fixed with `npm audit fix`, `npm run search:index` and updated assertions; no product behavior changed.

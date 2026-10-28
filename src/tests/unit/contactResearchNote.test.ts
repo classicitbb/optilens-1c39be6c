@@ -17,7 +17,7 @@ describe("Contact research notes", () => {
       summary: "Specs Optical\n- Phone: +1 246 426 7030",
       sources: [{ title: "Specs [Optical]", url: "https://example.com", snippet: "", emails: [] }],
     });
-    expect(note).toContain("## Business research (2026-10-28)");
+    expect(note).toContain("## Market intel (2026-10-28)");
     expect(note).toContain("- [Specs Optical](https://example.com)");
     const existing = toCanonicalDocument("Existing call note");
     const doc = { ...existing, blocks: [...existing.blocks, ...toCanonicalDocument(note).blocks] };
