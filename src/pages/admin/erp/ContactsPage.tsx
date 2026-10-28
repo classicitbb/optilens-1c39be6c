@@ -23,6 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useContactEnrichment } from "@/features/admin/crm/hooks/useContactEnrichment";
 import { CompanyCombobox } from "@/features/admin/crm/CompanyCombobox";
 import { PublicWebResearch } from "@/features/admin/crm/PublicWebResearch";
+import { fetchContactResearch, formatResearchNote } from "@/features/admin/crm/contactResearch";
+import { canonicalToSearchText, toCanonicalDocument } from "@/lib/wikiCanonical";
 import { normalizeContactEmails, parseContactEmails } from "@/lib/contactEmails";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -578,6 +580,32 @@ const ContactsPage = ({
       return { ...previous, notes: `${notes}${notes ? " " : ""}${transcript}` };
     });
   }, []);
+  // The notes editor reads its document once on mount, so bump this to reload it after an outside append.
+  const [notesRevision, setNotesRevision] = useState(0);
+  const [isFindingDetails, setIsFindingDetails] = useState(false);
+  // Fill blank fields from Google Places first. When that changes nothing (or fails), fall back to a
+  // written web profile appended under the existing notes, so a click always leaves something to read.
+  const findBusinessDetails = async (contactId: string) => {
+    setIsFindingDetails(true);
+    try {
+      const enriched = await enrichContact.mutateAsync({ contactId }).catch(() => null);
+      if (enriched && ((enriched.applied ?? 0) > 0 || (enriched.pendingReview ?? 0) > 0)) return;
+      const research = await fetchContactResearch(contactId);
+      const addition = toCanonicalDocument(formatResearchNote(research)).blocks;
+      setEditContact((current) => {
+        if (!current || current.id !== contactId) return current;
+        const existing = toCanonicalDocument(current.notes_doc ?? current.notes);
+        const doc = { ...existing, blocks: [...existing.blocks, ...addition] };
+        return { ...current, notes: canonicalToSearchText(doc), notes_doc: doc };
+      });
+      setNotesRevision((revision) => revision + 1);
+      toast({ title: "Research added to Notes", description: "Review it on the Notes tab, then Save to keep it." });
+    } catch (error) {
+      toast({ title: "Could not research this business", description: error instanceof Error ? error.message : "Try again later.", variant: "destructive" });
+    } finally {
+      setIsFindingDetails(false);
+    }
+  };
   const dictation = usePushToTalk(appendDictationTranscript, {
     language: dictationLanguage,
     vocabulary: "Classic Visions, Innovations, ERP, portal access, account number, pricelist, lens",
@@ -2755,7 +2783,7 @@ const ContactsPage = ({
                       {dictation.error && <span className="text-[11px] text-destructive">{dictation.error}</span>}
                     </div>
                     <ContactNotesEditor
-                      key={editContact.id ?? "new"}
+                      key={`${editContact.id ?? "new"}-${notesRevision}`}
                       notes={editContact.notes ?? ""}
                       notesDoc={editContact.notes_doc}
                       onChange={(doc, text) => setEditContact((current) => (current ? { ...current, notes: text, notes_doc: doc } : current))}
@@ -2830,11 +2858,11 @@ const ContactsPage = ({
                           variant="ghost"
                           size="sm"
                           className="text-xs h-7 gap-1"
-                          disabled={enrichContact.isPending}
-                          title="Search Google Places for public business details. This does not search person profiles across the web."
-                          onClick={() => enrichContact.mutate({ contactId: editContact.id! })}
+                          disabled={isFindingDetails}
+                          title="Fill blank fields from Google Places. If nothing changes, a written public-web profile is added to Notes."
+                          onClick={() => void findBusinessDetails(editContact.id!)}
                         >
-                          <Globe className="h-3 w-3" /> {enrichContact.isPending ? "Enriching…" : "Find business details"}
+                          <Globe className="h-3 w-3" /> {isFindingDetails ? "Searching…" : "Find business details"}
                         </Button>
                         <Button variant="ghost" size="sm" className="text-xs h-7 gap-1" style={{ color: "hsl(0 72% 51%)" }} onClick={() => handleDelete(editContact.id!)}>
                           <Trash2 className="h-3 w-3" /> Delete
