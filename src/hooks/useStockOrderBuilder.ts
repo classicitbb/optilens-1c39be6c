@@ -241,14 +241,20 @@ export interface StageOrderItem {
 export interface StockOrderDraft {
   id: string;
   account_id: number;
+  order_id?: string | null;
   po_number: string | null;
   order_reference: string | null;
   status: string;
+  transport?: string | null;
+  released_at?: string | null;
+  gatekeeper_order_id?: number | null;
+  receipt?: unknown;
   payload: {
     account?: { id?: number; name?: string; account_number?: string | null };
     po_number?: string | null;
     order_reference?: string | null;
     instructions?: string | null;
+    source?: string;
     items?: Array<{
       product_type?: StockProductType;
       product_id?: string;
@@ -261,13 +267,14 @@ export interface StockOrderDraft {
       comment?: string;
       unit_price?: number; price_pending?: boolean;
     }>;
+    raw_items?: StageOrderItem[];
     order_total?: number;
   };
   created_at: string;
   updated_at: string;
 }
 
-const draftColumns = "id, account_id, po_number, order_reference, status, dispatch_provider, payload, created_at, updated_at";
+const draftColumns = "id, account_id, order_id, po_number, order_reference, status, dispatch_provider, transport, released_at, gatekeeper_order_id, receipt, payload, created_at, updated_at";
 
 export const useStockOrderDrafts = () => {
   return useQuery<StockOrderDraft[]>({

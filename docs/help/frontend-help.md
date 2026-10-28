@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-28 - Repair an admin stock order and identify captured patients
+
+In **Admin → Rx & Stock Orders**, open a staged or failed internal stock order with **Edit**, correct its patient/order reference, items or instructions, then submit it. When automatic Gatekeeper delivery is off, return to the workspace and release it there. A **Delete blank** action appears only for empty, unsent internal stock orders with no additional invoice. Website checkout orders and orders already sent to a lab cannot use these actions. Rx capture lists show the detected patient name above the customer account.
+
 ## 2026-10-22 - PDF and spreadsheet previews
 
 On a computer, PDFs now open in your browser's own viewer, so you can search, print and use page thumbnails. On phones and tablets the existing page-by-page viewer is used. In admin email, open a CSV or Excel (.xlsx) attachment to see it as a grid; click a sheet tab at the bottom to switch sheets. On helpdesk tickets, click a CSV or Excel attachment to preview it. Previews show the first 200 rows and 40 columns; download the file for the rest. Older .xls files can only be downloaded.

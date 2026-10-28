@@ -16,6 +16,13 @@ import RxForm from "@/features/rx-order/form/RxForm";
 import { createCaptureJob, readCapture, captureJobs as jobs } from "./api";
 import { ACCEPT, isAcceptedFile, filesFromClipboard } from "./files";
 
+function patientNameFromDraft(draft: Record<string, unknown> | null): string | null {
+  const patient = draft?.patient;
+  if (!patient || typeof patient !== "object") return null;
+  const value = patient as { first?: unknown; last?: unknown };
+  return [value.first, value.last].filter((part): part is string => typeof part === "string").map((part) => part.trim()).filter(Boolean).join(" ") || null;
+}
+
 interface Job {
   id: string;
   submitted?: boolean;
@@ -152,7 +159,8 @@ export default function RxCapturePage() {
           <div key={j.id} className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2 text-xs">
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
-              <b className="block truncate">{accounts.find((a) => a.id === j.account_id)?.name ?? "—"}</b>
+              <b className="block truncate">{patientNameFromDraft(j.draft) ?? accounts.find((a) => a.id === j.account_id)?.name ?? "—"}</b>
+              {patientNameFromDraft(j.draft) && <span className="block truncate text-muted-foreground">{accounts.find((a) => a.id === j.account_id)?.name ?? "Customer not selected"}</span>}
               <span className="break-words text-muted-foreground">{new Date(j.created_at).toLocaleString()} · {j.source === "local_capture" ? "From the office capture" : j.file_name ?? "pasted image"}</span>
               {j.status === "failed" && <span className="block text-destructive">{j.error}</span>}
               {j.quote_id && <span className="block text-emerald-700">{j.submitted ? "Sent for submission — still editable until released" : "Saved as a draft order"}</span>}

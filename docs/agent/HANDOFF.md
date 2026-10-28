@@ -1026,3 +1026,10 @@ Status: Complete — no active handoff
 The dashboard showed a Vite import-analysis overlay for @zxing/browser in StockCameraScanner.tsx. Both ZXing packages were declared in package.json/package-lock.json but `npm ls @zxing/browser @zxing/library` returned empty. Restored node_modules with `npm ci`; two attempts first failed with EPERM because the app and standalone prototype Vite processes held Lightning CSS open. Stopped those local previews, completed npm ci, then restored both using their existing configurations. No application source, manifest or lockfile edit was needed. Context changes: STATUS.md, PROJECT_KNOWLEDGE.md and this handoff.
 
 Validation: npm ci and npm ls pass; npm run build passes with existing config/chunk warnings. Dashboard and scanner module return HTTP 200. Fresh authenticated browser renders the dashboard without an error overlay; console warning/error log is empty. Prototype root also returns HTTP 200. No camera permission, order write, hosted deployment or credential change. Lint and tests were not rerun for dependency restoration and context-only edits.
+## 2026-10-28 - Admin stock order repair and patient names
+
+Status: Complete — no active handoff
+
+Admin order workspace exposes Edit for staged/failed internal stock submissions with no evidence of transmission. The stock builder restores saved account, item/variant, patient/order reference, PO and instructions, then requires explicit Submit; the existing server save/release RPCs remain in use. Delete blank is limited to admin roles and staged/failed internal rows with empty raw/priced items, zero total, no portal order or dispatch receipt and no supplemental invoice. Rx capture list and Rx workspace rows show the extracted patient beside the account.
+
+Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json` passes. Scoped ESLint passes with 60 warnings and no errors (existing any warnings in the touched files). `git diff --check` passes. Tests were not run. No migrations, hosted writes, order release, invoice, or payment was performed. The existing PR #652 branch also contains the repository owner's ContactsPage commit.

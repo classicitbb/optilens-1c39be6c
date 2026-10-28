@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-28 - Admin order recovery and capture patient identity
+
+In Rx & Stock Orders, staged/failed admin-created stock submissions without transport, receipt, or website order linkage open in the stock builder with account, reference, PO, instructions, raw lines and active variants restored. Staff correct the details and explicitly submit again. Delete blank is limited to empty raw/priced lines, zero total, eligible status, no dispatch evidence, no linked web order, and no supplemental invoice; the server's existing admin delete policy remains in force. Rx capture intake and workspace rows display extracted patient name with the customer account. No schema or Edge Function change.
+
 ## 2026-10-28 - Business research in Notes and CI repair
 
 crm-enrich-contacts research mode also returns the model's written summary (instructions now ask for a labelled business profile); research now uses a market-intel prompt (medium search context, up to four tool calls, 2,500 output tokens) and includes the saved website in the query; the contacts list gains Add market intel to notes, which researches and saves selected contacts sequentially (max 25, stops at the daily cap); new `contactResearch.ts` shares the research fetch with Research public web and formats the Notes block, appended to the editor draft and reloading the notes editor. CI repair: `npm audit fix` cleared zod, body-parser, undici and fast-uri advisories (lockfile only); regenerated the public content search index; refreshed six stale contract tests (live-data-gateway selects, lens-assistant hidden redirect, Website sidebar order, LabLink embed copy, launcher shortcut label). Full suite passes locally (1774 tests).

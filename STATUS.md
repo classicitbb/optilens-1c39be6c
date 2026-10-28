@@ -1,5 +1,9 @@
 # Project Status
 
+## Admin order recovery and capture identity - 2026-10-28
+
+Local source: admin Rx & Stock Orders can reopen staged/failed internal stock submissions for correction and explicit resubmission; deletion is offered only for blank, unsent, non-invoiced stock rows without a portal order. Existing Rx edit/retry remains available. Capture lists show extracted patient name and customer account. App TypeScript passes; scoped ESLint reports warnings only, no errors. No migration or live-order operation. See the latest HANDOFF.md entry.
+
 ## Order release verification - 2026-10-28
 
 PR #651: all 1786 tests pass across 285 files; lint (warnings only), TypeScript, Deno, build, PR checks and smoke pass. Node 20/22 CI and preview deployments are green. Four order migrations are verified/applied and recorded via Lovable; gatekeeper-orders alone is deployed, with hosted Edge smoke passing. Store checkout, direct stock and Rx submissions use the automatic Gatekeeper setting. No agent-created real order transmission, invoice or payment was used in verification. PR #651 was merged during verification; the final checkout migration is in a separate follow-up. Historical failures below are superseded by this final run.

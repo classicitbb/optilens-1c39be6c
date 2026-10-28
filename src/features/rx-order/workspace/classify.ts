@@ -32,6 +32,7 @@ export interface CaptureRow {
   created_at: string;
   storage_path: string | null;
   file_name: string | null;
+  draft?: Record<string, unknown> | null;
 }
 
 export interface WorkspaceItem {
@@ -50,6 +51,7 @@ export interface WorkspaceItem {
   submission?: RxSubmissionRow;
   stock?: StockSubmissionRow;
   capture?: CaptureRow;
+  patientName?: string | null;
 }
 
 /** "pending_review" becomes "pending review" (every underscore, not just the first). */
@@ -82,6 +84,28 @@ export function stockSubmissionTab(s: Pick<StockSubmissionRow, "status" | "lab_s
 
 const captureSource = (c: CaptureRow): RxSource => (c.source === "local_capture" ? "local_capture" : "capture");
 
+export function capturePatientName(draft: unknown): string | null {
+  if (!draft || typeof draft !== "object") return null;
+  const patient = (draft as { patient?: unknown }).patient;
+  if (!patient || typeof patient !== "object") return null;
+  const { first, last } = patient as { first?: unknown; last?: unknown };
+  const name = [first, last].filter((part): part is string => typeof part === "string").map((part) => part.trim()).filter(Boolean).join(" ");
+  return name || null;
+}
+
+export function isBlankUnsentStockOrder(stock: StockSubmissionRow): boolean {
+  if (!["staged", "failed"].includes(stock.status)) return false;
+  if (stock.order_id || (stock.payload as Record<string, unknown> | null)?.source === "store_checkout") return false;
+  if (stock.transport || stock.released_at || stock.gatekeeper_order_id || stock.receipt) return false;
+  const payload = stock.payload as Record<string, unknown> | null;
+  if (!payload) return false;
+  const rawItems = payload.raw_items;
+  const pricedItems = payload.items;
+  return Array.isArray(rawItems) && rawItems.length === 0
+    && Array.isArray(pricedItems) && pricedItems.length === 0
+    && Number(payload.order_total ?? 0) === 0;
+}
+
 export function buildItems(args: {
   submissions: readonly RxSubmissionRow[];
   stocks?: readonly StockSubmissionRow[];
@@ -105,6 +129,7 @@ export function buildItems(args: {
       accountName: payload?.account?.name ?? payload?.quote?.customer_name ?? accountName(s.account_id),
       quoteId: s.quote_id, quoteNumber: payload?.quote?.quote_number ?? quoteNumbers.get(s.quote_id) ?? null,
       status: s.status, createdAt: s.created_at, submission: s,
+      patientName: fromCapture ? capturePatientName(fromCapture.draft) : null,
     });
   }
   for (const c of captures) {
@@ -115,6 +140,7 @@ export function buildItems(args: {
       accountId: c.account_id, accountName: accountName(c.account_id),
       quoteId: c.quote_id, quoteNumber: c.quote_id ? quoteNumbers.get(c.quote_id) ?? null : null,
       status: c.status, createdAt: c.created_at, capture: c,
+      patientName: capturePatientName(c.draft),
     });
   }
   for (const s of args.stocks ?? []) {

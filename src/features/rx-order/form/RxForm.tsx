@@ -65,6 +65,9 @@ export interface RxFormProps {
   initialLensAlias?: string;
   /** New admin order entry mode; saved orders still reopen as Rx. */
   initialOrderType?: "rx" | "stock";
+  /** Existing staged/failed stock outbox row being repaired by admin staff. */
+  stockSubmissionId?: string;
+  onStockOrderSubmitted?: () => void;
   resumedDraftId?: string;
   pricesVisible?: boolean;
   allowDirectSubmit?: boolean;
@@ -588,7 +591,7 @@ function LoadedForm({
       </div>
 
       {stockMode ? (
-        <StockServicePanel key={accountId ?? "no-account"} accountId={accountId} accountName={account?.name ?? ""} />
+            <StockServicePanel key={`${accountId ?? "no-account"}:${props.stockSubmissionId ?? "new"}`} accountId={accountId} accountName={account?.name ?? ""} submissionId={props.stockSubmissionId} onSubmitted={props.onStockOrderSubmitted} />
       ) : (<>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">

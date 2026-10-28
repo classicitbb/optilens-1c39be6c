@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-28 - Blank admin stock rows and failed-order repair
+
+Blank unsent test stock rows accumulated without a safe cleanup action, while failed admin-created stock rows had no route to reopen the saved lines and submit them again. The workspace now allows correction for eligible staged/failed internal orders and limits Delete blank to empty, zero-total, unsent rows without a website-order link or extra invoice. Captures also showed only the account name even when the extractor had identified the patient; both names now appear.
+
 ## 2026-10-28 - Market intel not reaching contact notes
 
 Find business details only wrote notes when Google Places changed nothing, and the research prompt returned a thin contact-detail list, so users still went to ChatGPT for market intel. It now always appends a market-intel profile, and the contacts list can add it to up to 25 selected contacts. Edge functions deploy only on push to main, so crm-enrich-contacts must be deployed (with OPENAI_API_KEY) before the live button shows the new profile.
