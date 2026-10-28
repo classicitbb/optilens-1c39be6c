@@ -1,3 +1,30 @@
+## 2026-10-28 - Gatekeeper default, unpriced ordering and supplementary invoices
+
+Status: Source and backend deployment complete; final integration validation and Git push underway.
+
+The two 20261028 order migrations were applied by the user. All 16 live function bodies match local source; RLS and denied anonymous/direct authenticated writes verified. Registered both exact migrations in schema_migrations because the manual apply had not recorded them. Gatekeeper endpoint and public key are derived from the existing scheduler, never hardcoded in the new migration. Auto-transmit is on, no historical rows are opted in. Supabase connector account cannot access this project; Lovable MCP handles this project's backend.
+
+User explicitly approved deploying gatekeeper-orders. Lovable deployed only the uploaded entrypoint and new _shared/gatekeeperAutoDispatch.ts; JWT verification retained. Source SHA256s match: entrypoint 8c97c91c0e8e2c2dd7e885476d0ed0f5cebf71e06dc15396cf0964e42d37b841; helper 2358e33811d9bb5c44deda9980040ee50a981e68c19c312b00e701e6224413d4. Lovable reports edge-smoke green: 51 functions, two probes, optional Doc Studio email probe skipped. Hosted cron responses independently show HTTP 200 / ok true / zero queued outcomes. No agent-initiated live order transmission, invoice issuance or card payment. Browser: current settings and invoice draft form render with authenticated hosted reads; draft cancelled without saving.
+
+Rollback-only rehearsal covered both migrations, unpriced item acceptance, invoice issuance/idempotency, owner-only payment, amount matching, unpaid shipment block and simulated settlement. All fixture records and DDL rolled back; no lab/payment network calls. Application TypeScript, Deno check, build, full lint (warnings only), focused tests, PR checks and smoke passed before integrating newer main. Full suite rerun and integration required after merging origin/main. Affected files span prior annotated mobile navigation/capture work, stock pricing, dispatch, invoice/cart UI, migrations, tests and docs. See docs/order-transmission-and-extra-invoices.md for operational shipping limits.
+
+Next executable action: git merge origin/main --no-edit
+
+## 2026-10-28 - Admin mobile navigation and Rx capture
+
+Status: Complete — no active handoff
+
+Search follow-up: mobile GlobalSearch is a button that opens a fixed panel inset 12px from viewport edges, focused 16px input, wrapping results and bounded scrolling. Outside/close/Escape/result selection dismiss; desktop inline input and shortcut retained. Five search/action tests, scoped ESLint (10 warnings, no errors), TypeScript and build pass. Authenticated browser checked at 360/412px; no search-data or permission change. Full suite was not repeated for this isolated follow-up; prior failures below remain.
+
+Implemented all five browser annotations locally: admin-only account-drawer dashboard shortcut and linked admin profile role, compact mobile shared header with secondary actions in the avatar menu, initially closed mobile overlay sidebar, explicit camera capture and repeated/multiple-file intake. Idle list refresh supports later review from another device. Affected source: AccountTopBar, MyAccountSection, AdminTopBar, AdminSidebar, GlobalSearch, RxCapturePage. Tests: rxCaptureIntake and adminMobileSidebar. Release ledger synchronized to 0.24.0 with package/lockfile version only; no dependency change.
+
+Validation: application TypeScript and production build pass; full lint passes with 2451 warnings and no errors; scoped lint passes with 26 existing-style warnings. New intake/drawer plus extraction tests: 24 pass. Full npm run test -- --runInBand: 275 passed / 4 failed files, 1766 passed / 6 failed tests. Failure-only rerun reproduces all six: adminStockOrdersRouteAccessibility website-item expectation, liveDataGateway two source-contract assertions, smartCustomerJourney two route/submission assertions, launcherPins AppLauncher context-menu test. These assertions concern unchanged code; no tests were weakened. PR checks pass after release-ledger synchronization. qa:smoke fails on two unchanged source-contract snippets: AdminRoutes.tsx path="website/store/lens-assistant" and Auth.tsx "Forgot your password?". Logs are ignored .codex-mobile-*.log files.
+
+Authenticated local in-app browser: 360px, 412px and 1305px layouts; both account Admin links present, drawer shortcut navigates to dashboard; sidebar starts closed, outside tap dismisses and restores trigger focus; mobile profile overflow and relocated New actions open. Existing capture list read successfully. No new live capture/upload, AI read, draft/order creation, database/schema/authorization change, push or deployment. Physical phone camera and actual capture-to-review across devices were not exercised. Existing admin-area guard permits configured staff roles; links added beside the username and in the profile use admin role only. Authorization policies remain unchanged.
+
+Production publishing requires separate approval under AGENTS.md. No required local continuation. Optional exact local preview action: npm run dev -- --host 127.0.0.1 --port 5173 --strictPort (reuse the running server).
+
+
 ## 2026-10-20 - Alert bell, stock refresh and portal loading
 
 Status: Source complete - comparative timing and audible multi-tab verification pending.

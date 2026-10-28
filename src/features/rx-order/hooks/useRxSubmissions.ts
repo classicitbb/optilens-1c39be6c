@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { readOrderDispatchSettings } from "./useOrderDispatchSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { RxSubmissionRow } from "../types";
 import { toast } from "@/hooks/use-toast";
@@ -37,7 +38,9 @@ export const useRxSubmissions = () => {
     mutationFn: async ({ id, provider }: { id: string; provider: "innovations" | "gatekeeper" }) => {
       const { error } = await (supabase.rpc as any)("approve_rx_submission", { p_id: id, p_dispatch_provider: provider });
       if (error) throw error;
-      return provider === "gatekeeper" ? await sendToGatekeeper(id) : null;
+      if (provider !== "gatekeeper") return null;
+      const settings = await readOrderDispatchSettings();
+      return settings.auto_transmit ? null : await sendToGatekeeper(id);
     },
     onError: (error: Error) => toast({ variant: "destructive", title: "Release failed", description: error.message }),
     onSuccess: (result) => {

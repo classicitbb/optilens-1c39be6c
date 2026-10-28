@@ -1,3 +1,4 @@
+import { ExtraInvoicesCart } from "@/components/cart/ExtraInvoicesCart";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Minus, Pencil, Plus, Trash2, ArrowLeft, ShoppingCart, FileText, Tag, Package } from "lucide-react";
@@ -55,9 +56,10 @@ const CartPage = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 pt-24 text-center">
+          <ExtraInvoicesCart />
           <ShoppingCart className="h-12 w-12 text-muted-foreground/60 stroke-[1.5]" aria-hidden="true" />
-          <h1 className="text-2xl text-foreground font-semibold">Your cart is empty</h1>
-          <p className="text-muted-foreground">Add products to your cart and return here to complete your order.</p>
+          <h1 className="text-2xl text-foreground font-semibold">Your cart</h1>
+          <p className="text-muted-foreground">No product items in your cart. You can review additional invoices above or browse the catalog.</p>
           <Button variant="outline" asChild className="mt-2">
             <Link to="/store">Browse catalog</Link>
           </Button>
@@ -71,6 +73,7 @@ const CartPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 pb-16 pt-24 sm:px-6">
+        <div className="mb-6"><ExtraInvoicesCart /></div>
         {/* Page header */}
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-semibold text-foreground">

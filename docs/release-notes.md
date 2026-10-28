@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-28 — Admin mobile navigation and Rx capture (local source)
+
+### Release Notes
+- Admin dashboard links beside the account-drawer username and on the profile. Shared mobile admin headers move secondary controls into the profile menu; the sidebar opens from an edge tab as a temporary drawer. Rx capture supports repeated camera photos and selecting multiple files, with larger touch controls and refresh for captures from other devices. Not deployed.
+
 ## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
 
 ### Release Notes

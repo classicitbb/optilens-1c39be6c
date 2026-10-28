@@ -16,8 +16,8 @@ describe("on-demand live-data gateway contract", () => {
 
   it("derives customer identity server-side and exposes no arbitrary private route", () => {
     const gateway = read("supabase/functions/live-data-gateway/index.ts");
-    expect(gateway).toContain('select("crm_customer_id,portal_access_status")');
-    expect(gateway).toContain('select("id,account_number,innovations_customer_id")');
+    expect(gateway).toContain('select("crm_customer_id,crm_contact_id,portal_access_status")');
+    expect(gateway).toContain('select("id,account_number,innovations_customer_id,portal_orders_use_bill_to_account")');
     expect(gateway).toContain('"innovations.customer_account"');
     expect(gateway).toContain('"innovations.customer_statement"');
     expect(gateway).toContain('"optilens.customer_deliveries"');
@@ -29,7 +29,7 @@ describe("on-demand live-data gateway contract", () => {
     const orders = read("src/components/account/sections/MyOrdersSection.tsx");
     expect(statements).toContain('requestLiveData<LiveAccountResponse>("innovations.customer_account"');
     expect(statements).toContain('"innovations.customer_statement"');
-    expect(orders).toContain('requestLiveData<LiveDeliveriesResponse>("optilens.customer_deliveries"');
+    expect(orders).toMatch(/requestLiveData<LiveDeliveriesResponse>\(\s*"optilens.customer_deliveries"/);
   });
 });
 

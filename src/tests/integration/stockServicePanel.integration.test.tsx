@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-const mock = vi.hoisted(() => ({ catalog: [] as unknown[], stage: vi.fn(), release: vi.fn(), scan: vi.fn(), toast: vi.fn() }));
+const mock = vi.hoisted(() => ({ catalog: [] as unknown[], stage: vi.fn(), release: vi.fn(), scan: vi.fn(), toast: vi.fn(), autoTransmit: true }));
 vi.mock('@/hooks/useStockOrderBuilder', async importOriginal => ({
   ...await importOriginal<typeof import('@/hooks/useStockOrderBuilder')>(),
   useStockOrderCatalog: () => ({ data: mock.catalog, isLoading: false }),
@@ -8,6 +8,7 @@ vi.mock('@/hooks/useStockOrderBuilder', async importOriginal => ({
   useReleaseStockOrder: () => ({ mutateAsync: mock.release, isPending: false }),
   resolveStockCode: mock.scan,
 }));
+vi.mock('@/features/rx-order/hooks/useOrderDispatchSettings', () => ({ useOrderDispatchSettings: () => ({ data: { auto_transmit: mock.autoTransmit } }) }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mock.toast }) }));
 vi.mock('@/hooks/useReferenceData', () => ({ useReferenceData: () => ({ data: [] }) }));
 vi.mock('@/features/rx-order/form/StockLensBrowser', () => ({
@@ -22,7 +23,7 @@ const chiral = { id: 'v1', title: '-2.00', sku: null, opc_code: null, attributes
 const symmetric = { id: 'v2', title: '-3.00', sku: null, opc_code: 'S-333', attributes: {}, stock_qty: 0, metadata: {} };
 beforeEach(() => {
   window.matchMedia = vi.fn().mockImplementation(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
-  mock.catalog = [service]; mock.stage.mockReset().mockResolvedValue({ submission_id: 'saved', order_total: 12 }); mock.release.mockReset().mockResolvedValue(undefined); mock.scan.mockReset();
+  mock.autoTransmit = true; mock.catalog = [service]; mock.stage.mockReset().mockResolvedValue({ submission_id: 'saved', order_total: 12 }); mock.release.mockReset().mockResolvedValue(undefined); mock.scan.mockReset();
 });
 function start() { render(<StockServicePanel accountId={1} accountName="Fixture account" />); }
 async function addService() {
@@ -40,8 +41,17 @@ describe('integrated stock form persistence boundary', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent('Frame repair');
     expect(mock.stage).not.toHaveBeenCalled(); expect(mock.release).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Submit stock order' }));
-    await waitFor(() => expect(mock.release).toHaveBeenCalledWith({ id: 'saved', provider: 'innovations' }));
+    await waitFor(() => expect(mock.release).toHaveBeenCalledWith({ id: 'saved', provider: 'gatekeeper' }));
     expect(mock.stage).toHaveBeenCalledWith(expect.objectContaining({ accountId: 1, orderReference: 'JOB-1', instructions: '', items: [{ product_type: 'addon', product_id: 'repair', variant_id: null, side: 'either', quantity: 1, customer_ref: '' }] }));
+  });
+  it('keeps submissions staged when automatic transmission is switched off', async () => {
+    mock.autoTransmit=false;
+    start(); await addService();
+    fireEvent.change(screen.getByLabelText(/Patient \/ order reference/), { target: { value: 'MANUAL-TEST' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Review order →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit stock order' }));
+    await waitFor(() => expect(mock.stage).toHaveBeenCalled());
+    expect(mock.release).not.toHaveBeenCalled();
   });
   it('does not release after a draft-save failure', async () => {
     mock.stage.mockRejectedValue(new Error('Server rejected the item'));

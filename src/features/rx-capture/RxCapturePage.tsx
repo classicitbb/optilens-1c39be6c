@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
-import { ArrowLeft, FileText, Loader2, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Camera, FileText, Loader2, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomerAccounts } from "@/hooks/useCustomerAccounts";
@@ -50,6 +50,7 @@ export default function RxCapturePage() {
     return () => { live = false; };
   }, [jobParam]);
   const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
 
   const { data: list = [] } = useQuery<Job[]>({
     queryKey: ["rx-capture-jobs"],
@@ -63,8 +64,8 @@ export default function RxCapturePage() {
       const sentIds = new Set((sent ?? []).map((q: { id: string }) => q.id));
       return (data as Job[]).map((j) => ({ ...j, submitted: !!j.quote_id && sentIds.has(j.quote_id) }));
     },
-    // keep polling only while something is still being read
-    refetchInterval: (q) => ((q.state.data as Job[] | undefined)?.some((j) => j.status === "queued" || j.status === "processing") ? 3000 : false),
+    // Refresh idle lists for captures from other devices; poll faster while reading.
+    refetchInterval: (q) => ((q.state.data as Job[] | undefined)?.some((j) => j.status === "queued" || j.status === "processing") ? 3000 : 15000),
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["rx-capture-jobs"] });
 
@@ -111,16 +112,16 @@ export default function RxCapturePage() {
   if (reviewing) return <Review job={reviewing} accountName={accounts.find((a) => a.id === reviewing.account_id)?.name} onBack={() => { setReviewing(null); void refresh(); }} />;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-4">
+    <div className="mx-auto w-full max-w-3xl space-y-5 px-2 py-3 sm:p-4">
       <header>
         <h1 className="text-base font-semibold">Rx capture</h1>
-        <p className="text-xs text-muted-foreground">Photograph or scan a prescription sheet. We read it into a draft order for you to check.</p>
+        <p className="text-xs text-muted-foreground">Capture one or several prescription sheets. Each file becomes a separate draft. Capture here on your phone, then review on any signed-in admin device.</p>
       </header>
 
       <label className="block space-y-1.5 text-xs font-semibold">
         Customer
         <select
-          className="h-9 w-full rounded-md border bg-background px-2 text-sm font-normal"
+          className="h-11 w-full rounded-md border bg-background px-2 text-sm font-normal"
           value={accountId ?? ""} onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : null)}
         >
           <option value="">Choose a customer…</option>
@@ -128,20 +129,23 @@ export default function RxCapturePage() {
         </select>
       </label>
 
+      <Button className="h-12 w-full gap-2 text-base" disabled={accountId === null} onClick={() => camera.current?.click()}><Camera className="h-5 w-5" />Take a photo</Button>
+      <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { void upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
       <div
         role="button" tabIndex={0} aria-disabled={accountId === null}
         onClick={() => accountId !== null && input.current?.click()}
-        onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && accountId !== null) input.current?.click(); }}
+        onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && accountId !== null) { e.preventDefault(); input.current?.click(); } }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => { e.preventDefault(); void upload(Array.from(e.dataTransfer.files)); }}
         className={`flex flex-col items-center gap-1 rounded-xl border-2 border-dashed px-6 py-10 text-center text-sm ${accountId === null ? "opacity-50" : "cursor-pointer hover:bg-muted/40"}`}
       >
         {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6 text-muted-foreground" />}
-        <b>Drop photos or PDFs here</b>
-        <span className="text-xs text-muted-foreground">or click to choose · or paste with Ctrl+V · phones: opens the camera</span>
+        <b>Choose photos or PDFs</b>
+        <span className="text-xs text-muted-foreground">Select multiple files, drag and drop, or paste with Ctrl+V. Take another photo anytime.</span>
       </div>
       <input ref={input} type="file" accept={ACCEPT} multiple hidden onChange={(e) => { void upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
 
+      <p role="status" className="text-xs text-muted-foreground">{busy ? `Uploading ${busy} file(s)… Keep this page open until uploading finishes.` : "Uploaded captures are saved for later review."}</p>
       <section aria-label="Captures" className="space-y-2">
         {list.length === 0 && <p className="text-xs text-muted-foreground">Nothing captured yet.</p>}
         {list.map((j) => (
@@ -149,14 +153,14 @@ export default function RxCapturePage() {
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0 flex-1">
               <b className="block truncate">{accounts.find((a) => a.id === j.account_id)?.name ?? "—"}</b>
-              <span className="text-muted-foreground">{new Date(j.created_at).toLocaleString()} · {j.source === "local_capture" ? "From the office capture" : j.file_name ?? "pasted image"}</span>
+              <span className="break-words text-muted-foreground">{new Date(j.created_at).toLocaleString()} · {j.source === "local_capture" ? "From the office capture" : j.file_name ?? "pasted image"}</span>
               {j.status === "failed" && <span className="block text-destructive">{j.error}</span>}
               {j.quote_id && <span className="block text-emerald-700">{j.submitted ? "Sent for submission — still editable until released" : "Saved as a draft order"}</span>}
             </div>
             {(j.status === "queued" || j.status === "processing") && <span className="flex items-center gap-1 text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Reading…</span>}
-            {j.status === "ready" && <Button size="sm" className="h-7 text-xs" onClick={() => setReviewing(j)}>{j.quote_id ? "Open" : "Review"}</Button>}
-            {j.status === "failed" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setReviewing(j)}>Open blank</Button>}
-            <button type="button" aria-label="Delete this capture" title="Delete" className="rounded p-1 text-muted-foreground hover:bg-muted" onClick={() => remove(j)}>
+            {j.status === "ready" && <Button size="sm" className="h-11 shrink-0 text-xs" onClick={() => setReviewing(j)}>{j.quote_id ? "Open" : "Review"}</Button>}
+            {j.status === "failed" && <Button size="sm" variant="outline" className="h-11 shrink-0 text-xs" onClick={() => setReviewing(j)}>Open blank</Button>}
+            <button type="button" aria-label="Delete this capture" title="Delete" className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted" onClick={() => remove(j)}>
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>

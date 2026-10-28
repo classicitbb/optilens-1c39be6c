@@ -8,9 +8,9 @@ const read = (relativePath: string) => fs.readFileSync(path.join(root, relativeP
 
 describe("smart customer journey integration contract", () => {
   it("registers every new canonical route with the correct access mode", () => {
-    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "public.lens-assistant", path: "/lens-assistant", authMode: "public", status: "active" }));
+    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "public.lens-assistant", path: "/lens-assistant", authMode: "public", status: "hidden", redirectTo: "/profile/rx-order" }));
     expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "customer.rx-draft", path: "/profile/rx-drafts/:draftId", authMode: "authenticated", status: "active" }));
-    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "admin.website.store.lens-assistant", path: "/admin/website/store/lens-assistant", authMode: "admin", status: "active" }));
+    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "admin.website.store.lens-assistant", path: "/admin/website/store/lens-assistant", authMode: "admin", status: "hidden", redirectTo: "/admin/orders/rx/settings" }));
   });
 
   it("keeps Rx drafts owner-private and customer command-centre identity server-derived", () => {
@@ -29,9 +29,10 @@ describe("smart customer journey integration contract", () => {
     expect(migration).toContain("'Confirm with the lab'");
   });
 
-  it("keeps LabLink as the explicit final submission surface", () => {
+  it("keeps the external LabLink iframe and new-tab link isolated", () => {
     const page = read("src/pages/LabLinkEmbedPage.tsx");
-    expect(page).toContain("This draft has not been submitted");
+    expect(page).toContain("src={src}");
+    expect(page).toContain('href={src} target="_blank" rel="noopener noreferrer"');
     expect(page).not.toContain('allow="clipboard-read; clipboard-write"');
   });
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-28 — Admin mobile navigation and Rx capture (local source)
+
+### Release Notes
+- Orders can include unpriced published items for later lab appraisal. Gatekeeper is the default sender with a shared auto-transmit switch for new submissions. Staff can issue additional BBD invoices into the customer cart; unpaid charges hold website shipment transitions.
+- Mobile admin search opens from a button into a wide field and readable, wrapping result list below the header; desktop retains its inline field.
+- Admin dashboard links beside the account-drawer username and on the profile. Shared mobile admin headers move secondary controls into the profile menu; the sidebar opens from an edge tab as a temporary drawer. Rx capture supports repeated camera photos and selecting multiple files, with larger touch controls and refresh for captures from other devices. Not deployed.
+
+### Technical Changelog
+- Add server-only dispatch settings, scoped dispatch token, post-commit wakeups and recovery schedule; preserve test isolation and atomic claims without automatic replay/fallback. Add owner-scoped supplementary invoice/payment RPCs and shipping holds. Repair stale QA route/text assertions and forward launcher context-menu trigger props.
+- Reuse the mobile viewport hook and accessible Sheet with focus restoration, outside/Escape dismissal and close on navigation. Add a rear-camera file input alongside the existing multi-file/drop/paste intake; keep each file as its own draft. Poll idle capture lists every 15 seconds, faster while processing. Existing admin-area guards and capture APIs remain. Add intake and drawer tests; update continuity docs.
+
 ## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
 
 ### Release Notes

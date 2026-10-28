@@ -1,0 +1,36 @@
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import RxCapturePage from "@/features/rx-capture/RxCapturePage";
+const mocks = vi.hoisted(() => ({ create: vi.fn(), read: vi.fn(), toast: vi.fn() }));
+vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "admin" } }) }));
+vi.mock("@/hooks/useCustomerAccounts", () => ({ useCustomerAccounts: () => ({ data: [{ id: 7, name: "Fixture customer" }] }) }));
+vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mocks.toast }) }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+vi.mock("@/features/rx-order/form/RxForm", () => ({ default: () => null }));
+vi.mock("@/components/pdf/PdfViewer", () => ({ default: () => null }));
+vi.mock("@/features/rx-capture/api", () => ({ createCaptureJob: mocks.create, readCapture: mocks.read, captureJobs: () => ({ select: () => ({ order: () => ({ limit: async () => ({ data: [], error: null }) }) }) }) }));
+const setup = () => render(<MemoryRouter><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><RxCapturePage /></QueryClientProvider></MemoryRouter>);
+describe("phone capture intake", () => {
+  beforeEach(() => { vi.clearAllMocks(); mocks.create.mockImplementation(async (file: File) => file.name); mocks.read.mockResolvedValue(undefined); });
+  afterEach(cleanup);
+  it("requires a customer before opening the camera", () => { setup(); expect(screen.getByRole("button", { name: "Take a photo" })).toBeDisabled(); });
+  it("uploads every selected file independently, skips invalid files and accepts another capture", async () => {
+    const view = setup();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "7" } });
+    const picker = view.container.querySelector('input[multiple]')!;
+    expect(picker).toHaveAttribute("accept");
+    const first = new File(["fixture"], "first.jpg", { type: "image/jpeg" });
+    const second = new File(["fixture"], "second.pdf", { type: "application/pdf" });
+    fireEvent.change(picker, { target: { files: [first, second, new File(["x"], "bad.txt", { type: "text/plain" })] } });
+    await waitFor(() => expect(mocks.read).toHaveBeenCalledTimes(2));
+    expect(mocks.create).toHaveBeenCalledWith(first, 7, "admin");
+    expect(mocks.create).toHaveBeenCalledWith(second, 7, "admin");
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Only photos and PDFs can be captured" }));
+    const camera = view.container.querySelector('input[capture="environment"]')!;
+    fireEvent.change(camera, { target: { files: [first] } });
+    await waitFor(() => expect(mocks.read).toHaveBeenCalledTimes(3));
+    expect(screen.getByRole("button", { name: "Take a photo" })).toBeEnabled();
+  });
+});

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef, type CSSProperties } from "react";
 import { useNavigate } from "react-router";
 import { CalendarCheck, CreditCard, FilePlus2, Glasses, Globe, HelpCircle, Home, LayoutDashboard, Package, PinOff, Search, X, type LucideIcon } from "lucide-react";
 import { atlasPath } from "@/features/atlas/config";
@@ -97,10 +97,11 @@ interface AppLauncherProps {
   onClose: () => void;
 }
 
-const LauncherTile = ({ item, onSelect }: { item: LaunchItem; onSelect: (item: LaunchItem) => void }) => {
+const LauncherTile = ({ item, onSelect, ...anchorProps }: { item: LaunchItem; onSelect: (item: LaunchItem) => void } & Omit<ComponentPropsWithoutRef<"a">, "onSelect">) => {
   const color = appColor(item.colorKey ?? item.key);
   return (
     <a
+      {...anchorProps}
       title={item.title}
       href={item.defaultRoute}
       onClick={(e) => {

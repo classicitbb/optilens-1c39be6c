@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { readOrderDispatchSettings } from "@/features/rx-order/hooks/useOrderDispatchSettings";
 import { supabase } from "@/integrations/supabase/client";
 
 // Data layer for the Stock Order Builder (/admin/orders/stock-orders).
@@ -95,7 +96,7 @@ export interface StockCatalogItem {
   sku: string | null;
   unit_price: number;
   has_variants: boolean;
-  price_source?: "assigned_pricelist" | "retail_pricelist" | "catalog" | "manual";
+  price_source?: "assigned_pricelist" | "retail_pricelist" | "catalog" | "manual" | "pending_lab_quote" | "staff_service_catalog";
   source_trail?: string[];
   unit_cost?: number | null;
   /** Presentation-only availability. The server catalog is still the order
@@ -258,7 +259,7 @@ export interface StockOrderDraft {
       description?: string;
       quantity?: number;
       comment?: string;
-      unit_price?: number;
+      unit_price?: number; price_pending?: boolean;
     }>;
     order_total?: number;
   };
@@ -337,13 +338,15 @@ export type StockDispatchProvider = "innovations" | "gatekeeper";
 export const useReleaseStockOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, provider = "innovations" }: { id: string; provider?: StockDispatchProvider }) => {
+    mutationFn: async ({ id, provider = "gatekeeper" }: { id: string; provider?: StockDispatchProvider }) => {
       const { error } = await (supabase.rpc as any)("release_stock_order_submission", {
         p_id: id,
         p_dispatch_provider: provider,
       });
       if (error) throw error;
       if (provider !== "gatekeeper") return;
+      const settings = await readOrderDispatchSettings();
+      if (settings.auto_transmit) return;
       const { data, error: sendError } = await supabase.functions.invoke("gatekeeper-orders", {
         body: { action: "send", orderKind: "stock", submissionId: id },
       });

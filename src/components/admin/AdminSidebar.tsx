@@ -8,6 +8,8 @@ import { PanelLeftClose, PanelLeft, Pin, PinOff } from "lucide-react";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { useLauncherPins } from "@/features/admin/core/hooks/useLauncherPins";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 // "pinned"   — always open, no flyout (user locked it)
@@ -21,6 +23,9 @@ type IntegrationConnectionRow = {
 
 const AdminSidebar = () => {
   const location = useLocation();
+  const isMobile = useIsMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  useEffect(() => { setMobileOpen(false); }, [location.key, isMobile]);
   const currentPath = location.pathname;
   const [mode, setMode] = useState<SidebarMode>("open");
   const [isHovering, setIsHovering] = useState(false);
@@ -123,6 +128,29 @@ const AdminSidebar = () => {
   };
 
   const linkBase = "flex items-center gap-2 px-3 py-1.5 text-[13px] rounded transition-colors";
+
+  if (isMobile) return (
+    <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+      <SheetTrigger asChild>
+        <button type="button" aria-label="Open sidebar" className="absolute left-0 top-3 z-20 flex h-11 w-5 items-center justify-center rounded-r-md border bg-[hsl(var(--admin-sidebar-bg))] shadow">
+          <PanelLeft className="h-4 w-4" />
+        </button>
+      </SheetTrigger>
+      <SheetContent
+        side="left"
+        className="admin-tool w-64 overflow-y-auto p-3 motion-reduce:animate-none"
+        onBlur={(event) => {
+          if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setMobileOpen(false);
+        }}
+      >
+        <SheetTitle className="mb-3 pr-6">{activeApp?.title ?? "Navigation"}</SheetTitle>
+        <SheetDescription className="sr-only">Choose a page. The sidebar closes after navigation.</SheetDescription>
+        <nav aria-label="Admin sidebar" onClick={(event) => { if ((event.target as Element).closest("a")) setMobileOpen(false); }}>
+          <SidebarNavList items={sidebarItems} pathname={currentPath} className="space-y-1" itemClassName="flex min-h-11 items-center gap-2 rounded px-3 text-sm" activeItemClassName="bg-muted font-semibold" inactiveItemClassName="hover:bg-muted" />
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
 
   return (
     <aside

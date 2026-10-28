@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.23.0",
-  "sourceEntry": "2026-10-24 — Caribbean customer journey and shipping clarity (local source)",
-  "releaseDateTimeUtc": "2026-10-24T00:00:00.000Z",
+  "semanticVersion": "0.24.0",
+  "sourceEntry": "2026-10-28 — Admin mobile navigation and Rx capture (local source)",
+  "releaseDateTimeUtc": "2026-10-28T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Professional visitors can jump to common tasks, compare their current supplier's landed costs with a Classic Visions quote using their own figures, and follow the steps from application through account setup. Trade applications now collect a payment preference, two required supplier references (a third is optional), or a requested starter limit without implying credit is automatically approved. Unverified island transit-time claims were removed; shipping timing and costs are confirmed for the destination and shipment."
+    "Admin dashboard links beside the account-drawer username and on the profile. Shared mobile admin headers move secondary controls into the profile menu; the sidebar opens from an edge tab as a temporary drawer. Rx capture supports repeated camera photos and selecting multiple files, with larger touch controls and refresh for captures from other devices. Not deployed."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Caribbean customer journey and shipping clarity (local source)."
+      "notes": "Updated as part of Admin mobile navigation and Rx capture (local source)."
     }
   ],
   "migrationNotes": [
