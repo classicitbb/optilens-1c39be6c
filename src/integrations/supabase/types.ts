@@ -7864,6 +7864,134 @@ export type Database = {
           },
         ]
       }
+      order_dispatch_settings: {
+        Row: {
+          auto_transmit: boolean
+          dispatch_token: string
+          endpoint_url: string | null
+          gateway_key: string | null
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_transmit?: boolean
+          dispatch_token?: string
+          endpoint_url?: string | null
+          gateway_key?: string | null
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_transmit?: boolean
+          dispatch_token?: string
+          endpoint_url?: string | null
+          gateway_key?: string | null
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      order_extra_invoices: {
+        Row: {
+          account_id: number
+          created_at: string
+          created_by: string
+          id: string
+          invoice_number: string
+          lines: Json
+          order_id: string | null
+          payment_id: string
+          request_key: string
+          rx_submission_id: string | null
+          stock_submission_id: string | null
+          total_bbd: number
+          user_id: string
+        }
+        Insert: {
+          account_id: number
+          created_at?: string
+          created_by: string
+          id?: string
+          invoice_number?: string
+          lines: Json
+          order_id?: string | null
+          payment_id: string
+          request_key: string
+          rx_submission_id?: string | null
+          stock_submission_id?: string | null
+          total_bbd: number
+          user_id: string
+        }
+        Update: {
+          account_id?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          invoice_number?: string
+          lines?: Json
+          order_id?: string | null
+          payment_id?: string
+          request_key?: string
+          rx_submission_id?: string | null
+          stock_submission_id?: string | null
+          total_bbd?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_extra_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customer_payment_profile_public"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "order_extra_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_extra_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "stock_lens_eligible_accounts"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "order_extra_invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_extra_invoices_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: true
+            referencedRelation: "walk_in_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_extra_invoices_rx_submission_id_fkey"
+            columns: ["rx_submission_id"]
+            isOneToOne: false
+            referencedRelation: "rx_order_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_extra_invoices_stock_submission_id_fkey"
+            columns: ["stock_submission_id"]
+            isOneToOne: false
+            referencedRelation: "stock_order_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -10482,6 +10610,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           attempts: number
+          auto_transmit: boolean
           claimed_at: string | null
           created_at: string
           dispatch_fallback_at: string | null
@@ -10511,6 +10640,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attempts?: number
+          auto_transmit?: boolean
           claimed_at?: string | null
           created_at?: string
           dispatch_fallback_at?: string | null
@@ -10540,6 +10670,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attempts?: number
+          auto_transmit?: boolean
           claimed_at?: string | null
           created_at?: string
           dispatch_fallback_at?: string | null
@@ -11896,6 +12027,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           attempts: number
+          auto_transmit: boolean
           claimed_at: string | null
           created_at: string
           created_by: string | null
@@ -11924,6 +12056,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attempts?: number
+          auto_transmit?: boolean
           claimed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -11952,6 +12085,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           attempts?: number
+          auto_transmit?: boolean
           claimed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -13777,6 +13911,10 @@ export type Database = {
         Args: { p_force?: boolean }
         Returns: boolean
       }
+      begin_order_extra_invoice_payment: {
+        Args: { p_invoice_id: string }
+        Returns: string
+      }
       build_rx_submission_payload: {
         Args: { p_quote_id: string }
         Returns: Json
@@ -14164,6 +14302,7 @@ export type Database = {
         }[]
       }
       get_my_rx_order_status: { Args: { p_quote_id: string }; Returns: Json }
+      get_order_dispatch_settings: { Args: never; Returns: Json }
       get_portal_account_memberships: {
         Args: { p_user_id?: string }
         Returns: {
@@ -14381,6 +14520,16 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: boolean
       }
+      issue_order_extra_invoice: {
+        Args: {
+          p_kind: string
+          p_lines: Json
+          p_request_key: string
+          p_submission_id: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       lead_finder_apply_link: {
         Args: { p_contact_id: string; p_identity_id: string; p_kind: string }
         Returns: undefined
@@ -14408,6 +14557,7 @@ export type Database = {
         }[]
       }
       list_my_rx_orders: { Args: never; Returns: Json[] }
+      list_order_extra_invoices: { Args: never; Returns: Json }
       list_staff_names: {
         Args: never
         Returns: {
@@ -14815,6 +14965,7 @@ export type Database = {
         Args: { p_actor_user_id?: string; p_contracts: Json }
         Returns: undefined
       }
+      request_gatekeeper_auto_dispatch: { Args: never; Returns: number }
       requeue_gatekeeper_rx_to_innovations: {
         Args: { p_reason: string; p_submission_id: string }
         Returns: boolean
@@ -14978,6 +15129,10 @@ export type Database = {
       }
       set_master_price: {
         Args: { p_item_ref: string; p_price: number }
+        Returns: undefined
+      }
+      set_order_auto_transmit: {
+        Args: { p_enabled: boolean }
         Returns: undefined
       }
       settle_scotia_payment: {
@@ -15254,6 +15409,10 @@ export type Database = {
           name: string
           scopes: string[]
         }[]
+      }
+      verify_gatekeeper_dispatch_token: {
+        Args: { p_token: string }
+        Returns: boolean
       }
       verify_gatekeeper_status_pull_token: {
         Args: { p_token: string }
