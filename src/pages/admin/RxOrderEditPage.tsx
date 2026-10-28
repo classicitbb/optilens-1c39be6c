@@ -64,6 +64,7 @@ export default function RxOrderEditPage() {
           initialOrderType={!routeQuoteId && (searchParams.get("type") === "stock" || !!stockSubmissionId) ? "stock" : "rx"}
           lockedAccountId={stockSubmissionId ? stockDraft.data?.account_id ?? null : undefined}
           stockSubmissionId={stockSubmissionId ?? undefined}
+          stockDraft={stockDraft.data}
           prefill={prefill ?? undefined}
           prefillBanner={prefill && quoteNumber ? `Reopened saved order <b>${quoteNumber}</b>.` : undefined}
           checkoutPath="/checkout"

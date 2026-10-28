@@ -43,6 +43,7 @@ import type { RxCatalog, RxFormValues } from "./types";
 import { defaultValues } from "./types";
 import { valuesForPricelistLens } from "../prefill/pricelistLens";
 import { RxStickyLayout } from "./RxStickyLayout";
+import type { StockOrderDraft } from "@/hooks/useStockOrderBuilder";
 
 export interface RxFormProps {
   quoteId: string | null;
@@ -67,6 +68,7 @@ export interface RxFormProps {
   initialOrderType?: "rx" | "stock";
   /** Existing staged/failed stock outbox row being repaired by admin staff. */
   stockSubmissionId?: string;
+  stockDraft?: StockOrderDraft | null;
   onStockOrderSubmitted?: () => void;
   resumedDraftId?: string;
   pricesVisible?: boolean;
@@ -591,7 +593,7 @@ function LoadedForm({
       </div>
 
       {stockMode ? (
-            <StockServicePanel key={`${accountId ?? "no-account"}:${props.stockSubmissionId ?? "new"}`} accountId={accountId} accountName={account?.name ?? ""} submissionId={props.stockSubmissionId} onSubmitted={props.onStockOrderSubmitted} />
+            <StockServicePanel key={`${accountId ?? "no-account"}:${props.stockSubmissionId ?? "new"}`} accountId={accountId} accountName={account?.name ?? ""} submissionId={props.stockSubmissionId} existingDraft={props.stockDraft} onSubmitted={props.onStockOrderSubmitted} />
       ) : (<>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">

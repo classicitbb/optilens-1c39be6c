@@ -3,7 +3,7 @@
 ## 2026-10-28 — Admin mobile workflow, Gatekeeper delivery and extra invoices
 
 ### Release Notes
-- Admin staff can reopen eligible unsent stock orders to correct and resubmit them, and delete blank internal test orders. Rx capture lists show the detected patient beside the customer account.
+- Admin staff can reopen eligible unsent stock orders to correct and resubmit them, and delete blank internal test orders. The guarded editor loads saved orders before the reusable stock panel, keeping panel integrations independently renderable. Rx capture lists show the detected patient beside the customer account.
 - Store checkout now follows the Gatekeeper switch after payment confirmation or on-account submission; manual mode stages new orders. Rollback fixtures verify both modes.
 - Orders can include unpriced published items for later lab appraisal. Gatekeeper is the default sender with a shared auto-transmit switch for new submissions. Staff can issue additional BBD invoices into the customer cart; unpaid charges hold website shipment transitions.
 - Mobile admin search opens from a button into a wide field and readable, wrapping result list below the header; desktop retains its inline field.
@@ -12,7 +12,7 @@
 ### Technical Changelog
 - Add server-only dispatch settings, scoped dispatch token, post-commit wakeups and recovery schedule; preserve test isolation and atomic claims without automatic replay/fallback. Add owner-scoped supplementary invoice/payment RPCs and shipping holds. Repair stale QA route/text assertions and forward launcher context-menu trigger props.
 - Reuse the mobile viewport hook and accessible Sheet with focus restoration, outside/Escape dismissal and close on navigation. Add a rear-camera file input alongside the existing multi-file/drop/paste intake; keep each file as its own draft. Poll idle capture lists every 15 seconds, faster while processing. Existing admin-area guards and capture APIs remain. Add intake and drawer tests; update continuity docs.
-- Add a guarded stock-order editor route that restores account, item variants and references from staged/failed internal submissions. Blank deletion filters out portal-linked, transmitted, non-empty and invoiced rows; existing administrator RLS remains authoritative. Capture identity now reads the patient fields from the extracted draft.
+- Add a guarded stock-order editor route that restores account, item variants and references from staged/failed internal submissions. Blank deletion filters out portal-linked, transmitted, non-empty and invoiced rows; existing administrator RLS remains authoritative. Capture identity now reads the patient fields from the extracted draft. Keep saved draft loading in the guarded edit route and pass the row into the reusable stock panel, preserving standalone panel integrations.
 ## 2026-10-28 — Business research in Notes and CI repair (local source)
 
 ### Release Notes
@@ -868,3 +868,4 @@ positively accepted. Desktop and 360/390px checks passed without page overflow o
 script errors. No source stock/order write, reservation, payment or email occurred.
 
 Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.
+- Keep saved stock-order draft loading in the guarded edit route and pass it into the reusable panel, so ordinary order entry and panel integrations do not require an additional query provider.

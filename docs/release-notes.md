@@ -5,7 +5,7 @@ Summarized release outcomes for each major date-stamped update.
 ## 2026-10-28 — Admin mobile workflow, Gatekeeper delivery and extra invoices
 
 ### Release Notes
-- Admin staff can reopen eligible unsent stock orders to correct and resubmit them, and delete blank internal test orders. Rx capture lists show the detected patient beside the customer account.
+- Admin staff can reopen eligible unsent stock orders to correct and resubmit them, and delete blank internal test orders. The guarded editor loads saved orders before the reusable stock panel, keeping panel integrations independently renderable. Rx capture lists show the detected patient beside the customer account.
 - Store checkout now follows the Gatekeeper switch after payment confirmation or on-account submission; manual mode stages new orders. Rollback fixtures verify both modes.
 - Orders can include unpriced published items for later lab appraisal. Gatekeeper is the default sender with a shared auto-transmit switch for new submissions. Staff can issue additional BBD invoices into the customer cart; unpaid charges hold website shipment transitions.
 - Mobile admin search opens from a button into a wide field and readable, wrapping result list below the header; desktop retains its inline field.
