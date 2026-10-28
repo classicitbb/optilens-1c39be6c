@@ -1,16 +1,16 @@
 {
-  "semanticVersion": "0.23.0",
-  "sourceEntry": "2026-10-24 — Caribbean customer journey and shipping clarity (local source)",
-  "releaseDateTimeUtc": "2026-10-24T00:00:00.000Z",
+  "semanticVersion": "0.24.0",
+  "sourceEntry": "2026-10-28 — Business research in Notes and CI repair (local source)",
+  "releaseDateTimeUtc": "2026-10-28T00:00:00.000Z",
   "environment": "production",
   "releaseSummary": [
-    "Professional visitors can jump to common tasks, compare their current supplier's landed costs with a Classic Visions quote using their own figures, and follow the steps from application through account setup. Trade applications now collect a payment preference, two required supplier references (a third is optional), or a requested starter limit without implying credit is automatically approved. Unverified island transit-time claims were removed; shipping timing and costs are confirmed for the destination and shipment."
+    "Find business details still fills blank fields from Google Places. When that changes nothing or fails, it now adds a written public-web profile with source links under the contact's existing Notes; Save keeps it. Needs the crm-enrich-contacts deploy and OPENAI_API_KEY for the web part. Not deployed or run against live providers."
   ],
   "moduleImpact": [
     {
       "module": "general",
       "impact": "medium",
-      "notes": "Updated as part of Caribbean customer journey and shipping clarity (local source)."
+      "notes": "Updated as part of Business research in Notes and CI repair (local source)."
     }
   ],
   "migrationNotes": [

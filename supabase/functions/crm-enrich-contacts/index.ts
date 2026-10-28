@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
     if (apiKey) providers.push({ provider: "openai_web_search", key: apiKey });
     else warnings.push("OpenAI web research is not configured; only Google Places is available.");
     const sources: PublicWebSource[] = [];
+    const summaries: string[] = [];
     let completed = 0;
     // Each provider gets its own auditable attempt, including errors and no-match.
     for (const { provider, key } of providers.slice(0, remainingToday)) {
@@ -148,9 +149,10 @@ Deno.serve(async (req) => {
       if (attemptError) return reply(500, { error: attemptError.message });
       try {
         const findings = await researchProvider(provider, key, query, contact.business_name || contact.name, model);
-        sources.push(...findings);
+        sources.push(...findings.sources);
+        if (findings.summary) summaries.push(`${provider === "google_places" ? "Google Places" : "Web search"}\n${findings.summary}`);
         completed++;
-        await db.from("contact_enrichment_attempts").update({ outcome: findings.length ? "matched" : "no_match" }).eq("id", attempt.id);
+        await db.from("contact_enrichment_attempts").update({ outcome: findings.sources.length ? "matched" : "no_match" }).eq("id", attempt.id);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Public research failed.";
         if (error instanceof AmbiguousMatchError) {
@@ -166,7 +168,7 @@ Deno.serve(async (req) => {
     }
     if (providers.length > remainingToday) warnings.push("The daily limit prevented checking every provider.");
     if (!completed) return reply(502, { error: warnings.join(" ") || "All research providers failed." });
-    return reply(200, { ok: true, mode: "research", provider: "combined", model, contactId: contact.id, query, sources, warnings, retrievedAt: new Date().toISOString() });
+    return reply(200, { ok: true, mode: "research", provider: "combined", model, contactId: contact.id, query, sources, summary: summaries.join("\n\n"), warnings, retrievedAt: new Date().toISOString() });
   }
   let contacts: EnrichableContact[] = [];
 

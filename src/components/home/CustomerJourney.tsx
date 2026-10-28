@@ -5,15 +5,18 @@ import { BUSINESS } from "./homeContent";
 import { compareCosts, type CostInputs } from "./journeyCost";
 import { useCompanionAssistant } from "@/features/assistant/CompanionAssistantContext";
 import { useShippingPlannerEnabled } from "./useShippingPlannerEnabled";
+import { homeLinkHref, useHomeSignedIn } from "./useHomeSignedIn";
 import { cn } from "@/lib/utils";
 
-const tasks = [
-  { title: "Place an order", detail: "Rx lenses, stock lenses & supplies", href: "/profile/rx-order", keywords: "buy reorder prescription" },
-  { title: "Track my order", detail: "Sign in for your order status", href: "/profile/orders", keywords: "tracking delivery lab job" },
+type Task = { title: string; detail: string; signedOutDetail?: string; signedInOnly?: boolean; href: string; keywords: string };
+
+const tasks: Task[] = [
+  { title: "Place an order", detail: "Rx lenses, stock lenses & supplies", signedOutDetail: "Sign in to order Rx lenses, stock lenses & supplies", href: "/profile/rx-order", keywords: "buy reorder prescription" },
+  { title: "Track my order", detail: "Check your order status", signedOutDetail: "Sign in to check your order status", href: "/profile/orders", keywords: "tracking delivery lab job" },
   { title: "See products & pricing", detail: "Explore the range; request trade prices", href: "/store", keywords: "catalogue catalog lens glasses coating" },
   { title: "Start a trade account", detail: "Apply and get help setting up", href: "/professionals/trade-account", keywords: "new signup onboarding register" },
   { title: "Shipping & total costs", detail: "Plan delivery to your location", href: "#shipping", keywords: "freight customs time savings compare supplier" },
-  { title: "My account & statements", detail: "Pricing, balances and account help", href: "/profile", keywords: "credit invoice payment balance bill" },
+  { title: "My account & statements", detail: "Pricing, balances and account help", signedInOnly: true, href: "/profile", keywords: "credit invoice payment balance bill" },
   { title: "Talk to our team", detail: "A person can guide you step by step", href: "/professionals/customer-service", keywords: "help support contact phone office return remake" },
   { title: "Why Classic Visions?", detail: "Meet your friendly optical laboratory", href: "#why-classic", keywords: "about trust research who company" },
 ];
@@ -27,9 +30,11 @@ export function TaskFinder() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const shippingPlanner = useShippingPlannerEnabled();
+  const signedIn = useHomeSignedIn();
   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const matches = tasks
     .filter(task => shippingPlanner || task.href !== "#shipping")
+    .filter(task => signedIn || !task.signedInOnly)
     .filter(task => words.every(word => `${task.title} ${task.detail} ${task.keywords}`.toLowerCase().includes(word)));
   useEffect(() => {
     if (!open) return;
@@ -47,7 +52,7 @@ export function TaskFinder() {
               <label className="block lg:w-96"><span className="text-sm font-medium">Find a task or answer</span><div className="relative"><Search className="absolute right-3 top-5 h-5 w-5 text-muted-foreground" aria-hidden="true"/><input type="search" className={`${inputStyle} pr-10`} value={query} onChange={event => setQuery(event.target.value)} placeholder="Try shipping, credit, order or help" /></div></label>
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {matches.map(task => <a key={task.title} href={task.href} onClick={() => setOpen(false)} className="group rounded-xl border border-border bg-card p-4 transition hover:border-secondary hover:bg-secondary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary"><span className="flex items-center justify-between gap-2 font-semibold">{task.title}<ArrowUpRight className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true"/></span><span className="mt-2 block text-sm text-muted-foreground">{task.detail}</span></a>)}
+              {matches.map(task => <a key={task.title} href={homeLinkHref(task.href, signedIn)} onClick={() => setOpen(false)} className="group rounded-xl border border-border bg-card p-4 transition hover:border-secondary hover:bg-secondary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary"><span className="flex items-center justify-between gap-2 font-semibold">{task.title}<ArrowUpRight className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true"/></span><span className="mt-2 block text-sm text-muted-foreground">{signedIn ? task.detail : task.signedOutDetail ?? task.detail}</span></a>)}
             </div>
             <p role="status" className="mt-3 text-sm text-muted-foreground">{query ? `${matches.length} matching shortcuts. ` : ""}{matches.length === 0 ? <>Try a shorter word, <Link className="underline" to="/knowledge">browse the knowledge centre</Link>, or call us.</> : "Account details and ordering require sign-in and the relevant account access."}</p>
             <a className={`${linkStyle} mt-2 pl-0 text-secondary`} href={BUSINESS.phoneHref}><Phone className="h-4 w-4" aria-hidden="true"/>Prefer a person? {BUSINESS.phoneDisplay}</a>
@@ -125,6 +130,7 @@ export function ShippingComparison() {
 
 export function RelationshipJourney() {
   const shippingPlanner = useShippingPlannerEnabled();
+  const signedIn = useHomeSignedIn();
   return <section id="why-classic" className="scroll-mt-24 bg-background py-14" aria-labelledby="relationship-heading"><div className="container mx-auto px-5 sm:px-8">
     <p className="text-xs font-semibold uppercase tracking-[.2em] text-secondary">From first enquiry to your next order</p>
     <h2 id="relationship-heading" className="mt-3 max-w-3xl font-serif text-3xl sm:text-4xl">Caribbean optical supply, with a person to help.</h2>
@@ -136,14 +142,19 @@ export function RelationshipJourney() {
     ].map(([title, detail, href, label]) => <div key={title} className="rounded-xl border bg-card p-6"><CheckCircle2 className="h-5 w-5 text-secondary" aria-hidden="true"/><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p><a className={`${linkStyle} mt-3 pl-0 text-secondary`} href={href}>{label} <ArrowUpRight className="h-4 w-4"/></a></div>)}</div>
     <div id="account-journey" className="mt-10 scroll-mt-24 rounded-2xl bg-surface-deep p-6 text-surface-deep-foreground sm:p-8">
       <h3 className="font-serif text-2xl">Start with an account. Build a working relationship.</h3><p className="mt-3 max-w-3xl text-sm leading-6 text-surface-deep-foreground/80">Trade access and credit approval are separate. An online application starts a review; it does not automatically open a credit facility.</p>
-      <ol className="mt-6 grid gap-6 md:grid-cols-4">{[
+      <ol className="mt-6 grid gap-6 md:grid-cols-4">{(signedIn ? [
         ["Apply & verify", "Submit your business and contact details. The team confirms your account, access and pricing."],
         ["Choose your payment path", "Pay in full before production, or provide at least two supplier credit references for verification. A third reference is optional."],
         ["Confirm credit or a starter limit", "Credit follows satisfactory reference checks and confirmation of your terms. New businesses without references can request an individually agreed starter limit."],
         ["Manage your account", "Use available statements and order history. Ask the office to confirm your approved limit, available credit, due dates or any hold."],
-      ].map(([title, detail], index) => <li key={title}><span className="text-sm font-semibold text-accent">0{index + 1}</span><h4 className="mt-2 font-semibold">{title}</h4><p className="mt-2 text-sm leading-6 text-surface-deep-foreground/75">{detail}</p></li>)}</ol>
-      <p className="mt-6 border-t border-white/15 pt-4 text-sm text-surface-deep-foreground/80">With a starter limit, you may order up to the agreed amount; payment is required before further work once that limit is reached. Limits and payment due dates must be confirmed in writing. A statement balance is not an available-credit figure. Online requests can be made at any time; staff responses and order processing follow office hours.</p>
-      <div className="mt-5 flex flex-wrap gap-3"><Link className={`${linkStyle} bg-accent text-accent-foreground`} to="/professionals/trade-account">Start my application</Link><Link className={`${linkStyle} border border-white/30`} to="/profile/account">Continue account setup</Link><Link className={`${linkStyle} border border-white/30`} to="/profile/statements">View my statements</Link></div>
+      ] : [
+        ["Apply & verify", "Submit your business and contact details. The team confirms your account, access and pricing."],
+        ["Choose your payment path", "Pay before production, or ask the office about trade credit. Payment terms are agreed individually."],
+        ["Confirm your terms", "The office confirms your payment terms in writing after review. Nothing opens automatically."],
+        ["Start working together", "Once your account is approved, your team gets account access and a named contact."],
+      ]).map(([title, detail], index) => <li key={title}><span className="text-sm font-semibold text-accent">0{index + 1}</span><h4 className="mt-2 font-semibold">{title}</h4><p className="mt-2 text-sm leading-6 text-surface-deep-foreground/75">{detail}</p></li>)}</ol>
+      <p className="mt-6 border-t border-white/15 pt-4 text-sm text-surface-deep-foreground/80">{signedIn ? "With a starter limit, you may order up to the agreed amount; payment is required before further work once that limit is reached. Limits and payment due dates must be confirmed in writing. A statement balance is not an available-credit figure. " : "Payment terms are confirmed in writing by the office. "}Online requests can be made at any time; staff responses and order processing follow office hours.</p>
+      <div className="mt-5 flex flex-wrap gap-3"><Link className={`${linkStyle} bg-accent text-accent-foreground`} to="/professionals/trade-account">Start my application</Link>{signedIn ? <><Link className={`${linkStyle} border border-white/30`} to="/profile/account">Continue account setup</Link><Link className={`${linkStyle} border border-white/30`} to="/profile/statements">View my statements</Link></> : <Link className={`${linkStyle} border border-white/30`} to={homeLinkHref("/profile", false)}>Already a customer? Sign in</Link>}</div>
     </div>
   </div></section>;
 }

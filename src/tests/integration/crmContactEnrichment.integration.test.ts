@@ -145,7 +145,7 @@ describe("CRM contact enrichment", () => {
     const hook = read("src/features/admin/crm/hooks/useContactEnrichment.ts");
 
     expect(leads).toContain("enrichContacts.mutate({ limit: 25 })");
-    expect(contacts).toContain("enrichContact.mutate({ contactId: editContact.id! })");
+    expect(contacts).toContain("enrichContact.mutateAsync({ contactId })");
     expect(hook).toContain('supabase.functions.invoke("crm-enrich-contacts"');
     // Applied and needs-approval counts must stay distinguishable to the user.
     expect(hook).toContain("need approval in the Copilot");

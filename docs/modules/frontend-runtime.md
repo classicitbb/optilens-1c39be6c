@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-28 - Business research in Notes and CI repair
+
+crm-enrich-contacts research mode also returns the model's written summary (instructions now ask for a labelled business profile); new `contactResearch.ts` shares the research fetch with Research public web and formats the Notes block, appended to the editor draft and reloading the notes editor. CI repair: `npm audit fix` cleared zod, body-parser, undici and fast-uri advisories (lockfile only); regenerated the public content search index; refreshed six stale contract tests (live-data-gateway selects, lens-assistant hidden redirect, Website sidebar order, LabLink embed copy, launcher shortcut label). Full suite passes locally (1774 tests).
+
 ## 2026-10-22 - Native PDF viewer and spreadsheet previews
 
 PdfViewer renders the browser's PDF viewer in an unsandboxed iframe (Chrome refuses it in a sandboxed frame) on a blob URL when navigator.pdfViewerEnabled and a fine pointer are present; otherwise it keeps the pdf.js canvas path. The blob keeps cross-origin signed URLs inside CSP, so frame-src now allows blob:. src/lib/spreadsheetPreview.ts detects csv/xlsx and reads the first 200 rows and 40 columns of each sheet (read-excel-file is dynamically imported; 1 MB csv and 5 MB xlsx caps). SpreadsheetPreview and SpreadsheetPreviewDialog (src/components/files) serve admin email attachments and helpdesk attachments; attachmentPreviewKind reports xlsx. Legacy .xls is not previewed.
