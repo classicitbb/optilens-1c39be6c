@@ -1,6 +1,6 @@
 ## 2026-10-28 - Gatekeeper default, unpriced ordering and supplementary invoices
 
-Status: Source and backend deployment complete; final integration validation and Git push underway.
+Status: Implementation and backend deployment complete; final green checks and push underway.
 
 The two 20261028 order migrations were applied by the user. All 16 live function bodies match local source; RLS and denied anonymous/direct authenticated writes verified. Registered both exact migrations in schema_migrations because the manual apply had not recorded them. Gatekeeper endpoint and public key are derived from the existing scheduler, never hardcoded in the new migration. Auto-transmit is on, no historical rows are opted in. Supabase connector account cannot access this project; Lovable MCP handles this project's backend.
 
@@ -8,7 +8,9 @@ User explicitly approved deploying gatekeeper-orders. Lovable deployed only the 
 
 Rollback-only rehearsal covered both migrations, unpriced item acceptance, invoice issuance/idempotency, owner-only payment, amount matching, unpaid shipment block and simulated settlement. All fixture records and DDL rolled back; no lab/payment network calls. Application TypeScript, Deno check, build, full lint (warnings only), focused tests, PR checks and smoke passed before integrating newer main. Full suite rerun and integration required after merging origin/main. Affected files span prior annotated mobile navigation/capture work, stock pricing, dispatch, invoice/cart UI, migrations, tests and docs. See docs/order-transmission-and-extra-invoices.md for operational shipping limits.
 
-Next executable action: git merge origin/main --no-edit
+Merged current main, including the Lovable deployment commit, preserving both release entries and verified identical function source. Third migration 20261028192938_rx_unpriced_transmission_hold applied via Lovable and recorded: unquoted Rx payloads also carry the lab hold instruction, without changing transmitted/claimed payloads. Latest build, TypeScript, lint, PR checks and smoke pass. Final full suite runs with two workers to avoid Windows contention.
+
+Next executable action: npm run test -- --runInBand --maxWorkers=2
 
 ## 2026-10-28 - Admin mobile navigation and Rx capture
 
