@@ -136,4 +136,3 @@ END $function$;
 DROP TRIGGER zz_prepare_automatic_gatekeeper_stock ON public.stock_order_submissions;
 CREATE TRIGGER zz_prepare_automatic_gatekeeper_stock BEFORE INSERT OR UPDATE ON public.stock_order_submissions FOR EACH ROW EXECUTE FUNCTION public.prepare_automatic_gatekeeper_submission();
 NOTIFY pgrst,'reload schema';
-
