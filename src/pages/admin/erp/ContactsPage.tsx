@@ -592,7 +592,20 @@ const ContactsPage = ({
     try {
       await enrichContact.mutateAsync({ contactId }).catch(() => null);
       const research = await fetchContactResearch(contactId);
-      setEditContact((current) => (current && current.id === contactId ? { ...current, ...appendResearchToNotes(current, research) } : current));
+      // Enrichment wrote to the server row; pull those values into the open form (blank fields only,
+      // so unsaved edits survive) or Save would overwrite them with the stale blanks.
+      const enrichedColumns = ["street", "city", "state", "zip", "country", "country_code", "website", "phone", "google_place_id"] as const;
+      const { data: fresh } = await (supabase.from("contacts") as any).select(enrichedColumns.join(",")).eq("id", contactId).maybeSingle();
+      setEditContact((current) => {
+        if (!current || current.id !== contactId) return current;
+        const filled: Record<string, unknown> = {};
+        for (const column of enrichedColumns) {
+          const local = (current as Record<string, unknown>)[column];
+          const server = fresh?.[column];
+          if ((local == null || String(local).trim() === "") && server != null && String(server).trim() !== "") filled[column] = server;
+        }
+        return { ...current, ...filled, ...appendResearchToNotes(current, research) };
+      });
       setNotesRevision((revision) => revision + 1);
       toast({ title: "Market intel added to Notes", description: "Review it on the Notes tab, then Save to keep it." });
     } catch (error) {
