@@ -3,6 +3,7 @@
 ## 2026-10-28 — Admin mobile workflow, Gatekeeper delivery and extra invoices
 
 ### Release Notes
+- Store checkout now follows the Gatekeeper switch after payment confirmation or on-account submission; manual mode stages new orders. Rollback fixtures verify both modes.
 - Orders can include unpriced published items for later lab appraisal. Gatekeeper is the default sender with a shared auto-transmit switch for new submissions. Staff can issue additional BBD invoices into the customer cart; unpaid charges hold website shipment transitions.
 - Mobile admin search opens from a button into a wide field and readable, wrapping result list below the header; desktop retains its inline field.
 - Admin dashboard links beside the account-drawer username and on the profile. Shared mobile admin headers move secondary controls into the profile menu; the sidebar opens from an edge tab as a temporary drawer. Rx capture supports repeated camera photos and selecting multiple files, with larger touch controls and refresh for captures from other devices. Frontend pending merge; migrations and gatekeeper-orders deployed and verified.
@@ -863,3 +864,5 @@ Token-checked database RPCs keep private stock/cost tables inaccessible. Both sc
 migrations are applied. Daily 06:00 Barbados publication was exercised unattended and
 positively accepted. Desktop and 360/390px checks passed without page overflow or
 script errors. No source stock/order write, reservation, payment or email occurred.
+
+Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.

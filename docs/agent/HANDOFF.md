@@ -1,6 +1,6 @@
 ## 2026-10-28 - Gatekeeper default, unpriced ordering and supplementary invoices
 
-Status: Implementation and backend deployment complete; final green checks and push underway.
+Status: Complete — no active handoff
 
 The two 20261028 order migrations were applied by the user. All 16 live function bodies match local source; RLS and denied anonymous/direct authenticated writes verified. Registered both exact migrations in schema_migrations because the manual apply had not recorded them. Gatekeeper endpoint and public key are derived from the existing scheduler, never hardcoded in the new migration. Auto-transmit is on, no historical rows are opted in. Supabase connector account cannot access this project; Lovable MCP handles this project's backend.
 
@@ -10,7 +10,7 @@ Rollback-only rehearsal covered both migrations, unpriced item acceptance, invoi
 
 Merged current main, including the Lovable deployment commit, preserving both release entries and verified identical function source. Third migration 20261028192938_rx_unpriced_transmission_hold applied via Lovable and recorded: unquoted Rx payloads also carry the lab hold instruction, without changing transmitted/claimed payloads. Latest build, TypeScript, lint, PR checks and smoke pass. Final full suite runs with two workers to avoid Windows contention.
 
-Next executable action: npm run test -- --runInBand --maxWorkers=2
+Final validation: 285 test files / 1786 tests pass; full lint has warnings only; application TypeScript, Deno check, production build, qa:pr-checks and qa:smoke pass. Node 20 and Node 22 GitHub checks passed. PR #651 contains the complete source release. Fourth migration 20261028193836_stock_checkout_gatekeeper_default is applied and recorded; paid/on-account store checkout now uses Gatekeeper, stages when automation is off and retains the payment-confirmation gate. Its temporary-table enabled/disabled fixture passed and rolled back. Backend deployment is complete; frontend production publication awaits PR merge. No active continuation.
 
 ## 2026-10-28 - Admin mobile navigation and Rx capture
 

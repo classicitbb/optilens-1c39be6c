@@ -1,5 +1,10 @@
 # Project Status
 
+## Order release verification - 2026-10-28
+
+PR #651: all 1786 tests pass across 285 files; lint (warnings only), TypeScript, Deno, build, PR checks and smoke pass. Node 20/22 CI and preview deployments are green. Four order migrations are verified/applied and recorded via Lovable; gatekeeper-orders alone is deployed, with hosted Edge smoke passing. Store checkout, direct stock and Rx submissions use the automatic Gatekeeper setting. No agent-created real order transmission, invoice or payment was used in verification. Frontend production publication awaits merge. Historical failures below are superseded by this final run.
+
+
 ## Admin mobile navigation and capture - 2026-10-28
 
 Local source: AccountTopBar shows an admin-only dashboard link beside the mobile-sheet username; MyAccountSection makes the admin role a dashboard link. Shared AdminTopBar keeps applications, branding, back, search, notifications, operator attention and avatar below 768px; New, annotation, contextual help and settings move to the avatar menu, which already contains themes and account actions. AdminSidebar uses the existing accessible Sheet on mobile, initially closed, with an edge tab, no pinned state, and dismissal on outside tap, Escape, link click, navigation or viewport change. Desktop behavior is retained.
