@@ -12,6 +12,7 @@ import { createCorsPolicy, getCorsHeaders, handleCorsPreflight, rejectDisallowed
 import { requirePrivilegedAccess } from "../_shared/http/auth.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildOrderHashref, canonicalOrderFor, text, type OrderKind } from "../_shared/orders/hashref.ts";
+import { dispatchAutomaticBatch, isAutomaticDispatchAction } from "../_shared/gatekeeperAutoDispatch.ts";
 import { shouldFallbackGatekeeperRx, type GatekeeperPreSendFailureKind } from "../_shared/gatekeeperPolicy.ts";
 
 const corsPolicy = createCorsPolicy({
@@ -394,7 +395,7 @@ async function validAuthToken(authContext: any, config: Pick<GatekeeperCredentia
   return token;
 }
 
-Deno.serve(async (req) => {
+async function handleGatekeeperRequest(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req, corsPolicy);
   if (preflight) return preflight;
   const disallowedOrigin = rejectDisallowedOrigin(req, corsPolicy);
@@ -419,7 +420,14 @@ Deno.serve(async (req) => {
     if (!isCron) return json(req, { error: "Unauthorized" }, 401);
   }
 
-  const authContext = isCron
+  const dispatchToken = req.headers.get("x-gatekeeper-dispatch-token") ?? "";
+  let isAutoDispatch = false;
+  if (dispatchToken) {
+    const { data: valid } = await serviceClient.rpc("verify_gatekeeper_dispatch_token", { p_token: dispatchToken });
+    if (valid !== true) return json(req, { error: "Unauthorized" }, 401);
+    isAutoDispatch = true;
+  }
+  const authContext = isCron || isAutoDispatch
     ? { supabaseAdminClient: serviceClient, user: { id: null as string | null } }
     : await requirePrivilegedAccess(req, getCorsHeaders(req, corsPolicy), {
         allowedRoles: ["admin"], sourceFunction: "gatekeeper-orders",
@@ -429,13 +437,32 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;
   const action = text(body?.action, 40);
-  if (!body || !["connect", "refresh-contracts", "send", "preview", "pull-statuses"].includes(action)) {
+  if (!body || !["connect", "refresh-contracts", "send", "preview", "pull-statuses", "auto-dispatch"].includes(action)) {
     return json(req, { error: "Unsupported action." }, 400);
   }
   if (isCron && action !== "pull-statuses") {
     return json(req, { error: "The scheduled caller may only pull statuses." }, 403);
   }
 
+
+  if (isAutoDispatch && !isAutomaticDispatchAction(action)) return json(req, { error: "Dispatch caller may only send approved automatic orders." }, 403);
+  if (action === "auto-dispatch") {
+    if (!isAutoDispatch) return json(req, { error: "Dispatch token required." }, 403);
+    const outcomes = await dispatchAutomaticBatch(async (kind) => {
+      const { data, error } = await serviceClient.from(ORDER_TABLES[kind].table).select("id")
+        .eq("auto_transmit", true).eq("status", "approved").eq("dispatch_provider", "gatekeeper")
+        .order("created_at").limit(2);
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((row) => row.id);
+    }, async (kind, id) => {
+      const response = await handleGatekeeperRequest(new Request(req.url, {
+        method: "POST", headers: req.headers,
+        body: JSON.stringify({ action: "send", orderKind: kind, submissionId: id }),
+      }));
+      return response.status;
+    });
+    return json(req, { ok: true, outcomes });
+  }
 
   const log: DispatchLog = {
     admin: authContext.supabaseAdminClient,
@@ -649,12 +676,14 @@ Deno.serve(async (req) => {
       return json(req, { ok: true, orderKind, hashref, routed: !!config });
     }
 
-    const { data: claimed, error: claimError } = await authContext.supabaseAdminClient
+    let claim = authContext.supabaseAdminClient
       .from(table)
       .update({ status: "claimed", claimed_at: new Date().toISOString() })
       .eq("id", submissionId)
       .eq("status", "approved")
-      .eq("dispatch_provider", "gatekeeper")
+      .eq("dispatch_provider", "gatekeeper");
+    if (isAutoDispatch) claim = claim.eq("auto_transmit", true);
+    const { data: claimed, error: claimError } = await claim
       .select(columns)
       .maybeSingle();
     if (claimError) throw new Error(`Could not claim Gatekeeper submission: ${claimError.message}`);
@@ -708,7 +737,7 @@ Deno.serve(async (req) => {
           .select("fallback_to_innovations")
           .eq("tenant_key", "default")
           .maybeSingle();
-        if (!settingsError && shouldFallbackGatekeeperRx({
+        if (!isAutoDispatch && !settingsError && shouldFallbackGatekeeperRx({
           orderKind,
           postStarted,
           failureKind: error.kind,
@@ -758,4 +787,6 @@ Deno.serve(async (req) => {
     });
     return json(req, { error: message }, 502);
   }
-});
+}
+
+Deno.serve(handleGatekeeperRequest);
