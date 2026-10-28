@@ -50,7 +50,7 @@ describe("launcher pins", () => {
     mocks.toggle.mockClear();
     renderAt("/admin/dashboard", <AppLauncher open onClose={() => {}} />);
 
-    fireEvent.contextMenu(screen.getByText("Quotations"));
+    fireEvent.contextMenu(screen.getByText("Orders · Quotations"));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Unpin from launcher" }));
 
     expect(mocks.toggle).toHaveBeenCalledWith("/admin/orders/quotations");

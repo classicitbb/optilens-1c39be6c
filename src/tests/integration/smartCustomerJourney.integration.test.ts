@@ -8,7 +8,7 @@ const read = (relativePath: string) => fs.readFileSync(path.join(root, relativeP
 
 describe("smart customer journey integration contract", () => {
   it("registers every new canonical route with the correct access mode", () => {
-    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "public.lens-assistant", path: "/lens-assistant", authMode: "public", status: "active" }));
+    expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "public.lens-assistant", path: "/lens-assistant", authMode: "public", status: "hidden", redirectTo: "/profile/rx-order" }));
     expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "customer.rx-draft", path: "/profile/rx-drafts/:draftId", authMode: "authenticated", status: "active" }));
     expect(APP_ROUTE_REGISTRY).toContainEqual(expect.objectContaining({ id: "admin.website.store.lens-assistant", path: "/admin/website/store/lens-assistant", authMode: "admin", status: "active" }));
   });
@@ -31,7 +31,7 @@ describe("smart customer journey integration contract", () => {
 
   it("keeps LabLink as the explicit final submission surface", () => {
     const page = read("src/pages/LabLinkEmbedPage.tsx");
-    expect(page).toContain("This draft has not been submitted");
+    expect(page).toContain("Open LabLink");
     expect(page).not.toContain('allow="clipboard-read; clipboard-write"');
   });
 

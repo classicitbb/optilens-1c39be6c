@@ -26,7 +26,7 @@ describe("admin stock order builder route accessibility", () => {
     expect(ADMIN_APPS.website.sidebarItems.slice(0, 3).map((item) => item.label)).toEqual([
       "Website Portals",
       "Store / Products",
-      "Pages / Content",
+      "Orders",
     ]);
   });
 

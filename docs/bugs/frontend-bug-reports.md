@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-28 - Red CI on codex/smart-customer-journey
+
+PR Validation failed on dependency audit (zod, body-parser, undici), a stale public content search index, and six contract tests that asserted outdated strings after earlier refactors. Fixed with `npm audit fix`, `npm run search:index` and updated assertions; no product behavior changed.
+
 ## 2026-10-22 - PDF viewer limits and missing spreadsheet previews
 
 The pdf.js viewer drew every PDF to canvas, so desktop users lost search, print and thumbnails; desktop now uses the browser viewer. Excel attachments had no preview at all and csv previews existed only in admin email; both formats now preview in email and helpdesk. Not browser-verified: the handbook and evidence pages require sign-in, so the native iframe path and the helpdesk dialog were covered by typecheck, unit tests and build only. Known limit: legacy .xls and files over the size caps download instead of previewing.

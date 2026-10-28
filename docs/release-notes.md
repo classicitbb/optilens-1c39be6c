@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-28 — Business research in Notes and CI repair (local source)
+
+### Release Notes
+- Find business details still fills blank fields from Google Places. When that changes nothing or fails, it now adds a written public-web profile with source links under the contact's existing Notes; Save keeps it. Needs the crm-enrich-contacts deploy and OPENAI_API_KEY for the web part. Not deployed or run against live providers.
+
 ## 2026-10-24 — Caribbean customer journey and shipping clarity (local source)
 
 ### Release Notes
