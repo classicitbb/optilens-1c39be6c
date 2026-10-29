@@ -461,3 +461,5 @@ Order transmission and supplementary invoices (2026-10-28): unpriced published s
 
 Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.
 The edit route owns loading the saved submission and passes it into the stock panel, preserving the panel's standalone integrations.
+
+Homepage quick-start reserves 44px below the fixed header. Its original rounded handle supports captured pointer drags; outside pointer events, Escape and keyboard focus leaving dismiss it. Homepage customer actions reuse the resolved portal identity and staff role; this is presentation only.

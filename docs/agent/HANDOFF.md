@@ -1,3 +1,10 @@
+## 2026-10-28 - Homepage drawer and customer daily actions
+
+Status: Complete — no active handoff.
+
+Quick-start keeps the original rounded handle on the bottom edge of its drawer. A 44px spacer below the 64px header prevents hero overlap. Pointer capture tracks pull-down/open and pull-up/close; click, outside tap, Escape, arrow keys and focus leaving work. Drawer content retains native scrolling; an additional upward swipe at its bottom dismisses it. The closed panel is inert. The hero, quick-start shortcuts, acquisition section and footer calls to action use existing approved portal identity or signed-in staff role to show daily order, tracking, supply and account actions. No authorization, schema or hosted data change.
+
+Validation: full suite 285 files / 1786 tests passed; application TypeScript, production build, PR checks and search index generation passed. Full lint: 2460 warnings, zero errors. Existing mobile in-app browser: rounded handle clear of hero text, pull open/close, tap open, outside dismissal, Tab into search, Escape focus restoration and authenticated operational actions verified. Physical-phone gestures and signed-out browser session were not exercised. No production publication or business transaction performed. Relevant source: src/components/home/{CustomerJourney,HomePage,homeContent}. See the local ignored .codex-home-*.log files for command output and .codex-home-handle.png for mobile proof.
 ## 2026-10-28 - Gatekeeper default, unpriced ordering and supplementary invoices
 
 Status: Complete — no active handoff

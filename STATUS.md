@@ -1,5 +1,10 @@
 # Project Status
 
+## Homepage drawer and returning customers - 2026-10-28
+
+Source: quick-start keeps its original rounded handle at the panel's bottom edge, with reserved spacing below the header. Pull down/up, click, outside tap, Escape and keyboard focus dismissal work; touch scrolling remains native until a further upward swipe at the list end. Approved portal customers and signed-in staff see order, tracking, supplies and account actions; acquisition calls to action are hidden/replaced. Reuses existing portal identity for presentation only. Full suite: 285 files / 1786 tests pass. Browser verified locally at the existing mobile viewport; no production publish. See src/components/home/CONTEXT.md.
+
+
 ## Admin order recovery and capture identity - 2026-10-28
 
 Local source: admin Rx & Stock Orders can reopen staged/failed internal stock submissions for correction and explicit resubmission; deletion is offered only for blank, unsent, non-invoiced stock rows without a portal order. Existing Rx edit/retry remains available. Capture lists show extracted patient name and customer account. App TypeScript passes; scoped ESLint reports warnings only, no errors. No migration or live-order operation. See the latest HANDOFF.md entry.

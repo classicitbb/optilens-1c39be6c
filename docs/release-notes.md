@@ -2,6 +2,11 @@
 
 Summarized release outcomes for each major date-stamped update.
 
+## 2026-10-28 — Homepage drawer and returning customer actions
+
+### Release Notes
+- Keep the rounded quick-start handle clear of homepage text. Pull down to open, pull up to close, tap outside or press Escape to dismiss. Approved portal customers see daily ordering, tracking and supply-shopping actions in place of trade-account prompts.
+
 ## 2026-10-28 — Admin mobile workflow, Gatekeeper delivery and extra invoices
 
 ### Release Notes

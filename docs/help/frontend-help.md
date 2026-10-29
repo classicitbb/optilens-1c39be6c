@@ -411,3 +411,5 @@ Order transmission and supplementary invoices (2026-10-28): unpriced published s
 
 Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.
 The edit page loads the saved order before the stock entry panel opens.
+
+On the homepage, pull the rounded handle down or tap it to open shortcuts. Pull it up, tap outside, or press Escape to close. Scroll the list normally; swiping up again at the end closes it. Approved customers get Start an Rx order, Check my orders and Buy supplies.
