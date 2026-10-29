@@ -1,5 +1,21 @@
 # Project Status
 
+## Admin mobile sidebar handle edge - 2026-10-29
+
+The workspace theme's unlayered `.admin-tool button` rule overrides Tailwind radius utilities, so `rounded-l-none` alone did not square the edge. Set the two left corner radii inline on the trigger while preserving right-side rounding, contrast and sizing. Focused verification pending; see HANDOFF.md.
+
+## Admin mobile sidebar handle contrast - 2026-10-29
+
+Follow-up: increased handle visibility in light and dark themes by using the higher-contrast admin sidebar foreground token for its border and icon, a 2px right edge, and a stronger shadow. Keyboard focus has a visible ring. Width remains 17px. Focused verification pending; see HANDOFF.md.
+
+## Admin mobile sidebar handle - 2026-10-29
+
+Follow-up to mobile navigation: narrowed the edge handle by 30% (24px to 17px) and reduced its icon proportionally (20px to 14px), retaining its 44px height and accessible button target. This minimizes overlap with the first content column on narrow admin pages. Focused test and build pending; see HANDOFF.md.
+
+## Admin mobile navigation and Codex run actions - 2026-10-29
+
+Local source: the mobile admin navigation handle now sits flush to the left edge with no left border, a vertical three-dot icon and a clearer theme-aware border. The drawer and its light backdrop begin below the 44px admin header, so app switching/search/alerts remain visible and the page dims lightly. Codex Run and Dev Preview actions both start the current checkout's Vite dev server at 127.0.0.1:5173 with strict port/open behavior; `npm run dev` now checks the supported Node/npm runtime first. No service, credential, access, hosted data or deployment change. See HANDOFF.md for validation.
+
 ## Homepage drawer and returning customers - 2026-10-28
 
 Source: quick-start keeps its original rounded handle at the panel's bottom edge, with reserved spacing below the header. Pull down/up, click, outside tap, Escape and keyboard focus dismissal work; touch scrolling remains native until a further upward swipe at the list end. Approved portal customers and signed-in staff see order, tracking, supplies and account actions; acquisition calls to action are hidden/replaced. Reuses existing portal identity for presentation only. Full suite: 285 files / 1786 tests pass. Browser verified locally at the existing mobile viewport; no production publish. See src/components/home/CONTEXT.md.

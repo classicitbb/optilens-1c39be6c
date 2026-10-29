@@ -4,12 +4,12 @@ import { ADMIN_APPS, type AppKey } from "@/features/admin/core/config/apps";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { PanelLeftClose, PanelLeft, Pin, PinOff } from "lucide-react";
+import { EllipsisVertical, PanelLeftClose, PanelLeft, Pin, PinOff } from "lucide-react";
 import SidebarNavList, { type SidebarNavItem } from "@/components/shared/SidebarNavList";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { useLauncherPins } from "@/features/admin/core/hooks/useLauncherPins";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetOverlay, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 // "pinned"   — always open, no flyout (user locked it)
@@ -132,13 +132,14 @@ const AdminSidebar = () => {
   if (isMobile) return (
     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
       <SheetTrigger asChild>
-        <button type="button" aria-label="Open sidebar" className="absolute left-0 top-3 z-20 flex h-11 w-5 items-center justify-center rounded-r-md border bg-[hsl(var(--admin-sidebar-bg))] shadow">
-          <PanelLeft className="h-4 w-4" />
+        <button type="button" aria-label="Open sidebar" style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }} className="absolute left-0 top-0 z-20 flex h-11 w-[17px] items-center justify-center rounded-l-none rounded-r-md border border-r-2 border-l-0 border-[hsl(var(--admin-sidebar-fg))] bg-[hsl(var(--admin-sidebar-bg))] text-[hsl(var(--admin-sidebar-fg))] shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--admin-sidebar-fg))]">
+          <EllipsisVertical aria-hidden="true" className="h-3.5 w-3.5" />
         </button>
       </SheetTrigger>
+      <SheetOverlay className="top-11 bg-black/25 data-[state=open]:animate-none data-[state=closed]:animate-none" />
       <SheetContent
         side="left"
-        className="admin-tool w-64 overflow-y-auto p-3 motion-reduce:animate-none"
+        className="admin-tool !inset-y-auto !top-11 !bottom-0 w-64 overflow-y-auto rounded-none border-b-0 border-l-0 border-r border-t border-[hsl(var(--admin-border))] p-3 shadow-xl motion-reduce:animate-none"
         onBlur={(event) => {
           if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setMobileOpen(false);
         }}

@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "npm@10",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/check-runtime.mjs && vite",
     "build": "vite build",
     "mcp:generate": "node scripts/generate_mcp_function.mjs",
     "copilot:facts": "node scripts/generate_copilot_platform_facts.mjs",

@@ -39,7 +39,7 @@ Pricelist selected-lens read (2026-10-17): `portal_assigned_pricelist_matrix` al
 
 Pricelist → Rx form (2026-10-17, local source): reuses the existing `get_rx_catalog_aliases` read and current-account price lookup. Only a canonical lens alias travels in `/profile/rx-order?lens=...`; no client amount, account selection, permission or retail-price override is carried. The existing Rx feature gate, customer account lock, draft save and inquiry paths are retained. No new service, credential, schema, connector or environment variable.
 
-The Codex `Dev Preview` project action starts only the local Vite server on loopback port 5173. It adds no external service, connector, credential, access rule, or deployment behavior.
+The Codex `Run` and `Dev Preview` project actions start only this checkout's local Vite server on loopback, preferring port 5173 and opening the actual selected URL. If 5173 is occupied, Vite automatically selects the next available port. `npm run dev` checks supported Node/npm versions first. This adds no external service, connector, credential, access rule, or deployment behavior.
 
 Atlas standard-page width/padding is frontend-only: 770px maximum and 5px gutters from `sm`, with existing mobile gutters retained. No connector, service, environment variable, schema or access boundary changed.
 

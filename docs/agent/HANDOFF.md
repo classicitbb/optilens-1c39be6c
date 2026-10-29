@@ -1042,3 +1042,41 @@ Admin order workspace exposes Edit for staged/failed internal stock submissions 
 Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json` passes. Scoped ESLint passes with 60 warnings and no errors (existing any warnings in the touched files). `git diff --check` passes. Tests were not run. No migrations, hosted writes, order release, invoice, or payment was performed. The existing PR #652 branch also contains the repository owner's ContactsPage commit.
 
 Homepage release audit follow-up: CI identified GHSA-3f7j-7jwc-fxfj in transitive systeminformation. npm update systeminformation --ignore-scripts updated only that lockfile entry from 5.33.11 to 5.33.18; npm run security:audit passes with no unexcepted high/critical findings. No advisory exception added.
+## 2026-10-29 - Admin mobile drawer and local Run/Preview actions
+
+Status: Complete — no active handoff.
+
+Updated `src/components/admin/AdminSidebar.tsx`: the mobile handle has a flush left edge, no left border, vertical three-dot icon and shared visible border token. The drawer and 25% black backdrop begin below the 44px `AdminTopBar`, preserving header controls while open. Updated the Codex Run action, which previously installed Supabase CLI instead of running the app, to match Dev Preview's loopback Vite command. `npm run dev` now checks supported Node/npm versions before starting Vite. Both actions run in the current checkout, prefer port 5173, and let Vite select another port when that port is busy. No external service, hosted data, auth, credential, deployment or production change.
+
+Affected files: `src/components/admin/AdminSidebar.tsx`, `package.json`, `.codex/environments/environment.toml`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, `docs/agent/INTEGRATIONS.md`, and this handoff.
+
+Validation: `npx.cmd vitest run --coverage=false src/tests/unit/adminMobileSidebar.test.tsx` passes (2 tests); `npm run build` passes. `npm run test -- --run src/tests/unit/adminMobileSidebar.test.tsx` ran the same assertions successfully but exits nonzero because `scripts/run-tests.mjs` applies global coverage thresholds to a one-file run; the focused Vitest command disables coverage as intended. The configured dev command passed the runtime guard, detected busy port 5173, served this checkout at 5174 and returned HTTP 200; that temporary server was stopped. The pre-existing checkout Vite server at 5173 remains available and also returns HTTP 200. No hosted data, auth, credential, deployment or production change.
+## 2026-10-29 - Admin mobile handle width follow-up
+
+Status: Complete — no active handoff.
+
+Reduced the mobile admin sidebar handle from 24px to 17px wide and the icon from 20px to 14px (30% narrower); preserved its 44px height, edge placement and accessible label. This addresses overlap with the CRM page's first content column on a 412px viewport.
+
+Affected files: `src/components/admin/AdminSidebar.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and this handoff.
+
+Validation: `npx.cmd vitest run --coverage=false src/tests/unit/adminMobileSidebar.test.tsx` passes (2 tests); `npm run build` passes. No backend, access, or production changes.
+
+## 2026-10-29 - Admin mobile handle contrast follow-up
+
+Status: Complete — no active handoff.
+
+Improved the mobile admin handle in both themes: icon and border now use the higher-contrast admin sidebar foreground color, the exposed right border is 2px, and the shadow is stronger. Added a visible keyboard focus ring. Kept the 17px width and screen-flush left edge.
+
+Affected files: `src/components/admin/AdminSidebar.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and this handoff.
+
+Validation: `npx.cmd vitest run --coverage=false src/tests/unit/adminMobileSidebar.test.tsx` passes (2 tests); `npm run build` passes. The local 5173 server is already running this checkout and will hot-reload the handle styling. No deployment or backend changes.
+
+## 2026-10-29 - Admin mobile handle left edge
+
+Status: Complete — no active handoff.
+
+The prior `rounded-l-none` class was overridden by the workspace theme's unlayered `.admin-tool button` radius rule. Set both left corner radii inline so the screen edge is square; retain right-side rounding and the existing size, border and contrast.
+
+Affected files: `src/components/admin/AdminSidebar.tsx`, `STATUS.md`, `docs/agent/PROJECT_KNOWLEDGE.md`, and this handoff.
+
+Validation: `npx.cmd vitest run --coverage=false src/tests/unit/adminMobileSidebar.test.tsx` passes (2 tests); `npm run build` passes. No deployment or backend changes.

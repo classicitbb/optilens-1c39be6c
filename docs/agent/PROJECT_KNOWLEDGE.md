@@ -1,5 +1,21 @@
 # Project Knowledge
 
+## Admin mobile handle edge - 2026-10-29
+
+The unlayered `.admin-tool button` rule in `src/styles/workspace.css` overrides Tailwind radius utilities. Set `borderTopLeftRadius` and `borderBottomLeftRadius` inline on the viewport-edge handle to make its left corners square; keep the right-side rounding.
+
+## Admin mobile handle contrast - 2026-10-29
+
+To keep the 17px mobile edge handle visible in both themes, its icon and border use `--admin-sidebar-fg` rather than the low-contrast `--admin-border` line token; emphasize the exposed right edge at 2px and retain a stronger shadow plus keyboard focus ring. The left edge stays flush with the viewport.
+
+## Admin mobile handle width - 2026-10-29
+
+Mobile `AdminSidebar` edge trigger is 17px wide (30% less than the initial 24px) with a 14px vertical-ellipsis icon and unchanged 44px height. The narrow hit area reduces obstruction of content icons/text in the first column while retaining the same handle placement and touch height.
+
+## Admin mobile drawer and local run actions - 2026-10-29
+
+`src/components/admin/AdminSidebar.tsx` uses the existing Radix Sheet on mobile. Its trigger is flush to the left viewport edge with its left border removed and uses `EllipsisVertical`; the panel and `SheetOverlay` start at `top-11`, matching the 44px `AdminTopBar`. The overlay uses black at 25% opacity and the panel keeps a square left edge plus the shared theme-aware admin border. Keep the top bar outside both layers. Codex `.codex/environments/environment.toml` Run and Dev Preview actions both use `npm run dev -- --host 127.0.0.1 --port 5173 --open`; npm runs `scripts/check-runtime.mjs` before Vite. Vite automatically selects the next available port when 5173 is occupied and opens the actual server URL.
+
 ## Alert bell, stock refresh and portal loading - 2026-10-20
 
 `features/admin/notifications/alertSound.ts` owns a reusable Web Audio context and two-note bell. NotificationBell unlocks audio on pointer/key interaction and offers browser-local mute/test controls. Newly observed notification IDs ring; the initial backlog stays silent. Operator attention retains its reminder window but rings once per batch and waits for snooze loading. Web Locks serializes playback against a shared localStorage timestamp with a six-second cooldown and bounded 24-hour event receipts; older browsers use a short storage election. Only unlocked tabs can ring. Audio/storage failures are quiet. Coordination is limited to the same origin and browser profile, not devices/private sessions.

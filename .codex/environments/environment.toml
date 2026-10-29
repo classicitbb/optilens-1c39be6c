@@ -8,12 +8,9 @@ script = ""
 [[actions]]
 name = "Run"
 icon = "run"
-command = '''
-scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-scoop install supabase
-'''
+command = "npm run dev -- --host 127.0.0.1 --port 5173 --open"
 
 [[actions]]
 name = "Dev Preview"
 icon = "tool"
-command = "npm run dev -- --host 127.0.0.1 --port 5173 --strictPort --open"
+command = "npm run dev -- --host 127.0.0.1 --port 5173 --open"
