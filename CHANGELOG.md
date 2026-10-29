@@ -6,7 +6,7 @@
 - Keep the rounded quick-start handle clear of homepage text. Pull down to open, pull up to close, tap outside or press Escape to dismiss. Approved portal customers see daily ordering, tracking and supply-shopping actions in place of trade-account prompts.
 
 ### Technical Changelog
-- Reserve the handle row below the header and use Pointer Events with capture on the handle only. Preserve normal scrolling inside the drawer; an upward swipe at the end dismisses it. Reuse the existing portal identity for presentation, without changing access permissions.
+- Reserve the handle row below the header and use Pointer Events with capture on the handle only. Preserve normal scrolling inside the drawer; an upward swipe at the end dismisses it. Reuse the existing portal identity for presentation, without changing access permissions. Update transitive systeminformation from 5.33.11 to 5.33.18 to pass the current high-severity dependency audit.
 
 
 ## 2026-10-28 — Admin mobile workflow, Gatekeeper delivery and extra invoices
