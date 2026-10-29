@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Link } from "react-router";
 import { ArrowUpRight, CheckCircle2, ChevronDown, ChevronUp, Phone, Search, Truck } from "lucide-react";
 import { BUSINESS } from "./homeContent";
@@ -23,36 +23,81 @@ const tasks: Task[] = [
 const linkStyle = "inline-flex min-h-11 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-secondary";
 const inputStyle = "mt-2 min-h-11 w-full rounded-lg border border-border bg-background px-3 py-2 text-base text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary";
 
-const tabStyle = "pointer-events-auto inline-flex min-h-10 items-center gap-2 rounded-b-xl border border-t-0 border-border bg-background px-5 py-2 text-sm font-semibold text-foreground shadow-md transition hover:text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary";
+const tabStyle = "pointer-events-auto order-last inline-flex min-h-11 touch-none select-none [-webkit-user-select:none] cursor-grab items-center justify-center gap-2 rounded-b-xl border border-t-0 border-border/50 bg-background/95 px-5 py-2 text-sm font-semibold text-foreground shadow-md backdrop-blur-md active:cursor-grabbing hover:text-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-secondary";
 
 /** Quick-start drawer, hung from the header bar. The tab sits under the header when closed and under the panel (labelled Close) when open. */
-export function TaskFinder() {
+export function TaskFinder({ portalAccess = false }: { portalAccess?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [dragHeight, setDragHeight] = useState<number | null>(null);
+  const handle = useRef<HTMLButtonElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const gesture = useRef<{ y: number; height: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const swipe = useRef<{ y: number; atBottom: boolean } | null>(null);
+  const drawer = useRef<HTMLDivElement>(null);
+  const close = () => { setOpen(false); setDragHeight(null); handle.current?.focus({ preventScroll: true }); };
+  const maxHeight = () => Math.min(content.current?.scrollHeight ?? 0, window.innerHeight - 176);
+  const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    event.preventDefault();
+    event.currentTarget.focus({ preventScroll: true });
+    gesture.current = { y: event.clientY, height: open ? maxHeight() : 0, moved: false };
+    suppressClick.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onPointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!gesture.current) return;
+    const delta = event.clientY - gesture.current.y;
+    if (Math.abs(delta) > 4) gesture.current.moved = true;
+    if (gesture.current.moved) setDragHeight(Math.max(0, Math.min(maxHeight(), gesture.current.height + delta)));
+  };
+  const onPointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    const start = gesture.current;
+    if (!start) return;
+    suppressClick.current = start.moved;
+    if (start.moved) {
+      const delta = event.clientY - start.y;
+      setOpen(delta > 40 ? true : delta < -40 ? false : open);
+    }
+    gesture.current = null;
+    setDragHeight(null);
+  };
   const [query, setQuery] = useState("");
   const shippingPlanner = useShippingPlannerEnabled();
   const signedIn = useHomeSignedIn();
   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const matches = tasks
+    .filter(task => !portalAccess || task.href !== "/professionals/trade-account")
     .filter(task => shippingPlanner || task.href !== "#shipping")
     .filter(task => signedIn || !task.signedInOnly)
     .filter(task => words.every(word => `${task.title} ${task.detail} ${task.keywords}`.toLowerCase().includes(word)));
   useEffect(() => {
     if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); handle.current?.focus({ preventScroll: true }); } };
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    const onOutside = (event: globalThis.PointerEvent) => {
+      if (!drawer.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onOutside);
+    return () => { document.removeEventListener("keydown", onKeyDown); document.removeEventListener("pointerdown", onOutside); };
   }, [open]);
-  return <div className="pointer-events-none fixed inset-x-0 top-16 z-40 flex flex-col items-center">
-    <section id="quick-start" aria-labelledby="task-heading" aria-hidden={!open} inert={!open} className={cn("pointer-events-auto grid w-full border-b border-border bg-background shadow-lg transition-[grid-template-rows,visibility] duration-300 motion-reduce:transition-none", open ? "visible grid-rows-[1fr]" : "invisible grid-rows-[0fr] border-b-0")}>
+  const visible = open || (dragHeight ?? 0) > 0;
+  return <div className="h-11 bg-surface-deep">
+    {visible && <div className="fixed inset-x-0 bottom-0 top-16 z-30 bg-black/20" aria-hidden="true" onClick={close} />}
+    <div ref={drawer} className="pointer-events-none fixed inset-x-0 top-16 z-40 flex flex-col items-center" onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false); }}>
+    <button ref={handle} type="button" className={tabStyle} aria-expanded={open} aria-controls="quick-start" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { gesture.current = null; setDragHeight(null); }} onLostPointerCapture={() => { gesture.current = null; setDragHeight(null); }} onKeyDown={event => { if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(event.key === "ArrowDown"); } }} onClick={() => { if (!suppressClick.current) setOpen(value => !value); suppressClick.current = false; }}>
+      {open ? <>Close<ChevronUp className="h-4 w-4" aria-hidden="true"/></> : <>What do you need today?<ChevronDown className="h-4 w-4" aria-hidden="true"/></>}
+    </button>
+    <section id="quick-start" aria-labelledby="task-heading" aria-hidden={!visible} inert={!visible} style={{ maxHeight: dragHeight ?? (open ? "calc(100dvh - 11rem)" : 0) }} className={cn("pointer-events-auto w-full overflow-hidden border-border bg-background shadow-lg motion-reduce:transition-none", dragHeight === null && "transition-[max-height] duration-300", visible && "border-b")}>
       <div className="min-h-0 overflow-hidden">
-        <div className="max-h-[calc(100dvh-8.5rem)] overflow-y-auto py-9">
+        <div ref={content} className="max-h-[calc(100dvh-11rem)] overflow-y-auto overscroll-contain py-6 sm:py-9" onTouchStart={event => { const el = event.currentTarget; swipe.current = { y: event.touches[0].clientY, atBottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 2 }; }} onTouchEnd={event => { if (swipe.current?.atBottom && swipe.current.y - event.changedTouches[0].clientY > 60) close(); swipe.current = null; }} onTouchCancel={() => { swipe.current = null; }}>
           <div className="container mx-auto px-5 sm:px-8">
             <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
               <div><p className="text-xs font-semibold uppercase tracking-[.2em] text-secondary">Your next step</p><h2 id="task-heading" className="mt-2 font-serif text-3xl">What do you need today?</h2><p className="mt-2 text-muted-foreground">New here or ordering again? Go straight to what you need.</p></div>
               <label className="block lg:w-96"><span className="text-sm font-medium">Find a task or answer</span><div className="relative"><Search className="absolute right-3 top-5 h-5 w-5 text-muted-foreground" aria-hidden="true"/><input type="search" className={`${inputStyle} pr-10`} value={query} onChange={event => setQuery(event.target.value)} placeholder="Try shipping, credit, order or help" /></div></label>
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {matches.map(task => <a key={task.title} href={homeLinkHref(task.href, signedIn)} onClick={() => setOpen(false)} className="group rounded-xl border border-border bg-card p-4 transition hover:border-secondary hover:bg-secondary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary"><span className="flex items-center justify-between gap-2 font-semibold">{task.title}<ArrowUpRight className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true"/></span><span className="mt-2 block text-sm text-muted-foreground">{signedIn ? task.detail : task.signedOutDetail ?? task.detail}</span></a>)}
+              {matches.map(task => <a key={task.title} href={homeLinkHref(task.href, signedIn)} onClick={() => setOpen(false)} className="group rounded-xl border border-border bg-card p-4 transition hover:border-secondary hover:bg-secondary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-secondary"><span className="flex items-center justify-between gap-2 font-semibold">{portalAccess && task.href === "/store" ? "Buy supplies" : task.title}<ArrowUpRight className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true"/></span><span className="mt-2 block text-sm text-muted-foreground">{portalAccess && task.href === "/store" ? "Restock optical and lab supplies" : signedIn ? task.detail : task.signedOutDetail ?? task.detail}</span></a>)}
             </div>
             <p role="status" className="mt-3 text-sm text-muted-foreground">{query ? `${matches.length} matching shortcuts. ` : ""}{matches.length === 0 ? <>Try a shorter word, <Link className="underline" to="/knowledge">browse the knowledge centre</Link>, or call us.</> : "Account details and ordering require sign-in and the relevant account access."}</p>
             <a className={`${linkStyle} mt-2 pl-0 text-secondary`} href={BUSINESS.phoneHref}><Phone className="h-4 w-4" aria-hidden="true"/>Prefer a person? {BUSINESS.phoneDisplay}</a>
@@ -60,9 +105,9 @@ export function TaskFinder() {
         </div>
       </div>
     </section>
-    <button type="button" className={tabStyle} aria-expanded={open} aria-controls="quick-start" onClick={() => setOpen(value => !value)}>
-      {open ? <>Close<ChevronUp className="h-4 w-4" aria-hidden="true"/></> : <>What do you need today?<ChevronDown className="h-4 w-4" aria-hidden="true"/></>}
-    </button>
+
+
+    </div>
   </div>;
 }
 
@@ -128,7 +173,7 @@ export function ShippingComparison() {
   </section>;
 }
 
-export function RelationshipJourney() {
+export function RelationshipJourney({ portalAccess = false }: { portalAccess?: boolean }) {
   const shippingPlanner = useShippingPlannerEnabled();
   const signedIn = useHomeSignedIn();
   return <section id="why-classic" className="scroll-mt-24 bg-background py-14" aria-labelledby="relationship-heading"><div className="container mx-auto px-5 sm:px-8">
@@ -140,7 +185,7 @@ export function RelationshipJourney() {
       ["Check the complete offer", "Compare a written quote, delivery expectations and remake terms against what you buy today.", shippingPlanner ? "#shipping" : "/professionals/freight-delivery-policy", shippingPlanner ? "Plan costs & delivery" : "Read delivery guidance"],
       ["Reach the real business", "Our laboratory is in Barbados. Call the office to verify an introduction or get help using the website.", "/professionals/customer-service", "Contact the office"],
     ].map(([title, detail, href, label]) => <div key={title} className="rounded-xl border bg-card p-6"><CheckCircle2 className="h-5 w-5 text-secondary" aria-hidden="true"/><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p><a className={`${linkStyle} mt-3 pl-0 text-secondary`} href={href}>{label} <ArrowUpRight className="h-4 w-4"/></a></div>)}</div>
-    <div id="account-journey" className="mt-10 scroll-mt-24 rounded-2xl bg-surface-deep p-6 text-surface-deep-foreground sm:p-8">
+    {!portalAccess && <div id="account-journey" className="mt-10 scroll-mt-24 rounded-2xl bg-surface-deep p-6 text-surface-deep-foreground sm:p-8">
       <h3 className="font-serif text-2xl">Start with an account. Build a working relationship.</h3><p className="mt-3 max-w-3xl text-sm leading-6 text-surface-deep-foreground/80">Trade access and credit approval are separate. An online application starts a review; it does not automatically open a credit facility.</p>
       <ol className="mt-6 grid gap-6 md:grid-cols-4">{(signedIn ? [
         ["Apply & verify", "Submit your business and contact details. The team confirms your account, access and pricing."],
@@ -154,7 +199,7 @@ export function RelationshipJourney() {
         ["Start working together", "Once your account is approved, your team gets account access and a named contact."],
       ]).map(([title, detail], index) => <li key={title}><span className="text-sm font-semibold text-accent">0{index + 1}</span><h4 className="mt-2 font-semibold">{title}</h4><p className="mt-2 text-sm leading-6 text-surface-deep-foreground/75">{detail}</p></li>)}</ol>
       <p className="mt-6 border-t border-white/15 pt-4 text-sm text-surface-deep-foreground/80">{signedIn ? "With a starter limit, you may order up to the agreed amount; payment is required before further work once that limit is reached. Limits and payment due dates must be confirmed in writing. A statement balance is not an available-credit figure. " : "Payment terms are confirmed in writing by the office. "}Online requests can be made at any time; staff responses and order processing follow office hours.</p>
-      <div className="mt-5 flex flex-wrap gap-3"><Link className={`${linkStyle} bg-accent text-accent-foreground`} to="/professionals/trade-account">Start my application</Link>{signedIn ? <><Link className={`${linkStyle} border border-white/30`} to="/profile/account">Continue account setup</Link><Link className={`${linkStyle} border border-white/30`} to="/profile/statements">View my statements</Link></> : <Link className={`${linkStyle} border border-white/30`} to={homeLinkHref("/profile", false)}>Already a customer? Sign in</Link>}</div>
-    </div>
+      <div className="mt-5 flex flex-wrap gap-3"><Link className={`${linkStyle} bg-accent text-accent-foreground`} to={portalAccess ? "/profile/rx-order" : "/professionals/trade-account"}>{portalAccess ? "Start an Rx order" : "Start my application"}</Link>{signedIn ? <><Link className={`${linkStyle} border border-white/30`} to="/profile/account">My profile</Link><Link className={`${linkStyle} border border-white/30`} to="/profile/statements">View my statements</Link></> : <Link className={`${linkStyle} border border-white/30`} to={homeLinkHref("/profile", false)}>Already a customer? Sign in</Link>}</div>
+    </div>}
   </div></section>;
 }

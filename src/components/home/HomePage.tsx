@@ -33,6 +33,8 @@ import {
 import { useHomeAudience } from "@/components/home/useHomeAudience";
 import { homeLinkHref, homeLinkLabel, useHomeSignedIn } from "@/components/home/useHomeSignedIn";
 import { useScrollCraft } from "@/lib/scrollcraft/useScrollCraft";
+import { usePortalIdentity } from "@/hooks/usePortalIdentity";
+import { customerHeroPath } from "./homeContent";
 
 /* -------------------------------------------------------------------------- */
 /*  Shared Meridian Precision primitives                                       */
@@ -98,7 +100,10 @@ const SectionHeading = ({
 const HomePage = () => {
   const [audience, setAudience] = useHomeAudience();
   const isProfessional = audience === "professional";
-  const path = heroPaths[audience];
+  const signedIn = useHomeSignedIn();
+  const { identity, isStaff } = usePortalIdentity();
+  const portalAccess = signedIn && (identity?.portalAccessStatus === "approved_customer" || isStaff);
+  const path = isProfessional && portalAccess ? customerHeroPath : heroPaths[audience];
   const copy = heroCopy[audience];
   const faqs = isProfessional ? professionalFaqs : patientFaqs;
 
@@ -109,7 +114,6 @@ const HomePage = () => {
   };
   const { openAssistant } = useCompanionAssistant();
   const shippingPlanner = useShippingPlannerEnabled();
-  const signedIn = useHomeSignedIn();
   const scrollRef = useScrollCraft([audience]);
 
   const jsonLd = useMemo(() => {
@@ -223,7 +227,7 @@ const HomePage = () => {
       <Header />
 
       <main id="main-content">
-        {isProfessional ? <TaskFinder /> : null}
+        {isProfessional ? <TaskFinder portalAccess={portalAccess} /> : null}
         {/* ---------------------------------------------------------------- */}
         {/* Hero                                                              */}
         {/* ---------------------------------------------------------------- */}
@@ -381,7 +385,7 @@ const HomePage = () => {
 
         {isProfessional ? (
           <div key="professional" className="animate-fade-in">
-        <RelationshipJourney />
+        <RelationshipJourney portalAccess={portalAccess} />
         {shippingPlanner ? <ShippingComparison /> : null}
 
         {/* ---------------------------------------------------------------- */}
@@ -484,7 +488,7 @@ const HomePage = () => {
         {/* ---------------------------------------------------------------- */}
         {/* Onboarding path                                                    */}
         {/* ---------------------------------------------------------------- */}
-        <section className="bg-background py-20 sm:py-24" aria-labelledby="onboarding-heading">
+        {!portalAccess && <section className="bg-background py-20 sm:py-24" aria-labelledby="onboarding-heading">
           <div className="container mx-auto px-5 sm:px-8">
             <SectionHeading
               id="onboarding-heading"
@@ -517,7 +521,7 @@ const HomePage = () => {
               ))}
             </ol>
           </div>
-        </section>
+        </section>}
 
         {/* ---------------------------------------------------------------- */}
         {/* Support promise                                                    */}
@@ -772,10 +776,10 @@ const HomePage = () => {
                             {faq.links.map((link) => (
                               <Link
                                 key={link.href}
-                                to={link.href}
+                                to={portalAccess && link.href === "/professionals/trade-account" ? "/profile/rx-order" : link.href}
                                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary underline-offset-4 hover:underline"
                               >
-                                {link.label}
+                                {portalAccess && link.href === "/professionals/trade-account" ? "Start an Rx order" : link.label}
                                 <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                               </Link>
                             ))}
@@ -801,11 +805,11 @@ const HomePage = () => {
               id="cta-heading"
               className="mt-8 font-serif text-3xl font-semibold leading-[1.1] tracking-[-0.015em] sm:text-4xl md:text-5xl"
             >
-              {isProfessional ? "Let's get your account open." : "Ready when you are."}
+              {isProfessional ? portalAccess ? "Ready for your next order?" : "Let's get your account open." : "Ready when you are."}
             </h2>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-surface-deep-foreground/80 sm:text-lg">
               {isProfessional
-                ? "Apply in a few minutes, get pricing built around what you dispense, and start ordering with a Caribbean lab that picks up the phone."
+                ? portalAccess ? "Place an order, follow its progress, or shop for the supplies your practice needs." : "Apply in a few minutes, get pricing built around what you dispense, and start ordering with a Caribbean lab that picks up the phone."
                 : "Find a participating optician near you, or ask us a question first — we're happy to point you in the right direction."}
             </p>
 
@@ -813,8 +817,8 @@ const HomePage = () => {
               {isProfessional ? (
                 <>
                   <Button asChild variant="hero" size="lg">
-                    <Link to="/professionals/trade-account" className="group">
-                      Apply for a trade account
+                    <Link to={portalAccess ? "/profile/rx-order" : "/professionals/trade-account"} className="group">
+                      {portalAccess ? "Start an Rx order" : "Apply for a trade account"}
                       <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                     </Link>
                   </Button>
@@ -824,7 +828,7 @@ const HomePage = () => {
                     variant="ghost"
                     className="border-2 border-surface-deep-foreground/25 text-surface-deep-foreground hover:bg-surface-deep-foreground/10"
                   >
-                    <Link to="/professionals/price-list-request">Request a price list</Link>
+                    <Link to={portalAccess ? "/store" : "/professionals/price-list-request"}>{portalAccess ? "Buy supplies" : "Request a price list"}</Link>
                   </Button>
                 </>
               ) : (

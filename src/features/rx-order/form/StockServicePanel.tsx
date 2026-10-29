@@ -1,9 +1,10 @@
 // Approved stock/supplies UI, backed by the existing account-priced stock order contract.
 import { useOrderDispatchSettings } from '../hooks/useOrderDispatchSettings';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PackagePlus, ScanLine, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { resolveStockCode, variantIsChiral, useReleaseStockOrder, useStageStockOrder, useStockOrderCatalog, type StockCatalogItem, type StockDispatchProvider, type StockVariant } from '@/hooks/useStockOrderBuilder';
+import { resolveStockCode, variantIsChiral, useReleaseStockOrder, useStageStockOrder, useStockOrderCatalog, type StockCatalogItem, type StockDispatchProvider, type StockOrderDraft, type StockVariant } from '@/hooks/useStockOrderBuilder';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +20,7 @@ import './stock-order-form.css';
 const money = (price: number) => new Intl.NumberFormat('en-BB', { style: 'currency', currency: 'BBD' }).format(price);
 const errorMessage = (e: unknown) => e instanceof Error ? e.message : typeof (e as { message?: unknown })?.message === 'string' ? (e as { message: string }).message : 'Please try again.';
 
-export function StockServicePanel({ accountId, accountName }: { accountId: number | null; accountName: string }) {
+export function StockServicePanel({ accountId, accountName, submissionId: editingSubmissionId, existingDraft, onSubmitted }: { accountId: number | null; accountName: string; submissionId?: string; existingDraft?: StockOrderDraft | null; onSubmitted?: () => void }) {
   const isMobile = useIsMobile();
   const useCamera = isMobile || (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   const { toast } = useToast();
@@ -36,15 +37,76 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
   const [scanValue, setScanValue] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState('');
-  const submissionId = useRef<string | undefined>(undefined);
+  const [restoring, setRestoring] = useState(Boolean(editingSubmissionId));
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const submissionId = useRef<string | undefined>(editingSubmissionId);
+  const hydrated = useRef(false);
   const scanInFlight = useRef(false);
   const scanSession = useRef(0);
   const changeDialog = (next: typeof dialog) => { scanSession.current += 1; setDialog(next); };
-  const busy = stage.isPending || release.isPending;
+  const busy = stage.isPending || release.isPending || restoring || !!restoreError;
   const supplies = catalog.filter(p => p.product_type !== 'lens');
   const lenses = catalog.filter(p => p.product_type === 'lens');
   const hasUnpriced = lines.some((line) => line.product.price_source === "pending_lab_quote");
   const total = lines.reduce((sum, l) => sum + Math.round(stockLinePrice(l) * 100) * l.quantity, 0) / 100;
+
+  useEffect(() => {
+    if (!editingSubmissionId || hydrated.current || isLoading || !existingDraft) return;
+    hydrated.current = true;
+    if (!["staged", "failed"].includes(existingDraft.status)
+      || existingDraft.order_id || existingDraft.payload.source === "store_checkout"
+      || existingDraft.transport || existingDraft.released_at || existingDraft.gatekeeper_order_id || existingDraft.receipt) {
+      const message = 'Order not found or no longer available.';
+      setRestoreError(message);
+      setRestoring(false);
+      toast({ title: 'Could not open stock order for editing', description: message, variant: 'destructive' });
+      return;
+    }
+    const payload = existingDraft.payload;
+    const sourceItems = payload.raw_items ?? [];
+    if (!sourceItems.length) {
+      setReference(payload.order_reference ?? existingDraft.order_reference ?? '');
+      setPoNumber(payload.po_number ?? existingDraft.po_number ?? '');
+      setInstructions(payload.instructions ?? '');
+      setRestoring(false);
+      return;
+    }
+    void (async () => {
+      try {
+        const variantIds = [...new Set(sourceItems.map((item) => item.variant_id).filter((id): id is string => !!id))];
+        const variantsById = new Map<string, StockVariant>();
+        const productKeys = [...new Set(sourceItems.filter((item) => item.variant_id).map((item) => `${item.product_type}:${item.product_id}`))];
+        const variantRows = await Promise.all(productKeys.map(async (key) => {
+          const [productType, productId] = key.split(':');
+          const { data, error: variantError } = await (supabase.rpc as any)('get_store_product_variants_public', { p_product_type: productType, p_product_id: productId });
+          if (variantError) throw variantError;
+          return data ?? [];
+        }));
+        for (const row of variantRows.flat()) {
+          if (!variantIds.includes(row.id)) continue;
+          variantsById.set(row.id, { id: row.id, title: row.title, sku: row.sku ?? null, opc_code: row.opc_code ?? null, attributes: row.attributes ?? {}, metadata: row.metadata ?? {}, stock_qty: Number(row.stock_qty ?? 0), reserved_qty: Number(row.reserved_qty ?? 0), allow_backorder: Boolean(row.allow_backorder) });
+        }
+        const restored = sourceItems.map((item) => {
+          const product = catalog.find((candidate) => candidate.product_type === item.product_type && candidate.product_id === item.product_id);
+          if (!product) throw new Error(`Item ${item.product_id} is no longer in this account's order catalog.`);
+          const variant = item.variant_id ? variantsById.get(item.variant_id) : null;
+          if (item.variant_id && !variant) throw new Error(`A variant for ${product.name} is no longer available.`);
+          const side = (item.side ?? 'either') as StockSide;
+          return { key: stockLineKey(product, variant, side), product, variant, side, quantity: item.quantity, customerRef: item.customer_ref ?? '' } satisfies StockLine;
+        });
+        setLines(restored);
+        setReference(payload.order_reference ?? existingDraft.order_reference ?? '');
+        setPoNumber(payload.po_number ?? existingDraft.po_number ?? '');
+        setInstructions(payload.instructions ?? '');
+        setRestoring(false);
+      } catch (e) {
+        const message = errorMessage(e);
+        setRestoreError(message);
+        setRestoring(false);
+        toast({ title: 'Could not restore stock order items', description: message, variant: 'destructive' });
+      }
+    })();
+  }, [editingSubmissionId, existingDraft, isLoading, catalog, toast]);
 
   const add = (product: StockCatalogItem, variant: StockVariant | null, quantity = 1, side: StockSide = 'either') => {
     if (busy) return false;
@@ -98,6 +160,7 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
       }
       submissionId.current = undefined;
       setLines([]); setReference(''); setPoNumber(''); setInstructions(''); setDialog(null);
+      onSubmitted?.();
     } catch (e) { toast({ title: 'Could not submit the order', description: errorMessage(e), variant: 'destructive' }); }
   };
   const review = () => {
@@ -134,6 +197,9 @@ export function StockServicePanel({ accountId, accountName }: { accountId: numbe
   const lineTable = <div className="overflow-auto"><table className="stock-entry-table"><thead><tr><th>#</th><th>SKU / OPC</th><th>Description</th><th>Line ref.</th><th>Qty</th><th>Unit price</th><th>Subtotal</th><th /></tr></thead><tbody>{lines.map((l, i) => <tr key={l.key}><td>{i + 1}</td><td className="font-mono text-[10px]">{stockLineSku(l) || '—'}</td><td><b className="font-semibold">{l.product.name}</b><small className="block text-muted-foreground">{l.variant?.title}{l.product.product_type === 'lens' ? ` · ${l.side === 'pair' ? 'Pair' : l.side === 'either' ? 'Single lens' : l.side === 'right' ? 'Right only' : 'Left only'}` : l.product.product_type === 'addon' ? ' · Service' : ''}</small></td><td><Input aria-label={`Line ${i + 1} reference`} value={l.customerRef} onChange={e => patch(l.key, { customerRef: e.target.value })} placeholder="Optional" className="w-24" disabled={busy} /></td><td><Input aria-label={`Line ${i + 1} quantity`} type="number" min={1} max={stockLineLimit(l)} step={1} value={l.quantity} onChange={e => patch(l.key, { quantity: Math.max(1, Math.min(stockLineLimit(l), Math.floor(Number(e.target.value) || 1))) })} className="w-16" disabled={busy} /></td><td className="whitespace-nowrap">{l.product.price_source === 'pending_lab_quote' ? 'To be confirmed' : money(stockLinePrice(l))}<small className="block text-muted-foreground">per {l.product.product_type === 'lens' ? l.side === 'pair' ? 'pair' : 'lens' : 'item'}</small></td><td className="whitespace-nowrap font-semibold">{l.product.price_source === 'pending_lab_quote' ? 'Not yet quoted' : money(stockLinePrice(l) * l.quantity)}</td><td><Button type="button" size="icon" variant="ghost" aria-label={`Remove line ${i + 1}`} className="h-7 w-7" disabled={busy} onClick={() => setLines(previous => previous.filter(x => x.key !== l.key))}><Trash2 className="h-3.5 w-3.5" /></Button></td></tr>)}{!lines.length && <tr><td colSpan={8} className="stock-entry-empty"><PackagePlus className="mx-auto mb-3 h-6 w-6 text-secondary" /><b className="block text-foreground">Your order starts here</b><p className="mt-2">Choose supplies, service items, stock lenses, or scan a barcode.</p></td></tr>}</tbody></table></div>;
 
   return <div className="stock-entry space-y-3" data-testid="stock-service-panel">
+    {editingSubmissionId && <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">Repairing saved order {editingSubmissionId}. Save the corrections, then submit it from this page when it is ready.</p>}
+    {editingSubmissionId && (restoring || isLoading) && <p role="status" className="text-xs text-muted-foreground">Loading saved order…</p>}
+    {restoreError && <p role="alert" className="text-xs text-destructive">The saved order could not be restored. Return to Rx Orders and review its current state. {restoreError}</p>}
     <section className="stock-entry-card" aria-label="Order identification"><fieldset disabled={busy} className="grid gap-4 md:grid-cols-[1.15fr_.85fr_1.6fr]"><label className="stock-entry-label" htmlFor="stock-reference">Patient / order reference <span className="text-destructive">*</span><Input id="stock-reference" value={reference} maxLength={20} required placeholder="Patient name or reference" onChange={e => setReference(e.target.value)} /></label><label className="stock-entry-label" htmlFor="stock-po">PO number <span className="stock-entry-optional">(optional)</span><Input id="stock-po" value={poNumber} maxLength={15} placeholder="Purchase order number" onChange={e => setPoNumber(e.target.value)} /></label><label className="stock-entry-label" htmlFor="stock-instructions">Special instructions <span className="stock-entry-optional">(optional)</span><Textarea id="stock-instructions" value={instructions} placeholder="Anything we should know?" className="h-9 min-h-9 resize-y" onChange={e => setInstructions(e.target.value)} /></label></fieldset></section>
     <section className="stock-entry-card"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Order lines</h2><p className="mt-1 text-[11px] text-muted-foreground">Browse your account’s items, or scan an SKU / OPC.</p></div><div className="flex flex-wrap gap-2">{supplies.length > 0 && <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => setDialog('items')}><PackagePlus className="mr-1.5 h-3.5 w-3.5" />Add supplies{catalog.some(p => p.product_type === 'addon') ? ' / services' : ''}</Button>}{lenses.length > 0 && <Button type="button" size="sm" disabled={busy} onClick={() => setDialog('lenses')}>Add stock lenses</Button>}</div></div>
       {isLoading && <p className="mb-3 text-xs text-muted-foreground">Loading account catalog…</p>}{error && <p role="alert" className="mb-3 text-xs text-destructive">The account catalog could not be loaded. Try reselecting the account.</p>}{!isLoading && !error && !catalog.length && <p className="mb-3 text-xs text-muted-foreground">{accountId == null ? 'Choose an account to see available items.' : 'No stock lenses, supplies or service items are offered on this account’s pricelist.'}</p>}

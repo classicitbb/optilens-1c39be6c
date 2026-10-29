@@ -74,6 +74,21 @@ export const DEFINITION_SENTENCE =
 /* -------------------------------------------------------------------------- */
 export type Audience = "professional" | "visitor";
 
+export const customerHeroPath = {
+  eyebrow: "Your Classic Visions account",
+  title: "What are you working on today?",
+  description: "Start a prescription order, check existing orders, or restock the optical supplies you use every day.",
+  primaryLabel: "Start an Rx order",
+  primaryHref: "/profile/rx-order",
+  secondaryLabel: "Check my orders",
+  secondaryHref: "/profile/orders",
+  actions: [
+    { label: "Buy supplies", href: "/store", icon: Boxes },
+    { label: "My account", href: "/profile", icon: Building2 },
+    { label: "Get support", href: "/profile/helpdesk", icon: LifeBuoy },
+  ],
+};
+
 export const heroPaths = {
   professional: {
     eyebrow: "For opticians, clinics & optical retailers",

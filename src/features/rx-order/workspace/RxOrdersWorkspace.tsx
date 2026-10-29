@@ -5,7 +5,7 @@
 // bulk release.
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Ban, Camera, Pencil, RefreshCw, RotateCcw, Send, Settings2 } from "lucide-react";
+import { Ban, Camera, Pencil, RefreshCw, RotateCcw, Send, Settings2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
-  applyFilters, countByTab, NO_FILTERS, SOURCE_LABELS, statusLabel, TABS, type Filters, type WorkspaceItem, type WorkspaceTab,
+  applyFilters, countByTab, isBlankUnsentStockOrder, NO_FILTERS, SOURCE_LABELS, statusLabel, TABS, type Filters, type WorkspaceItem, type WorkspaceTab,
 } from "./classify";
 import { RxOrderDrawer } from "./RxOrderDrawer";
 import { emailCustomer, useRxWorkspace, type CustomerEvent } from "./useRxWorkspace";
@@ -24,6 +24,7 @@ import { useReleaseStockOrder } from "@/hooks/useStockOrderBuilder";
 import { useOrderDispatchSettings } from "../hooks/useOrderDispatchSettings";
 import { useUserRole } from "@/hooks/useUserRole";
 import { releaseErrorMessage } from "./releaseError";
+import { supabase } from "@/integrations/supabase/client";
 
 type Provider = "innovations" | "gatekeeper";
 
@@ -57,6 +58,7 @@ export default function RxOrdersWorkspace() {
   const [bulkBusy, setBulkBusy] = useState(false);
   // Customer emails are a deliberate choice each time: off unless staff switch it on.
   const [emailOnRelease, setEmailOnRelease] = useState(false);
+  const [deletingStockId, setDeletingStockId] = useState<string | null>(null);
 
   const filtered = useMemo(() => applyFilters(ws.items, filters), [ws.items, filters]);
   const counts = useMemo(() => countByTab(filtered), [filtered]);
@@ -96,6 +98,38 @@ export default function RxOrdersWorkspace() {
     if (emailOnRelease) await tellCustomer(i.submission.id, "released");
   };
 
+  const deleteBlankStockOrder = async (stock: NonNullable<WorkspaceItem["stock"]>) => {
+    if (!isAdmin || !isBlankUnsentStockOrder(stock)) return;
+    if (!window.confirm(`Permanently delete blank order ${stock.order_reference || stock.id}? This cannot be undone.`)) return;
+    setDeletingStockId(stock.id);
+    try {
+      const { data: invoices, error: invoiceError } = await (supabase.from("order_extra_invoices" as never) as any)
+        .select("id").eq("stock_submission_id", stock.id).limit(1);
+      if (invoiceError) throw invoiceError;
+      if (invoices?.length) throw new Error("This order has an additional invoice and cannot be deleted.");
+      const { data, error } = await (supabase.from("stock_order_submissions") as any)
+        .delete()
+        .eq("id", stock.id)
+        .in("status", ["staged", "failed"])
+        .is("transport", null)
+        .is("released_at", null)
+        .is("gatekeeper_order_id", null)
+        .is("receipt", null)
+        .filter("payload->order_total", "eq", "0")
+        .filter("payload->raw_items", "eq", "[]")
+        .filter("payload->items", "eq", "[]")
+        .select("id");
+      if (error) throw error;
+      if (!data?.length) throw new Error("This order changed or is no longer a blank, unsent order. Refresh and review it again.");
+      toast({ title: "Blank order deleted" });
+      ws.refresh();
+    } catch (e) {
+      toast({ title: "Could not delete blank order", description: e instanceof Error ? e.message : "Please try again.", variant: "destructive" });
+    } finally {
+      setDeletingStockId(null);
+    }
+  };
+
   const releaseSelected = async () => {
     if (!picked.length || !window.confirm(`Release ${picked.length} order${picked.length === 1 ? "" : "s"} to the lab? Each goes to its chosen sender.`)) return;
     setBulkBusy(true);
@@ -117,9 +151,13 @@ export default function RxOrdersWorkspace() {
     if (i.stock) {
       const stock = i.stock;
       const provider = providerOf(i);
+      const blank = isBlankUnsentStockOrder(stock);
+      const editable = !stock.order_id && stock.payload?.source !== "store_checkout" && ["staged", "failed"].includes(stock.status) && !stock.transport && !stock.released_at && !stock.gatekeeper_order_id && !stock.receipt;
       return <div className="inline-flex flex-wrap items-center gap-1">
         <Button size="sm" variant="outline" className="h-6 px-2 text-[10px]" onClick={() => setOpenKey(i.key)}>View order</Button>
-        {["staged", "failed"].includes(stock.status) && <>
+        {editable && <Button size="sm" variant="outline" className="h-6 gap-1 px-2 text-[10px]" onClick={() => navigate(`/admin/orders/rx/new?type=stock&submission=${encodeURIComponent(stock.id)}`)}><Pencil className="h-3 w-3" />Edit</Button>}
+        {blank && isAdmin && <Button size="sm" variant="ghost" className="h-6 gap-1 px-2 text-[10px] text-destructive" disabled={deletingStockId === stock.id} onClick={() => void deleteBlankStockOrder(stock)}><Trash2 className="h-3 w-3" />Delete blank</Button>}
+        {["staged", "failed"].includes(stock.status) && !blank && <>
           <Select value={provider} onValueChange={(v: Provider) => setChoices((c) => ({ ...c, [i.key]: v }))}>
             <SelectTrigger className="h-6 w-[100px] text-[10px]"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="innovations">OptiLens</SelectItem><SelectItem value="gatekeeper">Gatekeeper</SelectItem></SelectContent>
@@ -295,7 +333,7 @@ export default function RxOrdersWorkspace() {
                     </td>
                   )}
                   <td className="px-2 py-1.5"><div className="flex items-center gap-1"><span className="font-mono">{i.quoteNumber ?? (i.kind === "capture" ? "Capture" : "—")}</span><Badge variant="secondary" className="text-[9px]">{i.stock ? "Stock" : "Rx"}</Badge></div>{i.stock?.order_reference && <div className="mt-1 text-muted-foreground">{i.stock.order_reference}</div>}</td>
-                  <td className="px-2 py-1.5 font-medium">{i.accountName}</td>
+                  <td className="px-2 py-1.5 font-medium">{i.patientName ? <><span className="block">{i.patientName}</span><span className="block text-[10px] font-normal text-muted-foreground">{i.accountName}</span></> : i.accountName}</td>
                   <td className="px-2 py-1.5">{SOURCE_LABELS[i.source]}</td>
                   <td className="px-2 py-1.5 text-center">
                     <Badge variant="outline" className={cn("text-[9px]", STATUS_STYLES[i.status])}>{statusLabel(i.status)}</Badge>

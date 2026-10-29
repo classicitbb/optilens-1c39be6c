@@ -1,5 +1,19 @@
 # Project Status
 
+## Homepage drawer and returning customers - 2026-10-28
+
+Source: quick-start keeps its original rounded handle at the panel's bottom edge, with reserved spacing below the header. Pull down/up, click, outside tap, Escape and keyboard focus dismissal work; touch scrolling remains native until a further upward swipe at the list end. Approved portal customers and signed-in staff see order, tracking, supplies and account actions; acquisition calls to action are hidden/replaced. Reuses existing portal identity for presentation only. Full suite: 285 files / 1786 tests pass. Browser verified locally at the existing mobile viewport; no production publish. See src/components/home/CONTEXT.md.
+
+
+## Admin order recovery and capture identity - 2026-10-28
+
+Local source: admin Rx & Stock Orders can reopen staged/failed internal stock submissions for correction and explicit resubmission; deletion is offered only for blank, unsent, non-invoiced stock rows without a portal order. Existing Rx edit/retry remains available. Capture lists show extracted patient name and customer account. App TypeScript passes; scoped ESLint reports warnings only, no errors. No migration or live-order operation. See the latest HANDOFF.md entry.
+
+## Order release verification - 2026-10-28
+
+PR #651: all 1786 tests pass across 285 files; lint (warnings only), TypeScript, Deno, build, PR checks and smoke pass. Node 20/22 CI and preview deployments are green. Four order migrations are verified/applied and recorded via Lovable; gatekeeper-orders alone is deployed, with hosted Edge smoke passing. Store checkout, direct stock and Rx submissions use the automatic Gatekeeper setting. No agent-created real order transmission, invoice or payment was used in verification. PR #651 was merged during verification; the final checkout migration is in a separate follow-up. Historical failures below are superseded by this final run.
+
+
 ## Admin mobile navigation and capture - 2026-10-28
 
 Local source: AccountTopBar shows an admin-only dashboard link beside the mobile-sheet username; MyAccountSection makes the admin role a dashboard link. Shared AdminTopBar keeps applications, branding, back, search, notifications, operator attention and avatar below 768px; New, annotation, contextual help and settings move to the avatar menu, which already contains themes and account actions. AdminSidebar uses the existing accessible Sheet on mobile, initially closed, with an edge tab, no pinned state, and dismissal on outside tap, Escape, link click, navigation or viewport change. Desktop behavior is retained.

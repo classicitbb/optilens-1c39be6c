@@ -1,5 +1,9 @@
 # Frontend Runtime Module Docs
 
+## 2026-10-28 - Admin order recovery and capture patient identity
+
+In Rx & Stock Orders, staged/failed admin-created stock submissions without transport, receipt, or website order linkage open in the stock builder with account, reference, PO, instructions, raw lines and active variants restored. Staff correct the details and explicitly submit again. Delete blank is limited to empty raw/priced lines, zero total, eligible status, no dispatch evidence, no linked web order, and no supplemental invoice; the server's existing admin delete policy remains in force. Rx capture intake and workspace rows display extracted patient name with the customer account. No schema or Edge Function change.
+
 ## 2026-10-28 - Business research in Notes and CI repair
 
 crm-enrich-contacts research mode also returns the model's written summary (instructions now ask for a labelled business profile); research now uses a market-intel prompt (medium search context, up to four tool calls, 2,500 output tokens) and includes the saved website in the query; the contacts list gains Add market intel to notes, which researches and saves selected contacts sequentially (max 25, stops at the daily cap); new `contactResearch.ts` shares the research fetch with Research public web and formats the Notes block, appended to the editor draft and reloading the notes editor. CI repair: `npm audit fix` cleared zod, body-parser, undici and fast-uri advisories (lockfile only); regenerated the public content search index; refreshed six stale contract tests (live-data-gateway selects, lens-assistant hidden redirect, Website sidebar order, LabLink embed copy, launcher shortcut label). Full suite passes locally (1774 tests).
@@ -454,3 +458,8 @@ Local source: admin dashboard links in the account drawer and profile; compact s
 Mobile admin search follow-up (2026-10-28, local source): GlobalSearch collapses to a search button below 768px. Opening focuses a 16px input and shows viewport-wide results beneath the topbar; labels wrap and results scroll within 60dvh. Outside tap, close button, Escape and navigation dismiss it; Escape/close restore button focus. Desktop retains its inline input and Ctrl+K. Search permissions and data sources are unchanged.
 
 Order transmission and supplementary invoices (2026-10-28): unpriced published stock items carry price_pending and lab hold notes; account-only prices, Gatekeeper default and server-driven auto-transmit for new submissions, admin switch with manual mode, and staff-issued itemised BBD invoices payable separately from the customer cart. Website shipping transitions are blocked for unpaid extras/unquoted submissions. Test fixtures and historical drafts are not auto-sent. Existing payment settlement and access controls remain authoritative. See docs/order-transmission-and-extra-invoices.md for operational limits and verification.
+
+Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.
+The edit route owns loading the saved submission and passes it into the stock panel, preserving the panel's standalone integrations.
+
+Homepage quick-start reserves 44px below the fixed header. Its original rounded handle supports captured pointer drags; outside pointer events, Escape and keyboard focus leaving dismiss it. Homepage customer actions reuse the resolved portal identity and staff role; this is presentation only.

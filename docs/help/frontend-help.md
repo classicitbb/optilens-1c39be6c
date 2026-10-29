@@ -1,5 +1,9 @@
 # Frontend Help Docs
 
+## 2026-10-28 - Repair an admin stock order and identify captured patients
+
+In **Admin → Rx & Stock Orders**, open a staged or failed internal stock order with **Edit**, correct its patient/order reference, items or instructions, then submit it. When automatic Gatekeeper delivery is off, return to the workspace and release it there. A **Delete blank** action appears only for empty, unsent internal stock orders with no additional invoice. Website checkout orders and orders already sent to a lab cannot use these actions. Rx capture lists show the detected patient name above the customer account.
+
 ## 2026-10-22 - PDF and spreadsheet previews
 
 On a computer, PDFs now open in your browser's own viewer, so you can search, print and use page thumbnails. On phones and tablets the existing page-by-page viewer is used. In admin email, open a CSV or Excel (.xlsx) attachment to see it as a grid; click a sheet tab at the bottom to switch sheets. On helpdesk tickets, click a CSV or Excel attachment to preview it. Previews show the first 200 rows and 40 columns; download the file for the rest. Older .xls files can only be downloaded.
@@ -404,3 +408,8 @@ Local source: admin dashboard links in the account drawer and profile; compact s
 Mobile admin search follow-up (2026-10-28, local source): GlobalSearch collapses to a search button below 768px. Opening focuses a 16px input and shows viewport-wide results beneath the topbar; labels wrap and results scroll within 60dvh. Outside tap, close button, Escape and navigation dismiss it; Escape/close restore button focus. Desktop retains its inline input and Ctrl+K. Search permissions and data sources are unchanged.
 
 Order transmission and supplementary invoices (2026-10-28): unpriced published stock items carry price_pending and lab hold notes; account-only prices, Gatekeeper default and server-driven auto-transmit for new submissions, admin switch with manual mode, and staff-issued itemised BBD invoices payable separately from the customer cart. Website shipping transitions are blocked for unpaid extras/unquoted submissions. Test fixtures and historical drafts are not auto-sent. Existing payment settlement and access controls remain authoritative. See docs/order-transmission-and-extra-invoices.md for operational limits and verification.
+
+Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.
+The edit page loads the saved order before the stock entry panel opens.
+
+On the homepage, pull the rounded handle down or tap it to open shortcuts. Pull it up, tap outside, or press Escape to close. Scroll the list normally; swiping up again at the end closes it. Approved customers get Start an Rx order, Check my orders and Buy supplies.

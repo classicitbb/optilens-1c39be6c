@@ -1,5 +1,9 @@
 # Frontend Bug Reports
 
+## 2026-10-28 - Blank admin stock rows and failed-order repair
+
+Blank unsent test stock rows accumulated without a safe cleanup action, while failed admin-created stock rows had no route to reopen the saved lines and submit them again. The workspace now allows correction for eligible staged/failed internal orders and limits Delete blank to empty, zero-total, unsent rows without a website-order link or extra invoice. Captures also showed only the account name even when the extractor had identified the patient; both names now appear.
+
 ## 2026-10-28 - Market intel not reaching contact notes
 
 Find business details only wrote notes when Google Places changed nothing, and the research prompt returned a thin contact-detail list, so users still went to ChatGPT for market intel. It now always appends a market-intel profile, and the contacts list can add it to up to 25 selected contacts. Edge functions deploy only on push to main, so crm-enrich-contacts must be deployed (with OPENAI_API_KEY) before the live button shows the new profile.
@@ -481,3 +485,8 @@ Local source: admin dashboard links in the account drawer and profile; compact s
 Mobile admin search follow-up (2026-10-28, local source): GlobalSearch collapses to a search button below 768px. Opening focuses a 16px input and shows viewport-wide results beneath the topbar; labels wrap and results scroll within 60dvh. Outside tap, close button, Escape and navigation dismiss it; Escape/close restore button focus. Desktop retains its inline input and Ctrl+K. Search permissions and data sources are unchanged.
 
 Order transmission and supplementary invoices (2026-10-28): unpriced published stock items carry price_pending and lab hold notes; account-only prices, Gatekeeper default and server-driven auto-transmit for new submissions, admin switch with manual mode, and staff-issued itemised BBD invoices payable separately from the customer cart. Website shipping transitions are blocked for unpaid extras/unquoted submissions. Test fixtures and historical drafts are not auto-sent. Existing payment settlement and access controls remain authoritative. See docs/order-transmission-and-extra-invoices.md for operational limits and verification.
+
+Store checkout verification (2026-10-28): confirmed card and on-account stock orders follow the Gatekeeper automation setting; manual mode stages submissions. The obsolete assigned-pricelist rejection is removed. Rollback-only SQL fixtures verify automatic/manual queue eligibility without sending orders.
+The editor now loads saved rows at the route and supplies them to the reusable panel, avoiding query-provider coupling in other panel contexts.
+
+Fixed the homepage handle covering the hero text on phones. Restored its original rounded style with reserved spacing. Replaced acquisition prompts for approved portal customers with daily actions, using the same portal identity as the header.

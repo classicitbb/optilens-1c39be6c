@@ -1,6 +1,13 @@
+## 2026-10-28 - Homepage drawer and customer daily actions
+
+Status: Complete — no active handoff.
+
+Quick-start keeps the original rounded handle on the bottom edge of its drawer. A 44px spacer below the 64px header prevents hero overlap. Pointer capture tracks pull-down/open and pull-up/close; click, outside tap, Escape, arrow keys and focus leaving work. Drawer content retains native scrolling; an additional upward swipe at its bottom dismisses it. The closed panel is inert. The hero, quick-start shortcuts, acquisition section and footer calls to action use existing approved portal identity or signed-in staff role to show daily order, tracking, supply and account actions. No authorization, schema or hosted data change.
+
+Validation: full suite 285 files / 1786 tests passed; application TypeScript, production build, PR checks and search index generation passed. Full lint: 2460 warnings, zero errors. Existing mobile in-app browser: rounded handle clear of hero text, pull open/close, tap open, outside dismissal, Tab into search, Escape focus restoration and authenticated operational actions verified. Physical-phone gestures and signed-out browser session were not exercised. No production publication or business transaction performed. Relevant source: src/components/home/{CustomerJourney,HomePage,homeContent}. See the local ignored .codex-home-*.log files for command output and .codex-home-handle.png for mobile proof.
 ## 2026-10-28 - Gatekeeper default, unpriced ordering and supplementary invoices
 
-Status: Implementation and backend deployment complete; final green checks and push underway.
+Status: Complete — no active handoff
 
 The two 20261028 order migrations were applied by the user. All 16 live function bodies match local source; RLS and denied anonymous/direct authenticated writes verified. Registered both exact migrations in schema_migrations because the manual apply had not recorded them. Gatekeeper endpoint and public key are derived from the existing scheduler, never hardcoded in the new migration. Auto-transmit is on, no historical rows are opted in. Supabase connector account cannot access this project; Lovable MCP handles this project's backend.
 
@@ -10,7 +17,7 @@ Rollback-only rehearsal covered both migrations, unpriced item acceptance, invoi
 
 Merged current main, including the Lovable deployment commit, preserving both release entries and verified identical function source. Third migration 20261028192938_rx_unpriced_transmission_hold applied via Lovable and recorded: unquoted Rx payloads also carry the lab hold instruction, without changing transmitted/claimed payloads. Latest build, TypeScript, lint, PR checks and smoke pass. Final full suite runs with two workers to avoid Windows contention.
 
-Next executable action: npm run test -- --runInBand --maxWorkers=2
+Final validation: 285 test files / 1786 tests pass; full lint has warnings only; application TypeScript, Deno check, production build, qa:pr-checks and qa:smoke pass. Node 20 and Node 22 GitHub checks passed. PR #651 contains the complete source release. Fourth migration 20261028193836_stock_checkout_gatekeeper_default is applied and recorded; paid/on-account store checkout now uses Gatekeeper, stages when automation is off and retains the payment-confirmation gate. Its temporary-table enabled/disabled fixture passed and rolled back. Backend deployment is complete; frontend production publication awaits PR merge. No active continuation.
 
 ## 2026-10-28 - Admin mobile navigation and Rx capture
 
@@ -1026,3 +1033,12 @@ Status: Complete — no active handoff
 The dashboard showed a Vite import-analysis overlay for @zxing/browser in StockCameraScanner.tsx. Both ZXing packages were declared in package.json/package-lock.json but `npm ls @zxing/browser @zxing/library` returned empty. Restored node_modules with `npm ci`; two attempts first failed with EPERM because the app and standalone prototype Vite processes held Lightning CSS open. Stopped those local previews, completed npm ci, then restored both using their existing configurations. No application source, manifest or lockfile edit was needed. Context changes: STATUS.md, PROJECT_KNOWLEDGE.md and this handoff.
 
 Validation: npm ci and npm ls pass; npm run build passes with existing config/chunk warnings. Dashboard and scanner module return HTTP 200. Fresh authenticated browser renders the dashboard without an error overlay; console warning/error log is empty. Prototype root also returns HTTP 200. No camera permission, order write, hosted deployment or credential change. Lint and tests were not rerun for dependency restoration and context-only edits.
+## 2026-10-28 - Admin stock order repair and patient names
+
+Status: Complete — no active handoff
+
+Admin order workspace exposes Edit for staged/failed internal stock submissions with no evidence of transmission. The stock builder restores saved account, item/variant, patient/order reference, PO and instructions, then requires explicit Submit; the existing server save/release RPCs remain in use. Delete blank is limited to admin roles and staged/failed internal rows with empty raw/priced items, zero total, no portal order or dispatch receipt and no supplemental invoice. Rx capture list and Rx workspace rows show the extracted patient beside the account.
+
+Validation: `npx.cmd tsc --noEmit -p tsconfig.app.json` passes. Scoped ESLint passes with 60 warnings and no errors (existing any warnings in the touched files). `git diff --check` passes. Tests were not run. No migrations, hosted writes, order release, invoice, or payment was performed. The existing PR #652 branch also contains the repository owner's ContactsPage commit.
+
+Homepage release audit follow-up: CI identified GHSA-3f7j-7jwc-fxfj in transitive systeminformation. npm update systeminformation --ignore-scripts updated only that lockfile entry from 5.33.11 to 5.33.18; npm run security:audit passes with no unexcepted high/critical findings. No advisory exception added.

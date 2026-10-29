@@ -30,7 +30,7 @@ export function useRxWorkspace() {
     refetchInterval: 15_000,
     queryFn: async () => {
       const { data, error } = await (supabase.from("rx_capture_jobs" as never) as any)
-        .select("id, account_id, source, status, error, quote_id, created_at, storage_path, file_name")
+        .select("id, account_id, source, status, error, quote_id, created_at, storage_path, file_name, draft")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
